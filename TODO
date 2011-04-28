@@ -39,8 +39,11 @@ x (mail from Mark) - the index page is not correctly logged when it's modified
         split and check if the keys are all reachable)
     x same about eraseing items and merging pages/collapsing root page
 
-o when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env 
+x when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env 
     (hamsterdb.c:1883) and also clears the logfile, and they're lost
+    x add unittest
+
+o (mail from Mark) - investigate his files (before and after recovery)
 
 o release 1.1.10
 

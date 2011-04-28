@@ -1,3 +1,8 @@
+Apr 28, 2011 - chris ---------------------------------------------------
+o bugfix: when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
+    these functions deleted the logfiles by mistake. Fixed, and added
+    a unittest to avoid regressions
+
 Apr 27, 2011 - chris ---------------------------------------------------
 o bugfix: after SMOs which affect the root page (i.e. a new root page is
     created) the header page is sometimes not written to the log file. This 

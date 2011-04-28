@@ -438,7 +438,7 @@ fail_with_fake_cleansing:
                     goto read_headerpage;
                 }
                 else {
-                    (void)ham_env_close(env, 0);
+                    (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
                     return (HAM_NEED_RECOVERY);
                 }
             }

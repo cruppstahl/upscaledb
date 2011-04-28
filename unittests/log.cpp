@@ -872,6 +872,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenCloseEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvRecoverTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, needRecoveryTest);
         BFC_REGISTER_TEST(LogHighLevelTest, txnBeginAbortTest);
         BFC_REGISTER_TEST(LogHighLevelTest, txnBeginCommitTest);
         BFC_REGISTER_TEST(LogHighLevelTest, multipleTxnBeginCommitTest);
@@ -1173,6 +1174,45 @@ public:
 
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+
+        /* make sure that the log files are deleted and that the lsn is 1 */
+        ham_log_t *log=env_get_log(env);
+        BFC_ASSERT(log!=0);
+        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
+        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
+        BFC_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
+        ham_u64_t filesize;
+        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &filesize));
+        BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
+        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &filesize));
+        BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void needRecoveryTest(void)
+    {
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_log_append_txn_begin(env_get_log(m_env), txn));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        ham_env_t *env;
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+        /* make sure that the logs are not deleted accidentally */
+        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+        /* make sure that the logs are not deleted accidentally */
+        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+        /* make sure that the logs are not deleted accidentally */
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
 
