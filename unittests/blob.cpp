@@ -33,11 +33,12 @@ class BlobTest : public hamsterDB_fixture
     define_super(hamsterDB_fixture);
 
 public:
-    BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_size_t cachesize=0, 
-                ham_size_t pagesize=0, const char *name="BlobTest")
+    BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_bool_t use_txn=HAM_FALSE,
+                ham_size_t cachesize=0, ham_size_t pagesize=0, 
+                const char *name="BlobTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize),
-        m_pagesize(pagesize)
+        m_db(0), m_alloc(0), m_inmemory(inmemory), m_use_txn(use_txn),
+        m_cachesize(cachesize), m_pagesize(pagesize)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BlobTest, structureTest);
@@ -46,6 +47,7 @@ public:
         BFC_REGISTER_TEST(BlobTest, replaceTest);
         BFC_REGISTER_TEST(BlobTest, replaceWithBigTest);
         BFC_REGISTER_TEST(BlobTest, replaceWithSmallTest);
+        BFC_REGISTER_TEST(BlobTest, replaceBiggerAndBiggerTest);
         /* negative tests are not necessary, because hamsterdb asserts that
          * blob-IDs actually exist */
         BFC_REGISTER_TEST(BlobTest, multipleAllocReadFreeTest);
@@ -58,6 +60,7 @@ protected:
     ham_env_t *m_env;
     memtracker_t *m_alloc;
     ham_bool_t m_inmemory;
+    ham_bool_t m_use_txn;
     ham_size_t m_cachesize;
     ham_size_t m_pagesize;
 
@@ -81,7 +84,11 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    (m_inmemory ? HAM_IN_MEMORY_DB : HAM_ENABLE_TRANSACTIONS), 
+                    (m_inmemory 
+                        ? HAM_IN_MEMORY_DB 
+                        : (m_use_txn
+                            ? HAM_ENABLE_TRANSACTIONS
+                            : 0)), 
                         0644, &params[0]));
         m_env=db_get_env(m_db);
     }
@@ -266,6 +273,50 @@ public:
         }
     }
 
+    void replaceBiggerAndBiggerTest(void)
+    {
+        const int BLOCKS=32;
+        unsigned ps=env_get_pagesize(m_env);
+        ham_u8_t *buffer=(ham_u8_t *)malloc(ps*BLOCKS*2);
+        ham_offset_t blobid, blobid2;
+        ham_record_t record;
+        ::memset(&record, 0, sizeof(record));
+        ::memset(buffer,  0, ps*BLOCKS*2);
+
+        /* first: create a big blob and erase it - we want to use the
+         * space from the freelist */
+        record.data=buffer;
+        record.size=ps*BLOCKS*2;
+        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, &record, 0, &blobid));
+        BFC_ASSERT(blobid!=0);
+
+        /* verify it */
+        BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid, &record, 0));
+        BFC_ASSERT_EQUAL(record.size, (ham_size_t)ps*BLOCKS*2);
+
+        /* and erase it */
+        BFC_ASSERT_EQUAL(0, blob_free(m_env, m_db, blobid, 0));
+
+        /* now use a loop to allocate the buffer, and make it bigger and 
+         * bigger */
+        for (int i=1; i<32; i++) {
+            record.size=i*ps;
+            record.data=(void *)buffer;
+            ::memset(buffer, i, record.size);
+            if (i==1) {
+                BFC_ASSERT_EQUAL(0, 
+                        blob_allocate(m_env, m_db, &record, 0, &blobid2));
+            }
+            else {
+                BFC_ASSERT_EQUAL(0, 
+                        blob_overwrite(m_env, m_db, blobid, 
+                                    &record, 0, &blobid2));
+            }
+            blobid=blobid2;
+            BFC_ASSERT(blobid!=0);
+        }
+    }
+
     void loopInsert(int loops, int factor)
     {
         ham_u8_t *buffer;
@@ -277,7 +328,7 @@ public:
 
         blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
         BFC_ASSERT(blobid!=0);
-        if (!m_inmemory)
+        if (!m_inmemory && m_use_txn)
             BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
@@ -313,7 +364,7 @@ public:
         }
 
         ::free(blobid);
-        if (!m_inmemory)
+        if (!m_inmemory && m_use_txn)
             BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
@@ -339,7 +390,17 @@ class FileBlobTest : public BlobTest
 public:
     FileBlobTest(ham_size_t cachesize=1024, 
                 ham_size_t pagesize=0, const char *name="FileBlobTest")
-    : BlobTest(HAM_FALSE, cachesize, pagesize, name)
+    : BlobTest(HAM_FALSE, HAM_TRUE, cachesize, pagesize, name)
+    {
+    }
+};
+
+class FileBlobNoTxnTest : public BlobTest
+{
+public:
+    FileBlobNoTxnTest(ham_size_t cachesize=1024, 
+                ham_size_t pagesize=0, const char *name="FileBlobNoTxnTest")
+    : BlobTest(HAM_FALSE, HAM_FALSE, cachesize, pagesize, name)
     {
     }
 };
@@ -354,13 +415,22 @@ public:
     }
 };
 
-
 class NoCacheBlobTest : public BlobTest
 {
 public:
     NoCacheBlobTest(ham_size_t cachesize=0, 
                 ham_size_t pagesize=0, const char *name="NoCacheBlobTest")
-    : BlobTest(HAM_FALSE, cachesize, pagesize, name)
+    : BlobTest(HAM_FALSE, HAM_TRUE, cachesize, pagesize, name)
+    {
+    }
+};
+
+class NoCacheBlobNoTxnTest : public BlobTest
+{
+public:
+    NoCacheBlobNoTxnTest(ham_size_t cachesize=0, 
+                ham_size_t pagesize=0, const char *name="NoCacheBlobNoTxnTest")
+    : BlobTest(HAM_FALSE, HAM_FALSE, cachesize, pagesize, name)
     {
     }
 };
@@ -381,7 +451,7 @@ class InMemoryBlobTest : public BlobTest
 public:
     InMemoryBlobTest(ham_size_t cachesize=0, ham_size_t pagesize=0,  
             const char *name="InMemoryBlobTest")
-    : BlobTest(HAM_TRUE, cachesize, pagesize, name)
+    : BlobTest(HAM_TRUE, HAM_FALSE, cachesize, pagesize, name)
     {
     }
 };
@@ -398,7 +468,9 @@ public:
 
 
 BFC_REGISTER_FIXTURE(FileBlobTest);
+BFC_REGISTER_FIXTURE(FileBlobNoTxnTest);
 BFC_REGISTER_FIXTURE(NoCacheBlobTest);
+BFC_REGISTER_FIXTURE(NoCacheBlobNoTxnTest);
 BFC_REGISTER_FIXTURE(InMemoryBlobTest);
 
 /* re-run these tests with the Win32/Win64 pagesize setting as well! */
