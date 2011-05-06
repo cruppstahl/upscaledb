@@ -722,10 +722,12 @@ __purge_cache(ham_env_t *env)
         }
         st=db_write_page_and_delete(page, 0);
         if (st)
-            return st;
+            return (st);
     }
 
-    return (HAM_SUCCESS);
+    if (i==max_pages && max_pages!=0)
+        return (HAM_LIMITS_REACHED);
+    return (0);
 }
 
 ham_status_t
@@ -822,9 +824,12 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         }
 #endif
         if (purge) {
-            st=__purge_cache(env);
-            if (st)
-                return st;
+            do {
+                st=__purge_cache(env);
+                if (st && st!=HAM_LIMITS_REACHED)
+                    return st;
+            } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
+            st=0;
         }
     }
 
@@ -1073,9 +1078,12 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         }
 #endif
         if (purge) {
-            st=__purge_cache(env);
-            if (st)
-                return st;
+            do {
+                st=__purge_cache(env);
+                if (st && st!=HAM_LIMITS_REACHED)
+                    return st;
+            } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
+            st=0;
         }
     }
 
