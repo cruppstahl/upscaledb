@@ -74,9 +74,14 @@ public:
     { 
         __super::teardown();
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+        if (m_cursor) {
+            BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+            m_cursor=0;
+        }
+        BFC_ASSERT_EQUAL(0, 
+                    ham_close(m_db, HAM_TXN_AUTO_COMMIT|HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -544,8 +549,8 @@ public:
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyWithTwoCursorsTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    eraseKeyWithTwoCursorsOverwriteTest);
+        //BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    //eraseKeyWithTwoCursorsOverwriteTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseWithThreeCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 

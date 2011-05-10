@@ -852,9 +852,7 @@ o support cursors!!!
                 x implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
                     -> completely skip
 ==================
-some unittests have regressions - txn_cursor.cpp
-
-also run all other tests
+unittests have regressions in cursor.cpp
 ==================
                 o identify all functions which are affected and cover with
                     unittests
@@ -869,6 +867,11 @@ also run all other tests
                         x next
                         x previous
                     o ham_cursor_overwrite
+
+                o when inserting w/ a cursor, the duplicate index is currently
+                    not set correctly -> can be verified with a sequence of
+                    insert_dupe/erase -> will erase the wrong duplicate
+                    o also test w/ overwrite
 
     x review all loops that are like...
         op=txn_node_get_newest();
@@ -891,7 +894,7 @@ o add other pending patches from master
     o cache and db.c:__purge_cache
     o recovery issues
 
-o the doxygen documentation is horrible. When opening the start page I have
+. the doxygen documentation is horrible. When opening the start page I have
     *NO* idea what to look for. The start page needs an introduction and 
     some links!
     o also do this for the master branch
@@ -915,10 +918,9 @@ o monster tests currently don't test with transactions (only with recovery)
         o mode 1: create temporary transactions
         o mode 2: group 5 operations in a single transaction
         o mode 3: the whole test in a single transaction
+    o some are failing - run them all
 
 x check all TODOs in the sources
-
-o run monster tests
 
 o port to Win32
 
@@ -990,6 +992,14 @@ o if recovery is enabled: before flushing the changeset, patch the lsn in
     stored the lsn in the log file header. this can be removed; use he 
     lsn in the page header for recovery.
     --> why?? i think the current solution is good enough
+
+o if memory consumption in the txn-tree is too high: flush records to disk
+
+o new flag for transactions: HAM_COMMIT_INTENDED
+    if this flag is set, then write all records directly to the blob, not
+    to the log. the log will only contain the rid.
+    o document this (and also the drawback - that an abort will lose the 
+    blobs and they cannot be reused
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
