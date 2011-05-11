@@ -844,34 +844,32 @@ o support cursors!!!
                     -> not used, and btree_flags are also not used - removed
                 x add unittests
 
-            o if ANY duplicate key is conflicting, then ALL duplicate keys
+            x if ANY duplicate key is conflicting, then ALL duplicate keys
                 are conflicting!
                 x document this behavior in the header file
                 x what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
                     -> return an error
                 x implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
                     -> completely skip
-==================
-unittests have regressions in cursor.cpp
-==================
-                o identify all functions which are affected and cover with
+                x identify all functions which are affected and cover with
                     unittests
-                    o ham_insert
-                    o ham_erase
-                    o ham_find
-                    o ham_cursor_find
-                    o ham_cursor_erase
-                    o ham_cursor_move
+                    x ham_cursor_move
                         x first
                         x last
                         x next
                         x previous
-                    o ham_cursor_overwrite
+                    x ham_insert
+                    x ham_erase
+                    x ham_find
+                    x ham_cursor_insert
+                    x ham_cursor_find
+                    x ham_cursor_erase -- can't happen
+                    x ham_cursor_overwrite -- can't happen
 
-                o when inserting w/ a cursor, the duplicate index is currently
-                    not set correctly -> can be verified with a sequence of
-                    insert_dupe/erase -> will erase the wrong duplicate
-                    o also test w/ overwrite
+            o when inserting w/ a cursor, the duplicate index is currently
+                not set correctly -> can be verified with a sequence of
+                insert_dupe/erase -> will erase the wrong duplicate
+                o also test w/ overwrite
 
     x review all loops that are like...
         op=txn_node_get_newest();
