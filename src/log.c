@@ -325,13 +325,6 @@ ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
     if (st)
         return (st);
 
-    st=os_flush(log_get_fd(log, fdidx));
-    return (st);
-}
-
-ham_status_t
-ham_log_flush(ham_log_t *log, int fdidx)
-{
     return (os_flush(log_get_fd(log, fdidx)));
 }
 
@@ -409,8 +402,6 @@ ham_status_t
 ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
-    ham_status_t st;
-    ham_status_t st2;
     log_entry_t entry;
 
     memset(&entry, 0, sizeof(entry));
@@ -426,26 +417,13 @@ ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
     log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
     log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
 
-    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
-
-    /* 
-    do we need to flush an ABORTED transaction to disc to make it work?
-
-    Yes, we do. How would we know for sure the TXN is aborted, otherwise?
-    */
-    st2 = ham_log_flush(log, idx);
-    if (!st)
-        st = st2;
-
-    return st;
+    return (ham_log_append_entry(log, idx, &entry, sizeof(entry)));
 }
 
 ham_status_t
 ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
-    ham_status_t st;
-    ham_status_t st2;
     log_entry_t entry;
 
     memset(&entry, 0, sizeof(entry));
@@ -461,17 +439,7 @@ ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
     log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
     log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
 
-    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
-
-    /* 
-    we MUST flush a COMMITTED transaction to disc to make it work in recovery,
-    else we risk an incomplete log file while the commit came through.
-    */
-    st2 = ham_log_flush(log, idx);
-    if (st == 0)
-        st = st2;
-
-    return st;
+    return (ham_log_append_entry(log, idx, &entry, sizeof(entry)));
 }
 
 ham_status_t
@@ -500,7 +468,6 @@ ham_status_t
 ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 {
     int fdidx=log_get_current_fd(log);
-    ham_status_t st;
     log_entry_t entry;
 
     ham_env_t *env = device_get_env(page_get_device(page));
@@ -522,13 +489,7 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
     if (env_get_txn(env))
         fdidx=txn_get_log_desc(env_get_txn(env)); 
 
-    st=ham_log_append_entry(log, fdidx, &entry, sizeof(entry));
-    if (st)
-        return (st);
-
-    st = ham_log_flush(log, fdidx);
-
-    return st;
+    return (ham_log_append_entry(log, fdidx, &entry, sizeof(entry)));
 }
 
 ham_status_t

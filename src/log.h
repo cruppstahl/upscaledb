@@ -312,12 +312,6 @@ ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
         ham_size_t size);
 
 /**
- * force the log flushed to storage device
- */
-extern ham_status_t
-ham_log_flush(ham_log_t *log, int fdidx);
-
-/**
  * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
  */
 extern ham_status_t
