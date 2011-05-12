@@ -43,9 +43,44 @@ x when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env
     (hamsterdb.c:1883) and also clears the logfile, and they're lost
     x add unittest
 
-o (mail from Mark) - investigate his files (before and after recovery)
+o (mail from Mark) - lessfs with mp3 collection 
+    x investigate his files (before and after recovery)
+    x review the blob routines for "big" blobs - what could go wrong?
+        (nothing obviously, but they cannot be undone)
+    x debug into his broken files - why is db #8 empty? is the root page
+        garbage? - no, the duplicate table is empty (all zeroes)
+    o fix it - my guess is that the page modifications are logged, but the
+        blobs not. after the crash all operations in the index are undone, but 
+        the blobs will stay (including duplicate table changes etc)
+        x if logging is enabled: always go through the log, unless a page is
+            allocated from raw disk (space was not used before), or allocated
+            from the freelist, and the freelist modification was not in the
+            current txn (but i don't know if this information is available)
+        x when reading: if the page is in the cache then ALWAYS use it!
+        x use a test with 1.1.9 to verify that direct i/o is used when
+            overwriting big or normal blobs, even if logging is enabled
+            --> no, it's not used!
+
+        ------
+            after recovery, the header page is initialized but all databases
+            are empty.
+            1. was the broken/empty data in the log or in the database?
+                -> the lessfs-bak file was already empty
+                -> was there a commit in the logfile? if yes, then it was
+                    not recovered correctly. if not then try again, but wait
+                    longer.
+            2. why is this not reproducable if there's a segfault/kill -9,
+                only with poweroff?
+            3. can i write a simple test application which reproduces this
+                problem, and then ask for help?
+        ------
+
+    o try to reproduce and copy the before/after files
 
 o release 1.1.10
+
+o review DB_NEW_PAGE_DOES_THRASH_CACHE - the cache age is not really used,
+    therefore this flag is most likely not required 
 
 ------------------------------------------------------------
 
