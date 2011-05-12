@@ -312,7 +312,11 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 ham_status_t
 os_flush(ham_fd_t fd)
 {
-    (void)fd;
+    if (fsync(fd)==-1) {
+        ham_log(("fsync failed with status %u (%s)",
+                errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
     return (0);
 }
 
