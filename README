@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.10                  Fri Apr 15 01:04:47 PDT 2011
+hamsterdb Embedded Storage 1.1.10                  Fri May 13 01:04:47 PDT 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -13,7 +13,10 @@ a B+Tree index structure, uses memory mapped I/O (if available), supports
 fast Cursors and variable length keys and can create In-Memory Databases.
 
 This release fixes a bug in the cache, which caused the cache to grow and
-exceed the cache limits. A few other minor bugs were fixed.
+exceed the cache limits. A few other minor bugs were fixed, and the recovery
+process was improved: changes in the header page (i.e. when adding new
+Databases or when changing the address of a root page) were not correctly 
+logged. 
 
 2. Changes
 
@@ -27,9 +30,18 @@ Bugfixes
 * when opening a database, and recovery is enabled, the 'threshold' 
     of the log files (which decides about the log file switching) was not 
     initialized correctly.
+* header page changes (i.e. when adding databases) were not correctly logged
+    and therefore not recovered after a crash
+* when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
+    these functions deleted the logfiles by mistake. Fixed, and added
+    a unittest to avoid regressions
 
 Other Changes
-* none
+* added two new tools - one for dumping the logfile (tools/ham_log) and one
+    for recovering databases (tools/ham_recover)
+* Environments and Databases are now immediately flushed after being created,
+    otherwise the header page on disk is empty and can not be recovered after
+    a crash
 
 To see a list of all changes, look in the file ChangeLog.
 
