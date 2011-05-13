@@ -1,3 +1,7 @@
+May 13, 2011 - chris ---------------------------------------------------
+o added tools/ham_log - a tool to dump logfiles
+o added tools/ham_recover - a tool to recover broken databases
+
 Apr 28, 2011 - chris ---------------------------------------------------
 o bugfix: when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
     these functions deleted the logfiles by mistake. Fixed, and added

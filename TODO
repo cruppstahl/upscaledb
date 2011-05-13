@@ -43,13 +43,13 @@ x when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env
     (hamsterdb.c:1883) and also clears the logfile, and they're lost
     x add unittest
 
-o (mail from Mark) - lessfs with mp3 collection 
+x (mail from Mark) - lessfs with mp3 collection 
     x investigate his files (before and after recovery)
     x review the blob routines for "big" blobs - what could go wrong?
         (nothing obviously, but they cannot be undone)
     x debug into his broken files - why is db #8 empty? is the root page
         garbage? - no, the duplicate table is empty (all zeroes)
-    o fix it - my guess is that the page modifications are logged, but the
+    x fix it - my guess is that the page modifications are logged, but the
         blobs not. after the crash all operations in the index are undone, but 
         the blobs will stay (including duplicate table changes etc)
         x if logging is enabled: always go through the log, unless a page is
@@ -75,7 +75,7 @@ o (mail from Mark) - lessfs with mp3 collection
                 problem, and then ask for help?
         ------
 
-    o try to reproduce and copy the before/after files
+    x try to reproduce and copy the before/after files
 
 o release 1.1.10
 
