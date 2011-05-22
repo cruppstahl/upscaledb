@@ -47,15 +47,6 @@ public:
         memcpy(&m_entry, entry, sizeof(m_entry));
     }
 
-    LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
-            ham_u64_t data_size) {
-        memset(&m_entry, 0, sizeof(m_entry));
-        log_entry_set_txn_id(&m_entry, txn_id);
-        log_entry_set_type(&m_entry, type);
-        log_entry_set_offset(&m_entry, offset);
-        log_entry_set_data_size(&m_entry, data_size);
-    }
-
     log_entry_t m_entry;
 
 public:
@@ -83,6 +74,7 @@ public:
     std::string to_str() {
         std::ostringstream o(std::ostringstream::out);
         o << "txn:" << log_entry_get_txn_id(&m_entry);
+        o << ", lsn:" << log_entry_get_lsn(&m_entry);
         o << ", type:" << log_entry_get_type(&m_entry) << "(" << log_entry_type2str(log_entry_get_type(&m_entry)) << ")";
         o << ", offset:" << log_entry_get_offset(&m_entry);
         o << ", datasize:" << log_entry_get_data_size(&m_entry);
@@ -120,6 +112,7 @@ readLog(ham_env_t *env, const char *filename)
         st=ham_log_get_entry(log, &iter, &entry, &data);
         if (st)
             error("ham_log_get_entry", st);
+
         if (log_entry_get_lsn(&entry)==0)
             break;
         
@@ -131,10 +124,6 @@ readLog(ham_env_t *env, const char *filename)
                     (int)log_entry_get_offset(&entry),
                     (int)log_entry_get_data_size(&entry));
                     */
-
-        // skip CHECKPOINTs, they are not interesting for our tests
-        if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
-            continue;
 
         vec.push_back(LogEntry(&entry));
     }
