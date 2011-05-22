@@ -60,22 +60,18 @@ x (mail from Mark) - lessfs with mp3 collection
         x use a test with 1.1.9 to verify that direct i/o is used when
             overwriting big or normal blobs, even if logging is enabled
             --> no, it's not used!
-
-        ------
-            after recovery, the header page is initialized but all databases
-            are empty.
-            1. was the broken/empty data in the log or in the database?
-                -> the lessfs-bak file was already empty
-                -> was there a commit in the logfile? if yes, then it was
-                    not recovered correctly. if not then try again, but wait
-                    longer.
-            2. why is this not reproducable if there's a segfault/kill -9,
-                only with poweroff?
-            3. can i write a simple test application which reproduces this
-                problem, and then ask for help?
-        ------
-
     x try to reproduce and copy the before/after files
+
+o mail from mark - surprise shutdown and recovery sometimes fails
+    x reproduction is simple
+    x flush cache only between transactions (after commit or abort)
+    o when STRICT then flush more cache than necessary!
+        -> also flush when abort fails with CACHE_TOO_BIG!
+    o there are some regressions (LogTest)
+    o LogTest: why are there so many gaps in the LSNs?
+
+o compare performance to 1.1.9
+o compare memory consumption to 1.1.9 (w/ lessfs)
 
 o release 1.1.10
 

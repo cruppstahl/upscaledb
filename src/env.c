@@ -1302,6 +1302,9 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         memset(txn, 0, sizeof(*txn));
         allocator_free(env_get_allocator(env), txn);
+
+        /* now it's the time to purge caches */
+        env_purge_cache(env);
     }
 
     return (st);
@@ -1314,6 +1317,9 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         memset(txn, 0, sizeof(*txn));
         allocator_free(env_get_allocator(env), txn);
+
+        /* now it's the time to purge caches */
+        env_purge_cache(env);
     }
 
     return (st);

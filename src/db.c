@@ -691,7 +691,7 @@ db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
 }
 
 static ham_status_t
-__purge_cache(ham_env_t *env)
+__purge_cache_max20(ham_env_t *env)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -720,6 +720,7 @@ __purge_cache(ham_env_t *env)
             else
                 break;
         }
+
         st=db_write_page_and_delete(page, 0);
         if (st)
             return (st);
@@ -727,6 +728,25 @@ __purge_cache(ham_env_t *env)
 
     if (i==max_pages && max_pages!=0)
         return (HAM_LIMITS_REACHED);
+    return (0);
+}
+
+ham_status_t
+env_purge_cache(ham_env_t *env)
+{
+    ham_status_t st;
+    ham_cache_t *cache=env_get_cache(env);
+
+    /* don't purge while txn is in progress */
+    if (env_get_txn(env))
+        return (0);
+
+    do {
+        st=__purge_cache_max20(env);
+        if (st && st!=HAM_LIMITS_REACHED)
+            return st;
+    } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
+
     return (0);
 }
 
@@ -824,12 +844,9 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         }
 #endif
         if (purge) {
-            do {
-                st=__purge_cache(env);
-                if (st && st!=HAM_LIMITS_REACHED)
-                    return st;
-            } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
-            st=0;
+            st=env_purge_cache(env);
+            if (st)
+                return st;
         }
     }
 
@@ -1078,12 +1095,9 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         }
 #endif
         if (purge) {
-            do {
-                st=__purge_cache(env);
-                if (st && st!=HAM_LIMITS_REACHED)
-                    return st;
-            } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
-            st=0;
+            st=env_purge_cache(env);
+            if (st)
+                return st;
         }
     }
 
@@ -1237,6 +1251,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
     ham_env_t *env=device_get_env(page_get_device(page));
     
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
+    ham_assert(0 == page_get_refcount(page), (0));
 
     /*
      * write page to disk if it's dirty (and if we don't have 

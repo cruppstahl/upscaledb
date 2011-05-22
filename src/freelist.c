@@ -2804,7 +2804,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
              */
             st=env_alloc_page(&page, env, PAGE_TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
-            if (!page)
+            if (st || !page)
             {
                 if (prev_page)
                 {
@@ -2813,6 +2813,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
                 ham_assert(st != 0, (0));
                 return st;
             }
+ 
             freel_set_overflow(fp, page_get_self(page));
             /* done editing /previous/ freelist page */
             if (prev_page)

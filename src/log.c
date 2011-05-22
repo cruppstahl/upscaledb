@@ -337,6 +337,8 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
     int other=cur ? 0 : 1;
 
     memset(&entry, 0, sizeof(entry));
+    log_entry_set_lsn(&entry, log_get_lsn(log));
+    log_increment_lsn(log);
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_BEGIN);
 

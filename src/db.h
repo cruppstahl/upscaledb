@@ -892,6 +892,14 @@ db_initialize_local(ham_db_t *db);
 extern ham_status_t
 db_initialize_remote(ham_db_t *db);
 
+/*
+ * purge the cache if the limits are exceeded
+ *
+ * TODO move this to env.c
+ */
+extern ham_status_t
+env_purge_cache(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C" {

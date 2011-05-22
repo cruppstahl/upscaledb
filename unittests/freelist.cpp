@@ -19,6 +19,7 @@
 #include "../src/page.h"
 #include "../src/freelist.h"
 #include "../src/env.h"
+#include "../src/txn.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -84,6 +85,7 @@ public:
         freelist_payload_t *f;
 
         f=env_get_freelist(m_env);
+        env_set_dirty(m_env);
 
         BFC_ASSERT(freel_get_allocated_bits16(f)==0);
         freel_set_allocated_bits16(f, 13);
