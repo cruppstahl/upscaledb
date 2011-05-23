@@ -35,6 +35,73 @@
 
 using namespace bfc;
 
+class LogEntry : public log_entry_t
+{
+public:
+    LogEntry(log_entry_t *entry, ham_u8_t *data) { 
+        memcpy(&m_entry, entry, sizeof(m_entry));
+        if (data)
+            m_data.insert(m_data.begin(), data, 
+                    data+log_entry_get_data_size(entry));
+    }
+
+    LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
+            ham_u64_t data_size, ham_u8_t *data=0) {
+        memset(&m_entry, 0, sizeof(m_entry));
+        log_entry_set_txn_id(&m_entry, txn_id);
+        log_entry_set_type(&m_entry, type);
+        log_entry_set_offset(&m_entry, offset);
+        log_entry_set_data_size(&m_entry, data_size);
+        if (data)
+            m_data.insert(m_data.begin(), data, data+data_size);
+    }
+
+    std::vector<ham_u8_t> m_data;
+    log_entry_t m_entry;
+
+public:
+    static std::string log_entry_type2str(int type)
+{
+switch (type)
+{
+case LOG_ENTRY_TYPE_TXN_BEGIN                :
+return "LOG_ENTRY_TYPE_TXN_BEGIN";
+
+case LOG_ENTRY_TYPE_TXN_ABORT                :
+return "LOG_ENTRY_TYPE_TXN_ABORT";
+                
+case LOG_ENTRY_TYPE_TXN_COMMIT               :
+return "LOG_ENTRY_TYPE_TXN_COMMIT";
+
+case LOG_ENTRY_TYPE_PREWRITE                 :
+return "LOG_ENTRY_TYPE_PREWRITE";
+
+case LOG_ENTRY_TYPE_WRITE                    :
+return "LOG_ENTRY_TYPE_WRITE";
+
+case LOG_ENTRY_TYPE_CHECKPOINT               :
+return "LOG_ENTRY_TYPE_CHECKPOINT";
+
+case LOG_ENTRY_TYPE_FLUSH_PAGE              :
+return "LOG_ENTRY_TYPE_FLUSH_PAGE";
+
+default:
+return "LOG_ENTRY_TYPE_???";
+}
+}
+
+    std::string to_str()
+    {
+        std::ostringstream o(std::ostringstream::out);
+        o << "txn:" << log_entry_get_txn_id(&m_entry);
+        o << ", type:" << log_entry_get_type(&m_entry) << "(" << log_entry_type2str(log_entry_get_type(&m_entry)) << ")";
+        o << ", offset:" << log_entry_get_offset(&m_entry);
+        o << ", datasize:" << log_entry_get_data_size(&m_entry);
+        return o.str();
+    }
+};
+
+
 class LogTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
@@ -628,16 +695,6 @@ public:
         log_entry_t entry;
         ham_u8_t *data;
 
-        /*
-        while (1) {
-            BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-            printf("lsn: %u, txn: %u, type: %u, off: %llu\n",
-                    (unsigned)entry._lsn, (unsigned)entry._txn_id, (unsigned)entry._flags, entry._offset);
-            if (log_entry_get_lsn(&entry)==0)
-                break;
-        }
-        */
-
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
         checkLogEntry(&entry, 28, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
@@ -675,9 +732,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
         checkLogEntry(&entry, 3, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 2, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
+        checkLogEntry(&entry, 2, 0, LOG_ENTRY_TYPE_PREWRITE, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
+        checkLogEntry(&entry, 1, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
         checkLogEntry(&entry, 0, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
 
@@ -711,32 +768,42 @@ public:
         log_entry_t entry;
         ham_u8_t *data;
 
+/*
+        while (1) {
+            BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+            printf("lsn: %u, txn: %u, type: %s, off: %llu\n",
+                    (unsigned)entry._lsn, (unsigned)entry._txn_id, LogEntry::log_entry_type2str(entry._flags).c_str(), entry._offset);
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+        }
+*/
+
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 25, 11, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 38, 11, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 24, 11, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 37, 11, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 23, 0, LOG_ENTRY_TYPE_CHECKPOINT, data);
+        checkLogEntry(&entry, 36, 0, LOG_ENTRY_TYPE_CHECKPOINT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 22, 10, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 34, 10, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 21, 10, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 33, 10, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 20, 9, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 31, 9, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 19, 9, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 30, 9, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 18, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 28, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 17, 8, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 27, 8, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 16, 7, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 25, 7, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 15, 7, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 24, 7, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 14, 6, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        checkLogEntry(&entry, 22, 6, LOG_ENTRY_TYPE_TXN_ABORT, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry, 13, 6, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        checkLogEntry(&entry, 21, 6, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
         BFC_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
 
@@ -803,72 +870,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
     
-};
-
-class LogEntry : public log_entry_t
-{
-public:
-    LogEntry(log_entry_t *entry, ham_u8_t *data) { 
-        memcpy(&m_entry, entry, sizeof(m_entry));
-        if (data)
-            m_data.insert(m_data.begin(), data, 
-                    data+log_entry_get_data_size(entry));
-    }
-
-    LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
-            ham_u64_t data_size, ham_u8_t *data=0) {
-        memset(&m_entry, 0, sizeof(m_entry));
-        log_entry_set_txn_id(&m_entry, txn_id);
-        log_entry_set_type(&m_entry, type);
-        log_entry_set_offset(&m_entry, offset);
-        log_entry_set_data_size(&m_entry, data_size);
-        if (data)
-            m_data.insert(m_data.begin(), data, data+data_size);
-    }
-
-    std::vector<ham_u8_t> m_data;
-    log_entry_t m_entry;
-
-public:
-    static std::string log_entry_type2str(int type)
-{
-switch (type)
-{
-case LOG_ENTRY_TYPE_TXN_BEGIN                :
-return "LOG_ENTRY_TYPE_TXN_BEGIN";
-
-case LOG_ENTRY_TYPE_TXN_ABORT                :
-return "LOG_ENTRY_TYPE_TXN_ABORT";
-                
-case LOG_ENTRY_TYPE_TXN_COMMIT               :
-return "LOG_ENTRY_TYPE_TXN_COMMIT";
-
-case LOG_ENTRY_TYPE_PREWRITE                 :
-return "LOG_ENTRY_TYPE_PREWRITE";
-
-case LOG_ENTRY_TYPE_WRITE                    :
-return "LOG_ENTRY_TYPE_WRITE";
-
-case LOG_ENTRY_TYPE_CHECKPOINT               :
-return "LOG_ENTRY_TYPE_CHECKPOINT";
-
-case LOG_ENTRY_TYPE_FLUSH_PAGE              :
-return "LOG_ENTRY_TYPE_FLUSH_PAGE";
-
-default:
-return "LOG_ENTRY_TYPE_???";
-}
-}
-
-    std::string to_str()
-    {
-        std::ostringstream o(std::ostringstream::out);
-        o << "txn:" << log_entry_get_txn_id(&m_entry);
-        o << ", type:" << log_entry_get_type(&m_entry) << "(" << log_entry_type2str(log_entry_get_type(&m_entry)) << ")";
-        o << ", offset:" << log_entry_get_offset(&m_entry);
-        o << ", datasize:" << log_entry_get_data_size(&m_entry);
-        return o.str();
-    }
 };
 
 class LogHighLevelTest : public hamsterDB_fixture
