@@ -699,6 +699,12 @@ env_initialize_remote(ham_env_t *env);
 extern ham_status_t
 env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
 
+/*
+ * purge the cache if the limits are exceeded
+ */
+extern ham_status_t
+env_purge_cache(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C" {

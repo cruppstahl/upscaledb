@@ -65,9 +65,10 @@ x (mail from Mark) - lessfs with mp3 collection
 o mail from mark - surprise shutdown and recovery sometimes fails
     x reproduction is simple
     x flush cache only between transactions (after commit or abort)
+    x there are some regressions (LogTest)
+    x move env_purge_cache to env.c
     o when STRICT then flush more cache than necessary!
         -> also flush when abort fails with CACHE_TOO_BIG!
-    o there are some regressions (LogTest)
     o LogTest: why are there so many gaps in the LSNs?
 
 o compare performance to 1.1.9
