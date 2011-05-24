@@ -71,8 +71,7 @@ x mail from mark - surprise shutdown and recovery sometimes fails
         -> also flush when abort fails with CACHE_TOO_BIG!
     x LogTest: why are there so many gaps in the LSNs?
 
-x compare performance to 1.1.9
-    x yes, we're 10-20% faster! :)
+x compare performance to 1.1.9 - yes, it's similar
 
 o compare memory consumption to 1.1.9 (w/ lessfs)
 
