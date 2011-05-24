@@ -96,8 +96,9 @@ public:
         key_set_flags(key, (ham_u8_t)0x13);
         BFC_ASSERT_EQUAL((ham_u8_t)0x13, key_get_flags(key));
 
-        ::strcpy((char *)key_get_key(key), "abc");
-        BFC_ASSERT_EQUAL(0, ::strcmp((char *)key_get_key(key), "abc"));
+        char *p=(char *)&key_get_key(key)[0];
+        *p='a';
+        BFC_ASSERT_EQUAL('a', (char)(*key_get_key(key)));
 
         BFC_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);

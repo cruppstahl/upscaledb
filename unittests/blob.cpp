@@ -315,6 +315,8 @@ public:
             blobid=blobid2;
             BFC_ASSERT(blobid!=0);
         }
+        BFC_ASSERT_EQUAL(0, blob_free(m_env, m_db, blobid, 0));
+        ::free(buffer);
     }
 
     void loopInsert(int loops, int factor)
