@@ -104,7 +104,7 @@ my_get_aligned_entry_size(ham_size_t data_size)
 }
 
 static ham_status_t
-my_log_clear_file(ham_log_t *log, int idx)
+__log_clear_file(ham_log_t *log, int idx)
 {
     ham_status_t st;
 
@@ -127,7 +127,7 @@ my_log_clear_file(ham_log_t *log, int idx)
 }
 
 static ham_status_t
-my_insert_checkpoint(ham_log_t *log, ham_env_t *env)
+__insert_checkpoint(ham_log_t *log, ham_env_t *env)
 {
     ham_status_t st;
     ham_device_t *dev=env_get_device(env);
@@ -337,8 +337,6 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
     int other=cur ? 0 : 1;
 
     memset(&entry, 0, sizeof(entry));
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_BEGIN);
 
@@ -351,8 +349,7 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
             log_get_threshold(log)) {
         txn_set_log_desc(txn, cur);
     }
-    else if (log_get_open_txn(log, other)==0) 
-    {
+    else if (log_get_open_txn(log, other)==0) {
         /*
          * otherwise, if the other file does no longer have open transactions,
          * insert a checkpoint, delete the other file and use the other file
@@ -360,11 +357,11 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
          */
 
         /* checkpoint! */
-        st=my_insert_checkpoint(log, txn_get_env(txn));
+        st=__insert_checkpoint(log, txn_get_env(txn));
         if (st)
             return (st);
         /* now clear the other file */
-        st=my_log_clear_file(log, other);
+        st=__log_clear_file(log, other);
         if (st)
             return (st);
         /* continue writing to the other file */
@@ -380,10 +377,7 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
         txn_set_log_desc(txn, cur);
     }
 
-    /*
-     * now set the lsn (it might have been modified in 
-     * my_insert_checkpoint())
-     */
+    /* now set the lsn (it might have been modified in __insert_checkpoint()) */
     log_entry_set_lsn(&entry, log_get_lsn(log));
     log_increment_lsn(log);
 
@@ -571,7 +565,7 @@ ham_log_clear(ham_log_t *log)
     int i;
 
     for (i=0; i<2; i++) {
-        if ((st=my_log_clear_file(log, i)))
+        if ((st=__log_clear_file(log, i)))
             return (st);
     }
 
