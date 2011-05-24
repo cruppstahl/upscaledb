@@ -325,7 +325,12 @@ ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
     if (st)
         return (st);
 
+#if 0
+    /* disabled flush - it really kills performance */
     return (os_flush(log_get_fd(log, fdidx)));
+#else
+    return (0);
+#endif
 }
 
 ham_status_t
