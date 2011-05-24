@@ -249,13 +249,13 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     if (txn_get_cursor_refcount(txn)) {
         ham_trace(("transaction cannot be aborted till all attached "
                     "cursors are closed"));
-        return HAM_CURSOR_STILL_OPEN;
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
     if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_abort(env_get_log(env), txn);
         if (st) 
-            return st;
+            return (st);
     }
 
     env_set_txn(env, 0);
@@ -297,9 +297,8 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 			 * only need to do this for index pages anyhow, and those are the 
              * ones which have their 'ownership' set.
 			 */
-			if (db) {
+			if (db)
 				stats_page_is_nuked(db, head, HAM_FALSE); 
-			}
         }
 
         ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),

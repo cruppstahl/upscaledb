@@ -61,12 +61,7 @@ __purge_cache_max20(ham_env_t *env)
     ham_status_t st;
     ham_page_t *page;
     ham_cache_t *cache=env_get_cache(env);
-    /* max_pages specifies how many pages we try to flush in case the
-     * cache is full. some benchmarks showed that 10% is a good value. */
-    unsigned i, max_pages=cache_get_cur_elements(cache)/10;
-    /* but still we set an upper limit to avoid IO spikes */
-    if (max_pages>20)
-        max_pages=20;
+    unsigned i, max_pages=cache_get_cur_elements(cache);
 
     /* don't remove pages from the cache if it's an in-memory database */
     if (!cache)
@@ -75,6 +70,19 @@ __purge_cache_max20(ham_env_t *env)
         return (0);
     if (!cache_too_big(cache))
         return (0);
+
+    /* 
+     * max_pages specifies how many pages we try to flush in case the
+     * cache is full. some benchmarks showed that 10% is a good value. 
+     *
+     * if STRICT cache limits are enabled then purge as much as we can
+     */
+    if (!(env_get_rt_flags(env)&HAM_CACHE_STRICT)) {
+        max_pages/=10;
+        /* but still we set an upper limit to avoid IO spikes */
+        if (max_pages>20)
+            max_pages=20;
+    }
 
     /* try to free 10% of the unused pages */
     for (i=0; i<max_pages; i++) {
@@ -1377,7 +1385,9 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         memset(txn, 0, sizeof(*txn));
         allocator_free(env_get_allocator(env), txn);
+    }
 
+    if (st==0 || st==HAM_CACHE_FULL) {
         /* now it's the time to purge caches */
         env_purge_cache(env);
     }
