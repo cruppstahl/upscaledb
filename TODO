@@ -73,7 +73,7 @@ x mail from mark - surprise shutdown and recovery sometimes fails
 
 x compare performance to 1.1.9 - yes, it's similar
 
-o compare memory consumption to 1.1.9 (w/ lessfs)
+x compare memory consumption to 1.1.9 (w/ lessfs) - less than before!
 
 o release 1.1.10
 

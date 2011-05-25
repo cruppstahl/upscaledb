@@ -1,3 +1,11 @@
+May 27, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.10
+
+May 25, 2011 - chris ---------------------------------------------------
+o the cachesize is now more respected than before; while earlier releases
+	frequently exceeded the cache when necessary, hamsterdb will now try to
+	remain in the cache boundaries as good as possible
+
 May 13, 2011 - chris ---------------------------------------------------
 o added tools/ham_log - a tool to dump logfiles
 o added tools/ham_recover - a tool to recover broken databases
