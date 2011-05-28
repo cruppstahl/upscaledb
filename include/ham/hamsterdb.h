@@ -1055,7 +1055,7 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
 HAM_EXPORT ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
 
-/** Flag for @ref ham_txn_commit */
+/* Flag for @ref ham_txn_commit */
 #define HAM_TXN_FORCE_WRITE                                    1
 
 /**
