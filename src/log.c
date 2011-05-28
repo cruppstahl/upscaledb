@@ -403,6 +403,7 @@ ham_status_t
 ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
+    ham_status_t st;
     log_entry_t entry;
 
     memset(&entry, 0, sizeof(entry));
@@ -418,13 +419,17 @@ ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
     log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
     log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
 
-    return (ham_log_append_entry(log, idx, &entry, sizeof(entry)));
+    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
+    if (st)
+        return (st);
+    return (os_flush(log_get_fd(log, idx)));
 }
 
 ham_status_t
 ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
+    ham_status_t st;
     log_entry_t entry;
 
     memset(&entry, 0, sizeof(entry));
@@ -440,7 +445,10 @@ ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
     log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
     log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
 
-    return (ham_log_append_entry(log, idx, &entry, sizeof(entry)));
+    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
+    if (st)
+        return (st);
+    return (os_flush(log_get_fd(log, idx)));
 }
 
 ham_status_t
@@ -823,9 +831,6 @@ ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
         if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
             goto bail;
         
-        if (log_entry_get_lsn(&entry)==0)
-            break;
-
         switch (log_entry_get_type(&entry)) {
             /* checkpoint: no need to continue */
             case LOG_ENTRY_TYPE_CHECKPOINT:
@@ -924,6 +929,9 @@ ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
             allocator_free(log_get_allocator(log), data);
             data=0;
         }
+
+        if (log_entry_get_lsn(&entry)==0)
+            break;
     }
 
 bail:
