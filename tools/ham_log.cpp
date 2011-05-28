@@ -113,9 +113,6 @@ readLog(ham_env_t *env, const char *filename)
         if (st)
             error("ham_log_get_entry", st);
 
-        if (log_entry_get_lsn(&entry)==0)
-            break;
-        
         /*
         printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
                     (int)log_entry_get_lsn(&entry),
@@ -126,6 +123,9 @@ readLog(ham_env_t *env, const char *filename)
                     */
 
         vec.push_back(LogEntry(&entry));
+
+        if (log_entry_get_lsn(&entry)==0)
+            break;
     }
 
     ham_log_close(log, HAM_TRUE);
