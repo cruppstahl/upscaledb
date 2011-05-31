@@ -984,6 +984,10 @@ o improve journalling and get rid of the physical log as much as possible
         entries to the journal file. in such cases, the journal entry of an
         insert or erase (w/ SMO) contains the modified pages as well.
     o api function to get a list of pending transactions
+    o be careful - even if the btree operations are atomic, the whole
+        insert/erase is not because it also affects the blob area and the
+        freelist (and maybe the header page, if the root page address is
+        modified)
 
 o if recovery is enabled: before flushing the changeset, patch the lsn in
     the page header (it fits in 8 free bytes). in the previous release we 
