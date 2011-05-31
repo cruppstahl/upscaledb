@@ -22,6 +22,16 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 
+/* TODO TODO TODO
+ * duplicate function is in db.c 
+ */
+static ham_bool_t
+__btree_cursor_is_nil(ham_bt_cursor_t *btc)
+{
+    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+}
+
 static ham_status_t
 __dupecache_resize(dupecache_t *c, ham_size_t capacity)
 {
@@ -188,9 +198,18 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             return (st);
     }
 
+    if ((what&DUPE_CHECK_BTREE) && (what&DUPE_CHECK_TXN)) {
+        if (__btree_cursor_is_nil(btc) && !txn_cursor_is_nil(txnc)) {
+            ham_bool_t equal_keys;
+            (void)cursor_sync(cursor, 0, &equal_keys);
+            if (!equal_keys)
+                bt_cursor_set_to_nil(btc);
+        }
+    }
+
     /* first collect all duplicates from the btree. They're already sorted,
      * therefore we can just append them to our duplicate-cache. */
-    if ((what&DUPE_CHECK_BTREE) && !bt_cursor_is_nil(btc)) {
+    if ((what&DUPE_CHECK_BTREE) && !__btree_cursor_is_nil(btc)) {
         ham_size_t i;
         ham_bool_t needs_free=HAM_FALSE;
         dupe_table_t *table=0;
@@ -371,22 +390,13 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
     return (st);
 }
 
-/* TODO TODO TODO
- * duplicate function is in db.c 
- */
-static ham_bool_t
-__btree_cursor_is_nil(ham_bt_cursor_t *btc)
-{
-    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
-}
-
 ham_status_t
 cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
 {
     ham_status_t st=0;
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
-    *equal_keys=HAM_FALSE;
+    if (equal_keys)
+        *equal_keys=HAM_FALSE;
 
     if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
         txn_opnode_t *node;
@@ -403,7 +413,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         /* if we had a direct hit instead of an approx. match then
          * set fresh_start to false; otherwise do_local_cursor_move
          * will move the btree cursor again */
-        if (st==0 && !ham_key_get_approximate_match_type(k))
+        if (st==0 && equal_keys && !ham_key_get_approximate_match_type(k))
             *equal_keys=HAM_TRUE;
     }
     else if (txn_cursor_is_nil(txnc)) {
@@ -426,7 +436,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         * set fresh_start to false; otherwise do_local_cursor_move
         * will move the btree cursor again */
         ham_cursor_close(clone);
-        if (st==0 && !ham_key_get_approximate_match_type(k))
+        if (st==0 && equal_keys && !ham_key_get_approximate_match_type(k))
             *equal_keys=HAM_TRUE;
     }
 

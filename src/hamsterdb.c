@@ -2993,8 +2993,10 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     db_set_cursors(db, *cursor);
 
     cursor_set_db(*cursor, db);
-    if (txn)
+    if (txn) {
+        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
         cursor_set_txn(*cursor, txn);
+    }
 
     return (0);
 }
@@ -3040,6 +3042,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     /* initialize the remaining fields */
     cursor_set_txn(*dest, cursor_get_txn(src));
     cursor_set_db(*dest, db);
+
+    if (cursor_get_txn(src))
+        txn_set_cursor_refcount(cursor_get_txn(src), 
+                txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
     return (db_set_error(db, 0));
 }

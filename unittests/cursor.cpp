@@ -1124,7 +1124,6 @@ public:
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* erase it */
-        key.data=(void *)"11111";
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_find(m_cursor, &key, 0));
         BFC_ASSERT_EQUAL(0, 

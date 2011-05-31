@@ -457,9 +457,13 @@ bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other)
 ham_bool_t
 bt_cursor_is_nil(ham_bt_cursor_t *cursor)
 {
-    return (!(cursor->_flags&BT_CURSOR_FLAG_COUPLED) &&
-            !(cursor->_flags&BT_CURSOR_FLAG_UNCOUPLED) &&
-            !(cursor->_flags&CURSOR_COUPLED_TO_TXN));
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED)
+        return (HAM_FALSE);
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED)
+        return (HAM_FALSE);
+    if (bt_cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+        return (HAM_FALSE);
+    return (HAM_TRUE);
 }
 
 ham_status_t

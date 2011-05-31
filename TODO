@@ -869,6 +869,9 @@ o support cursors!!!
             o when inserting w/ a cursor, the duplicate index is currently
                 not set correctly -> can be verified with a sequence of
                 insert_dupe/erase -> will erase the wrong duplicate
+                x fails in RemoteTest::cursorGetDuplicateCountTest
+                o create separate tests
+                o mix tests with btree/txn
                 o also test w/ overwrite
 
     x review all loops that are like...
@@ -880,6 +883,9 @@ o support cursors!!!
         -> cursor.c uses a different loop because this one was not working!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
+
+o some unittests are still failing, i.e. PartialInsert/SortedDupes, since 
+    these are no longer allowed in combination with Transactions
 
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6

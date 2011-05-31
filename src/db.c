@@ -2160,6 +2160,24 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, record, flags));
 }
 
+/* TODO move this function to cursor.h/cursor.c */
+static ham_bool_t
+__cursor_has_duplicates(ham_cursor_t *cursor)
+{
+    ham_db_t *db=cursor_get_db(cursor);
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+        return (HAM_FALSE);
+
+    if (txn_cursor_get_coupled_op(txnc))
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
+    else
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
+
+    return (dupecache_get_count(cursor_get_dupecache(cursor)));
+}
+
 static ham_status_t
 _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
@@ -2221,12 +2239,13 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     /* 
      * if transactions are enabled: only insert the key/record pair into
-     * the Transaction structore. Otherwise immediately write to disk
+     * the Transaction structure. Otherwise immediately write to the btree.
      */
     if (!st) {
-        if (txn || local_txn)
+        if (txn || local_txn) {
             st=db_insert_txn(db, txn ? txn : local_txn, 
                             key, &temprec, flags, 0);
+        }
         else
             st=be->_fun_insert(be, key, &temprec, flags);
     }
@@ -2449,7 +2468,6 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         ham_cursor_t **cursor)
 {
     ham_backend_t *be;
-    ham_status_t st;
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
@@ -2457,15 +2475,7 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be->_fun_cursor_create)
         return (HAM_NOT_IMPLEMENTED);
 
-    st=be->_fun_cursor_create(be, db, txn, flags, cursor);
-    if (st)
-        return (st);
-
-    if (txn)
-        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
-    cursor_set_txn(*cursor, txn);
-
-    return (0);
+    return (be->_fun_cursor_create(be, db, txn, flags, cursor));
 }
 
 static ham_status_t
@@ -2490,10 +2500,6 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
         dupecache_clone(cursor_get_dupecache(src), 
                         cursor_get_dupecache(*dest));
     }
-
-    if (cursor_get_txn(src))
-        txn_set_cursor_refcount(cursor_get_txn(src), 
-                txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
     return (0);
 }
@@ -2592,12 +2598,29 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, 
                     &temprec, flags);
         if (st==0) {
+            dupecache_t *dc=cursor_get_dupecache(cursor);
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
-            /* reset the dupe cache, otherwise the next 
-             * cursor_update_dupecache won't collect the duplicates */
-            if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
-                dupecache_reset(cursor_get_dupecache(cursor));
+            /* reset the dupecache, otherwise __cursor_has_duplicates()
+             * does not update the dupecache correctly */
+            dupecache_reset(dc);
+            /* if duplicate keys are enabled: set the duplicate index of
+             * the new key */
+            if (st==0 && __cursor_has_duplicates(cursor)) {
+                int i;
+                txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+                txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+                ham_assert(op!=0, (""));
+
+                for (i=0; i<dupecache_get_count(dc); i++) {
+                    dupecache_line_t *l=dupecache_get_elements(dc)+i;
+                    if (!dupecache_line_use_btree(l)
+                            && dupecache_line_get_txn_op(l)==op) {
+                        cursor_set_dupecache_index(cursor, i+1);
+                        break;
+                    }
+                }
+            }
         }
     }
     else {
@@ -2727,23 +2750,6 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
-}
-
-static ham_bool_t
-__cursor_has_duplicates(ham_cursor_t *cursor)
-{
-    ham_db_t *db=cursor_get_db(cursor);
-    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
-
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
-        return (HAM_FALSE);
-
-    if (txn_cursor_get_coupled_op(txnc))
-        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
-    else
-        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
-
-    return (dupecache_get_count(cursor_get_dupecache(cursor)));
 }
 
 static ham_status_t
