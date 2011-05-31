@@ -1960,9 +1960,12 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
      *  if it's uncoupled to btree AND coupled: compare keys; set to nil
      *      if keys are identical; (TODO - improve performance by nil'ling 
      *      all other cursors from the same btree page)
+     *
+     *  do NOT nil the current cursor - it's coupled to the key, and the
+     *  coupled key is still needed by the caller
      */
     while (c) {
-        if (c->_fun_is_nil(c))
+        if (c->_fun_is_nil(c) || c==current)
             goto next;
         if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN)
             goto next;

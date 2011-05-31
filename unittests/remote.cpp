@@ -124,7 +124,10 @@ protected:
 
     void teardown(void)
     {
-        ham_srv_close(m_srv);
+        if (m_srv) {
+            ham_srv_close(m_srv);
+            m_srv=0;
+        }
         ham_env_close(m_env, HAM_AUTO_CLEANUP);
         ham_env_delete(m_env);
         ham_delete(m_db);

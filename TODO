@@ -933,12 +933,13 @@ o update documentation
             w/ txn's -> sorting dupes, approx. matching, ...
         o transactional behavior/conflicts of duplicate keys
 
-XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
 o be_set_dirty is not really required, is it? the flushes are always explicit
 
 o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
+    o the cache should give preference to index pages
 
 o need a function to get the txn of a conflict (same as in v2)
 
@@ -997,11 +998,11 @@ o if recovery is enabled: before flushing the changeset, patch the lsn in
 
 o if memory consumption in the txn-tree is too high: flush records to disk
 
-o new flag for transactions: HAM_COMMIT_INTENDED
+o new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
     to the log. the log will only contain the rid.
     o document this (and also the drawback - that an abort will lose the 
-    blobs and they cannot be reused
+        blobs and they cannot be reused
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
@@ -1044,7 +1045,7 @@ o when recovering, give users the choice if active transactions should be
 
 . many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
-XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o flush transactions in background
 
