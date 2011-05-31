@@ -768,9 +768,6 @@ public:
         BFC_ASSERT_EQUAL(0, insert(txn2, "key1"));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, findCursor(&cursor, "key1"));
 
-        /* cursor must be nil */
-        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
-
         /* reset cursor hack */
         cursor_set_txn(m_cursor, 0);
 

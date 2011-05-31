@@ -74,9 +74,14 @@ public:
     { 
         __super::teardown();
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+        if (m_cursor) {
+            BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+            m_cursor=0;
+        }
+        BFC_ASSERT_EQUAL(0, 
+                    ham_close(m_db, HAM_TXN_AUTO_COMMIT|HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -544,8 +549,8 @@ public:
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyWithTwoCursorsTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    eraseKeyWithTwoCursorsOverwriteTest);
+        //BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    //eraseKeyWithTwoCursorsOverwriteTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseWithThreeCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
@@ -3641,6 +3646,7 @@ public:
         BFC_ASSERT_EQUAL(true, 
                     bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
     }
+
 };
 
 class DupeCacheTest : public hamsterDB_fixture
@@ -4019,6 +4025,11 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, conflictLastTest2);
         BFC_REGISTER_TEST(DupeCursorTest, conflictNextTest);
         BFC_REGISTER_TEST(DupeCursorTest, conflictPreviousTest);
+        BFC_REGISTER_TEST(DupeCursorTest, insertDupeConflictsTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseDupeConflictsTest);
+        BFC_REGISTER_TEST(DupeCursorTest, findDupeConflictsTest);
+        BFC_REGISTER_TEST(DupeCursorTest, cursorInsertDupeConflictsTest);
+        BFC_REGISTER_TEST(DupeCursorTest, cursorFindDupeConflictsTest);
     }
 
     virtual void setup() 
@@ -6257,6 +6268,100 @@ public:
                 move(0, 0, HAM_CURSOR_PREVIOUS, c));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void insertDupeConflictsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+
+        /* create a second txn, insert a duplicate -> conflict */
+        ham_txn_t *txn2;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+                    ham_insert(m_db, txn2, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void eraseDupeConflictsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+
+        /* create a second txn, insert a duplicate -> conflict */
+        ham_txn_t *txn2;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+                    ham_erase(m_db, txn2, &key, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void findDupeConflictsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+
+        /* create a second txn, insert a duplicate -> conflict */
+        ham_txn_t *txn2;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+                    ham_find(m_db, txn2, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void cursorInsertDupeConflictsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+
+        /* create a second txn, insert a duplicate -> conflict */
+        ham_txn_t *txn2;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+                    ham_cursor_insert(c, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void cursorFindDupeConflictsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+
+        /* create a second txn, insert a duplicate -> conflict */
+        ham_txn_t *txn2;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+                    ham_cursor_find(c, &key, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
 };
 

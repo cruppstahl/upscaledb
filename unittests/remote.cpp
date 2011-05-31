@@ -1149,6 +1149,7 @@ protected:
         ham_env_t *env;
         ham_size_t count;
         ham_cursor_t *c;
+        ham_txn_t *txn;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
@@ -1156,7 +1157,8 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 14, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &c));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, txn, 0, &c));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_get_duplicate_count(0, &count, 0));
@@ -1194,6 +1196,7 @@ protected:
         BFC_ASSERT_EQUAL((ham_size_t)2, count);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_delete(db);

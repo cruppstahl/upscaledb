@@ -2588,9 +2588,14 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if (cursor_get_txn(cursor) || local_txn) {
         st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, 
                     &temprec, flags);
-        if (st==0)
+        if (st==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            /* reset the dupe cache, otherwise the next 
+             * cursor_update_dupecache won't collect the duplicates */
+            if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
+                dupecache_reset(cursor_get_dupecache(cursor));
+        }
     }
     else {
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
