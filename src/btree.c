@@ -145,11 +145,6 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 
 /**                                                                 
  * estimate the number of keys per page, given the keysize          
- *                                                                  
- * @remark this function is only available when                        
- * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
- *
- * @note This is a B+-tree 'backend' method.
  */                                                                 
 static ham_status_t
 my_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys, 
@@ -497,13 +492,8 @@ btree_create(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
     btree->_fun_insert=btree_insert;
     btree->_fun_erase=btree_erase;
     btree->_fun_enumerate=btree_enumerate;
-#ifdef HAM_ENABLE_INTERNAL
     btree->_fun_check_integrity=btree_check_integrity;
     btree->_fun_calc_keycount_per_page=my_fun_calc_keycount_per_page;
-#else
-    btree->_fun_check_integrity=0;
-    btree->_fun_calc_keycount_per_page=0;
-#endif
     btree->_fun_cursor_create = my_fun_cursor_create;
     btree->_fun_close_cursors = my_fun_close_cursors;
     btree->_fun_uncouple_all_cursors=my_fun_uncouple_all_cursors;

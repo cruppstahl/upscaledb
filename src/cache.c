@@ -321,7 +321,6 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 ham_status_t
 cache_check_integrity(ham_cache_t *cache)
 {
-#ifdef HAM_ENABLE_INTERNAL
     ham_size_t elements=0;
     ham_page_t *head;
 
@@ -344,6 +343,5 @@ cache_check_integrity(ham_cache_t *cache)
         return (HAM_INTEGRITY_VIOLATED);
     }
 
-#endif
     return (0);
 }

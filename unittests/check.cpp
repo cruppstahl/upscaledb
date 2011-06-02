@@ -68,17 +68,14 @@ public:
 
     void emptyDatabaseTest()
     {
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_check_integrity(0, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
-#endif
     }
 
     void smallDatabaseTest()
     {
-#ifdef HAM_ENABLE_INTERNAL
         ham_key_t key;
         ham_record_t rec;
         ::memset(&key, 0, sizeof(key));
@@ -93,12 +90,10 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
-#endif
     }
 
     void levelledDatabaseTest()
     {
-#ifdef HAM_ENABLE_INTERNAL
         ham_key_t key;
         ham_record_t rec;
         ham_parameter_t params[]={
@@ -123,7 +118,6 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
-#endif
     }
 };
 

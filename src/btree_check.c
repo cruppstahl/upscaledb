@@ -14,8 +14,6 @@
  *
  */
 
-#ifdef HAM_ENABLE_INTERNAL
-
 #include "config.h"
 
 #include <string.h>
@@ -330,4 +328,3 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     return (0);
 }
 
-#endif /* HAM_ENABLE_INTERNAL */

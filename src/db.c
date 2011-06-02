@@ -1428,7 +1428,6 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 static ham_status_t
 _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
-#ifdef HAM_ENABLE_INTERNAL
     ham_status_t st;
     ham_backend_t *be;
 
@@ -1458,9 +1457,6 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     st=be->_fun_check_integrity(be);
     changeset_clear(env_get_changeset(db_get_env(db)));
     return (st);
-#else
-    return (HAM_NOT_IMPLEMENTED);
-#endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
 struct keycount_t 

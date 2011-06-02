@@ -2745,7 +2745,6 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
-#ifdef HAM_ENABLE_INTERNAL
     ham_status_t st;
 
     if (!db) {
@@ -2761,20 +2760,11 @@ ham_check_integrity(ham_db_t *db, ham_txn_t *txn)
 
     st=db->_fun_check_integrity(db, txn);
     return (db_set_error(db, st));
-#else /* !HAM_ENABLE_INTERNAL */
-    ham_trace(("hamsterdb was compiled without support for internal "
-                "functions"));
-    if (db)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-    else
-        return (HAM_NOT_IMPLEMENTED);
-#endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
 ham_status_t HAM_CALLCONV
 ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
 {
-#ifdef HAM_ENABLE_INTERNAL
     ham_status_t st;
     ham_backend_t *be;
 
@@ -2815,15 +2805,6 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
     st=be->_fun_calc_keycount_per_page(be, keycount, keysize);
 
     return (db_set_error(db, st));
-
-#else /* !HAM_ENABLE_INTERNAL */
-    ham_trace(("hamsterdb was compiled without support for internal "
-                "functions"));
-    if (db)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-    else
-        return (HAM_NOT_IMPLEMENTED);
-#endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
 ham_status_t HAM_CALLCONV

@@ -81,16 +81,11 @@ then
 fi
 
 #
-# Enable internal functions
+# Enable internal functions (obsolete)
 #
 AC_ARG_ENABLE(internal,
     AC_HELP_STRING([--enable-internal],
-        [Enables internal functions (ham_check_integrity)]))
-if test "$enable_internal" = "yes"
-then
-    CFLAGS="${CFLAGS} -DHAM_ENABLE_INTERNAL"
-    settings="$settings (internal)"
-fi
+        [obsolete; internal functions are now enabled by default]))
 
 #
 # Disable AES encryption

@@ -691,14 +691,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         ham_size_t keycount = 0;
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, ps2));
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
         BFC_ASSERT_EQUAL(/* 4852 */ (unsigned)1212, keycount);
-#else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
-                ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
-#endif
         keycount = 1212; /* for 32k pagesize */
         BFC_ASSERT_EQUAL(0, 
                 ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
@@ -743,11 +738,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         std::cerr << std::endl;
 
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
-#else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL));
-#endif
 
         my_rec_t *r;
         my_key_t *k;
@@ -785,11 +776,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         time(&t[2]);
 
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
-#else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL));
-#endif
 
         std::cerr << std::endl;
 
@@ -1016,20 +1003,13 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         ham_size_t keycount = 0;
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, 
                 ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
-#endif
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
         BFC_ASSERT_EQUAL((unsigned)8, keycount);
-#else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
-                ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
-#endif
         keycount = 8;
         BFC_ASSERT_EQUAL(0, 
                 ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));

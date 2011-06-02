@@ -914,6 +914,10 @@ x the doxygen documentation is horrible. When opening the start page I have
     some links!
     x also do this for the master branch
 
+x obsolete HAM_ENABLE_INTERNAL and --enable-internal
+    x also remove from README.TXT
+    x add to Changelog
+
 o add other pending patches from master
     o cache and db.c:__purge_cache
     o recovery issues
@@ -946,6 +950,15 @@ o update documentation
         o I/O
 
 o version on this branch is 2.0.0 rc.1 UNSTABLE
+
+o fully (!) automize the whole release process for unix; the result (on
+    success) are the following files:
+    o tar-ball
+    o the README
+    o the documentation as a tar
+    o the Changelog
+    o the release notes (a template)
+    o the output (xml) of the monster tests
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
