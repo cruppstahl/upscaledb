@@ -2118,7 +2118,7 @@ public:
     }
 
     ham_status_t insertTxn(const char *key, const char *rec, 
-                        ham_u32_t flags=0)
+                        ham_u32_t flags=0, ham_cursor_t *cursor=0)
     {
         ham_key_t k={0};
         k.data=(void *)key;
@@ -2127,7 +2127,10 @@ public:
         r.data=(void *)rec;
         r.size=rec ? strlen(rec)+1 : 0;
 
-        return (ham_insert(m_db, m_txn, &k, &r, flags));
+        if (cursor)
+            return (ham_cursor_insert(cursor, &k, &r, flags));
+        else
+            return (ham_insert(m_db, m_txn, &k, &r, flags));
     }
 
     ham_status_t eraseTxn(const char *key)
@@ -4005,6 +4008,8 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, eraseLastTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseAfterTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseBeforeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseWithCursorTest);
+        BFC_REGISTER_TEST(DupeCursorTest, overwriteWithCursorTest);
 
         BFC_REGISTER_TEST(DupeCursorTest, negativeCountTest);
         BFC_REGISTER_TEST(DupeCursorTest, countTxnTest);
@@ -5947,6 +5952,38 @@ public:
 
         for (int i=0; i<C; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
+    }
+
+    void eraseWithCursorTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_erase(m_cursor, 0));
+
+        /* now verify that the last duplicate was erased */
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+    }
+
+    void overwriteWithCursorTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        ham_record_t rec={0};
+        rec.size=5;
+        rec.data=(void *)"r1.4";
+        BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        /* now verify that the last duplicate was overwritten */
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.4", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
     }
 
     ham_u32_t count(const char *key, ham_status_t st=0)

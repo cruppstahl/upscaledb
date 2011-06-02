@@ -446,7 +446,7 @@ x implement approx. matching through transaction tree - will have to
 
 x merge bugfixes of 1.1.9 - 6aed8c1ae7f9a6ea2f19
 
-o support cursors!!!
+x support cursors!!!
     x need a transaction cursor which can operate on txn trees
         x create new structure
             x unittest
@@ -685,7 +685,7 @@ o support cursors!!!
         x check if other unittests can be re-enabled
         x LongTxnCursorTest::moveNextWhileErasingTest - check for nil
 
-    o implement support for duplicates
+    x implement support for duplicates
         the problem with duplicates is that their position can depend on
         other factors, i.e. the (volatile) position of the neighbor
         element (when using DUPLICATE_AFTER) or the sort position. therefore
@@ -739,7 +739,7 @@ o support cursors!!!
         x couple cursor to a duplicate in the btree- already exists
         x couple cursor to a duplicate in the txn-tree
 
-        o implement test-driven
+        x implement test-driven
             x insert duplicates in btree (and move through them)
             x insert duplicates w/ LAST (default)
             x insert duplicates w/ FIRST
@@ -866,13 +866,12 @@ o support cursors!!!
                     x ham_cursor_erase -- can't happen
                     x ham_cursor_overwrite -- can't happen
 
-            o when inserting w/ a cursor, the duplicate index is currently
+            x when inserting w/ a cursor, the duplicate index is currently
                 not set correctly -> can be verified with a sequence of
                 insert_dupe/erase -> will erase the wrong duplicate
                 x fails in RemoteTest::cursorGetDuplicateCountTest
-                o create separate tests
-                o mix tests with btree/txn
-                o also test w/ overwrite
+                x create separate tests
+                x also test w/ overwrite
 
     x review all loops that are like...
         op=txn_node_get_newest();
@@ -884,7 +883,7 @@ o support cursors!!!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
 
-o some unittests are still failing, i.e. PartialInsert/SortedDupes, since 
+x some unittests are still failing, i.e. PartialInsert/SortedDupes, since 
     these are no longer allowed in combination with Transactions
 
 x add hamsterdb.spec file from 1.1.8
