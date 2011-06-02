@@ -920,10 +920,10 @@ x obsolete HAM_ENABLE_INTERNAL and --enable-internal
 
 o monster tests currently don't test with transactions (only with recovery)
     x cleanup (i.e. remove matrix) and move to github
-    o track memory consumption
     o new mode -txn/--transactions
+        o add config values/getopt stuff
         o mode 1: create temporary transactions
-        o mode 2: group 5 operations in a single transaction
+        o mode 2: group N (i.e. 5) operations in a single transaction
         o mode 3: the whole test in a single transaction
     o some are failing - run them all
 
@@ -965,6 +965,10 @@ o fully (!) automize the whole release process for unix; the result (on
     o the output (xml) of the monster tests
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
+
+o monster-test
+    o track memory consumption
+    o add/finalize xml output
 
 o be_set_dirty is not really required, is it? the flushes are always explicit
 
