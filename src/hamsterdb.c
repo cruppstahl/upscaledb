@@ -568,13 +568,13 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
      * when creating a Database, HAM_SORT_DUPLICATES is only allowed in
      * combination with HAM_ENABLE_DUPLICATES, but not with Transactions
      */
-    if (create && (flags & HAM_SORT_DUPLICATES)) {
-        if (!(flags & HAM_ENABLE_DUPLICATES)) {
+    if (create && (flags&HAM_SORT_DUPLICATES)) {
+        if (!(flags&HAM_ENABLE_DUPLICATES)) {
             ham_trace(("flag HAM_SORT_DUPLICATES only allowed in combination "
                         "with HAM_ENABLE_DUPLICATES"));
             return (HAM_INV_PARAMETER);
         }
-        if (!(flags & HAM_ENABLE_TRANSACTIONS)) {
+        if (flags&HAM_ENABLE_TRANSACTIONS) {
             ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
                         "with HAM_ENABLE_TRANSACTIONS"));
             return (HAM_INV_PARAMETER);

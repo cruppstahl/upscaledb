@@ -1991,6 +1991,14 @@ public:
     {
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
+        /* create w/ transactions and sorting -> fail */
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+            ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS|HAM_SORT_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+            ham_open(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS|HAM_SORT_DUPLICATES));
+
         /* create w/o dupes, open with sorting -> fail */
         BFC_ASSERT_EQUAL(0, 
             ham_create(m_db, BFC_OPATH(".test"), 
