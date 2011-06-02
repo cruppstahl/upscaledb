@@ -639,6 +639,7 @@ journal_recover(journal_t *journal)
     ham_env_t *env=journal_get_env(journal);
     ham_u64_t start_lsn=log_get_lsn(env_get_log(env));
     journal_iterator_t it={0};
+    void *aux=0;
 
     /* recovering the journal is rather simple - we iterate over the 
      * files and re-issue every operation (incl. txn_begin and txn_abort).
@@ -677,7 +678,11 @@ journal_recover(journal_t *journal)
 
     do {
         journal_entry_t entry={0};
-        void *aux;
+
+        if (aux) {
+            allocator_free(journal_get_allocator(journal), aux);
+            aux=0;
+        }
 
         /* get the next entry */
         st=journal_get_entry(journal, &it, &entry, (void **)&aux);
@@ -783,11 +788,6 @@ journal_recover(journal_t *journal)
             st=HAM_IO_ERROR;
         }
 
-        if (aux) {
-            allocator_free(journal_get_allocator(journal), aux);
-            aux=0;
-        }
-
         if (st)
             goto bail;
 
@@ -795,6 +795,11 @@ journal_recover(journal_t *journal)
     } while (1);
 
 bail:
+    if (aux) {
+        allocator_free(journal_get_allocator(journal), aux);
+        aux=0;
+    }
+
     /* all transactions which are not yet committed will be aborted */
     (void)__abort_uncommitted_txns(env);
 

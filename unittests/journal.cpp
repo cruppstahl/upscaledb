@@ -441,6 +441,8 @@ public:
                     strcmp("rec1", 
                             (char *)journal_entry_insert_get_record_data(ins)));
 
+        allocator_free(journal_get_allocator(log), ins);
+
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     }
 
@@ -482,6 +484,8 @@ public:
                     strcmp("key1", 
                             (char *)journal_entry_erase_get_key_data(er)));
 
+        allocator_free(journal_get_allocator(log), er);
+
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     }
 
@@ -504,12 +508,14 @@ public:
         BFC_ASSERT_EQUAL(1, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
 
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
+
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, 
                 journal_open(m_env, 0, &log));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
-
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
+        env_set_journal(m_env, log);
     }
 
     void iterateOverEmptyLogTest(void)
@@ -741,8 +747,9 @@ public:
             BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id(txn));
             vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
                         JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            ham_u64_t txnid=txn_get_id(txn);
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
+            vec.push_back(LogEntry(3+i*2, txnid,
                         JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
         }
 
