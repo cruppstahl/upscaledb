@@ -316,6 +316,9 @@ public:
         BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_WRITE, 
                         log_entry_get_type(&entry));
 
+        if (data)
+            allocator_free(log_get_allocator(log), data);
+
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));

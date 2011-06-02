@@ -736,7 +736,8 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 {
     ham_status_t st;
     ham_offset_t tellpos=0;
-    ham_page_t *page = NULL;
+    ham_page_t *page=NULL;
+    ham_bool_t allocated_by_me=HAM_FALSE;
 
     *page_ref = 0;
     ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
@@ -785,12 +786,16 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         page=page_new(env);
         if (!page)
             return HAM_OUT_OF_MEMORY;
+        allocated_by_me=HAM_TRUE;
     }
 
     /* can we allocate a new page for the cache? */
     if (cache_too_big(env_get_cache(env))) {
-        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
+        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) {
+            if (allocated_by_me)
+                page_delete(page);
             return (HAM_CACHE_FULL);
+        }
     }
 
     ham_assert(tellpos == 0, (0));
@@ -3925,8 +3930,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * make sure that the cursor is properly coupled - either to the
      * txn- or the b-tree */
     if (st==HAM_KEY_ERASED_IN_TXN) {
-        txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+        txn_op_t *op=0;
 move_next_or_prev:
+        op=txn_cursor_get_coupled_op(txnc);
         if (cursor_get_dupecache_index(cursor)) {
             dupecache_line_t *e=dupecache_get_elements(dc)+
                     (cursor_get_dupecache_index(cursor)-1);

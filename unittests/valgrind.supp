@@ -69,3 +69,139 @@
    fun:my_insert_nosplit
 }
 
+{
+   leak_gnutls1
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   fun:gnutls_global_init
+   fun:Curl_gtls_init
+   fun:curl_global_init
+   fun:curl_easy_init
+}
+
+{
+   leak_gnutls2
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
+   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
+   fun:gnutls_global_init
+   fun:Curl_gtls_init
+   fun:curl_global_init
+}
+
+{
+   leak_gnutls3
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
+   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
+   fun:gnutls_global_init
+   fun:Curl_gtls_init
+   fun:curl_global_init
+}
+
+{
+   leak_gnutls4
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   fun:gnutls_global_init
+   fun:Curl_gtls_init
+   fun:curl_global_init
+   fun:curl_easy_init
+}
+
+{
+   leak_gnutls5
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
+   fun:gnutls_global_init
+   fun:Curl_gtls_init
+   fun:curl_global_init
+   fun:curl_easy_init
+}
+
+{
+   leak_bfc1
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN3bfc7fixture11catch_valueEim
+   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
+   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+   fun:_ZN3bfc10testrunner3runEPKcS2_b
+   fun:main
+}
+
+{
+   leak_bfc2
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN3bfc7fixture11catch_valueEim
+   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
+   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+   fun:_ZN3bfc10testrunner3runEPKcS2_b
+   fun:main
+}
+
+{
+   leak_bfc3
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN3bfc7fixture11catch_valueEim
+   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
+   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+   fun:_ZN3bfc10testrunner3runEPKcS2_b
+   fun:main
+}
+

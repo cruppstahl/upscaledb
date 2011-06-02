@@ -918,16 +918,18 @@ x obsolete HAM_ENABLE_INTERNAL and --enable-internal
     x also remove from README.TXT
     x add to Changelog
 
-o add other pending patches from master
-    o cache and db.c:__purge_cache
-    o recovery issues
-
 o monster tests currently don't test with transactions (only with recovery)
+    x cleanup (i.e. remove matrix) and move to github
+    o track memory consumption
     o new mode -txn/--transactions
         o mode 1: create temporary transactions
         o mode 2: group 5 operations in a single transaction
         o mode 3: the whole test in a single transaction
     o some are failing - run them all
+
+o add other pending patches from master
+    o cache and db.c:__purge_cache
+    o recovery issues
 
 o port to Win32
 
@@ -948,6 +950,8 @@ o update documentation
         o journal/log
         o cache
         o I/O
+        o unittests
+        o monstertests
 
 o version on this branch is 2.0.0 rc.1 UNSTABLE
 
