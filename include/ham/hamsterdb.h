@@ -14,6 +14,92 @@
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
  * @version 1.1.6
+ *
+ * @mainpage
+ *
+ * This manual documents the hamsterdb C API. hamsterdb is a key/value database
+ * that is linked directly into your application, avoiding all the overhead
+ * that is related to external databases and RDBMS systems.
+ *
+ * This header file declares all functions and macros that are needed to use
+ * hamsterdb. The comments are formatted in Doxygen style and can be extracted
+ * to automagically generate documentation. The documentation is also available
+ * online here: <a href="http://hamsterdb.com/public/scripts/html_www">
+    http://hamsterdb.com/public/scripts/html_www</a>.
+ *
+ * In addition, there's a tutorial book hosted on github:
+ * <a href="http://github.com/cruppstahl/hamsterdb/wiki/Tutorial">
+    http://github.com/cruppstahl/hamsterdb/wiki/Tutorial</a>.
+ *
+ * If you want to create or open Databases or Environments (a collection of
+ * multiple Databases), the following functions will be interesting for you:
+ * <table>
+ * <tr><td>@ref ham_env_new</td><td>Allocates a new Environment handle</td></tr>
+ * <tr><td>@ref ham_env_create_ex</td><td>Creates an Environment</td></tr>
+ * <tr><td>@ref ham_env_open_ex</td><td>Opens an Environment</td></tr>
+ * <tr><td>@ref ham_env_close</td><td>Closes an Environment</td></tr>
+ * <tr><td>@ref ham_env_delete</td><td>Deletes the Environment handle</td></tr>
+ * <tr><td>@ref ham_new</td><td>Allocates a new handle for a Database</td></tr>
+ * <tr><td>@ref ham_env_create_db</td><td>Creates a Database in an
+    Environment</td></tr>
+ * <tr><td>@ref ham_env_open_db</td><td>Opens a Database from an
+    Environment</td></tr>
+ * <tr><td>@ref ham_close</td><td>Closes a Database</td></tr>
+ * <tr><td>@ref ham_delete</td><td>Deletes the Database handle</td></tr>
+ * </table>
+ *
+ * To insert, lookup or delete key/value pairs, the following functions are
+ * used:
+ * <table>
+ * <tr><td>@ref ham_insert</td><td>Inserts a key/value pair into a
+    Database</td></tr>
+ * <tr><td>@ref ham_find</td><td>Lookup of a key/value pair in a
+    Database</td></tr>
+ * <tr><td>@ref ham_erase</td><td>Erases a key/value pair from a
+    Database</td></tr>
+ * </table>
+ * 
+ * Alternatively, you can use Cursors to iterate over a Database:
+ * <table>
+ * <tr><td>@ref ham_cursor_create</td><td>Creates a new Cursor</td></tr>
+ * <tr><td>@ref ham_cursor_find</td><td>Positions the Cursor on a key</td></tr>
+ * <tr><td>@ref ham_cursor_insert</td><td>Inserts a new key/value pair with a 
+    Cursor</td></tr>
+ * <tr><td>@ref ham_cursor_erase</td><td>Deletes the key/value pair that 
+    the Cursor points to</td></tr>
+ * <tr><td>@ref ham_cursor_overwrite</td><td>Overwrites the value of the current    key</td></tr>
+ * <tr><td>@ref ham_cursor_move</td><td>Moves the Cursor to the first, next, 
+    previous or last key in the Database</td></tr>
+ * <tr><td>@ref ham_cursor_close</td><td>Closes the Cursor</td></tr>
+ * </table>
+ *
+ * If you want to use Transactions, then the following functions are required:
+ * <table>
+ * <tr><td>@ref ham_txn_begin</td><td>Begins a new Transaction</td></tr>
+ * <tr><td>@ref ham_txn_commit</td><td>Commits the current
+    Transaction</td></tr>
+ * <tr><td>@ref ham_txn_abort</td><td>Aborts the current Transaction</td></tr>
+ * </table>
+ *
+ * hamsterdb supports remote Databases via http. The server can be embedded 
+ * into your application or run standalone (see tools/hamzilla for a Unix
+ * daemon or Win32 service which hosts Databases). If you want to embed the
+ * server then the following functions have to be used:
+ * <table>
+ * <tr><td>@ref ham_srv_init</td><td>Initializes the server</td></tr>
+ * <tr><td>@ref ham_txn_commit</td><td>Adds an Environment to the
+    server. The Environment with all its Databases will then be available
+    remotely.</td></tr>
+ * <tr><td>@ref ham_srv_close</td><td>Closes the server and frees all allocated
+    resources</td></tr>
+ * </table>
+ *
+ * If you need help then you're always welcome to use the <a
+    href="http://hamsterdb-support.1045726.n5.nabble.com/">forum</a>,
+ * drop a message (chris at crupp dot de) or with the <a 
+    href="http://hamsterdb.com/index/contact">contact form</a>.
+ *
+ * Have fun!
  */
 
 #ifndef HAM_HAMSTERDB_H__
@@ -1671,7 +1757,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * When moving the Cursor, and the new key is currently modified in an
  * active Transaction (one that is not yet committed or aborted) then 
  * hamsterdb will skip this key and move to the next/previous one. However if 
- * @ref flags are 0 (and the Cursor is not moved), and @a key or @a rec 
+ * @a flags are 0 (and the Cursor is not moved), and @a key or @a rec 
  * is NOT NULL, then hamsterdb will return error @ref HAM_TXN_CONFLICT.
  *
  * @param db A valid Database handle

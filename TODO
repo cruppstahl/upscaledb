@@ -893,15 +893,6 @@ x add hamsterdb.spec file from 1.1.8
 x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     (also on master branch)
 
-o add other pending patches from master
-    o cache and db.c:__purge_cache
-    o recovery issues
-
-. the doxygen documentation is horrible. When opening the start page I have
-    *NO* idea what to look for. The start page needs an introduction and 
-    some links!
-    o also do this for the master branch
-
 x currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
     (or at least try to get rid of the physical log as much as possible). but
@@ -916,6 +907,17 @@ x currently, two log sub-systems are used. one for logical journal and the
     x if there's any SMO and the physical log is re-applied - are all 
         operations idempotent? -- yes, because the log only writes full pages.
 
+x check all TODOs in the sources
+
+x the doxygen documentation is horrible. When opening the start page I have
+    *NO* idea what to look for. The start page needs an introduction and 
+    some links!
+    x also do this for the master branch
+
+o add other pending patches from master
+    o cache and db.c:__purge_cache
+    o recovery issues
+
 o monster tests currently don't test with transactions (only with recovery)
     o new mode -txn/--transactions
         o mode 1: create temporary transactions
@@ -923,11 +925,9 @@ o monster tests currently don't test with transactions (only with recovery)
         o mode 3: the whole test in a single transaction
     o some are failing - run them all
 
-x check all TODOs in the sources
-
 o port to Win32
 
-o port to WinCE
+. port to WinCE
 
 o don't forget to test with valgrind!
 
@@ -937,6 +937,15 @@ o update documentation
         o don't forget to list all functions that are currently disabled
             w/ txn's -> sorting dupes, approx. matching, ...
         o transactional behavior/conflicts of duplicate keys
+    o in the wiki: start with internal documentation
+        o transactions
+        o architecture
+        o btree
+        o journal/log
+        o cache
+        o I/O
+
+o version on this branch is 2.0.0 rc.1 UNSTABLE
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
@@ -1062,4 +1071,5 @@ o have a flag to describe if a transaction is (mostly) insert-only; if yes then
     async.)
 
 o continue as described in integrate-ham2.txt...
+
 
