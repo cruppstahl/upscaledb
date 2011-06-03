@@ -918,6 +918,8 @@ x obsolete HAM_ENABLE_INTERNAL and --enable-internal
     x also remove from README.TXT
     x add to Changelog
 
+x version on this branch is 2.0.0 rc.1 UNSTABLE
+
 o monster tests currently don't test with transactions (only with recovery)
     x cleanup (i.e. remove matrix) and move to github
     o new mode -txn/--transactions
@@ -952,8 +954,6 @@ o update documentation
         o I/O
         o unittests
         o monstertests
-
-o version on this branch is 2.0.0 rc.1 UNSTABLE
 
 o fully (!) automize the whole release process for unix; the result (on
     success) are the following files:
