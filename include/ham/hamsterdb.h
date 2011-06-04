@@ -87,7 +87,7 @@
  * server then the following functions have to be used:
  * <table>
  * <tr><td>@ref ham_srv_init</td><td>Initializes the server</td></tr>
- * <tr><td>@ref ham_txn_commit</td><td>Adds an Environment to the
+ * <tr><td>@ref ham_srv_add_env</td><td>Adds an Environment to the
     server. The Environment with all its Databases will then be available
     remotely.</td></tr>
  * <tr><td>@ref ham_srv_close</td><td>Closes the server and frees all allocated

@@ -920,12 +920,16 @@ x obsolete HAM_ENABLE_INTERNAL and --enable-internal
 
 o monster tests currently don't test with transactions (only with recovery)
     x cleanup (i.e. remove matrix) and move to github
-    o new mode -txn/--transactions
-        o add config values/getopt stuff
-        o mode 1: create temporary transactions
-        o mode 2: group N (i.e. 5) operations in a single transaction
-        o mode 3: the whole test in a single transaction
-    o some are failing - run them all
+    x new mode -txn/--transactions
+        x add config values/getopt stuff
+        x mode 1: create temporary transactions
+        x mode 2: group N (i.e. 5) operations in a single transaction
+        x mode 3: the whole test in a single transaction
+        x add the new parameters to monster testsuite
+    x the cmdline parameters are not intuitive and consistent - clean up
+        x getopts: remove the single parameters - they're not required
+        x getopts: if a file starts with a '/' then it's not found
+    o some are failing (AES?) - run them all
 
 o add other pending patches from master
     o cache and db.c:__purge_cache
@@ -963,6 +967,14 @@ o fully (!) automize the whole release process for unix; the result (on
     o the Changelog
     o the release notes (a template)
     o the output (xml) of the monster tests
+
+o hamsterdb.com
+    x add twitter feed
+    o google +1 button
+    o API documentation: don't link to "modules" but to startup page, update
+        with newest version
+    o do a backup of the database
+    o can we use something like Aller.font?
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
