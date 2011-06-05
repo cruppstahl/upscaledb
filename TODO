@@ -918,6 +918,8 @@ x obsolete HAM_ENABLE_INTERNAL and --enable-internal
     x also remove from README.TXT
     x add to Changelog
 
+x version on this branch is 2.0.0 rc.1 UNSTABLE
+
 o monster tests currently don't test with transactions (only with recovery)
     x cleanup (i.e. remove matrix) and move to github
     x new mode -txn/--transactions
@@ -929,7 +931,13 @@ o monster tests currently don't test with transactions (only with recovery)
     x the cmdline parameters are not intuitive and consistent - clean up
         x getopts: remove the single parameters - they're not required
         x getopts: if a file starts with a '/' then it's not found
-    o some are failing (AES?) - run them all
+    o some are failing (AES?) 
+        o all w/ --use-compression --reopen
+        o --use-recovery --reopen        ../../testfiles/1/ext_021.tst
+        o --use-recovery --reopen        ../../testfiles/3/ext_022.tst
+        o check again all tests w/ recovery - something got stuck 
+                (endless loop?)
+    o AES is currently disabled in main.cpp - why??
 
 o add other pending patches from master
     o cache and db.c:__purge_cache
@@ -956,8 +964,6 @@ o update documentation
         o I/O
         o unittests
         o monstertests
-
-o version on this branch is 2.0.0 rc.1 UNSTABLE
 
 o fully (!) automize the whole release process for unix; the result (on
     success) are the following files:
