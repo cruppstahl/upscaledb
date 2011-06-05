@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.6                   Sun Sep 12 20:44:25 CEST 2010
+hamsterdb Embedded Storage 2.0.0 rc1 UNSTABLE      Fri Jun  3 21:14:07 CEST 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -9,44 +9,52 @@ Contents:
 1. About
 
 hamsterdb Embedded Storage is a database engine written in ANSI C. It supports 
-a B+Tree index structure, uses memory mapped I/O (if available), supports 
+a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release stabilized the remote functionality. New samples for client/server
-scenarios are provided. The remote server can now write access logfiles. A
-unix daemon and a win32 Service were added. The dependency to Google Protocol
-Buffers for C was removed; instead, Google Protocol Buffers (C++) are now 
-used. Compilation on ArchLinux (gcc 4.5.1) was fixed. Several functions are
-now deprecated. The source repository was moved to github.
+This release re-implemented the Transaction support. In previous versions 
+(1.x), only one Transaction was allowed to run, and recovery was implemented
+with write-ahead logging. If a Transaction was aborted (or undone during
+recovery), the modified pages were recovered from the log. 
+
+This version now allows to start an arbitrary number of Transactions that run 
+in parallel. All modified keys are stored in RAM and are flushed to disk when
+the Transaction is committed. If the Transaction is aborted then the 
+information in RAM is simply discarded. For recovery a journal is written; the
+journal does not write the physical page information, but a logical 
+meta-information about the operations in this Transaction. (This version of 
+2.0.0rc1 still uses the physical log in combination with the new journal; the
+old log will be removed in the next versions).
+
+At runtime, the information in RAM and in the btree index is then consolidated.
+
+Users who do not use Transactions should not notice any difference between 
+1.x and this version. 
+
+Compared to 1.x, a few functions were disabled if Transactions are enabled:
+- sorting duplicate keys (HAM_SORT_DUPLICATES)
+- approximate matching
+- direct access (HAM_DIRECT_ACCESS)
+- partial read/write (HAM_PARTIAL)
 
 2. Changes
 
 New Features
-* added samples for client/server scenarios
-* added a Unix daemon (or Win32 service)
+* an unlimited number of Transactions can now run in parallel
 
 Bugfixes
-* Several memory leaks during remote communication were fixed
-* Several bugs in the remote communication code were fixed (see ChangeLog
-    for details)
+* all bugfixes of 1.x were merged
 
 Other Changes
-* documentation was improved
-* some functions are now deprecated
-* hamserver.h was renamed to hamsterdb_srv.h
-* the function interface in hamsterdb_srv.h was changed
-* compilation on ArchLinux (gcc 4.5.1) was fixed
-* the tutorial is now online at http://wiki.github.com/cruppstahl/hamsterdb
-* MSVC projects were updated to Visual Studio 2009
+* the ./configure switch --enable-internal is now obsolte and enabled by default
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- update .NET wrapper
-- update Java wrapper
-- update Python wrapper
-- improve Transaction handling
+- stabilize the new code
+- improve performance
+- increase test coverage
 
 4. Features
 
@@ -56,7 +64,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Supports record number databases ("auto-increment")
 - Supports duplicate keys (with sorting)
 - Support for logging and recovery
-- Support for Transactions (only one Transaction at a time, requires logging)
+- Support for Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases) through http
 - Very fast database cursors 
