@@ -113,6 +113,7 @@ cache_purge(ham_cache_t *cache)
     ham_page_t *oldest;
     ham_page_t *next_start;
     ham_status_t st;
+    changeset_t *cs=env_get_changeset(cache_get_env(cache));
 
 #if 0
     page=cache_get_garbagelist(cache);
@@ -141,6 +142,9 @@ cache_purge(ham_cache_t *cache)
             /* do not loop too often */
             if (i++>15)
                 break;
+            if (page_is_in_list(changeset_get_head(cs), 
+                            page, PAGE_LIST_CHANGESET))
+                goto next;
 
             if (page_get_cache_cntr(page)==0) {
                 min=page;
@@ -153,7 +157,8 @@ cache_purge(ham_cache_t *cache)
                         <= page_get_cache_cntr(min)) 
                     min=page;
             }
-            
+
+next:
             page = page_get_previous(page, PAGE_LIST_CACHED);
             ham_assert(page != oldest, (0));
         } while (page && page!=oldest);

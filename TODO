@@ -931,11 +931,11 @@ o monster tests currently don't test with transactions (only with recovery)
     x the cmdline parameters are not intuitive and consistent - clean up
         x getopts: remove the single parameters - they're not required
         x getopts: if a file starts with a '/' then it's not found
-    o some are failing (AES?) 
-        o all w/ --use-compression --reopen
-        o --use-recovery --reopen        ../../testfiles/1/ext_021.tst
-        o --use-recovery --reopen        ../../testfiles/3/ext_022.tst
-        o check again all tests w/ recovery - something got stuck 
+    x some are failing (AES?) 
+        x --use-recovery --reopen        ../../testfiles/1/ext_021.tst
+        x --use-recovery --reopen        ../../testfiles/3/ext_022.tst
+        x all w/ --use-compression --reopen
+        x check again all tests w/ recovery - something got stuck 
                 (endless loop?)
     o AES is currently disabled in main.cpp - why??
 

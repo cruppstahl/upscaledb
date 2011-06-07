@@ -3754,7 +3754,12 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* in non-transactional mode - just call the btree function and return */
     if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        return (cursor->_fun_move(cursor, key, record, flags));
+        st=cursor->_fun_move(cursor, key, record, flags);
+        if (st)
+            return (st);
+
+        /* run the record-level filters */
+        return (__record_filters_after_find(db, record));
     }
 
     /* if user did not specify a transaction, but transactions are enabled:
