@@ -937,7 +937,13 @@ o monster tests currently don't test with transactions (only with recovery)
         x all w/ --use-compression --reopen
         x check again all tests w/ recovery - something got stuck 
                 (endless loop?)
-    o AES is currently disabled in main.cpp - why??
+    . AES is currently disabled in main.cpp - why??
+    o if a duplicate is erased, then it's erased correctly from the txn-tree.
+        but it's not erased as a single duplicate from the btree. instead,
+        ALL btree dupes are erased. (env.c:1581).
+        --use-transactions=tmp --use-cursors --duplicate ../../testfiles/1/100.tst 
+        (and others)
+    o also run txn-tests in combination with compression
 
 o add other pending patches from master
     o cache and db.c:__purge_cache
