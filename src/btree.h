@@ -226,6 +226,13 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key, ham_bt_cursor_t *cursor,
         ham_u32_t flags);
 
 /**
+ * same as above, but only erases a single duplicate
+ */
+extern ham_status_t
+btree_erase_duplicate(ham_btree_t *be, ham_key_t *key, ham_u32_t dupe_id, 
+        ham_u32_t flags);
+
+/**
  * enumerate all items
  */
 extern ham_status_t

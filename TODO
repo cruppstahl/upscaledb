@@ -943,7 +943,13 @@ o monster tests currently don't test with transactions (only with recovery)
         ALL btree dupes are erased. (env.c:1581).
         --use-transactions=tmp --use-cursors --duplicate ../../testfiles/1/100.tst 
         (and others)
+        x i think i fixed it in the code
+            o needs unittests
+            o check monster tests
     o also run txn-tests in combination with compression
+    o check performance against 1.1.10
+        o with transactions
+        o without transactions
 
 o add other pending patches from master
     o cache and db.c:__purge_cache
@@ -989,6 +995,12 @@ o hamsterdb.com
     o can we use something like Aller.font?
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
+
+o cleanups: the backend structure does not need the function pointers. 
+	simplify the whole interface!
+
+o cleanups: the cursor does not need the function pointers. 
+	simplify the whole interface!
 
 o monster-test
     o track memory consumption

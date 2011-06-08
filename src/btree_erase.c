@@ -66,6 +66,12 @@ typedef struct erase_scratchpad_t
      */
     ham_bt_cursor_t *cursor;
 
+    /*
+     * a duplicate index - a +1 based index into the duplicate table. If
+     * this index is set then only this duplicate is erased 
+     */
+    ham_u32_t dupe_id;
+
 } erase_scratchpad_t;
 
 /**
@@ -142,21 +148,9 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
 /* #define NOFLUSH 1  -- unused */
 #define INTERNAL_KEY 2
 
-
-/**                                                                 
- * erase a key in the index                                         
- *
- * @note This is a B+-tree 'backend' method.
- */                                                                 
-ham_status_t
-btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags)
-{
-    return (btree_erase_cursor(be, key, 0, flags));
-}
-
-ham_status_t
-btree_erase_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_bt_cursor_t *cursor, ham_u32_t flags)
+static ham_status_t
+btree_erase_impl(ham_btree_t *be, ham_key_t *key, 
+        ham_bt_cursor_t *cursor, ham_u32_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *root;
@@ -175,6 +169,7 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     scratchpad.key=key;
     scratchpad.flags=flags;
     scratchpad.cursor=cursor;
+    scratchpad.dupe_id=dupe_id;
 
     btree_erase_get_hints(&hints, db, key);
 
@@ -1327,12 +1322,17 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     {
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
         ham_bt_cursor_t *cursor=(ham_bt_cursor_t *)scratchpad->cursor;
+        ham_u32_t dupe_id;
 
         hints->processed_leaf_page = page;
         hints->processed_slot = slot;
 
-        if (key_get_flags(bte)&KEY_HAS_DUPLICATES && scratchpad->cursor) 
-        {
+        if (cursor)
+            dupe_id=bt_cursor_get_dupe_id(cursor);
+        else if (scratchpad->dupe_id) /* +1-based index */
+            dupe_id=scratchpad->dupe_id-1;
+
+        if (key_get_flags(bte)&KEY_HAS_DUPLICATES && dupe_id) {
             st=key_erase_record(db, bte, bt_cursor_get_dupe_id(cursor), 0);
             if (st)
                 return st;
@@ -1436,3 +1436,22 @@ free_all:
     return (0);
 }
 
+ham_status_t
+btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags)
+{
+    return (btree_erase_impl(be, key, 0, 0, flags));
+}
+
+ham_status_t
+btree_erase_duplicate(ham_btree_t *be, ham_key_t *key, ham_u32_t dupe_id, 
+        ham_u32_t flags)
+{
+    return (btree_erase_impl(be, key, 0, dupe_id, flags));
+}
+
+ham_status_t
+btree_erase_cursor(ham_btree_t *be, ham_key_t *key, 
+        ham_bt_cursor_t *cursor, ham_u32_t flags) 
+{
+    return (btree_erase_impl(be, key, cursor, 0, flags));
+}

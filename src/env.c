@@ -1579,8 +1579,14 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             }
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-            st=be->_fun_erase(be, txn_opnode_get_key(node), 
+            if (txn_op_get_referenced_dupe(op)) {
+                st=btree_erase_duplicate(be, txn_opnode_get_key(node), 
+                        txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
+            }
+            else {
+                st=be->_fun_erase(be, txn_opnode_get_key(node), 
                         txn_op_get_flags(op));
+            }
         }
 
 bail:
