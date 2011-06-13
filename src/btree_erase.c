@@ -1328,12 +1328,12 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         hints->processed_slot = slot;
 
         if (cursor)
-            dupe_id=bt_cursor_get_dupe_id(cursor);
+            dupe_id=bt_cursor_get_dupe_id(cursor)+1;
         else if (scratchpad->dupe_id) /* +1-based index */
-            dupe_id=scratchpad->dupe_id-1;
+            dupe_id=scratchpad->dupe_id;
 
         if (key_get_flags(bte)&KEY_HAS_DUPLICATES && dupe_id) {
-            st=key_erase_record(db, bte, bt_cursor_get_dupe_id(cursor), 0);
+            st=key_erase_record(db, bte, dupe_id-1, 0);
             if (st)
                 return st;
 

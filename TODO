@@ -938,14 +938,14 @@ o monster tests currently don't test with transactions (only with recovery)
         x check again all tests w/ recovery - something got stuck 
                 (endless loop?)
     . AES is currently disabled in main.cpp - why??
-    o if a duplicate is erased, then it's erased correctly from the txn-tree.
+    x if a duplicate is erased, then it's erased correctly from the txn-tree.
         but it's not erased as a single duplicate from the btree. instead,
         ALL btree dupes are erased. (env.c:1581).
         --use-transactions=tmp --use-cursors --duplicate ../../testfiles/1/100.tst 
         (and others)
         x i think i fixed it in the code
-            o needs unittests
-            o check monster tests
+            x needs unittests
+            x check monster tests
     o also run txn-tests in combination with compression
     o check performance against 1.1.10
         o with transactions
@@ -960,6 +960,9 @@ o port to Win32
 . port to WinCE
 
 o don't forget to test with valgrind!
+
+o test with lessfs
+o test with reboots - like those that are currently making problems with lessfs
 
 o update documentation
     x in header file

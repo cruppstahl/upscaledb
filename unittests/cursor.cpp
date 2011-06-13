@@ -4034,6 +4034,8 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, findDupeConflictsTest);
         BFC_REGISTER_TEST(DupeCursorTest, cursorInsertDupeConflictsTest);
         BFC_REGISTER_TEST(DupeCursorTest, cursorFindDupeConflictsTest);
+
+        BFC_REGISTER_TEST(DupeCursorTest, flushErasedDupeTest);
     }
 
     virtual void setup() 
@@ -6398,6 +6400,30 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void flushErasedDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "3", HAM_DUPLICATE));
+
+        /* erase k1/2 */
+        BFC_ASSERT_EQUAL(0, move("k1", "1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move("k1", "2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* flush the transaction to disk */
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+
+        /* verify that the duplicate was erased */
+        BFC_ASSERT_EQUAL(0, move("k1", "1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move("k1", "3", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
     }
 };
 
