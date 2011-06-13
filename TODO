@@ -946,7 +946,6 @@ o monster tests currently don't test with transactions (only with recovery)
         x i think i fixed it in the code
             x needs unittests
             x check monster tests
-    o also run txn-tests in combination with compression
     o check performance against 1.1.10
         o with transactions
         o without transactions
