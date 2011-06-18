@@ -1,7 +1,0 @@
-*.o
-*.lo
-*.la
-.libs
-.deps
-messages.pb.cc
-messages.pb.h

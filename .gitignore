@@ -12,3 +12,12 @@ configure
 libtool
 stamp-h1
 m4
+*.o
+*.lo
+*.la
+.libs
+.deps
+messages.pb.cc
+messages.pb.h
+documentation
+
