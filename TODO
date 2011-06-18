@@ -75,6 +75,9 @@ x compare performance to 1.1.9 - yes, it's similar
 
 x compare memory consumption to 1.1.9 (w/ lessfs) - less than before!
 
+x a new flag which enables flushes (fdatasync()) after commit/abort
+    -> or better re-use HAM_WRITE_THROUGH
+
 o release 1.1.10
 
 o review DB_NEW_PAGE_DOES_THRASH_CACHE - the cache age is not really used,

@@ -422,7 +422,9 @@ ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    return (os_flush(log_get_fd(log, idx)));
+    if (env_get_rt_flags(log_get_env(log))&HAM_WRITE_THROUGH)
+        return (os_flush(log_get_fd(log, idx)));
+    return (0);
 }
 
 ham_status_t
@@ -448,7 +450,9 @@ ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    return (os_flush(log_get_fd(log, idx)));
+    if (env_get_rt_flags(log_get_env(log))&HAM_WRITE_THROUGH)
+        return (os_flush(log_get_fd(log, idx)));
+    return (0);
 }
 
 ham_status_t

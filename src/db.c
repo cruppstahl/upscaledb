@@ -1132,9 +1132,8 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
 
-    /* write the page, if it's dirty and if write-through is enabled */
-    if ((env_get_rt_flags(env)&HAM_WRITE_THROUGH 
-            || flags&HAM_WRITE_THROUGH 
+    /* write the page if it's dirty and HAM_WRITE_THROUGH is set */
+    if ((flags&HAM_WRITE_THROUGH 
             || !env_get_cache(env)) 
             && page_is_dirty(page)) {
         st=page_flush(page);

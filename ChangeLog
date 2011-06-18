@@ -1,5 +1,12 @@
-May 27, 2011 - chris ---------------------------------------------------
-                      release of hamsterdb-1.1.10
+
+Jun 18, 2011 - chris ---------------------------------------------------
+o the flag HAM_WRITE_THROUGH will now cause an immediate flush of all file
+	handles to disk (via fdatasync or fsync, if fdatasync is not available, 
+	or FlushFileHandle on win32) if recovery (or Transactions) are enabled.
+	This causes a noticable performance hit if you have many short-running 
+	Transactions, but it improves the durability in case the hardware 
+	crashes (a normal application segfault is not problematic because in
+	such a case the operating system buffers are still flushed to disk). 
 
 May 25, 2011 - chris ---------------------------------------------------
 o the cachesize is now more respected than before; while earlier releases

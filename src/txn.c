@@ -21,6 +21,7 @@
 #include "log.h"
 #include "mem.h"
 #include "page.h"
+#include "device.h"
 #include "statistics.h"
 #include "txn.h"
 
@@ -153,6 +154,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=txn_get_env(txn);
+    ham_device_t *device=env_get_device(env);
 
     /*
      * are cursors attached to this txn? if yes, fail
@@ -160,7 +162,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     if (txn_get_cursor_refcount(txn)) {
         ham_trace(("transaction cannot be committed till all attached "
                     "cursors are closed"));
-        return HAM_CURSOR_STILL_OPEN;
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
     /*
@@ -168,8 +170,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * if they were modified by this transaction;
      * then write the transaction boundary
      */
-    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) 
-    {
+    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         ham_page_t *head=txn_get_pagelist(txn);
         while (head) {
             ham_page_t *next;
@@ -196,8 +197,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * txn_get_pagelist(txn) should be kept up to date and correctly
      * formatted while we call db_free_page() et al.
      */
-    while (txn_get_pagelist(txn))
-    {
+    while (txn_get_pagelist(txn)) {
         ham_page_t *head = txn_get_pagelist(txn);
         
         txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
@@ -216,25 +216,17 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
             if (st)
                 return (st);
         }
-        else if (flags & HAM_TXN_FORCE_WRITE) {
-            /* flush the page */
-            st=db_flush_page(env, head, 
-                    flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
-            if (st) {
-                page_add_ref(head);
-                /* failure: re-insert into transaction list! */
-                txn_get_pagelist(txn) = page_list_insert(txn_get_pagelist(txn),
-                            PAGE_LIST_TXN, head);
-                return (st);
-            }
-        }
     }
 
     txn_set_env(txn, 0);
     txn_set_pagelist(txn, 0);
     env_set_txn(env, 0);
 
-    return HAM_SUCCESS;
+    /* flush the file handle */
+    if (env_get_rt_flags(env)&HAM_WRITE_THROUGH)
+        return (device->flush(device));
+
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -242,6 +234,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=txn_get_env(txn);
+    ham_device_t *device=env_get_device(env);
 
     /*
      * are cursors attached to this txn? if yes, fail
@@ -330,6 +323,12 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     }
 
     ham_assert(txn_get_pagelist(txn)==0, (0));
+
+    /* flush the file handle */
+    if (env_get_rt_flags(env)&HAM_WRITE_THROUGH)
+        return (device->flush(device));
+
+    return (HAM_SUCCESS);
 
     return (0);
 }

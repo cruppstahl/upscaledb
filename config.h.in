@@ -9,6 +9,12 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the `fdatasync' function. */
+#undef HAVE_FDATASYNC
+
+/* Define to 1 if you have the `fsync' function. */
+#undef HAVE_FSYNC
+
 /* __FUNCTION__ is supported */
 #undef HAVE_FUNCTION_MACRO
 
