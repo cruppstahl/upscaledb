@@ -661,6 +661,12 @@ env_flush_committed_txns(ham_env_t *env);
 extern ham_status_t
 env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn);
 
+/*
+ * purge the cache if the limits are exceeded
+ */
+extern ham_status_t
+env_purge_cache(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C" {

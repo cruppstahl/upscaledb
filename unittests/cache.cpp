@@ -140,7 +140,7 @@ public:
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
-        BFC_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
+        cache_remove_page(cache, page);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         cache_delete(cache);
@@ -166,7 +166,7 @@ public:
         page_set_pers(page2, &pers2);
         cache_put_page(cache, page1);
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
-        BFC_ASSERT(cache_remove_page(cache, page1)==HAM_SUCCESS);
+        cache_remove_page(cache, page1);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
         cache_put_page(cache, page2);
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
@@ -199,7 +199,7 @@ public:
             BFC_ASSERT(cache_get_page(cache, (i+1)*1024, 0)==page[i]);
         }
         for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_remove_page(cache, page[i])==0);
+            cache_remove_page(cache, page[i]);
         }
         for (int i=0; i<20; i++) {
             BFC_ASSERT(cache_get_page(cache, (i+1)*1024, 0)==0);
@@ -250,7 +250,7 @@ public:
             BFC_ASSERT(cache_too_big(cache));
             p=v.back();
             v.pop_back();
-            BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            cache_remove_page(cache, p);
             page_set_pers(p, 0);
             page_delete(p);
         }
@@ -259,7 +259,7 @@ public:
             ham_page_t *p;
             p=v.back();
             v.pop_back();
-            BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            cache_remove_page(cache, p);
             BFC_ASSERT(!cache_too_big(cache));
             page_set_pers(p, 0);
             page_delete(p);
@@ -294,7 +294,7 @@ public:
             BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
 
         BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], db, 0, 0));
-        BFC_ASSERT_EQUAL(0, cache_purge(cache));
+        BFC_ASSERT_EQUAL(0, env_purge_cache(ham_get_env(db)));
         BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
 
         ham_close(db, 0);

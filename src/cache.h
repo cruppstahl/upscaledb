@@ -50,9 +50,8 @@ struct ham_cache_t
     ham_page_t *_totallist;
 
     /** the tail of the linked "totallist" - this is the oldest element,
-     * and therefore the highest candidate for a flush
-     */
-    ham_page_t *_oldest;
+     * and therefore the highest candidate for a flush */
+    ham_page_t *_totallist_tail;
 
     /** linked list of unused pages */
     ham_page_t *_garbagelist;
@@ -121,12 +120,12 @@ struct ham_cache_t
 /*
  * get the oldest page/tail in totallist
  */
-#define cache_get_oldest(cm)                   (cm)->_oldest
+#define cache_get_totallist_tail(cm)           (cm)->_totallist_tail
 
 /*
  * set the oldest page/tail in totallist
  */
-#define cache_set_oldest(cm, p)                (cm)->_oldest=(p)
+#define cache_set_totallist_tail(cm, p)        (cm)->_totallist_tail=(p)
 
 /*
  * get the linked list of unused (garbage collected) pages
@@ -173,6 +172,18 @@ extern void
 cache_delete(ham_cache_t *cache);
 
 /**
+ * get an unused page (or an unreferenced page, if no unused page
+ * was available
+ *
+ * @remark if the page is dirty, it's the caller's responsibility to 
+ * write it to disk!
+ *
+ * @remark the page is removed from the cache
+ */
+extern ham_page_t *
+cache_get_unused_page(ham_cache_t *cache);
+
+/**
  * get a page from the cache
  *
  * @remark the page is removed from the cache
@@ -195,12 +206,13 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page);
  * (The page is assumed to exist in the cache!)
  */
 extern void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, ham_u32_t extra_bump);
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, 
+                    ham_u32_t extra_bump);
 
 /**
  * remove a page from the cache
  */
-extern ham_status_t 
+extern void 
 cache_remove_page(ham_cache_t *cache, ham_page_t *page);
 
 /**
@@ -215,13 +227,6 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
  */
 extern ham_status_t
 cache_check_integrity(ham_cache_t *cache);
-
-/**
- * purge unused pages from the cache till cache limits are no longer exceeded
- * or till no unused pages are found
- */
-extern ham_status_t
-cache_purge(ham_cache_t *cache);
 
 
 #ifdef __cplusplus

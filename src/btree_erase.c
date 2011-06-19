@@ -1318,11 +1318,10 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * 
      * otherwise remove the full key with all duplicates
      */
-    if (btree_node_is_leaf(node)) 
-    {
+    if (btree_node_is_leaf(node)) {
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
         ham_bt_cursor_t *cursor=(ham_bt_cursor_t *)scratchpad->cursor;
-        ham_u32_t dupe_id;
+        ham_u32_t dupe_id=0;
 
         hints->processed_leaf_page = page;
         hints->processed_slot = slot;

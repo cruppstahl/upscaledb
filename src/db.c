@@ -685,9 +685,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
         return (st);
 
     if (env_get_cache(env)) {
-        st=cache_remove_page(env_get_cache(env), page);
-        if (st)
-            return (st);
+        cache_remove_page(env_get_cache(env), page);
     }
 
     /*
@@ -1042,9 +1040,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
         st=db_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
-        st=cache_remove_page(env_get_cache(env), page);
-        if (st)
-            return (st);
+        cache_remove_page(env_get_cache(env), page);
         st=page_free(page);
         if (st)
             return (st);
@@ -1453,7 +1449,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -1581,7 +1577,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2233,7 +2229,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2324,7 +2320,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2412,7 +2408,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2569,7 +2565,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2694,7 +2690,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2783,7 +2779,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2924,7 +2920,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -2998,7 +2994,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }
@@ -3732,7 +3728,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
+        st=env_purge_cache(db_get_env(db));
         if (st)
             return (st);
     }

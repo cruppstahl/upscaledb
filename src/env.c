@@ -1410,6 +1410,11 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
             st=journal_append_txn_commit(env_get_journal(env), &copy, lsn);
     }
 
+    if (st==0) {
+        /* now it's the time to purge caches */
+        env_purge_cache(env);
+    }
+
     return (st);
 }
 
@@ -1430,6 +1435,11 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
             st=journal_append_txn_abort(env_get_journal(env), &copy, lsn);
+    }
+
+    if (st==0 || st==HAM_CACHE_FULL) {
+        /* now it's the time to purge caches */
+        env_purge_cache(env);
     }
 
     return (st);
@@ -1687,3 +1697,66 @@ env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn)
     }
 }
 
+static ham_status_t
+__purge_cache_max20(ham_env_t *env)
+{
+    ham_status_t st;
+    ham_page_t *page;
+    ham_cache_t *cache=env_get_cache(env);
+    unsigned i, max_pages=cache_get_cur_elements(cache);
+
+    /* don't remove pages from the cache if it's an in-memory database */
+    if (!cache)
+        return (0);
+    if ((env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
+        return (0);
+    if (!cache_too_big(cache))
+        return (0);
+
+    /* 
+     * max_pages specifies how many pages we try to flush in case the
+     * cache is full. some benchmarks showed that 10% is a good value. 
+     *
+     * if STRICT cache limits are enabled then purge as much as we can
+     */
+    if (!(env_get_rt_flags(env)&HAM_CACHE_STRICT)) {
+        max_pages/=10;
+        /* but still we set an upper limit to avoid IO spikes */
+        if (max_pages>20)
+            max_pages=20;
+    }
+
+    /* try to free 10% of the unused pages */
+    for (i=0; i<max_pages; i++) {
+        page=cache_get_unused_page(cache);
+        if (!page) {
+            if (i==0 && (env_get_rt_flags(env)&HAM_CACHE_STRICT)) 
+                return (HAM_CACHE_FULL);
+            else
+                break;
+        }
+
+        st=db_write_page_and_delete(page, 0);
+        if (st)
+            return (st);
+    }
+
+    if (i==max_pages && max_pages!=0)
+        return (HAM_LIMITS_REACHED);
+    return (0);
+}
+
+ham_status_t
+env_purge_cache(ham_env_t *env)
+{
+    ham_status_t st;
+    ham_cache_t *cache=env_get_cache(env);
+
+    do {
+        st=__purge_cache_max20(env);
+        if (st && st!=HAM_LIMITS_REACHED)
+            return st;
+    } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
+
+    return (0);
+}
