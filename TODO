@@ -947,9 +947,9 @@ x monster tests currently don't test with transactions (only with recovery)
             x needs unittests
             x check monster tests
 
-o add other pending patches from master
-    o cache and db.c:__purge_cache
-    o recovery issues
+x add other pending patches from master
+    x cache and db.c:__purge_cache
+    x recovery issues
 
 o port to Win32
 
