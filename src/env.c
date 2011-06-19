@@ -371,7 +371,7 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
      */
     st=device->open(device, filename, flags);
     if (st) {
-        (void)ham_env_close(env, 0);
+        (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
         return (st);
     }
 
@@ -493,7 +493,7 @@ fail_with_fake_cleansing:
 
         /* exit when an error was signaled */
         if (st) {
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
 
@@ -502,14 +502,14 @@ fail_with_fake_cleansing:
          */
         page=page_new(env);
         if (!page) {
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
             return (HAM_OUT_OF_MEMORY);
         }
         page_set_device(page, device);
         st=page_fetch(page);
         if (st) {
             page_delete(page);
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
         env_set_header_page(env, page);
@@ -531,7 +531,7 @@ fail_with_fake_cleansing:
         ham_assert(cachesize, (0));
         cache=cache_new(env, cachesize);
         if (!cache) {
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
             return (HAM_OUT_OF_MEMORY);
         }
         env_set_cache(env, cache);
@@ -545,7 +545,7 @@ fail_with_fake_cleansing:
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         st=__recover(env, flags);
         if (st) {
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
     }
