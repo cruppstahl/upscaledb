@@ -465,8 +465,6 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags);
 extern ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags);
 
-/* #define TXN_FORCE_WRITE         1   -- moved to hamsterdb.h */
-
 /**
  * abort a Transaction
  */
