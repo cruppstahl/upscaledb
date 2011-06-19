@@ -1211,7 +1211,9 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 
     env_set_active(env, HAM_TRUE);
 
-    return (st);
+    /* flush the environment to make sure that the header page is written 
+     * to disk */
+    return (ham_env_flush(env, 0));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1252,7 +1254,9 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
 
     db_set_active(db, HAM_TRUE);
 
-    return (db_set_error(db, st));
+    /* flush the environment to make sure that the header page is written 
+     * to disk */
+    return (ham_env_flush(env, 0));
 }
 
 ham_status_t HAM_CALLCONV
