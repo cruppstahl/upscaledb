@@ -21,6 +21,7 @@
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
+#include "btree.h"
 #include "mem.h"
 #include "freelist.h"
 #include "extkeys.h"
