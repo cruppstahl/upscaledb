@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.10                  Fri May 13 01:04:47 PDT 2011
+hamsterdb Embedded Storage 1.1.10                  Sun Jun 19 12:38:45 CEST 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -17,6 +17,11 @@ exceed the cache limits. A few other minor bugs were fixed, and the recovery
 process was improved: changes in the header page (i.e. when adding new
 Databases or when changing the address of a root page) were not correctly 
 logged. 
+
+The flag HAM_WRITE_THROUGH has a new meaning: instead of immediately flushing
+all pages it will now flush all file handles after a Transaction was committed
+or aborted. This has a performance impact, but improves the Durability of 
+the Transactions.
 
 2. Changes
 
@@ -42,6 +47,8 @@ Other Changes
 * Environments and Databases are now immediately flushed after being created,
     otherwise the header page on disk is empty and can not be recovered after
     a crash
+* HAM_WRITE_THROUGH now flushes all open file handles after a Transaction was
+    committed or aborted
 
 To see a list of all changes, look in the file ChangeLog.
 

@@ -83,6 +83,8 @@ o release 1.1.10
 o review DB_NEW_PAGE_DOES_THRASH_CACHE - the cache age is not really used,
     therefore this flag is most likely not required 
 
+o review statistics - the "cost" management; is this really in use? where?
+
 ------------------------------------------------------------
 
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write

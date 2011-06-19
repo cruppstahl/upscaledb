@@ -1,3 +1,5 @@
+Jun 20, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.10
 
 Jun 18, 2011 - chris ---------------------------------------------------
 o the flag HAM_WRITE_THROUGH will now cause an immediate flush of all file
