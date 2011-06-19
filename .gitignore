@@ -1,4 +1,7 @@
 *.o
+*~
+documentation/html
+documentation/latex
 Makefile
 Makefile.in
 aclocal.m4
