@@ -277,7 +277,7 @@ read_config(const char *configfile, config_table_t **params)
     len=ftell(fp);
     fseek(fp, 0, SEEK_SET);
     buf=(char *)malloc(len+1); /* for zero-terminating byte */
-    fread(buf, len, 1, fp);
+    fread(buf, 1, len, fp);
     fclose(fp);
     buf[len]='\0';
 
