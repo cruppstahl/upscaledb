@@ -247,7 +247,7 @@ journal_append_entry(journal_t *journal, int fdidx,
             return (st);
     }
 
-    return (os_flush(journal_get_fd(journal, fdidx)));
+    return (0);
 }
 
 ham_status_t
@@ -311,6 +311,7 @@ journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn,
                     ham_u64_t lsn)
 {
     int idx;
+    ham_status_t st;
     journal_entry_t entry={0};
 
     journal_entry_set_lsn(&entry, lsn);
@@ -326,7 +327,12 @@ journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn,
     journal_set_closed_txn(journal, idx, 
                     journal_get_closed_txn(journal, idx)+1);
 
-    return (journal_append_entry(journal, idx, &entry, 0, 0));
+    st=journal_append_entry(journal, idx, &entry, 0, 0);
+    if (st)
+        return (st);
+    if (env_get_rt_flags(journal_get_env(journal))&HAM_WRITE_THROUGH)
+        return (os_flush(journal_get_fd(journal, idx)));
+    return (0);
 }
 
 ham_status_t
@@ -334,6 +340,7 @@ journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
                     ham_u64_t lsn)
 {
     int idx;
+    ham_status_t st;
     journal_entry_t entry={0};
 
     journal_entry_set_lsn(&entry, lsn);
@@ -349,7 +356,12 @@ journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
     journal_set_closed_txn(journal, idx, 
                     journal_get_closed_txn(journal, idx)+1);
 
-    return (journal_append_entry(journal, idx, &entry, 0, 0));
+    st=journal_append_entry(journal, idx, &entry, 0, 0);
+    if (st)
+        return (st);
+    if (env_get_rt_flags(journal_get_env(journal))&HAM_WRITE_THROUGH)
+        return (os_flush(journal_get_fd(journal, idx)));
+    return (0);
 }
 
 ham_status_t
@@ -824,4 +836,3 @@ bail:
 
     return (0);
 }
-

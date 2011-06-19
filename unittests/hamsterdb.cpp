@@ -1794,9 +1794,6 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(m_db, BFC_OPATH(".test"), 
-                        HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
@@ -1818,9 +1815,6 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_env_create(env, BFC_OPATH(".test"), 
-                        HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));

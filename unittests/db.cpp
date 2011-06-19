@@ -133,7 +133,6 @@ public:
         BFC_ASSERT_EQUAL((ham_compare_func_t)19, db_get_compare_func(m_db));
         db_set_compare_func(m_db, oldfoo2);
 
-        BFC_ASSERT(env_is_dirty(m_env));
         page_set_undirty(env_get_header_page(m_env));
         BFC_ASSERT(!env_is_dirty(m_env));
         env_set_dirty(m_env);

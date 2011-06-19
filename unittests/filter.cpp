@@ -368,7 +368,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(1, file_filter_written);
+        BFC_ASSERT_EQUAL(2, file_filter_written);
         BFC_ASSERT_EQUAL(0, file_filter_read);
         BFC_ASSERT_EQUAL(1, file_filter_closed);
 

@@ -149,13 +149,7 @@ log_is_empty(ham_log_t *log, ham_bool_t *isempty)
 ham_status_t
 log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size)
 {
-    ham_status_t st;
-
-    st=os_write(log_get_fd(log), entry, size);
-    if (st)
-        return (st);
-
-    return (os_flush(log_get_fd(log)));
+    return (os_write(log_get_fd(log), entry, size));
 }
 
 ham_status_t
@@ -451,3 +445,8 @@ bail:
     return (st);
 }
 
+ham_status_t
+log_flush(ham_log_t *log)
+{
+    return (os_flush(log_get_fd(log)));
+}

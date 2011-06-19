@@ -21,6 +21,7 @@
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
+#include "device.h"
 #include "btree.h"
 #include "mem.h"
 #include "freelist.h"
@@ -1411,8 +1412,15 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
             st=journal_append_txn_commit(env_get_journal(env), &copy, lsn);
     }
 
+    /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
+     * enabled; then purge caches */
     if (st==0) {
-        /* now it's the time to purge caches */
+        if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
+            ham_device_t *device=env_get_device(env);
+            (void)log_flush(env_get_log(env));
+            (void)device->flush(device);
+        }
+
         env_purge_cache(env);
     }
 
@@ -1422,7 +1430,7 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 static ham_status_t
 _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    /* an ugly hack - txn_commit() will free the txn structure, but we need
+    /* an ugly hack - txn_abort() will free the txn structure, but we need
      * it for the journal; therefore create a temp. copy which we can use
      * later */
     ham_txn_t copy=*txn;
@@ -1438,8 +1446,17 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
             st=journal_append_txn_abort(env_get_journal(env), &copy, lsn);
     }
 
+    /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
+     * enabled; then purge caches */
+    if (st==0) {
+        if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
+            ham_device_t *device=env_get_device(env);
+            (void)log_flush(env_get_log(env));
+            (void)device->flush(device);
+        }
+    }
+
     if (st==0 || st==HAM_CACHE_FULL) {
-        /* now it's the time to purge caches */
         env_purge_cache(env);
     }
 
@@ -1591,7 +1608,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=btree_erase_duplicate(be, txn_opnode_get_key(node), 
+                st=btree_erase_duplicate((ham_btree_t *)be, 
+                        txn_opnode_get_key(node), 
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }
             else {

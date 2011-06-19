@@ -263,11 +263,6 @@ __check_recovery_flags(ham_u32_t flags)
                        "HAM_IN_MEMORY_DB not allowed"));
             return (HAM_FALSE);
         }
-        if (flags&HAM_WRITE_THROUGH) {
-            ham_trace(("combination of HAM_ENABLE_RECOVERY and "
-                       "HAM_WRITE_THROUGH not allowed"));
-            return (HAM_FALSE);
-        }
         if (flags&HAM_DISABLE_FREELIST_FLUSH) {
             ham_trace(("combination of HAM_ENABLE_RECOVERY and "
                        "HAM_DISABLE_FREELIST_FLUSH not allowed"));

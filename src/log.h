@@ -285,6 +285,12 @@ log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn);
 extern ham_status_t
 log_recover(ham_log_t *log);
 
+/**
+ * flush the logfile to disk
+ */
+extern ham_status_t
+log_flush(ham_log_t *log);
+
 
 #ifdef __cplusplus
 } // extern "C"

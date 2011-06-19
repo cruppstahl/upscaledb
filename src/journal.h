@@ -210,12 +210,6 @@ journal_append_entry(journal_t *journal, int fdidx,
             journal_entry_t *entry, void *aux, ham_size_t size);
 
 /**
- * Force the journal flushed to storage device
- */
-extern ham_status_t
-journal_flush(journal_t *journal, int fdidx);
-
-/**
  * Append a journal entry for ham_txn_begin/JOURNAL_ENTRY_TYPE_TXN_BEGIN
  */
 extern ham_status_t
