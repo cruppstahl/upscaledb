@@ -29,8 +29,8 @@ static ham_size_t
 __get_aligned_entry_size(ham_size_t data_size)
 {
     ham_size_t s=sizeof(log_entry_t)+data_size;
-    s += 8-1;
-    s -= (s % 8);
+    s+=8-1;
+    s-=(s%8);
     return (s);
 }
 
