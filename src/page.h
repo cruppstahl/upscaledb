@@ -488,7 +488,7 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which);
  *
  * @remark returns the new head of the list
  */
-extern inline ham_page_t *
+extern ham_page_t *
 page_list_insert(ham_page_t *head, int which, ham_page_t *page);
 
 /**
@@ -496,7 +496,7 @@ page_list_insert(ham_page_t *head, int which, ham_page_t *page);
  *
  * @remark returns the new head of the list
  */
-extern inline ham_page_t *
+extern ham_page_t *
 page_list_remove(ham_page_t *head, int which, ham_page_t *page);
 
 /**
