@@ -1567,9 +1567,14 @@ public:
     /* lessfs bug reported by Mark - after a commit, the header page was
      * not flushed AND after recovery, the header page was not re-initialized
      * with the data from the log, thus the information about the new root
-     * page was lost */
+     * page was lost 
+     *
+     * This test fails on win32 because Windows does not allow to copy a file
+     * that is currently in use
+     */
     void splitInsertTxnRawcopyTest(void)
     {
+#ifndef WIN32
         ham_parameter_t p[]={
             {HAM_PARAM_PAGESIZE, 1024}, 
             {HAM_PARAM_KEYSIZE,   200}, 
@@ -1651,6 +1656,7 @@ public:
         find("d", "4");
         find("e", "5");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
 
     void insertAfterCheckpointTest(void)
@@ -1784,8 +1790,13 @@ public:
         compareLogs(&exp, &vec);
     }
 
+    /*
+     * This test fails on win32 because Windows does not allow to copy a file
+     * that is currently in use
+     */
     void eraseMergeTxnRawcopyTest(void)
     {
+#ifndef WIN32
         ham_parameter_t p[]={
             {HAM_PARAM_PAGESIZE, 1024}, 
             {HAM_PARAM_KEYSIZE,   200}, 
@@ -1867,6 +1878,7 @@ public:
         find("a", "1");
         find("b", "2");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
 
     void cursorOverwriteTest(void)
