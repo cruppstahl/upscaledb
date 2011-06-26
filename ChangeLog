@@ -1,3 +1,7 @@
+Jun 27, 2011 - chris
+o the ./configure switch --enable-internal is now obsolte and enabled by
+	default
+
 Jun 20, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.10
 

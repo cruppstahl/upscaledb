@@ -86,9 +86,6 @@ extern "C" {
  * 
  * This function is only interesting if you want to debug hamsterdb.
  *
- * Returns HAM_NOT_IMPLEMENTED unless hamsterdb
- * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal).
- *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  *
@@ -96,8 +93,6 @@ extern "C" {
  * @return @ref HAM_INTEGRITY_VIOLATED if the Database is broken
  * @return @ref HAM_NOT_IMPLEMENTED if hamsterdb was built without 
  *              internal functions. 
- *
- * @sa HAM_ENABLE_INTERNAL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn);

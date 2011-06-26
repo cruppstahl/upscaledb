@@ -1567,7 +1567,6 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 static ham_status_t
 _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
-#ifdef HAM_ENABLE_INTERNAL
     ham_txn_t local_txn;
     ham_status_t st;
     ham_backend_t *be;
@@ -1608,9 +1607,6 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
         return (txn_commit(&local_txn, 0));
     else
         return (st);
-#else
-    return (HAM_NOT_IMPLEMENTED);
-#endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
 static ham_status_t

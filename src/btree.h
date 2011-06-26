@@ -278,10 +278,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb,
 /**                                                                 
  * verify the whole tree                                            
  *                                                                  
- * @remark this function is only available when						
- * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
-
- @note This is a B+-tree 'backend' method.
+ * @note This is a B+-tree 'backend' method.
  */                                                                 
 extern ham_status_t
 btree_check_integrity(ham_btree_t *be);

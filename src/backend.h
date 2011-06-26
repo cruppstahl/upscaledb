@@ -149,9 +149,6 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
                                                                         \
     /**                                                                 \
      * verify the whole tree                                            \
-     *                                                                  \
-     * @remark this function is only available when                     \
-     * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
     ham_status_t (*_fun_check_integrity)(clss *be);                     \
                                                                         \
@@ -164,9 +161,6 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
                                                                         \
     /**                                                                 \
      * estimate the number of keys per page, given the keysize          \
-     *                                                                  \
-     * @remark this function is only available when                     \
-     * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
     ham_status_t (*_fun_calc_keycount_per_page)(clss *be,               \
                   ham_size_t *keycount, ham_u16_t keysize);             \

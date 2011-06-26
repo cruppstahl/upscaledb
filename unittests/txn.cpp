@@ -265,15 +265,11 @@ public:
         ham_txn_t *txn;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
                 ham_check_integrity(m_db, 0));
-#endif
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_check_integrity(m_db, 0));
-#endif
     }
 
     void getKeyCountLimitsReachedTest(void)

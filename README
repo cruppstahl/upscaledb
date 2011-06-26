@@ -149,8 +149,6 @@ HAM_BIG_ENDIAN          compile for big endian machines (most other
                             architectures)
 HAM_32BIT               compile for 32bit (alias: WIN32)
 HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
-HAM_ENABLE_INTERNAL     enable internal functions (declared in
-                            include/ham/hamsterdb_int.h)
 HAM_DISABLE_COMPRESSION build without support for zlib compression
 HAM_DISABLE_ENCRYPTION  build without support for AES encryption
 HAM_ENABLE_REMOTE       build with remote access (needs libcurl/protobuf)

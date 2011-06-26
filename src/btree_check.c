@@ -14,8 +14,6 @@
  *
  */
 
-#ifdef HAM_ENABLE_INTERNAL
-
 #include "config.h"
 
 #include <string.h>
@@ -65,9 +63,6 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 /**                                                                 
  * verify the whole tree                                            
  *                                                                  
- * @remark this function is only available when                        
- * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
- *
  * @note This is a B+-tree 'backend' method.
  */                                                                 
 ham_status_t 
@@ -295,4 +290,3 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     return (0);
 }
 
-#endif /* HAM_ENABLE_INTERNAL */
