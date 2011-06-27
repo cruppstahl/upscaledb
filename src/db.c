@@ -1162,20 +1162,21 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
-        /*
-         * don't remove the page from the cache, if flag NODELETE
-         * is set (this flag is used i.e. in ham_flush())
-         */
-        if (!(flags&DB_FLUSH_NODELETE)) {
-            ham_assert(page_get_refcount(head)==0, 
-                ("page is in use, but database is closing"));
-            cache_set_totallist(cache,
-                page_list_remove(cache_get_totallist(cache), 
-                    PAGE_LIST_CACHED, head));
-            cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
-        }
+        /* don't touch pages which are currently in use by a transaction */
+        if (page_get_refcount(head)==0) {
+            /* don't remove the page from the cache, if flag NODELETE
+             * is set (this flag is used i.e. in ham_flush()) */
+            if (!(flags&DB_FLUSH_NODELETE)) {
+                ham_assert(page_get_refcount(head)==0, 
+                    ("page is in use, but database is closing"));
+                cache_set_totallist(cache,
+                    page_list_remove(cache_get_totallist(cache), 
+                        PAGE_LIST_CACHED, head));
+                cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
+            }
 
-        (void)db_write_page_and_delete(head, flags);
+            (void)db_write_page_and_delete(head, flags);
+        }
 
         head=next;
     }

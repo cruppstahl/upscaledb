@@ -130,7 +130,6 @@ static ham_status_t
 __insert_checkpoint(ham_log_t *log, ham_env_t *env)
 {
     ham_status_t st;
-    ham_device_t *dev=env_get_device(env);
     
     /*
      * first, flush the database file; then append the checkpoint
@@ -143,7 +142,6 @@ __insert_checkpoint(ham_log_t *log, ham_env_t *env)
     log_set_state(log, log_get_state(log)|LOG_STATE_CHECKPOINT);
     st=ham_env_flush(env, 0);
     log_set_state(log, log_get_state(log)&~LOG_STATE_CHECKPOINT);
-    st=dev->flush(dev);
     if (st)
         return (st);
 
