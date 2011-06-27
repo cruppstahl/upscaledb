@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,8 +33,8 @@ extern "C" {
  */
 #define HAM_VERSION_MAJ 1
 #define HAM_VERSION_MIN 1
-#define HAM_VERSION_REV 10
-#define HAM_VERSION_STR "1.1.10"
+#define HAM_VERSION_REV 11
+#define HAM_VERSION_STR "1.1.11"
 
 
 #ifdef __cplusplus

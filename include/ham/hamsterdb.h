@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,7 +13,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 1.1.10
+ * @version 1.1.11
  *
  * @mainpage
  *

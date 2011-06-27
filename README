@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.10                  Sun Jun 19 12:38:45 CEST 2011
+hamsterdb Embedded Storage 1.1.11                  Mon Jun 27 21:33:05 CEST 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,16 +12,12 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a bug in the cache, which caused the cache to grow and
-exceed the cache limits. A few other minor bugs were fixed, and the recovery
-process was improved: changes in the header page (i.e. when adding new
-Databases or when changing the address of a root page) were not correctly 
-logged. 
+This release fixes a performance regression: when Transactions are enabled, 
+the file was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
+set.
 
-The flag HAM_WRITE_THROUGH has a new meaning: instead of immediately flushing
-all pages it will now flush all file handles after a Transaction was committed
-or aborted. This has a performance impact, but improves the Durability of 
-the Transactions.
+Also, the ./configure flag --enable-internal is now obsolete and enabled by
+default.
 
 2. Changes
 
@@ -29,26 +25,11 @@ New Features
 * none
 
 Bugfixes
-* the cache was not purged correctly, thus grew uncontrolled
-* the hamzilla server always failed to read the configuration file 
-    because of a wrong error check
-* when opening a database, and recovery is enabled, the 'threshold' 
-    of the log files (which decides about the log file switching) was not 
-    initialized correctly.
-* header page changes (i.e. when adding databases) were not correctly logged
-    and therefore not recovered after a crash
-* when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
-    these functions deleted the logfiles by mistake. Fixed, and added
-    a unittest to avoid regressions
+* don't flush files if HAM_WRITE_THROUGH is not set
 
 Other Changes
-* added two new tools - one for dumping the logfile (tools/ham_log) and one
-    for recovering databases (tools/ham_recover)
-* Environments and Databases are now immediately flushed after being created,
-    otherwise the header page on disk is empty and can not be recovered after
-    a crash
-* HAM_WRITE_THROUGH now flushes all open file handles after a Transaction was
-    committed or aborted
+* the ./configure switch --enable-internal is now obsolete and enabled 
+    by default
 
 To see a list of all changes, look in the file ChangeLog.
 

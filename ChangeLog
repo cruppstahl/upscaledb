@@ -1,3 +1,6 @@
+Jun 30, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.11
+
 Jun 27, 2011 - chris
 o fixed a performance regression - when Transactions are enabled, the file
 	was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
