@@ -4,7 +4,7 @@ Jun 30, 2011 - chris ---------------------------------------------------
 Jun 27, 2011 - chris
 o fixed a performance regression - when Transactions are enabled, the file
 	was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
-	set (thanks, Jake)
+	set (thanks, Jake and Colm)
 
 Jun 26, 2011 - chris
 o the ./configure switch --enable-internal is now obsolte and enabled by
