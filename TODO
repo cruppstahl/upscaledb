@@ -951,8 +951,10 @@ x port to Win32
 
 x add other pending patches from master
     x cache and db.c:__purge_cache
-    o recovery issues
-    o HAM_WRITE_THROUGH fixes of 1.1.11
+    x recovery issues
+    x HAM_WRITE_THROUGH fixes of 1.1.11 - implemented in journal, but also 
+        verify that all other file handles are flushed! (if HAM_WRITE_THROUGH
+        is set)
 
 . port to WinCE
 
@@ -993,6 +995,8 @@ o hamsterdb.com
         with newest version
     o do a backup of the database
     o can we use something like Aller.font?
+
+o test performance against 1.1.11 (w/o transactions)
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
