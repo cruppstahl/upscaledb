@@ -385,6 +385,22 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\btree_key.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_key.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_stats.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_stats.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\cache.c"
 			>
 		</File>
@@ -393,7 +409,19 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\changeset.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\changeset.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\config.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\cursor.c"
 			>
 		</File>
 		<File
@@ -469,27 +497,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\include\ham\hamserver.h"
-			>
-		</File>
-		<File
 			RelativePath="..\src\hamsterdb.c"
-			>
-		</File>
-		<File
-			RelativePath="..\include\ham\hamsterdb.h"
-			>
-		</File>
-		<File
-			RelativePath="..\include\ham\hamsterdb_int.h"
-			>
-		</File>
-		<File
-			RelativePath="..\include\ham\hamsterdb_srv.h"
-			>
-		</File>
-		<File
-			RelativePath="..\include\ham\hamsterdb_stats.h"
 			>
 		</File>
 		<File
@@ -497,11 +505,15 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\keys.c"
+			RelativePath="..\src\journal.c"
 			>
 		</File>
 		<File
-			RelativePath="..\src\keys.h"
+			RelativePath="..\src\journal.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\journal_entries.h"
 			>
 		</File>
 		<File
@@ -545,19 +557,15 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\rb.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\remote.c"
 			>
 		</File>
 		<File
 			RelativePath="..\src\serial.h"
-			>
-		</File>
-		<File
-			RelativePath="..\src\statistics.c"
-			>
-		</File>
-		<File
-			RelativePath="..\src\statistics.h"
 			>
 		</File>
 		<File
@@ -569,7 +577,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\include\ham\types.h"
+			RelativePath="..\src\txn_cursor.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\txn_cursor.h"
 			>
 		</File>
 		<File

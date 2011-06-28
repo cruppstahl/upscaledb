@@ -832,6 +832,7 @@ public:
 
     void recoverAutoAbortTxnsTest(void)
     {
+#ifndef WIN32
         ham_txn_t *txn[5];
         std::vector<LogEntry> vec;
         ham_key_t key={0};
@@ -896,10 +897,12 @@ public:
             BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                         ham_find(m_db, 0, &key, &rec, 0));
         }
+#endif
     }
 
     void recoverSkipAlreadyFlushedTest(void)
     {
+#ifndef WIN32
         ham_txn_t *txn[2];
         std::vector<LogEntry> vec;
         ham_key_t key={0};
@@ -967,6 +970,7 @@ public:
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         }
+#endif
     }
 
     void recoverInsertTest(void)

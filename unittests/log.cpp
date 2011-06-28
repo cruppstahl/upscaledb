@@ -36,8 +36,10 @@
 using namespace bfc;
 
 /* this function pointer is defined in changeset.c */
+extern "C" {
 typedef void (*hook_func_t)(void);
 extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
+}
 
 class LogTest : public hamsterDB_fixture
 {
@@ -714,6 +716,7 @@ public:
 
     void recoverAllocatePageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
@@ -754,10 +757,12 @@ public:
         BFC_ASSERT_EQUAL(1ull, log_get_lsn(env_get_log(m_env)));
 
         changeset_clear(env_get_changeset(m_env));
+#endif
     }
 
     void recoverAllocateMultiplePageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
@@ -805,10 +810,12 @@ public:
         BFC_ASSERT_EQUAL(33ull, log_get_lsn(env_get_log(m_env)));
 
         changeset_clear(env_get_changeset(m_env));
-    }
+#endif
+	}
 
     void recoverModifiedPageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
@@ -849,10 +856,12 @@ public:
         BFC_ASSERT_EQUAL(2ull, log_get_lsn(env_get_log(m_env)));
 
         changeset_clear(env_get_changeset(m_env));
-    }
+#endif
+	}
 
     void recoverModifiedMultiplePageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
@@ -903,10 +912,12 @@ public:
         BFC_ASSERT_EQUAL(5ull, log_get_lsn(env_get_log(m_env)));
 
         changeset_clear(env_get_changeset(m_env));
+#endif
     }
 
     void recoverMixedAllocatedModifiedPageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
@@ -959,10 +970,12 @@ public:
         BFC_ASSERT_EQUAL(6ull, log_get_lsn(env_get_log(m_env)));
 
         changeset_clear(env_get_changeset(m_env));
+#endif
     }
 
     void recoverModifiedHeaderPageTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
@@ -1001,10 +1014,12 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(9ull, log_get_lsn(env_get_log(m_env)));
+#endif
     }
 
     void recoverModifiedHeaderPageTest2(void)
     {
+#ifndef WIN32
         teardown(); m_env=0;
 
         ham_env_t *env;
@@ -1061,10 +1076,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         ham_delete(db);
         ham_env_delete(env);
+#endif
     }
 
     void recoverModifiedHeaderPageTest3(void)
     {
+#ifndef WIN32
         teardown(); m_env=0;
 
         ham_env_t *env;
@@ -1114,10 +1131,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         ham_delete(db);
         ham_env_delete(env);
+#endif
     }
 
     void recoverModifiedFreelistTest(void)
     {
+#ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_offset_t o=env_get_usable_pagesize(m_env)*8*DB_CHUNKSIZE;
         ham_size_t ps=env_get_pagesize(m_env);
@@ -1170,6 +1189,7 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(19ull, log_get_lsn(env_get_log(m_env)));
+#endif
     }
 
     void negativeAesFilterTest()
@@ -1194,6 +1214,7 @@ public:
 
     void aesFilterTest()
     {
+#ifndef WIN32
 #ifndef HAM_DISABLE_ENCRYPTION
         /* close m_db, otherwise ham_env_create fails */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -1234,10 +1255,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
+#endif
     }
 
     void aesFilterRecoverTest()
     {
+#ifndef WIN32
 #ifndef HAM_DISABLE_ENCRYPTION
         /* close m_db, otherwise ham_env_create fails on win32 */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -1279,6 +1302,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
+#endif
 #endif
     }
 };

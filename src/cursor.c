@@ -138,9 +138,9 @@ dupecache_append(dupecache_t *c, dupecache_line_t *dupe)
 ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position)
 {
-    ham_assert(position<dupecache_get_count(c), (""));
-
     dupecache_line_t *e=dupecache_get_elements(c);
+
+    ham_assert(position<dupecache_get_count(c), (""));
 
     if (position<dupecache_get_count(c)-1) {
         /* shift elements to the "left" */
@@ -400,10 +400,11 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
 
     if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
         txn_opnode_t *node;
+		ham_key_t *k;
         if (!txn_cursor_get_coupled_op(txnc))
             return (0);
         node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
-        ham_key_t *k=txn_opnode_get_key(node);
+        k=txn_opnode_get_key(node);
         /* the flag DONT_LOAD_KEY does not load the key if there's an
          * approx match - it only positions the cursor */
         st=cursor->_fun_find(cursor, k, 0,

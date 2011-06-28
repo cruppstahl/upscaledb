@@ -192,7 +192,11 @@ public:
         BFC_ASSERT_EQUAL((ham_txn_t *)3, txn_get_older(txn));
         txn_set_older(txn, (ham_txn_t *)0);
 
+#ifndef WIN32
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+#else
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, ham_txn_commit(txn, 0));
+#endif
     }
 
     void txnTreeStructureTest(void)
