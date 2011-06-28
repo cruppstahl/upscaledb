@@ -947,11 +947,12 @@ x monster tests currently don't test with transactions (only with recovery)
             x needs unittests
             x check monster tests
 
-o add other pending patches from master
-    o cache and db.c:__purge_cache
-    o recovery issues
+x port to Win32
 
-o port to Win32
+x add other pending patches from master
+    x cache and db.c:__purge_cache
+    o recovery issues
+    o HAM_WRITE_THROUGH fixes of 1.1.11
 
 . port to WinCE
 

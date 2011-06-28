@@ -368,7 +368,15 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\btree_key.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\cache.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\changeset.cpp"
 			>
 		</File>
 		<File
@@ -377,6 +385,10 @@
 		</File>
 		<File
 			RelativePath="..\unittests\cppapi.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\cursor.cpp"
 			>
 		</File>
 		<File
@@ -428,7 +440,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\unittests\keys.cpp"
+			RelativePath="..\unittests\journal.cpp"
 			>
 		</File>
 		<File
@@ -449,6 +461,10 @@
 		</File>
 		<File
 			RelativePath="..\unittests\memtracker.h"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\misc.cpp"
 			>
 		</File>
 		<File
@@ -480,7 +496,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\unittests\util.cpp"
+			RelativePath="..\unittests\txn_cursor.cpp"
 			>
 		</File>
 	</Files>
