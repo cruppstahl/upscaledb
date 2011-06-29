@@ -103,6 +103,7 @@ typedef void (fixture::*method)();
                             "; actual values: '%s' == '%s'", \
                             get_caught_value_string(0), \
                             get_caught_value_string(1)); } \
+                        ditch_all_caught_values(); \
                     } while (0)
 
 #define BFC_ASSERT_NOTEQUAL(exp, act) \

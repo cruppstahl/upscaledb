@@ -831,16 +831,12 @@ protected:
 public:
     virtual void setup() 
     { 
-        __super::setup();
-
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
     }
     
     virtual void teardown() 
     { 
-        __super::teardown();
-
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
