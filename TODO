@@ -960,12 +960,9 @@ x add other pending patches from master
         verify that all other file handles are flushed! (if HAM_WRITE_THROUGH
         is set)
 
-. port to WinCE
+x test with lessfs
 
 o don't forget to test with valgrind!
-
-o test with lessfs
-o test with reboots - like those that are currently making problems with lessfs
 
 o update documentation
     x in header file
@@ -981,7 +978,7 @@ o update documentation
         o cache
         o I/O
         o unittests
-        o monstertests
+        o monstertests - how to use them?
 
 o fully (!) automize the whole release process for unix; the result (on
     success) are the following files:
@@ -1003,9 +1000,12 @@ o hamsterdb.com
 o release 2.0.0rc1 UNSTABLE
     o new item on download section (webpage)
     o increase libtool version
-    o test performance against 1.1.11 (w/o transactions)
+    o test performance against 1.1.11 (as part of monster-testsuite)
+    o merge changelogs
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
+
+. port to WinCE
 
 o cleanups: the backend structure does not need the function pointers. 
 	simplify the whole interface!
@@ -1025,12 +1025,8 @@ o cleanup the cache - the garbagelist is not needed, and the age of the pages
 
 o need a function to get the txn of a conflict (same as in v2)
 
-o do performance comparisons
-    o WITHOUT transactions
-    o only WITH recovery
-    o WITH recovery/transactions
-
 o test with lessfs (and add lessfs to the monster testsuite)
+    o test with reboots - like those that made problems with lessfs
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 
@@ -1066,25 +1062,30 @@ o improve journalling and get rid of the physical log as much as possible
         sufficient. For all other operations we can just append the log
         entries to the journal file. in such cases, the journal entry of an
         insert or erase (w/ SMO) contains the modified pages as well.
-    o api function to get a list of pending transactions
+        ??? really? does that simplify things?
+    o api function to get a list of pending transactions after recovery
     o be careful - even if the btree operations are atomic, the whole
         insert/erase is not because it also affects the blob area and the
         freelist (and maybe the header page, if the root page address is
         modified)
+        -> this is where we might have to rewrite the btree insert algorithm
 
 o if recovery is enabled: before flushing the changeset, patch the lsn in
     the page header (it fits in 8 free bytes). in the previous release we 
-    stored the lsn in the log file header. this can be removed; use he 
+    stored the lsn in the log file header. this can be removed; use the 
     lsn in the page header for recovery.
     --> why?? i think the current solution is good enough
 
-o if memory consumption in the txn-tree is too high: flush records to disk
+. if memory consumption in the txn-tree is too high: flush records to disk
+    (not sure if this should get high priority)
 
 o new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
     to the log. the log will only contain the rid.
     o document this (and also the drawback - that an abort will lose the 
         blobs and they cannot be reused
+    -> this affects all temporary ham_insert-transactions 
+    (not sure if this should get high priority)
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
@@ -1095,10 +1096,6 @@ o ham_txn_begin receives Environment handle, not Database handle
     o rewrite auto-abort/auto-commit -> move to env
     o what happens if a database is closed, but it's modified by a txn
         that is still active? -> error (verify this!)
-
-o new API to retrieve the currently active transactions
-    o already exists in v2
-    o needs unittests
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
@@ -1130,10 +1127,6 @@ o when recovering, give users the choice if active transactions should be
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o flush transactions in background
-
-o have a flag to describe if a transaction is (mostly) insert-only; if yes then
-    write records immediately to the database file, not to the journal
-    -> this affects all temporary ham_insert-transactions 
 
 . have a flag to disable flushing of logfiles/journal files (or flush them 
     async.)
