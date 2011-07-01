@@ -61,20 +61,20 @@ struct ham_device_t {
      */
     ham_bool_t (*is_open)(ham_device_t *self);
 
-	/**
+    /**
      * get the current file/storage size
      */
     ham_status_t (*get_filesize)(ham_device_t *self, ham_offset_t *length);
 
-	/**
-	 * seek position in a file
-	 */
-	ham_status_t (*seek)(ham_device_t *self, ham_offset_t offset, int whence);
+    /**
+     * seek position in a file
+     */
+    ham_status_t (*seek)(ham_device_t *self, ham_offset_t offset, int whence);
 
-	/**
-	 * tell the position in a file
-	 */
-	ham_status_t (*tell)(ham_device_t *self, ham_offset_t *offset);
+    /**
+     * tell the position in a file
+     */
+    ham_status_t (*tell)(ham_device_t *self, ham_offset_t *offset);
 
     /**
      * reads from the device; this function does not use mmap
@@ -133,62 +133,49 @@ struct ham_device_t {
      * @note
      * The caller is responsible for flushing the page; the @ref free_page 
      * function will assert that the page is not dirty.
-	 *
-	 * @warning @ref alloc_page and @ref free_page are @e significantly 
-     *    different from the @ref request_space and @ref release_space 
-     *    methods which address the device-specific freelist manager instead.
      */
     ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page);
 
     /**
      * frees a page on the device; plays counterpoint to @ref alloc_page.
-	 *
-	 * @warning @ref alloc_page and @ref free_page are @e significantly different
-	 *          from the @ref request_space and @ref release_space methods which
-	 *          address the device-specific freelist manager instead.
+     * Will not flush the page to disk!
      */
-	ham_status_t (*free_page)(ham_device_t *self, ham_page_t *page);
+    ham_status_t (*free_page)(ham_device_t *self, ham_page_t *page);
 
     /**
      * destroy the device object, free all memory
      */
     ham_status_t (*destroy)(ham_device_t *self);
 
-    /*
-     * the memory allocator
-     */
+    /* the memory allocator */
     mem_allocator_t *_malloc;
 
-	/**
-	* the environment which employs this device
-	*/
-	ham_env_t *_env;
+    /** the environment which employs this device */
+    ham_env_t *_env;
 
     /**
      * Flags of this device. 
      *
      * Currently, these flags are used (at leas):
-	 * - @ref HAM_DISABLE_MMAP do not use mmap but pread/pwrite
-	 * - @ref DB_USE_MMAP use memory mapped I/O (this bit is not observed through here, though)
-	 * - @ref HAM_READ_ONLY this is a read-only device
+     * - @ref HAM_DISABLE_MMAP do not use mmap but pread/pwrite
+     * - @ref DB_USE_MMAP use memory mapped I/O (this bit is not 
+     *      observed through here, though)
+     * - @ref HAM_READ_ONLY this is a read-only device
      */
     ham_u32_t _flags;
 
-    /**
-     * some private data for this device
-     */
+    /** some private data for this device */
     void *_private;
 
-    /**
-     * the pagesize
-     */
+    /** the pagesize */
     ham_size_t _pagesize;
 
-	/**
-	The freelist cache: the freelist is managed by the device so it can be parallelized
-	and/or managed per partition without having to feed a lot of unnecessary data into
-	the @ref ham_backend_t database layer or @ref ham_env_t / @ref ham_db_t containers.
-	*/
+    /**
+     * The freelist cache: the freelist is managed by the device so it 
+     * can be parallelized and/or managed per partition without having to 
+     * feed a lot of unnecessary data into the @ref ham_backend_t 
+     * database layer or @ref ham_env_t / @ref ham_db_t containers.
+     */
     freelist_cache_t *_freelist_cache;
 };
 
@@ -234,7 +221,7 @@ struct ham_device_t {
 
 #define device_set_freelist_cache(dev, cache) (dev)->_freelist_cache=(cache)
 
-#define device_get_freelist_cache(dev)	   (dev)->_freelist_cache
+#define device_get_freelist_cache(dev)       (dev)->_freelist_cache
 
 
 /*

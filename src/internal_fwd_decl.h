@@ -43,9 +43,6 @@ extern "C" {
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
 
-struct mem_allocator_t;
-typedef struct mem_allocator_t mem_allocator_t;
-
 struct ham_backend_t;
 typedef struct ham_backend_t ham_backend_t;
 

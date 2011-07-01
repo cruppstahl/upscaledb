@@ -2,6 +2,10 @@ Jul 01, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.12
 
 Jul 01, 2011 - chris ---------------------------------------------------
+o exported two internal functions as test gateways: ham_env_get_device
+	and ham_env_set_allocator (in ham/hamsterdb_int.h)
+
+Jul 01, 2011 - chris ---------------------------------------------------
 o bugfix: there was still a problem in the cache purge algorithm, and the
 	memory consumption passed the cache boundaries. (Thanks, Jake)
 
