@@ -704,6 +704,9 @@ _remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         memset(txn, 0, sizeof(*txn));
         allocator_free(env_get_allocator(env), txn);
+
+        /* remove the link between env and txn */
+    	env_set_txn(env, 0);
     }
 
     proto_delete(reply);
@@ -735,6 +738,9 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         memset(txn, 0, sizeof(*txn));
         allocator_free(env_get_allocator(env), txn);
+
+        /* remove the link between env and txn */
+    	env_set_txn(env, 0);
     }
 
     proto_delete(reply);

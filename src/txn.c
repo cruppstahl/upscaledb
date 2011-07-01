@@ -226,6 +226,9 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     if (env_get_rt_flags(env)&HAM_WRITE_THROUGH)
         return (device->flush(device));
 
+    /* now it's the time to purge caches */
+    env_purge_cache(env);
+
     return (HAM_SUCCESS);
 }
 
@@ -284,14 +287,14 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
              * might have been hinted if we had played a smarter game of 
              * statistics 'reversal'. Soit.
              */
-			ham_db_t *db = page_get_owner(head);
+            ham_db_t *db = page_get_owner(head);
 
-			/*
-			 * only need to do this for index pages anyhow, and those are the 
+            /*
+             * only need to do this for index pages anyhow, and those are the 
              * ones which have their 'ownership' set.
-			 */
-			if (db)
-				stats_page_is_nuked(db, head, HAM_FALSE); 
+             */
+            if (db)
+                stats_page_is_nuked(db, head, HAM_FALSE); 
         }
 
         ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),
@@ -324,12 +327,13 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 
     ham_assert(txn_get_pagelist(txn)==0, (0));
 
+    /* now it's the time to purge caches */
+    env_purge_cache(env);
+
     /* flush the file handle */
     if (env_get_rt_flags(env)&HAM_WRITE_THROUGH)
         return (device->flush(device));
 
     return (HAM_SUCCESS);
-
-    return (0);
 }
 

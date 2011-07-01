@@ -337,7 +337,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
     if (st)
         return (st);
 
-    env_set_txn(env, 0);
+    ham_assert(env_get_txn(env)==0, (""));
     return (0);
 }
 
@@ -362,8 +362,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
     if (st)
         return (st);
 
-    env_set_txn(env, 0);
-
+    ham_assert(env_get_txn(env)==0, (""));
     return (0);
 }
 
