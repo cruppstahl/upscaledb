@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.11                  Mon Jun 27 21:33:05 CEST 2011
+hamsterdb Embedded Storage 1.1.12                  Fri Jul  1 09:01:26 CEST 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,12 +12,9 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a performance regression: when Transactions are enabled, 
-the file was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
-set.
-
-Also, the ./configure flag --enable-internal is now obsolete and enabled by
-default.
+This release fixes a bug in the cache. The cache was not purged correctly, and
+the memory consumption exceeded the cache limits that were configured with
+HAM_PARAM_CACHESIZE.
 
 2. Changes
 
@@ -25,11 +22,10 @@ New Features
 * none
 
 Bugfixes
-* don't flush files if HAM_WRITE_THROUGH is not set
+* cache limits are now respected
 
 Other Changes
-* the ./configure switch --enable-internal is now obsolete and enabled 
-    by default
+* none
 
 To see a list of all changes, look in the file ChangeLog.
 
