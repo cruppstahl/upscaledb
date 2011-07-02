@@ -1,0 +1,1031 @@
+Jul 01, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.12
+
+Jul 01, 2011 - chris ---------------------------------------------------
+o exported two internal functions as test gateways: ham_env_get_device
+	and ham_env_set_allocator (in ham/hamsterdb_int.h)
+
+Jul 01, 2011 - chris ---------------------------------------------------
+o bugfix: there was still a problem in the cache purge algorithm, and the
+	memory consumption passed the cache boundaries. (Thanks, Jake)
+
+Jun 30, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.11
+
+Jun 27, 2011 - chris
+o fixed a performance regression - when Transactions are enabled, the file
+	was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
+	set (thanks, Jake and Colm)
+
+Jun 26, 2011 - chris
+o the ./configure switch --enable-internal is now obsolte and enabled by
+	default
+
+Jun 20, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.10
+
+Jun 18, 2011 - chris ---------------------------------------------------
+o the flag HAM_WRITE_THROUGH will now cause an immediate flush of all file
+	handles to disk (via fdatasync or fsync, if fdatasync is not available, 
+	or FlushFileHandle on win32) if recovery (or Transactions) are enabled.
+	This causes a noticable performance hit if you have many short-running 
+	Transactions, but it improves the durability in case the hardware 
+	crashes (a normal application segfault is not problematic because in
+	such a case the operating system buffers are still flushed to disk). 
+
+May 25, 2011 - chris ---------------------------------------------------
+o the cachesize is now more respected than before; while earlier releases
+	frequently exceeded the cache when necessary, hamsterdb will now try to
+	remain in the cache boundaries as good as possible
+
+May 13, 2011 - chris ---------------------------------------------------
+o added tools/ham_log - a tool to dump logfiles
+o added tools/ham_recover - a tool to recover broken databases
+
+Apr 28, 2011 - chris ---------------------------------------------------
+o bugfix: when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
+    these functions deleted the logfiles by mistake. Fixed, and added
+    a unittest to avoid regressions
+
+Apr 27, 2011 - chris ---------------------------------------------------
+o bugfix: after SMOs which affect the root page (i.e. a new root page is
+    created) the header page is sometimes not written to the log file. This 
+	can cause data loss after recovery (Thanks, Mark)
+
+Apr 15, 2011 - chris ---------------------------------------------------
+o bugfix: the cache was not purged correctly, thus grew uncontrolled
+    (Thanks, Mark)
+
+Mar 31, 2011 - chris ---------------------------------------------------
+o bugfix: the hamzilla server always failed to read the configuration file 
+    because of a wrong error check (Thanks, Sebastien)
+
+Mar 28, 2011 - chris ---------------------------------------------------
+o bugfix: when opening a database, and recovery is enabled, the 'threshold' 
+    of the log files (which decides about the log file switching) was not 
+    initialized correctly. (Thanks, Jake Sloan)
+
+Feb 03, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.9
+
+Feb 02, 2011 - chris ---------------------------------------------------
+o added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
+
+Jan 28, 2011 - chris ---------------------------------------------------
+o linux 64bit: when having long-running transactions with very big 
+    databases (200 GB), and the working set of mmapped memory gets too big,
+    mmap will fail and return ENOMEM. In this case, hamsterdb now falls
+    back to malloc/read.
+
+Jan 25, 2011 - chris ---------------------------------------------------
+o merged bugfix from branch bleeding_edge: on 64bit windows, the remote
+    handles returned by the server were broken
+
+Jan 24, 2011 - chris ---------------------------------------------------
+o several smaller fixes based on static code analysis
+
+Jan 10, 2011 - chris ---------------------------------------------------
+o removed two wrong asserts and improved the fix of Nov 25th
+
+Dec 05, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.8
+
+Dec 03, 2010 - chris ---------------------------------------------------
+o configure.in will no longer overwrite -Ox flags; the default 
+    compilation option is now -O2 (thanks, Mark)
+
+Nov 30, 2010 - chris ---------------------------------------------------
+o bugfix with HAM_DIRECT_ACCESS and cursors which insert duplicates at the
+    beginning of the duplicate list; if record size is <= 8 bytes then
+    invalid data was returned
+
+Nov 25, 2010 - chris ---------------------------------------------------
+o bugfix in transaction handling - in certain cases with long running 
+    transactions, a circular reference in a linked list causes an endless
+    loop (thanks, Mark)
+
+Oct 31, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.7
+
+Oct 22, 2010 - chris ---------------------------------------------------
+o further enhanced performance by improving some cache interfaces
+
+Oct 20, 2010 - chris ---------------------------------------------------
+o enhanced performance when appending (or prepending) keys; hamsterdb 
+    will automatically assume HAM_HINT_APPEND (or HAM_HINT_PREPEND) if the 
+    previous operation was also an append (or prepend)
+
+Oct 16, 2010 - chris ---------------------------------------------------
+o fixed a small memory leak when committing remote transactions
+o bugfix: using HAM_DIRECT_ACCESS with records of a length <= 8 bytes
+    returned pointers to temporary copies of the record and not to the
+    original data (thanks, Lionel)
+
+Oct 14, 2010 - chris ---------------------------------------------------
+o another important performance improvements when using hamsterdb with
+    extended keys
+
+Oct 13, 2010 - chris ---------------------------------------------------
+o performance improvements - hamsterdb scales now better with millions
+    of keys
+
+Sep 15, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.6
+
+Sep 12, 2010 - chris
+o the unix daemon was ported to a Win32 Service (which can also run in
+    foreground)
+
+Sep 07, 2010 - chris
+o the tutorial is no longer part of the Doxygen files; instead it's now 
+    online in a wiki: http://wiki.github.com/cruppstahl/hamsterdb
+o several functions are now deprecated:
+    use ham_open_ex instead of ham_open
+    use ham_create_ex instead of ham_create
+    use ham_env_open_ex instead of ham_env_open
+    use ham_env_create_ex instead of ham_env_create
+
+Aug 31, 2010 - chris
+o fixed compilation on newest ArchLinux (gcc 4.5.1) - thanks, zebul666
+
+Aug 28, 2010 - chris
+o created MSVC projects for the server and the new samples; all MSVC
+        projects and workspaces were updated to Visual Studio 2009
+
+Aug 26, 2010 - chris
+o ham_flush is now deprecated, use ham_env_flush instead; both functions
+	had very similar functionality
+
+Aug 25, 2010 - chris
+o renamed ham/hamserver.h to ham/hamsterdb_srv.h; all symbols were renamed
+    from hamserver_XXX to ham_srv_XXX
+o removed the dependency to protobuf-c; now directly using google's protobuf
+    (for C++)
+
+Aug 11, 2010 - chris
+o improved the documentation in hamsterdb.h
+
+Aug 11, 2010 - chris
+o added a unix daemon (tools/hamsrvd.c) which can serve multiple Environments.
+    configuration is read from a json file (a sample configuration is
+    included in tools/example.config)
+
+Aug 10, 2010 - chris
+o the server can now write access logfiles and error logfiles; the 
+	hamserver_config_t structure was modified
+
+Aug 09, 2010 - chris
+o fixed a few memory leaks in remote handling
+
+Aug 04, 2010 - chris
+o improved hamserver.h documentation; also, all functions in hamserver.h
+	no longer return bool but a proper status value
+
+Aug 03, 2010 - chris
+o fixed approximate matching over remote connections - the keys were
+	not propagated back to the client
+o some parameters (HAM_PARAM_DATABASE_NAME, HAM_PARAM_KEYSIZE)
+	were not propagated to remote servers when calling ham_get_parameters
+	on a remote Database - fixed
+o the extended parameters (ham_parameter_t) of ham_env_create_db were
+	ignored when operating on a remote Environment - fixed
+
+Aug 02, 2010 - chris
+o added a new sample client1.c which can communicate with server1.c
+
+Aug 02, 2010 - chris
+o the source repository is now hosted at
+	http://github.com/cruppstahl/hamsterdb. The old subversion repository
+	is no longer available.
+
+Jul 24, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.5
+
+Jul 15, 2010 - chris
+o finalized the client/server communication; hamsterdb is now able to
+	access remote servers. A new header file hamserver.h was added.
+
+Jul 02, 2010 - chris
+o HAM_PARAM_GET_STATISTICS was moved to hamsterdb_int.h
+o a new sample "server1" was added
+
+Apr 29, 2010 - chris
+o ham_env_get_parameters and ham_get_parameters do no longer accept
+    NULL pointers as the first parameter; instead, they will fail with
+    HAM_INV_PARAMETER
+
+Apr 22, 2010 - chris
+o Fixed compilation for MacOSX SnowLeopard (thanks, Olisa)
+
+Apr 13, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.4
+
+Apr 10, 2010 - chris
+o The documentation in the header file was improved and some constants
+    were renamed/deprecated
+
+Apr 10, 2010 - chris
+o Bugfix - win32 only: with very big databases and unlimited cache, resources
+    were exceeded and mmap failed. in this case we'll now fall back to 
+    read/write (thanks, Simon)
+
+Mar 27, 2010 - chris
+o Bugfix - it was allowed to create temp. Transactions while a non-temp.
+	Transaction was still active
+
+Mar 18, 2010 - chris
+o Optimization - if HAM_DAM_SEQUENTIAL_INSERT is set then btree nodes will
+    not be split in the middle, but at the end of the node. hamsterdb will
+    also auto-recognize if an insert is sequential (at the "right end" of 
+    the index). This leads to MUCH smaller files and therefore higher
+    performance (thanks, Simon)
+
+Mar 10, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.3
+
+Mar 10, 2010 - chris
+o Bugfix - fixed an invalid read of 3 bytes in the freelist
+
+Mar 07, 2010 - chris
+o Implemented partial read/write - records can now be read or written 
+    partially (see flag HAM_PARTIAL for ham_find, ham_insert and others)
+    This new feature caused a change to ham_record_t, thus making the ABI
+    of hamsterdb incompatible to older versions. This feature is test-covered
+    by nearly 900 unittests.
+
+Feb 27, 2010 - chris
+o Bugfix - ham_get_parameter failed if database was opened read-only
+    (thanks, Austin)
+
+Feb 18, 2010 - chris
+o Bugfix - if a cachesize was specified then it was not propagated correctly
+    and ignored; this bugfix caused serious performance improvements compared
+    to 1.1.2!
+
+Feb 16, 2010 - chris
+o Windows library and dll are now renamed to libhamsterdb-<version>.lib and
+    hamsterdb-<version>.dll
+
+Feb 11, 2010 - chris
+o Added a new function to get the Environment handle of a Database
+    (ham_get_env)
+
+Feb 10, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.2
+
+Feb 07, 2010 - chris
+o Added documentation target; there's now one target for public documentation,
+    one for internal and one for BFC (unittest framework) - thanks, Ger
+o Finished a lot of refactoring - some from Ger, some from me
+
+Feb 03, 2010 - chris
+o Added comment in hamsterdb_int.h and hamsterdb_stats.h - these files describe
+    internal interfaces! unlike hamsterdb.h they are never stable and can
+    be changed with every new version.
+
+Feb 01, 2010 - chris
+o Bugfix: if multiple databases in an Environment are open, and just one 
+    Database is closed, then the pages of this Database were not flushed
+    correctly
+o Bugfix: if multiple databases in an Environment are open, an open Transaction
+    was not immediately closed on the first call of ham_close
+
+Jan 19, 2010 - chris
+o duplicate keys can now be sorted. The default sort order is based on 
+    memcmp(), but can be overwritten with ham_set_duplicate_compare_func.
+
+Jan 15, 2010 - chris
+o fixed crash on Linux 64bit/gcc 4.4.1 caused by some statements which broke
+    compiler optimization
+
+Jan 14, 2010 - chris
+o fixed compiler problems with g++ 4.4.x in the unittests (some header files
+    were missing)
+
+Jan 09, 2010 - chris
+o bugfix in unittest - HamsterdbTest::nearFindTest fails if internal
+    functions are disabled (thanks, Austin!)
+
+Jan 06, 2010 - chris
+o added safety checks to prevent reuse of a ham_db_t or ham_env_t 
+	structure which is already in use (thanks, Ger!)
+o the implementation of ham_create[_ex] and ham_open[_ex] was rewritten:
+	both functions now create their private Environment handle. This 
+	simplifies lots of code.
+
+Dec 23, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.1
+
+Dec 19, 2009 - chris
+o the flag HAM_DIRECT_ACCESS can return a pointer in hamsterdb's managed
+    storage (only In-Memory Databases!)
+o the flag HAM_HINT_UBER_FAST_ACCESS for ham_get_key_count was 
+	renamed to HAM_FAST_ESTIMATE
+o removed HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_WRITE and 
+	HAM_HINT_UBER_FAST_ACCESS - they have the same use as the DAM flags; 
+	sorry for the inconvenience. If you used them, just remove them
+
+Dec 16, 2009 - chris
+o improved tests of HAM_HINTS_* flags and fixed some bugs in the
+    process - mainly asserts which failed because the flags were unexpected
+
+Dec 15, 2009 - chris
+o ham_get_parameter now returns the Data Access Mode (DAM)
+o renamed HAM_EMPTY_DATABASE_NAME to HAM_DEFAULT_DATABASE_NAME
+
+Dec 14, 2009 - chris
+o fixed bug in ham_find - if record was empty, but record->size was set 
+    by the caller, then the record->size value was not overwritten
+    with zero
+o fixed compilation error if HAM_DISABLE_ENCRYPTION was set
+o fixed ham_check_integrity - sometimes returned errors although the
+    database was fine
+
+Dec 12, 2009 - chris
+o html documentation is now part of the tarball
+
+Dec 03, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.0
+
+Nov 28, 2009 - chris
+o Disallowed pagesizes which are not aligned to 2k (with exception of 1k); 
+    allowed pagesizes are now 1k, 2k, 4k, 6k, 8k etc
+
+Nov 9, 2009 - chris
+o C++ API now has all the new functions
+o ham_get_flags is now deprecated - it was replaced by ham_get_parameters
+    and ham_env_get_parameters
+o the flag HAM_LOCK_EXCLUSIVE is now enabled by default
+o the new function ham_get_key_count() returns number of all keys in the 
+    Database
+
+Jul 31, 2009 - chris 
+o performance improvements in the freelist code, freelist was abstracted
+    to allow multiple implementations (all from Ger Hobbelt, 
+    http://www.hobbelt.com, http://www.hebbut.net)
+o added "Data Access Mode" to give hints how Databases/Environments are used;
+    hamsterdb can then optimize its internal algorithms/file formats
+    (all from Ger Hobbelt, http://www.hobbelt.com, http://www.hebbut.net)
+
+Jul 26, 2009 - chris 
+o the unittest framework "bfc" was improved significantly, allowing new
+    command line options and catching HW and win32-exceptions (all from
+    Ger Hobbelt, http://www.hobbelt.com, http://www.hebbut.net)
+
+Jul 25, 2009 - chris 
+o bugfix: when an Environment is created (or opened), the header page was
+    not immediately written (or read); therefore settings were lost, unless
+    a database was created (or opened) - Thanks, Ger Hobbelt
+
+Jul 20, 2009 - chris 
+o added ham_env_get_parameters, ham_db_get_parameters and
+    functions for approximate matching (all from Ger Hobbelt, 
+    http://www.hobbelt.com, http://www.hebbut.net)
+
+Jul 19, 2009 - chris 
+o added various new asserts, code cleanups, win32 improvements/security
+    improvements and new tests (all from Ger Hobbelt, http://www.hobbelt.com,
+    http://www.hebbut.net)
+o added Approximate Matching - ham_find/ham_cursor_find can now return
+	the nearest neighbour if the key is not found
+
+Mar 05, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.9
+
+May 13, 2009 - chris 
+o removed the dependency to cppunit (replaced it with my own tiny acceptance
+    test framework)
+
+May 12, 2009 - chris 
+o fixed segmentation fault when using a Cursor to iterate over all keys
+    and the record parameter is NULL and compression is enabled, then
+    hamsterdb tried to compress the NULL record (thanks, Jiezg)
+
+Mar 01, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.8
+
+Feb 28, 2009 - chris 
+o fixed bug when shifting internal pages (during SMO of erase); extended
+    keys were deleted although they were still referenced
+
+Feb 23, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.7
+
+Feb 20, 2009 - chris 
+o fixed endian conversion bug when opening a Database file, which was created
+    on a little-endian system, some page addresses were broken
+
+Sep 23, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.6
+
+Sep 14, 2008 - chris
+o a new flag HAM_CACHE_UNLIMITED uses unlimited cache
+o added a new chapter about Transactions to the tutorial
+
+Sep 12, 2008 - chris
+o ./configure has a new option --enable-system-zlib which links against the 
+    system-wide installed zlib (-lz)
+
+Sep 11, 2008 - chris
+o unittests now compile with gcc 4.3.x and glibc 2.8 (thanks, Tiziano Müller)
+o C++ api now has template function for class key: key.set<T>(T &t)
+    (thanks, Tiziano Müller)
+o added macro AC_PROG_CXX to ./configure (thanks, Tiziano Müller)
+
+Aug 07, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.5
+
+Aug 03, 2008 - chris
+o On Linux for ARM: disable pread/pwrite; pwrite seems to be buggy, 
+    at least in the maemo.org 4.1 Environment for ATMEL CPU's.
+
+Aug 02, 2008 - chris
+o If available, the flag O_NOATIME is now specified when opening or creating 
+    files
+
+Jul 23, 2008 - chris
+o Fixed potential NULL pointer access and a bug in ham_dump.c 
+    (thanks, Zhao Xinjian)
+
+Jul 21, 2008 - chris
+o Fixed potential buffer overflow (thanks, Tielei Wang)
+
+Jul 19, 2008 - chris
+o The C++ wrapper now supports Transactions (see ham::db::begin(),
+    ham::txn::abort(), ham::txn:commit())
+
+Jul 18, 2008 - chris
+o ham_close now supports the flag HAM_TXN_AUTO_COMMIT
+o ham_env_close now supports the flag HAM_TXN_AUTO_COMMIT
+
+Jun 28, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.4
+
+Jun 27, 2008 - chris
+o Implemented the first of several milestones with Transaction support;
+    please see the README for details about the limitations, some of them
+    are quite severe
+    
+Jun 16, 2008 - chris
+o Bugfix: when creating several Databases in an Environment, and recovery
+    was enabled, each Database created its own log object and the log
+    was corrupted
+
+Jun 03, 2008 - chris
+o Fixed typo in hamsterdb.h documentation - HAM_INV_LOG_FILE_HEADER is
+    actually called HAM_LOG_INV_FILE_HEADER
+
+May 25, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.3
+
+May 24, 2008 - chris
+o Unittests no longer fail when compiled without encryption, compression
+	or internal functions
+o Moved ham_get_flags from ham/hamsterdb_int.h to ham/hamsterdb.h
+
+May 22, 2008 - chris
+o Log files now respect the file filters - i.e. if aes encryption is enabled,
+	the log file is also encrypted
+
+May 21, 2008 - chris
+o Finalized the implementation of logging and recovery; can be enabled with
+	HAM_ENABLE_RECOVERY
+
+May 10, 2008 - chris
+o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
+    are no longer immediately flushed. 
+
+May 10, 2008 - chris
+o minor documentation fixes (mainly grammar releated) in ham/hamsterdb.h
+
+May 09, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.2
+
+May 06, 2008 - chris
+o added new API function ham_get_flags()
+
+May 06, 2008 - chris
+o When creating an environment with ham_env_create_ex and a custom
+    page size, the page size was not stored correctly
+o An assert was sometimes triggered when closing a Database which was part
+    of an Environment
+
+Apr 25, 2008 - chris
+o bugfix: when a cursor is overwritten (ham_cursor_overwrite), the modified
+    page was never released from the cache
+
+Mar 09, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.1
+
+Feb 19, 2008 - chris
+o added a macro HAM_CALLCONV to set the calling convention; per default, 
+	it's empty and therefore CDECL is used
+
+Feb 10, 2008 - chris
+o added a new internal function ham_cursor_get_database
+
+Jan 25, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.0
+
+Jan 24, 2008 - chris
+o added documentation fixes in the tutorial and the header files
+o API change: added an additional parameter to the comparison-callback 
+    functions
+
+Jan 08, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.0rc1
+
+Jan 08, 2008 - chris
+o bugfix: when inserting with ham_cursor_insert, but the insert fails (i.e.
+    because the key already exists), the cursor is modified and uninitialized,
+    but it should still point to the same element as before the operation
+
+Jan 06, 2008 - chris
+o bugfix: when uncoupling a cursor, sometimes the connection between page
+    and cursor was broken
+
+Jan 02, 2008 - chris
+o API change for ham_env_close: if you call ham_env_close and there are still
+    open Databases, the function will no longer fail with HAM_ENV_NOT_EMPTY; 
+    instead, the Databases are closed with ham_close; you still have to
+    close the Cursors of each Database, though.
+o API change for ham_close: if you call ham_close and there are still
+    open Cursors, the function will no longer fail with HAM_DB_NOT_EMPTY; 
+    instead, the Cursors are invalidated, but you still have to call 
+    ham_cursor_close to prevent memory leaks. Alternatively, the flag
+    HAM_AUTO_CLEANUP implicitely calls ham_cursor_close on each function.
+
+Jan 01, 2008 - chris
+o calling ham_set_prefix_compare_func with NULL as a function pointer
+    does no longer set the default prefix compare function, but completely
+    disables prefix comparison
+
+Dec 31, 2007 - chris
+o Most errors now emit a ham_trace debug messages, esp. HAM_INV_PARAMETER;
+    also, in release mode all messages now show the hamsterdb function name,
+    and in debug mode they show the hamsterdb source filename/line number
+
+Dec 30, 2007 - chris
+o The debug- and error-messages are now always compiled; the message handler
+    of the debug build prints all messages, the handler of the release build
+    ignores debug messages
+
+Dec 29, 2007 - chris
+o Removed the function ham_dump; it was replaced by the command line tool
+    and is no longer necessary
+
+Dec 20, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.9
+
+Dec 19, 2007 - chris
+o Fixes in the MSVC Solution for Win64; the types (include/ham/types.h)
+    were not set correctly to 64bit values
+
+Dec 17, 2007 - chris
+o SPARC fixes: several minor changes to avoid unaligned memory access,
+    especially with duplicate keys and extended keys; hamsterdb 
+    should now run fine on SPARC
+
+Dec 14, 2007 - chris
+o configure: don't use lock_exclusive on Solaris (fails on SunOS 5.9)
+
+Dec 06, 2007 - chris
+o added two tools: ham_dump (for dumping a database) and ham_info
+    (for printing statistics)
+
+Dec 03, 2007 - chris
+o bugfix for SPARC: fixed an unaligned access when assigning record numbers
+o bugfix for Windows x64: the offset of a memory mapped access was sometimes
+    not calculated correctly
+
+Nov 24, 2007 - chris
+o added small performance improvements and fixes in the zlib-based
+    compression-filter
+
+Nov 15, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.8
+
+Nov 14, 2007 - chris
+o bugfix: the parameters for memory mapped I/O on win32 did not create 
+    private copies and therefore the file could be damaged if an operation
+    aborted
+
+Nov 10, 2007 - chris
+o Environments now support a configurable number of databases; the default
+    is 16, but files with a pagesize of 16kb can have up to 508 databases.
+    See parameter HAM_PARAM_MAX_ENV_DATABASES for ham_env_create_ex.
+
+Nov 09, 2007 - chris
+o bugfix: when deleting a database from an Environment (ham_env_erase_db), 
+    the database name was not removed
+
+Nov 06, 2007 - chris
+o added a new function ham_env_get_database_names(), which returns all 
+	database names in an environment.
+
+Nov 01, 2007 - chris
+o implemented zlib-based compression; a new function was added:
+    ham_enable_compression()
+o added a new option --disable-compression for configure; this option does not
+    compile/link ham_enable_compression.
+
+Nov 01, 2007 - chris
+o added generic record filters - ham_add_record_filter and 
+    ham_remove_record_filter
+o added a new option --disable-encryption for configure; this option does not
+    compile/link ham_env_enable_encryption.
+
+Oct 28, 2007 - chris
+o implemented AES encryption; a new function was added: 
+	ham_env_enable_encryption()
+o fixed bug in configure.in; on some systems, the call to getpagesize()
+    was not declared correctly. i hope it works now.
+
+Oct 26, 2007 - chris
+o finished the C++ API in include/ham/hamsterdb.hpp and added two new C++
+	samples - db6.cpp and env3.cpp.
+
+Oct 21, 2007 - chris
+o added generic page filters - ham_env_add_page_filter and 
+	ham_env_remove_page_filter
+
+Oct 18, 2007 - chris
+o bugfix: when moving a cursor through duplicates and the cache was
+	exhausted, an assert was triggered - fixed
+
+Oct 16, 2007 - chris
+o bugfix: ham_close in an environment could lead to a segmentation fault, 
+	because the cache for extended keys was not properly set up, before
+	it was deleted
+
+Oct 11, 2007 - chris
+o the default pagesize for unix databases is now 16kb, not 4kb; benchmarks 
+    show that this is the fastest option, but still results in small files
+
+Oct 10, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.7
+
+Oct 09, 2007 - chris
+o restructured the wince MSV8 solution and project files
+
+Oct 08, 2007 - chris
+o completely recreated the win32 MSVC8 solution and project files
+
+Oct 05, 2007 - chris
+o added function ham_cursor_get_duplicate_count
+o fixed a bug in coupling an uncoupling cursor: the duplicate id was lost
+o added a new sample env2.c, which demonstrates a 1:n relationship for
+    two tables (with the use of duplicate keys)
+
+Oct 04, 2007 - chris
+o record numbers are now no longer reused after they were deleted and the
+    database was reopened.
+
+Oct 03, 2007 - chris
+o rewrote some blob management routines which resulted in an improvement
+    of duplicate keys.
+
+Oct 02, 2007 - chris
+o the freelist routines were completely rewritten and are much faster now.
+
+Oct 01, 2007 - chris
+o it's now enough to initialize a ham_key_t and ham_record_t once in the
+    beginning, and not before every use. also added some checks and 
+    errors when using an uninitialized structure.
+
+Sep 30, 2007 - chris
+o ham_env_close now expects a second parameter for flags; you can specify the
+    flag HAM_AUTO_CLOSE, and all open databases are closed automatically.
+    if the flag is not specified, but cursors are still open, ham_env_close
+    fails and returns HAM_ENV_NOT_EMPTY.
+o ham_close now expects a second parameter for flags; you can specify the
+    flag HAM_AUTO_CLOSE, and all open cursors are closed automatically.
+    if the flag is not specified, but cursors are still open, ham_close
+    fails and returns HAM_DB_NOT_EMPTY.
+
+Sep 27, 2007 - chris
+o fixed a bug in the freelist - the dirty-flag was not set, when an overflow
+    page was allocated; if the cache was exhausted, freelist pages could
+    get lost, and the file would grow very fast.
+
+Sep 24, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.6
+
+Sep 24, 2007 - chris
+o support for duplicate items is finally finished, and a new sample 
+    (db5.c) was added
+
+Sep 13, 2007 - chris
+o fixed big endian-bugs in record number databases (ham_find, ham_erase
+    and ham_cursor_find did not convert the record number to db-endian)
+
+Aug 31, 2007 - chris
+o renamed ham_cursor_replace to ham_cursor_overwrite (to be consistent with
+	the flag HAM_OVERWRITE)
+
+Aug 30, 2007 - chris
+o bugfix: if a cursor pointed to an item, but this item was erased (either
+	with another cursor or ham_erase), the dangling pointer was not updated,
+	and a subsequent access would result in undefined behaviour - fixed.
+
+Aug 24, 2007 - chris
+o overwriting record number keys was not possible because a new (incremented) 
+    recno key was assigned even if the flag HAM_OVERWRITE was specified. 
+    fixed - recno keys can now be overwritten
+
+Aug 09, 2007 - chris
+o hamsterdb is now released under GPL 2 *or any later version*, which also
+	includes GPL 3.
+
+Aug 08, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.5
+
+Aug 08, 2007 - chris
+o fixed CreateFile calls on win32 - call CreateFileW if UNICODE is defined,
+    otherwise call CreateFileA
+
+Aug 04, 2007 - chris
+o fixed HAM_READ_ONLY support for win32 - the file handle is now created
+    with GENERIC_READ, not GENERIC_READ|GENERIC_WRITE
+
+Aug 03, 2007 - chris
+o finalized support for record numbers
+o added a sample for record numbers (samples/db4.c)
+
+Aug 01, 2007 - chris
+o removed status codes HAM_SHORT_READ and HAM_SHORT_WRITE; instead, 
+    HAM_IO_ERROR is now used
+o ham_flush() now also flushes the header page (so far the header page was
+    forgotten under certain circumstances)
+o set the DB_CHUNKSIZE (which is the minimum size of a freelist entry) to 
+    32 instead of 64; generated database files are much smaller now
+
+Jul 22, 2007 - chris
+o when opening an environment file with ham_open (as a database), the first
+    database in the environment is now opened
+
+Jul 21, 2007 - chris
+o when opening an environment, the flags were not stored
+o don't allow ham_env_create_db if the environment was opened r/o
+o calling ham_set_prefix_compare_func and ham_set_compare_func with NULL
+    as second parameter resets the compare function to the default
+    compare function (based on memcmp)
+o bugfix: failed to open environments, which were created with a 
+    different pagesize than the default pagesize; fixed
+
+Jul 19, 2007 - chris
+o bugfix: if a ham_db_t handle was reused after ham_close, an internal
+    pointer was not set to NULL, which resulted in a segfault
+o replaced error code HAM_INV_INDEX with HAM_NOT_INITIALIZED
+o replaced error code HAM_ENV_FULL with HAM_LIMITS_REACHED
+
+Jun 15, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.4
+
+Jul 13, 2007 - chris
+o finalized "environment" functions, APIs and unittests; added a new sample
+    (samples/env1.c).
+
+Jul 06, 2007 - chris
+o bugfix: freelist pages were not marked as dirty, and therefore 
+    sometimes weren't written to disk
+
+Jul 03, 2007 - chris
+o bugfix: deleted pages (with db_free_page()) were not moved to the
+    freelist, and zombie pages were created
+
+Jun 24, 2007 - chris
+o finished the port to Windows CE. Solution files are in the wince 
+    directory (configured for STANDARDSDK 5.0 (x86)). See wince/README.TXT
+    for the details.
+
+Jun 20, 2007 - chris
+o improved the caching of extended keys; the cache is now purged when it's
+    too full
+
+Jun 17, 2007 - chris
+o added the flag HAM_OPEN_EXCLUSIVE; will lock the file exclusively, as 
+    long as it's open. Returns HAM_WOULD_BLOCK if you try to place an
+    exclusive lock on a database which was already opened exclusively.
+
+Jun 15, 2007 - chris
+o fixed a bug which disabled HAM_DISABLE_MMAP; even if the flag was 
+    specified, mmap routines were used
+
+Jun 12, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.3
+
+Jun 11, 2007 - chris
+o unittests work now on big-endian machines
+
+Jun 10, 2007 - chris
+o fixed a small memory leak (in-memory db only, when using extended keys
+    and a lot of SMOs occur, because many keys are deleted)
+
+Jun 04, 2007 - chris
+o fixed configure.in - do not build unittests if cppunit is not
+    installed
+
+May 30, 2007 - chris
+o added unittests for util.c
+o modified doxygen tags in the documentation (ham/hamsterdb.h)
+o fixed a rare memory leak with SMOs during ham_erase 
+    (only for in-memory databases)
+
+May 29, 2007 - chris
+o added unittests for btree_cursor.c
+
+May 19, 2007 - chris
+o configure.in now checks for cppunit/extensions/HelperMacros.h, not
+    cppunit/TestSuite.h
+
+May 10, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.2
+
+May 10, 2007 - chris
+o refactored the freelist and reimplemented it as a bitmap
+o removed HAM_OPTIMIZE_SIZE - this flag is no longer needed, the new bitmap
+    structures are automatically optimized
+
+May 5, 2007 - chris
+o new unittests for the freelist
+
+Apr 04, 2007 - chris
+o refactored the cache and some other modules
+o bugfix in ham_open_ex: the cachesize parameter was ignored; ham_open_ex
+    always used HAM_DEFAULT_CACHESIZE
+
+Apr 02, 2007 - chris
+o started writing unittests and refactoring
+
+Mar 27, 2007 - chris
+o database files are now endian-agnostic; hamsterdb can now use big-endian 
+    databases on little-endian architectures and vice versa 
+
+Mar 21, 2007 - chris
+o removed HAM_OPEN_EXCLUSIVELY - i'll replace it with file locking in a 
+    few weeks
+o use mmap if the db-pagesize is a multiple of the os-pagesize, and not 
+    just if it's equal
+o do not store the following flags in the database: HAM_DISABLE_VAR_KEYLEN,
+    HAM_CACHE_STRICT, HAM_DISABLE_MMAP, HAM_OPEN_EXCLUSIVELY, 
+    HAM_WRITE_THROUGH, HAM_READ_ONLY, HAM_OPTIMIZE_SIZE, 
+    HAM_DISABLE_FREELIST_FLUSH
+o fixed an unlikely crash in ham_cursor_move: if the cursor was nil after 
+    moving the cursor, return an error
+
+Mar 17, 2007 - chris
+o added configure-option --enable-internal to enable all internal 
+    functions (ham_dump and ham_check_integrity). disabling those functions
+    shrinks the library size by a few kilobytes
+o improved the documentation in the header-files
+
+Mar 16, 2007 - chris
+o improved configure.in - added --enable-shrink, removed optimizations 
+    for --enable-debug, all other modes will now use -O3
+
+Mar 06, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.1
+
+Mar 04, 2007
+o moved the ./tests-subdirectory to a separate repository
+
+Mar 03, 2007
+o win32 compiles and links as a static or dynamic library with Visual C++ 
+    2005 Express Edition; testes are all successful
+
+Feb 11, 2007
+o many small changes to compile everything on cygwin
+
+Feb 04, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.0
+
+Feb 03, 2007 - chris
+o all write-functions return an error if they're called but the 
+    database is in read-only mode
+o added a new sample db3.c, which reads words from stdin and prints them 
+    in sorted order
+o removed the flag HAM_OPEN_CREATE; it was broken anyway
+
+Feb 02, 2007 - chris
+o database cursors are now fully implemented and tested
+
+Jan 24, 2007 - chris
+o default behaviour for ham_create changed; already existing files are now
+    overwritten
+o now uses -Wall on platforms with gcc
+o resized the default cache size from 128kb to 256kb
+
+Jan 23, 2007 - chris
+o added a new sample db2.c, which copies an existing database to another
+    database using a cursor.
+
+Jan 21, 2007 - chris
+o the cursor implementation is finished and seems to work; testing is not 
+    yet complete. 
+o ham_flush now has an (unused) flags-parameter.
+o renamed samples/simple.c to samples/db1.c
+
+Jan 20, 2007 - chris
+o created one global transaction-pointer in the database object, and 
+    removed all transaction parameters for most functions; added tests that 
+    only one single transaction object is created.
+
+Dec 23, 2006 - chris ---------------------------------------------------
+                      release of hamsterdb-0.3.1
+
+Dec 23, 2006 - chris
+o header-files are now installed to $prefix/include/ham
+o test is not build if db.h is missing
+
+Dec 19, 2006 - chris ---------------------------------------------------
+                      release of hamsterdb-0.3
+
+Dec 15, 2006 - chris
+o started the port to MS Windows; so far, there are only two batch
+    files to create the library, but no nmake file or Visual Studio 
+    project.
+o started to move the stuff to automake/autoconf; transition is not
+    yet complete
+
+Dec 10, 2006 - chris 
+o a new parameter HAM_OPTIMIZE_SIZE creates smaller files by merging 
+    freelist entries (comes at a small performance penalty)
+
+Nov 26, 2006 - chris 
+o extended keys are now cached (if the cache size is big enough) 
+
+Nov 24, 2006 - chris 
+o added HAM_DISABLE_FREELIST_FLUSH - when a freelist page is modified, it 
+    is no longer flushed immediately. this is dangerous - in case of a 
+    crash, the database is most likely broken.
+
+Nov 23, 2006 - chris 
+o fixed a small leak - if records are overwritten, and the new record size
+    is smaller then sizeof(ham_offset_t), the old blob was not added to 
+    the freelist
+
+Nov 22, 2006 - chris 
+o completely rewrote the freelist - elements are now sorted, and access is 
+    a lot faster. also, elements are merged, if possible, which 
+    results in smaller files
+o fixed a bug; if the root page is split, the address of the root page
+    was not stored correctly in the database header
+
+Nov 12, 2006 - chris 
+o completely rewrote the blob storage - blobs are now stored in one big 
+    chunk, and not splitted into pages
+o replaced read/write with pread/pwrite
+o fixed a small bug related to a performance improvement on Nov 5th
+    (removed too many memset's...)
+
+Nov 09, 2006 - chris 
+o fetching in-memory-blobs created a memory leak if the record data 
+    was allocated by the user
+
+Nov 07, 2006 - chris 
+o blobs which were overwritten (and therefore were deleted) were not 
+    added to the freelist
+
+Nov 05, 2006 - chris 
+o fixed a tiny memory leak in blob_erase
+o replaced linear search in btree_get_slot and btree_insert with 
+    binary search, got significant performance improvements
+o removed some unnecessary memsets, after allocating a new page
+o relaxed the "minkey"-rule: after erasing, pages are now merged when 
+    there are <=4 elements in the page
+
+Nov 04, 2006 - chris ---------------------------------------------------
+                      release of hamsterdb-0.1pre2
+
+Oct 26, 2006 - chris
+o fixed a bug in the freelist - the return value was ignored, when 
+    allocating a new page. if the cache was too small, NULL was returned
+    and the library crashed
+
+Oct 24, 2006 - chris
+o fixed minor issues for compiling on 32bit machines
+
+Oct 18, 2006 - chris
+o fixed a bug in the freelist - too many freelist pages were allocated
+o fixed a bug: when allocating pages, and the page was removed from the
+    freelist, and the page type was not set correctly
+
+Oct 12, 2006 - chris
+o fixed a bug in blob_allocate when allocating big blobs
+o fixed a bug when overwriting keys, and the blob was empty, tiny or 
+    small (<=sizeof(ham_offset_t))
+
+Oct 8, 2006 - chris
+o completely rewrote the test environment (./dbtest.py)
+
+Oct 3, 2006 - chris
+o rewrote the SConscript and all scons-files
+o added the Doxyfile (Doxygen build script) to generate the documentation
+
+Sep 22, 2006 - chris
+o added the README-file
+o enabled support for O_LARGEFILE
+
+Sep 21, 2006 - chris
+o renamed COPYING to LICENSE; also renamed the header comments in all files
