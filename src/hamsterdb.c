@@ -3588,27 +3588,6 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
     return (db_set_error(db, 0));
 }
 
-ham_status_t HAM_CALLCONV
-ham_env_set_device(ham_env_t *env, ham_device_t *device)
-{
-    if (!env) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-    if (!device) {
-        ham_trace(("parameter 'device' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    if (env_get_device(env)) {
-        ham_trace(("Environment already has a device object attached"));
-        return (HAM_ALREADY_INITIALIZED);
-    }
-
-    env_set_device(env, device);
-    return (0);
-}
-
 void HAM_CALLCONV
 ham_set_context_data(ham_db_t *db, void *data)
 {
@@ -3708,5 +3687,43 @@ ham_clean_statistics_datarec(ham_statistics_t *s)
     ham_assert(s->_free_func == 0, 
         ("the cleanup function must eradicate itself from the struct"));
 
+    return (0);
+}
+
+ham_status_t HAM_CALLCONV
+ham_env_set_device(ham_env_t *env, ham_device_t *device)
+{
+    if (!env) {
+        ham_trace(("parameter 'env' must not be NULL"));
+        return (HAM_INV_PARAMETER);
+    }
+    if (!device) {
+        ham_trace(("parameter 'device' must not be NULL"));
+        return (HAM_INV_PARAMETER);
+    }
+
+    if (env_get_device(env)) {
+        ham_trace(("Environment already has a device object attached"));
+        return (HAM_ALREADY_INITIALIZED);
+    }
+
+    env_set_device(env, device);
+    return (0);
+}
+
+ham_device_t * HAM_CALLCONV
+ham_env_get_device(ham_env_t *env)
+{
+    if (!env)
+        return (0);
+    return (env_get_device(env));
+}
+
+ham_status_t HAM_CALLCONV
+ham_env_set_allocator(ham_env_t *env, struct mem_allocator_t *alloc)
+{
+    if (!env || !alloc)
+        return (HAM_INV_PARAMETER);
+    env_set_allocator(env, alloc);
     return (0);
 }

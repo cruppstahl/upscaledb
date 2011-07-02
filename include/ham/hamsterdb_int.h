@@ -353,6 +353,24 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_set_device(ham_env_t *env, ham_device_t *device);
 
 /**
+ * Retrieves the current device object
+ *
+ * Custom device objects can be used to overwrite the functions which
+ * open, create, read, write etc. to/from the file. 
+ *
+ * The device structure is defined in src/device.h. The default device
+ * objects (for file-based access and for in-memory access) are implemented
+ * in src/device.c.
+ *
+ * @param env A valid Environment handle
+ *
+ * @return A pointer to a ham_device_t structure, or NULL if the device was
+ *            not yet initialized
+ */
+HAM_EXPORT ham_device_t * HAM_CALLCONV
+ham_env_get_device(ham_env_t *env);
+
+/**
  * Retrieves the Database handle of a Cursor
  *
  * @param cursor A valid Cursor handle
@@ -361,6 +379,23 @@ ham_env_set_device(ham_env_t *env, ham_device_t *device);
  */
 HAM_EXPORT ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor);
+
+/**
+ * Set a custom memory allocator
+ *
+ * The memory allocator's structures are declared in mem.h.
+ *
+ * @param env A valid Environment handle
+ * @param allocator A valid mem_allocator_t pointer
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_INV_PARAMETER if one of the pointers is NULL
+ */
+struct mem_allocator_t;
+typedef struct mem_allocator_t mem_allocator_t;
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_set_allocator(ham_env_t *env, mem_allocator_t *alloc);
+
 
 /**
  * @}
