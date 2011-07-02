@@ -1001,7 +1001,7 @@ o release 2.0.0rc1 UNSTABLE
     o new item on download section (webpage)
     o increase libtool version
     o test performance against 1.1.11 (as part of monster-testsuite)
-    o merge changelogs
+    x merge changelogs
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
