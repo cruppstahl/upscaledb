@@ -24,6 +24,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              src/protocol                               \
              src/server                                 \
              tools/*.h                                  \
+             tools/hamzilla.config                      \
              unittests/*.h                              \
              unittests/*.hpp                            \
              unittests/*.cpp                            \
