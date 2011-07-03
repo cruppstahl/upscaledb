@@ -11,6 +11,7 @@ DOCUMENTATION_FILES = documentation/Doxyfile*           \
 
 EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              ChangeLog                                  \
+             hamsterdb.spec                             \
              AUTHORS                                    \
              README                                     \
              CREDITS                                    \
