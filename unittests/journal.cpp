@@ -13,7 +13,6 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <vector>
 #include <sstream>
 
 #include "../src/internal_fwd_decl.h"
@@ -37,6 +36,11 @@ using namespace bfc;
 
 struct LogEntry
 {
+    LogEntry()
+    :   lsn(0), txn_id(0), type(0), dbname(0)
+    {
+    }
+
     LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
                 ham_u32_t _type, ham_u16_t _dbname)
     :   lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname)
@@ -582,20 +586,19 @@ public:
         BFC_ASSERT_EQUAL(type, journal_entry_get_type(entry));
     }
 
-    void compareJournal(journal_t *journal, std::vector<LogEntry> &vec)
+    void compareJournal(journal_t *journal, LogEntry *vec, unsigned size)
     {
         journal_iterator_t it={0};
         journal_entry_t entry={0};
-        std::vector<LogEntry>::iterator vit=vec.begin();
         void *aux;
-        unsigned size=0;
+        unsigned s=0;
 
         do {
             BFC_ASSERT_EQUAL(0, journal_get_entry(journal, &it, &entry, &aux));
             if (journal_entry_get_lsn(&entry)==0)
                 break;
 
-            if (vit==vec.end()) {
+            if (s==size) {
                 BFC_ASSERT_EQUAL(0ull, journal_entry_get_lsn(&entry));
                 break;
             }
@@ -612,40 +615,41 @@ public:
                       << std::endl;
 #endif
 
-            size++;
+            s++;
 
-            BFC_ASSERT_EQUAL((*vit).lsn, journal_entry_get_lsn(&entry));
-            BFC_ASSERT_EQUAL((*vit).txn_id, journal_entry_get_txn_id(&entry));
-            BFC_ASSERT_EQUAL((*vit).type, journal_entry_get_type(&entry));
-            BFC_ASSERT_EQUAL((*vit).dbname, journal_entry_get_dbname(&entry));
+            BFC_ASSERT_EQUAL(vec->lsn, journal_entry_get_lsn(&entry));
+            BFC_ASSERT_EQUAL(vec->txn_id, journal_entry_get_txn_id(&entry));
+            BFC_ASSERT_EQUAL(vec->type, journal_entry_get_type(&entry));
+            BFC_ASSERT_EQUAL(vec->dbname, journal_entry_get_dbname(&entry));
 
             if (aux)
                 allocator_free(journal_get_allocator(journal), aux);
 
-            vit++;
+            vec++;
 
         } while (1);
 
         if (aux)
             allocator_free(journal_get_allocator(journal), aux);
-        BFC_ASSERT_EQUAL(vec.size(), size);
+        BFC_ASSERT_EQUAL(s, size);
     }
 
     void iterateOverLogMultipleEntryTest(void)
     {
         ham_txn_t *txn;
         journal_t *log=env_get_journal(m_env);
+        unsigned p=0;
 
-        std::vector<LogEntry> vec;
+        LogEntry vec[20];
         for (int i=0; i<5; i++) {
             // ham_txn_begin and ham_txn_abort will automatically add a 
             // journal entry
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
+            vec[p++]=LogEntry(3+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -658,7 +662,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -668,15 +672,16 @@ public:
         ham_txn_t *txn;
         journal_t *log=env_get_journal(m_env);
         journal_set_threshold(log, 5);
-        std::vector<LogEntry> vec;
+        unsigned p=0;
+        LogEntry vec[20];
 
         for (int i=0; i<=7; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
+            vec[p++]=LogEntry(3+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -689,7 +694,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -700,16 +705,18 @@ public:
         journal_t *log=env_get_journal(m_env);
         journal_set_threshold(log, 5);
 
-        std::vector<LogEntry> vec;
+        unsigned p=0;
+        LogEntry vec[20];
+
         for (int i=0; i<=10; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
             if (i>=5)
-                vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+                vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
             if (i>=5)
-                vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
-                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
+                vec[p++]=LogEntry(3+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -722,7 +729,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -740,17 +747,18 @@ public:
     void recoverVerifyTxnIdsTest(void)
     {
         ham_txn_t *txn;
-        std::vector<LogEntry> vec;
+        LogEntry vec[20];
+        unsigned p=0;
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
             BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id(txn));
-            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
-                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             ham_u64_t txnid=txn_get_id(txn);
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-            vec.push_back(LogEntry(3+i*2, txnid,
-                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+            vec[p++]=LogEntry(3+i*2, txnid,
+                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -781,7 +789,8 @@ public:
     void recoverCommittedTxnsTest(void)
     {
         ham_txn_t *txn[5];
-        std::vector<LogEntry> vec;
+        LogEntry vec[20];
+        unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
         journal_t *log;
@@ -791,15 +800,15 @@ public:
          * them */
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000);
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
         }
 
@@ -811,7 +820,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), 
@@ -834,7 +843,8 @@ public:
     {
 #ifndef WIN32
         ham_txn_t *txn[5];
-        std::vector<LogEntry> vec;
+        LogEntry vec[20];
+        unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
         journal_t *log;
@@ -844,13 +854,13 @@ public:
          * commit them! */
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000);
         }
 
         /* backup the journal files; then re-create the Environment from the 
@@ -871,7 +881,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* by re-creating the database we make sure that it's definitely
          * empty */
@@ -904,7 +914,8 @@ public:
     {
 #ifndef WIN32
         ham_txn_t *txn[2];
-        std::vector<LogEntry> vec;
+        LogEntry vec[20];
+        unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
         journal_t *log;
@@ -915,15 +926,15 @@ public:
          * transaction to the journal (but not to the database!) */
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000);
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0);
             if (i==0)
                 BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
             else
@@ -949,7 +960,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* now open and recover */
         BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"), 
@@ -976,7 +987,8 @@ public:
     void recoverInsertTest(void)
     {
         ham_txn_t *txn[2];
-        std::vector<LogEntry> vec;
+        LogEntry vec[200];
+        unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
         journal_t *log;
@@ -985,22 +997,22 @@ public:
         /* create two transactions with many keys that are inserted */
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
-                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
         }
         for (int i=0; i<100; i++) {
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i&1], &key, &rec, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i&1]), 
-                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn[i&1]), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000);
         }
         /* commit the first txn, abort the second */
-        vec.push_back(LogEntry(lsn++, txn_get_id(txn[0]), 
-                    JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+        vec[p++]=LogEntry(lsn++, txn_get_id(txn[0]), 
+                    JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[0], 0));
-        vec.push_back(LogEntry(lsn++, txn_get_id(txn[1]), 
-                    JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
+        vec[p++]=LogEntry(lsn++, txn_get_id(txn[1]), 
+                    JOURNAL_ENTRY_TYPE_TXN_ABORT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn[1], 0));
 
         /* backup the journal files; then re-create the Environment from the 
@@ -1011,7 +1023,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), 
@@ -1038,7 +1050,8 @@ public:
     void recoverEraseTest(void)
     {
         ham_txn_t *txn;
-        std::vector<LogEntry> vec;
+        LogEntry vec[200];
+        unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
         journal_t *log;
@@ -1047,16 +1060,16 @@ public:
         /* create a transaction with many keys that are inserted, mostly
          * duplicates */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        vec.push_back(LogEntry(lsn++, txn_get_id(txn), 
-                    JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+        vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
+                    JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000);
         for (int i=0; i<100; i++) {
             int val=i%10; 
             key.data=&val;
             key.size=sizeof(val);
             BFC_ASSERT_EQUAL(0, 
                         ham_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn), 
-                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000);
         }
         /* now delete them all */
         for (int i=0; i<10; i++) {
@@ -1064,12 +1077,12 @@ public:
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, 
                         ham_erase(m_db, txn, &key, 0));
-            vec.push_back(LogEntry(lsn++, txn_get_id(txn), 
-                        JOURNAL_ENTRY_TYPE_ERASE, 0xf000));
+            vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
+                        JOURNAL_ENTRY_TYPE_ERASE, 0xf000);
         }
         /* commit the txn */
-        vec.push_back(LogEntry(lsn++, txn_get_id(txn), 
-                    JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+        vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
+                    JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         /* backup the journal files; then re-create the Environment from the 
@@ -1080,7 +1093,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
-        compareJournal(log, vec);
+        compareJournal(log, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), 
