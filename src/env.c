@@ -228,7 +228,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         ham_cache_t *cache;
         ham_size_t cachesize=env_get_cachesize(env);
 
-        /* cachesize is specified in PAGES */
+        /* cachesize is specified in BYTES */
         ham_assert(cachesize, (0));
         cache=cache_new(env, cachesize);
         if (!cache) {
@@ -529,7 +529,7 @@ fail_with_fake_cleansing:
             cachesize=HAM_DEFAULT_CACHESIZE;
         env_set_cachesize(env, cachesize);
 
-        /* cachesize is specified in PAGES */
+        /* cachesize is specified in BYTES */
         ham_assert(cachesize, (0));
         cache=cache_new(env, cachesize);
         if (!cache) {
@@ -1420,8 +1420,6 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
             (void)log_flush(env_get_log(env));
             (void)device->flush(device);
         }
-
-        env_purge_cache(env);
     }
 
     return (st);
@@ -1454,10 +1452,6 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
             (void)log_flush(env_get_log(env));
             (void)device->flush(device);
         }
-    }
-
-    if (st==0 || st==HAM_CACHE_FULL) {
-        env_purge_cache(env);
     }
 
     return (st);

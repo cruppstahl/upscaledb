@@ -1,31 +1,133 @@
-Jun 02, 2011 - chris
+Jul 01, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.12
+
+Jul 01, 2011 - chris ---------------------------------------------------
+o exported two internal functions as test gateways: ham_env_get_device
+	and ham_env_set_allocator (in ham/hamsterdb_int.h)
+
+Jul 01, 2011 - chris ---------------------------------------------------
+o bugfix: there was still a problem in the cache purge algorithm, and the
+	memory consumption passed the cache boundaries. (Thanks, Jake)
+
+Jun 30, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.11
+
+Jun 27, 2011 - chris
+o fixed a performance regression - when Transactions are enabled, the file
+	was frequently flushed via fsync() even if HAM_WRITE_THROUGH was not
+	set (thanks, Jake and Colm)
+
+Jun 26, 2011 - chris
 o the ./configure switch --enable-internal is now obsolte and enabled by
 	default
 
-Apr 18, 2011 - chris
-o HAM_SORT_DUPLICATES is now disabled if Transactions are enabled.
-    In such cases hamsterdb will return HAM_INV_PARAMETER. 
+Jun 20, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.10
 
-Dec 29, 2010 - chris
-o Approx. matching is now disabled if Transactions are enabled. 
-    In such cases functions will return HAM_INV_PARAMETER. 
-o Direct access (HAM_DIRECT_ACCESS) is now disabled if Transactions are 
-    enabled. In such cases functions will return HAM_INV_PARAMETER. 
-    In previous versions Direct Access was anyway not possible in combination
-    with Transactions, because Transactions were not possible with In-Memory
-    Databases.
+Jun 18, 2011 - chris ---------------------------------------------------
+o the flag HAM_WRITE_THROUGH will now cause an immediate flush of all file
+	handles to disk (via fdatasync or fsync, if fdatasync is not available, 
+	or FlushFileHandle on win32) if recovery (or Transactions) are enabled.
+	This causes a noticable performance hit if you have many short-running 
+	Transactions, but it improves the durability in case the hardware 
+	crashes (a normal application segfault is not problematic because in
+	such a case the operating system buffers are still flushed to disk). 
 
-Dec 27, 2010 - chris
-o when using HAM_PARTIAL in combination with Transactions, HAM_INV_PARAMETER
-    is now returned. In previous versions of hamsterdb, this combination was
-    allowed. If you need this implemented then please tell me.
+May 25, 2011 - chris ---------------------------------------------------
+o the cachesize is now more respected than before; while earlier releases
+	frequently exceeded the cache when necessary, hamsterdb will now try to
+	remain in the cache boundaries as good as possible
 
-Dec 26, 2010 - chris
-o when using HAM_PARTIAL and the record->size is <= 8 then error 
-    HAM_INV_PARAMETER is returned. In previous versions, this combination
-    returned false results. Reason is because hamsterdb uses a compressed,
-    efficient storage for such records, and they do not support partial
-    access.
+May 13, 2011 - chris ---------------------------------------------------
+o added tools/ham_log - a tool to dump logfiles
+o added tools/ham_recover - a tool to recover broken databases
+
+Apr 28, 2011 - chris ---------------------------------------------------
+o bugfix: when ham_open[_ex] or ham_env_open[_ex] return HAM_NEED_RECOVERY
+    these functions deleted the logfiles by mistake. Fixed, and added
+    a unittest to avoid regressions
+
+Apr 27, 2011 - chris ---------------------------------------------------
+o bugfix: after SMOs which affect the root page (i.e. a new root page is
+    created) the header page is sometimes not written to the log file. This 
+	can cause data loss after recovery (Thanks, Mark)
+
+Apr 15, 2011 - chris ---------------------------------------------------
+o bugfix: the cache was not purged correctly, thus grew uncontrolled
+    (Thanks, Mark)
+
+Mar 31, 2011 - chris ---------------------------------------------------
+o bugfix: the hamzilla server always failed to read the configuration file 
+    because of a wrong error check (Thanks, Sebastien)
+
+Mar 28, 2011 - chris ---------------------------------------------------
+o bugfix: when opening a database, and recovery is enabled, the 'threshold' 
+    of the log files (which decides about the log file switching) was not 
+    initialized correctly. (Thanks, Jake Sloan)
+
+Feb 03, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.9
+
+Feb 02, 2011 - chris ---------------------------------------------------
+o added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
+
+Jan 28, 2011 - chris ---------------------------------------------------
+o linux 64bit: when having long-running transactions with very big 
+    databases (200 GB), and the working set of mmapped memory gets too big,
+    mmap will fail and return ENOMEM. In this case, hamsterdb now falls
+    back to malloc/read.
+
+Jan 25, 2011 - chris ---------------------------------------------------
+o merged bugfix from branch bleeding_edge: on 64bit windows, the remote
+    handles returned by the server were broken
+
+Jan 24, 2011 - chris ---------------------------------------------------
+o several smaller fixes based on static code analysis
+
+Jan 10, 2011 - chris ---------------------------------------------------
+o removed two wrong asserts and improved the fix of Nov 25th
+
+Dec 05, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.8
+
+Dec 03, 2010 - chris ---------------------------------------------------
+o configure.in will no longer overwrite -Ox flags; the default 
+    compilation option is now -O2 (thanks, Mark)
+
+Nov 30, 2010 - chris ---------------------------------------------------
+o bugfix with HAM_DIRECT_ACCESS and cursors which insert duplicates at the
+    beginning of the duplicate list; if record size is <= 8 bytes then
+    invalid data was returned
+
+Nov 25, 2010 - chris ---------------------------------------------------
+o bugfix in transaction handling - in certain cases with long running 
+    transactions, a circular reference in a linked list causes an endless
+    loop (thanks, Mark)
+
+Oct 31, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.7
+
+Oct 22, 2010 - chris ---------------------------------------------------
+o further enhanced performance by improving some cache interfaces
+
+Oct 20, 2010 - chris ---------------------------------------------------
+o enhanced performance when appending (or prepending) keys; hamsterdb 
+    will automatically assume HAM_HINT_APPEND (or HAM_HINT_PREPEND) if the 
+    previous operation was also an append (or prepend)
+
+Oct 16, 2010 - chris ---------------------------------------------------
+o fixed a small memory leak when committing remote transactions
+o bugfix: using HAM_DIRECT_ACCESS with records of a length <= 8 bytes
+    returned pointers to temporary copies of the record and not to the
+    original data (thanks, Lionel)
+
+Oct 14, 2010 - chris ---------------------------------------------------
+o another important performance improvements when using hamsterdb with
+    extended keys
+
+Oct 13, 2010 - chris ---------------------------------------------------
+o performance improvements - hamsterdb scales now better with millions
+    of keys
 
 Sep 15, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.6

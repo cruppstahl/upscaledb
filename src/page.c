@@ -100,7 +100,6 @@ page_set_previous(ham_page_t *page, int which, ham_page_t *other)
     if (other)
         __validate_page(other);
 }
-#endif /* HAM_DEBUG */
 
 ham_bool_t 
 page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
@@ -113,6 +112,7 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
         return (HAM_TRUE);
     return (HAM_FALSE);
 }
+#endif /* HAM_DEBUG */
 
 ham_page_t *
 page_list_insert(ham_page_t *head, int which, ham_page_t *page)
