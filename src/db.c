@@ -2828,7 +2828,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         op=txn_cursor_get_coupled_op(txnc);
         if (!__cursor_has_duplicates(cursor)) {
-            st=txn_cursor_get_record(txnc, record);
+            if (record)
+                st=txn_cursor_get_record(txnc, record);
             goto bail;
         }
     }
@@ -2864,9 +2865,8 @@ btree:
         }
     }
     else {
-        if (record)
-            if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+        if ((cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) && record)
+            st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
     }
 
 bail:
@@ -3480,8 +3480,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
-                if (st!=HAM_TXN_CONFLICT)
-                    (void)cursor->_fun_move(cursor, 0, 0, flags);
+/* TODO doubt - these two lines are never needed. the cursor is moved 
+ * again in do_local_cursor_move
+ * testcase: ./test  --use-transactions=100 --use-cursors 100.tst 
+ *              if (st!=HAM_TXN_CONFLICT && st!=HAM_KEY_ERASED_IN_TXN)
+ *                  (void)cursor->_fun_move(cursor, 0, 0, flags);
+ */
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
@@ -3627,8 +3631,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
-                if (st!=HAM_TXN_CONFLICT)
-                    (void)cursor->_fun_move(cursor, 0, 0, flags);
+/* TODO doubt - these two lines are never needed. the cursor is moved 
+ * again in do_local_cursor_move
+ * testcase: ./test  --use-transactions=100 --use-cursors 100.tst 
+ *              if (st!=HAM_TXN_CONFLICT)
+ *                  (void)cursor->_fun_move(cursor, 0, 0, flags);
+ */
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
