@@ -3480,12 +3480,6 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
-/* TODO doubt - these two lines are never needed. the cursor is moved 
- * again in do_local_cursor_move
- * testcase: ./test  --use-transactions=100 --use-cursors 100.tst 
- *              if (st!=HAM_TXN_CONFLICT && st!=HAM_KEY_ERASED_IN_TXN)
- *                  (void)cursor->_fun_move(cursor, 0, 0, flags);
- */
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
@@ -3538,11 +3532,28 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* couple to btree */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                /* check if this key was erased in the txn */
+                st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
+                if (st==HAM_KEY_ERASED_IN_TXN) {
+                    flags&=~HAM_CURSOR_FIRST;
+                    flags|=HAM_CURSOR_NEXT;
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    if (st)
+                        goto bail;
+                }
             }
             else {
                 /* couple to txn */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                /* check if the txn-cursor points to an erased key */
+                if (txns==0 && txn_cursor_is_erased(txnc)) {
+                    flags&=~HAM_CURSOR_FIRST;
+                    flags|=HAM_CURSOR_NEXT;
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    if (st)
+                        goto bail;
+                }
             }
         }
         /* every other error code is returned to the caller */
@@ -3631,12 +3642,6 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
-/* TODO doubt - these two lines are never needed. the cursor is moved 
- * again in do_local_cursor_move
- * testcase: ./test  --use-transactions=100 --use-cursors 100.tst 
- *              if (st!=HAM_TXN_CONFLICT)
- *                  (void)cursor->_fun_move(cursor, 0, 0, flags);
- */
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
@@ -3689,11 +3694,28 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* couple to btree */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                /* check if this key was erased in the txn */
+                st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
+                if (st==HAM_KEY_ERASED_IN_TXN) {
+                    flags&=~HAM_CURSOR_LAST;
+                    flags|=HAM_CURSOR_PREVIOUS;
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    if (st)
+                        goto bail;
+                }
             }
             else {
                 /* couple to txn */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                /* check if the txn-cursor points to an erased key */
+                if (txns==0 && txn_cursor_is_erased(txnc)) {
+                    flags&=~HAM_CURSOR_LAST;
+                    flags|=HAM_CURSOR_PREVIOUS;
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    if (st)
+                        goto bail;
+                }
             }
         }
         /* every other error code is returned to the caller */
