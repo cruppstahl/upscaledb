@@ -182,7 +182,7 @@ __env_set_dirty(ham_env_t *env)
 {
     env_set_dirty(env);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-    	changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+        changeset_add_page(env_get_changeset(env), env_get_header_page(env));
 }
 
 /**
@@ -195,7 +195,7 @@ __page_set_dirty(ham_page_t *page)
     ham_env_t *env=device_get_env(page_get_device(page));
     page_set_dirty(page);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-    	changeset_add_page(env_get_changeset(env), page);
+        changeset_add_page(env_get_changeset(env), page);
 }
 
 /**
@@ -1132,7 +1132,7 @@ __freel_search_bits_ex(ham_device_t *dev, ham_env_t *env,
 
             /* report our failure to find a free slot */
             if (bm_l >= bm_r) {
-            	db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                db_update_freelist_stats_fail(dev, env, entry, f, hints);
                 return (-1);
             }
 
