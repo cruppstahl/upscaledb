@@ -2340,6 +2340,8 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     else
         st=be->_fun_erase(be, key, flags);
 
+    changeset_clear(env_get_changeset(db_get_env(db)));
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
