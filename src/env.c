@@ -1567,7 +1567,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             if (!txn_op_get_cursors(op)) {
                 st=be->_fun_insert(be, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
-                        txn_op_get_flags(op)|additional_flag);
+                        txn_op_get_orig_flags(op)|additional_flag);
             }
             else {
                 txn_cursor_t *tc2, *tc=txn_op_get_cursors(op);
@@ -1577,7 +1577,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                  * then will be coupled to this item. */
                 st=btc->_fun_insert(btc, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
-                        txn_op_get_flags(op)|additional_flag);
+                        txn_op_get_orig_flags(op)|additional_flag);
                 if (st)
                     goto bail;
 
