@@ -38,8 +38,9 @@
 #include "version.h"
 
 
-#define PURGE_THRESHOLD  (500 * 1024 * 1024) /* 500 mb */
-#define DUMMY_LSN         1
+#define PURGE_THRESHOLD    (500 * 1024 * 1024) /* 500 mb */
+#define DUMMY_LSN            1
+#define SHITTY_HACK_FIX_ME 999
 
 typedef struct
 {
@@ -3140,6 +3141,10 @@ __btree_cursor_is_nil(ham_bt_cursor_t *btc)
             !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
 }
 
+static ham_status_t
+_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags);
+
 /*
  * this is quite a long function, but bear with me - it has lots of comments
  * and the flow should be easy to follow.
@@ -3245,6 +3250,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     return (txns);
                 }
                 else if (txns==HAM_TXN_CONFLICT) {
+                    return (txns);
+                }
+                /* btree and txn-tree have duplicates of the same key */
+                else if (txns==HAM_SUCCESS && btrs==HAM_SUCCESS && has_dupes) {
+                    if (pwhat)
+                        *pwhat=DUPE_CHECK_BTREE|DUPE_CHECK_TXN;
                     return (txns);
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3364,6 +3375,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     return (txns);
                 }
                 else if (txns==HAM_TXN_CONFLICT) {
+                    return (txns);
+                }
+                /* btree and txn-tree have duplicates of the same key */
+                else if (txns==HAM_SUCCESS && btrs==HAM_SUCCESS && has_dupes) {
+                    if (pwhat)
+                        *pwhat=DUPE_CHECK_BTREE|DUPE_CHECK_TXN;
                     return (txns);
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3502,6 +3519,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * (only the btree cursor was moved) */
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
+                ham_db_t *db=cursor_get_db(cursor);
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
@@ -3515,17 +3533,24 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if this btree key was erased OR overwritten then couple to
                  * the txn, but already move the btree cursor to the next 
                  * item (unless this btree key has duplicates) */
-                if (erased || !__cursor_has_duplicates(cursor)) {
+                if ((erased && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+                        || (erased && !__cursor_has_duplicates(cursor))) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     st=0; /* ignore return code */
                 }
-                /* if the key was erased: continue moving "next" till 
-                 * we find a key or reach the end of the database */
-                if (erased) {
-                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
-                    goto bail;
+                else if (erased && __cursor_has_duplicates(cursor)) {
+                    /* does this cursor have duplicates? then we point at the 
+                     * first duplicate */
+                    if (cursor_get_dupecache_index(cursor)==0)
+                        cursor_set_dupecache_index(cursor, 1);
+                    st=_local_cursor_move(cursor, key, record, 
+                            flags&(~HAM_SKIP_DUPLICATES));
+                    if (st)
+                        goto bail;
+                    *pwhat=0; /* do not re-read duplicate lists in the caller */
+                    return (SHITTY_HACK_FIX_ME);
                 }
                 else if (pwhat)
                     *pwhat=DUPE_CHECK_TXN|DUPE_CHECK_BTREE;
@@ -3831,7 +3856,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                                 cursor_get_dupecache_index(cursor)+1);
                     cursor_couple_to_dupe(cursor, 
                                 cursor_get_dupecache_index(cursor));
-                    goto bail;
+                    /* check if this duplicate was erased in a transaction */
+/*
+                    if (txn_cursor_is_erased_duplicate(txnc))
+                        goto move_next_or_prev;
+                    else
+*/
+                        goto bail;
                 }
             }
         }
@@ -3843,7 +3874,11 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                                 cursor_get_dupecache_index(cursor)-1);
                     cursor_couple_to_dupe(cursor, 
                                 cursor_get_dupecache_index(cursor));
-                    goto bail;
+                    /* check if this duplicate was erased in a transaction */
+                    if (txn_cursor_is_erased_duplicate(txnc))
+                        goto move_next_or_prev;
+                    else
+                        goto bail;
                 }
             }
         }
@@ -3876,6 +3911,10 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * below (and above) */
     st=do_local_cursor_move(cursor, key, record, 
                     flags|HAM_SKIP_DUPLICATES, fresh_start, &what);
+    if (st==SHITTY_HACK_FIX_ME) {
+        st=0;
+        goto bail_2;
+    }
     if (st) {
         /* if we only found an erased key but duplicates are available
          * then we must continue and move to the next possible key
@@ -4030,6 +4069,8 @@ bail:
             st=cursor->_fun_move(cursor, key, record, 0);
         }
     }
+
+bail_2:
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

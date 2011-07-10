@@ -138,6 +138,7 @@ dupecache_append(dupecache_t *c, dupecache_line_t *dupe)
 ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position)
 {
+    ham_size_t i;
     dupecache_line_t *e=dupecache_get_elements(c);
 
     ham_assert(position<dupecache_get_count(c), (""));
@@ -146,6 +147,14 @@ dupecache_erase(dupecache_t *c, ham_u32_t position)
         /* shift elements to the "left" */
         memmove(&e[position], &e[position+1], 
                 sizeof(dupecache_line_t)*(dupecache_get_count(c)-position-1));
+    }
+
+    /* adjust btree dupe index by -1 */
+    for (i=position; i<dupecache_get_count(c); i++) {
+        if (dupecache_line_use_btree(&e[i])) {
+            dupecache_line_set_btree_dupe_idx(&e[i],
+                    dupecache_line_get_btree_dupe_idx(&e[i])-1);
+        }
     }
 
     dupecache_set_count(c, dupecache_get_count(c)-1);

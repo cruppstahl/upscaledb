@@ -258,15 +258,47 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
 ham_bool_t
 txn_cursor_is_erased(txn_cursor_t *cursor)
 {
-    ham_status_t st;
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
     txn_opnode_t *node=txn_op_get_node(op);
 
     ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
 
-    /* move to the newest insert*-op and check if it erased the key */
-    st=__move_top_in_node(cursor, node, 0, HAM_FALSE, 0);
-    return (st==HAM_KEY_ERASED_IN_TXN);
+    /* move to the newest op and check if it erased the key */
+    return (HAM_KEY_ERASED_IN_TXN
+                ==__move_top_in_node(cursor, node, 0, HAM_FALSE, 0));
+}
+
+ham_bool_t
+txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
+{
+    txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+    txn_opnode_t *node=txn_op_get_node(op);
+    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+
+    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+    ham_assert(cursor_get_dupecache_index(pc)!=0, (""));
+
+    op=txn_opnode_get_newest_op(node);
+
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        /* only look at ops from the current transaction and from 
+         * committed transactions */
+        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
+                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+            /* a normal erase deletes ALL the duplicates */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                ham_u32_t ref=txn_op_get_referenced_dupe(op);
+                if (ref)
+                    return (ref==cursor_get_dupecache_index(pc));
+                return (HAM_TRUE);
+            }
+        }
+
+        op=txn_op_get_previous_in_node(op);
+    }
+
+    return (HAM_FALSE);
 }
 
 ham_status_t

@@ -148,6 +148,12 @@ extern ham_bool_t
 txn_cursor_is_erased(txn_cursor_t *cursor);
 
 /**
+ * returns true if the cursor points to a duplicate key that is erased
+ */
+extern ham_bool_t
+txn_cursor_is_erased_duplicate(txn_cursor_t *cursor);
+
+/**
  * looks up an item, places the cursor
  */
 extern ham_status_t
