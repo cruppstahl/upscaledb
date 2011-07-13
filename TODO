@@ -1006,24 +1006,10 @@ o release 2.0.0rc1 UNSTABLE
 o fix monster tests
     o monster-txn is still failing 
            -> ./test --use-transactions=20 --duplicate --use-cursors --verbose --verbose 100.tst
-fullcheck: 0/0, keys 73/73, blob size 409/409
-hit
-fullcheck: 0/0, keys 73/73, blob size 907/907
-hit
-fullcheck: 0/0, keys 73/73, blob size 16/16
-hit
-fullcheck: 0/0, keys 74/74, blob size 562/562
-fullcheck: 0/0, keys 74/74, blob size 694/694
-fullcheck: 0/0, keys 74/74, blob size 670/670
-fullcheck: 0/0, keys 74/74, blob size 983/983
-fullcheck: 0/0, keys 74/74, blob size 961/961
-fullcheck: 0/0, keys 75/74, blob size 245/1022
-     see SHITTY_HACK_FIX_ME in db.c - there's a btree dupe table ("74") of 7 entries. The first one is erased in the current transaction. But fullcheck only finds 5 - it seems that the last one is lost (maybe an off-by-one error somewhere in cursor_update_dupetable or when walking over the list).
-
-    Afterwards fix the monster sources ("hit" in engine.cpp) and remove superfluous code in db.c. Also, the fixes in db.c were only added for HAM_CURSOR_NEXT,
-not HAM_CURSOR_PREVIOUS.
-
-
+    problem:
+        in cursor_update_dupecache ist der txn-cursor falsch positioniert
+        (steht auf "4" statt "122), evtl weil er im cursor_sync vorher 
+        von NIL -> next verschoben wurde?
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
@@ -1045,7 +1031,7 @@ o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
     o the cache should give preference to index pages
 
-o need a function to get the txn of a conflict (same as in v2)
+. need a function to get the txn of a conflict (same as in v2)
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
@@ -1071,6 +1057,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 - the duplicate cache (optional, only if txn's are used)
                 - parent of the txn-cursor
                 - parent of the btree-cursor
+    o use a single dupecache for btree and txn-tree (currently, the btree
+        cursor has it's own)
+    o completely rewrite _local_cursor_move
 
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or

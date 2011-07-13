@@ -41,6 +41,7 @@
 #define PURGE_THRESHOLD    (500 * 1024 * 1024) /* 500 mb */
 #define DUMMY_LSN            1
 #define SHITTY_HACK_FIX_ME 999
+#define SHITTY_HACK_DONT_MOVE_DUPLICATE 0xf000000
 
 typedef struct
 {
@@ -3499,7 +3500,25 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
-                st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                /* txns is KEY_NOT_FOUND: if the key was erased then
+                 * couple the txn-cursor, otherwise cursor_update_dupecache
+                 * ignores the txn part */
+                if (st==HAM_KEY_ERASED_IN_TXN)
+                    (void)cursor_sync(cursor, 0, 0);
+                /* if key has duplicates: move to the next duplicate */
+                if (__cursor_has_duplicates(cursor)) {
+                    st=_local_cursor_move(cursor, key, record, 
+                            (flags&(~HAM_SKIP_DUPLICATES))
+                                |SHITTY_HACK_DONT_MOVE_DUPLICATE);
+                    if (st)
+                        goto bail;
+                    if (pwhat)/* do not re-read duplicate lists in the caller */
+                        *pwhat=0; 
+                    return (SHITTY_HACK_FIX_ME);
+                }
+                /* otherwise move to the next key */
+                else
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
             }
@@ -3541,15 +3560,14 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=0; /* ignore return code */
                 }
                 else if (erased && __cursor_has_duplicates(cursor)) {
-                    /* does this cursor have duplicates? then we point at the 
-                     * first duplicate */
-                    if (cursor_get_dupecache_index(cursor)==0)
-                        cursor_set_dupecache_index(cursor, 1);
+                    /* the duplicate was erased? move to the next */
                     st=_local_cursor_move(cursor, key, record, 
-                            flags&(~HAM_SKIP_DUPLICATES));
+                            (flags&(~HAM_SKIP_DUPLICATES))
+                                |SHITTY_HACK_DONT_MOVE_DUPLICATE);
                     if (st)
                         goto bail;
-                    *pwhat=0; /* do not re-read duplicate lists in the caller */
+                    if (pwhat)/* do not re-read duplicate lists in the caller */
+                        *pwhat=0; 
                     return (SHITTY_HACK_FIX_ME);
                 }
                 else if (pwhat)
@@ -3851,18 +3869,21 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
         if (!(flags&HAM_SKIP_DUPLICATES) && (flags&HAM_CURSOR_NEXT)) {
             if (cursor_get_dupecache_index(cursor)) {
-                if (cursor_get_dupecache_index(cursor)<dupecache_get_count(dc)) {
+                if (cursor_get_dupecache_index(cursor)
+                        <dupecache_get_count(dc)) {
                     cursor_set_dupecache_index(cursor, 
                                 cursor_get_dupecache_index(cursor)+1);
                     cursor_couple_to_dupe(cursor, 
                                 cursor_get_dupecache_index(cursor));
-                    /* check if this duplicate was erased in a transaction */
-/*
-                    if (txn_cursor_is_erased_duplicate(txnc))
-                        goto move_next_or_prev;
-                    else
-*/
-                        goto bail;
+                    goto bail;
+                }
+            }
+            if (flags&SHITTY_HACK_DONT_MOVE_DUPLICATE) {
+                if (cursor_get_dupecache_index(cursor)==0) {
+                    cursor_set_dupecache_index(cursor, 1);
+                    cursor_couple_to_dupe(cursor, 
+                                cursor_get_dupecache_index(cursor));
+                    goto bail;
                 }
             }
         }
@@ -3874,11 +3895,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                                 cursor_get_dupecache_index(cursor)-1);
                     cursor_couple_to_dupe(cursor, 
                                 cursor_get_dupecache_index(cursor));
-                    /* check if this duplicate was erased in a transaction */
-                    if (txn_cursor_is_erased_duplicate(txnc))
-                        goto move_next_or_prev;
-                    else
-                        goto bail;
+                    goto bail;
                 }
             }
         }
@@ -3902,6 +3919,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         dupecache_reset(dc);
         cursor_set_dupecache_index(cursor, 0);
     }
+
+    /* get rid of this flag */
+    flags=flags&(~SHITTY_HACK_DONT_MOVE_DUPLICATE);
 
     /* no move requested? then return key or record */
     if (!flags)
