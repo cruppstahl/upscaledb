@@ -138,7 +138,6 @@ dupecache_append(dupecache_t *c, dupecache_line_t *dupe)
 ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position)
 {
-    ham_size_t i;
     dupecache_line_t *e=dupecache_get_elements(c);
 
     ham_assert(position<dupecache_get_count(c), (""));
@@ -406,12 +405,14 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
             return (0);
         node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
         k=txn_opnode_get_key(node);
+
+        if (!(flags&BT_CURSOR_ONLY_EQUAL_KEY))
+            flags=flags|((flags&HAM_CURSOR_NEXT)
+                    ? HAM_FIND_GEQ_MATCH
+                    : HAM_FIND_LEQ_MATCH);
         /* the flag DONT_LOAD_KEY does not load the key if there's an
          * approx match - it only positions the cursor */
-        st=cursor->_fun_find(cursor, k, 0,
-                BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
-                    ? HAM_FIND_GEQ_MATCH
-                    : HAM_FIND_LEQ_MATCH));
+        st=cursor->_fun_find(cursor, k, 0, BT_CURSOR_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
          * set fresh_start to false; otherwise do_local_cursor_move
          * will move the btree cursor again */
@@ -430,10 +431,11 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
             goto bail;
         }
         k=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
-        st=txn_cursor_find(txnc, k,
-                BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
+        if (!(flags&BT_CURSOR_ONLY_EQUAL_KEY))
+            flags=flags|((flags&HAM_CURSOR_NEXT)
                     ? HAM_FIND_GEQ_MATCH
-                    : HAM_FIND_LEQ_MATCH));
+                    : HAM_FIND_LEQ_MATCH);
+        st=txn_cursor_find(txnc, k, BT_CURSOR_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
         * set fresh_start to false; otherwise do_local_cursor_move
         * will move the btree cursor again */

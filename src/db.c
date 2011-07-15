@@ -3463,6 +3463,11 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (!changed_dir)
                     break;
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
+                if (st==HAM_KEY_ERASED_IN_TXN 
+                        && __cursor_has_duplicates(cursor)) {
+                    st=0;
+                    break;
+                }
             } while (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN);
         }
 
@@ -3503,8 +3508,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* txns is KEY_NOT_FOUND: if the key was erased then
                  * couple the txn-cursor, otherwise cursor_update_dupecache
                  * ignores the txn part */
-                if (st==HAM_KEY_ERASED_IN_TXN)
-                    (void)cursor_sync(cursor, 0, 0);
+                if (st==HAM_KEY_ERASED_IN_TXN) {
+                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    /* force re-creating the dupecache */
+                    dupecache_reset(cursor_get_dupecache(cursor));
+                    cursor_set_dupecache_index(cursor, 0);
+                }
                 /* if key has duplicates: move to the next duplicate */
                 if (__cursor_has_duplicates(cursor)) {
                     st=_local_cursor_move(cursor, key, record, 
@@ -3555,8 +3564,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if ((erased && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
                         || (erased && !__cursor_has_duplicates(cursor))) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
-                    if (st==HAM_KEY_NOT_FOUND)
+                    if (st==HAM_KEY_NOT_FOUND) {
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        if (!__cursor_has_duplicates(cursor))
+                            return (st);
+                    }
+                    cursor_set_flags(cursor, 
+                            cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
                     st=0; /* ignore return code */
                 }
                 else if (erased && __cursor_has_duplicates(cursor)) {
