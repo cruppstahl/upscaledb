@@ -1006,7 +1006,7 @@ o release 2.0.0rc1 UNSTABLE
 o fix monster tests
     o monster-txn is still failing 
            -> ./test --use-transactions=20 --duplicate --use-cursors --verbose --verbose 100.tst
-    o unittests are failing
+    x unittests are failing
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 

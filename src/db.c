@@ -3561,6 +3561,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if this btree key was erased OR overwritten then couple to
                  * the txn, but already move the btree cursor to the next 
                  * item (unless this btree key has duplicates) */
+#if 0
                 if ((erased && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
                         || (erased && !__cursor_has_duplicates(cursor))) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
@@ -3573,6 +3574,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                             cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
                     st=0; /* ignore return code */
                 }
+#endif
+                if (erased || !__cursor_has_duplicates(cursor)) {
+                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    if (st==HAM_KEY_NOT_FOUND)
+                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    st=0; /* ignore return code */
+                }
                 else if (erased && __cursor_has_duplicates(cursor)) {
                     /* the duplicate was erased? move to the next */
                     st=_local_cursor_move(cursor, key, record, 
@@ -3583,6 +3591,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     if (pwhat)/* do not re-read duplicate lists in the caller */
                         *pwhat=0; 
                     return (SHITTY_HACK_FIX_ME);
+                }
+                /* if the key was erased: continue moving "next" till 
+                 * we find a key or reach the end of the database */
+                if (erased) {
+                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    goto bail;
                 }
                 else if (pwhat)
                     *pwhat=DUPE_CHECK_TXN|DUPE_CHECK_BTREE;
