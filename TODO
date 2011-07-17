@@ -964,6 +964,24 @@ x test with lessfs
 
 o don't forget to test with valgrind!
 
+o hamsterdb.com
+    x add twitter feed
+    o API documentation: don't link to "modules" but to startup page, update
+        with newest version
+    o crupp.de: do a backup of the database
+    . google +1 button
+    . can we use something like Aller.font?
+
+o release 2.0.0rc1 UNSTABLE
+    x merge changelogs
+    o new item on download section (webpage)
+    . test performance against 1.1.11 (as part of monster-testsuite)
+
+o fix monster tests
+    o monster-txn is still failing 
+           -> ./test --use-transactions=20 --duplicate --use-cursors --verbose --verbose 100.tst
+    x unittests are failing
+
 o update documentation
     x in header file
     o in the wiki
@@ -988,25 +1006,6 @@ o fully (!) automize the whole release process for unix; the result (on
     o the Changelog
     o the release notes (a template)
     o the output (xml) of the monster tests
-
-o hamsterdb.com
-    x add twitter feed
-    o google +1 button
-    o API documentation: don't link to "modules" but to startup page, update
-        with newest version
-    o do a backup of the database
-    o can we use something like Aller.font?
-
-o release 2.0.0rc1 UNSTABLE
-    o new item on download section (webpage)
-    o increase libtool version
-    o test performance against 1.1.11 (as part of monster-testsuite)
-    x merge changelogs
-
-o fix monster tests
-    o monster-txn is still failing 
-           -> ./test --use-transactions=20 --duplicate --use-cursors --verbose --verbose 100.tst
-    x unittests are failing
 
 XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 

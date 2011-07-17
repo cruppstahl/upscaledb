@@ -3575,13 +3575,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=0; /* ignore return code */
                 }
 #endif
-                if (erased || !__cursor_has_duplicates(cursor)) {
-                    st=cursor->_fun_move(cursor, 0, 0, flags);
-                    if (st==HAM_KEY_NOT_FOUND)
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
-                    st=0; /* ignore return code */
-                }
-                else if (erased && __cursor_has_duplicates(cursor)) {
+                if (erased && __cursor_has_duplicates(cursor)) {
                     /* the duplicate was erased? move to the next */
                     st=_local_cursor_move(cursor, key, record, 
                             (flags&(~HAM_SKIP_DUPLICATES))
@@ -3591,6 +3585,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     if (pwhat)/* do not re-read duplicate lists in the caller */
                         *pwhat=0; 
                     return (SHITTY_HACK_FIX_ME);
+                }
+                else if (erased || !__cursor_has_duplicates(cursor)) {
+                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    if (st==HAM_KEY_NOT_FOUND)
+                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    st=0; /* ignore return code */
                 }
                 /* if the key was erased: continue moving "next" till 
                  * we find a key or reach the end of the database */
