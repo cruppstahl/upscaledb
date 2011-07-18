@@ -979,14 +979,16 @@ o release 2.0.0rc1 UNSTABLE
 
 o fix monster tests
     o monster-txn is still failing 
-    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/202.tst
-    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/220.tst
-    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/ext_021.tst
-    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/46.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/40.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/44.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/48.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/49.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors 
+			../../testfiles/2/40.tst
+			../../testfiles/2/44.tst
+			../../testfiles/2/48.tst
+			../../testfiles/2/49.tst
+    	o ./test --use-transactions=20 --duplicate --use-cursors 
+			../../testfiles/1/202.tst
+			../../testfiles/1/220.tst
+			../../testfiles/1/46.tst
+          performance is also aweful- compare to 2.0.0.rc1!
     x unittests are failing
 
 o update documentation
