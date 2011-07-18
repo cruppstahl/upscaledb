@@ -979,7 +979,14 @@ o release 2.0.0rc1 UNSTABLE
 
 o fix monster tests
     o monster-txn is still failing 
-           -> ./test --use-transactions=20 --duplicate --use-cursors --verbose --verbose 100.tst
+    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/202.tst
+    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/220.tst
+    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/ext_021.tst
+    	o ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/1/46.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/40.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/44.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/48.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors ../../testfiles/2/49.tst
     x unittests are failing
 
 o update documentation
@@ -1012,10 +1019,10 @@ XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 . port to WinCE
 
 o cleanups: the backend structure does not need the function pointers. 
-	simplify the whole interface!
+    simplify the whole interface!
 
 o cleanups: the cursor does not need the function pointers. 
-	simplify the whole interface!
+    simplify the whole interface!
 
 o monster-test
     o track memory consumption

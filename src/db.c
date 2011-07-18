@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -42,6 +42,7 @@
 #define DUMMY_LSN            1
 #define SHITTY_HACK_FIX_ME 999
 #define SHITTY_HACK_DONT_MOVE_DUPLICATE 0xf000000
+#define SHITTY_HACK_REACHED_EOF         0xf000001
 
 typedef struct
 {
@@ -3243,6 +3244,11 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
+                    if (st==HAM_KEY_ERASED_IN_TXN) {
+                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        txn_cursor_set_to_nil(txnc);
+                        return (SHITTY_HACK_REACHED_EOF);
+                    }
                     goto bail;
                 }
                 else if (txns==HAM_KEY_ERASED_IN_TXN && has_dupes) {
@@ -3492,6 +3498,10 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            if (txn_cursor_is_erased(txnc)) {
+                st=HAM_KEY_ERASED_IN_TXN;
+                goto bail;
+            }
         }
         /* if reached end of txn-tree but not of btree: couple to btree,
          * but only if btree entry was not erased or overwritten in 
@@ -3547,7 +3557,6 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * (only the btree cursor was moved) */
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
-                ham_db_t *db=cursor_get_db(cursor);
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
@@ -3562,6 +3571,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * the txn, but already move the btree cursor to the next 
                  * item (unless this btree key has duplicates) */
 #if 0
+                ham_db_t *db=cursor_get_db(cursor);
                 if ((erased && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
                         || (erased && !__cursor_has_duplicates(cursor))) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
@@ -3961,6 +3971,10 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     flags|HAM_SKIP_DUPLICATES, fresh_start, &what);
     if (st==SHITTY_HACK_FIX_ME) {
         st=0;
+        goto bail_2;
+    }
+    if (st==SHITTY_HACK_REACHED_EOF) {
+        st=HAM_KEY_NOT_FOUND;
         goto bail_2;
     }
     if (st) {
