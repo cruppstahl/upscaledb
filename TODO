@@ -984,11 +984,11 @@ o fix monster tests
 			../../testfiles/2/44.tst
 			../../testfiles/2/48.tst
 			../../testfiles/2/49.tst
-    	o ./test --use-transactions=20 --duplicate --use-cursors 
-			../../testfiles/1/202.tst
+    	x ./test --use-transactions=20 --duplicate --use-cursors 
 			../../testfiles/1/220.tst
 			../../testfiles/1/46.tst
-          performance is also aweful- compare to 2.0.0.rc1!
+    	o ./test --use-transactions=20 --duplicate --use-cursors 
+			../../testfiles/1/202.tst
     x unittests are failing
 
 o update documentation
@@ -1141,6 +1141,8 @@ o when recovering, give users the choice if active transactions should be
 . many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+o when flushing a changeset: sort by offset, use writev()
 
 o flush transactions in background
 

@@ -2818,8 +2818,10 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             if (st==HAM_KEY_NOT_FOUND)
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
-                ham_bool_t dummy;
-                (void)cursor_sync(cursor, 0, &dummy);
+                ham_bool_t is_equal;
+                (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+                if (!is_equal)
+                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
 
                 if (!__cursor_has_duplicates(cursor))
                     st=HAM_KEY_NOT_FOUND;
@@ -2829,6 +2831,12 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             if (st)
                 goto bail;
         }
+        else {
+            ham_bool_t is_equal;
+            (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+            if (!is_equal)
+                bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+        }
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         op=txn_cursor_get_coupled_op(txnc);
@@ -2837,6 +2845,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 st=txn_cursor_get_record(txnc, record);
             goto bail;
         }
+        if (st==0)
+            goto check_dupes;
     }
 
 btree:
@@ -2852,9 +2862,18 @@ btree:
         cursor_set_dupecache_index(cursor, 0);
     }
 
+check_dupes:
     /* if the key has duplicates: build a duplicate table, then
      * couple to the first/oldest duplicate */
     if (__cursor_has_duplicates(cursor)) {
+        dupecache_line_t *e=dupecache_get_elements(
+                cursor_get_dupecache(cursor));
+        if (dupecache_line_use_btree(e))
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        else
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         cursor_couple_to_dupe(cursor, 1);
         st=0;
 
@@ -2864,7 +2883,8 @@ btree:
             * it's possible that we read the record twice. I'm not sure if 
             * this can be avoided, though. */
             if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), 
+                        record);
             else
                 st=cursor->_fun_move(cursor, 0, record, 0);
         }
@@ -3618,11 +3638,18 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    flags&=~HAM_CURSOR_FIRST;
-                    flags|=HAM_CURSOR_NEXT;
-                    st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
-                    if (st)
-                        goto bail;
+                    txn_cursor_set_to_nil(txnc);
+                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    if (!__cursor_has_duplicates(cursor)) {
+                        flags&=~HAM_CURSOR_FIRST;
+                        flags|=HAM_CURSOR_NEXT;
+                        st=do_local_cursor_move(cursor, key, record, 
+                                flags, 0, 0);
+                        if (st)
+                            goto bail;
+                    }
+                    else
+                        *pwhat=DUPE_CHECK_TXN|DUPE_CHECK_BTREE;
                 }
             }
             else {
