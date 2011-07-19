@@ -4165,6 +4165,8 @@ bail_2:
     if (local_txn)
         cursor_set_txn(cursor, 0);
 
+    changeset_clear(env_get_changeset(env));
+
     /*
      * run the record-level filters
      */

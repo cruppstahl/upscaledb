@@ -3082,6 +3082,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_db_t *db;
     ham_env_t *env;
+    ham_status_t st;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3130,8 +3131,12 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, 
-                db->_fun_cursor_move(cursor, key, record, flags)));
+    st=db->_fun_cursor_move(cursor, key, record, flags);
+
+    /* make sure that the changeset is empty */
+    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+
+    return (db_set_error(db, st));
 }
 
 ham_status_t HAM_CALLCONV
