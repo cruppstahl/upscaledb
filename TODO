@@ -1020,6 +1020,8 @@ XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
 . port to WinCE
 
+o db_compare_keys can return erros - do we really need this??
+
 o cleanups: the backend structure does not need the function pointers. 
     simplify the whole interface!
 

@@ -3142,6 +3142,7 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
             ham_cursor_close(clone);
             return (st);
         }
+        /* TODO error codes are swallowed */
         cmp=db_compare_keys(db, 
                 bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone), txnk);
         ham_cursor_close(clone);
@@ -3149,7 +3150,9 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
         return (0);
     }
     else if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_UNCOUPLED) {
-        return (db_compare_keys(db, bt_cursor_get_uncoupled_key(btrc), txnk));
+        /* TODO error codes are swallowed */
+        *pcmp=db_compare_keys(db, bt_cursor_get_uncoupled_key(btrc), txnk);
+        return (0);
     }
 
     ham_assert(!"shouldn't be here", (""));
