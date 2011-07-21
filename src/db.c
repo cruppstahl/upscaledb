@@ -2436,6 +2436,9 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     else
         st=be->_fun_find(be, key, record, flags);
 
+    /* TODO this will render the changeset_flush below obsolete */
+    changeset_clear(env_get_changeset(env));
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -4168,6 +4171,7 @@ bail_2:
     if (local_txn)
         cursor_set_txn(cursor, 0);
 
+    /* TODO this will render the changeset_flush below obsolete */
     changeset_clear(env_get_changeset(env));
 
     /*
