@@ -977,8 +977,8 @@ o release 2.0.0rc1 UNSTABLE
     o new item on download section (webpage)
     . test performance against 1.1.11 (as part of monster-testsuite)
 
-o fix monster tests
-    o monster-txn is still failing 
+x fix monster tests
+    x monster-txn is still failing 
     	x ./test --use-transactions=20 --duplicate --use-cursors 
 			../../testfiles/2/40.tst
 			../../testfiles/2/44.tst
@@ -987,7 +987,7 @@ o fix monster tests
     	x ./test --use-transactions=20 --duplicate --use-cursors 
 			../../testfiles/1/220.tst
 			../../testfiles/1/46.tst
-    	o ./test --use-transactions=20 --duplicate --use-cursors 
+    	x ./test --use-transactions=20 --duplicate --use-cursors 
 			../../testfiles/1/202.tst
     x unittests are failing
 
@@ -1020,10 +1020,13 @@ XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
 
 . port to WinCE
 
-o db_compare_keys can return erros - do we really need this??
+o db_compare_keys can return errors - do we really need this??
 
 o cleanups: the backend structure does not need the function pointers. 
     simplify the whole interface!
+
+o cursor_has_duplicates: move to cursor.c; often is used in boolean form, but
+    should be: true if >1, false if <=1
 
 o cleanups: the cursor does not need the function pointers. 
     simplify the whole interface!

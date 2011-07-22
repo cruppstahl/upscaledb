@@ -2802,7 +2802,7 @@ public:
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
-        /* skip the first key, and overwrite all others in the transaction */
+        /* skip the last key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
         BFC_ASSERT_EQUAL(0,
@@ -2816,7 +2816,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
-        /* this moves the cursor to the first item */
+        /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
         BFC_ASSERT(!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN));
