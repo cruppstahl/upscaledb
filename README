@@ -148,6 +148,7 @@ HAM_32BIT               compile for 32bit (alias: WIN32)
 HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
 HAM_DISABLE_COMPRESSION build without support for zlib compression
 HAM_DISABLE_ENCRYPTION  build without support for AES encryption
+HAM_ENABLE_REMOTE       build with remote access (needs libcurl/protobuf)
 
 Also, if you compile for windows, you have to compile the file 'src/os_win32.c',
 and ignore the file 'src/os_posix.c'. Vice versa on non-Windows platforms.

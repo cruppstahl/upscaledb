@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="3rdparty_aes"
 	ProjectGUID="{AB99816E-52C4-44CE-B8DD-604DCA380173}"
 	RootNamespace="My3rdparty_aes"
@@ -21,8 +21,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="tmp\3rdparty_aes_debug"
-			IntermediateDirectory="tmp\3rdparty_aes_debug"
+			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
 			ConfigurationType="4"
 			CharacterSet="1"
 			>
@@ -83,8 +83,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="tmp\3rdparty_aes_debug_x64"
-			IntermediateDirectory="tmp\3rdparty_aes_debug_x64"
+			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
 			ConfigurationType="4"
 			CharacterSet="1"
 			>
@@ -146,8 +146,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="tmp\3rdparty_aes"
-			IntermediateDirectory="tmp\3rdparty_aes"
+			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
 			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -206,8 +206,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="tmp\3rdparty_aes_x64"
-			IntermediateDirectory="tmp\3rdparty_aes_x64"
+			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
 			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
