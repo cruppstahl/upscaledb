@@ -15,3 +15,11 @@ configure
 libtool
 stamp-h1
 m4
+*.o
+*.lo
+*.la
+.libs
+.deps
+
+*.bak
+
