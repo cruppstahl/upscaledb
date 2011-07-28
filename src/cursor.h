@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -26,11 +26,11 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 /**
  * A single line in the dupecache structure - can reference a btree
- * record or a txn-op 
+ * record or a txn-op
  */
 typedef struct dupecache_line_t {
 
@@ -112,7 +112,7 @@ typedef struct dupecache_t {
  * creates a new dupecache structure
  */
 extern ham_status_t
-dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
+dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor,
                     ham_size_t capacity);
 
 /**
@@ -134,7 +134,7 @@ extern ham_status_t
 dupecache_append(dupecache_t *c, dupecache_line_t *dupe);
 
 /**
- * erases an item 
+ * erases an item
  */
 extern ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position);
@@ -201,13 +201,13 @@ dupecache_reset(dupecache_t *c);
     /**                                                                 \
      * Count the number of records stored with the referenced key.      \
      */                                                                 \
-    ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,      \
+    ham_status_t (*_fun_get_duplicate_count)(clss *cursor,              \
             ham_size_t *count, ham_u32_t flags);                        \
                                                                         \
     /**                                                                 \
      * Returns true if cursor is nil, otherwise false                   \
      */                                                                 \
-    ham_bool_t (*_fun_is_nil)(ham_cursor_t *cursor);                    \
+    ham_bool_t (*_fun_is_nil)(clss *cursor);                            \
                                                                         \
     /** Pointer to the Database object */                               \
     ham_db_t *_db;                                                      \
@@ -359,7 +359,7 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
  * Checks if a btree cursor points to a key that was overwritten or erased
  * in the txn-cursor
  *
- * this is needed in db.c when moving the cursor backwards/forwards and 
+ * this is needed in db.c when moving the cursor backwards/forwards and
  * consolidating the btree and the txn-tree
  */
 extern ham_status_t
@@ -382,6 +382,6 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif 
+#endif
 
 #endif /* HAM_CURSORS_H__ */

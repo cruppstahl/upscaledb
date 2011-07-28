@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -53,7 +53,7 @@ typedef struct
 }  calckeys_context_t;
 
 /*
- * callback function for estimating / counting the number of keys stored 
+ * callback function for estimating / counting the number of keys stored
  * in the database
  */
 static ham_status_t
@@ -85,7 +85,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 
             if (!(c->flags & HAM_SKIP_DUPLICATES)
                     && (key_get_flags(key) & KEY_HAS_DUPLICATES)) {
-                ham_status_t st = blob_duplicate_get_count(db_get_env(c->db), 
+                ham_status_t st = blob_duplicate_get_count(db_get_env(c->db),
                         key_get_ptr(key), &dupcount, 0);
                 if (st)
                     return st;
@@ -96,11 +96,11 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
             }
 
             if (c->flags & HAM_FAST_ESTIMATE) {
-                /* 
-                 * fast mode: just grab the keys-per-page value and 
+                /*
+                 * fast mode: just grab the keys-per-page value and
                  * call it a day for this page.
                  *
-                 * Assume all keys in this page have the same number 
+                 * Assume all keys in this page have the same number
                  * of dupes (=1 if no dupes)
                  */
                 c->total_count += (count - 1) * dupcount;
@@ -199,7 +199,7 @@ __cache_needs_purge(ham_env_t *env)
         ham_bool_t purge=cache_too_big(cache);
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
+            if (cache_get_cur_elements(cache)*env_get_pagesize(env)
                     > PURGE_THRESHOLD)
                 return (HAM_FALSE);
         }
@@ -216,9 +216,9 @@ __record_filters_before_write(ham_db_t *db, ham_record_t *record)
     ham_record_filter_t *record_head;
 
     record_head=db_get_record_filter(db);
-    while (record_head) 
+    while (record_head)
     {
-        if (record_head->before_write_cb) 
+        if (record_head->before_write_cb)
         {
             st=record_head->before_write_cb(db, record_head, record);
             if (st)
@@ -233,21 +233,21 @@ __record_filters_before_write(ham_db_t *db, ham_record_t *record)
 /*
  * WATCH IT!
  *
- * as with the page filters, there was a bug in PRE-1.1.0 which would execute 
- * a record filter chain in the same order for both write (insert) and read 
- * (find), which means chained record filters would process invalid data in 
- * one of these, as a correct filter chain must traverse the transformation 
+ * as with the page filters, there was a bug in PRE-1.1.0 which would execute
+ * a record filter chain in the same order for both write (insert) and read
+ * (find), which means chained record filters would process invalid data in
+ * one of these, as a correct filter chain must traverse the transformation
  * process IN REVERSE for one of these actions.
- * 
- * As with the page filters, we've chosen the WRITE direction to be the 
- * FORWARD direction, i.e. added filters end up processing data WRITTEN by 
+ *
+ * As with the page filters, we've chosen the WRITE direction to be the
+ * FORWARD direction, i.e. added filters end up processing data WRITTEN by
  * the previous filter.
- * 
+ *
  * This also means the READ==FIND action must walk this chain in reverse.
- * 
- * See the documentation about the cyclic prev chain: the point is 
- * that FIND must traverse the record filter chain in REVERSE order so we 
- * should start with the LAST filter registered and stop once we've DONE 
+ *
+ * See the documentation about the cyclic prev chain: the point is
+ * that FIND must traverse the record filter chain in REVERSE order so we
+ * should start with the LAST filter registered and stop once we've DONE
  * calling the FIRST.
  */
 static ham_status_t
@@ -262,7 +262,7 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
         record_head = record_head->_prev;
         do
         {
-            if (record_head->after_read_cb) 
+            if (record_head->after_read_cb)
             {
                 st=record_head->after_read_cb(db, record_head, record);
                 if (st)
@@ -283,7 +283,7 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
         ham_db_t *db = cursor_get_db(c);
         if (db) {
             ham_backend_t *be = db_get_backend(db);
-            
+
             if (be) {
                 return (*be->_fun_uncouple_all_cursors)(be, page, start);
             }
@@ -297,30 +297,30 @@ ham_u16_t
 db_get_dbname(ham_db_t *db)
 {
     ham_env_t *env;
-    
+
     ham_assert(db!=0, (""));
     ham_assert(db_get_env(db), (""));
 
     env=db_get_env(db);
 
     if (env_get_header_page(env) && page_get_pers(env_get_header_page(env))) {
-        db_indexdata_t *idx=env_get_indexdata_ptr(env, 
+        db_indexdata_t *idx=env_get_indexdata_ptr(env,
             db_get_indexdata_offset(db));
         return (index_get_dbname(idx));
     }
-    
+
     return (0);
 }
 
-int HAM_CALLCONV 
-db_default_prefix_compare(ham_db_t *db, 
+int HAM_CALLCONV
+db_default_prefix_compare(ham_db_t *db,
                    const ham_u8_t *lhs, ham_size_t lhs_length,
                    ham_size_t lhs_real_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length,
                    ham_size_t rhs_real_length)
 {
     int m;
-    
+
     (void)db;
 
     /*
@@ -346,11 +346,11 @@ db_default_prefix_compare(ham_db_t *db,
     there's a 'tiny' caveat to it all: often these comparisons are between a database key
     (btree_key_t based) and a user-specified key (ham_key_t based), where the latter will always
     appear in the LHS and the important part here is: ham_key_t-based comparisons will have
-    their key lengths possibly LARGER than the usual 'short' btree_key_t key length as the 
+    their key lengths possibly LARGER than the usual 'short' btree_key_t key length as the
     ham_key_t data doesn't need extending - the result is that simply looking at the lhs_length
     is not good enough here to ensure the key is actually shorter than the other.
      */
-    if (lhs_length < rhs_length) 
+    if (lhs_length < rhs_length)
     {
         m=memcmp(lhs, rhs, lhs_length);
         if (m<0)
@@ -365,7 +365,7 @@ db_default_prefix_compare(ham_db_t *db,
             return (-1);
         }
     }
-    else if (rhs_length < lhs_length) 
+    else if (rhs_length < lhs_length)
     {
         m=memcmp(lhs, rhs, rhs_length);
         if (m<0)
@@ -402,8 +402,8 @@ db_default_prefix_compare(ham_db_t *db,
     return (HAM_PREFIX_REQUEST_FULLKEY);
 }
 
-int HAM_CALLCONV 
-db_default_compare(ham_db_t *db, 
+int HAM_CALLCONV
+db_default_compare(ham_db_t *db,
                    const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
@@ -442,8 +442,8 @@ db_default_compare(ham_db_t *db,
     return (0);
 }
 
-int HAM_CALLCONV 
-db_default_recno_compare(ham_db_t *db, 
+int HAM_CALLCONV
+db_default_recno_compare(ham_db_t *db,
                    const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
@@ -496,7 +496,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     }
 
     /* almost the same as: blobid = key_get_extended_rid(db, key); */
-    memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+    memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)),
             sizeof(blobid));
     blobid=ham_db2h_offset(blobid);
 
@@ -509,7 +509,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 
             if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
                 ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
-                if (!ext_key->data) 
+                if (!ext_key->data)
                     return HAM_OUT_OF_MEMORY;
             }
             memcpy(ext_key->data, ptr, key_length);
@@ -525,15 +525,15 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * not cached - fetch from disk;
      * we allocate the memory here to avoid that the global record
      * pointer is overwritten
-     * 
-     * Note that the key is fetched in two parts: we already have the front 
-     * part of the key in key_data and now we only need to fetch the blob 
-     * remainder, which size is: 
+     *
+     * Note that the key is fetched in two parts: we already have the front
+     * part of the key in key_data and now we only need to fetch the blob
+     * remainder, which size is:
      *    key_length - (db_get_keysize(db)-sizeof(ham_offset_t))
      *
-     * To prevent another round of memcpy and heap allocation here, we 
-     * simply allocate sufficient space for the entire key as it should be 
-     * passed back through (*ext_key) and adjust the pointer into that 
+     * To prevent another round of memcpy and heap allocation here, we
+     * simply allocate sufficient space for the entire key as it should be
+     * passed back through (*ext_key) and adjust the pointer into that
      * memory space for the faked record-based blob_read() below.
      */
     if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
@@ -548,7 +548,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * now read the remainder of the key
      */
     memset(&record, 0, sizeof(record));
-    record.data=(((ham_u8_t *)ext_key->data) + 
+    record.data=(((ham_u8_t *)ext_key->data) +
                     db_get_keysize(db)-sizeof(ham_offset_t));
     record.size = key_length - (db_get_keysize(db)-sizeof(ham_offset_t));
     record.flags = HAM_RECORD_USER_ALLOC;
@@ -557,8 +557,8 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     if (st)
         return st;
 
-    /* 
-     * insert the FULL key in the extkey-cache 
+    /*
+     * insert the FULL key in the extkey-cache
      */
     if (db_get_extkey_cache(db)) {
         st = extkey_cache_insert(db_get_extkey_cache(db),
@@ -609,20 +609,20 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         else
             rhsprefixlen=rhs->size;
 
-        cmp=prefoo(db, lhs->data, lhsprefixlen, lhs->size, 
+        cmp=prefoo(db, lhs->data, lhsprefixlen, lhs->size,
                     rhs->data, rhsprefixlen, rhs->size);
         if (cmp < -1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
             return cmp; /* unexpected error! */
     }
 
-    if (cmp==HAM_PREFIX_REQUEST_FULLKEY) 
+    if (cmp==HAM_PREFIX_REQUEST_FULLKEY)
     {
         ham_status_t st;
 
         /*
          * 1. load the first key, if needed
          */
-        if (lhs->_flags & KEY_IS_EXTENDED) 
+        if (lhs->_flags & KEY_IS_EXTENDED)
         {
             st = db_get_extended_key(db, lhs->data,
                     lhs->size, lhs->_flags,
@@ -675,10 +675,10 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=device_get_env(page_get_device(page));
-    
-    ham_assert(page_get_owner(page) 
-                ? device_get_env(page_get_device(page)) 
-                        == db_get_env(page_get_owner(page)) 
+
+    ham_assert(page_get_owner(page)
+                ? device_get_env(page_get_device(page))
+                        == db_get_env(page_get_owner(page))
                 : 1, (0));
 
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
@@ -692,21 +692,21 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     }
 
     /*
-     * if this page has a header, and it's either a B-Tree root page or 
-     * a B-Tree index page: remove all extended keys from the cache, 
+     * if this page has a header, and it's either a B-Tree root page or
+     * a B-Tree index page: remove all extended keys from the cache,
      * and/or free their blobs
      */
-    if (page_get_pers(page) && 
+    if (page_get_pers(page) &&
         (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
          (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-          page_get_type(page)==PAGE_TYPE_B_INDEX)) 
+          page_get_type(page)==PAGE_TYPE_B_INDEX))
     {
         ham_backend_t *be;
-        
+
         ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
         be = db_get_backend(page_get_owner(page));
         ham_assert(be, (0));
-        
+
         st = be->_fun_free_page_extkeys(be, page, flags);
         if (st)
             return (st);
@@ -717,7 +717,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
      */
     if (flags&DB_MOVE_TO_FREELIST) {
         if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
-            (void)freel_mark_free(env, 0, page_get_self(page), 
+            (void)freel_mark_free(env, 0, page_get_self(page),
                     env_get_pagesize(env), HAM_TRUE);
     }
 
@@ -732,7 +732,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
+db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
@@ -741,10 +741,10 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_bool_t allocated_by_me=HAM_FALSE;
 
     *page_ref = 0;
-    ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
+    ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST
                         | PAGE_CLEAR_WITH_ZERO
                         | DB_NEW_PAGE_DOES_THRASH_CACHE)), (0));
-    ham_assert(env_get_cache(env) != 0, 
+    ham_assert(env_get_cache(env) != 0,
             ("This code will not realize the requested page may already exist "
              "through a previous call to this function or db_fetch_page() "
              "unless page caching is available!"));
@@ -835,7 +835,7 @@ done:
 }
 
 ham_status_t
-db_alloc_page(ham_page_t **page_ref, ham_db_t *db, 
+db_alloc_page(ham_page_t **page_ref, ham_db_t *db,
                 ham_u32_t type, ham_u32_t flags)
 {
     return (db_alloc_page_impl(page_ref, db_get_env(db), db, type, flags));
@@ -848,15 +848,15 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_page_t *page=0;
     ham_status_t st;
 
-    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOES_THRASH_CACHE 
+    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOES_THRASH_CACHE
                                 | HAM_HINTS_MASK
                                 | DB_ONLY_FROM_CACHE)), (0));
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
+    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            ? 1
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
-    ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
-            : env_get_cache(env) != 0, 
+    ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            ? 1
+            : env_get_cache(env) != 0,
             ("This code will not realize the requested page may already "
              "exist through a previous call to this function or "
              "db_alloc_page() unless page caching is available!"));
@@ -872,7 +872,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         return (HAM_SUCCESS);
     }
 
-    /* 
+    /*
      * fetch the page from the cache
      */
     if (env_get_cache(env)) {
@@ -882,7 +882,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
             /* store the page in the changeset, but only if recovery is enabled
-             * and not if Transactions are enabled. 
+             * and not if Transactions are enabled.
              *
              * when inserting a key in a transaction, this can trigger lookups
              * with ham_find(). when ham_find() fetches pages, these pages must
@@ -903,13 +903,13 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         ham_assert(cache_get_page(env_get_cache(env), address, 0)==0, (0));
     }
 #endif
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
+    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            ? 1
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
 
     /* can we allocate a new page for the cache? */
     if (cache_too_big(env_get_cache(env))) {
-        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
+        if (env_get_rt_flags(env)&HAM_CACHE_STRICT)
             return (HAM_CACHE_FULL);
     }
 
@@ -959,8 +959,8 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
 
     /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
-    if ((flags&HAM_WRITE_THROUGH 
-            || !env_get_cache(env)) 
+    if ((flags&HAM_WRITE_THROUGH
+            || !env_get_cache(env))
             && page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
@@ -1001,7 +1001,7 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
          */
         if (!(flags&DB_FLUSH_NODELETE)) {
             cache_set_totallist(cache,
-                page_list_remove(cache_get_totallist(cache), 
+                page_list_remove(cache_get_totallist(cache),
                     PAGE_LIST_CACHED, head));
             cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
         }
@@ -1019,15 +1019,15 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=device_get_env(page_get_device(page));
-    
+
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
     /*
-     * write page to disk if it's dirty (and if we don't have 
+     * write page to disk if it's dirty (and if we don't have
      * an IN-MEMORY DB)
      */
     ham_assert(env, (0));
-    if (page_is_dirty(page) 
+    if (page_is_dirty(page)
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
         if (st)
@@ -1057,15 +1057,15 @@ db_resize_record_allocdata(ham_db_t *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_record_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), 
+            allocator_free(env_get_allocator(db_get_env(db)),
                     db_get_record_allocdata(db));
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
     }
     else if (size>db_get_record_allocsize(db)) {
-        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
+        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)),
                 db_get_record_allocdata(db), size);
-        if (!newdata) 
+        if (!newdata)
             return (HAM_OUT_OF_MEMORY);
         db_set_record_allocdata(db, newdata);
         db_set_record_allocsize(db, size);
@@ -1079,15 +1079,15 @@ db_resize_key_allocdata(ham_db_t *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_key_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), 
+            allocator_free(env_get_allocator(db_get_env(db)),
                     db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
     }
     else if (size>db_get_key_allocsize(db)) {
-        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
+        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)),
                 db_get_key_allocdata(db), size);
-        if (!newdata) 
+        if (!newdata)
             return (HAM_OUT_OF_MEMORY);
         db_set_key_allocdata(db, newdata);
         db_set_key_allocsize(db, size);
@@ -1110,7 +1110,7 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
         /* dest->size is set by db_get_extended_key() */
-        ham_assert(dest->size == source->size, (0)); 
+        ham_assert(dest->size == source->size, (0));
         /* the extended flag is set later, when this key is inserted */
         dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
     }
@@ -1118,11 +1118,11 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (!dest->data || dest->size < source->size) {
                 if (dest->data)
-                    allocator_free(env_get_allocator(db_get_env(db)), 
+                    allocator_free(env_get_allocator(db_get_env(db)),
                                dest->data);
                 dest->data = (ham_u8_t *)allocator_alloc(
                                env_get_allocator(db_get_env(db)), source->size);
-                if (!dest->data) 
+                if (!dest->data)
                     return (HAM_OUT_OF_MEMORY);
             }
         }
@@ -1130,7 +1130,7 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         dest->size=source->size;
         dest->_flags=source->_flags;
     }
-    else { 
+    else {
         /* key.size is 0 */
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (dest->data)
@@ -1156,7 +1156,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     ham_record_filter_t *record_head;
 
     /*
-     * if this Database is the last database in the environment: 
+     * if this Database is the last database in the environment:
      * delete all environment-members
      *
      * TODO noenv is no longer needed!
@@ -1183,9 +1183,9 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         if (st)
             return (st);
     }
-    
-    /* 
-     * flush all DB performance data 
+
+    /*
+     * flush all DB performance data
      */
     if (st2 == HAM_SUCCESS) {
         btree_stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
@@ -1200,11 +1200,11 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * and the dirty-flag is true: flush the page-header to disk
      */
     if (env
-            && env_get_header_page(env) 
+            && env_get_header_page(env)
             && noenv
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && env_get_device(env) 
-            && env_get_device(env)->is_open(env_get_device(env)) 
+            && env_get_device(env)
+            && env_get_device(env)->is_open(env_get_device(env))
             && (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
@@ -1250,11 +1250,11 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * it's still required and will be flushed below
      */
     if (env && env_get_cache(env)) {
-        ham_page_t *n, *head=cache_get_totallist(env_get_cache(env)); 
+        ham_page_t *n, *head=cache_get_totallist(env_get_cache(env));
         while (head) {
             n=page_get_next(head, PAGE_LIST_CACHED);
             if (page_get_owner(head)==db && head!=env_get_header_page(env)) {
-                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
+                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
                     (void)db_flush_page(env, head, HAM_WRITE_THROUGH);
                 (void)db_free_page(head, 0);
             }
@@ -1297,7 +1297,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
         /*
          * TODO
-         * this free() should move into the backend destructor 
+         * this free() should move into the backend destructor
          */
         allocator_free(env_get_allocator(env), be);
         db_set_backend(db, 0);
@@ -1305,7 +1305,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
     /*
      * environment: move the ownership to another database.
-     * it's possible that there's no other page, then set the 
+     * it's possible that there's no other page, then set the
      * ownership to 0
      */
     if (env) {
@@ -1336,10 +1336,10 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     }
     db_set_record_filter(db, 0);
 
-    /* 
-     * trash all DB performance data 
+    /*
+     * trash all DB performance data
      *
-     * This must happen before the DB is removed from the ENV as the ENV 
+     * This must happen before the DB is removed from the ENV as the ENV
      * (when it exists) provides the required allocator.
      */
     btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
@@ -1462,7 +1462,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     return (st);
 }
 
-struct keycount_t 
+struct keycount_t
 {
     ham_u64_t c;
     ham_u32_t flags;
@@ -1478,7 +1478,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
     txn_op_t *op;
 
     /*
-     * look at each tree_node and walk through each operation 
+     * look at each tree_node and walk through each operation
      * in reverse chronological order (from newest to oldest):
      * - is this op part of an aborted txn? then skip it
      * - is this op part of a committed txn? then include it
@@ -1487,7 +1487,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
      *      to continue checking older, committed txns of the same key
      *
      * !!
-     * if keys are overwritten or a duplicate key is inserted, then 
+     * if keys are overwritten or a duplicate key is inserted, then
      * we have to consolidate the btree keys with the txn-tree keys.
      */
     op=txn_opnode_get_newest_op(node);
@@ -1513,7 +1513,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
                  * we do not count it (it will be counted later) */
                 if (kc->flags&HAM_FAST_ESTIMATE)
                     kc->c++;
-                else if (HAM_KEY_NOT_FOUND==be->_fun_find(be, 
+                else if (HAM_KEY_NOT_FOUND==be->_fun_find(be,
                                     txn_opnode_get_key(node), 0, 0))
                     kc->c++;
                 return;
@@ -1566,7 +1566,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     env=db_get_env(db);
 
     if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
-        ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
+        ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
                   flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
         return (HAM_INV_PARAMETER);
     }
@@ -1612,7 +1612,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
-db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
+db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1620,7 +1620,7 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
     ham_backend_t *be=db_get_backend(db);
 
     /*
-     * pick the tree_node of this key, and walk through each operation 
+     * pick the tree_node of this key, and walk through each operation
      * in reverse chronological order (from newest to oldest):
      * - is this op part of an aborted txn? then skip it
      * - is this op part of a committed txn? then look at the
@@ -1684,14 +1684,14 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_status_t
-db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn, 
+db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     txn_op_t *op=0;
     ham_backend_t *be=db_get_backend(db);
 
     /*
-     * pick the tree_node of this key, and walk through each operation 
+     * pick the tree_node of this key, and walk through each operation
      * in reverse chronological order (from newest to oldest):
      * - is this op part of an aborted txn? then skip it
      * - is this op part of a committed txn? then look at the
@@ -1758,7 +1758,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
             ham_cursor_close(clone);
             return (HAM_FALSE);
         }
-        if (0==db_compare_keys(db, key, 
+        if (0==db_compare_keys(db, key,
                    bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone)))
             ret=HAM_TRUE;
         ham_cursor_close(clone);
@@ -1771,7 +1771,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
     else {
         ham_assert(!"shouldn't be here", (""));
     }
-    
+
     return (ret);
 }
 
@@ -1786,7 +1786,7 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
         if (c->_fun_is_nil(c))
             goto next;
 
-        /* if cursor is coupled to an op in the same node: increment 
+        /* if cursor is coupled to an op in the same node: increment
          * duplicate index (if required) */
         if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN) {
             txn_cursor_t *txnc=cursor_get_txn_cursor(c);
@@ -1802,7 +1802,7 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
 
         if (hit) {
             if (cursor_get_dupecache_index(c)>start) {
-                cursor_set_dupecache_index(c, 
+                cursor_set_dupecache_index(c,
                     cursor_get_dupecache_index(c)+1);
             }
         }
@@ -1814,7 +1814,7 @@ next:
 
 ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 struct txn_cursor_t *cursor)
 {
     ham_status_t st=0;
@@ -1825,7 +1825,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     ham_u64_t lsn=0;
 
     /* get (or create) the txn-tree for this database; we do not need
-     * the returned value, but we call the function to trigger the 
+     * the returned value, but we call the function to trigger the
      * tree creation if it does not yet exist */
     tree=txn_tree_get_or_create(db);
     if (!tree)
@@ -1863,19 +1863,19 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     }
 
     /* append a new operation to this node */
-    op=txn_opnode_append(txn, node, flags, 
-                    (flags&HAM_PARTIAL) | 
-                    ((flags&HAM_DUPLICATE) 
-                        ? TXN_OP_INSERT_DUP 
+    op=txn_opnode_append(txn, node, flags,
+                    (flags&HAM_PARTIAL) |
+                    ((flags&HAM_DUPLICATE)
+                        ? TXN_OP_INSERT_DUP
                         : (flags&HAM_OVERWRITE)
                             ? TXN_OP_INSERT_OW
-                            : TXN_OP_INSERT), 
+                            : TXN_OP_INSERT),
                     lsn, record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
-    /* if there's a cursor then couple it to the op; also store the 
-     * dupecache-index in the op (it's needed for 
+    /* if there's a cursor then couple it to the op; also store the
+     * dupecache-index in the op (it's needed for
      * DUPLICATE_INSERT_BEFORE/NEXT) */
     if (cursor) {
         ham_cursor_t *c=txn_cursor_get_parent(cursor);
@@ -1883,7 +1883,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
             txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
 
         txn_cursor_set_to_nil(cursor);
-        txn_cursor_set_flags(cursor, 
+        txn_cursor_set_flags(cursor,
                     txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_coupled_op(cursor, op);
         txn_op_add_cursor(op, cursor);
@@ -1897,15 +1897,15 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(db_get_env(db))&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_insert(env_get_journal(db_get_env(db)), db, txn,
-                            key, record, 
-                            flags&HAM_DUPLICATE ? flags : flags|HAM_OVERWRITE, 
+                            key, record,
+                            flags&HAM_DUPLICATE ? flags : flags|HAM_OVERWRITE,
                             txn_op_get_lsn(op));
 
     return (st);
 }
 
 static void
-__nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current, 
+__nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
                 txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
@@ -1913,14 +1913,14 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
         txn_cursor_t *cursor=txn_op_get_cursors(op);
         while (cursor) {
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            /* is the current cursor to a duplicate? then adjust the 
+            /* is the current cursor to a duplicate? then adjust the
              * coupled duplicate index of all cursors which point to a
              * duplicate */
             if (current) {
                 if (cursor_get_dupecache_index(current)) {
                     if (cursor_get_dupecache_index(current)
                             <cursor_get_dupecache_index(pc)) {
-                        cursor_set_dupecache_index(pc, 
+                        cursor_set_dupecache_index(pc,
                             cursor_get_dupecache_index(pc)-1);
                         cursor=txn_cursor_get_coupled_next(cursor);
                         continue;
@@ -1933,12 +1933,12 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
                     /* else fall through */
                 }
             }
-            cursor_set_flags(pc, 
+            cursor_set_flags(pc,
                     cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
             txn_cursor_set_to_nil(cursor);
             cursor=txn_op_get_cursors(op);
-            /* set a flag that the cursor just completed an Insert-or-find 
-             * operation; this information is needed in ham_cursor_move 
+            /* set a flag that the cursor just completed an Insert-or-find
+             * operation; this information is needed in ham_cursor_move
              * (in this aspect, an erase is the same as insert/find) */
             cursor_set_lastop(pc, CURSOR_LOOKUP_INSERT);
         }
@@ -1957,7 +1957,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
      *  if it's coupled to btree AND uncoupled: compare keys; set to nil
      *      if keys are identical
      *  if it's uncoupled to btree AND coupled: compare keys; set to nil
-     *      if keys are identical; (TODO - improve performance by nil'ling 
+     *      if keys are identical; (TODO - improve performance by nil'ling
      *      all other cursors from the same btree page)
      *
      *  do NOT nil the current cursor - it's coupled to the key, and the
@@ -1970,14 +1970,14 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
             goto next;
 
         if (__btree_cursor_points_to(c, key)) {
-            /* is the current cursor to a duplicate? then adjust the 
+            /* is the current cursor to a duplicate? then adjust the
              * coupled duplicate index of all cursors which point to a
              * duplicate */
             if (current) {
                 if (cursor_get_dupecache_index(current)) {
                     if (cursor_get_dupecache_index(current)
                             <cursor_get_dupecache_index(c)) {
-                        cursor_set_dupecache_index(c, 
+                        cursor_set_dupecache_index(c,
                             cursor_get_dupecache_index(c)-1);
                         goto next;
                     }
@@ -2011,7 +2011,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
         pc=txn_cursor_get_parent(cursor);
 
     /* get (or create) the txn-tree for this database; we do not need
-     * the returned value, but we call the function to trigger the 
+     * the returned value, but we call the function to trigger the
      * tree creation if it does not yet exist */
     tree=txn_tree_get_or_create(db);
     if (!tree)
@@ -2026,7 +2026,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
         node_created=HAM_TRUE;
     }
 
-    /* check for conflicts of this key - but only if we're not erasing a 
+    /* check for conflicts of this key - but only if we're not erasing a
      * duplicate key. dupes are checked for conflicts in _local_cursor_move */
     if (!pc || (!cursor_get_dupecache_index(pc))) {
         st=db_check_erase_conflicts(db, txn, node, key, flags);
@@ -2050,14 +2050,14 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
-    /* is this function called through ham_cursor_erase? then add the 
+    /* is this function called through ham_cursor_erase? then add the
      * duplicate ID */
     if (cursor) {
         if (cursor_get_dupecache_index(pc))
             txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(pc));
     }
 
-    /* the current op has no cursors attached; but if there are any 
+    /* the current op has no cursors attached; but if there are any
      * other ops in this node and in this transaction, then they have to
      * be set to nil. This only nil's txn-cursors! */
     __nil_all_cursors_in_node(txn, pc, node);
@@ -2096,7 +2096,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
         node=txn_opnode_get(db, key, 0);
 
     /*
-     * pick the tree_node of this key, and walk through each operation 
+     * pick the tree_node of this key, and walk through each operation
      * in reverse chronological order (from newest to oldest):
      * - is this op part of an aborted txn? then skip it
      * - is this op part of a committed txn? then look at the
@@ -2127,7 +2127,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                    st=db_resize_record_allocdata(db, 
+                    st=db_resize_record_allocdata(db,
                                     txn_op_get_record(op)->size);
                     if (st)
                         return (st);
@@ -2153,7 +2153,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
 
     /*
      * we've successfully checked all un-flushed transactions and there
-     * were no conflicts, and we have not found the key. Now try to 
+     * were no conflicts, and we have not found the key. Now try to
      * lookup the key in the btree.
      */
     return (be->_fun_find(be, key, record, flags));
@@ -2236,13 +2236,13 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             return (st);
     }
 
-    /* 
+    /*
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structure. Otherwise immediately write to the btree.
      */
     if (!st) {
         if (txn || local_txn) {
-            st=db_insert_txn(db, txn ? txn : local_txn, 
+            st=db_insert_txn(db, txn ? txn : local_txn,
                             key, &temprec, flags, 0);
         }
         else
@@ -2283,7 +2283,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -2334,7 +2334,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     db_update_global_stats_erase_query(db, key->size);
 
-    /* 
+    /*
      * if transactions are enabled: append a 'erase key' operation into
      * the txn tree; otherwise immediately erase the key from disk
      */
@@ -2358,7 +2358,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -2427,8 +2427,8 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     db_update_global_stats_find_query(db, key->size);
 
-    /* 
-     * if transactions are enabled: read keys from transaction trees, 
+    /*
+     * if transactions are enabled: read keys from transaction trees,
      * otherwise read immediately from disk
      */
     if (txn || local_txn)
@@ -2460,7 +2460,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -2496,12 +2496,12 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
         return (st);
 
     if (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
-        txn_cursor_clone(cursor_get_txn_cursor(src), 
+        txn_cursor_clone(cursor_get_txn_cursor(src),
                         cursor_get_txn_cursor(*dest));
     }
 
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
-        dupecache_clone(cursor_get_dupecache(src), 
+        dupecache_clone(cursor_get_dupecache(src),
                         cursor_get_dupecache(*dest));
     }
 
@@ -2590,7 +2590,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -2599,11 +2599,11 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     if (cursor_get_txn(cursor) || local_txn) {
-        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, 
+        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key,
                     &temprec, flags);
         if (st==0) {
             dupecache_t *dc=cursor_get_dupecache(cursor);
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             /* reset the dupecache, otherwise __cursor_has_duplicates()
              * does not update the dupecache correctly */
@@ -2611,7 +2611,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             /* if duplicate keys are enabled: set the duplicate index of
              * the new key */
             if (st==0 && __cursor_has_duplicates(cursor)) {
-                int i;
+                unsigned int i;
                 txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
                 txn_op_t *op=txn_cursor_get_coupled_op(txnc);
                 ham_assert(op!=0, (""));
@@ -2630,7 +2630,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     else {
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
         if (st==0)
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
     }
 
@@ -2672,20 +2672,20 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    /* set a flag that the cursor just completed an Insert-or-find 
+    /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
 }
 
-static ham_status_t 
+static ham_status_t
 _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
@@ -2704,7 +2704,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -2714,8 +2714,8 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* if transactions are enabled: add a erase-op to the txn-tree */
     if (cursor_get_txn(cursor) || local_txn) {
-        /* if cursor is coupled to a btree item: set the txn-cursor to 
-         * nil; otherwise txn_cursor_erase() doesn't know which cursor 
+        /* if cursor is coupled to a btree item: set the txn-cursor to
+         * nil; otherwise txn_cursor_erase() doesn't know which cursor
          * part is the valid one */
         if (!(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN))
             txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
@@ -2731,7 +2731,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* on success: cursor was set to nil */
     if (st==0) {
-        cursor_set_flags(cursor, 
+        cursor_set_flags(cursor,
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
         ham_assert(cursor->_fun_is_nil(cursor), (""));
@@ -2749,7 +2749,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -2757,7 +2757,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_cursor_find(ham_cursor_t *cursor, ham_key_t *key, 
+_local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -2793,7 +2793,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -2805,8 +2805,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     dupecache_reset(dc);
     cursor_set_dupecache_index(cursor, 0);
 
-    /* 
-     * first try to find the key in the transaction tree. If it exists and 
+    /*
+     * first try to find the key in the transaction tree. If it exists and
      * is NOT a duplicate then return its record. If it does not exist or
      * it has duplicates then also find the key in the btree.
      *
@@ -2815,7 +2815,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     if (cursor_get_txn(cursor) || local_txn) {
         txn_op_t *op=0;
         st=txn_cursor_find(cursor_get_txn_cursor(cursor), key, flags);
-        /* if the key was erased in a transaction then fail with an error 
+        /* if the key was erased in a transaction then fail with an error
          * (unless we have duplicates - they're checked below) */
         if (st) {
             if (st==HAM_KEY_NOT_FOUND)
@@ -2840,7 +2840,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             if (!is_equal)
                 bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
         }
-        cursor_set_flags(cursor, 
+        cursor_set_flags(cursor,
                 cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         op=txn_cursor_get_coupled_op(txnc);
         if (!__cursor_has_duplicates(cursor)) {
@@ -2855,7 +2855,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
 btree:
     st=cursor->_fun_find(cursor, key, record, flags);
     if (st==0) {
-        cursor_set_flags(cursor, 
+        cursor_set_flags(cursor,
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         /* if btree keys were found: reset the dupecache. The previous
          * call to __cursor_has_duplicates() already initialized the
@@ -2872,10 +2872,10 @@ check_dupes:
         dupecache_line_t *e=dupecache_get_elements(
                 cursor_get_dupecache(cursor));
         if (dupecache_line_use_btree(e))
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         else
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         cursor_couple_to_dupe(cursor, 1);
         st=0;
@@ -2883,10 +2883,10 @@ check_dupes:
         /* now read the record */
         if (record) {
             /* TODO this works, but in case of the btree key w/ duplicates
-            * it's possible that we read the record twice. I'm not sure if 
+            * it's possible that we read the record twice. I'm not sure if
             * this can be avoided, though. */
             if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), 
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor),
                         record);
             else
                 st=cursor->_fun_move(cursor, 0, record, 0);
@@ -2922,13 +2922,13 @@ bail:
         }
     }
 
-    /* set a flag that the cursor just completed an Insert-or-find 
+    /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -2936,7 +2936,7 @@ bail:
 }
 
 static ham_status_t
-_local_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+_local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
@@ -2957,7 +2957,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -2996,13 +2996,13 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         return (st);
     }
 
-    /* set a flag that the cursor just completed an Insert-or-find 
+    /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
@@ -3037,7 +3037,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -3047,7 +3047,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     /*
      * if we're in transactional mode then just append an "insert/OW" operation
-     * to the txn-tree. 
+     * to the txn-tree.
      *
      * if the txn_cursor is already coupled to a txn-op, then we can use
      * txn_cursor_overwrite(). Otherwise we have to call txn_cursor_insert().
@@ -3059,7 +3059,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
                 && !(cursor->_fun_is_nil(cursor))) {
             st=bt_cursor_uncouple((ham_bt_cursor_t *)cursor, 0);
             if (st==0)
-                st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
+                st=txn_cursor_insert(cursor_get_txn_cursor(cursor),
                         bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)cursor),
                         &temprec, flags|HAM_OVERWRITE);
         }
@@ -3068,13 +3068,13 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         }
 
         if (st==0)
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
     }
     else {
         st=cursor->_fun_overwrite(cursor, &temprec, flags);
         if (st==0)
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
     }
 
@@ -3095,14 +3095,14 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
 }
 
-/* 
+/*
  * this function compares two cursors - or more exactly, the two keys that
  * the cursors point at.
  *
@@ -3126,10 +3126,10 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
     if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_COUPLED) {
         /* clone the cursor, then uncouple the clone; get the uncoupled key
          * and discard the clone again */
-        
-        /* 
+
+        /*
          * TODO TODO TODO
-         * this is all correct, but of course quite inefficient, because 
+         * this is all correct, but of course quite inefficient, because
          *    a) new structures have to be allocated/released
          *    b) uncoupling fetches the whole extended key, which is often
          *      not necessary
@@ -3146,7 +3146,7 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
             return (st);
         }
         /* TODO error codes are swallowed */
-        cmp=db_compare_keys(db, 
+        cmp=db_compare_keys(db,
                 bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone), txnk);
         ham_cursor_close(clone);
         *pcmp=cmp;
@@ -3195,7 +3195,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             && (flags&HAM_CURSOR_PREVIOUS))
         changed_dir=HAM_TRUE;
 
-    /* 
+    /*
      * Otherwise we have to consolidate the btree cursor and the txn-cursor.
      *
      * Move to the first key?
@@ -3217,26 +3217,26 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if btree is empty but txn-tree is not: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             if (pwhat)
                 *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             if (pwhat)
                 *pwhat=DUPE_CHECK_BTREE;
         }
         /* if both trees are not empty then pick the smaller key, but make
-         * sure that it wasn't erased in the txn 
+         * sure that it wasn't erased in the txn
          *
          * !!
          * if the key has duplicates which were erased then return - dupes
          * are handled by the caller */
-        else if (btrs==0 
-                && (txns==0 
+        else if (btrs==0
+                && (txns==0
                     || txns==HAM_KEY_ERASED_IN_TXN
                     || txns==HAM_TXN_CONFLICT)) {
             int cmp;
@@ -3246,7 +3246,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
              * erased in the transaction; otherwise couple to the txn-op
-             * (it's chronologically newer and has faster access) 
+             * (it's chronologically newer and has faster access)
              *
              * !!
              * only move next if there are no duplicate keys (= if the txn-op
@@ -3255,7 +3255,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * */
             if (cmp==0) {
                 ham_bool_t has_dupes;
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 has_dupes=__cursor_has_duplicates(cursor);
                 if ((txns==HAM_KEY_ERASED_IN_TXN) && !has_dupes) {
@@ -3267,7 +3267,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
-                    /* if the key was erased: continue moving "next" till 
+                    /* if the key was erased: continue moving "next" till
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
@@ -3307,14 +3307,14 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             }
             else {
                 if (txns==HAM_TXN_CONFLICT)
                     return (txns);
                 /* couple to txn */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
         }
@@ -3347,26 +3347,26 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if btree is empty but txn-tree is not: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             if (pwhat)
                 *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             if (pwhat)
                 *pwhat=DUPE_CHECK_BTREE;
         }
         /* if both trees are not empty then pick the greater key, but make
-         * sure that it wasn't erased in the txn 
+         * sure that it wasn't erased in the txn
          *
          * !!
          * if the key has duplicates which were erased then return - dupes
          * are handled by the caller */
-        else if (btrs==0 
-                && (txns==0 
+        else if (btrs==0
+                && (txns==0
                     || txns==HAM_KEY_ERASED_IN_TXN
                     || txns==HAM_TXN_CONFLICT)) {
             int cmp;
@@ -3385,7 +3385,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * */
             if (cmp==0) {
                 ham_bool_t has_dupes;
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 has_dupes=__cursor_has_duplicates(cursor);
                 if ((txns==HAM_KEY_ERASED_IN_TXN) && !has_dupes) {
@@ -3397,7 +3397,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
-                    /* if the key was erased: continue moving "next" till 
+                    /* if the key was erased: continue moving "next" till
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
@@ -3439,12 +3439,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* couple to txn */
                 if (txns==HAM_TXN_CONFLICT)
                     return (txns);
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
             else {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             }
         }
@@ -3466,12 +3466,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the next item in the txn (unless we change the
          * direction - then always move both cursors) */
         if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            txns=txn_cursor_move(txnc, 
-                            txn_cursor_is_nil(txnc) 
+            txns=txn_cursor_move(txnc,
+                            txn_cursor_is_nil(txnc)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
             /* if we've reached the end of the txn-tree then set the
-             * txn-cursor to nil; otherwise subsequent calls to 
+             * txn-cursor to nil; otherwise subsequent calls to
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
@@ -3481,12 +3481,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the next item in the btree */
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
-                btrs=cursor->_fun_move(cursor, 0, 0, 
+                btrs=cursor->_fun_move(cursor, 0, 0,
                             __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
                 /* if we've reached the end of the btree then set the
-                 * btree-cursor to nil; otherwise subsequent calls to 
+                 * btree-cursor to nil; otherwise subsequent calls to
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
@@ -3494,13 +3494,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     break;
                 }
 
-                /* if the direction was changed: continue moving till we 
-                 * found a key that is not erased or overwritten in a 
+                /* if the direction was changed: continue moving till we
+                 * found a key that is not erased or overwritten in a
                  * transaction */
                 if (!changed_dir)
                     break;
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
-                if (st==HAM_KEY_ERASED_IN_TXN 
+                if (st==HAM_KEY_ERASED_IN_TXN
                         && __cursor_has_duplicates(cursor)>1) {
                     st=0;
                     break;
@@ -3515,19 +3515,19 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
 
-        /* now consolidate - if we've reached the end of both trees 
+        /* now consolidate - if we've reached the end of both trees
          * then return HAM_KEY_NOT_FOUND */
-        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) { 
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
             goto bail;
         }
-        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_ERASED_IN_TXN) { 
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_ERASED_IN_TXN) {
             st=HAM_KEY_NOT_FOUND;
             goto bail;
         }
         /* if reached end of btree but not of txn-tree: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             if (txn_cursor_is_erased(txnc)) {
                 st=HAM_KEY_ERASED_IN_TXN;
@@ -3535,13 +3535,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
         }
         /* if reached end of txn-tree but not of btree: couple to btree,
-         * but only if btree entry was not erased or overwritten in 
+         * but only if btree entry was not erased or overwritten in
          * the meantime. if it was, then just move to the next key. */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
-            if (st==HAM_SUCCESS 
+            if (st==HAM_SUCCESS
                     || st==HAM_KEY_ERASED_IN_TXN
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_FIRST;
@@ -3557,15 +3557,15 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 }
                 /* if key has duplicates: move to the next duplicate */
                 if (__cursor_has_duplicates(cursor)) {
-                    st=_local_cursor_move(cursor, key, record, 
+                    st=_local_cursor_move(cursor, key, record,
                             (flags&(~HAM_SKIP_DUPLICATES))
-                                |(st==HAM_TXN_CONFLICT 
+                                |(st==HAM_TXN_CONFLICT
                                     ? 0
                                     : SHITTY_HACK_DONT_MOVE_DUPLICATE));
                     if (st)
                         goto bail;
                     if (pwhat)/* do not re-read duplicate lists in the caller */
-                        *pwhat=0; 
+                        *pwhat=0;
                     return (SHITTY_HACK_FIX_ME);
                 }
                 /* otherwise move to the next key */
@@ -3583,35 +3583,35 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
-             * erased or overwritten in the transaction; if it is, then couple 
-             * to the txn-op (it's chronologically newer and has faster access) 
+             * erased or overwritten in the transaction; if it is, then couple
+             * to the txn-op (it's chronologically newer and has faster access)
              *
-             * only check this if the txn-cursor was not yet verified 
+             * only check this if the txn-cursor was not yet verified
              * (only the btree cursor was moved) */
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
-                if (!erased 
+                if (!erased
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
                     if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
                 /* if this btree key was erased OR overwritten then couple to
-                 * the txn, but already move the btree cursor to the next 
+                 * the txn, but already move the btree cursor to the next
                  * item (unless this btree key has duplicates) */
                 if (erased && __cursor_has_duplicates(cursor)>1) {
                     /* the duplicate was erased? move to the next */
-                    st=_local_cursor_move(cursor, key, record, 
+                    st=_local_cursor_move(cursor, key, record,
                             (flags&(~HAM_SKIP_DUPLICATES))
                                 |SHITTY_HACK_DONT_MOVE_DUPLICATE);
                     if (st)
                         goto bail;
                     if (pwhat)/* do not re-read duplicate lists in the caller */
-                        *pwhat=0; 
+                        *pwhat=0;
                     return (SHITTY_HACK_FIX_ME);
                 }
                 else if (erased || __cursor_has_duplicates(cursor)<=1) {
@@ -3620,7 +3620,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     st=0; /* ignore return code */
                 }
-                /* if the key was erased: continue moving "next" till 
+                /* if the key was erased: continue moving "next" till
                  * we find a key or reach the end of the database */
                 if (erased) {
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
@@ -3631,7 +3631,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
@@ -3641,7 +3641,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     if (!__cursor_has_duplicates(cursor)) {
                         flags&=~HAM_CURSOR_FIRST;
                         flags|=HAM_CURSOR_NEXT;
-                        st=do_local_cursor_move(cursor, key, record, 
+                        st=do_local_cursor_move(cursor, key, record,
                                 flags, 0, 0);
                         if (st)
                             goto bail;
@@ -3652,7 +3652,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else {
                 /* couple to txn */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 /* check if the txn-cursor points to an erased key */
                 if (txns==0 && txn_cursor_is_erased(txnc)) {
@@ -3679,12 +3679,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the previous item in the txn (unless we change the
          * direction - then always move both cursors */
         if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            txns=txn_cursor_move(txnc, 
-                            txn_cursor_is_nil(txnc) 
+            txns=txn_cursor_move(txnc,
+                            txn_cursor_is_nil(txnc)
                                 ? HAM_CURSOR_LAST
                                 : flags);
             /* if we've reached the end of the txn-tree then set the
-             * txn-cursor to nil; otherwise subsequent calls to 
+             * txn-cursor to nil; otherwise subsequent calls to
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
@@ -3694,12 +3694,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the previous item in the btree */
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
-                btrs=cursor->_fun_move(cursor, 0, 0, 
+                btrs=cursor->_fun_move(cursor, 0, 0,
                             __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
                                 ? HAM_CURSOR_LAST
                                 : flags);
                 /* if we've reached the end of the btree then set the
-                 * btree-cursor to nil; otherwise subsequent calls to 
+                 * btree-cursor to nil; otherwise subsequent calls to
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
@@ -3707,8 +3707,8 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     break;
                 }
 
-                /* if the direction was changed: continue moving till we 
-                 * found a key that is not erased or overwritten in a 
+                /* if the direction was changed: continue moving till we
+                 * found a key that is not erased or overwritten in a
                  * transaction */
                 if (!changed_dir)
                     break;
@@ -3728,19 +3728,19 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
 
-        /* now consolidate - if we've reached the end of both trees 
+        /* now consolidate - if we've reached the end of both trees
          * then return HAM_KEY_NOT_FOUND */
-        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) { 
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
             goto bail;
         }
-        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_ERASED_IN_TXN) { 
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_ERASED_IN_TXN) {
             st=HAM_KEY_NOT_FOUND;
             goto bail;
         }
         /* if reached end of btree but not of txn-tree: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             if (txn_cursor_is_erased(txnc)) {
                 st=HAM_KEY_ERASED_IN_TXN;
@@ -3748,13 +3748,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
         }
         /* if reached end of txn-tree but not of btree: couple to btree,
-         * but only if btree entry was not erased or overwritten in 
+         * but only if btree entry was not erased or overwritten in
          * the meantime. if it was, then just move to the previous key. */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
-            if (st==HAM_SUCCESS 
+            if (st==HAM_SUCCESS
                     || st==HAM_KEY_ERASED_IN_TXN
                     || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_LAST;
@@ -3772,7 +3772,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (__cursor_has_duplicates(cursor)>1) {
                     st=_local_cursor_move(cursor, key, record,
                             (flags&(~HAM_SKIP_DUPLICATES))
-                                |(st==HAM_TXN_CONFLICT 
+                                |(st==HAM_TXN_CONFLICT
                                     ? 0
                                     : SHITTY_HACK_DONT_MOVE_DUPLICATE));
                     if (st)
@@ -3796,25 +3796,25 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
-             * erased or overwritten in the transaction; if it is, then couple 
-             * to the txn-op (it's chronologically newer and has faster access) 
+             * erased or overwritten in the transaction; if it is, then couple
+             * to the txn-op (it's chronologically newer and has faster access)
              *
-             * only check this if the txn-cursor was not yet verified 
+             * only check this if the txn-cursor was not yet verified
              * (only the btree cursor was moved) */
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
-                if (!erased 
+                if (!erased
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
                     if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
                 /* if this btree key was erased or overwritten then couple to
-                 * the txn, but already move the btree cursor to the previous 
+                 * the txn, but already move the btree cursor to the previous
                  * item (unless this key has duplicates) */
                 if (erased || __cursor_has_duplicates(cursor)>1) {
                     /* the duplicate was erased? move to the previous */
@@ -3835,7 +3835,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     st=0; /* ignore return code */
                 }
-                /* if the key was erased: continue moving "previous" till 
+                /* if the key was erased: continue moving "previous" till
                  * we find a key or reach the end of the database */
                 if (erased) {
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
@@ -3846,7 +3846,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to txn */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 /* check if the txn-cursor points to an erased key */
                 if (txns==0 && txn_cursor_is_erased(txnc)) {
@@ -3859,7 +3859,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
+                cursor_set_flags(cursor,
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
@@ -3869,7 +3869,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     if (!__cursor_has_duplicates(cursor)) {
                         flags&=~HAM_CURSOR_LAST;
                         flags|=HAM_CURSOR_PREVIOUS;
-                        st=do_local_cursor_move(cursor, key, record, 
+                        st=do_local_cursor_move(cursor, key, record,
                                 flags, 0, 0);
                         if (st)
                             goto bail;
@@ -3958,7 +3958,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         cursor_set_txn(cursor, local_txn);
     }
 
-    /* if cursor was not moved (i.e. last op was insert or find) then 
+    /* if cursor was not moved (i.e. last op was insert or find) then
      * most likely ONLY txn-cursor OR btree-cursor are coupled. For moving
      * the cursor, however we need to couple both. */
     if (cursor_get_lastop(cursor)==CURSOR_LOOKUP_INSERT
@@ -3975,11 +3975,11 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * first check if we have a duplicate list and we want to move next
      * or previous in the duplicates
      */
-    if (flags!=0 
-            && (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
+    if (flags!=0
+            && (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
             && (dupecache_get_count(dc))) {
         ham_bool_t both_not_nil=HAM_FALSE;
-        if (!txn_cursor_is_nil(txnc) 
+        if (!txn_cursor_is_nil(txnc)
                 && !__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             both_not_nil=HAM_TRUE;
 
@@ -3987,9 +3987,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (cursor_get_dupecache_index(cursor)) {
                 if (cursor_get_dupecache_index(cursor)
                         <dupecache_get_count(dc)) {
-                    cursor_set_dupecache_index(cursor, 
+                    cursor_set_dupecache_index(cursor,
                                 cursor_get_dupecache_index(cursor)+1);
-                    cursor_couple_to_dupe(cursor, 
+                    cursor_couple_to_dupe(cursor,
                                 cursor_get_dupecache_index(cursor));
                     goto bail;
                 }
@@ -3997,7 +3997,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (flags&SHITTY_HACK_DONT_MOVE_DUPLICATE) {
                 if (cursor_get_dupecache_index(cursor)==0) {
                     cursor_set_dupecache_index(cursor, 1);
-                    cursor_couple_to_dupe(cursor, 
+                    cursor_couple_to_dupe(cursor,
                                 cursor_get_dupecache_index(cursor));
                     goto bail;
                 }
@@ -4010,9 +4010,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             /* duplicate key? then traverse the duplicate list */
             else if (cursor_get_dupecache_index(cursor)) {
                 if (cursor_get_dupecache_index(cursor)>1) {
-                    cursor_set_dupecache_index(cursor, 
+                    cursor_set_dupecache_index(cursor,
                                 cursor_get_dupecache_index(cursor)-1);
-                    cursor_couple_to_dupe(cursor, 
+                    cursor_couple_to_dupe(cursor,
                                 cursor_get_dupecache_index(cursor));
                     goto bail;
                 }
@@ -4048,7 +4048,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* move to the next key, but skip duplicates. Duplicates are handled
      * below (and above) */
-    st=do_local_cursor_move(cursor, key, record, 
+    st=do_local_cursor_move(cursor, key, record,
                     flags|HAM_SKIP_DUPLICATES, fresh_start, &what);
     if (st==SHITTY_HACK_FIX_ME) {
         st=0;
@@ -4071,7 +4071,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /* now check if this key has duplicates; if yes, we have to build up the
-     * duplicate table (we even have to do this if duplicates are skipped, 
+     * duplicate table (we even have to do this if duplicates are skipped,
      * because a txn-op might replace the first/oldest duplicate) */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         if (what) {
@@ -4091,7 +4091,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             txn=local_txn;
         st=0; /* clear HAM_KEY_ERASED_IN_TXN */
 
-        /* check if ANY duplicate has a conflict - if yes then skip 
+        /* check if ANY duplicate has a conflict - if yes then skip
          * the whole key (with ALL duplicates) */
         if (txn) {
             ham_u32_t i;
@@ -4101,9 +4101,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     txn_op_t *op=dupecache_line_get_txn_op(e);
                     if (txn_op_conflicts(op, txn)) {
                         /* couple to the first (or last) duplicate and move
-                        * to the previous (or next) key */ 
+                        * to the previous (or next) key */
                         if (flags&HAM_CURSOR_NEXT) {
-                            cursor_couple_to_dupe(cursor, 
+                            cursor_couple_to_dupe(cursor,
                                     dupecache_get_count(dc));
                             flags|=HAM_CURSOR_FIRST;
                             goto move_next_or_prev;
@@ -4139,7 +4139,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /* if the first (or last) key was requested, but it was erased, then
-     * continue moving to the next (previous) key 
+     * continue moving to the next (previous) key
      *
      * make sure that the cursor is properly coupled - either to the
      * txn- or the b-tree */
@@ -4155,10 +4155,10 @@ move_next_or_prev:
         }
 
         if (op)
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         else
-            cursor_set_flags(cursor, 
+            cursor_set_flags(cursor,
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
 
         if (flags&HAM_CURSOR_FIRST) {
@@ -4185,7 +4185,7 @@ bail:
     if (st==0) {
         if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
             txn_op_t *op=txn_cursor_get_coupled_op(txnc);
-            /* are we coupled to an ERASE-op? then return an error 
+            /* are we coupled to an ERASE-op? then return an error
              *
              * !! Hack alert
              * in rare scenarios, we have to move to the next or previous
@@ -4246,7 +4246,7 @@ bail_2:
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
