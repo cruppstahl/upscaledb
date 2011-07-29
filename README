@@ -17,6 +17,8 @@ This release re-implemented the Transaction support. In previous versions
 with write-ahead logging. If a Transaction was aborted (or undone during
 recovery), the modified pages were recovered from the log. 
 
+This release is not stable and not ready for production.
+
 This version now allows to start an arbitrary number of Transactions that run 
 in parallel. All modified keys are stored in RAM and are flushed to disk when
 the Transaction is committed. If the Transaction is aborted then the 
@@ -36,6 +38,8 @@ Compared to 1.x, a few functions were disabled if Transactions are enabled:
 - approximate matching
 - direct access (HAM_DIRECT_ACCESS)
 - partial read/write (HAM_PARTIAL)
+
+See below for known issues and bugs.
 
 2. Changes
 
@@ -86,7 +90,70 @@ To see a list of all changes, look in the file ChangeLog.
 
 5. Known Issues/Bugs
 
-None.
+This is an unstable release and it has some issues. They will be fixed in the
+next release. 
+
+The following tests fail because of limitations in the test, not because of 
+bugs in hamsterdb.
+./test --duplicate --sort-duplicates --reopen ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --reopen ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --reopen ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --reopen ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --reopen --useralloc ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --reopen --useralloc ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --reopen --useralloc ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --reopen --useralloc ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --fullcheck-find --useralloc ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --fullcheck-find --useralloc ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --fullcheck-find --useralloc ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --fullcheck-find --useralloc ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --inmemorydb ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --inmemorydb ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --inmemorydb ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --inmemorydb ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --inmemorydb --useralloc ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --inmemorydb --useralloc ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --inmemorydb --useralloc ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --inmemorydb --useralloc ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --use-cursors --reopen ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --use-cursors --reopen ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --use-cursors --reopen ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --use-cursors --reopen ../../testfiles/2/ext_061.tst
+./test --duplicate --sort-duplicates --use-cursors --inmemorydb ../../testfiles/2/ext_050.tst
+./test --duplicate --sort-duplicates --use-cursors --inmemorydb ../../testfiles/2/ext_052.tst
+./test --duplicate --sort-duplicates --use-cursors --inmemorydb ../../testfiles/2/ext_060.tst
+./test --duplicate --sort-duplicates --use-cursors --inmemorydb ../../testfiles/2/ext_061.tst
+
+The following tests fail because of bugs in hamsterdb when using cursors to 
+move over duplicate keys.
+./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=200 --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=200 --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=200 --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/202.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/202.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/2/102.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/202.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/202.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/2/102.tst
+
 
 6. Compiling 
 
