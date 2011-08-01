@@ -52,7 +52,6 @@ log_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, ham_log_t **plog)
 
     ham_assert(env, (0));
 
-    log_set_allocator(log, alloc);
     log_set_env(log, env);
     log_set_flags(log, flags);
 
@@ -96,7 +95,6 @@ log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **plog)
 
     ham_assert(env, (0));
 
-    log_set_allocator(log, alloc);
     log_set_env(log, env);
     log_set_flags(log, flags);
 

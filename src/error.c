@@ -19,7 +19,6 @@
 
 #include <ham/hamsterdb.h>
 
-#include "db.h"
 #include "error.h"
 #include "mem.h"
 #include "util.h"

@@ -155,10 +155,6 @@ public:
 
         BFC_ASSERT_NOTNULL(env_get_log(m_env));
 
-        log_set_allocator(&log, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL((mem_allocator_t *)m_alloc, 
-                        log_get_allocator(&log));
-
         log_set_flags(&log, 0x13);
         BFC_ASSERT_EQUAL((ham_u32_t)0x13, log_get_flags(&log));
 

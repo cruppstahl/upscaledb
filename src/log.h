@@ -157,9 +157,6 @@ struct ham_log_t
     /** the lsn of this entry */
     ham_u64_t _lsn;
 
-    /** the allocator object */
-    mem_allocator_t *_alloc;
-
     /** references the Environment this log file is for */
     ham_env_t *_env;
 
@@ -178,10 +175,7 @@ struct ham_log_t
 #define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
 
 /** get the allocator */
-#define log_get_allocator(l)                    (l)->_alloc
-
-/** set the allocator */
-#define log_set_allocator(l, a)                 (l)->_alloc=(a)
+#define log_get_allocator(l)                    (l)->_env->_alloc
 
 /** get the environment */
 #define log_get_env(l)                          (l)->_env

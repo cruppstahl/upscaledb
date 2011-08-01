@@ -272,6 +272,8 @@ case $host in
         ;;
 esac
 
+CXXFLAGS=${CFLAGS}
+
 AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile src/server/Makefile)
 AC_OUTPUT
 

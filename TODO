@@ -19,15 +19,13 @@ x cleanups: the backend structure does not need the function pointers.
     simplify the whole interface!
     --> no, it's fine. the interface is clean and good as it is.
 
-o cleanups: the cursor does not need the function pointers. 
-    simplify the whole interface!
+x be_set_dirty is not really required, is it? the flushes are always explicit
+    --> no, not explicit. better leave it as is.
 
-o db_compare_keys can return errors - do we really need this??
+x db_compare_keys can return errors - do we really need this??
+    --> yes, because extended keys access disk and caches
 
-o be_set_dirty is not really required, is it? the flushes are always explicit
-
-o cursor_has_duplicates: move to cursor.c; often is used in boolean form, but
-    should be: true if >1, false if <=1
+x log_t: allocator _alloc still needed? we have the Env pointer
 
 o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
@@ -37,13 +35,19 @@ o journal->_lsn - no longer needed?
 
 o log_entry_t: txn_id still needed?
 
-o log_t: allocator _alloc still needed? we have the Env pointer
-
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
 
 o refactor cursor; separate backend-cursor and txn-cursor; make the 
-    "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
+    o cursor_has_duplicates: move to cursor.c; often is used in 
+    boolean form, but should be: true if >1, false if <=1
+
+    o cleanups: the cursor does not need the function pointers. 
+        simplify the whole interface!
+
+    o cursor and btree-cursor: each have their own dupecache; merge them
+
+    o "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
     have to couple, and check if it was erased in the meantime!
     or: - cursor tracks state if it's coupled to txn or btree
         - when coupling, caller can select whether to couple to btree or txn
