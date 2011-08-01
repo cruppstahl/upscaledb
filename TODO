@@ -31,9 +31,9 @@ o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
     o the cache should give preference to index pages
 
-o journal->_lsn - no longer needed?
+x log_entry_t: txn_id still needed?
 
-o log_entry_t: txn_id still needed?
+o journal->_lsn - no longer needed?
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
