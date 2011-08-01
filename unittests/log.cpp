@@ -133,9 +133,6 @@ public:
         log_entry_set_lsn(&e, 0x13);
         BFC_ASSERT_EQUAL((ham_u64_t)0x13, log_entry_get_lsn(&e));
 
-        log_entry_set_txn_id(&e, 0x15);
-        BFC_ASSERT_EQUAL((ham_u64_t)0x15, log_entry_get_txn_id(&e));
-
         log_entry_set_offset(&e, 0x22);
         BFC_ASSERT_EQUAL((ham_u64_t)0x22, log_entry_get_offset(&e));
 
@@ -240,8 +237,7 @@ public:
         for (int i=0; i<100; i++)
             data[i]=(ham_u8_t)i;
 
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
-                                0, data, sizeof(data)));
+        BFC_ASSERT_EQUAL(0, log_append_write(log, 1, 0, data, sizeof(data)));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));
@@ -257,8 +253,7 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
-                                0, data, sizeof(data)));
+        BFC_ASSERT_EQUAL(0, log_append_write(log, 1, 0, data, sizeof(data)));
 
         BFC_ASSERT_EQUAL(0, log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
@@ -293,7 +288,7 @@ public:
         ham_log_t *log = disconnect_log_and_create_new_log();
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
+        BFC_ASSERT_EQUAL(0, log_append_write(log, 1,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
 
@@ -308,7 +303,6 @@ public:
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_txn_id(&entry));
         BFC_ASSERT_EQUAL((ham_u32_t)1024, log_entry_get_data_size(&entry));
         BFC_ASSERT_NOTNULL(data);
         BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_WRITE, 
@@ -327,7 +321,6 @@ public:
                 ham_u64_t txn_id, ham_u32_t type, ham_u8_t *data)
     {
         BFC_ASSERT_EQUAL(lsn, log_entry_get_lsn(entry));
-        BFC_ASSERT_EQUAL(txn_id, log_entry_get_txn_id(entry));
         if (log_entry_get_data_size(entry)==0) {
             BFC_ASSERT_NULL(data);
         }
@@ -526,8 +519,7 @@ public:
         ham_size_t ps=env_get_pagesize(m_env);
 
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 2,
-                                ps, buffer, ps));
+                    log_append_write(env_get_log(m_env), 2, ps, buffer, ps));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -555,7 +547,7 @@ public:
         memset(buffer, 0, env_get_pagesize(m_env));
 
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 1,
+                    log_append_write(env_get_log(m_env), 1,
                                 0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -598,7 +590,7 @@ public:
         memset(buffer, 0, env_get_pagesize(m_env));
 
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 1,
+                    log_append_write(env_get_log(m_env), 1,
                                 0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -621,7 +613,7 @@ public:
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
 
-        BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), txn, 1,
+        BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), 1,
                                 0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -690,7 +682,6 @@ public:
             size++;
 
             BFC_ASSERT_EQUAL((*vit).lsn, log_entry_get_lsn(&entry));
-            BFC_ASSERT_EQUAL((*vit).txn_id, log_entry_get_txn_id(&entry));
             BFC_ASSERT_EQUAL((*vit).offset, log_entry_get_offset(&entry));
             BFC_ASSERT_EQUAL((*vit).type, log_entry_get_type(&entry));
             BFC_ASSERT_EQUAL((*vit).data_size, log_entry_get_data_size(&entry));

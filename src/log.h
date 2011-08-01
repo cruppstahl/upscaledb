@@ -80,9 +80,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
     /** the lsn of this entry */
     ham_u64_t _lsn;
 
-    /** the transaction id */
-    ham_u64_t _txn_id;
-
     /** the flags of this entry; the lowest 8 bits are the 
      * type of this entry, see below */
     ham_u32_t _flags;
@@ -117,12 +114,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 
 /* set the lsn */
 #define log_entry_set_lsn(l, lsn)               (l)->_lsn=lsn
-
-/* get the transaction ID */
-#define log_entry_get_txn_id(l)                 (l)->_txn_id
-
-/* set the transaction ID */
-#define log_entry_set_txn_id(l, id)             (l)->_txn_id=id
 
 /* get the offset of this entry */
 #define log_entry_get_offset(l)                 (l)->_offset
@@ -228,8 +219,8 @@ log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size);
  * @sa log_append_page
  */
 extern ham_status_t
-log_append_write(ham_log_t *log, ham_txn_t *txn, ham_u64_t lsn,
-        ham_offset_t offset, ham_u8_t *data, ham_size_t size);
+log_append_write(ham_log_t *log, ham_u64_t lsn, ham_offset_t offset, 
+                    ham_u8_t *data, ham_size_t size);
 
 /**
  * clears the logfile to zero, removes all entries

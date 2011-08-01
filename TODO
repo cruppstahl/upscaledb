@@ -39,6 +39,8 @@ o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
 
 o refactor cursor; separate backend-cursor and txn-cursor; make the 
+    o rename bt_cursor -> btree_cursor?
+
     o cursor_has_duplicates: move to cursor.c; often is used in 
     boolean form, but should be: true if >1, false if <=1
 
