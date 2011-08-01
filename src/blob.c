@@ -154,7 +154,7 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
 
                 st=env_fetch_page(&page, env, pageid, 
                         cacheonly ? DB_ONLY_FROM_CACHE : 
-                        at_blob_edge ? 0 : DB_NEW_PAGE_DOES_THRASH_CACHE);
+                        at_blob_edge ? 0 : 0/*DB_NEW_PAGE_DOES_THRASH_CACHE*/);
 				ham_assert(st ? !page : 1, (0));
                 /* blob pages don't have a page header */
                 if (page) {

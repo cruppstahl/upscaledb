@@ -182,17 +182,8 @@ page_new(ham_env_t *env)
     if (!page)
         return (0);
     memset(page, 0, sizeof(*page));
-
     page_set_allocator(page, alloc);
-
     page_set_device(page, env_get_device(env));
-
-    /*
-     * initialize the cache counter, 
-     * see also cache_increment_page_counter() 
-     */
-    page_set_cache_cntr(page, 
-        (env_get_cache(env) ? env_get_cache(env)->_timeslot++ : 0));
 
     return (page);
 }

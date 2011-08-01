@@ -429,16 +429,6 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         changeset_add_page(env_get_changeset(env), env_get_header_page(env));
 
-    /*
-     * As we re-purpose a page, we will reset its pagecounter as
-     * well to signal its first use as the new type assigned here.
-     */
-    if (env_get_cache(env) && (page_get_type(newroot) != PAGE_TYPE_B_ROOT)) {
-        ham_cache_t *cache = env_get_cache(env);
-        ham_assert(cache, (0));
-        cache_update_page_access_counter(newroot, cache, 0);
-    }
-
     page_set_type(newroot, PAGE_TYPE_B_ROOT);
 
     return (0);

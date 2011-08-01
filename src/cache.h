@@ -53,12 +53,6 @@ struct ham_cache_t
      * and therefore the highest candidate for a flush */
     ham_page_t *_totallist_tail;
 
-    /** 
-     * a 'timer' counter used to set/check the age of cache entries:
-     * higher values represent newer / more important entries.
-     */
-    ham_u32_t _timeslot;
-
     /** the buckets - a linked list of ham_page_t pointers */
     ham_page_t *_buckets[1];
 
@@ -107,14 +101,6 @@ struct ham_cache_t
 #define cache_set_bucket(cm, i, p)             (cm)->_buckets[i]=p
 
 /**
- * increment the cache counter, while watching a global high water mark;
- * once we hit that, we decrement all counters equally, so this remains
- * a equal opportunity design for page aging.
- */
-extern void
-cache_reduce_page_counts(ham_cache_t *cache);
-
-/**
  * initialize a cache manager object
  *
  * max_size is in bytes!
@@ -159,14 +145,6 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
  */
 extern void 
 cache_put_page(ham_cache_t *cache, ham_page_t *page);
-
-/**
- * update the 'access counter' for a page in the cache.
- * (The page is assumed to exist in the cache!)
- */
-extern void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, 
-                    ham_u32_t extra_bump);
 
 /**
  * remove a page from the cache

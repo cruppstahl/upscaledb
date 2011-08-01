@@ -131,20 +131,6 @@ struct ham_page_t {
         /** non-persistent flags */
         ham_u32_t _flags;
 
-        /** cache counter - used by the cache module
-         *
-         * The higher the counter, the more 'important' this page is
-         * believed to be; when searching for pages to re-use, the empty
-         * page with the lowest counter value is re-purposed. Each valid
-         * page use bumps up the page counter by a certain amount, up to
-         * a page-type specific upper bound.
-         *
-         * See also @ref cache_put_page()
-         * and its invocations in the code. @ref page_new() initialized
-         * the counter for each new page.
-         */
-        ham_u32_t _cache_cntr;
-
         /** is this page dirty and needs to be flushed to disk? */
         ham_u32_t _dirty;
 
@@ -240,12 +226,6 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 
 /** set non-persistent page flags */
 #define page_set_npers_flags(page, f)    (page)->_npers._flags=(f)
-
-/** get the cache counter */
-#define page_get_cache_cntr(page)        (page)->_npers._cache_cntr
-
-/** set the cache counter */
-#define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
 
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC               1

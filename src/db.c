@@ -741,9 +741,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_bool_t allocated_by_me=HAM_FALSE;
 
     *page_ref = 0;
-    ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
-                        | PAGE_CLEAR_WITH_ZERO
-                        | DB_NEW_PAGE_DOES_THRASH_CACHE)), (0));
+    ham_assert(0==(flags&~(PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO)), (0));
     ham_assert(env_get_cache(env) != 0, 
             ("This code will not realize the requested page may already exist "
              "through a previous call to this function or db_fetch_page() "
@@ -819,16 +817,8 @@ done:
         changeset_add_page(env_get_changeset(env), page);
 
     /* store the page in the cache */
-    if (env_get_cache(env)) {
+    if (env_get_cache(env))
         cache_put_page(env_get_cache(env), page);
-        if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
-            /* give it an 'antique' age so this one will get flushed pronto */
-            page_set_cache_cntr(page, 1);
-        }
-        else {
-            cache_update_page_access_counter(page, env_get_cache(env), 0);
-        }
-    }
 
     *page_ref = page;
     return (HAM_SUCCESS);
@@ -848,9 +838,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_page_t *page=0;
     ham_status_t st;
 
-    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOES_THRASH_CACHE 
-                                | HAM_HINTS_MASK
-                                | DB_ONLY_FROM_CACHE)), (0));
+    ham_assert(0 == (flags & ~(HAM_HINTS_MASK|DB_ONLY_FROM_CACHE)), (0));
     ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
             ? 1 
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
@@ -927,16 +915,9 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     ham_assert(page_get_pers(page), (""));
 
-    if (env_get_cache(env)) {
+    /* store the page in the cache */
+    if (env_get_cache(env))
         cache_put_page(env_get_cache(env), page);
-        if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
-            /* give it an 'antique' age so this one will get flushed pronto */
-            page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
-        }
-        else {
-            cache_update_page_access_counter(page, env_get_cache(env), 0);
-        }
-    }
 
     /* store the page in the changeset */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)

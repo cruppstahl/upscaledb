@@ -651,16 +651,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 #define DB_ONLY_FROM_CACHE                0x0002
 
 /**
- * Register new pages in the cache, but give them an 'old' age upon first 
- * creation, so they are flushed before anything else.
- *
- * This is a hacky way to ensure code simplicity while blob I/O does not 
- * thrash the cache but meanwhile still gets added to the activity log in 
- * a proper fashion.
- */
-#define DB_NEW_PAGE_DOES_THRASH_CACHE    0x0004
-
-/**
  * @}
  */
 
@@ -696,7 +686,6 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags);
  *        of the following bits:
  *        - PAGE_IGNORE_FREELIST        ignores all freelist-operations
  *        - PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
- *        - DB_NEW_PAGE_DOES_THRASH_CACHE
  *
  * @note The page will be aligned at the current page size. Any wasted
  * space (due to the alignment) is added to the freelist.

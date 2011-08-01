@@ -34,13 +34,14 @@ x journal->_alloc not needed, it's part of the Env
 x journal->_lsn - no longer needed?
     ---> no, it's still required
 
-o cleanup the cache - the garbagelist is not needed, and the age of the pages
+x cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
     x remove the garbage list
-    o the cache should give preference to index pages
-    o cache->_timeslot
-    o cache_reduce_page_counts
-    o update_page_access_counter
+    x the cache should give preference to index pages
+    x cache->_timeslot
+    x cache_reduce_page_counts
+    x update_page_access_counter
+    x DB_NEW_PAGE_DOES_THRASH_CACHE
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
@@ -81,6 +82,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
+
+o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
+    is only required once then it should be inserted at the tail of the
+    totallist, like a page that was not accessed for a very long time
 
 o hamsterdb.com
     x add twitter feed

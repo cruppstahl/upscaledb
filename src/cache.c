@@ -45,8 +45,6 @@ cache_new(ham_env_t *env, ham_size_t max_size)
     cache_set_env(cache, env);
     cache_set_capacity(cache, max_size);
     cache_set_bucketsize(cache, buckets);
-    cache->_timeslot = 777; /* a reasonable start value; value is related 
-                * to the increments applied to active cache pages */
     return (cache);
 }
 
@@ -54,51 +52,6 @@ void
 cache_delete(ham_cache_t *cache)
 {
     allocator_free(env_get_allocator(cache_get_env(cache)), cache);
-}
-
-/**
- * Apparently we've hit a high water mark in the counting business and
- * now it's time to cut down those counts to create a bit of fresh
- * headroom.
- *
- * As higher counters represent something akin to a heady mix of young
- * and famous (stardom gets you higher numbers) we're going to do
- * something to age them all, while maintaining their relative ranking:
- *
- * Instead of subtracting a certain amount Z, which would positively
- * benefit the high & mighty (as their distance from the lower life
- * increases disproportionally then), we DIVIDE all counts by a certain
- * number M, so that all counters are scaled down to generate lots of
- * headroom while keeping the picking order as it is.
- *
- * We happen to know that the high water mark is something close to
- * 2^31 - 1K (the largest step up for any page), so we decide to divide
- * by 2^16 - that still leaves us an optimistic resolution of 1:2^16,
- * which is fine.
- */
-void
-cache_reduce_page_counts(ham_cache_t *cache)
-{
-    ham_page_t *page=cache_get_totallist(cache);
-    while (page) { 
-        /* act on ALL pages, including the reference-counted ones.  */
-        ham_u32_t count = page_get_cache_cntr(page);
-
-        /* now scale by applying division: */
-        count >>= 16;
-        page_set_cache_cntr(page, count);
-
-        /* and the next one, please, James. */
-        page=page_get_next(page, PAGE_LIST_CACHED);        
-    }
-
-    /* and cut down the timeslot value as well: */
-    /*
-     * to make sure the division by 2^16 keeps the timing counter
-     * non-zero, we mix in a little value...
-     */
-    cache->_timeslot+=(1<<16)-1;
-    cache->_timeslot>>=16;
 }
 
 ham_page_t * 
@@ -214,24 +167,6 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
         cache_set_totallist_tail(cache, page);
 
     ham_assert(cache_check_integrity(cache)==0, (""));
-}
-
-/*
- * in order to improve cache activity for access patterns such as
- * AAB.AAB. where a fetch at the '.' would rate both pages A and B as
- * high, we use a increment-counter approach which will cause page A to
- * be rated higher than page B over time as A is accessed/needed more
- * often.
- */
-void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, 
-                        ham_u32_t extra_bump)
-{
-    if (cache->_timeslot > 0xFFFFFFFFU - 1024 - extra_bump)
-        cache_reduce_page_counts(cache);
-
-    cache->_timeslot++;
-    page_set_cache_cntr(page, cache->_timeslot + extra_bump);
 }
 
 void 
