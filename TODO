@@ -27,15 +27,16 @@ x db_compare_keys can return errors - do we really need this??
 
 x log_t: allocator _alloc still needed? we have the Env pointer
 
-o cleanup the cache - the garbagelist is not needed, and the age of the pages
-    is also not needed (unless it turns out to improve the performance)
-    o the cache should give preference to index pages
-
 x log_entry_t: txn_id still needed?
 
 x journal->_alloc not needed, it's part of the Env
 
-o journal->_lsn - no longer needed?
+x journal->_lsn - no longer needed?
+    ---> no, it's still required
+
+o cleanup the cache - the garbagelist is not needed, and the age of the pages
+    is also not needed (unless it turns out to improve the performance)
+    o the cache should give preference to index pages
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
