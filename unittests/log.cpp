@@ -318,7 +318,7 @@ public:
     }
 
     void checkLogEntry(ham_log_t *log, log_entry_t *entry, ham_u64_t lsn, 
-                ham_u64_t txn_id, ham_u32_t type, ham_u8_t *data)
+                ham_u32_t type, ham_u8_t *data)
     {
         BFC_ASSERT_EQUAL(lsn, log_entry_get_lsn(entry));
         if (log_entry_get_data_size(entry)==0) {
@@ -359,23 +359,23 @@ public:
         ham_u8_t *data;
 
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(log, &entry, 5, 0, LOG_ENTRY_TYPE_WRITE, data);
+        checkLogEntry(log, &entry, 5, LOG_ENTRY_TYPE_WRITE, data);
         BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
                         (ham_size_t)log_entry_get_data_size(&entry));
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(log, &entry, 4, 0, LOG_ENTRY_TYPE_WRITE, data);
+        checkLogEntry(log, &entry, 4, LOG_ENTRY_TYPE_WRITE, data);
         BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
                         (ham_size_t)log_entry_get_data_size(&entry));
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(log, &entry, 3, 0, LOG_ENTRY_TYPE_WRITE, data);
+        checkLogEntry(log, &entry, 3, LOG_ENTRY_TYPE_WRITE, data);
         BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
                         (ham_size_t)log_entry_get_data_size(&entry));
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(log, &entry, 2, 0, LOG_ENTRY_TYPE_WRITE, data);
+        checkLogEntry(log, &entry, 2, LOG_ENTRY_TYPE_WRITE, data);
         BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
                         (ham_size_t)log_entry_get_data_size(&entry));
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(log, &entry, 1, 0, LOG_ENTRY_TYPE_WRITE, data);
+        checkLogEntry(log, &entry, 1, LOG_ENTRY_TYPE_WRITE, data);
         BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
                         (ham_size_t)log_entry_get_data_size(&entry));
 
@@ -385,15 +385,13 @@ public:
 
 struct LogEntry
 {
-    LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
-                ham_u64_t _offset, ham_u64_t _data_size)
-    :   lsn(_lsn), txn_id(_txn_id), offset(_offset),
+    LogEntry(ham_u64_t _lsn, ham_u64_t _offset, ham_u64_t _data_size)
+    :   lsn(_lsn), offset(_offset),
         type(LOG_ENTRY_TYPE_WRITE), data_size(_data_size)
     {
     }
 
     ham_u64_t lsn;
-    ham_u64_t txn_id;
     ham_u64_t offset;
     ham_u32_t type;
     ham_u64_t data_size;
@@ -729,7 +727,7 @@ public:
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         /* make sure that the log has one alloc-page entry */
-        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
+        compareLog(BFC_OPATH(".test2"), LogEntry(1, ps*2, ps));
 
         /* recover and make sure that the page exists */
         BFC_ASSERT_EQUAL(0, 
@@ -779,7 +777,7 @@ public:
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;
         for (int i=0; i<10; i++)
-            vec.push_back(LogEntry(33, 0, ps*(2+i), ps));
+            vec.push_back(LogEntry(33, ps*(2+i), ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* recover and make sure that the pages exists */
@@ -828,7 +826,7 @@ public:
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         /* make sure that the log has one alloc-page entry */
-        compareLog(BFC_OPATH(".test2"), LogEntry(2, 0, ps*2, ps));
+        compareLog(BFC_OPATH(".test2"), LogEntry(2, ps*2, ps));
 
         /* recover and make sure that the page is ok */
         BFC_ASSERT_EQUAL(0, 
@@ -881,7 +879,7 @@ public:
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;
         for (int i=0; i<10; i++)
-            vec.push_back(LogEntry(5, 0, ps*(2+i), ps));
+            vec.push_back(LogEntry(5, ps*(2+i), ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* recover and make sure that the page is ok */
@@ -939,7 +937,7 @@ public:
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;
         for (int i=0; i<10; i++)
-            vec.push_back(LogEntry(6, 0, ps*(2+i), ps));
+            vec.push_back(LogEntry(6, ps*(2+i), ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* recover and make sure that the pages are ok */
@@ -988,7 +986,7 @@ public:
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         /* make sure that the log has one entry - the header file */
-        compareLog(BFC_OPATH(".test2"), LogEntry(9, 0, 0, ps));
+        compareLog(BFC_OPATH(".test2"), LogEntry(9, 0, ps));
 
         /* recover and make sure that the header page was restored */
         BFC_ASSERT_EQUAL(0, 
@@ -1040,8 +1038,8 @@ public:
         /* make sure that the log has two entries - the header file 
          * and the root page of the new database */
         std::vector<LogEntry> vec;
-        vec.push_back(LogEntry(1, 0, ps, ps));
-        vec.push_back(LogEntry(1, 0, 0, ps));
+        vec.push_back(LogEntry(1, ps, ps));
+        vec.push_back(LogEntry(1, 0, ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* now modify the file and remove the root page of the new database */
@@ -1102,7 +1100,7 @@ public:
 
         /* make sure that the log has one entry - the header file */
         std::vector<LogEntry> vec;
-        vec.push_back(LogEntry(2, 0, 0, ps));
+        vec.push_back(LogEntry(2, 0, ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* open the database again and recover; the database must be
@@ -1151,7 +1149,7 @@ public:
         std::vector<LogEntry> vec;
         for (int i=0; i<5; i++)
             if (i!=1) /* 2nd page is root-page of the btree */
-                vec.push_back(LogEntry(19, 0, ps*i, ps));
+                vec.push_back(LogEntry(19, ps*i, ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* recover and make sure that the freelist was restored */
