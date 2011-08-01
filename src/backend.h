@@ -19,11 +19,9 @@
 
 #include "internal_fwd_decl.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
 
 /**
 * @defgroup ham_cb_status hamsterdb Backend Node/Page Enumerator Status Codes
@@ -47,10 +45,6 @@ extern "C" {
  * @ref ham_backend_t::_fun_enumerate callback/method.
  *
  * @param event one of the @ref ham_cb_event state codes
- *
- * @param param1
- * @param param2
- * @param context
  *
  * @return one of the @ref ham_cb_status values or a @ref ham_status_codes 
  *         error code when an error occurred.
@@ -226,17 +220,17 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 #include "packstart.h"
 
 /**
-* A generic backend structure, which has the same memory layout as 
-* all other backends.
-*
-* @remark We're pre-declaring struct ham_backend_t and the typedef 
-* to avoid syntax errors in @ref BACKEND_DECLARATIONS .
-*
-* @remark Since this structure is not persistent, we don't really
-* need packing; however, with Microsoft Visual C++ 8, the
-* offset of ham_backend_t::_flags (the last member) is not the same
-* as the offset of ham_btree_t::_flags, unless packing is enabled.
-*/
+ * A generic backend structure, which has the same memory layout as 
+ * all other backends.
+ *
+ * @remark We're pre-declaring struct ham_backend_t and the typedef 
+ * to avoid syntax errors in @ref BACKEND_DECLARATIONS .
+ *
+ * @remark Since this structure is not persistent, we don't really
+ * need packing; however, with Microsoft Visual C++ 8, the
+ * offset of ham_backend_t::_flags (the last member) is not the same
+ * as the offset of ham_btree_t::_flags, unless packing is enabled.
+ */
 HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 {
     BACKEND_DECLARATIONS(ham_backend_t);
@@ -244,59 +238,37 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 
 #include "packstop.h"
 
-/**
- * convenience macro to get the database pointer of a ham_backend_t-structure
- */
+/** convenience macro to get the database of a ham_backend_t-structure */
 #define be_get_db(be)                        (be)->_db
 
-/**
- * get the keysize
- */
+/** get the keysize */
 #define be_get_keysize(be)                  (be)->_keysize
 
-/**
- * set the keysize
- */
+/** set the keysize */
 #define be_set_keysize(be, ks)              (be)->_keysize=(ks)
 
-/**
- * get the flags
- */
+/** get the flags */
 #define be_get_flags(be)                    (be)->_flags
 
-/**
- * set the flags
- */
+/** set the flags */
 #define be_set_flags(be, f)                 (be)->_flags=(f)
 
-/**
- * get the last used record number
- */
+/** get the last used record number */
 #define be_get_recno(be)                    (be)->_recno
 
-/**
- * set the last used record number
- */
+/** set the last used record number */
 #define be_set_recno(be, rn)                (be)->_recno=(rn)
 
-/**
- * get the dirty-flag
- */
+/** get the dirty-flag */
 #define be_is_dirty(be)                     (be)->_dirty
 
-/**
- * set the dirty-flag
- */
+/** set the dirty-flag */
 #define be_set_dirty(be, d)                 (be)->_dirty=!!(d)
 
-/**
- * get the active-flag
- */
+/** get the active-flag */
 #define be_is_active(be)                    (be)->_is_active
 
-/**
- * set the active-flag
- */
+/** set the active-flag */
 #define be_set_active(be, d)                (be)->_is_active=!!(d)
 
 

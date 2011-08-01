@@ -15,11 +15,9 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-o cleanups: the backend structure does not need the function pointers. 
+x cleanups: the backend structure does not need the function pointers. 
     simplify the whole interface!
-
-o cursor_has_duplicates: move to cursor.c; often is used in boolean form, but
-    should be: true if >1, false if <=1
+    --> no, it's fine. the interface is clean and good as it is.
 
 o cleanups: the cursor does not need the function pointers. 
     simplify the whole interface!
@@ -27,6 +25,9 @@ o cleanups: the cursor does not need the function pointers.
 o db_compare_keys can return errors - do we really need this??
 
 o be_set_dirty is not really required, is it? the flushes are always explicit
+
+o cursor_has_duplicates: move to cursor.c; often is used in boolean form, but
+    should be: true if >1, false if <=1
 
 o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
