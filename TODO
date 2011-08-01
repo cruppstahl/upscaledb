@@ -33,6 +33,8 @@ o cleanup the cache - the garbagelist is not needed, and the age of the pages
 
 x log_entry_t: txn_id still needed?
 
+x journal->_alloc not needed, it's part of the Env
+
 o journal->_lsn - no longer needed?
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient

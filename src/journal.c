@@ -81,7 +81,6 @@ journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags,
 
     ham_assert(env, (0));
 
-    journal_set_allocator(journal, alloc);
     journal_set_env(journal, env);
     journal_set_lsn(journal, 1);
     journal_set_threshold(journal, JOURNAL_DEFAULT_THRESHOLD);
@@ -135,7 +134,6 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
 
     ham_assert(env, (0));
 
-    journal_set_allocator(journal, alloc);
     journal_set_env(journal, env);
     journal_set_threshold(journal, JOURNAL_DEFAULT_THRESHOLD);
 

@@ -212,10 +212,6 @@ public:
 
         BFC_ASSERT_NOTNULL(env_get_journal(m_env));
 
-        journal_set_allocator(&log, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL((mem_allocator_t *)m_alloc, 
-                        journal_get_allocator(&log));
-
         journal_set_current_fd(&log, 1);
         BFC_ASSERT_EQUAL((unsigned)1, journal_get_current_fd(&log));
 

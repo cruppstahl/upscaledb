@@ -91,9 +91,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_header_t
  */
 struct journal_t 
 {
-    /** the allocator object */
-    mem_allocator_t *_alloc;
-
 	/** references the Environment this journal file is for */
 	ham_env_t *_env;
 
@@ -121,10 +118,7 @@ struct journal_t
 };
 
 /** get the allocator */
-#define journal_get_allocator(j)                    (j)->_alloc
-
-/** set the allocator */
-#define journal_set_allocator(j, a)                 (j)->_alloc=(a)
+#define journal_get_allocator(j)                    (j)->_env->_alloc
 
 /** get the environment */
 #define journal_get_env(j)                          (j)->_env
