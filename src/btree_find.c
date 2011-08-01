@@ -30,7 +30,7 @@
 
 
 ham_status_t 
-btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
+btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
 	ham_status_t st;
@@ -401,15 +401,15 @@ no_fast_track:
 
     /* set the cursor-position to this key */
     if (cursor) {
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
+        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_UNCOUPLED), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 
+        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED), 
                 ("coupling a coupled cursor, but need a nil-cursor"));
         page_add_cursor(page, (ham_cursor_t *)cursor);
-        bt_cursor_set_flags(cursor, 
-                bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
-        bt_cursor_set_coupled_page(cursor, page);
-        bt_cursor_set_coupled_index(cursor, idx);
+        btree_cursor_set_flags(cursor, 
+                btree_cursor_get_flags(cursor)|BTREE_CURSOR_FLAG_COUPLED);
+        btree_cursor_set_coupled_page(cursor, page);
+        btree_cursor_set_coupled_index(cursor, idx);
     }
 
     /*
@@ -425,7 +425,7 @@ no_fast_track:
      * is set: */
     if (key 
             && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
-            && !(flags & BT_CURSOR_DONT_LOAD_KEY)) {
+            && !(flags & BTREE_CURSOR_DONT_LOAD_KEY)) {
         ham_status_t st=btree_read_key(db, entry, key);
         if (st) {
             btree_stats_update_find_fail(db, &hints);

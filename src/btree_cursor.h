@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef HAM_BT_CURSORS_H__
-#define HAM_BT_CURSORS_H__
+#ifndef HAM_BTREE_CURSORS_H__
+#define HAM_BTREE_CURSORS_H__
 
 #include "internal_fwd_decl.h"
 
@@ -30,23 +30,19 @@ extern "C" {
 /**
  * the cursor structure for a b+tree
  */
-struct ham_bt_cursor_t;
-typedef struct ham_bt_cursor_t ham_bt_cursor_t;
-struct ham_bt_cursor_t
+struct btree_cursor_t;
+typedef struct btree_cursor_t btree_cursor_t;
+struct btree_cursor_t
 {
     /**
      * the common declarations of all cursors
      */
-    CURSOR_DECLARATIONS(ham_bt_cursor_t);
+    CURSOR_DECLARATIONS(btree_cursor_t);
 
-    /*
-     * the id of the duplicate key
-     */
+    /* the id of the duplicate key to which this cursor is coupled */
     ham_size_t _dupe_id;
 
-    /*
-     * cached flags and record ID of the current duplicate
-     */
+    /* cached flags and record ID of the current duplicate */
     dupe_entry_t _dupe_cache;
 
     /**
@@ -55,24 +51,18 @@ struct ham_bt_cursor_t
      * memory. "uncoupled" means that the cursor has a copy
      * of the key on which it points
      */
-    union ham_bt_cursor_union_t {
-        struct ham_bt_cursor_coupled_t {
-            /*
-             * the page we're pointing to
-             */
+    union btree_cursor_union_t {
+        struct btree_cursor_coupled_t {
+            /* the page we're pointing to */
             ham_page_t *_page;
 
-            /*
-             * the offset of the key in the page
-             */
+            /* the offset of the key in the page */
             ham_size_t _index;
 
         } _coupled;
 
-        struct ham_bt_cursor_uncoupled_t {
-            /*
-             * a copy of the key at which we're pointing
-             */
+        struct btree_cursor_uncoupled_t {
+            /* a copy of the key at which we're pointing */
             ham_key_t *_key;
 
         } _uncoupled;
@@ -81,108 +71,74 @@ struct ham_bt_cursor_t
 
 };
 
-/**
- * cursor flag: the cursor is coupled
- */
-#define BT_CURSOR_FLAG_COUPLED              1
+/** cursor flag: the cursor is coupled */
+#define BTREE_CURSOR_FLAG_COUPLED              1
+
+/** cursor flag: the cursor is uncoupled */
+#define BTREE_CURSOR_FLAG_UNCOUPLED            2
 
 /**
- * cursor flag: the cursor is uncoupled
- */
-#define BT_CURSOR_FLAG_UNCOUPLED            2
-
-/**
- * cursor flag for bt_cursor_find: do not load the key, if there's an approx.
+ * cursor flag for btree_cursor_find: do not load the key, if there's an approx.
  * match. Only positions the cursor
  */
-#define BT_CURSOR_DONT_LOAD_KEY             0x100000
+#define BTREE_CURSOR_DONT_LOAD_KEY             0x100000
 
 /**
- * cursor flag for bt_cursor_find: do not use approx matching if the key
+ * cursor flag for btree_cursor_find: do not use approx matching if the key
  * is not available
  */
-#define BT_CURSOR_ONLY_EQUAL_KEY            0x200000
+#define BTREE_CURSOR_ONLY_EQUAL_KEY            0x200000
 
-/**
- * get the database pointer
- */
-#define bt_cursor_get_db(cu)                (cu)->_db
+/** get the database pointer */
+#define btree_cursor_get_db(c)                (c)->_db
 
-/**
- * set the database pointer
- */
-#define bt_cursor_set_db(cu, db)            (cu)->_db=(db)
+/** set the database pointer */
+#define btree_cursor_set_db(c, db)            (c)->_db=(db)
 
-/**
- * get the txn pointer
- */
-#define bt_cursor_get_txn(cu)               (cu)->_txn
+/** get the txn pointer */
+#define btree_cursor_get_txn(c)               (c)->_txn
 
-/**
- * set the txn pointer
- */
-#define bt_cursor_set_txn(cu, txn)          (cu)->_txn=(txn)
+/** set the txn pointer */
+#define btree_cursor_set_txn(c, txn)          (c)->_txn=(txn)
 
-/**
- * get the flags
- */
-#define bt_cursor_get_flags(cu)             (cu)->_flags
+/** get the flags */
+#define btree_cursor_get_flags(c)             (c)->_flags
 
-/**
- * set the flags
- */
-#define bt_cursor_set_flags(cu, f)          (cu)->_flags=(f)
+/** set the flags */
+#define btree_cursor_set_flags(c, f)          (c)->_flags=(f)
 
-/**
- * get the page we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_get_coupled_page(cu)      (cu)->_u._coupled._page
+/** get the page we're pointing to - if the cursor is coupled */
+#define btree_cursor_get_coupled_page(c)      (c)->_u._coupled._page
 
-/**
- * set the page we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_set_coupled_page(cu, p)   (cu)->_u._coupled._page=p
+/** set the page we're pointing to - if the cursor is coupled */
+#define btree_cursor_set_coupled_page(c, p)   (c)->_u._coupled._page=p
 
-/**
- * get the key index we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_get_coupled_index(cu)     (cu)->_u._coupled._index
+/** get the key index we're pointing to - if the cursor is coupled */
+#define btree_cursor_get_coupled_index(c)     (c)->_u._coupled._index
 
-/**
- * set the key index we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_set_coupled_index(cu, i)  (cu)->_u._coupled._index=i
+/** set the key index we're pointing to - if the cursor is coupled */
+#define btree_cursor_set_coupled_index(c, i)  (c)->_u._coupled._index=i
 
-/**
- * get the duplicate key we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_get_dupe_id(cu)           (cu)->_dupe_id
+/** get the duplicate key we're pointing to - if the cursor is coupled */
+#define btree_cursor_get_dupe_id(c)           (c)->_dupe_id
 
-/**
- * set the duplicate key we're pointing to - if the cursor is coupled
- */
-#define bt_cursor_set_dupe_id(cu, d)        (cu)->_dupe_id=d
+/** set the duplicate key we're pointing to - if the cursor is coupled */
+#define btree_cursor_set_dupe_id(c, d)        (c)->_dupe_id=d
 
-/**
- * get the duplicate key's cache
- */
-#define bt_cursor_get_dupe_cache(cu)        (&(cu)->_dupe_cache)
+/** get the duplicate key's cache */
+#define btree_cursor_get_dupe_cache(c)        (&(c)->_dupe_cache)
 
-/**
- * get the key we're pointing to - if the cursor is uncoupled
- */
-#define bt_cursor_get_uncoupled_key(cu)     (cu)->_u._uncoupled._key
+/** get the key we're pointing to - if the cursor is uncoupled */
+#define btree_cursor_get_uncoupled_key(c)     (c)->_u._uncoupled._key
 
-/**
- * set the key we're pointing to - if the cursor is uncoupled
- */
-#define bt_cursor_set_uncoupled_key(cu, k)  (cu)->_u._uncoupled._key=k
+/** set the key we're pointing to - if the cursor is uncoupled */
+#define btree_cursor_set_uncoupled_key(c, k)  (c)->_u._uncoupled._key=k
 
 /*
  * set a cursor to NIL
  */
 ham_status_t
-bt_cursor_set_to_nil(ham_bt_cursor_t *c);
+btree_cursor_set_to_nil(btree_cursor_t *c);
 
 /**
  * couple the cursor
@@ -190,7 +146,7 @@ bt_cursor_set_to_nil(ham_bt_cursor_t *c);
  * @remark to couple a page, it has to be uncoupled!
  */
 ham_status_t
-bt_cursor_couple(ham_bt_cursor_t *cu);
+btree_cursor_couple(btree_cursor_t *c);
 
 /**
  * couple the cursor to the same item as another (coupled!) cursor
@@ -199,7 +155,7 @@ bt_cursor_couple(ham_bt_cursor_t *cu);
  * current cursor to nil
  */
 void
-bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other);
+btree_cursor_couple_to_other(btree_cursor_t *c, btree_cursor_t *other);
 
 /**
  * uncouple the cursor
@@ -207,32 +163,32 @@ bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other);
  * @remark to uncouple a page, it has to be coupled!
  */
 ham_status_t
-bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags);
+btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 
 /**
- * flag for @ref bt_cursor_uncouple: uncouple from the page, but do not
+ * flag for @ref btree_cursor_uncouple: uncouple from the page, but do not
  * call @ref page_remove_cursor()
  */
-#define BT_CURSOR_UNCOUPLE_NO_REMOVE        1
+#define BTREE_CURSOR_UNCOUPLE_NO_REMOVE        1
 
 /**
  * returns true if the cursor is nil, otherwise false
  */
 ham_bool_t
-bt_cursor_is_nil(ham_bt_cursor_t *cursor);
+btree_cursor_is_nil(btree_cursor_t *cursor);
 
 /**
  * create a new cursor
  */
 ham_status_t
-bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_bt_cursor_t **cu);
+btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+                    btree_cursor_t **pcursor);
 
 /**
  * returns true if a cursor points to this key, otherwise false
  */
 ham_bool_t 
-bt_cursor_points_to(ham_bt_cursor_t *cursor, btree_key_t *key);
+btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key);
 
 /**
  * uncouple all cursors from a page
@@ -240,7 +196,7 @@ bt_cursor_points_to(ham_bt_cursor_t *cursor, btree_key_t *key);
  * @remark this is called whenever the page is deleted or becoming invalid
  */
 ham_status_t
-bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
+btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**
  * retrieves the duplicate table of the current key; memory in ptable has
@@ -251,7 +207,7 @@ bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
  * @warning memory has to be freed by the caller IF needs_free is true!
  */
 extern ham_status_t
-bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable,
+btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
                     ham_bool_t *needs_free);
 
 
@@ -259,4 +215,4 @@ bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable,
 } // extern "C"
 #endif 
 
-#endif /* HAM_BT_CURSORS_H__ */
+#endif /* HAM_BTREE_CURSORS_H__ */

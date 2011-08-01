@@ -95,22 +95,22 @@ public:
 
     void createCloseTest(void)
     {
-        ham_bt_cursor_t *cursor;
+        btree_cursor_t *cursor;
         ham_cursor_t *c;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(ham_bt_cursor_t *)c;
+        cursor=(btree_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
 
     void cloneTest(void)
     {
-        ham_bt_cursor_t *cursor, *clone;
+        btree_cursor_t *cursor, *clone;
         ham_cursor_t *c;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(ham_bt_cursor_t *)c;
+        cursor=(btree_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
         BFC_ASSERT(cursor->_fun_clone(cursor, &clone)==0);
         BFC_ASSERT(clone!=0);
@@ -235,30 +235,30 @@ public:
 
     void structureTest(void)
     {
-        ham_bt_cursor_t *cursor;
+        btree_cursor_t *cursor;
         ham_cursor_t *c;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(ham_bt_cursor_t *)c;
+        cursor=(btree_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
 
-        BFC_ASSERT(bt_cursor_get_db(cursor)==m_db);
-        bt_cursor_set_db(cursor, (ham_db_t *)0x13);
-        BFC_ASSERT(bt_cursor_get_db(cursor)==(ham_db_t *)0x13);
-        bt_cursor_set_db(cursor, m_db);
-        BFC_ASSERT(bt_cursor_get_db(cursor)==m_db);
+        BFC_ASSERT(btree_cursor_get_db(cursor)==m_db);
+        btree_cursor_set_db(cursor, (ham_db_t *)0x13);
+        BFC_ASSERT(btree_cursor_get_db(cursor)==(ham_db_t *)0x13);
+        btree_cursor_set_db(cursor, m_db);
+        BFC_ASSERT(btree_cursor_get_db(cursor)==m_db);
 
-        BFC_ASSERT(bt_cursor_get_txn(cursor)==0);
-        bt_cursor_set_txn(cursor, (ham_txn_t *)0x13);
-        BFC_ASSERT(bt_cursor_get_txn(cursor)==(ham_txn_t *)0x13);
-        bt_cursor_set_txn(cursor, 0);
-        BFC_ASSERT(bt_cursor_get_txn(cursor)==0);
+        BFC_ASSERT(btree_cursor_get_txn(cursor)==0);
+        btree_cursor_set_txn(cursor, (ham_txn_t *)0x13);
+        BFC_ASSERT(btree_cursor_get_txn(cursor)==(ham_txn_t *)0x13);
+        btree_cursor_set_txn(cursor, 0);
+        BFC_ASSERT(btree_cursor_get_txn(cursor)==0);
 
-        BFC_ASSERT(bt_cursor_get_flags(cursor)==0);
-        bt_cursor_set_flags(cursor, 0x13);
-        BFC_ASSERT(bt_cursor_get_flags(cursor)==0x13);
-        bt_cursor_set_flags(cursor, 0);
-        BFC_ASSERT(bt_cursor_get_flags(cursor)==0);
+        BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
+        btree_cursor_set_flags(cursor, 0x13);
+        BFC_ASSERT(btree_cursor_get_flags(cursor)==0x13);
+        btree_cursor_set_flags(cursor, 0);
+        BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
@@ -351,7 +351,7 @@ public:
     void couplingTest(void)
     {
         ham_cursor_t *c, *clone;
-        ham_bt_cursor_t *btc;
+        btree_cursor_t *btc;
         ham_key_t key1, key2, key3;
         ham_record_t rec;
         int v1=1, v2=2, v3=3;
@@ -368,20 +368,20 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-        btc=(ham_bt_cursor_t *)c;
+        btc=(btree_cursor_t *)c;
         /* after create: cursor is NIL */
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED));
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         /* after insert: cursor is NIL */
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key2, &rec, 0));
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED));
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         /* move to item: cursor is coupled */
         BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
-        BFC_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED);
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         /* clone the coupled cursor */
         BFC_ASSERT_EQUAL(0, ham_cursor_clone(c, &clone));
@@ -389,25 +389,25 @@ public:
 
         /* insert item BEFORE the first item - cursor is uncoupled */
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key1, &rec, 0));
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
-        BFC_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED);
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED));
+        BFC_ASSERT(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED);
 
         /* move to item: cursor is coupled */
         BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
-        BFC_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED);
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         /* insert duplicate - cursor stays coupled */
         BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
-        BFC_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED);
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         /* insert item AFTER the middle item - cursor stays coupled */
         BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key3, &rec, 0));
-        BFC_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+        BFC_ASSERT(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED);
+        BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }

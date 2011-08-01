@@ -1592,8 +1592,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                 while ((tc2=txn_op_get_cursors(op))) {
                     txn_op_remove_cursor(op, tc2);
                     btc2=txn_cursor_get_parent(tc2);
-                    bt_cursor_couple_to_other((ham_bt_cursor_t *)btc2, 
-                                (ham_bt_cursor_t *)btc);
+                    btree_cursor_couple_to_other((btree_cursor_t *)btc2, 
+                                (btree_cursor_t *)btc);
                     cursor_set_flags(btc2, 
                             cursor_get_flags(btc2)&(~CURSOR_COUPLED_TO_TXN));
                     txn_cursor_set_to_nil(tc2);

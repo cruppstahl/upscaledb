@@ -26,10 +26,10 @@
  * duplicate function is in db.c 
  */
 static ham_bool_t
-__btree_cursor_is_nil(ham_bt_cursor_t *btc)
+__btree_cursor_is_nil(btree_cursor_t *btc)
 {
-    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+    return (!(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 }
 
 static ham_status_t
@@ -181,7 +181,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     dupecache_t *dc=cursor_get_dupecache(cursor);
-    ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
+    btree_cursor_t *btc=(btree_cursor_t *)cursor;
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     ham_assert(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES, (""));
@@ -203,7 +203,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             ham_bool_t equal_keys;
             (void)cursor_sync(cursor, 0, &equal_keys);
             if (!equal_keys)
-                bt_cursor_set_to_nil(btc);
+                btree_cursor_set_to_nil(btc);
         }
     }
 
@@ -213,7 +213,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
         ham_size_t i;
         ham_bool_t needs_free=HAM_FALSE;
         dupe_table_t *table=0;
-        st=bt_cursor_get_duplicate_table(btc, &table, &needs_free);
+        st=btree_cursor_get_duplicate_table(btc, &table, &needs_free);
         if (st && st!=HAM_CURSOR_IS_NIL)
             return (st);
         st=0;
@@ -348,10 +348,10 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
     /* dupe-id is a 1-based index! */
     e=dupecache_get_elements(dc)+(dupe_id-1);
     if (dupecache_line_use_btree(e)) {
-        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
+        btree_cursor_t *btc=(btree_cursor_t *)cursor;
         cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
-        bt_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
+        btree_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
     }
     else {
         txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));
@@ -398,7 +398,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
     if (equal_keys)
         *equal_keys=HAM_FALSE;
 
-    if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
+    if (__btree_cursor_is_nil((btree_cursor_t *)cursor)) {
         txn_opnode_t *node;
 		ham_key_t *k;
         if (!txn_cursor_get_coupled_op(txnc))
@@ -406,13 +406,13 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
         k=txn_opnode_get_key(node);
 
-        if (!(flags&BT_CURSOR_ONLY_EQUAL_KEY))
+        if (!(flags&BTREE_CURSOR_ONLY_EQUAL_KEY))
             flags=flags|((flags&HAM_CURSOR_NEXT)
                     ? HAM_FIND_GEQ_MATCH
                     : HAM_FIND_LEQ_MATCH);
         /* the flag DONT_LOAD_KEY does not load the key if there's an
          * approx match - it only positions the cursor */
-        st=cursor->_fun_find(cursor, k, 0, BT_CURSOR_DONT_LOAD_KEY|flags);
+        st=cursor->_fun_find(cursor, k, 0, BTREE_CURSOR_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
          * set fresh_start to false; otherwise do_local_cursor_move
          * will move the btree cursor again */
@@ -425,17 +425,17 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         ham_status_t st=ham_cursor_clone(cursor, &clone);
         if (st)
             goto bail;
-        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        st=btree_cursor_uncouple((btree_cursor_t *)clone, 0);
         if (st) {
             ham_cursor_close(clone);
             goto bail;
         }
-        k=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
-        if (!(flags&BT_CURSOR_ONLY_EQUAL_KEY))
+        k=btree_cursor_get_uncoupled_key((btree_cursor_t *)clone);
+        if (!(flags&BTREE_CURSOR_ONLY_EQUAL_KEY))
             flags=flags|((flags&HAM_CURSOR_NEXT)
                     ? HAM_FIND_GEQ_MATCH
                     : HAM_FIND_LEQ_MATCH);
-        st=txn_cursor_find(txnc, k, BT_CURSOR_DONT_LOAD_KEY|flags);
+        st=txn_cursor_find(txnc, k, BTREE_CURSOR_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
         * set fresh_start to false; otherwise do_local_cursor_move
         * will move the btree cursor again */

@@ -341,7 +341,7 @@ static ham_status_t
 btree_fun_cursor_create(ham_btree_t *be, ham_db_t *db, ham_txn_t *txn, 
                     ham_u32_t flags, ham_cursor_t **c)
 {
-    return (bt_cursor_create(db, txn, flags, (ham_bt_cursor_t **)c));
+    return (btree_cursor_create(db, txn, flags, (btree_cursor_t **)c));
 }
                                                                     
 
@@ -355,7 +355,7 @@ static ham_status_t
 btree_fun_uncouple_all_cursors(ham_btree_t *be, ham_page_t *page, 
                     ham_size_t start)
 {
-    return (bt_uncouple_all_cursors(page, start));
+    return (btree_uncouple_all_cursors(page, start));
 }
 
 /**                                                                    
@@ -742,9 +742,9 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
 
     /* auto-cleanup cursors?  */
     if (db_get_cursors(db)) {
-        ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
+        btree_cursor_t *c=(btree_cursor_t *)db_get_cursors(db);
         while (c) {
-            ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+            btree_cursor_t *next=(btree_cursor_t *)cursor_get_next(c);
             if (flags&HAM_AUTO_CLEANUP)
                 st=ham_cursor_close((ham_cursor_t *)c);
             else

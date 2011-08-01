@@ -64,7 +64,7 @@ typedef struct erase_scratchpad_t
     /*
      * a coupled cursor (can be NULL)
      */
-    ham_bt_cursor_t *cursor;
+    btree_cursor_t *cursor;
 
     /*
      * a duplicate index - a +1 based index into the duplicate table. If
@@ -150,7 +150,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
 
 static ham_status_t
 btree_erase_impl(ham_btree_t *be, ham_key_t *key, 
-        ham_bt_cursor_t *cursor, ham_u32_t dupe_id, ham_u32_t flags)
+        btree_cursor_t *cursor, ham_u32_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *root;
@@ -219,7 +219,7 @@ btree_erase_impl(ham_btree_t *be, ham_key_t *key,
         /* 
          * delete the old root page 
          */
-        st=bt_uncouple_all_cursors(root, 0);
+        st=btree_uncouple_all_cursors(root, 0);
         if (st)
         {
             btree_stats_update_erase_fail(db, &hints);
@@ -609,12 +609,12 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     /*
      * uncouple all cursors
      */
-    if ((st=bt_uncouple_all_cursors(page, 0)))
+    if ((st=btree_uncouple_all_cursors(page, 0)))
         return st;
-    if ((st=bt_uncouple_all_cursors(sibpage, 0)))
+    if ((st=btree_uncouple_all_cursors(sibpage, 0)))
         return st;
     if (ancpage)
-        if ((st=bt_uncouple_all_cursors(ancpage, 0)))
+        if ((st=btree_uncouple_all_cursors(ancpage, 0)))
             return st;
 
     /*
@@ -768,12 +768,12 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     /*
      * uncouple all cursors
      */
-    if ((st=bt_uncouple_all_cursors(page, 0)))
+    if ((st=btree_uncouple_all_cursors(page, 0)))
         return st;
-    if ((st=bt_uncouple_all_cursors(sibpage, 0)))
+    if ((st=btree_uncouple_all_cursors(sibpage, 0)))
         return st;
     if (ancpage)
-        if ((st=bt_uncouple_all_cursors(ancpage, 0)))
+        if ((st=btree_uncouple_all_cursors(ancpage, 0)))
             return st;
 
     /*
@@ -1213,7 +1213,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=bt_uncouple_all_cursors(page, 0)))
+    if ((st=btree_uncouple_all_cursors(page, 0)))
         return st;
 
     lhs=btree_node_get_key(db, node, slot);
@@ -1295,7 +1295,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=bt_uncouple_all_cursors(page, 0)))
+    if ((st=btree_uncouple_all_cursors(page, 0)))
         return st;
 
     ham_assert(slot>=0, ("invalid slot %ld", slot));
@@ -1309,15 +1309,15 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
-        ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
-        ham_bt_cursor_t *cursor=(ham_bt_cursor_t *)scratchpad->cursor;
+        btree_cursor_t *c=(btree_cursor_t *)db_get_cursors(db);
+        btree_cursor_t *cursor=(btree_cursor_t *)scratchpad->cursor;
         ham_u32_t dupe_id=0;
 
         hints->processed_leaf_page = page;
         hints->processed_slot = slot;
 
         if (cursor)
-            dupe_id=bt_cursor_get_dupe_id(cursor)+1;
+            dupe_id=btree_cursor_get_dupe_id(cursor)+1;
         else if (scratchpad->dupe_id) /* +1-based index */
             dupe_id=scratchpad->dupe_id;
 
@@ -1340,18 +1340,18 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
              * TODO why? all cursors on this page were uncoupled above!
              */
             while (c && cursor) {
-                ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+                btree_cursor_t *next=(btree_cursor_t *)cursor_get_next(c);
                 if (c!=cursor) {
-                    if (bt_cursor_get_dupe_id(c)
-                            ==bt_cursor_get_dupe_id(cursor)) {
-                        if (bt_cursor_points_to(c, bte))
-                            bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+                    if (btree_cursor_get_dupe_id(c)
+                            ==btree_cursor_get_dupe_id(cursor)) {
+                        if (btree_cursor_points_to(c, bte))
+                            btree_cursor_set_to_nil((btree_cursor_t *)c);
                     }
-                    else if (bt_cursor_get_dupe_id(c)>
-                            bt_cursor_get_dupe_id(cursor)) {
-                        bt_cursor_set_dupe_id(c, 
-                                bt_cursor_get_dupe_id(c)-1);
-                        memset(bt_cursor_get_dupe_cache(c), 0,
+                    else if (btree_cursor_get_dupe_id(c)>
+                            btree_cursor_get_dupe_id(cursor)) {
+                        btree_cursor_set_dupe_id(c, 
+                                btree_cursor_get_dupe_id(c)-1);
+                        memset(btree_cursor_get_dupe_cache(c), 0,
                                 sizeof(dupe_entry_t));
                     }
                 }
@@ -1367,23 +1367,23 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         }
         else 
         {
-            ham_bt_cursor_t *c;
+            btree_cursor_t *c;
 
             st=key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return (st);
 
 free_all:
-            c=(ham_bt_cursor_t *)db_get_cursors(db);
+            c=(btree_cursor_t *)db_get_cursors(db);
 
             /*
              * make sure that no cursor is pointing to this key
              */
             while (c) {
-                ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+                btree_cursor_t *next=(btree_cursor_t *)cursor_get_next(c);
                 if (c!=cursor) {
-                    if (bt_cursor_points_to(c, bte))
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+                    if (btree_cursor_points_to(c, bte))
+                        btree_cursor_set_to_nil((btree_cursor_t *)c);
                 }
                 c=next;
             }
@@ -1440,7 +1440,7 @@ btree_erase_duplicate(ham_btree_t *be, ham_key_t *key, ham_u32_t dupe_id,
 
 ham_status_t
 btree_erase_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_bt_cursor_t *cursor, ham_u32_t flags) 
+        btree_cursor_t *cursor, ham_u32_t flags) 
 {
     return (btree_erase_impl(be, key, cursor, 0, flags));
 }

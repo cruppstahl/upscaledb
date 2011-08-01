@@ -195,7 +195,7 @@ btree_find(ham_btree_t *be, ham_key_t *key,
  * same as above, but sets the cursor to the position
  */
 extern ham_status_t 
-btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
+btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -210,7 +210,7 @@ btree_insert(ham_btree_t *be, ham_key_t *key,
  */
 extern ham_status_t
 btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags);
+        ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * erase a key from the tree
@@ -222,7 +222,7 @@ btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags);
  * same as above, but with a coupled cursor
  */
 extern ham_status_t
-btree_erase_cursor(ham_btree_t *be, ham_key_t *key, ham_bt_cursor_t *cursor, 
+btree_erase_cursor(ham_btree_t *be, ham_key_t *key, btree_cursor_t *cursor, 
         ham_u32_t flags);
 
 /**

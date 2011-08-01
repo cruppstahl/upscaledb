@@ -1727,25 +1727,25 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
 {
     ham_bool_t ret=HAM_FALSE;
     ham_db_t *db=cursor_get_db(c);
-    ham_bt_cursor_t *btc=(ham_bt_cursor_t *)c;
+    btree_cursor_t *btc=(btree_cursor_t *)c;
 
-    if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+    if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) {
         ham_cursor_t *clone;
         ham_status_t st=ham_cursor_clone(c, &clone);
         if (st)
             return (HAM_FALSE);
-        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        st=btree_cursor_uncouple((btree_cursor_t *)clone, 0);
         if (st) {
             ham_cursor_close(clone);
             return (HAM_FALSE);
         }
         if (0==db_compare_keys(db, key, 
-                   bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone)))
+                   btree_cursor_get_uncoupled_key((btree_cursor_t *)clone)))
             ret=HAM_TRUE;
         ham_cursor_close(clone);
     }
-    else if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED) {
-        ham_key_t *k=bt_cursor_get_uncoupled_key(btc);
+    else if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED) {
+        ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
         if (0==db_compare_keys(db, key, k))
             ret=HAM_TRUE;
     }
@@ -1969,7 +1969,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
                     /* else fall through */
                 }
             }
-            bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+            btree_cursor_set_to_nil((btree_cursor_t *)c);
             txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
         }
 next:
@@ -2803,9 +2803,9 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
                 ham_bool_t is_equal;
-                (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+                (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, &is_equal);
                 if (!is_equal)
-                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    btree_cursor_set_to_nil((btree_cursor_t *)cursor);
 
                 if (!__cursor_has_duplicates(cursor))
                     st=HAM_KEY_NOT_FOUND;
@@ -2817,9 +2817,9 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         }
         else {
             ham_bool_t is_equal;
-            (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+            (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, &is_equal);
             if (!is_equal)
-                bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         }
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -3038,10 +3038,10 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (cursor_get_txn(cursor) || local_txn) {
         if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
                 && !(cursor->_fun_is_nil(cursor))) {
-            st=bt_cursor_uncouple((ham_bt_cursor_t *)cursor, 0);
+            st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
             if (st==0)
                 st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
-                        bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)cursor),
+                        btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
                         &temprec, flags|HAM_OVERWRITE);
         }
         else {
@@ -3093,7 +3093,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * both cursors must not be nil.
  */
 static ham_status_t
-__compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
+__compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
 {
     ham_db_t *db=cursor_get_db(btrc);
     ham_cursor_t *cursor=(ham_cursor_t *)btrc;
@@ -3104,7 +3104,7 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
     ham_assert(!cursor->_fun_is_nil(cursor), (""));
     ham_assert(!txn_cursor_is_nil(txnc), (""));
 
-    if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_COUPLED) {
+    if (cursor_get_flags(btrc)&BTREE_CURSOR_FLAG_COUPLED) {
         /* clone the cursor, then uncouple the clone; get the uncoupled key
          * and discard the clone again */
         
@@ -3121,21 +3121,21 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
         ham_status_t st=ham_cursor_clone(cursor, &clone);
         if (st)
             return (st);
-        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        st=btree_cursor_uncouple((btree_cursor_t *)clone, 0);
         if (st) {
             ham_cursor_close(clone);
             return (st);
         }
         /* TODO error codes are swallowed */
         cmp=db_compare_keys(db, 
-                bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone), txnk);
+                btree_cursor_get_uncoupled_key((btree_cursor_t *)clone), txnk);
         ham_cursor_close(clone);
         *pcmp=cmp;
         return (0);
     }
-    else if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_UNCOUPLED) {
+    else if (cursor_get_flags(btrc)&BTREE_CURSOR_FLAG_UNCOUPLED) {
         /* TODO error codes are swallowed */
-        *pcmp=db_compare_keys(db, bt_cursor_get_uncoupled_key(btrc), txnk);
+        *pcmp=db_compare_keys(db, btree_cursor_get_uncoupled_key(btrc), txnk);
         return (0);
     }
 
@@ -3144,10 +3144,10 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
 }
 
 static ham_bool_t
-__btree_cursor_is_nil(ham_bt_cursor_t *btc)
+__btree_cursor_is_nil(btree_cursor_t *btc)
 {
-    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+    return (!(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 }
 
 static ham_status_t
@@ -3190,7 +3190,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the smallest/first key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
-            bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+            btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -3222,7 +3222,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || txns==HAM_TXN_CONFLICT)) {
             int cmp;
 
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+            st=__compare_cursors((btree_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3247,12 +3247,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                      * next item */
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                         txn_cursor_set_to_nil(txnc);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
@@ -3320,7 +3320,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the greatest/last key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
-            bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+            btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -3352,7 +3352,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     || txns==HAM_TXN_CONFLICT)) {
             int cmp;
 
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+            st=__compare_cursors((btree_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3377,12 +3377,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                      * previous item */
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                         txn_cursor_set_to_nil(txnc);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
@@ -3463,7 +3463,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
-                            __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
+                            __btree_cursor_is_nil((btree_cursor_t *)cursor)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
                 /* if we've reached the end of the btree then set the
@@ -3471,7 +3471,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
-                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     break;
                 }
 
@@ -3493,7 +3493,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * doesn't have any keys to point at */
         if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
-        if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
+        if (__btree_cursor_is_nil((btree_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
 
         /* now consolidate - if we've reached the end of both trees 
@@ -3531,7 +3531,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * couple the txn-cursor, otherwise cursor_update_dupecache
                  * ignores the txn part */
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
                     dupecache_reset(cursor_get_dupecache(cursor));
                     cursor_set_dupecache_index(cursor, 0);
@@ -3560,7 +3560,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * then make sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+            st=__compare_cursors((btree_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3598,7 +3598,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 else if (erased || __cursor_has_duplicates(cursor)<=1) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     st=0; /* ignore return code */
                 }
                 /* if the key was erased: continue moving "next" till 
@@ -3618,7 +3618,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     txn_cursor_set_to_nil(txnc);
-                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     if (!__cursor_has_duplicates(cursor)) {
                         flags&=~HAM_CURSOR_FIRST;
                         flags|=HAM_CURSOR_NEXT;
@@ -3676,7 +3676,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
-                            __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
+                            __btree_cursor_is_nil((btree_cursor_t *)cursor)
                                 ? HAM_CURSOR_LAST
                                 : flags);
                 /* if we've reached the end of the btree then set the
@@ -3684,7 +3684,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
-                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     break;
                 }
 
@@ -3706,7 +3706,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * doesn't have any keys to point at */
         if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
-        if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
+        if (__btree_cursor_is_nil((btree_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
 
         /* now consolidate - if we've reached the end of both trees 
@@ -3744,7 +3744,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * couple the txn-cursor, otherwise cursor_update_dupecache
                  * ignores the txn part */
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
                     dupecache_reset(cursor_get_dupecache(cursor));
                     cursor_set_dupecache_index(cursor, 0);
@@ -3773,7 +3773,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * then make sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+            st=__compare_cursors((btree_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3813,7 +3813,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 else if (erased || __cursor_has_duplicates(cursor)<=1) {
                     st=cursor->_fun_move(cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     st=0; /* ignore return code */
                 }
                 /* if the key was erased: continue moving "previous" till 
@@ -3846,7 +3846,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     txn_cursor_set_to_nil(txnc);
-                    (void)cursor_sync(cursor, BT_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     if (!__cursor_has_duplicates(cursor)) {
                         flags&=~HAM_CURSOR_LAST;
                         flags|=HAM_CURSOR_PREVIOUS;
@@ -3961,7 +3961,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             && (dupecache_get_count(dc))) {
         ham_bool_t both_not_nil=HAM_FALSE;
         if (!txn_cursor_is_nil(txnc) 
-                && !__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
+                && !__btree_cursor_is_nil((btree_cursor_t *)cursor))
             both_not_nil=HAM_TRUE;
 
         if (!(flags&HAM_SKIP_DUPLICATES) && (flags&HAM_CURSOR_NEXT)) {
@@ -4007,7 +4007,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * key */
             if (both_not_nil) {
                 int cmp=0;
-                st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+                st=__compare_cursors((btree_cursor_t *)cursor, txnc, &cmp);
                 if (st)
                     goto bail;
                 if (cmp==0)

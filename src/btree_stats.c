@@ -933,7 +933,7 @@ void
 btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
-    ham_bt_cursor_t *cursor = (ham_bt_cursor_t *)hints->cursor;
+    btree_cursor_t *cursor = (btree_cursor_t *)hints->cursor;
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
     ham_assert(hints->force_prepend == HAM_FALSE, (0));
@@ -951,7 +951,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
 
     if ((hints->flags & HAM_HINT_APPEND) && (cursor)) {
         if (!hints->cursor->_fun_is_nil(hints->cursor)) {
-            ham_assert(db == bt_cursor_get_db(cursor), (0));
+            ham_assert(db == btree_cursor_get_db(cursor), (0));
 
             /*
              fetch the page of the cursor. We deem the cost of an uncoupled cursor 
@@ -959,9 +959,9 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
              given key - which can be rather costly - so we rather wait for the
              statistical cavalry a little later on in this program then.
              */
-            if (bt_cursor_get_flags(cursor) & BT_CURSOR_FLAG_COUPLED) 
+            if (btree_cursor_get_flags(cursor) & BTREE_CURSOR_FLAG_COUPLED) 
             {
-                ham_page_t *page = bt_cursor_get_coupled_page(cursor);
+                ham_page_t *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 
                             ("cursor points to internal node"));
@@ -985,7 +985,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     else if ((hints->flags & HAM_HINT_PREPEND) && (cursor))
     {
         if (!hints->cursor->_fun_is_nil(hints->cursor)) {
-            ham_assert(db == bt_cursor_get_db(cursor), (0));
+            ham_assert(db == btree_cursor_get_db(cursor), (0));
 
             /*
              fetch the page of the cursor. We deem the cost of an uncoupled cursor 
@@ -993,9 +993,9 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
              given key - which can be rather costly - so we rather wait for the
              statistical cavalry a little later on in this program then.
              */
-            if (bt_cursor_get_flags(cursor) & BT_CURSOR_FLAG_COUPLED) 
+            if (btree_cursor_get_flags(cursor) & BTREE_CURSOR_FLAG_COUPLED) 
             {
-                ham_page_t *page = bt_cursor_get_coupled_page(cursor);
+                ham_page_t *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 
                         ("cursor points to internal node"));

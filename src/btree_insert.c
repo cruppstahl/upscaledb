@@ -66,7 +66,7 @@ typedef struct insert_scratchpad_t
      * a pointer to a cursor; if this is a valid pointer, then this 
      * cursor will point to the new inserted item
      */
-    ham_bt_cursor_t *cursor;
+    btree_cursor_t *cursor;
 
 } insert_scratchpad_t;
 
@@ -108,7 +108,7 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
 static ham_status_t
 __insert_nosplit(ham_page_t *page, ham_key_t *key, 
         ham_offset_t rid, ham_record_t *record, 
-        ham_bt_cursor_t *cursor, insert_hints_t *hints);
+        btree_cursor_t *cursor, insert_hints_t *hints);
 
 /**
  * split a page and insert the new element
@@ -120,12 +120,12 @@ __insert_split(ham_page_t *page, ham_key_t *key,
 
 static ham_status_t
 __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record, 
-        ham_bt_cursor_t *cursor, insert_hints_t *hints);
+        btree_cursor_t *cursor, insert_hints_t *hints);
 
 
 static ham_status_t
 __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record, 
-                ham_bt_cursor_t *cursor, insert_hints_t *hints)
+                btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st=0;
     ham_page_t *page;
@@ -133,8 +133,8 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_db_t *db;
 
 #ifdef HAM_DEBUG
-    if (cursor && !bt_cursor_is_nil(cursor)) {
-        ham_assert(be_get_db(be) == bt_cursor_get_db(cursor), (0));
+    if (cursor && !btree_cursor_is_nil(cursor)) {
+        ham_assert(be_get_db(be) == btree_cursor_get_db(cursor), (0));
     }
 #endif
 
@@ -290,7 +290,7 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
 
 static ham_status_t
 __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record, 
-                ham_bt_cursor_t *cursor, insert_hints_t *hints)
+                btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st;
     ham_page_t *root;
@@ -392,7 +392,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
 
 ham_status_t
 btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags)
+        ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=be_get_db(be);
@@ -567,7 +567,7 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
 static ham_status_t
 __insert_nosplit(ham_page_t *page, ham_key_t *key, 
         ham_offset_t rid, ham_record_t *record, 
-        ham_bt_cursor_t *cursor, insert_hints_t *hints)
+        btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st;
     ham_u16_t count;
@@ -661,7 +661,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
         if (count > slot)
         {
             /* uncouple all cursors & shift any elements following [slot] */
-            st=bt_uncouple_all_cursors(page, slot);
+            st=btree_uncouple_all_cursors(page, slot);
             if (st)
                 return (st);
 
@@ -687,7 +687,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
         hints->cost++;
         st=key_set_record(db, bte, record, 
                         cursor
-                            ? bt_cursor_get_dupe_id(cursor)
+                            ? btree_cursor_get_dupe_id(cursor)
                             : 0, 
                         hints->flags, &new_dupe_id);
         if (st)
@@ -718,18 +718,18 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
      */
     if (cursor) 
     {
-        bt_cursor_set_to_nil(cursor);
+        btree_cursor_set_to_nil(cursor);
 
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
+        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_UNCOUPLED), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 
+        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED), 
                 ("coupling a coupled cursor, but need a nil-cursor"));
-        bt_cursor_set_flags(cursor, 
-                bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
-        bt_cursor_set_coupled_page(cursor, page);
-        bt_cursor_set_coupled_index(cursor, slot);
-        bt_cursor_set_dupe_id(cursor, new_dupe_id);
-        memset(bt_cursor_get_dupe_cache(cursor), 0, sizeof(dupe_entry_t));
+        btree_cursor_set_flags(cursor, 
+                btree_cursor_get_flags(cursor)|BTREE_CURSOR_FLAG_COUPLED);
+        btree_cursor_set_coupled_page(cursor, page);
+        btree_cursor_set_coupled_index(cursor, slot);
+        btree_cursor_set_dupe_id(cursor, new_dupe_id);
+        memset(btree_cursor_get_dupe_cache(cursor), 0, sizeof(dupe_entry_t));
         page_add_cursor(page, (ham_cursor_t *)cursor);
     }
 
@@ -855,7 +855,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     /*
      * uncouple all cursors
      */
-    st=bt_uncouple_all_cursors(page, pivot);
+    st=btree_uncouple_all_cursors(page, pivot);
     if (st)
         return (st);
 
