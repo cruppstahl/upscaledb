@@ -300,8 +300,6 @@ public:
 
     virtual void setup() 
     { 
-        __super::setup();
-
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -332,8 +330,6 @@ class LongTxnCursorTest : public BaseCursorTest
 public:
     virtual void setup() 
     { 
-        __super::setup();
-
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -3679,8 +3675,6 @@ public:
 
     virtual void setup() 
     { 
-        __super::setup();
-
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -3698,8 +3692,6 @@ public:
 
     virtual void teardown() 
     { 
-        __super::teardown();
-
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
@@ -4040,7 +4032,7 @@ public:
 
     virtual void setup() 
     { 
-        __super::setup();
+        //__super::setup();
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
 
@@ -4060,8 +4052,6 @@ public:
 
     virtual void teardown() 
     { 
-        __super::teardown();
-
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         if (m_txn)
             BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
@@ -4693,7 +4683,7 @@ public:
 
     void insertFirstTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4736,7 +4726,7 @@ public:
 
     void insertLastTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4780,7 +4770,7 @@ public:
 
     void insertAfterTest(void)
     {
-        static int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5762,7 +5752,7 @@ public:
 
     void eraseFirstTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5803,7 +5793,7 @@ public:
 
     void eraseLastTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5844,7 +5834,7 @@ public:
 
     void eraseAfterTest(void)
     {
-        static int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5899,7 +5889,7 @@ public:
 
     void eraseBeforeTest(void)
     {
-        const int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
