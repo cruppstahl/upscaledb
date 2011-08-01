@@ -108,22 +108,6 @@ cache_get_unused_page(ham_cache_t *cache)
     ham_page_t *oldest;
     changeset_t *cs=env_get_changeset(cache_get_env(cache));
 
-    /* fetch a page from the garbagelist 
-     *
-     * TODO 
-     * the garbage list is no longer in use and can be removed
-     */
-    page=cache_get_garbagelist(cache);
-    if (page) {
-        cache_set_garbagelist(cache, 
-                page_list_remove(cache_get_garbagelist(cache), 
-                    PAGE_LIST_GARBAGE, page));
-
-        cache_set_cur_elements(cache, 
-                cache_get_cur_elements(cache)-1);
-        return (page);
-    }
-
     /* get the chronologically oldest page */
     oldest=cache_get_totallist_tail(cache);
     if (!oldest)
@@ -193,10 +177,8 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     /* first remove the page from the cache, if it's already cached
      *
      * we re-insert the page because we want to make sure that the 
-     * cache->_totallist_tail pointer is updated
-     *
-     * TODO
-     * is this really required?
+     * cache->_totallist_tail pointer is updated and that the page
+     * is inserted at the HEAD of the list
      */
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED))
         cache_remove_page(cache, page);
@@ -281,14 +263,6 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
         removed = HAM_TRUE;
     }
 
-    /* remove it from the garbage list */
-    if (page_is_in_list(cache_get_garbagelist(cache), page, PAGE_LIST_GARBAGE)){
-        cache_set_garbagelist(cache, 
-                    page_list_remove(cache_get_garbagelist(cache), 
-                    PAGE_LIST_GARBAGE, page));
-        removed = HAM_TRUE;
-    }
-
     /* decrease the number of cached elements */
     if (removed)
         cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
@@ -308,11 +282,6 @@ cache_check_integrity(ham_cache_t *cache)
     while (head) {
         elements++;
         head=page_get_next(head, PAGE_LIST_CACHED);
-    }
-    head=cache_get_garbagelist(cache);
-    while (head) {
-        elements++;
-        head=page_get_next(head, PAGE_LIST_GARBAGE);
     }
 
     /* did we count the correct numbers? */

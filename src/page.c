@@ -27,33 +27,17 @@
 #include "page.h"
 
 #ifdef HAM_DEBUG
+/*
 static ham_bool_t
 __is_in_list(ham_page_t *p, int which)
 {
     return (p->_npers._next[which] || p->_npers._prev[which]);
 }
+*/
 
 static void
 __validate_page(ham_page_t *p)
 {
-    /* not allowed: dirty and in garbage bin */
-    ham_assert(!(page_is_dirty(p) && __is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("dirty and in garbage bin"));
-
-    /* not allowed: in garbage bin and cursors */
-    ham_assert(!(page_get_cursors(p) && __is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("cursors and in garbage bin"));
-
-    /* not allowed: cached and in garbage bin */
-    ham_assert(!(__is_in_list(p, PAGE_LIST_BUCKET) && 
-               __is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("cached and in garbage bin"));
-
-    /* not allowed: in changeset and in garbage bin */
-    ham_assert(!(__is_in_list(p, PAGE_LIST_CHANGESET) && 
-               __is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("in changeset and in garbage bin"));
-
     /* not allowed: in changeset but not in cache */
     /* disabled - freelist pages can be in a changeset, but are never
      * in a cache bucket; TODO rewrite this check only for non-freelist 

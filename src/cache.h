@@ -30,7 +30,7 @@ extern "C" {
 
 
 /**
- * a cache manager object
+ * the cache manager
  */
 struct ham_cache_t
 {
@@ -53,9 +53,6 @@ struct ham_cache_t
      * and therefore the highest candidate for a flush */
     ham_page_t *_totallist_tail;
 
-    /** linked list of unused pages */
-    ham_page_t *_garbagelist;
-
     /** 
      * a 'timer' counter used to set/check the age of cache entries:
      * higher values represent newer / more important entries.
@@ -67,84 +64,46 @@ struct ham_cache_t
 
 };
 
-/*
- * get the current Environment
- */
+/* get the current Environment */
 #define cache_get_env(cm)                      (cm)->_env
 
-/*
- * set the current Environment
- */
+/* set the current Environment */
 #define cache_set_env(cm, e)                   (cm)->_env=(e)
 
-/*
- * get the capacity (in bytes)
- */
+/* get the capacity (in bytes) */
 #define cache_get_capacity(cm)                 (cm)->_capacity
 
-/*
- * set the capacity (in bytes)
- */
+/* set the capacity (in bytes) */
 #define cache_set_capacity(cm, c)              (cm)->_capacity=(c)
 
-/*
- * get the current number of elements
- */
+/* get the current number of elements */
 #define cache_get_cur_elements(cm)             (cm)->_cur_elements
 
-/*
- * set the current number of elements
- */
+/* set the current number of elements */
 #define cache_set_cur_elements(cm, s)          (cm)->_cur_elements=(s)
 
-/*
- * get the bucket-size
- */
+/* get the bucket-size */
 #define cache_get_bucketsize(cm)               (cm)->_bucketsize
 
-/*
- * set the bucket-size
- */
+/* set the bucket-size */
 #define cache_set_bucketsize(cm, s)            (cm)->_bucketsize=(s)
 
-/*
- * get the linked list of all pages
- */
+/* get the linked list of all pages */
 #define cache_get_totallist(cm)                (cm)->_totallist
 
-/*
- * set the linked list of all pages
- */
+/* set the linked list of all pages */
 #define cache_set_totallist(cm, l)             (cm)->_totallist=(l)
 
-/*
- * get the oldest page/tail in totallist
- */
+/* get the oldest page/tail in totallist */
 #define cache_get_totallist_tail(cm)           (cm)->_totallist_tail
 
-/*
- * set the oldest page/tail in totallist
- */
+/* set the oldest page/tail in totallist */
 #define cache_set_totallist_tail(cm, p)        (cm)->_totallist_tail=(p)
 
-/*
- * get the linked list of unused (garbage collected) pages
- */
-#define cache_get_garbagelist(cm)              (cm)->_garbagelist
-
-/*
- * set the linked list of unused pages
- */
-#define cache_set_garbagelist(cm, l)           (cm)->_garbagelist=(l)
-
-/*
- * get a bucket
- */
+/* get a bucket */
 #define cache_get_bucket(cm, i)                (cm)->_buckets[i]
 
-/*
- * set a bucket
- */
+/* set a bucket */
 #define cache_set_bucket(cm, i, p)             (cm)->_buckets[i]=p
 
 /**

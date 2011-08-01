@@ -40,14 +40,12 @@ extern "C" {
 
 /* a bucket in the hash table of the cache manager */
 #define PAGE_LIST_BUCKET           0
-/* garbage collected pages */
-#define PAGE_LIST_GARBAGE          1
 /* list of all cached pages */
-#define PAGE_LIST_CACHED           2
+#define PAGE_LIST_CACHED           1
 /* list of all pages in a changeset */
-#define PAGE_LIST_CHANGESET        3
+#define PAGE_LIST_CHANGESET        2
 /* array limit */
-#define MAX_PAGE_LISTS             4
+#define MAX_PAGE_LISTS             3
 
 #include "packstart.h"
 
