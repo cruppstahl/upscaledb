@@ -379,6 +379,12 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
 extern ham_status_t
 cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 
+/**
+ * returns the number of duplicates
+ */
+extern ham_size_t
+cursor_get_duplicate_count(ham_cursor_t *cursor);
+
 
 #ifdef __cplusplus
 } // extern "C"

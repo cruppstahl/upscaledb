@@ -49,11 +49,14 @@ o do some profiling - i am afraid that changeset_get_page() is not efficient
 o refactor cursor; separate backend-cursor and txn-cursor; make the 
     x rename bt_cursor -> btree_cursor?
 
-    o cursor_has_duplicates: move to cursor.c; often is used in 
-    boolean form, but should be: true if >1, false if <=1
+    x cursor_has_duplicates: move to cursor.c; often is used in 
+        boolean form, but should be: true if >1, false if <=1
 
     o cleanups: the cursor does not need the function pointers. 
         simplify the whole interface!
+
+    o review all cursor functions, make sure there's a clear separation
+        between txn-cursor and btree-cursor and the upper layer
 
     o cursor and btree-cursor: each have their own dupecache; merge them
 

@@ -447,3 +447,21 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
 bail:
     return (st);
 }
+
+ham_size_t
+cursor_get_duplicate_count(ham_cursor_t *cursor)
+{
+    ham_db_t *db=cursor_get_db(cursor);
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+        return (HAM_FALSE);
+
+    if (txn_cursor_get_coupled_op(txnc))
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
+    else
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
+
+    return (dupecache_get_count(cursor_get_dupecache(cursor)));
+}
+
