@@ -28,7 +28,7 @@ extern "C" {
 
 
 /*
- * An cursor which can walk over Transaction nodes
+ * An cursor which can iterate over Transaction nodes
  */
 typedef struct txn_cursor_t
 {
