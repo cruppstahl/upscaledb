@@ -43,8 +43,17 @@ x cleanup the cache - the garbagelist is not needed, and the age of the pages
     x update_page_access_counter
     x DB_NEW_PAGE_DOES_THRASH_CACHE
 
-o do some profiling - i am afraid that changeset_get_page() is not efficient
-    enough; maybe a hash table is better?
+o review non-cursor operations - make sure that the txn-layer is
+    clearly separated from non-txn layers (db and backend);
+    also make sure that in case of errors the changeset and the local txn
+    are correctly cleaned up
+    x close
+    o get_parameters
+    o check_integrity
+    o get_key_count
+    o insert
+    o erase
+    o find
 
 o refactor cursor; separate backend-cursor and txn-cursor; make the 
     x rename bt_cursor -> btree_cursor?
@@ -56,7 +65,18 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         simplify the whole interface!
 
     o review all cursor functions, make sure there's a clear separation
-        between txn-cursor and btree-cursor and the upper layer
+        between txn-cursor and btree-cursor and the upper layer;
+        also make sure that in case of errors the changeset and the local txn
+        are correctly cleaned up
+        o cursor_create
+        o cursor_clone
+        o cursor_close
+        o cursor_insert
+        o cursor_find
+        o cursor_erase
+        o cursor_get_duplicate_count
+        o cursor_overwrite
+        o cursor_move
 
     o cursor and btree-cursor: each have their own dupecache; merge them
 
@@ -81,6 +101,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
     o use a single dupecache for btree and txn-tree (currently, the btree
         cursor has it's own)
     o completely rewrite _local_cursor_move
+
+o do some profiling - i am afraid that changeset_get_page() is not efficient
+    enough; maybe a hash table is better?
 
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or

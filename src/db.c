@@ -1132,49 +1132,35 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     ham_status_t st = HAM_SUCCESS;
     ham_status_t st2 = HAM_SUCCESS;
     ham_backend_t *be;
-    ham_bool_t noenv=HAM_FALSE;
+    ham_bool_t has_other_db=HAM_FALSE;
     ham_db_t *newowner=0;
     ham_record_filter_t *record_head;
 
     /*
      * if this Database is the last database in the environment: 
      * delete all environment-members
-     *
-     * TODO noenv is no longer needed!
      */
     if (env) {
-        ham_bool_t has_other=HAM_FALSE;
         ham_db_t *n=env_get_list(env);
         while (n) {
             if (n!=db) {
-                has_other=HAM_TRUE;
+                has_other_db=HAM_TRUE;
                 break;
             }
             n=db_get_next(n);
         }
-        if (!has_other)
-            noenv=HAM_TRUE;
     }
 
     be=db_get_backend(db);
 
     /* close all open cursors */
     if (be && be->_fun_close_cursors) {
-        st = be->_fun_close_cursors(be, flags);
+        st=be->_fun_close_cursors(be, flags);
         if (st)
             return (st);
     }
     
-    /* 
-     * flush all DB performance data 
-     */
-    if (st2 == HAM_SUCCESS) {
-        btree_stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
-    }
-    else {
-        /* trash all DB performance data */
-        btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
-    }
+    btree_stats_flush_dbdata(db, db_get_db_perf_data(db), has_other_db);
 
     /*
      * if we're not in read-only mode, and not an in-memory-database,
@@ -1182,7 +1168,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      */
     if (env
             && env_get_header_page(env) 
-            && noenv
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
             && env_get_device(env) 
             && env_get_device(env)->is_open(env_get_device(env)) 
@@ -1190,44 +1175,38 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
             st=page_flush(env_get_header_page(env));
-            if (st) {
-                if (st2 == 0) st2 = st;
-            }
+            if (st && st2==0)
+                st2=st;
         }
     }
 
-    /*
-     * get rid of the extkey-cache
-     */
+    /* get rid of the extkey-cache */
     if (db_get_extkey_cache(db)) {
         (void)extkey_cache_purge_all(db_get_extkey_cache(db));
         extkey_cache_destroy(db_get_extkey_cache(db));
         db_set_extkey_cache(db, 0);
     }
 
-    /*
-     * in-memory-database: free all allocated blobs
-     * TODO TODO TODO is the temp. transaction required?
-     */
+    /* in-memory-database: free all allocated blobs */
     if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
         ham_txn_t *txn;
         free_cb_context_t context;
         context.db=db;
-        st = txn_begin(&txn, env, 0);
-        if (st) {
-            if (st2 == 0) st2 = st;
-        }
+        st=txn_begin(&txn, env, 0);
+        if (st && st2==0)
+            st2=st;
         else {
             (void)be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
             (void)txn_commit(txn, 0);
         }
     }
 
+    /* clear the changeset */
     if (env)
         changeset_clear(env_get_changeset(env));
 
     /*
-     * immediately flush all pages of this database (but not the header page,
+     * flush all pages of this database (but not the header page,
      * it's still required and will be flushed below
      */
     if (env && env_get_cache(env)) {
@@ -1243,9 +1222,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         }
     }
 
-    /*
-     * free cached memory
-     */
+    /* free cached memory */
     (void)db_resize_record_allocdata(db, 0);
     if (db_get_key_allocdata(db)) {
         allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
@@ -1262,19 +1239,16 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /* close the backend */
     if (be && be_is_active(be)) {
         st=be->_fun_close(be);
-        if (st) {
-            if (st2 == 0) st2 = st;
-        }
-        else {
-            ham_assert(!be_is_active(be), (0));
-        }
+        if (st && st2==0)
+            st2=st;
     }
+
     if (be) {
         ham_assert(!be_is_active(be), (0));
 
-        st = be->_fun_delete(be);
-        if (st2 == 0)
-            st2 = st;
+        st=be->_fun_delete(be);
+        if (st2==0)
+            st2=st;
 
         /*
          * TODO
@@ -1304,9 +1278,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         page_set_owner(env_get_header_page(env), newowner);
     }
 
-    /*
-     * close all record-level filters
-     */
+    /* close all record-level filters */
     record_head=db_get_record_filter(db);
     while (record_head) {
         ham_record_filter_t *next=record_head->_next;
