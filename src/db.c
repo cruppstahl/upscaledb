@@ -1346,9 +1346,9 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 
                     if (!be->_fun_calc_keycount_per_page)
                         return (HAM_NOT_IMPLEMENTED);
-                    st = be->_fun_calc_keycount_per_page(be, &count, size);
+                    st=be->_fun_calc_keycount_per_page(be, &count, size);
                     if (st)
-                        return st;
+                        return (st);
                     p->value=count;
                 }
                 break;
@@ -1365,10 +1365,10 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                     return (HAM_INV_PARAMETER);
                 }
                 else {
-                    ham_status_t st = btree_stats_fill_ham_statistics_t(
-                            env, db, (ham_statistics_t *)U64_TO_PTR(p->value));
+                    ham_status_t st=btree_stats_fill_ham_statistics_t(env,
+                            db, (ham_statistics_t *)U64_TO_PTR(p->value));
                     if (st)
-                        return st;
+                        return (st);
                 }
                 break;
             default:
@@ -1387,20 +1387,18 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     ham_status_t st;
     ham_backend_t *be;
 
-    /*
-     * check the cache integrity
-     */
-    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        st=cache_check_integrity(env_get_cache(db_get_env(db)));
-        if (st)
-            return (st);
-    }
-
     be=db_get_backend(db);
     if (!be)
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_check_integrity)
         return (HAM_NOT_IMPLEMENTED);
+
+    /* check the cache integrity */
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        st=cache_check_integrity(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -1412,6 +1410,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     /* call the backend function */
     st=be->_fun_check_integrity(be);
     changeset_clear(env_get_changeset(db_get_env(db)));
+
     return (st);
 }
 
@@ -1509,7 +1508,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
 
 static ham_status_t
 _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_offset_t *keycount)
+                    ham_offset_t *keycount)
 {
     ham_status_t st;
     ham_backend_t *be;
@@ -1518,9 +1517,9 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     env=db_get_env(db);
 
-    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
+    if (flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)) {
         ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
-                  flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
+                  flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)));
         return (HAM_INV_PARAMETER);
     }
 
@@ -1541,10 +1540,10 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
      * call the backend function - this will retrieve the number of keys
      * in the btree
      */
-    st = be->_fun_enumerate(be, __calc_keys_cb, &ctx);
+    st=be->_fun_enumerate(be, __calc_keys_cb, &ctx);
     if (st)
-        return (st);
-    *keycount = ctx.total_count;
+        goto bail;
+    *keycount=ctx.total_count;
 
     /*
      * if transactions are enabled, then also sum up the number of keys
@@ -1557,11 +1556,12 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         k.txn=txn;
         k.db=db;
         txn_tree_enumerate(db_get_optree(db), db_get_key_count_txn, (void *)&k);
-        *keycount += k.c;
+        *keycount+=k.c;
     }
 
+bail:
     changeset_clear(env_get_changeset(env));
-    return (0);
+    return (st);
 }
 
 static ham_status_t

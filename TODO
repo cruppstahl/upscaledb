@@ -48,9 +48,9 @@ o review non-cursor operations - make sure that the txn-layer is
     also make sure that in case of errors the changeset and the local txn
     are correctly cleaned up
     x close
-    o get_parameters
-    o check_integrity
-    o get_key_count
+    x get_parameters
+    x check_integrity
+    x get_key_count
     o insert
     o erase
     o find
