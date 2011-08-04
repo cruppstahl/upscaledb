@@ -63,39 +63,39 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
     calckeys_context_t *c;
     ham_size_t count;
 
-    c = (calckeys_context_t *)context;
+    c=(calckeys_context_t *)context;
 
     switch (event) {
     case ENUM_EVENT_DESCEND:
         break;
 
     case ENUM_EVENT_PAGE_START:
-        c->is_leaf = *(ham_bool_t *)param2;
+        c->is_leaf=*(ham_bool_t *)param2;
         break;
 
     case ENUM_EVENT_PAGE_STOP:
         break;
 
     case ENUM_EVENT_ITEM:
-        key = (btree_key_t *)param1;
-        count = *(ham_size_t *)param2;
+        key=(btree_key_t *)param1;
+        count=*(ham_size_t *)param2;
 
         if (c->is_leaf) {
-            ham_size_t dupcount = 1;
+            ham_size_t dupcount=1;
 
-            if (!(c->flags & HAM_SKIP_DUPLICATES)
-                    && (key_get_flags(key) & KEY_HAS_DUPLICATES)) {
-                ham_status_t st = blob_duplicate_get_count(db_get_env(c->db), 
-                        key_get_ptr(key), &dupcount, 0);
+            if (!(c->flags&HAM_SKIP_DUPLICATES)
+                    && (key_get_flags(key)&KEY_HAS_DUPLICATES)) {
+                ham_status_t st=blob_duplicate_get_count(db_get_env(c->db), 
+                            key_get_ptr(key), &dupcount, 0);
                 if (st)
-                    return st;
-                c->total_count += dupcount;
+                    return (st);
+                c->total_count+=dupcount;
             }
             else {
                 c->total_count++;
             }
 
-            if (c->flags & HAM_FAST_ESTIMATE) {
+            if (c->flags&HAM_FAST_ESTIMATE) {
                 /* 
                  * fast mode: just grab the keys-per-page value and 
                  * call it a day for this page.
@@ -103,8 +103,8 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
                  * Assume all keys in this page have the same number 
                  * of dupes (=1 if no dupes)
                  */
-                c->total_count += (count - 1) * dupcount;
-                return CB_DO_NOT_DESCEND;
+                c->total_count+=(count-1)*dupcount;
+                return (CB_DO_NOT_DESCEND);
             }
         }
         break;
@@ -114,7 +114,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
         break;
     }
 
-    return CB_CONTINUE;
+    return (CB_CONTINUE);
 }
 
 
@@ -154,12 +154,10 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
-            /*
-             * delete the extended key
-             */
-            st = extkey_remove(c->db, blobid);
+            /* delete the extended key */
+            st=extkey_remove(c->db, blobid);
             if (st)
-                return st;
+                return (st);
         }
 
         if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
@@ -171,18 +169,18 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
          * if we're in the leaf page, delete the blob
          */
         if (c->is_leaf) {
-            st = key_erase_record(c->db, key, 0, HAM_ERASE_ALL_DUPLICATES);
+            st=key_erase_record(c->db, key, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
-                return st;
+                return (st);
         }
         break;
 
     default:
         ham_assert(!"unknown callback event", (0));
-        return CB_STOP;
+        return (CB_STOP);
     }
 
-    return CB_CONTINUE;
+    return (CB_CONTINUE);
 }
 
 static ham_bool_t
@@ -2114,7 +2112,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
 
 static ham_status_t
 _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
-        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
@@ -2127,7 +2125,14 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_insert)
-        return HAM_NOT_IMPLEMENTED;
+        return (HAM_NOT_IMPLEMENTED);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=env_purge_cache(db_get_env(db));
+        if (st)
+            return (st);
+    }
 
     if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
@@ -2164,13 +2169,6 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
 
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
-        if (st)
-            return (st);
-    }
-
     /* 
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structure. Otherwise immediately write to the btree.
@@ -2198,6 +2196,9 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
+
+        changeset_clear(env_get_changeset(db_get_env(db)));
+
         return (st);
     }
 
@@ -2215,6 +2216,8 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             env_set_dirty(env);
         }
     }
+
+    ham_assert(st==0, (""));
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2278,11 +2281,11 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     else
         st=be->_fun_erase(be, key, flags);
 
-    changeset_clear(env_get_changeset(db_get_env(db)));
-
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+    
+        changeset_clear(env_get_changeset(db_get_env(db)));
         return (st);
     }
 
@@ -2290,6 +2293,8 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
+
+    ham_assert(st==0, (""));
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2310,6 +2315,26 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_backend_t *be;
     ham_offset_t recno=0;
 
+    be=db_get_backend(db);
+    if (!be || !be_is_active(be))
+        return (HAM_NOT_INITIALIZED);
+
+    if (!be->_fun_find)
+        return (HAM_NOT_IMPLEMENTED);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=env_purge_cache(db_get_env(db));
+        if (st)
+            return (st);
+    }
+
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (HAM_INV_KEYSIZE);
+    }
+
     /* if this database has duplicates, then we use ham_cursor_find
      * because we have to build a duplicate list, and this is currently
      * only available in ham_cursor_find */
@@ -2323,12 +2348,6 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (st);
     }
 
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (HAM_INV_KEYSIZE);
-    }
-
     /* record number: make sure we have a number in little endian */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         ham_assert(key->size==sizeof(ham_u64_t), (""));
@@ -2336,20 +2355,6 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;
-    }
-
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-
-    if (!be->_fun_find)
-        return (HAM_NOT_IMPLEMENTED);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
-        if (st)
-            return (st);
     }
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2371,27 +2376,29 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     else
         st=be->_fun_find(be, key, record, flags);
 
-    /* TODO this will render the changeset_flush below obsolete */
-    changeset_clear(env_get_changeset(env));
-
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
 
     /* record number: re-translate the number to host endian */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
 
     /* run the record-level filters */
     st=__record_filters_after_find(db, record);
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
+
+    ham_assert(st==0, (""));
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
