@@ -63,6 +63,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
     o cleanups: the cursor does not need the function pointers. 
         simplify the whole interface!
+        o btree_cursor functions should receive a btree_cursor as a 
+           parameter which does NOT include the parent functions, but 
+           which includes a pointer to the parent cursor
+           that way the parent functions can be removed step by step
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
         o unify the dupe caches - btree cursor and upper layer cursor have 
