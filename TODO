@@ -43,7 +43,7 @@ x cleanup the cache - the garbagelist is not needed, and the age of the pages
     x update_page_access_counter
     x DB_NEW_PAGE_DOES_THRASH_CACHE
 
-o review non-cursor operations - make sure that the txn-layer is
+x review non-cursor operations - make sure that the txn-layer is
     clearly separated from non-txn layers (db and backend);
     also make sure that in case of errors the changeset and the local txn
     are correctly cleaned up
@@ -51,9 +51,9 @@ o review non-cursor operations - make sure that the txn-layer is
     x get_parameters
     x check_integrity
     x get_key_count
-    o insert
-    o erase
-    o find
+    x insert
+    x erase
+    x find
 
 o refactor cursor; separate backend-cursor and txn-cursor; make the 
     x rename bt_cursor -> btree_cursor?
@@ -63,6 +63,15 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
     o cleanups: the cursor does not need the function pointers. 
         simplify the whole interface!
+        o make btree_cursor similar to txn_cursor and include it into
+           ham_cursor_t -> need to remove all the casts - this is a big change!
+        o unify the dupe caches - btree cursor and upper layer cursor have 
+           their own dupe-caches each
+        o unify the "coupling" - either to btree with or without coupling,
+           txn-op or nil -> also get rid of the flags but have a getter
+           and setter function
+        o also, txn_cursor.c is not isolated well enough; it sometimes 
+            accesses the btree_cursor. 
 
     o review all cursor functions, make sure there's a clear separation
         between txn-cursor and btree-cursor and the upper layer;
@@ -78,28 +87,6 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         o cursor_overwrite
         o cursor_move
 
-    o cursor and btree-cursor: each have their own dupecache; merge them
-
-    o "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
-    have to couple, and check if it was erased in the meantime!
-    or: - cursor tracks state if it's coupled to txn or btree
-        - when coupling, caller can select whether to couple to btree or txn
-            cursor_couple(TXN || BTREE)
-        o the btree_cursor.* files need some rework/reformatting/renaming
-        o also, txn_cursor.c is not isolated well enough; it sometimes 
-            accesses the btree_cursor. 
-
-        o extend/reorganize the cursor code. add a dynamic list of 
-            duplicates for the cache (and in debug-mode also track the key
-            that is coupled).
-            high level cursor can manage
-                - its state (nil; coupled to txn; coupled to btree)
-                - implements the local functions
-                - the duplicate cache (optional, only if txn's are used)
-                - parent of the txn-cursor
-                - parent of the btree-cursor
-    o use a single dupecache for btree and txn-tree (currently, the btree
-        cursor has it's own)
     o completely rewrite _local_cursor_move
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
