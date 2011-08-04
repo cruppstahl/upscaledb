@@ -55,6 +55,12 @@ __dupecache_resize(dupecache_t *c, ham_size_t capacity)
 }
 
 ham_status_t
+cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+{
+    return (btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t **)dest));
+}
+
+ham_status_t
 dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
                     ham_size_t capacity)
 {

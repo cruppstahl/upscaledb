@@ -106,16 +106,14 @@ public:
 
     void cloneTest(void)
     {
-        btree_cursor_t *cursor, *clone;
-        ham_cursor_t *c;
+        ham_cursor_t *cursor, *clone;
 
-        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(btree_cursor_t *)c;
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT(cursor!=0);
-        BFC_ASSERT(cursor->_fun_clone(cursor, &clone)==0);
+        BFC_ASSERT_EQUAL(0, cursor_clone(cursor, &clone));
         BFC_ASSERT(clone!=0);
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
     void overwriteTest(void)

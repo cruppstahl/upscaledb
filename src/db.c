@@ -2433,7 +2433,7 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     env = db_get_env(db);
 
-    st=src->_fun_clone(src, dest);
+    st=cursor_clone(src, dest);
     if (st)
         return (st);
 

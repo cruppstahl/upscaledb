@@ -30,7 +30,6 @@ extern "C" {
 /**
  * the cursor structure for a b+tree
  */
-struct btree_cursor_t;
 typedef struct btree_cursor_t btree_cursor_t;
 struct btree_cursor_t
 {
@@ -38,6 +37,9 @@ struct btree_cursor_t
      * the common declarations of all cursors
      */
     CURSOR_DECLARATIONS(btree_cursor_t);
+
+    /** the parent cursor */
+    ham_cursor_t *_parent;
 
     /* the id of the duplicate key to which this cursor is coupled */
     ham_size_t _dupe_id;
@@ -89,6 +91,12 @@ struct btree_cursor_t
  */
 #define BTREE_CURSOR_ONLY_EQUAL_KEY            0x200000
 
+/** get the parent cursor */
+#define btree_cursor_get_parent(c)            (c)->_parent
+
+/** set the parent cursor */
+#define btree_cursor_set_parent(c, p)         (c)->_parent=p
+
 /** get the database pointer */
 #define btree_cursor_get_db(c)                (c)->_db
 
@@ -133,6 +141,12 @@ struct btree_cursor_t
 
 /** set the key we're pointing to - if the cursor is uncoupled */
 #define btree_cursor_set_uncoupled_key(c, k)  (c)->_u._uncoupled._key=k
+
+/**                                                                 
+ * clone an existing cursor                                         
+ */                                                                 
+extern ham_status_t
+btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc);
 
 /*
  * set a cursor to NIL

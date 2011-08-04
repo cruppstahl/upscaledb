@@ -158,11 +158,6 @@ dupecache_reset(dupecache_t *c);
  */
 #define CURSOR_DECLARATIONS(clss)                                       \
     /**                                                                 \
-     * Clone an existing cursor                                         \
-     */                                                                 \
-    ham_status_t (*_fun_clone)(clss *cu, clss **newit);                 \
-                                                                        \
-    /**                                                                 \
      * Close an existing cursor                                         \
      */                                                                 \
     void (*_fun_close)(clss *cu);                                       \
@@ -335,6 +330,12 @@ struct ham_cursor_t
 
 /** flag for cursor_set_lastop */
 #define CURSOR_LOOKUP_INSERT            0x10000
+
+/**
+ * clones an existing cursor
+ */
+extern ham_status_t
+cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 
 /**
  * Updates (or builds) the dupecache for a cursor

@@ -472,7 +472,7 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
 /**                                                                 
  * clone an existing cursor                                         
  */                                                                 
-static ham_status_t
+ham_status_t
 btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc)
 {
     ham_status_t st;
@@ -883,7 +883,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     txn_cursor_set_parent(cursor_get_txn_cursor(c), (ham_cursor_t *)c);
 
-    c->_fun_clone=btree_cursor_clone;
     c->_fun_close=btree_cursor_close;
     c->_fun_overwrite=btree_cursor_overwrite;
     c->_fun_move=btree_cursor_move;
