@@ -99,6 +99,13 @@ typedef struct txn_cursor_t
  * cursors */
 #define txn_cursor_set_coupled_previous(c, p)       (c)->_coupled._previous=p
 
+/**
+ * create a new txn cursor
+ */
+extern ham_status_t
+txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+                txn_cursor_t *cursor, ham_cursor_t *parent);
+
 /** 
  * returns true if the cursor is nil (does not point to any item) 
  */
@@ -121,7 +128,7 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
  * clones a cursor
  */
 extern void
-txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest);
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, ham_cursor_t *parent);
 
 /**
  * closes a cursor

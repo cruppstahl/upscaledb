@@ -158,11 +158,6 @@ dupecache_reset(dupecache_t *c);
  */
 #define CURSOR_DECLARATIONS(clss)                                       \
     /**                                                                 \
-     * Close an existing cursor                                         \
-     */                                                                 \
-    void (*_fun_close)(clss *cu);                                       \
-                                                                        \
-    /**                                                                 \
      * Overwrite the record of this cursor                              \
      */                                                                 \
     ham_status_t (*_fun_overwrite)(clss *cu, ham_record_t *record,      \
@@ -332,6 +327,13 @@ struct ham_cursor_t
 #define CURSOR_LOOKUP_INSERT            0x10000
 
 /**
+ * creates a new cursor
+ */
+extern ham_status_t
+cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_cursor_t **pcursor);
+
+/**
  * clones an existing cursor
  */
 extern ham_status_t
@@ -385,6 +387,12 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
  */
 extern ham_size_t
 cursor_get_duplicate_count(ham_cursor_t *cursor);
+
+/**
+ * closes an existing cursor
+ */
+extern void
+cursor_close(ham_cursor_t *cursor);
 
 
 #ifdef __cplusplus

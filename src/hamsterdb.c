@@ -3447,7 +3447,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *cursor)
 {
     ham_db_t *db;
-    ham_status_t st;
     ham_cursor_t *p, *n;
 
     if (!cursor) {
@@ -3474,9 +3473,7 @@ ham_cursor_close(ham_cursor_t *cursor)
     }
 
     /* now finally close the cursor */
-    st=db->_fun_cursor_close(cursor);
-    if (st)
-        return (db_set_error(db, st));
+    db->_fun_cursor_close(cursor);
 
     /* fix the linked list of cursors */
     p=cursor_get_previous(cursor);

@@ -299,7 +299,7 @@ struct ham_db_t
     /**
      * close a cursor
      */
-    ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);
+    void (*_fun_cursor_close)(ham_cursor_t *cursor);
 
     /**
      * close the Database

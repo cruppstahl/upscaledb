@@ -159,13 +159,6 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
                   ham_size_t *keycount, ham_u16_t keysize);             \
                                                                         \
     /**                                                                 \
-     * Create a new cursor instance.                                    \
-     */                                                                 \
-    ham_status_t (*_fun_cursor_create)(clss *be,                        \
-                ham_db_t *db, ham_txn_t *txn,                           \
-                ham_u32_t flags, ham_cursor_t **cu);                    \
-                                                                        \
-    /**                                                                 \
      * Close (and free) all cursors related to this database table.     \
      */                                                                 \
     ham_status_t (*_fun_close_cursors)(clss *be, ham_u32_t flags);      \

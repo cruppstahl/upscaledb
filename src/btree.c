@@ -335,17 +335,6 @@ btree_fun_delete(ham_btree_t *be)
 }
 
 /**                                                                    
- * Create a new cursor instance.                                        
- */                                                                    
-static ham_status_t 
-btree_fun_cursor_create(ham_btree_t *be, ham_db_t *db, ham_txn_t *txn, 
-                    ham_u32_t flags, ham_cursor_t **c)
-{
-    return (btree_cursor_create(db, txn, flags, (btree_cursor_t **)c));
-}
-                                                                    
-
-/**                                                                    
  * uncouple all cursors from a page                                    
  *                                                                    
  * @remark this is called whenever the page is deleted or            
@@ -444,7 +433,6 @@ btree_create(ham_backend_t **pbe, ham_db_t *db, ham_u32_t flags)
     btree->_fun_enumerate=btree_enumerate;
     btree->_fun_check_integrity=btree_check_integrity;
     btree->_fun_calc_keycount_per_page=btree_fun_calc_keycount_per_page;
-    btree->_fun_cursor_create=btree_fun_cursor_create;
     btree->_fun_close_cursors=btree_fun_close_cursors;
     btree->_fun_uncouple_all_cursors=btree_fun_uncouple_all_cursors;
     btree->_fun_free_page_extkeys=btree_fun_free_page_extkeys;
@@ -740,15 +728,15 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
     ham_status_t st = HAM_SUCCESS;
     ham_status_t st2 = HAM_SUCCESS;
 
-    /* auto-cleanup cursors?  */
+    /* auto-cleanup cursors? */
     if (db_get_cursors(db)) {
-        btree_cursor_t *c=(btree_cursor_t *)db_get_cursors(db);
+        ham_cursor_t *c=db_get_cursors(db);
         while (c) {
-            btree_cursor_t *next=(btree_cursor_t *)cursor_get_next(c);
+            ham_cursor_t *next=cursor_get_next(c);
             if (flags&HAM_AUTO_CLEANUP)
-                st=ham_cursor_close((ham_cursor_t *)c);
+                st=ham_cursor_close(c);
             else
-                c->_fun_close(c);
+                cursor_close(c);
             if (st) {
                 if (st2 == 0) st2 = st;
                 /* continue to try to close the other cursors, though */

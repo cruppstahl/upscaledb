@@ -70,7 +70,6 @@ struct btree_cursor_t
         } _uncoupled;
 
     } _u;
-
 };
 
 /** cursor flag: the cursor is coupled */
@@ -144,9 +143,10 @@ struct btree_cursor_t
 
 /**                                                                 
  * clone an existing cursor                                         
+ * the dest structure is already allocated
  */                                                                 
 extern ham_status_t
-btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc);
+btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest);
 
 /*
  * set a cursor to NIL
@@ -186,22 +186,28 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 #define BTREE_CURSOR_UNCOUPLE_NO_REMOVE        1
 
 /**
+ * closes an existing cursor
+ */
+extern void
+btree_cursor_close(btree_cursor_t *cursor);
+
+/**
  * returns true if the cursor is nil, otherwise false
  */
-ham_bool_t
+extern ham_bool_t
 btree_cursor_is_nil(btree_cursor_t *cursor);
 
 /**
  * create a new cursor
  */
-ham_status_t
+extern void
 btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                    btree_cursor_t **pcursor);
+                btree_cursor_t *cursor, ham_cursor_t *parent);
 
 /**
  * returns true if a cursor points to this key, otherwise false
  */
-ham_bool_t 
+extern ham_bool_t 
 btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key);
 
 /**
@@ -209,7 +215,7 @@ btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key);
  *
  * @remark this is called whenever the page is deleted or becoming invalid
  */
-ham_status_t
+extern ham_status_t
 btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**

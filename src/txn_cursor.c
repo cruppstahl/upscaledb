@@ -18,6 +18,17 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
+ham_status_t
+txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+                txn_cursor_t *cursor, ham_cursor_t *parent)
+{
+    (void)db;
+    (void)txn;
+    (void)flags;
+    txn_cursor_set_parent(cursor, parent);
+    return (0);
+}
+
 ham_bool_t
 txn_cursor_is_nil(txn_cursor_t *cursor)
 {
@@ -54,8 +65,9 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op)
 }
 
 void
-txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest)
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, ham_cursor_t *parent)
 {
+    txn_cursor_set_parent(dest, parent);
     txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
 
     txn_cursor_set_coupled_op(dest, 0);

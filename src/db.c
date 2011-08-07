@@ -2418,51 +2418,25 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_cursor_create)
-        return (HAM_NOT_IMPLEMENTED);
 
-    return (be->_fun_cursor_create(be, db, txn, flags, cursor));
+    return (cursor_create(db, txn, flags, cursor));
 }
 
 static ham_status_t
 _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
-    ham_status_t st;
     ham_db_t *db=cursor_get_db(src);
     ham_env_t *env;
 
     env = db_get_env(db);
 
-    st=cursor_clone(src, dest);
-    if (st)
-        return (st);
-
-    if (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
-        txn_cursor_clone(cursor_get_txn_cursor(src), 
-                        cursor_get_txn_cursor(*dest));
-    }
-
-    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
-        dupecache_clone(cursor_get_dupecache(src), 
-                        cursor_get_dupecache(*dest));
-    }
-
-    return (0);
+    return (cursor_clone(src, dest));
 }
 
-static ham_status_t
+static void
 _local_cursor_close(ham_cursor_t *cursor)
 {
-    /* if the txn_cursor is coupled then uncouple it */
-    txn_cursor_t *tc;
-    tc=cursor_get_txn_cursor(cursor);
-    if (!txn_cursor_is_nil(tc))
-        txn_cursor_set_to_nil(tc);
-
-    /* call the backend function */
-    cursor->_fun_close(cursor);
-
-    return (0);
+    cursor_close(cursor);
 }
 
 static ham_status_t

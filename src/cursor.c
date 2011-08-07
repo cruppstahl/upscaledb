@@ -22,6 +22,8 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 
+#define SIZEOF_CURSOR (sizeof(*c)+sizeof(btree_cursor_t)) /* TODO unify structs! */
+
 /* TODO TODO TODO
  * duplicate function is in db.c 
  */
@@ -52,12 +54,6 @@ __dupecache_resize(dupecache_t *c, ham_size_t capacity)
     }
 
     return (HAM_OUT_OF_MEMORY);
-}
-
-ham_status_t
-cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
-{
-    return (btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t **)dest));
 }
 
 ham_status_t
@@ -469,5 +465,68 @@ cursor_get_duplicate_count(ham_cursor_t *cursor)
         cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
 
     return (dupecache_get_count(cursor_get_dupecache(cursor)));
+}
+
+ham_status_t
+cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_cursor_t **pcursor)
+{
+    ham_env_t *env = db_get_env(db);
+    ham_cursor_t *c;
+
+    *pcursor=0;
+
+    c=(ham_cursor_t *)allocator_calloc(env_get_allocator(env), SIZEOF_CURSOR);
+    if (!c)
+        return (HAM_OUT_OF_MEMORY);
+
+    cursor_set_flags(c, flags);
+    cursor_set_db(c, db);
+
+    txn_cursor_create(db, txn, flags, cursor_get_txn_cursor(c), c);
+    btree_cursor_create(db, txn, flags, (btree_cursor_t *)c, c);
+
+    *pcursor=c;
+    return (0);
+}
+
+ham_status_t
+cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(src);
+    ham_env_t *env=db_get_env(db);
+    ham_cursor_t *c;
+
+    *dest=0;
+
+    c=(ham_cursor_t *)allocator_alloc(env_get_allocator(env), SIZEOF_CURSOR);
+    if (!c)
+        return (HAM_OUT_OF_MEMORY);
+    memcpy(c, src, SIZEOF_CURSOR);
+    cursor_set_next_in_page(c, 0);
+    cursor_set_previous_in_page(c, 0);
+
+    st=btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t *)c);
+    if (st)
+        return (st);
+
+    /* always clone the txn-cursor, even if transactions are not required */
+    txn_cursor_clone(cursor_get_txn_cursor(src), cursor_get_txn_cursor(c), c);
+
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+        dupecache_clone(cursor_get_dupecache(src), 
+                        cursor_get_dupecache(c));
+    }
+
+    *dest=c;
+    return (0);
+}
+
+void
+cursor_close(ham_cursor_t *cursor)
+{
+    btree_cursor_close((btree_cursor_t *)cursor);
+    txn_cursor_close(cursor_get_txn_cursor(cursor));
 }
 

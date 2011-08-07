@@ -473,29 +473,17 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
  * clone an existing cursor                                         
  */                                                                 
 ham_status_t
-btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc)
+btree_cursor_clone(btree_cursor_t *old, btree_cursor_t *newc)
 {
     ham_status_t st;
-    btree_cursor_t *c;
     ham_db_t *db=btree_cursor_get_db(old);
-    ham_env_t *env = db_get_env(db);
-
-    *newc=0;
-
-    c=(btree_cursor_t *)allocator_alloc(env_get_allocator(env), sizeof(*c));
-    if (!c)
-        return HAM_OUT_OF_MEMORY;
-    memcpy(c, old, sizeof(*c));
-    cursor_set_next_in_page(c, 0);
-    cursor_set_previous_in_page(c, 0);
-
-    txn_cursor_set_parent(cursor_get_txn_cursor(c), (ham_cursor_t *)c);
+    ham_env_t *env=db_get_env(db);
 
     /* if the old cursor is coupled: couple the new cursor, too */
     if (btree_cursor_get_flags(old)&BTREE_CURSOR_FLAG_COUPLED) {
          ham_page_t *page=btree_cursor_get_coupled_page(old);
-         page_add_cursor(page, (ham_cursor_t *)c);
-         btree_cursor_set_coupled_page(c, page);
+         page_add_cursor(page, (ham_cursor_t *)newc);
+         btree_cursor_set_coupled_page(newc, page);
     }
     /* otherwise, if the old cursor is uncoupled: copy the key */
     else if (btree_cursor_get_flags(old)&BTREE_CURSOR_FLAG_UNCOUPLED) {
@@ -505,7 +493,7 @@ btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc)
         if (!key)
             return (HAM_OUT_OF_MEMORY);
 
-        st=db_copy_key(btree_cursor_get_db(c), 
+        st=db_copy_key(btree_cursor_get_db(newc), 
                     btree_cursor_get_uncoupled_key(old), key);
         if (st) {
             if (key->data)
@@ -513,20 +501,15 @@ btree_cursor_clone(btree_cursor_t *old, btree_cursor_t **newc)
             allocator_free(env_get_allocator(env), key);
             return (st);
         }
-        btree_cursor_set_uncoupled_key(c, key);
+        btree_cursor_set_uncoupled_key(newc, key);
     }
 
-    btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(old));
-
-    *newc=c;
+    btree_cursor_set_dupe_id(newc, btree_cursor_get_dupe_id(old));
 
     return (0);
 }
 
-/**                                                                 
- * close an existing cursor                                         
- */                                                                 
-static void
+void
 btree_cursor_close(btree_cursor_t *c)
 {
     btree_cursor_set_to_nil(c);
@@ -868,33 +851,19 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
     return (0);
 }
 
-ham_status_t
+void
 btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            btree_cursor_t **pcursor)
+            btree_cursor_t *cursor, ham_cursor_t *parent)
 {
-    ham_env_t *env = db_get_env(db);
-    btree_cursor_t *c;
+    btree_cursor_set_parent(cursor, parent);
 
-    *pcursor=0;
-
-    c=(btree_cursor_t *)allocator_calloc(env_get_allocator(env), sizeof(*c));
-    if (!c)
-        return HAM_OUT_OF_MEMORY;
-
-    txn_cursor_set_parent(cursor_get_txn_cursor(c), (ham_cursor_t *)c);
-
-    c->_fun_close=btree_cursor_close;
-    c->_fun_overwrite=btree_cursor_overwrite;
-    c->_fun_move=btree_cursor_move;
-    c->_fun_find=btree_cursor_find;
-    c->_fun_insert=btree_cursor_insert;
-    c->_fun_erase=btree_cursor_erase;
-    c->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
-    c->_fun_is_nil=btree_cursor_is_nil;
-    cursor_set_flags(c, flags);
-
-    *pcursor=c;
-    return (0);
+    cursor->_fun_overwrite=btree_cursor_overwrite;
+    cursor->_fun_move=btree_cursor_move;
+    cursor->_fun_find=btree_cursor_find;
+    cursor->_fun_insert=btree_cursor_insert;
+    cursor->_fun_erase=btree_cursor_erase;
+    cursor->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
+    cursor->_fun_is_nil=btree_cursor_is_nil;
 }
 
 ham_status_t

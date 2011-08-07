@@ -67,13 +67,24 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
            parameter which does NOT include the parent functions, but 
            which includes a pointer to the parent cursor
            that way the parent functions can be removed step by step
+            x cursor_create
+            x cursor_close
+            x cursor_clone
+            o cursor_insert
+            o cursor_find
+            o cursor_erase
+            o cursor_get_duplicate_count
+            o cursor_overwrite
+            o cursor_move
+
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
+            o remove SIZEOF_CURSOR in cursor.c
         o unify the dupe caches - btree cursor and upper layer cursor have 
            their own dupe-caches each
         o unify the "coupling" - either to btree with or without coupling,
            txn-op or nil -> also get rid of the flags but have a getter
-           and setter function
+           and setter function (not sure if we can/should unify it completely)
         o also, txn_cursor.c is not isolated well enough; it sometimes 
             accesses the btree_cursor. 
 

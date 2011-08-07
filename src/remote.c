@@ -1157,7 +1157,7 @@ _remote_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     return (st);
 }
 
-static ham_status_t
+static void
 _remote_cursor_close(ham_cursor_t *cursor)
 {
     ham_status_t st;
@@ -1171,17 +1171,14 @@ _remote_cursor_close(ham_cursor_t *cursor)
     if (st) {
         if (reply)
             proto_delete(reply);
-        return (st);
+        return;
     }
 
     ham_assert(reply!=0, (""));
     ham_assert(proto_has_cursor_close_reply(reply)!=0, (""));
 
-    st=proto_cursor_close_reply_get_status(reply);
-
+    proto_cursor_close_reply_get_status(reply);
     proto_delete(reply);
-
-    return (st);
 }
 
 static ham_status_t
