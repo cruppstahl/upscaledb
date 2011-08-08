@@ -2652,7 +2652,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if (local_txn)
         cursor_set_txn(cursor, 0);
 
-    /* on success: cursor was set to nil */
+    /* on success: verify that cursor is now nil */
     if (st==0) {
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
@@ -2664,8 +2664,11 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     else {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
+
+    ham_assert(st==0, (""));
 
     /* no need to append the journal entry - it's appended in db_erase_txn(),
      * which is called by txn_cursor_erase() */
