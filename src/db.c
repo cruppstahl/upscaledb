@@ -1833,7 +1833,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         if (cursor_get_dupecache_index(c))
             txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
 
-        txn_cursor_set_to_nil(cursor);
+        cursor_set_to_nil(c, CURSOR_TXN);
         txn_cursor_set_flags(cursor, 
                     txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_coupled_op(cursor, op);
@@ -1886,7 +1886,7 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
             }
             cursor_set_flags(pc, 
                     cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
-            txn_cursor_set_to_nil(cursor);
+            cursor_set_to_nil(pc, CURSOR_TXN);
             cursor=txn_op_get_cursors(op);
             /* set a flag that the cursor just completed an Insert-or-find 
              * operation; this information is needed in ham_cursor_move 
@@ -1939,8 +1939,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
                     /* else fall through */
                 }
             }
-            btree_cursor_set_to_nil((btree_cursor_t *)c);
-            txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
+            cursor_set_to_nil(c, 0);
         }
 next:
         c=cursor_get_next(c);
@@ -2641,7 +2640,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
          * nil; otherwise txn_cursor_erase() doesn't know which cursor 
          * part is the valid one */
         if (!(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN))
-            txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
+            cursor_set_to_nil(cursor, CURSOR_TXN);
         st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
     }
     else {
@@ -3139,7 +3138,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the smallest/first key from the transaction tree. */
         txns=txn_cursor_move(txnc, flags);
         if (txns==HAM_KEY_NOT_FOUND)
-            txn_cursor_set_to_nil(txnc);
+            cursor_set_to_nil(cursor, CURSOR_TXN);
         /* fetch the smallest/first key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
@@ -3206,7 +3205,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
-                        txn_cursor_set_to_nil(txnc);
+                        cursor_set_to_nil(cursor, CURSOR_TXN);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
                     goto bail;
@@ -3269,7 +3268,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the greatest/last key from the transaction tree. */
         txns=txn_cursor_move(txnc, flags);
         if (txns==HAM_KEY_NOT_FOUND)
-            txn_cursor_set_to_nil(txnc);
+            cursor_set_to_nil(cursor, CURSOR_TXN);
         /* fetch the greatest/last key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
@@ -3336,7 +3335,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
-                        txn_cursor_set_to_nil(txnc);
+                        cursor_set_to_nil(cursor, CURSOR_TXN);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
                     goto bail;
@@ -3409,7 +3408,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
-                txn_cursor_set_to_nil(txnc);
+                cursor_set_to_nil(cursor, CURSOR_TXN);
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
@@ -3570,7 +3569,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    txn_cursor_set_to_nil(txnc);
+                    cursor_set_to_nil(cursor, CURSOR_TXN);
                     (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     if (!cursor_get_duplicate_count(cursor)) {
                         flags&=~HAM_CURSOR_FIRST;
@@ -3622,7 +3621,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
-                txn_cursor_set_to_nil(txnc);
+                cursor_set_to_nil(cursor, CURSOR_TXN);
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the previous item in the btree */
@@ -3798,7 +3797,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    txn_cursor_set_to_nil(txnc);
+                    cursor_set_to_nil(cursor, CURSOR_TXN);
                     (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
                     if (!cursor_get_duplicate_count(cursor)) {
                         flags&=~HAM_CURSOR_LAST;

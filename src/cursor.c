@@ -483,7 +483,9 @@ cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     cursor_set_flags(c, flags);
     cursor_set_db(c, db);
 
-    txn_cursor_create(db, txn, flags, cursor_get_txn_cursor(c), c);
+    /* don't use cursor_get_txn_cursor() because it asserts that the struct
+     * was setup correctly (but this was not yet the case here) */
+    txn_cursor_create(db, txn, flags, &c->_txn_cursor, c);
     btree_cursor_create(db, txn, flags, (btree_cursor_t *)c, c);
 
     *pcursor=c;
@@ -511,8 +513,11 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     if (st)
         return (st);
 
-    /* always clone the txn-cursor, even if transactions are not required */
-    txn_cursor_clone(cursor_get_txn_cursor(src), cursor_get_txn_cursor(c), c);
+    /* always clone the txn-cursor, even if transactions are not required 
+     *
+     * don't use cursor_get_txn_cursor() because it asserts that the struct
+     * was setup correctly (but this was not yet the case here) */
+    txn_cursor_clone(cursor_get_txn_cursor(src), &c->_txn_cursor, c);
 
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         dupecache_clone(cursor_get_dupecache(src), 
@@ -526,12 +531,33 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 ham_bool_t
 cursor_is_nil(ham_cursor_t *cursor, int what)
 {
-    if (what==CURSOR_BTREE)
+    switch (what) {
+      case CURSOR_BTREE:
         return (__btree_cursor_is_nil((btree_cursor_t *)cursor));
-    if (what==CURSOR_TXN)
+      case CURSOR_TXN:
         return (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)));
-    ham_assert(what==0, (""));
-    return (btree_cursor_is_nil((btree_cursor_t *)cursor));
+      default:
+        ham_assert(what==0, (""));
+        return (btree_cursor_is_nil((btree_cursor_t *)cursor));
+    }
+}
+
+void
+cursor_set_to_nil(ham_cursor_t *cursor, int what)
+{
+    switch (what) {
+      case CURSOR_BTREE:
+        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
+        break;
+      case CURSOR_TXN:
+        txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
+        break;
+      default:
+        ham_assert(what==0, (""));
+        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
+        txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
+        break;
+    }
 }
 
 void
@@ -541,3 +567,12 @@ cursor_close(ham_cursor_t *cursor)
     txn_cursor_close(cursor_get_txn_cursor(cursor));
 }
 
+#ifdef HAM_DEBUG
+txn_cursor_t *
+cursor_get_txn_cursor(ham_cursor_t *cursor)
+{
+    txn_cursor_t *txnc=&cursor->_txn_cursor;
+    ham_assert(txn_cursor_get_parent(txnc)==cursor, (""));
+    return (txnc);
+}
+#endif

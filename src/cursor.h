@@ -295,7 +295,12 @@ struct ham_cursor_t
 #define cursor_set_txn(c, txn)          (c)->_txn=(txn)
 
 /** Get a pointer to the Transaction cursor */
-#define cursor_get_txn_cursor(c)        (&(c)->_txn_cursor)
+#ifdef HAM_DEBUG
+extern txn_cursor_t *
+cursor_get_txn_cursor(ham_cursor_t *cursor);
+#else
+#   define cursor_get_txn_cursor(c)     (&(c)->_txn_cursor)
+#endif
 
 /** Get the remote Database handle */
 #define cursor_get_remote_handle(c)     (c)->_remote_handle
@@ -337,13 +342,20 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 /**
  * returns true if a cursor is nil (Not In List - does not point to any key)
  *
- * 'what' is one of the two flags below, or 0
+ * 'what' is one of the flags below
  */
 extern ham_bool_t
 cursor_is_nil(ham_cursor_t *cursor, int what);
 
+#define CURSOR_BOTH         0
 #define CURSOR_BTREE        1
 #define CURSOR_TXN          2
+
+/**
+ * sets the cursor to nil
+ */
+extern void
+cursor_set_to_nil(ham_cursor_t *cursor, int what);
 
 /**
  * Updates (or builds) the dupecache for a cursor

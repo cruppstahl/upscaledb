@@ -65,7 +65,8 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op)
 }
 
 void
-txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, ham_cursor_t *parent)
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, 
+                ham_cursor_t *parent)
 {
     txn_cursor_set_parent(dest, parent);
     txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
@@ -478,8 +479,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     }
 
     /* in any case we set the cursor to nil afterwards */
-    btree_cursor_set_to_nil((btree_cursor_t *)txn_cursor_get_parent(cursor));
-    txn_cursor_set_to_nil(cursor);
+    cursor_set_to_nil(txn_cursor_get_parent(cursor), 0);
 
     return (0);
 }
