@@ -194,11 +194,6 @@ dupecache_reset(dupecache_t *c);
     ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,      \
             ham_size_t *count, ham_u32_t flags);                        \
                                                                         \
-    /**                                                                 \
-     * Returns true if cursor is nil, otherwise false                   \
-     */                                                                 \
-    ham_bool_t (*_fun_is_nil)(ham_cursor_t *cursor);                    \
-                                                                        \
     /** Pointer to the Database object */                               \
     ham_db_t *_db;                                                      \
                                                                         \
@@ -338,6 +333,17 @@ cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  */
 extern ham_status_t
 cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
+
+/**
+ * returns true if a cursor is nil (Not In List - does not point to any key)
+ *
+ * 'what' is one of the two flags below, or 0
+ */
+extern ham_bool_t
+cursor_is_nil(ham_cursor_t *cursor, int what);
+
+#define CURSOR_BTREE        1
+#define CURSOR_TXN          2
 
 /**
  * Updates (or builds) the dupecache for a cursor

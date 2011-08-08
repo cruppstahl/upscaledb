@@ -1734,7 +1734,7 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
     while (c) {
         ham_bool_t hit=HAM_FALSE;
 
-        if (c->_fun_is_nil(c))
+        if (cursor_is_nil(c, 0))
             goto next;
 
         /* if cursor is coupled to an op in the same node: increment 
@@ -1915,7 +1915,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
      *  coupled key is still needed by the caller
      */
     while (c) {
-        if (c->_fun_is_nil(c) || c==current)
+        if (cursor_is_nil(c, 0) || c==current)
             goto next;
         if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN)
             goto next;
@@ -2657,7 +2657,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
-        ham_assert(cursor->_fun_is_nil(cursor), (""));
+        ham_assert(cursor_is_nil(cursor, 0), (""));
         dupecache_reset(cursor_get_dupecache(cursor));
         cursor_set_dupecache_index(cursor, 0);
     }
@@ -2882,7 +2882,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
             return (st);
     }
 
-    if (cursor->_fun_is_nil(cursor) && txn_cursor_is_nil(txnc))
+    if (cursor_is_nil(cursor, 0) && txn_cursor_is_nil(txnc))
         return (HAM_CURSOR_IS_NIL);
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2990,7 +2990,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
      */
     if (cursor_get_txn(cursor) || local_txn) {
         if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
-                && !(cursor->_fun_is_nil(cursor))) {
+                && !(cursor_is_nil(cursor, 0))) {
             st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
             if (st==0)
                 st=db_insert_txn(db, 
@@ -3061,7 +3061,7 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
     txn_opnode_t *node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
     ham_key_t *txnk=txn_opnode_get_key(node);
 
-    ham_assert(!cursor->_fun_is_nil(cursor), (""));
+    ham_assert(!cursor_is_nil(cursor, 0), (""));
     ham_assert(!txn_cursor_is_nil(txnc), (""));
 
     if (cursor_get_flags(btrc)&BTREE_CURSOR_FLAG_COUPLED) {
@@ -3101,13 +3101,6 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
 
     ham_assert(!"shouldn't be here", (""));
     return (0);
-}
-
-static ham_bool_t
-__btree_cursor_is_nil(btree_cursor_t *btc)
-{
-    return (!(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
 }
 
 static ham_status_t
@@ -3423,7 +3416,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
-                            __btree_cursor_is_nil((btree_cursor_t *)cursor)
+                            cursor_is_nil(cursor, CURSOR_BTREE)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
                 /* if we've reached the end of the btree then set the
@@ -3453,7 +3446,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * doesn't have any keys to point at */
         if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
-        if (__btree_cursor_is_nil((btree_cursor_t *)cursor))
+        if (cursor_is_nil(cursor, CURSOR_BTREE))
             btrs=HAM_KEY_NOT_FOUND;
 
         /* now consolidate - if we've reached the end of both trees 
@@ -3636,7 +3629,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
-                            __btree_cursor_is_nil((btree_cursor_t *)cursor)
+                            cursor_is_nil(cursor, CURSOR_BTREE)
                                 ? HAM_CURSOR_LAST
                                 : flags);
                 /* if we've reached the end of the btree then set the
@@ -3666,7 +3659,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * doesn't have any keys to point at */
         if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
-        if (__btree_cursor_is_nil((btree_cursor_t *)cursor))
+        if (cursor_is_nil(cursor, CURSOR_BTREE))
             btrs=HAM_KEY_NOT_FOUND;
 
         /* now consolidate - if we've reached the end of both trees 
@@ -3868,7 +3861,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
      * if the user requests a PREVIOUS, we set it to LAST, resp.
      */
-    if (cursor->_fun_is_nil(cursor)) {
+    if (cursor_is_nil(cursor, 0)) {
         if (flags&HAM_CURSOR_NEXT) {
             flags&=~HAM_CURSOR_NEXT;
             flags|=HAM_CURSOR_FIRST;
@@ -3921,7 +3914,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             && (dupecache_get_count(dc))) {
         ham_bool_t both_not_nil=HAM_FALSE;
         if (!txn_cursor_is_nil(txnc) 
-                && !__btree_cursor_is_nil((btree_cursor_t *)cursor))
+                && !cursor_is_nil(cursor, CURSOR_BTREE))
             both_not_nil=HAM_TRUE;
 
         if (!(flags&HAM_SKIP_DUPLICATES) && (flags&HAM_CURSOR_NEXT)) {

@@ -24,9 +24,6 @@
 
 #define SIZEOF_CURSOR (sizeof(*c)+sizeof(btree_cursor_t)) /* TODO unify structs! */
 
-/* TODO TODO TODO
- * duplicate function is in db.c 
- */
 static ham_bool_t
 __btree_cursor_is_nil(btree_cursor_t *btc)
 {
@@ -201,7 +198,8 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     }
 
     if ((what&DUPE_CHECK_BTREE) && (what&DUPE_CHECK_TXN)) {
-        if (__btree_cursor_is_nil(btc) && !txn_cursor_is_nil(txnc)) {
+        if (cursor_is_nil(cursor, CURSOR_BTREE) 
+                && !cursor_is_nil(cursor, CURSOR_TXN)) {
             ham_bool_t equal_keys;
             (void)cursor_sync(cursor, 0, &equal_keys);
             if (!equal_keys)
@@ -211,7 +209,8 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 
     /* first collect all duplicates from the btree. They're already sorted,
      * therefore we can just append them to our duplicate-cache. */
-    if ((what&DUPE_CHECK_BTREE) && !__btree_cursor_is_nil(btc)) {
+    if ((what&DUPE_CHECK_BTREE)
+            && !cursor_is_nil(cursor, CURSOR_BTREE)) {
         ham_size_t i;
         ham_bool_t needs_free=HAM_FALSE;
         dupe_table_t *table=0;
@@ -237,7 +236,8 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     }
 
     /* read duplicates from the txn-cursor? */
-    if ((what&DUPE_CHECK_TXN) && !txn_cursor_is_nil(txnc)) {
+    if ((what&DUPE_CHECK_TXN)
+            && !cursor_is_nil(cursor, CURSOR_TXN)) {
         txn_op_t *op=txn_cursor_get_coupled_op(txnc);
         txn_opnode_t *node=txn_op_get_node(op);
 
@@ -400,7 +400,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
     if (equal_keys)
         *equal_keys=HAM_FALSE;
 
-    if (__btree_cursor_is_nil((btree_cursor_t *)cursor)) {
+    if (cursor_is_nil(cursor, CURSOR_BTREE)) {
         txn_opnode_t *node;
 		ham_key_t *k;
         if (!txn_cursor_get_coupled_op(txnc))
@@ -421,7 +421,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         if (st==0 && equal_keys && !ham_key_get_approximate_match_type(k))
             *equal_keys=HAM_TRUE;
     }
-    else if (txn_cursor_is_nil(txnc)) {
+    else if (cursor_is_nil(cursor, CURSOR_TXN)) {
         ham_cursor_t *clone;
         ham_key_t *k;
         ham_status_t st=ham_cursor_clone(cursor, &clone);
@@ -521,6 +521,17 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     *dest=c;
     return (0);
+}
+
+ham_bool_t
+cursor_is_nil(ham_cursor_t *cursor, int what)
+{
+    if (what==CURSOR_BTREE)
+        return (__btree_cursor_is_nil((btree_cursor_t *)cursor));
+    if (what==CURSOR_TXN)
+        return (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)));
+    ham_assert(what==0, (""));
+    return (btree_cursor_is_nil((btree_cursor_t *)cursor));
 }
 
 void

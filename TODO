@@ -81,16 +81,23 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x cursor_get_duplicate_count
             x cursor_overwrite
 
+        o unify the "is_nil"-handling and the coupling
+            o use getter/setter instead of flags
+                x coursor_is_nil
+                o coursor_set_to_nil
+                o coursor_is_coupled_to_btree
+                o coursor_is_coupled_to_txnop
+                o coursor_couple_to_btree
+                o coursor_couple_to_txnop
+                o unittests!
+            o valid states: nil, btree, txn; but btree maintains its own 
+                coupling; currently there are TOO MANY FLAGS!! clean them up!
+
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
             o remove SIZEOF_CURSOR in cursor.c
         o unify the dupe caches - btree cursor and upper layer cursor have 
            their own dupe-caches each
-        o unify the "coupling" - either to btree with or without coupling,
-           txn-op or nil -> also get rid of the flags but have a getter
-           and setter function (not sure if we can/should unify it completely)
-        o also, txn_cursor.c is not isolated well enough; it sometimes 
-            accesses the btree_cursor. 
         o cursor_set_lastop: store operation, direction, last compare value
             of txn-key vs. btree-key?
 
@@ -109,6 +116,22 @@ o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
+
+o make sure that all tests are successful and performance is as good as 
+    before (1.1.12)
+
+o should the changeset become part of the log? it would make sense
+
+o opnode: use key instead of key* (pointer) - this saves one allocation 
+    per node
+
+o many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
+
+o also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
+    then teardown() is not called and all other tests fail b/c the file handle
+    is still occupied
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o hamsterdb.com
     x add twitter feed
@@ -149,7 +172,7 @@ x monster-test
     x track memory consumption
     x add/finalize xml output
 
-. need a function to get the txn of a conflict (same as in v2)
+o need a function to get the txn of a conflict (same as in v2)
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 
@@ -198,24 +221,18 @@ o ham_txn_begin receives Environment handle, not Database handle
     o rewrite auto-abort/auto-commit -> move to env
     o what happens if a database is closed, but it's modified by a txn
         that is still active? -> error (verify this!)
+    o need to increase libtool version!
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
 
 o extkeys: don't use txn_id for the 'age', use lsn instead
 
-o opnode: use key instead of key* (pointer) - this saves one allocation 
-    per node
-
 . allow use of transactions without a log/journal
 
 . allow use of transactions for in-memory databases
 
-o should the changeset become part of the log? it would make sense
-
-o many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o when flushing a changeset: sort by offset, use writev()
 

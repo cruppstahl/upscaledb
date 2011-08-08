@@ -863,7 +863,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     cursor->_fun_insert=btree_cursor_insert;
     cursor->_fun_erase=btree_cursor_erase;
     cursor->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
-    cursor->_fun_is_nil=btree_cursor_is_nil;
 }
 
 ham_status_t
