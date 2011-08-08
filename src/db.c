@@ -2731,9 +2731,9 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     /* 
      * first try to find the key in the transaction tree. If it exists and 
      * is NOT a duplicate then return its record. If it does not exist or
-     * it has duplicates then also find the key in the btree.
+     * it has duplicates then lookup the key in the btree.
      *
-     * in non-Transaction mode, we directly search through the btree.
+     * in non-Transaction mode directly search through the btree.
      */
     if (cursor_get_txn(cursor) || local_txn) {
         txn_op_t *op=0;
@@ -2828,6 +2828,7 @@ bail:
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
 
@@ -2841,9 +2842,12 @@ bail:
         if (st) {
             if (local_txn)
                 (void)txn_abort(local_txn, 0);
+            changeset_clear(env_get_changeset(env));
             return (st);
         }
     }
+
+    ham_assert(st==0, (""));
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */

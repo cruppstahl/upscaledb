@@ -71,7 +71,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x cursor_close
             x cursor_clone
             x cursor_insert
-            o cursor_find
+            x cursor_find
             o cursor_erase
             o cursor_get_duplicate_count
             o cursor_overwrite
