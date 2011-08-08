@@ -12,6 +12,7 @@ o review DB_NEW_PAGE_DOES_THRASH_CACHE - the cache age is not really used,
     therefore this flag is most likely not required 
 
 o review statistics - the "cost" management; is this really in use? where?
+    -> leave it as is - Ger might need it again
 
 ------------------------------------------------------------
 
