@@ -2515,8 +2515,11 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     if (cursor_get_txn(cursor) || local_txn) {
-        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, 
-                    &temprec, flags);
+        st=db_insert_txn(db, 
+                    cursor_get_txn(cursor) 
+                      ? cursor_get_txn(cursor) 
+                      : local_txn,
+                    key, &temprec, flags, cursor_get_txn_cursor(cursor));
         if (st==0) {
             dupecache_t *dc=cursor_get_dupecache(cursor);
             cursor_set_flags(cursor, 
@@ -2567,11 +2570,13 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
+
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
 
     /* no need to append the journal entry - it's appended in db_insert_txn(),
-     * which is called by txn_cursor_insert() */
+     * which is called by db_insert_txn() */
 
     /*
      * record numbers: return key in host endian! and store the incremented
@@ -2587,6 +2592,8 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             env_set_dirty(env);
         }
     }
+
+    ham_assert(st==0, (""));
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
@@ -2966,18 +2973,22 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
      * to the txn-tree. 
      *
      * if the txn_cursor is already coupled to a txn-op, then we can use
-     * txn_cursor_overwrite(). Otherwise we have to call txn_cursor_insert().
+     * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
      *
-     * otherwise (transactions are disabled) overwrite the item in the btree.
+     * If transactions are disabled then overwrite the item in the btree.
      */
     if (cursor_get_txn(cursor) || local_txn) {
         if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
                 && !(cursor->_fun_is_nil(cursor))) {
             st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
             if (st==0)
-                st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
-                        btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
-                        &temprec, flags|HAM_OVERWRITE);
+                st=db_insert_txn(db, 
+                    cursor_get_txn(cursor) 
+                      ? cursor_get_txn(cursor) 
+                      : local_txn,
+                    btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
+                    &temprec, flags|HAM_OVERWRITE, 
+                    cursor_get_txn_cursor(cursor));
         }
         else {
             st=txn_cursor_overwrite(cursor_get_txn_cursor(cursor), &temprec);
@@ -3004,7 +3015,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (st);
     }
 
-    /* the journal entry is appended in txn_cursor_insert() */
+    /* the journal entry is appended in db_insert_txn() */
 
     if (temprec.data != record->data)
         allocator_free(env_get_allocator(env), temprec.data);

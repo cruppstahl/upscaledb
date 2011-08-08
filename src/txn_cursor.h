@@ -168,6 +168,8 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
  * inserts an item, places the cursor on the new item
+ *
+ * this function is only used in the unittests
  */
 extern ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,

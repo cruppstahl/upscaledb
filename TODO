@@ -70,7 +70,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x cursor_create
             x cursor_close
             x cursor_clone
-            o cursor_insert
+            x cursor_insert
             o cursor_find
             o cursor_erase
             o cursor_get_duplicate_count
@@ -87,6 +87,8 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
            and setter function (not sure if we can/should unify it completely)
         o also, txn_cursor.c is not isolated well enough; it sometimes 
             accesses the btree_cursor. 
+        o cursor_set_lastop: store operation, direction, last compare value
+            of txn-key vs. btree-key?
 
     o review all cursor functions, make sure there's a clear separation
         between txn-cursor and btree-cursor and the upper layer;
