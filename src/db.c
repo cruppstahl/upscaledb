@@ -2903,7 +2903,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
             (void)cursor_sync(cursor, 0, &dummy);
             st=cursor_update_dupecache(cursor, DUPE_CHECK_TXN|DUPE_CHECK_BTREE);
             if (st)
-                return (st);
+                goto bail;
             *count=dupecache_get_count(dc);
         }
         else {
@@ -2916,6 +2916,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         st=cursor->_fun_get_duplicate_count(cursor, count, flags);
     }
 
+bail:
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
         cursor_set_txn(cursor, 0);
@@ -2923,8 +2924,11 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
+
+    ham_assert(st==0, (""));
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
@@ -3016,16 +3020,19 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (local_txn)
         cursor_set_txn(cursor, 0);
 
+    if (temprec.data != record->data)
+        allocator_free(env_get_allocator(env), temprec.data);
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+        changeset_clear(env_get_changeset(env));
         return (st);
     }
 
-    /* the journal entry is appended in db_insert_txn() */
+    ham_assert(st==0, (""));
 
-    if (temprec.data != record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
+    /* the journal entry is appended in db_insert_txn() */
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
