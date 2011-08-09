@@ -246,7 +246,7 @@ struct ham_cursor_t
 #define cursor_set_flags(c, f)            (c)->_flags=(f)
 
 /** Cursor flag: cursor is coupled to the Transaction cursor (_txn_cursor) */
-#define CURSOR_COUPLED_TO_TXN               0x100000
+#define _CURSOR_COUPLED_TO_TXN            0x100000
 
 /** Get the 'next' pointer of the linked list */
 #define cursor_get_next(c)                (c)->_next
@@ -356,6 +356,30 @@ cursor_is_nil(ham_cursor_t *cursor, int what);
  */
 extern void
 cursor_set_to_nil(ham_cursor_t *cursor, int what);
+
+/**
+ * returns true if a cursor is coupled to the btree
+ */
+#define cursor_is_coupled_to_btree(c)                                         \
+                                 (!(cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN))
+
+/**
+ * returns true if a cursor is coupled to a txn-op
+ */
+#define cursor_is_coupled_to_txnop(c)                                         \
+                                    (cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN)
+
+/**
+ * couples the cursor to a btree key
+ */
+#define cursor_couple_to_btree(c)                                             \
+            (cursor_set_flags(c, cursor_get_flags(c)&(~_CURSOR_COUPLED_TO_TXN)))
+
+/**
+ * couples the cursor to a txn-op
+ */
+#define cursor_couple_to_txnop(c)                                             \
+               (cursor_set_flags(c, cursor_get_flags(c)|_CURSOR_COUPLED_TO_TXN))
 
 /**
  * Updates (or builds) the dupecache for a cursor

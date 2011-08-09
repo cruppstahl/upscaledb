@@ -1739,7 +1739,7 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
 
         /* if cursor is coupled to an op in the same node: increment 
          * duplicate index (if required) */
-        if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN) {
+        if (cursor_is_coupled_to_txnop(c)) {
             txn_cursor_t *txnc=cursor_get_txn_cursor(c);
             txn_opnode_t *n=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
             if (n==node)
@@ -1884,8 +1884,7 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
                     /* else fall through */
                 }
             }
-            cursor_set_flags(pc, 
-                    cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(pc);
             cursor_set_to_nil(pc, CURSOR_TXN);
             cursor=txn_op_get_cursors(op);
             /* set a flag that the cursor just completed an Insert-or-find 
@@ -1917,7 +1916,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
     while (c) {
         if (cursor_is_nil(c, 0) || c==current)
             goto next;
-        if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN)
+        if (cursor_is_coupled_to_txnop(c))
             goto next;
 
         if (__btree_cursor_points_to(c, key)) {
@@ -2521,8 +2520,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                     key, &temprec, flags, cursor_get_txn_cursor(cursor));
         if (st==0) {
             dupecache_t *dc=cursor_get_dupecache(cursor);
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
             /* reset the dupecache, otherwise cursor_has_duplicates()
              * does not update the dupecache correctly */
             dupecache_reset(dc);
@@ -2548,8 +2546,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     else {
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
         if (st==0)
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
     }
 
     /* if we created a temp. txn then clean it up again */
@@ -2639,7 +2636,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         /* if cursor is coupled to a btree item: set the txn-cursor to 
          * nil; otherwise txn_cursor_erase() doesn't know which cursor 
          * part is the valid one */
-        if (!(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN))
+        if (cursor_is_coupled_to_btree(cursor))
             cursor_set_to_nil(cursor, CURSOR_TXN);
         st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
     }
@@ -2653,8 +2650,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* on success: verify that cursor is now nil */
     if (st==0) {
-        cursor_set_flags(cursor, 
-                cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        cursor_couple_to_btree(cursor);
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
         ham_assert(cursor_is_nil(cursor, 0), (""));
         dupecache_reset(cursor_get_dupecache(cursor));
@@ -2765,8 +2761,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             if (!is_equal)
                 btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         }
-        cursor_set_flags(cursor, 
-                cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        cursor_couple_to_txnop(cursor);
         op=txn_cursor_get_coupled_op(txnc);
         if (!cursor_get_duplicate_count(cursor)) {
             if (record)
@@ -2780,8 +2775,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
 btree:
     st=cursor->_fun_find(cursor, key, record, flags);
     if (st==0) {
-        cursor_set_flags(cursor, 
-                cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        cursor_couple_to_btree(cursor);
         /* if btree keys were found: reset the dupecache. The previous
          * call to cursor_get_duplicate_count() already initialized the
          * dupecache, but only with txn keys because the cursor was only
@@ -2797,11 +2791,9 @@ check_dupes:
         dupecache_line_t *e=dupecache_get_elements(
                 cursor_get_dupecache(cursor));
         if (dupecache_line_use_btree(e))
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
         else
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
         cursor_couple_to_dupe(cursor, 1);
         st=0;
 
@@ -2810,7 +2802,7 @@ check_dupes:
             /* TODO this works, but in case of the btree key w/ duplicates
             * it's possible that we read the record twice. I'm not sure if 
             * this can be avoided, though. */
-            if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+            if (cursor_is_coupled_to_txnop(cursor))
                 st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), 
                         record);
             else
@@ -2818,7 +2810,7 @@ check_dupes:
         }
     }
     else {
-        if ((cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) && record)
+        if (cursor_is_coupled_to_txnop(cursor) && record)
             st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
     }
 
@@ -3005,14 +2997,12 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         }
 
         if (st==0)
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
     }
     else {
         st=cursor->_fun_overwrite(cursor, &temprec, flags);
         if (st==0)
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
     }
 
     /* if we created a temp. txn then clean it up again */
@@ -3150,15 +3140,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if btree is empty but txn-tree is not: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
             if (pwhat)
                 *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
             if (pwhat)
                 *pwhat=DUPE_CHECK_BTREE;
         }
@@ -3188,8 +3176,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * */
             if (cmp==0) {
                 ham_bool_t has_dupes;
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 has_dupes=cursor_get_duplicate_count(cursor);
                 if ((txns==HAM_KEY_ERASED_IN_TXN) && !has_dupes) {
                     flags&=~HAM_CURSOR_FIRST;
@@ -3240,15 +3227,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                cursor_couple_to_btree(cursor);
             }
             else {
                 if (txns==HAM_TXN_CONFLICT)
                     return (txns);
                 /* couple to txn */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
             }
         }
         /* every other error code is returned to the caller */
@@ -3280,15 +3265,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if btree is empty but txn-tree is not: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
             if (pwhat)
                 *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
             if (pwhat)
                 *pwhat=DUPE_CHECK_BTREE;
         }
@@ -3318,8 +3301,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * */
             if (cmp==0) {
                 ham_bool_t has_dupes;
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 has_dupes=cursor_get_duplicate_count(cursor);
                 if ((txns==HAM_KEY_ERASED_IN_TXN) && !has_dupes) {
                     flags&=~HAM_CURSOR_LAST;
@@ -3372,13 +3354,11 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* couple to txn */
                 if (txns==HAM_TXN_CONFLICT)
                     return (txns);
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
             }
             else {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                cursor_couple_to_btree(cursor);
             }
         }
         /* every other error code is returned to the caller */
@@ -3398,7 +3378,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* if the cursor is already bound to a txn-op, then move
          * the cursor to the next item in the txn (unless we change the
          * direction - then always move both cursors) */
-        if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+        if (changed_dir || cursor_is_coupled_to_txnop(cursor)) {
             txns=txn_cursor_move(txnc, 
                             txn_cursor_is_nil(txnc) 
                                 ? HAM_CURSOR_FIRST
@@ -3412,7 +3392,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
-        if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+        if (changed_dir || cursor_is_coupled_to_btree(cursor)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
                             cursor_is_nil(cursor, CURSOR_BTREE)
@@ -3460,8 +3440,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if reached end of btree but not of txn-tree: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
             if (txn_cursor_is_erased(txnc)) {
                 st=HAM_KEY_ERASED_IN_TXN;
                 goto bail;
@@ -3471,8 +3450,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * but only if btree entry was not erased or overwritten in 
          * the meantime. if it was, then just move to the next key. */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
             if (st==HAM_SUCCESS 
                     || st==HAM_KEY_ERASED_IN_TXN
@@ -3524,13 +3502,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
                 if (!erased 
-                        && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+                        && cursor_is_coupled_to_btree(cursor)) {
                     /* check if btree key was erased in txn */
                     if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
                 /* if this btree key was erased OR overwritten then couple to
@@ -3564,8 +3541,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                cursor_couple_to_btree(cursor);
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
@@ -3585,8 +3561,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else {
                 /* couple to txn */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 /* check if the txn-cursor points to an erased key */
                 if (txns==0 && txn_cursor_is_erased(txnc)) {
                     flags&=~HAM_CURSOR_FIRST;
@@ -3611,7 +3586,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* if the cursor is already bound to a txn-op, then move
          * the cursor to the previous item in the txn (unless we change the
          * direction - then always move both cursors */
-        if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+        if (changed_dir || cursor_is_coupled_to_txnop(cursor)) {
             txns=txn_cursor_move(txnc, 
                             txn_cursor_is_nil(txnc) 
                                 ? HAM_CURSOR_LAST
@@ -3625,7 +3600,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the previous item in the btree */
-        if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+        if (changed_dir || cursor_is_coupled_to_btree(cursor)) {
             do {
                 btrs=cursor->_fun_move(cursor, 0, 0, 
                             cursor_is_nil(cursor, CURSOR_BTREE)
@@ -3673,8 +3648,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if reached end of btree but not of txn-tree: couple to txn */
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
             if (txn_cursor_is_erased(txnc)) {
                 st=HAM_KEY_ERASED_IN_TXN;
                 goto bail;
@@ -3684,8 +3658,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * but only if btree entry was not erased or overwritten in 
          * the meantime. if it was, then just move to the previous key. */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
             if (st==HAM_SUCCESS 
                     || st==HAM_KEY_ERASED_IN_TXN
@@ -3737,13 +3710,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
                 if (!erased 
-                        && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+                        && cursor_is_coupled_to_btree(cursor)) {
                     /* check if btree key was erased in txn */
                     if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
                 /* if this btree key was erased or overwritten then couple to
@@ -3779,8 +3751,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to txn */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                cursor_couple_to_txnop(cursor);
                 /* check if the txn-cursor points to an erased key */
                 if (txns==0 && txn_cursor_is_erased(txnc)) {
                     flags&=~HAM_CURSOR_LAST;
@@ -3792,8 +3763,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else {
                 /* couple to btree */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+                cursor_couple_to_btree(cursor);
                 /* check if this key was erased in the txn */
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
@@ -3827,7 +3797,7 @@ bail:
      *
      * cases with both are handled above. All other cases are handled here */
     if (pwhat && *pwhat==0) {
-        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+        if (cursor_is_coupled_to_txnop(cursor))
             *pwhat|=DUPE_CHECK_TXN;
         else
             *pwhat|=DUPE_CHECK_BTREE;
@@ -4088,11 +4058,9 @@ move_next_or_prev:
         }
 
         if (op)
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            cursor_couple_to_txnop(cursor);
         else
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            cursor_couple_to_btree(cursor);
 
         if (flags&HAM_CURSOR_FIRST) {
             flags&=~HAM_CURSOR_FIRST;
@@ -4116,7 +4084,7 @@ bail:
      * retrieve key/record, if requested
      */
     if (st==0) {
-        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+        if (cursor_is_coupled_to_txnop(cursor)) {
             txn_op_t *op=txn_cursor_get_coupled_op(txnc);
             /* are we coupled to an ERASE-op? then return an error 
              *

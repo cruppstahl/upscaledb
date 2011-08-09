@@ -87,10 +87,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 x coursor_set_to_nil
                     x one function for 3 states (txn, btree, both)
                     x env.c:1640
-                o coursor_is_coupled_to_btree
-                o coursor_is_coupled_to_txnop
-                o coursor_couple_to_btree
-                o coursor_couple_to_txnop
+                x coursor_is_coupled_to_btree
+                x coursor_is_coupled_to_txnop
+                x coursor_couple_to_btree
+                x coursor_couple_to_txnop
                 o unittests!
                 o documentation in cursor.h!
                 x it seems there are some places where a txn-cursor->parent

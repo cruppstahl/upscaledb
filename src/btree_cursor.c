@@ -415,7 +415,7 @@ btree_cursor_is_nil(btree_cursor_t *cursor)
         return (HAM_FALSE);
     if (btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED)
         return (HAM_FALSE);
-    if (btree_cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+    if (cursor_is_coupled_to_txnop(cursor))
         return (HAM_FALSE);
     return (HAM_TRUE);
 }
@@ -826,7 +826,7 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
          * coupled to the txn
          */
         if ((btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED)
-                || (cursor_get_flags(btc)&CURSOR_COUPLED_TO_TXN)) {
+                || cursor_is_coupled_to_txnop(btc)) {
             /* skip this cursor if its position is < start */
             if (btree_cursor_get_coupled_index(btc)<start) {
                 c=n;

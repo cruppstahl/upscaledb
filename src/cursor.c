@@ -351,14 +351,12 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
     e=dupecache_get_elements(dc)+(dupe_id-1);
     if (dupecache_line_use_btree(e)) {
         btree_cursor_t *btc=(btree_cursor_t *)cursor;
-        cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        cursor_couple_to_btree(cursor);
         btree_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
     }
     else {
         txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));
-        cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        cursor_couple_to_txnop(cursor);
     }
     cursor_set_dupecache_index(cursor, dupe_id);
 }
