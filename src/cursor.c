@@ -616,6 +616,49 @@ cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn,
     return (st);
 }
 
+ham_status_t 
+cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
+            ham_u32_t flags)
+{
+    ham_status_t st=0;
+    ham_db_t *db=cursor_get_db(cursor);
+
+    /*
+     * if we're in transactional mode then just append an "insert/OW" operation
+     * to the txn-tree. 
+     *
+     * if the txn_cursor is already coupled to a txn-op, then we can use
+     * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
+     *
+     * If transactions are disabled then overwrite the item in the btree.
+     */
+    if (txn) {
+        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
+                && !(cursor_is_nil(cursor, 0))) {
+            st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
+            if (st==0)
+                st=db_insert_txn(db, txn, 
+                    btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
+                    record, flags|HAM_OVERWRITE, 
+                    cursor_get_txn_cursor(cursor));
+        }
+        else {
+            st=txn_cursor_overwrite(cursor_get_txn_cursor(cursor), record);
+        }
+
+        if (st==0)
+            cursor_couple_to_txnop(cursor);
+    }
+    else {
+        st=btree_cursor_overwrite((btree_cursor_t *)cursor, record, flags);
+        if (st==0)
+            cursor_couple_to_btree(cursor);
+    }
+
+    return (st);
+}
+
+
 void
 cursor_close(ham_cursor_t *cursor)
 {

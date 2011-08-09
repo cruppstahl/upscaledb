@@ -12,6 +12,59 @@
 /**
  * @brief a base-"class" for cursors
  *
+ * A Cursor is an object which is used to traverse a Database. 
+ *
+ * A Cursor structure is separated into 3 components:
+ * 1. The btree cursor
+ *      This cursor can traverse btrees. It is described and implemented
+ *      in btree_cursor.h.
+ * 2. The txn cursor
+ *      This cursor can traverse txn-trees. It is described and implemented
+ *      in txn_cursor.h.
+ * 3. The upper layer
+ *      This layer acts as a kind of dispatcher for both cursors. If 
+ *      Transactions are used, then it also uses a duplicate cache for 
+ *      consolidating the duplicate keys from both cursors. This layer is
+ *      described and implemented in cursor.h (this file.
+ * 
+ * A Cursor can have several states. It can be 
+ * 1. NIL (not in list) - this is the default state, meaning that the Cursor
+ *      does not point to any key. If the Cursor was initialized, then it's 
+ *      "NIL". If the Cursor was erased (@ref ham_cursor_erase) then it's
+ *      also "NIL".
+ *
+ *      relevant functions:
+ *          @ref cursor_is_nil
+ *          @ref cursor_set_to_nil
+ *
+ * 2. Coupled to the txn-cursor - meaning that the Cursor points to a key
+ *      that is modified in a Transaction. Technically, the txn-cursor points
+ *      to a @ref txn_op_t structure.
+ *
+ *      relevant functions:
+ *          @ref cursor_is_coupled_to_txnop
+ *          @ref cursor_couple_to_txnop
+ *
+ * 3. Coupled to the btree-cursor - meaning that the Cursor points to a key
+ *      that is stored in a Btree. A Btree cursor itself can then be coupled
+ *      (it directly points to a page in the cache) or uncoupled, meaning that
+ *      the page was purged from the cache and has to be fetched from disk when
+ *      the Cursor is used again. This is described in btree_cursor.h.
+ *
+ *      relevant functions:
+ *          @ref cursor_is_coupled_to_btree
+ *          @ref cursor_couple_to_btree
+ *
+ * The dupecache is used when information from the btree and the txn-tree 
+ * is merged. The btree cursor has its private dupecache. Both will be merged
+ * sooner or later. 
+ *
+ * The cursor interface is used in db.c. Many of the functions in db.c use 
+ * a high-level cursor interface (i.e. @ref cursor_create, @ref cursor_clone) 
+ * while some directly use the low-level interfaces of btree_cursor.h and
+ * txn_cursor.h. Over time i will clean this up, trying to maintain a clear
+ * separation of the 3 layers, and only accessing the top-level layer in
+ * cursor.h. This is work in progress.
  */
 
 #ifndef HAM_CURSORS_H__
@@ -157,12 +210,6 @@ dupecache_reset(dupecache_t *c);
  * by every other cursor (i.e. btree, hashdb etc).
  */
 #define CURSOR_DECLARATIONS(clss)                                       \
-    /**                                                                 \
-     * Overwrite the record of this cursor                              \
-     */                                                                 \
-    ham_status_t (*_fun_overwrite)(clss *cu, ham_record_t *record,      \
-            ham_u32_t flags);                                           \
-                                                                        \
     /**                                                                 \
      * Move the cursor                                                  \
      */                                                                 \
@@ -375,6 +422,16 @@ cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags);
 extern ham_status_t
 cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn, 
             ham_u32_t *pcount, ham_u32_t flags);
+
+/**
+ * Overwrites the record of the current key
+ *
+ * The Transaction is passed as a separate pointer since it might be a 
+ * local/temporary Transaction that was created only for this single operation.
+ */
+extern ham_status_t 
+cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
+            ham_u32_t flags);
 
 /**
  * Updates (or builds) the dupecache for a cursor

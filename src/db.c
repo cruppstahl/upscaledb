@@ -2941,40 +2941,10 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         cursor_set_txn(cursor, local_txn);
     }
 
-    /*
-     * if we're in transactional mode then just append an "insert/OW" operation
-     * to the txn-tree. 
-     *
-     * if the txn_cursor is already coupled to a txn-op, then we can use
-     * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
-     *
-     * If transactions are disabled then overwrite the item in the btree.
-     */
-    if (cursor_get_txn(cursor) || local_txn) {
-        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
-                && !(cursor_is_nil(cursor, 0))) {
-            st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
-            if (st==0)
-                st=db_insert_txn(db, 
-                    cursor_get_txn(cursor) 
-                      ? cursor_get_txn(cursor) 
-                      : local_txn,
-                    btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
-                    &temprec, flags|HAM_OVERWRITE, 
-                    cursor_get_txn_cursor(cursor));
-        }
-        else {
-            st=txn_cursor_overwrite(cursor_get_txn_cursor(cursor), &temprec);
-        }
-
-        if (st==0)
-            cursor_couple_to_txnop(cursor);
-    }
-    else {
-        st=cursor->_fun_overwrite(cursor, &temprec, flags);
-        if (st==0)
-            cursor_couple_to_btree(cursor);
-    }
+    /* this function will do all the work */
+    st=cursor_overwrite(cursor, 
+                    cursor_get_txn(cursor) ? cursor_get_txn(cursor) : local_txn,
+                    &temprec, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

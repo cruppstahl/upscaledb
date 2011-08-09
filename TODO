@@ -99,11 +99,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 coupling; currently there are TOO MANY FLAGS!! clean them up!
                 -> no, should be ok for now
 
-        o cleanup cursor.h 
+        x cleanup cursor.h 
             x which functions are required to be public, which are not? 
-            o make sure that the btree_cursor* and txn_cursor* functions are 
-                not called from the upper layers 
-            o get rid of the function pointers
+            x get rid of the function pointers
                 x cursor_create
                 x cursor_close
                 x cursor_clone
@@ -111,9 +109,8 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 x cursor_find
                 x cursor_erase
                 x cursor_get_duplicate_count
-                o cursor_overwrite
-                o cursor_move
-            o add documentation
+                x cursor_overwrite
+            x add documentation
 
         o also cleanup btree_cursor.h (and btree_cursor.c)
             o remove functions that are not required
@@ -136,7 +133,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         o cursor_set_lastop: store operation, direction, last compare value
             of txn-key vs. btree-key?
 
-    o completely rewrite _local_cursor_move
+    o completely rewrite _local_cursor_move and move to cursor.c!
 
     o there are a lot of areas where a btree cursor is uncoupled, just to 
         retrieve the key and to couple the txn-key. that's not efficient

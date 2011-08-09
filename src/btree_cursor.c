@@ -513,10 +513,7 @@ btree_cursor_close(btree_cursor_t *c)
     dupecache_clear(cursor_get_dupecache(c));
 }
 
-/**                                                                 
- * overwrite the record of this cursor                              
- */                                                                 
-static ham_status_t
+ham_status_t
 btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
             ham_u32_t flags)
 {
@@ -846,7 +843,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 {
     btree_cursor_set_parent(cursor, parent);
 
-    cursor->_fun_overwrite=btree_cursor_overwrite;
     cursor->_fun_move=btree_cursor_move;
 }
 

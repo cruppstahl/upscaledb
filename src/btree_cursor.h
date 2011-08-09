@@ -235,6 +235,13 @@ extern ham_status_t
 btree_cursor_get_duplicate_count(btree_cursor_t *c, ham_size_t *count, 
                 ham_u32_t flags);
 
+/**                                                                 
+ * Overwrite the record of this cursor                              
+ */                                                                 
+extern ham_status_t
+btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
+                ham_u32_t flags);
+
 /**
  * retrieves the duplicate table of the current key; memory in ptable has
  * to be released by the caller.
