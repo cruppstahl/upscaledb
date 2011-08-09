@@ -8,6 +8,16 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
+o mail from Jake - performance regressions with frequent txn-aborts
+    x fixed in code
+    o run lessfs power-off recovery tests
+    o add to monster testsuite or to unittests
+    o run monster tests
+
+o cleanup this TODO file - need better requirements tracking
+
+-----------------------------------------------------------------------------
+
 o review DB_NEW_PAGE_DOES_THRASH_CACHE - the cache age is not really used,
     therefore this flag is most likely not required 
 
