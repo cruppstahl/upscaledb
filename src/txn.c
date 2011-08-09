@@ -254,8 +254,6 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
             return (st);
     }
 
-    env_set_txn(env, 0);
-
     /*
      * undo all operations from this transaction
      * 
@@ -307,13 +305,13 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
             (void)freel_mark_free(env, 0, page_get_self(head), 
                     env_get_pagesize(env), HAM_TRUE);
         }
-        else {
+        else if (page_get_dirty_txn(head)==txn_get_id(txn)) {
             /* remove the 'delete pending' flag */
             page_set_npers_flags(head, 
                     page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
 
-            /* if the page is dirty, and RECOVERY is enabled: recreate
-             * the original, unmodified page from the log */
+            /* if the page is dirty and was modified in this transaction:
+             * recreate the original, unmodified page from the log */
             if (env_get_log(env) && page_is_dirty(head)) {
                 st=ham_log_recreate(env_get_log(env), head);
                 if (st)
@@ -326,6 +324,8 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     }
 
     ham_assert(txn_get_pagelist(txn)==0, (0));
+
+    env_set_txn(env, 0);
 
     /* now it's the time to purge caches */
     env_purge_cache(env);

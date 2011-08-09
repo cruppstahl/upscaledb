@@ -1,3 +1,8 @@
+Jul 09, 2011 - chris ---------------------------------------------------
+o bugfix: when aborting a transaction, modified pages would be recovered from 
+    the log even if the current transaction was read-only. This caused a 
+    performance regression compared to 1.1.9 (thanks, Jake)
+
 Jul 01, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.12
 
