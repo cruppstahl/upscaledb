@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.12                  Fri Jul  1 09:01:26 CEST 2011
+hamsterdb Embedded Storage 1.1.13                  Tue Aug  9 19:28:51 CEST 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,9 +12,10 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a bug in the cache. The cache was not purged correctly, and
-the memory consumption exceeded the cache limits that were configured with
-HAM_PARAM_CACHESIZE.
+This release fixes a performance regression. When aborting a Transaction, 
+modified pages would be recreated from the log even if the current 
+Transaction was read-only. This caused a performance regression compared 
+to 1.1.9.
 
 2. Changes
 
@@ -22,7 +23,8 @@ New Features
 * none
 
 Bugfixes
-* cache limits are now respected
+* when aborting a Transaction only re-create pages if they were modified in
+    the aborted Transaction
 
 Other Changes
 * none
@@ -31,10 +33,10 @@ To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- improve Transaction handling (see http://crupp.de/2010/10/14/a-new-implementation-for-transactions/)
-- update .NET wrapper
-- update Java wrapper
-- update Python wrapper
+- This "stable" development branch is in maintenance mode. Active developments
+and new features are only added to the "bleeding_edge" branch (2.0.0.rc1 and 
+newer) which will replace the "master" branch after going through the
+current stabilization phase.
 
 4. Features
 
