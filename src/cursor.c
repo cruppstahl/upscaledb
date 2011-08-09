@@ -197,7 +197,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             return (st);
     }
 
-    if ((what&DUPE_CHECK_BTREE) && (what&DUPE_CHECK_TXN)) {
+    if ((what&CURSOR_BTREE) && (what&CURSOR_TXN)) {
         if (cursor_is_nil(cursor, CURSOR_BTREE) 
                 && !cursor_is_nil(cursor, CURSOR_TXN)) {
             ham_bool_t equal_keys;
@@ -209,7 +209,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 
     /* first collect all duplicates from the btree. They're already sorted,
      * therefore we can just append them to our duplicate-cache. */
-    if ((what&DUPE_CHECK_BTREE)
+    if ((what&CURSOR_BTREE)
             && !cursor_is_nil(cursor, CURSOR_BTREE)) {
         ham_size_t i;
         ham_bool_t needs_free=HAM_FALSE;
@@ -236,7 +236,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     }
 
     /* read duplicates from the txn-cursor? */
-    if ((what&DUPE_CHECK_TXN)
+    if ((what&CURSOR_TXN)
             && !cursor_is_nil(cursor, CURSOR_TXN)) {
         txn_op_t *op=txn_cursor_get_coupled_op(txnc);
         txn_opnode_t *node=txn_op_get_node(op);
@@ -458,9 +458,9 @@ cursor_get_duplicate_count(ham_cursor_t *cursor)
         return (HAM_FALSE);
 
     if (txn_cursor_get_coupled_op(txnc))
-        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
+        cursor_update_dupecache(cursor, CURSOR_BTREE|CURSOR_TXN);
     else
-        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
+        cursor_update_dupecache(cursor, CURSOR_BTREE);
 
     return (dupecache_get_count(cursor_get_dupecache(cursor)));
 }

@@ -384,14 +384,11 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what);
 /**
  * Updates (or builds) the dupecache for a cursor
  *
- * the 'what' parameter specifies if the dupecache is initialized from
- * btree, from txn or both (see below).
+ * The 'what' parameter specifies if the dupecache is initialized from
+ * btree (CURSOR_BTREE), from txn (CURSOR_TXN) or both.
  */
 extern ham_status_t
 cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what);
-
-#define DUPE_CHECK_BTREE        1
-#define DUPE_CHECK_TXN          2
 
 /**
  * Couples the cursor to a duplicate in the dupe table
