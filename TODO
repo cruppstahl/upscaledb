@@ -82,7 +82,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x cursor_overwrite
 
         o unify the "is_nil"-handling and the coupling
-            o use getter/setter instead of flags
+            x use getter/setter instead of flags
                 x coursor_is_nil
                 x coursor_set_to_nil
                     x one function for 3 states (txn, btree, both)
@@ -91,8 +91,6 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 x coursor_is_coupled_to_txnop
                 x coursor_couple_to_btree
                 x coursor_couple_to_txnop
-                o unittests!
-                o documentation in cursor.h!
                 x it seems there are some places where a txn-cursor->parent
                     points to a cursor, but cursor->txn_cursor is a different
                     structure. verify with asserts (i.e. in 
@@ -119,6 +117,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
     o cleanup txn_cursor_insert, _erase, _find, _overwrite - move to cursor.c,
 	simplify the functions in db.c
+
+    o unittests for all new functions in cursor.h
+    o documentation in cursor.h!
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
