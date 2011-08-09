@@ -170,12 +170,6 @@ dupecache_reset(dupecache_t *c);
             ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
-     * Erases the key from the index and positions the cursor to the    \
-     * next key                                                         \
-     */                                                                 \
-    ham_status_t (*_fun_erase)(clss *cu, ham_u32_t flags);              \
-                                                                        \
-    /**                                                                 \
      * Count the number of records stored with the referenced key.      \
      */                                                                 \
     ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,      \
@@ -367,6 +361,16 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what);
  */
 #define cursor_couple_to_txnop(c)                                             \
                (cursor_set_flags(c, cursor_get_flags(c)|_CURSOR_COUPLED_TO_TXN))
+
+/**
+ * Erases the key/record pair that the cursor points to. 
+ *
+ * On success, the cursor is then set to nil. The Transaction is passed 
+ * as a separate pointer, since it might be a local/temporary Transaction 
+ * that was created only for this single operation.
+ */
+extern ham_status_t
+cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags);
 
 /**
  * Updates (or builds) the dupecache for a cursor

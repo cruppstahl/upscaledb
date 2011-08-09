@@ -2626,18 +2626,10 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         cursor_set_txn(cursor, local_txn);
     }
 
-    /* if transactions are enabled: add a erase-op to the txn-tree */
-    if (cursor_get_txn(cursor) || local_txn) {
-        /* if cursor is coupled to a btree item: set the txn-cursor to 
-         * nil; otherwise txn_cursor_erase() doesn't know which cursor 
-         * part is the valid one */
-        if (cursor_is_coupled_to_btree(cursor))
-            cursor_set_to_nil(cursor, CURSOR_TXN);
-        st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
-    }
-    else {
-        st=cursor->_fun_erase(cursor, flags);
-    }
+    /* this function will do all the work */
+    st=cursor_erase(cursor, 
+                    cursor_get_txn(cursor) ? cursor_get_txn(cursor) : local_txn,
+                    flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

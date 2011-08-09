@@ -559,6 +559,29 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what)
     }
 }
 
+ham_status_t
+cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st;
+
+    /* if transactions are enabled: add a erase-op to the txn-tree */
+    if (txn) {
+        /* if cursor is coupled to a btree item: set the txn-cursor to 
+         * nil; otherwise txn_cursor_erase() doesn't know which cursor 
+         * part is the valid one */
+        if (cursor_is_coupled_to_btree(cursor))
+            cursor_set_to_nil(cursor, CURSOR_TXN);
+        st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
+    }
+    else {
+        st=btree_cursor_erase((btree_cursor_t *)cursor, flags);
+    }
+
+    if (st==0)
+        cursor_set_to_nil(cursor, 0);
+    return (st);
+}
+
 void
 cursor_close(ham_cursor_t *cursor)
 {

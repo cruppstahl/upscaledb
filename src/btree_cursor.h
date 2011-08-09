@@ -221,6 +221,12 @@ extern ham_status_t
 btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record, 
             ham_u32_t flags);
 
+/**                                                                 
+ * Erases the key from the index; afterwards, the cursor points to NIL
+ */                                                                 
+extern ham_status_t
+btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags);
+
 /**
  * retrieves the duplicate table of the current key; memory in ptable has
  * to be released by the caller.

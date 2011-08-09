@@ -706,10 +706,7 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
     return (0);
 }
 
-/**                                                                 
- * erases the key from the index; afterwards, the cursor points to NIL
- */                                                                 
-static ham_status_t
+ham_status_t
 btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
@@ -856,7 +853,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     cursor->_fun_overwrite=btree_cursor_overwrite;
     cursor->_fun_move=btree_cursor_move;
-    cursor->_fun_erase=btree_cursor_erase;
     cursor->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
 }
 
