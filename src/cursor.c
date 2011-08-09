@@ -412,7 +412,8 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
                     : HAM_FIND_LEQ_MATCH);
         /* the flag DONT_LOAD_KEY does not load the key if there's an
          * approx match - it only positions the cursor */
-        st=cursor->_fun_find(cursor, k, 0, CURSOR_SYNC_DONT_LOAD_KEY|flags);
+        st=btree_cursor_find((btree_cursor_t *)cursor, k, 0, 
+                CURSOR_SYNC_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
          * set fresh_start to false; otherwise do_local_cursor_move
          * will move the btree cursor again */

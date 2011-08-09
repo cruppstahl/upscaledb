@@ -2738,7 +2738,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
                 ham_bool_t is_equal;
-                (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
+                (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 
+                        &is_equal);
                 if (!is_equal)
                     btree_cursor_set_to_nil((btree_cursor_t *)cursor);
 
@@ -2768,7 +2769,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     }
 
 btree:
-    st=cursor->_fun_find(cursor, key, record, flags);
+    st=btree_cursor_find((btree_cursor_t *)cursor, key, record, flags);
     if (st==0) {
         cursor_couple_to_btree(cursor);
         /* if btree keys were found: reset the dupecache. The previous

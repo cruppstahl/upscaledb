@@ -170,13 +170,6 @@ dupecache_reset(dupecache_t *c);
             ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
-     * Find a key in the index and positions the cursor                 \
-     * on this key                                                      \
-     */                                                                 \
-    ham_status_t (*_fun_find)(clss *cu, ham_key_t *key,                 \
-                    ham_record_t *record, ham_u32_t flags);             \
-                                                                        \
-    /**                                                                 \
      * Erases the key from the index and positions the cursor to the    \
      * next key                                                         \
      */                                                                 \
