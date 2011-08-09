@@ -34,14 +34,14 @@ extern "C" {
  */
 typedef struct dupecache_line_t {
 
-    /** are we using btree or txn duplicates? */
+    /** Are we using btree or txn duplicates? */
     ham_bool_t _use_btree;
 
     union {
-        /** the btree duplicate index (of the original btree dupe table) */
+        /** The btree duplicate index (of the original btree dupe table) */
         ham_u64_t _btree_dupeidx;
 
-        /** the txn op structure */
+        /** The txn op structure */
         txn_op_t *_op;
     } _u;
 
@@ -70,16 +70,16 @@ typedef struct dupecache_line_t {
  * The dupecache is a cache for duplicate keys
  */
 typedef struct dupecache_t {
-    /** the cursor - needed for allocator etc */
+    /** The cursor - needed for allocator etc */
     struct ham_cursor_t *_cursor;
 
-    /** capacity of this cache */
+    /** Capacity of this cache */
     ham_size_t _capacity;
 
-    /** number of elements tracked in this cache */
+    /** Number of elements tracked in this cache */
     ham_size_t _count;
 
-    /** the cached elements */
+    /** The cached elements */
     dupecache_line_t *_elements;
 
 } dupecache_t;
@@ -109,44 +109,44 @@ typedef struct dupecache_t {
 #define dupecache_get_elements(dc)          (dc)->_elements
 
 /**
- * creates a new dupecache structure
+ * Creates a new dupecache structure
  */
 extern ham_status_t
 dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
                     ham_size_t capacity);
 
 /**
- * clones two dupe-caches
+ * Clones two dupe-caches
  */
 extern ham_status_t
 dupecache_clone(dupecache_t *src, dupecache_t *dest);
 
 /**
- * inserts a new item somewhere in the cache; resizes the cache if necessary
+ * Inserts a new item somewhere in the cache; resizes the cache if necessary
  */
 extern ham_status_t
 dupecache_insert(dupecache_t *c, ham_u32_t position, dupecache_line_t *dupe);
 
 /**
- * appends a new item; resizes the cache if necessary
+ * Appends a new item; resizes the cache if necessary
  */
 extern ham_status_t
 dupecache_append(dupecache_t *c, dupecache_line_t *dupe);
 
 /**
- * erases an item 
+ * Erases an item 
  */
 extern ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position);
 
 /**
- * clears the cache; frees all resources
+ * Clears the cache; frees all resources
  */
 extern void
 dupecache_clear(dupecache_t *c);
 
 /**
- * empties the cache; will not free resources
+ * Empties the cache; will not free resources
  */
 extern void
 dupecache_reset(dupecache_t *c);
@@ -327,20 +327,20 @@ cursor_get_txn_cursor(ham_cursor_t *cursor);
 #define CURSOR_LOOKUP_INSERT            0x10000
 
 /**
- * creates a new cursor
+ * Creates a new cursor
  */
 extern ham_status_t
 cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_cursor_t **pcursor);
 
 /**
- * clones an existing cursor
+ * Clones an existing cursor
  */
 extern ham_status_t
 cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 
 /**
- * returns true if a cursor is nil (Not In List - does not point to any key)
+ * Returns true if a cursor is nil (Not In List - does not point to any key)
  *
  * 'what' is one of the flags below
  */
@@ -352,31 +352,31 @@ cursor_is_nil(ham_cursor_t *cursor, int what);
 #define CURSOR_TXN          2
 
 /**
- * sets the cursor to nil
+ * Sets the cursor to nil
  */
 extern void
 cursor_set_to_nil(ham_cursor_t *cursor, int what);
 
 /**
- * returns true if a cursor is coupled to the btree
+ * Returns true if a cursor is coupled to the btree
  */
 #define cursor_is_coupled_to_btree(c)                                         \
                                  (!(cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN))
 
 /**
- * returns true if a cursor is coupled to a txn-op
+ * Returns true if a cursor is coupled to a txn-op
  */
 #define cursor_is_coupled_to_txnop(c)                                         \
                                     (cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN)
 
 /**
- * couples the cursor to a btree key
+ * Couples the cursor to a btree key
  */
 #define cursor_couple_to_btree(c)                                             \
             (cursor_set_flags(c, cursor_get_flags(c)&(~_CURSOR_COUPLED_TO_TXN)))
 
 /**
- * couples the cursor to a txn-op
+ * Couples the cursor to a txn-op
  */
 #define cursor_couple_to_txnop(c)                                             \
                (cursor_set_flags(c, cursor_get_flags(c)|_CURSOR_COUPLED_TO_TXN))
@@ -401,34 +401,46 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
  * Checks if a btree cursor points to a key that was overwritten or erased
  * in the txn-cursor
  *
- * this is needed in db.c when moving the cursor backwards/forwards and 
+ * This is needed in db.c when moving the cursor backwards/forwards and 
  * consolidating the btree and the txn-tree
  */
 extern ham_status_t
 cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
 
 /**
- * synchronizes txn- and btree-cursor
+ * Synchronizes txn- and btree-cursor
  *
- * if txn-cursor is nil then try to move the txn-cursor to the same key
- * as the btree cursor
- * if btree-cursor is nil then try to move the btree-cursor to the same key
- * as the txn cursor
- * if both are nil, or both are valid, then nothing happens
+ * If txn-cursor is nil then try to move the txn-cursor to the same key
+ * as the btree cursor.
+ * If btree-cursor is nil then try to move the btree-cursor to the same key
+ * as the txn cursor.
+ * If both are nil, or both are valid, then nothing happens
  *
- * equal_key is set to true if the keys in both cursors are equal
+ * equal_key is set to true if the keys in both cursors are equal.
  */
 extern ham_status_t
 cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 
 /**
- * returns the number of duplicates
+ * flag for cursor_sync: do not use approx matching if the key
+ * is not available
+ */
+#define CURSOR_SYNC_ONLY_EQUAL_KEY            0x200000
+
+/**
+ * flag for cursor_sync: do not load the key if there's an approx.
+ * match. Only positions the cursor.
+ */
+#define CURSOR_SYNC_DONT_LOAD_KEY             0x100000
+
+/**
+ * Returns the number of duplicates
  */
 extern ham_size_t
 cursor_get_duplicate_count(ham_cursor_t *cursor);
 
 /**
- * closes an existing cursor
+ * Closes an existing cursor
  */
 extern void
 cursor_close(ham_cursor_t *cursor);

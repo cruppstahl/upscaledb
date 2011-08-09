@@ -100,7 +100,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 -> no, should be ok for now
 
         o cleanup cursor.h 
-            o which functions are required to be public, which are not? 
+            x which functions are required to be public, which are not? 
             o make sure that the btree_cursor* and txn_cursor* functions are 
                 not called from the upper layers 
             o get rid of the function pointers
@@ -116,6 +116,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             o add documentation
 
         o also cleanup btree_cursor.h
+            o remove functions that are not required
+            o add documentation
+
+        o also cleanup txn_cursor.h
             o remove functions that are not required
             o add documentation
 

@@ -2743,7 +2743,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
                 ham_bool_t is_equal;
-                (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+                (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
                 if (!is_equal)
                     btree_cursor_set_to_nil((btree_cursor_t *)cursor);
 
@@ -2757,7 +2757,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         }
         else {
             ham_bool_t is_equal;
-            (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, &is_equal);
+            (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
             if (!is_equal)
                 btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         }
@@ -3461,7 +3461,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * couple the txn-cursor, otherwise cursor_update_dupecache
                  * ignores the txn part */
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
                     dupecache_reset(cursor_get_dupecache(cursor));
                     cursor_set_dupecache_index(cursor, 0);
@@ -3546,7 +3546,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     cursor_set_to_nil(cursor, CURSOR_TXN);
-                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     if (!cursor_get_duplicate_count(cursor)) {
                         flags&=~HAM_CURSOR_FIRST;
                         flags|=HAM_CURSOR_NEXT;
@@ -3669,7 +3669,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * couple the txn-cursor, otherwise cursor_update_dupecache
                  * ignores the txn part */
                 if (st==HAM_KEY_ERASED_IN_TXN) {
-                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
                     dupecache_reset(cursor_get_dupecache(cursor));
                     cursor_set_dupecache_index(cursor, 0);
@@ -3768,7 +3768,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     cursor_set_to_nil(cursor, CURSOR_TXN);
-                    (void)cursor_sync(cursor, BTREE_CURSOR_ONLY_EQUAL_KEY, 0);
+                    (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     if (!cursor_get_duplicate_count(cursor)) {
                         flags&=~HAM_CURSOR_LAST;
                         flags|=HAM_CURSOR_PREVIOUS;

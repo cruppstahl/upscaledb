@@ -78,18 +78,6 @@ struct btree_cursor_t
 /** cursor flag: the cursor is uncoupled */
 #define BTREE_CURSOR_FLAG_UNCOUPLED            2
 
-/**
- * cursor flag for btree_cursor_find: do not load the key, if there's an approx.
- * match. Only positions the cursor
- */
-#define BTREE_CURSOR_DONT_LOAD_KEY             0x100000
-
-/**
- * cursor flag for btree_cursor_find: do not use approx matching if the key
- * is not available
- */
-#define BTREE_CURSOR_ONLY_EQUAL_KEY            0x200000
-
 /** get the parent cursor */
 #define btree_cursor_get_parent(c)            (c)->_parent
 
