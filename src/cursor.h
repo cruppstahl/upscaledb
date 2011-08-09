@@ -169,12 +169,6 @@ dupecache_reset(dupecache_t *c);
     ham_status_t (*_fun_move)(clss *cu, ham_key_t *key,                 \
             ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
-    /**                                                                 \
-     * Count the number of records stored with the referenced key.      \
-     */                                                                 \
-    ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,      \
-            ham_size_t *count, ham_u32_t flags);                        \
-                                                                        \
     /** Pointer to the Database object */                               \
     ham_db_t *_db;                                                      \
                                                                         \
@@ -366,11 +360,21 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what);
  * Erases the key/record pair that the cursor points to. 
  *
  * On success, the cursor is then set to nil. The Transaction is passed 
- * as a separate pointer, since it might be a local/temporary Transaction 
+ * as a separate pointer since it might be a local/temporary Transaction 
  * that was created only for this single operation.
  */
 extern ham_status_t
 cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags);
+
+/**
+ * Retrieves the number of duplicates of the current key
+ *
+ * The Transaction is passed as a separate pointer since it might be a 
+ * local/temporary Transaction that was created only for this single operation.
+ */
+extern ham_status_t
+cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn, 
+            ham_u32_t *pcount, ham_u32_t flags);
 
 /**
  * Updates (or builds) the dupecache for a cursor
@@ -425,10 +429,11 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 #define CURSOR_SYNC_DONT_LOAD_KEY             0x100000
 
 /**
- * Returns the number of duplicates
+ * Returns the number of duplicates in the duplicate cache
+ * The duplicate cache is updated if necessary
  */
 extern ham_size_t
-cursor_get_duplicate_count(ham_cursor_t *cursor);
+cursor_get_dupecache_count(ham_cursor_t *cursor);
 
 /**
  * Closes an existing cursor

@@ -227,6 +227,14 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
 extern ham_status_t
 btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags);
 
+/**                                                                    
+ * Count the number of records stored with the referenced key, i.e.
+ * count the number of duplicates for the current key.        
+ */                                                                    
+extern ham_status_t
+btree_cursor_get_duplicate_count(btree_cursor_t *c, ham_size_t *count, 
+                ham_u32_t flags);
+
 /**
  * retrieves the duplicate table of the current key; memory in ptable has
  * to be released by the caller.

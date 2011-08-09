@@ -758,17 +758,12 @@ btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
     return (0);
 }
 
-/**                                                                    
- * Count the number of records stored with the referenced key, i.e.
- * count the number of duplicates for the current key.        
- */                                                                    
-static ham_status_t
-btree_cursor_get_duplicate_count(ham_cursor_t *db_cursor, 
+ham_status_t
+btree_cursor_get_duplicate_count(btree_cursor_t *c, 
                 ham_size_t *count, ham_u32_t flags)
 {
-    btree_cursor_t *cursor = (btree_cursor_t *)db_cursor;
     ham_status_t st;
-    ham_db_t *db=btree_cursor_get_db(cursor);
+    ham_db_t *db=btree_cursor_get_db(c);
     ham_env_t *env = db_get_env(db);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
     ham_page_t *page;
@@ -779,17 +774,17 @@ btree_cursor_get_duplicate_count(ham_cursor_t *db_cursor,
         return (HAM_NOT_INITIALIZED);
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_UNCOUPLED) {
-        st=btree_cursor_couple(cursor);
+    if (btree_cursor_get_flags(c)&BTREE_CURSOR_FLAG_UNCOUPLED) {
+        st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED))
+    else if (!(btree_cursor_get_flags(c)&BTREE_CURSOR_FLAG_COUPLED))
         return (HAM_CURSOR_IS_NIL);
 
-    page=btree_cursor_get_coupled_page(cursor);
+    page=btree_cursor_get_coupled_page(c);
     node=page_get_btree_node(page);
-    entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(cursor));
+    entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES)) {
         *count=1;
@@ -853,7 +848,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     cursor->_fun_overwrite=btree_cursor_overwrite;
     cursor->_fun_move=btree_cursor_move;
-    cursor->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
 }
 
 ham_status_t

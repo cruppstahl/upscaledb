@@ -450,7 +450,7 @@ bail:
 }
 
 ham_size_t
-cursor_get_duplicate_count(ham_cursor_t *cursor)
+cursor_get_dupecache_count(ham_cursor_t *cursor)
 {
     ham_db_t *db=cursor_get_db(cursor);
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
@@ -579,6 +579,40 @@ cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags)
 
     if (st==0)
         cursor_set_to_nil(cursor, 0);
+    return (st);
+}
+
+ham_status_t
+cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn, 
+            ham_u32_t *pcount, ham_u32_t flags)
+{
+    ham_status_t st=0;
+    ham_db_t *db=cursor_get_db(cursor);
+
+    *pcount=0;
+
+    if (txn) {
+        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+            ham_bool_t dummy;
+            dupecache_t *dc=cursor_get_dupecache(cursor);
+
+            (void)cursor_sync(cursor, 0, &dummy);
+            st=cursor_update_dupecache(cursor, CURSOR_TXN|CURSOR_BTREE);
+            if (st)
+                return (st);
+            *pcount=dupecache_get_count(dc);
+        }
+        else {
+            /* obviously the key exists, since the cursor is coupled to
+             * a valid item */
+            *pcount=1;
+        }
+    }
+    else {
+        st=btree_cursor_get_duplicate_count((btree_cursor_t *)cursor, 
+                    pcount, flags);
+    }
+
     return (st);
 }
 
