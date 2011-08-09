@@ -2423,11 +2423,6 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 static ham_status_t
 _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
-    ham_db_t *db=cursor_get_db(src);
-    ham_env_t *env;
-
-    env = db_get_env(db);
-
     return (cursor_clone(src, dest));
 }
 
@@ -2544,7 +2539,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
     else {
-        st=cursor->_fun_insert(cursor, key, &temprec, flags);
+        st=btree_cursor_insert((btree_cursor_t *)cursor, key, &temprec, flags);
         if (st==0)
             cursor_couple_to_btree(cursor);
     }

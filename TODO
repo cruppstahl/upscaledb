@@ -104,10 +104,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             o make sure that the btree_cursor* and txn_cursor* functions are 
                 not called from the upper layers 
             o get rid of the function pointers
-                o cursor_create
-                o cursor_close
-                o cursor_clone
-                o cursor_insert
+                x cursor_create
+                x cursor_close
+                x cursor_clone
+                x cursor_insert
                 o cursor_find
                 o cursor_erase
                 o cursor_get_duplicate_count
@@ -139,10 +139,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         retrieve the key and to couple the txn-key. that's not efficient
 
     o cleanup txn_cursor_insert, _erase, _find, _overwrite - move to cursor.c,
-	simplify the functions in db.c
+	    simplify the functions in db.c
 
     o unittests for all new functions in cursor.h
-    o documentation in cursor.h!
 
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
@@ -169,6 +168,9 @@ o also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
     then teardown() is not called and all other tests fail b/c the file handle
     is still occupied
 
+o check the output of the monster tests - is device->read/write required at
+    all? any other functions that are not required?
+
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o hamsterdb.com
@@ -193,6 +195,7 @@ o update documentation
         o cache
         o I/O
         o unittests
+        o cursor(s)
         o monstertests - how to use them?
 
 o fully (!) automize the whole release process for unix; the result (on
@@ -205,10 +208,6 @@ o fully (!) automize the whole release process for unix; the result (on
     o the output (xml) of the monster tests
 
 . port to WinCE
-
-x monster-test
-    x track memory consumption
-    x add/finalize xml output
 
 o need a function to get the txn of a conflict (same as in v2)
 
@@ -232,12 +231,6 @@ o improve journalling and get rid of the physical log as much as possible
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
-
-x if recovery is enabled: before flushing the changeset, patch the lsn in
-    the page header (it fits in 8 free bytes). in the previous release we 
-    stored the lsn in the log file header. this can be removed; use the 
-    lsn in the page header for recovery.
-    --> why?? i think the current solution is good enough
 
 . if memory consumption in the txn-tree is too high: flush records to disk
     (not sure if this should get high priority)

@@ -207,6 +207,13 @@ extern ham_status_t
 btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**
+ * Inserts a key/record pair with a cursor
+ */
+extern ham_status_t
+btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags);
+
+/**
  * retrieves the duplicate table of the current key; memory in ptable has
  * to be released by the caller.
  *

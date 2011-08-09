@@ -177,12 +177,6 @@ dupecache_reset(dupecache_t *c);
                     ham_record_t *record, ham_u32_t flags);             \
                                                                         \
     /**                                                                 \
-     * Insert (or update) a key in the index                            \
-     */                                                                 \
-    ham_status_t (*_fun_insert)(clss *cu, ham_key_t *key,               \
-                    ham_record_t *record, ham_u32_t flags);             \
-                                                                        \
-    /**                                                                 \
      * Erases the key from the index and positions the cursor to the    \
      * next key                                                         \
      */                                                                 \

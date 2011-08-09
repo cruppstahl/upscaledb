@@ -1575,8 +1575,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                 /* pick the first cursor, get the parent/btree cursor and
                  * insert the key/record pair in the btree. The btree cursor
                  * then will be coupled to this item. */
-                st=btc->_fun_insert(btc, txn_opnode_get_key(node), 
-                        txn_op_get_record(op), 
+                st=btree_cursor_insert((btree_cursor_t *)btc, 
+                        txn_opnode_get_key(node), txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
                 if (st)
                     goto bail;

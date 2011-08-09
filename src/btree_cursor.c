@@ -688,7 +688,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
 /**                                                                 
  * insert (or update) a key in the index                            
  */                                                                 
-static ham_status_t
+ham_status_t
 btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
@@ -860,7 +860,6 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     cursor->_fun_overwrite=btree_cursor_overwrite;
     cursor->_fun_move=btree_cursor_move;
     cursor->_fun_find=btree_cursor_find;
-    cursor->_fun_insert=btree_cursor_insert;
     cursor->_fun_erase=btree_cursor_erase;
     cursor->_fun_get_duplicate_count=btree_cursor_get_duplicate_count;
 }
