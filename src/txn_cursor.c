@@ -100,7 +100,6 @@ txn_cursor_conflicts(txn_cursor_t *cursor)
     return (HAM_FALSE);
 }
 
-
 ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {

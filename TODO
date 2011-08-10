@@ -120,6 +120,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             o remove functions that are not required
             o add documentation
 
+        o streamline the cursor flags; the txn_cursor flags have their own 
+		field, and the btree_cursor as well. all 3 can be unified.
+
         o combine dupecache_reset and cursor_set_dupecache_index(c, 0)
             into cursor_clear_dupecache
 

@@ -12,6 +12,16 @@
 /**
  * @brief A cursor which can iterate over transaction nodes and operations
  *
+ * A Transaction Cursor can walk over Transaction trees (txn_tree_t). 
+ *
+ * Transaction Cursors are only used as part of the Cursor structure as defined
+ * in cursor.h. Like all Transaction operations it is in-memory only, 
+ * traversing the red-black tree that is implemented in txn.h, and 
+ * consolidating multiple operations in a node (i.e. if a Transaction first
+ * overwrites a record, and another transaction then erases the key).
+ *
+ * The Transaction Cursor has two states: either it is coupled to a 
+ * Transaction operation (txn_op_t) or it is unused.
  */
 
 #ifndef HAM_TXN_CURSOR_H__
@@ -100,26 +110,26 @@ typedef struct txn_cursor_t
 #define txn_cursor_set_coupled_previous(c, p)       (c)->_coupled._previous=p
 
 /**
- * create a new txn cursor
+ * Create a new txn cursor
  */
 extern ham_status_t
 txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, ham_cursor_t *parent);
 
 /** 
- * returns true if the cursor is nil (does not point to any item) 
+ * Returns true if the cursor is nil (does not point to any item) 
  */
 extern ham_bool_t
 txn_cursor_is_nil(txn_cursor_t *cursor);
 
 /** 
- * sets a cursor to nil
+ * Sets a cursor to nil
  */
 extern void
 txn_cursor_set_to_nil(txn_cursor_t *cursor);
 
 /**
- * couples a txn cursor to an txn_op_t structure
+ * Couples a txn cursor to an txn_op_t structure
  */
 extern void
 txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
@@ -128,57 +138,58 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
  * clones a cursor
  */
 extern void
-txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, ham_cursor_t *parent);
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, 
+                ham_cursor_t *parent);
 
 /**
- * closes a cursor
+ * Closes a cursor
  */
 extern void
 txn_cursor_close(txn_cursor_t *cursor);
 
 /**
- * overwrites the record of a cursor
+ * Overwrites the record of a cursor
  */
 extern ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record);
 
 /**
- * moves the cursor to first, last, previous or next
+ * Moves the cursor to first, last, previous or next
  */
 extern ham_status_t
 txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * returns true if the cursor points to a key that is erased
+ * Returns true if the cursor points to a key that is erased
  */
 extern ham_bool_t
 txn_cursor_is_erased(txn_cursor_t *cursor);
 
 /**
- * returns true if the cursor points to a duplicate key that is erased
+ * Returns true if the cursor points to a duplicate key that is erased
  */
 extern ham_bool_t
 txn_cursor_is_erased_duplicate(txn_cursor_t *cursor);
 
 /**
- * looks up an item, places the cursor
+ * Looks up an item, places the cursor
  */
 extern ham_status_t
 txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
- * inserts an item, places the cursor on the new item
+ * Inserts an item, places the cursor on the new item
  *
- * this function is only used in the unittests
+ * This function is only used in the unittests
  */
 extern ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags);
 
 /**
- * retrieves the key from the current item
+ * Retrieves the key from the current item
  *
- * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
  * that the item was already flushed to the btree, and the caller has to 
  * use the btree lookup function to retrieve the key.
  */
@@ -186,9 +197,9 @@ extern ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key);
 
 /**
- * retrieves the record from the current item
+ * Retrieves the record from the current item
  *
- * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
  * that the item was already flushed to the btree, and the caller has to 
  * use the btree lookup function to retrieve the record.
  */
@@ -196,7 +207,7 @@ extern ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
 
 /**
- * erases the current item, then 'nil's the cursor
+ * Erases the current item, then 'nil's the cursor
  */
 extern ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor);
