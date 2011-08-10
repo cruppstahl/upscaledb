@@ -240,23 +240,13 @@ public:
         cursor=(btree_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
 
-        BFC_ASSERT(btree_cursor_get_db(cursor)==m_db);
-        btree_cursor_set_db(cursor, (ham_db_t *)0x13);
-        BFC_ASSERT(btree_cursor_get_db(cursor)==(ham_db_t *)0x13);
-        btree_cursor_set_db(cursor, m_db);
-        BFC_ASSERT(btree_cursor_get_db(cursor)==m_db);
-
-        BFC_ASSERT(btree_cursor_get_txn(cursor)==0);
-        btree_cursor_set_txn(cursor, (ham_txn_t *)0x13);
-        BFC_ASSERT(btree_cursor_get_txn(cursor)==(ham_txn_t *)0x13);
-        btree_cursor_set_txn(cursor, 0);
-        BFC_ASSERT(btree_cursor_get_txn(cursor)==0);
-
+        ham_u32_t flags=btree_cursor_get_flags(cursor);
         BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
         btree_cursor_set_flags(cursor, 0x13);
         BFC_ASSERT(btree_cursor_get_flags(cursor)==0x13);
         btree_cursor_set_flags(cursor, 0);
         BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
+        btree_cursor_set_flags(cursor, flags);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }

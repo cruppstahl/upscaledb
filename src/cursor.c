@@ -515,7 +515,7 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
 
-    st=btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t *)c);
+    st=btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t *)c, c);
     if (st)
         return (st);
 

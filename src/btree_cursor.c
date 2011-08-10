@@ -466,38 +466,40 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
 }
 
 ham_status_t
-btree_cursor_clone(btree_cursor_t *old, btree_cursor_t *newc)
+btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
+                ham_cursor_t *parent)
 {
     ham_status_t st;
-    ham_db_t *db=btree_cursor_get_db(old);
+    ham_db_t *db=btree_cursor_get_db(src);
     ham_env_t *env=db_get_env(db);
 
     /* if the old cursor is coupled: couple the new cursor, too */
-    if (btree_cursor_get_flags(old)&BTREE_CURSOR_FLAG_COUPLED) {
-         ham_page_t *page=btree_cursor_get_coupled_page(old);
-         page_add_cursor(page, (ham_cursor_t *)newc);
-         btree_cursor_set_coupled_page(newc, page);
+    if (btree_cursor_get_flags(src)&BTREE_CURSOR_FLAG_COUPLED) {
+         ham_page_t *page=btree_cursor_get_coupled_page(src);
+         page_add_cursor(page, (ham_cursor_t *)dest);
+         btree_cursor_set_coupled_page(dest, page);
     }
-    /* otherwise, if the old cursor is uncoupled: copy the key */
-    else if (btree_cursor_get_flags(old)&BTREE_CURSOR_FLAG_UNCOUPLED) {
+    /* otherwise, if the src cursor is uncoupled: copy the key */
+    else if (btree_cursor_get_flags(src)&BTREE_CURSOR_FLAG_UNCOUPLED) {
         ham_key_t *key;
 
         key=(ham_key_t *)allocator_calloc(env_get_allocator(env), sizeof(*key));
         if (!key)
             return (HAM_OUT_OF_MEMORY);
 
-        st=db_copy_key(btree_cursor_get_db(newc), 
-                    btree_cursor_get_uncoupled_key(old), key);
+        st=db_copy_key(btree_cursor_get_db(dest), 
+                    btree_cursor_get_uncoupled_key(src), key);
         if (st) {
             if (key->data)
                 allocator_free(env_get_allocator(env), key->data);
             allocator_free(env_get_allocator(env), key);
             return (st);
         }
-        btree_cursor_set_uncoupled_key(newc, key);
+        btree_cursor_set_uncoupled_key(dest, key);
     }
 
-    btree_cursor_set_dupe_id(newc, btree_cursor_get_dupe_id(old));
+    btree_cursor_set_dupe_id(dest, btree_cursor_get_dupe_id(src));
+    btree_cursor_set_parent(dest, parent);
 
     return (0);
 }

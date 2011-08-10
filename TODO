@@ -133,7 +133,18 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
+            o env.c
+            o txn_cursor.c
+            o btree_erase.c
+            o btree_cursor.c
+            o btree_insert.c
+            o btree_stats.c
+            o cursor.c
+            o db.c
             o remove SIZEOF_CURSOR in cursor.c
+        o rename unittest bt_cursor.cpp to btree_cursor.cpp
+        o check usage of btree_cursor_set_to_nil - replace with 
+			cursor_set_to_nil
         o unify the dupe caches - btree cursor and upper layer cursor have 
             their own dupe-caches each (or not? after all it's possible that
             a txn-cursor is coupled to a different key than the btree,

@@ -716,8 +716,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
      *
      * the cursor always points to NIL.
      */
-    if (cursor) 
-    {
+    if (cursor) {
         btree_cursor_set_to_nil(cursor);
 
         ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_UNCOUPLED), 

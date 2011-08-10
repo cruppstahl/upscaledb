@@ -98,22 +98,13 @@ struct btree_cursor_t
 #define btree_cursor_set_parent(c, p)         (c)->_parent=p
 
 /** get the database pointer */
-#define btree_cursor_get_db(c)                (c)->_db
-
-/** set the database pointer */
-#define btree_cursor_set_db(c, db)            (c)->_db=(db)
-
-/** get the txn pointer */
-#define btree_cursor_get_txn(c)               (c)->_txn
-
-/** set the txn pointer */
-#define btree_cursor_set_txn(c, txn)          (c)->_txn=(txn)
+#define btree_cursor_get_db(c)                (c)->_parent->_db
 
 /** get the flags */
-#define btree_cursor_get_flags(c)             (c)->_flags
+#define btree_cursor_get_flags(c)             (c)->_parent->_flags
 
 /** set the flags */
-#define btree_cursor_set_flags(c, f)          (c)->_flags=(f)
+#define btree_cursor_set_flags(c, f)          (c)->_parent->_flags=(f)
 
 /** get the page we're pointing to - if the cursor is coupled */
 #define btree_cursor_get_coupled_page(c)      (c)->_u._coupled._page
@@ -154,7 +145,8 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  * the dest structure is already allocated
  */                                                                 
 extern ham_status_t
-btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest);
+btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
+                ham_cursor_t *parent);
 
 /**
  * Set the cursor to NIL
