@@ -1834,8 +1834,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
             txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
 
         cursor_set_to_nil(c, CURSOR_TXN);
-        txn_cursor_set_coupled_op(cursor, op);
-        txn_op_add_cursor(op, cursor);
+        txn_cursor_couple(cursor, op);
 
         /* all other cursors need to increment their dupe index, if their
          * index is > this cursor's index */

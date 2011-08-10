@@ -56,7 +56,6 @@ txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest,
                 ham_cursor_t *parent)
 {
     txn_cursor_set_parent(dest, parent);
-
     txn_cursor_set_coupled_op(dest, 0);
 
     if (!txn_cursor_is_nil(src))
