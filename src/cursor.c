@@ -338,6 +338,13 @@ bail:
 }
 
 void
+cursor_clear_dupecache(ham_cursor_t *cursor)
+{
+    dupecache_reset(cursor_get_dupecache(cursor));
+    cursor_set_dupecache_index(cursor, 0);
+}
+
+void
 cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
 {
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);

@@ -2637,8 +2637,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         cursor_couple_to_btree(cursor);
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
         ham_assert(cursor_is_nil(cursor, 0), (""));
-        dupecache_reset(cursor_get_dupecache(cursor));
-        cursor_set_dupecache_index(cursor, 0);
+        cursor_clear_dupecache(cursor);
     }
     else {
         if (local_txn)
@@ -2671,7 +2670,6 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     ham_txn_t *local_txn=0;
     ham_env_t *env=db_get_env(db);
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
-    dupecache_t *dc=cursor_get_dupecache(cursor);
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -2707,8 +2705,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /* reset the dupecache */
-    dupecache_reset(dc);
-    cursor_set_dupecache_index(cursor, 0);
+    cursor_clear_dupecache(cursor);
 
     /* 
      * first try to find the key in the transaction tree. If it exists and 
@@ -2765,8 +2762,7 @@ btree:
          * call to cursor_get_dupecache_count() already initialized the
          * dupecache, but only with txn keys because the cursor was only
          * coupled to the txn */
-        dupecache_reset(dc);
-        cursor_set_dupecache_index(cursor, 0);
+        cursor_clear_dupecache(cursor);
     }
 
 check_dupes:
@@ -3401,8 +3397,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
-                    dupecache_reset(cursor_get_dupecache(cursor));
-                    cursor_set_dupecache_index(cursor, 0);
+                    cursor_clear_dupecache(cursor);
                 }
                 /* if key has duplicates: move to the next duplicate */
                 if (cursor_get_dupecache_count(cursor)) {
@@ -3609,8 +3604,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (st==HAM_KEY_ERASED_IN_TXN) {
                     (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 0);
                     /* force re-creating the dupecache */
-                    dupecache_reset(cursor_get_dupecache(cursor));
-                    cursor_set_dupecache_index(cursor, 0);
+                    cursor_clear_dupecache(cursor);
                 }
                 /* if key has duplicates: move to the previous duplicate */
                 if (cursor_get_dupecache_count(cursor)>1) {
@@ -3876,8 +3870,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
 
         /* still here? then we don't care about the dupecache anymore */
-        dupecache_reset(dc);
-        cursor_set_dupecache_index(cursor, 0);
+        cursor_clear_dupecache(cursor);
     }
 
     /* get rid of this flag */

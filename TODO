@@ -128,7 +128,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         x combine txn_cursor_set_coupled_op and txn_op_add_cursor
             (-> txn_cursor_couple - why is it not used?)
 
-        o combine dupecache_reset and cursor_set_dupecache_index(c, 0)
+        x combine dupecache_reset and cursor_set_dupecache_index(c, 0)
             into cursor_clear_dupecache
 
         o make btree_cursor similar to txn_cursor and include it into

@@ -442,6 +442,12 @@ extern ham_status_t
 cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what);
 
 /**
+ * Clear the dupecache and disconnect the Cursor from any duplicate key
+ */
+extern void
+cursor_clear_dupecache(ham_cursor_t *cursor);
+
+/**
  * Couples the cursor to a duplicate in the dupe table
  * dupe_id is a 1 based index!!
  */
