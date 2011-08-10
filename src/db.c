@@ -2794,7 +2794,7 @@ check_dupes:
                 st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), 
                         record);
             else
-                st=cursor->_fun_move(cursor, 0, record, 0);
+                st=btree_cursor_move((btree_cursor_t *)cursor, 0, record, 0);
         }
     }
     else {
@@ -3071,7 +3071,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (txns==HAM_KEY_NOT_FOUND)
             cursor_set_to_nil(cursor, CURSOR_TXN);
         /* fetch the smallest/first key from the btree tree. */
-        btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        btrs=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
             btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
@@ -3125,7 +3125,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     /* if this btree key was erased or overwritten then couple
                      * to the txn, but already move the btree cursor to the
                      * next item */
-                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    st=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
@@ -3157,7 +3157,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 else if (txns==HAM_SUCCESS) {
                     flags&=~HAM_CURSOR_FIRST;
                     flags|=HAM_CURSOR_NEXT;
-                    (void)cursor->_fun_move(cursor, 0, 0, flags);
+                    (void)btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                 }
                 if (pwhat)
                     *pwhat=CURSOR_BTREE|CURSOR_TXN;
@@ -3196,7 +3196,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (txns==HAM_KEY_NOT_FOUND)
             cursor_set_to_nil(cursor, CURSOR_TXN);
         /* fetch the greatest/last key from the btree tree. */
-        btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        btrs=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
             btree_cursor_set_to_nil((btree_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
@@ -3250,7 +3250,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     /* if this btree key was erased or overwritten then couple
                      * to the txn, but already move the btree cursor to the
                      * previous item */
-                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    st=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
@@ -3282,7 +3282,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 else if (txns==HAM_SUCCESS) {
                     flags&=~HAM_CURSOR_LAST;
                     flags|=HAM_CURSOR_PREVIOUS;
-                    (void)cursor->_fun_move(cursor, 0, 0, flags);
+                    (void)btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                 }
                 if (pwhat)
                     *pwhat=CURSOR_TXN|CURSOR_BTREE;
@@ -3335,7 +3335,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the next item in the btree */
         if (changed_dir || cursor_is_coupled_to_btree(cursor)) {
             do {
-                btrs=cursor->_fun_move(cursor, 0, 0, 
+                btrs=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, 
                             cursor_is_nil(cursor, CURSOR_BTREE)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
@@ -3466,7 +3466,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     return (SHITTY_HACK_FIX_ME);
                 }
                 else if (erased || cursor_get_dupecache_count(cursor)<=1) {
-                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    st=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     st=0; /* ignore return code */
@@ -3543,7 +3543,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the previous item in the btree */
         if (changed_dir || cursor_is_coupled_to_btree(cursor)) {
             do {
-                btrs=cursor->_fun_move(cursor, 0, 0, 
+                btrs=btree_cursor_move((btree_cursor_t *)cursor, 0, 0,
                             cursor_is_nil(cursor, CURSOR_BTREE)
                                 ? HAM_CURSOR_LAST
                                 : flags);
@@ -3676,7 +3676,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     return (SHITTY_HACK_FIX_ME);
                 }
                 else if (erased || cursor_get_dupecache_count(cursor)<=1) {
-                    st=cursor->_fun_move(cursor, 0, 0, flags);
+                    st=btree_cursor_move((btree_cursor_t *)cursor, 0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
                         btree_cursor_set_to_nil((btree_cursor_t *)cursor);
                     st=0; /* ignore return code */
@@ -3784,7 +3784,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* in non-transactional mode - just call the btree function and return */
     if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=cursor->_fun_move(cursor, key, record, flags);
+        st=btree_cursor_move((btree_cursor_t *)cursor, key, record, flags);
         if (st)
             return (st);
 
@@ -4051,7 +4051,7 @@ bail:
             }
         }
         else {
-            st=cursor->_fun_move(cursor, key, record, 0);
+            st=btree_cursor_move((btree_cursor_t *)cursor, key, record, 0);
         }
     }
 

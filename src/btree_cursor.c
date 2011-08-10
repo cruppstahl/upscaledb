@@ -30,6 +30,44 @@
 #include "txn.h"
 #include "util.h"
 
+static ham_status_t
+btree_cursor_couple(btree_cursor_t *c)
+{
+    ham_key_t key;
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(c);
+    ham_env_t *env = db_get_env(db);
+    ham_u32_t dupe_id;
+
+    ham_assert(btree_cursor_get_flags(c)&BTREE_CURSOR_FLAG_UNCOUPLED,
+            ("coupling a cursor which is not uncoupled"));
+
+    /*
+     * make a 'find' on the cached key; if we succeed, the cursor
+     * is automatically coupled
+     *
+     * the dupe ID is overwritten in btree_cursor_find, therefore save it
+     * and restore it afterwards
+     */
+    memset(&key, 0, sizeof(key));
+
+    st=db_copy_key(db, btree_cursor_get_uncoupled_key(c), &key);
+    if (st) {
+        if (key.data)
+            allocator_free(env_get_allocator(env), key.data);
+        return (st);
+    }
+
+    dupe_id=btree_cursor_get_dupe_id(c);
+    st=btree_cursor_find(c, &key, NULL, 0);
+    btree_cursor_set_dupe_id(c, dupe_id);
+
+    /* free the cached key */
+    if (key.data)
+        allocator_free(env_get_allocator(env), key.data);
+
+    return (st);
+}
 
 static ham_status_t
 __move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
@@ -354,45 +392,6 @@ btree_cursor_set_to_nil(btree_cursor_t *c)
     return (0);
 }
 
-ham_status_t
-btree_cursor_couple(btree_cursor_t *c)
-{
-    ham_key_t key;
-    ham_status_t st;
-    ham_db_t *db=cursor_get_db(c);
-    ham_env_t *env = db_get_env(db);
-    ham_u32_t dupe_id;
-
-    ham_assert(btree_cursor_get_flags(c)&BTREE_CURSOR_FLAG_UNCOUPLED,
-            ("coupling a cursor which is not uncoupled"));
-
-    /*
-     * make a 'find' on the cached key; if we succeed, the cursor
-     * is automatically coupled
-     *
-     * the dupe ID is overwritten in btree_cursor_find, therefore save it
-     * and restore it afterwards
-     */
-    memset(&key, 0, sizeof(key));
-
-    st=db_copy_key(db, btree_cursor_get_uncoupled_key(c), &key);
-    if (st) {
-        if (key.data)
-            allocator_free(env_get_allocator(env), key.data);
-        return (st);
-    }
-
-    dupe_id=btree_cursor_get_dupe_id(c);
-    st=btree_cursor_find(c, &key, NULL, 0);
-    btree_cursor_set_dupe_id(c, dupe_id);
-
-    /* free the cached key */
-    if (key.data)
-        allocator_free(env_get_allocator(env), key.data);
-
-    return (st);
-}
-
 void
 btree_cursor_couple_to_other(btree_cursor_t *cu, btree_cursor_t *other)
 {
@@ -466,9 +465,6 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
     return (0);
 }
 
-/**                                                                 
- * clone an existing cursor                                         
- */                                                                 
 ham_status_t
 btree_cursor_clone(btree_cursor_t *old, btree_cursor_t *newc)
 {
@@ -515,7 +511,7 @@ btree_cursor_close(btree_cursor_t *c)
 
 ham_status_t
 btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
-            ham_u32_t flags)
+                ham_u32_t flags)
 {
     ham_status_t st;
     btree_node_t *node;
@@ -553,15 +549,9 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
     return (0);
 }
 
-/**                                                                 
- * move the cursor                                                  
- *
- * set the cursor to the first item in the database when the cursor has not yet
- * been positioned through a previous find/move/insert/erase operation.
- */                                                                 
-static ham_status_t
+ham_status_t
 btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_page_t *page;
@@ -574,9 +564,7 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
     if (!be)
         return (HAM_NOT_INITIALIZED);
 
-    /*
-     * delete the cache of the current duplicate
-     */
+    /* delete the cache of the current duplicate */
     memset(btree_cursor_get_dupe_cache(c), 0, sizeof(dupe_entry_t));
 
     if (flags&HAM_CURSOR_FIRST)
@@ -651,13 +639,9 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
     return (0);
 }
 
-/**                                                                 
- * find a key in the index and positions the cursor                 
- * on this key                                                      
- */                                                                 
 ham_status_t
 btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record, 
-            ham_u32_t flags)
+                ham_u32_t flags)
 {
     ham_status_t st;
     ham_backend_t *be=db_get_backend(btree_cursor_get_db(c));
@@ -679,12 +663,9 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
     return (0);
 }
 
-/**                                                                 
- * insert (or update) a key in the index                            
- */                                                                 
 ham_status_t
 btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=btree_cursor_get_db(c);
@@ -842,13 +823,11 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             btree_cursor_t *cursor, ham_cursor_t *parent)
 {
     btree_cursor_set_parent(cursor, parent);
-
-    cursor->_fun_move=btree_cursor_move;
 }
 
 ham_status_t
 btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
-                    ham_bool_t *needs_free)
+                ham_bool_t *needs_free)
 {
     ham_status_t st;
     ham_page_t *page;

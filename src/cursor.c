@@ -371,7 +371,7 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
     txn_cursor_t *txnc=cursor_get_txn_cursor(clone);
     if (st)
         return (st);
-    st=cursor->_fun_move(cursor, &key, 0, 0);
+    st=btree_cursor_move((btree_cursor_t *)cursor, &key, 0, 0);
     if (st) {
         ham_cursor_close(clone);
         return (st);

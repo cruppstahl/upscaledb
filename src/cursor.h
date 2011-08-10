@@ -210,12 +210,6 @@ dupecache_reset(dupecache_t *c);
  * by every other cursor (i.e. btree, hashdb etc).
  */
 #define CURSOR_DECLARATIONS(clss)                                       \
-    /**                                                                 \
-     * Move the cursor                                                  \
-     */                                                                 \
-    ham_status_t (*_fun_move)(clss *cu, ham_key_t *key,                 \
-            ham_record_t *record, ham_u32_t flags);                     \
-                                                                        \
     /** Pointer to the Database object */                               \
     ham_db_t *_db;                                                      \
                                                                         \

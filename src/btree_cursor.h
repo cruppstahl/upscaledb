@@ -12,6 +12,20 @@
 /**
  * @brief btree cursors
  *
+ * A Btree-Cursor is an object which is used to traverse a Btree. 
+ *
+ * Btree-Cursors are used in Cursor structures as defined in cursor.h. But 
+ * some routines still use them directly. Over time these layers will be 
+ * cleaned up and the separation will be improved.
+ *
+ * The cursor implementation is very fast. Most of the operations (i.e.
+ * move previous/next) will not cause any disk access but are O(1) and 
+ * in-memory only. That's because a cursor is directly "coupled" to a 
+ * btree page (ham_page_t) that resides in memory. If the page is removed
+ * from memory (i.e. because the cache decides that it needs to purge the
+ * cache, or if there's a page split) then the page is "uncoupled", and a 
+ * copy of the current key is stored in the cursor. On first access, the 
+ * cursor is "coupled" again and basically performs a normal lookup of the key. 
  */
 
 #ifndef HAM_BTREE_CURSORS_H__
@@ -28,30 +42,29 @@ extern "C" {
 #endif 
 
 /**
- * the cursor structure for a b+tree
+ * the Cursor structure for a b+tree cursor
  */
 typedef struct btree_cursor_t btree_cursor_t;
 struct btree_cursor_t
 {
-    /**
-     * the common declarations of all cursors
-     */
+    /** the common declarations of all cursors */
     CURSOR_DECLARATIONS(btree_cursor_t);
 
     /** the parent cursor */
     ham_cursor_t *_parent;
 
-    /* the id of the duplicate key to which this cursor is coupled */
+    /** the id of the duplicate key to which this cursor is coupled */
     ham_size_t _dupe_id;
 
-    /* cached flags and record ID of the current duplicate */
+    /** cached flags and record ID of the current duplicate */
     dupe_entry_t _dupe_cache;
 
     /**
      * "coupled" or "uncoupled" states; coupled means that the
      * cursor points into a ham_page_t object, which is in
      * memory. "uncoupled" means that the cursor has a copy
-     * of the key on which it points
+     * of the key on which it points (i.e. because the coupled page was 
+     * flushed to disk and removed from the cache)
      */
     union btree_cursor_union_t {
         struct btree_cursor_coupled_t {
@@ -129,42 +142,47 @@ struct btree_cursor_t
 /** set the key we're pointing to - if the cursor is uncoupled */
 #define btree_cursor_set_uncoupled_key(c, k)  (c)->_u._uncoupled._key=k
 
+/**
+ * Create a new cursor
+ */
+extern void
+btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+                btree_cursor_t *cursor, ham_cursor_t *parent);
+
 /**                                                                 
- * clone an existing cursor                                         
+ * Clone an existing cursor                                         
  * the dest structure is already allocated
  */                                                                 
 extern ham_status_t
 btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest);
 
-/*
- * set a cursor to NIL
+/**
+ * Set the cursor to NIL
  */
-ham_status_t
+extern ham_status_t
 btree_cursor_set_to_nil(btree_cursor_t *c);
 
 /**
- * couple the cursor
- *
- * @remark to couple a page, it has to be uncoupled!
+ * Returns true if the cursor is nil, otherwise false
  */
-ham_status_t
-btree_cursor_couple(btree_cursor_t *c);
+extern ham_bool_t
+btree_cursor_is_nil(btree_cursor_t *cursor);
 
 /**
- * couple the cursor to the same item as another (coupled!) cursor
+ * Couple the cursor to the same item as another (coupled!) cursor
  *
  * @remark will assert that the other cursor is coupled; will set the
  * current cursor to nil
  */
-void
+extern void
 btree_cursor_couple_to_other(btree_cursor_t *c, btree_cursor_t *other);
 
 /**
- * uncouple the cursor
+ * Uncouple the cursor
  *
- * @remark to uncouple a page, it has to be coupled!
+ * @remark to uncouple a page the cursor HAS to be coupled!
  */
-ham_status_t
+extern ham_status_t
 btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 
 /**
@@ -172,25 +190,6 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
  * call @ref page_remove_cursor()
  */
 #define BTREE_CURSOR_UNCOUPLE_NO_REMOVE        1
-
-/**
- * closes an existing cursor
- */
-extern void
-btree_cursor_close(btree_cursor_t *cursor);
-
-/**
- * returns true if the cursor is nil, otherwise false
- */
-extern ham_bool_t
-btree_cursor_is_nil(btree_cursor_t *cursor);
-
-/**
- * create a new cursor
- */
-extern void
-btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                btree_cursor_t *cursor, ham_cursor_t *parent);
 
 /**
  * returns true if a cursor points to this key, otherwise false
@@ -211,7 +210,7 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
  */
 extern ham_status_t
 btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
+                ham_record_t *record, ham_u32_t flags);
 
 /**
  * Positions the cursor on a key and retrieves the record (if @a record
@@ -219,13 +218,20 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
  */
 extern ham_status_t
 btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record, 
-            ham_u32_t flags);
+                ham_u32_t flags);
 
 /**                                                                 
  * Erases the key from the index; afterwards, the cursor points to NIL
  */                                                                 
 extern ham_status_t
 btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags);
+
+/**
+ * Moves the cursor to the first, last, next or previous element
+ */
+extern ham_status_t
+btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
+                ham_record_t *record, ham_u32_t flags);
 
 /**                                                                    
  * Count the number of records stored with the referenced key, i.e.
@@ -252,7 +258,13 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
  */
 extern ham_status_t
 btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
-                    ham_bool_t *needs_free);
+                ham_bool_t *needs_free);
+
+/**
+ * Closes an existing cursor
+ */
+extern void
+btree_cursor_close(btree_cursor_t *cursor);
 
 
 #ifdef __cplusplus
