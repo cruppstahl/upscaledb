@@ -29,24 +29,14 @@ txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     return (0);
 }
 
-ham_bool_t
-txn_cursor_is_nil(txn_cursor_t *cursor)
-{
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED)
-        return (HAM_FALSE);
-    return (HAM_TRUE);
-}
-
 void
 txn_cursor_set_to_nil(txn_cursor_t *cursor)
 {
     /* uncoupled cursor? remove from the txn_op structure */
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+    if (!txn_cursor_is_nil(cursor)) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         if (op)
             txn_op_remove_cursor(op, cursor);
-        txn_cursor_set_flags(cursor, 
-                txn_cursor_get_flags(cursor)&(~TXN_CURSOR_FLAG_COUPLED));
         txn_cursor_set_coupled_op(cursor, 0);
     }
 
@@ -58,9 +48,6 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op)
 {
     txn_cursor_set_to_nil(cursor);
     txn_cursor_set_coupled_op(cursor, op);
-    txn_cursor_set_flags(cursor, 
-                    txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
-
     txn_op_add_cursor(op, cursor);
 }
 
@@ -69,13 +56,10 @@ txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest,
                 ham_cursor_t *parent)
 {
     txn_cursor_set_parent(dest, parent);
-    txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
 
     txn_cursor_set_coupled_op(dest, 0);
-    txn_cursor_set_flags(dest, 
-                    txn_cursor_get_flags(dest)&(~TXN_CURSOR_FLAG_COUPLED));
 
-    if (txn_cursor_get_flags(src)&TXN_CURSOR_FLAG_COUPLED)
+    if (!txn_cursor_is_nil(src))
         txn_cursor_couple(dest, txn_cursor_get_coupled_op(src));
 }
 
@@ -222,7 +206,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_op_get_node(op);
         op=0;
 
-        ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+        ham_assert(!txn_cursor_is_nil(cursor), (""));
 
         /* first move to the next key in the current node; if we fail, 
          * then move to the next node. repeat till we've found a key or 
@@ -245,7 +229,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_op_get_node(op);
         op=0;
 
-        ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+        ham_assert(!txn_cursor_is_nil(cursor), (""));
 
         /* first move to the previous key in the current node; if we fail, 
          * then move to the previous node. repeat till we've found a key or 
@@ -273,7 +257,7 @@ txn_cursor_is_erased(txn_cursor_t *cursor)
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
     txn_opnode_t *node=txn_op_get_node(op);
 
-    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+    ham_assert(!txn_cursor_is_nil(cursor), (""));
 
     /* move to the newest op and check if it erased the key */
     return (HAM_KEY_ERASED_IN_TXN
@@ -287,7 +271,7 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
     txn_opnode_t *node=txn_op_get_node(op);
     ham_cursor_t *pc=txn_cursor_get_parent(cursor);
 
-    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+    ham_assert(!txn_cursor_is_nil(cursor), (""));
     ham_assert(cursor_get_dupecache_index(pc)!=0, (""));
 
     op=txn_opnode_get_newest_op(node);
@@ -366,7 +350,7 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
     ham_key_t *source=0;
 
     /* coupled cursor? get key from the txn_op structure */
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+    if (!txn_cursor_is_nil(cursor)) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         txn_opnode_t *node=txn_op_get_node(op);
 
@@ -403,7 +387,7 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
     ham_record_t *source=0;
 
     /* coupled cursor? get record from the txn_op structure */
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+    if (!txn_cursor_is_nil(cursor)) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         source=txn_op_get_record(op);
 

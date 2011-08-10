@@ -112,19 +112,24 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 x cursor_overwrite
             x add documentation
 
-        o also cleanup btree_cursor.h (and btree_cursor.c)
-            o remove functions that are not required
-            o add documentation
+        x also cleanup btree_cursor.h (and btree_cursor.c)
+            x remove functions that are not required
+            x add documentation
 
-        o also cleanup txn_cursor.h (and txn_cursor.c)
-            o remove functions that are not required
-            o add documentation
+        x also cleanup txn_cursor.h (and txn_cursor.c)
+            x remove functions that are not required
+            x add documentation
 
-        o streamline the cursor flags; the txn_cursor flags have their own 
+        x streamline the cursor flags; the txn_cursor flags have their own 
 		field, and the btree_cursor as well. all 3 can be unified.
+            x get rid of txn_cursor->_flags
+            x combine btree flags and cursor flags (document the namespaces)
 
         o combine dupecache_reset and cursor_set_dupecache_index(c, 0)
             into cursor_clear_dupecache
+
+        o combine txn_cursor_set_coupled_op and txn_op_add_cursor
+            (-> txn_cursor_couple - why is it not used?)
 
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!

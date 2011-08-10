@@ -25,6 +25,7 @@
 #include "btree_key.h"
 #include "txn.h"
 #include "txn_cursor.h"
+#include "cursor.h"
 
 /* stuff for rb.h */
 #ifndef __ssize_t_defined
@@ -60,7 +61,7 @@ rb_wrap(static, rbt_, txn_optree_t, txn_opnode_t, node, __cmpfoo)
 void
 txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
 {
-    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+    ham_assert(!txn_cursor_is_nil(cursor), (""));
 
     txn_cursor_set_coupled_next(cursor, txn_op_get_cursors(op));
     txn_cursor_set_coupled_previous(cursor, 0);
@@ -76,7 +77,7 @@ txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
 void
 txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
 {
-    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+    ham_assert(!txn_cursor_is_nil(cursor), (""));
 
     if (txn_op_get_cursors(op)==cursor) {
         txn_op_set_cursors(op, txn_cursor_get_coupled_next(cursor));

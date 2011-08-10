@@ -64,13 +64,7 @@ typedef struct txn_cursor_t
 
     } _coupled;
     
-    /* the flags store the state of the cursor - see below */
-    ham_u32_t _flags;
-
 } txn_cursor_t;
-
-/** cursor flag - cursor is coupled */
-#define TXN_CURSOR_FLAG_COUPLED                     1
 
 /** get the database pointer */
 #define txn_cursor_get_db(c)                        (c)->_parent->_db
@@ -80,12 +74,6 @@ typedef struct txn_cursor_t
 
 /** set the parent cursor */
 #define txn_cursor_set_parent(c, p)                 (c)->_parent=p
-
-/** get the cursor flags */
-#define txn_cursor_get_flags(c)                     (c)->_flags
-
-/** set the cursor flags */
-#define txn_cursor_set_flags(c, f)                  (c)->_flags=f
 
 /** get the pointer to the coupled txn_op */
 #define txn_cursor_get_coupled_op(c)                (c)->_coupled._op
@@ -119,8 +107,7 @@ txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 /** 
  * Returns true if the cursor is nil (does not point to any item) 
  */
-extern ham_bool_t
-txn_cursor_is_nil(txn_cursor_t *cursor);
+#define txn_cursor_is_nil(c)                            ((c)->_coupled._op==0)
 
 /** 
  * Sets a cursor to nil

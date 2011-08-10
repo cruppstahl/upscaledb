@@ -261,8 +261,13 @@ struct ham_cursor_t
 /** Set the Cursor flags */
 #define cursor_set_flags(c, f)            (c)->_flags=(f)
 
+/*
+ * the flags have ranges:
+ *  0 - 0x1000000-1:      btree_cursor
+ *  > 0x1000000:          cursor
+ */
 /** Cursor flag: cursor is coupled to the Transaction cursor (_txn_cursor) */
-#define _CURSOR_COUPLED_TO_TXN            0x100000
+#define _CURSOR_COUPLED_TO_TXN            0x1000000
 
 /** Get the 'next' pointer of the linked list */
 #define cursor_get_next(c)                (c)->_next

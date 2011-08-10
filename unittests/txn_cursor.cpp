@@ -126,11 +126,6 @@ public:
         txn_cursor_t cursor={0};
         txn_op_t op={0};
 
-        BFC_ASSERT_EQUAL(0u, txn_cursor_get_flags(&cursor));
-        txn_cursor_set_flags(&cursor, 0x345);
-        BFC_ASSERT_EQUAL(0x345u, txn_cursor_get_flags(&cursor));
-        txn_cursor_set_flags(&cursor, 0);
-
         BFC_ASSERT_EQUAL((txn_op_t *)0, txn_cursor_get_coupled_op(&cursor));
         txn_cursor_set_coupled_op(&cursor, &op);
         BFC_ASSERT_EQUAL(&op, txn_cursor_get_coupled_op(&cursor));
@@ -156,12 +151,8 @@ public:
         txn_cursor_t cursor={0};
 
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
-        txn_cursor_set_flags(&cursor, TXN_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT_EQUAL(HAM_FALSE, txn_cursor_is_nil(&cursor));
         txn_cursor_set_to_nil(&cursor);
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
-
-        BFC_ASSERT_EQUAL(0u, txn_cursor_get_flags(&cursor));
     }
 
     void txnOpLinkedListTest(void)
@@ -182,7 +173,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c1={0};
-        txn_cursor_set_flags(&c1, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_coupled_op(&c1, op);
         txn_cursor_t c2=c1;
         txn_cursor_t c3=c1;
@@ -256,7 +246,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -291,7 +280,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -320,7 +308,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -351,7 +338,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, 0);
         txn_cursor_set_parent(&c, m_cursor);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_key(&c, &k));
@@ -379,7 +365,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -414,7 +399,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -443,7 +427,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
@@ -472,7 +455,6 @@ public:
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, 0);
         txn_cursor_set_parent(&c, m_cursor);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
@@ -656,8 +638,7 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* now the cursor is coupled to this key */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -667,8 +648,7 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key2"));
 
         /* and the cursor is still coupled */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         op=txn_cursor_get_coupled_op(cursor);
         key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -700,8 +680,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_FIRST));
 
         /* now the cursor is coupled to this key */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -809,8 +788,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key2", HAM_CURSOR_NEXT));
 
         /* now the cursor is coupled to this key */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -820,8 +798,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* and the cursor is still coupled */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         op=txn_cursor_get_coupled_op(cursor);
         key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -950,8 +927,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_LAST));
 
         /* now the cursor is coupled to this key */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -1036,8 +1012,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key2", HAM_CURSOR_PREVIOUS));
 
         /* now the cursor is coupled to this key */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -1047,8 +1022,7 @@ public:
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* and the cursor is still coupled */
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         op=txn_cursor_get_coupled_op(cursor);
         key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
@@ -1159,8 +1133,7 @@ public:
 
     bool cursorIsCoupled(txn_cursor_t *cursor, const char *k)
     {
-        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
-                    txn_cursor_get_flags(cursor));
+        BFC_ASSERT(!txn_cursor_is_nil(cursor));
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
         if (strlen(k)+1!=key->size)
