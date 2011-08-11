@@ -1570,31 +1570,32 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                         txn_op_get_orig_flags(op)|additional_flag);
             }
             else {
-                txn_cursor_t *tc2, *tc=txn_op_get_cursors(op);
-                ham_cursor_t *btc2, *btc=txn_cursor_get_parent(tc);
+                txn_cursor_t *tc2, *tc1=txn_op_get_cursors(op);
+                ham_cursor_t *c2, *c1=txn_cursor_get_parent(tc1);
                 /* pick the first cursor, get the parent/btree cursor and
                  * insert the key/record pair in the btree. The btree cursor
                  * then will be coupled to this item. */
-                st=btree_cursor_insert((btree_cursor_t *)btc, 
+                st=btree_cursor_insert(cursor_get_btree_cursor(c1), 
                         txn_opnode_get_key(node), txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
                 if (st)
                     goto bail;
 
                 /* uncouple the cursor from the txn-op, and remove it */
-                txn_op_remove_cursor(op, tc);
-                cursor_couple_to_btree(btc);
-                cursor_set_to_nil(btc, CURSOR_TXN);
+                txn_op_remove_cursor(op, tc1);
+                cursor_couple_to_btree(c1);
+                cursor_set_to_nil(c1, CURSOR_TXN);
 
                 /* all other (btree) cursors need to be coupled to the same 
                  * item as the first one. */
                 while ((tc2=txn_op_get_cursors(op))) {
                     txn_op_remove_cursor(op, tc2);
-                    btc2=txn_cursor_get_parent(tc2);
-                    btree_cursor_couple_to_other((btree_cursor_t *)btc2, 
-                                (btree_cursor_t *)btc);
-                    cursor_couple_to_btree(btc2);
-                    cursor_set_to_nil(btc2, CURSOR_TXN);
+                    c2=txn_cursor_get_parent(tc2);
+                    btree_cursor_couple_to_other(
+                                cursor_get_btree_cursor(c2), 
+                                cursor_get_btree_cursor(c1));
+                    cursor_couple_to_btree(c2);
+                    cursor_set_to_nil(c2, CURSOR_TXN);
                 }
             }
         }

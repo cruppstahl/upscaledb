@@ -323,6 +323,9 @@ cursor_get_txn_cursor(ham_cursor_t *cursor);
 #   define cursor_get_txn_cursor(c)     (&(c)->_txn_cursor)
 #endif
 
+/** Get a pointer to the Btree cursor */
+#define cursor_get_btree_cursor(c)      ((btree_cursor_t *)c)
+
 /** Get the remote Database handle */
 #define cursor_get_remote_handle(c)     (c)->_remote_handle
 

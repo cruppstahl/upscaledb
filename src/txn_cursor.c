@@ -420,9 +420,10 @@ txn_cursor_erase(txn_cursor_t *cursor)
     ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
     txn_op_t *op;
     txn_opnode_t *node;
+    ham_cursor_t *parent=txn_cursor_get_parent(cursor);
 
     /* don't continue if cursor is nil */
-    if (btree_cursor_is_nil((btree_cursor_t *)txn_cursor_get_parent(cursor))
+    if (btree_cursor_is_nil(cursor_get_btree_cursor(parent))
             && txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 
@@ -441,13 +442,14 @@ txn_cursor_erase(txn_cursor_t *cursor)
 
     /* case 1 described above */
     if (txn_cursor_is_nil(cursor)) {
-        btree_cursor_t *btc=(btree_cursor_t *)txn_cursor_get_parent(cursor);
+        btree_cursor_t *btc=cursor_get_btree_cursor(parent);
         if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) {
             st=btree_cursor_uncouple(btc, 0);
             if (st)
                 return (st);
         }
-        st=db_erase_txn(db, txn, btree_cursor_get_uncoupled_key(btc), 0, cursor);
+        st=db_erase_txn(db, txn, btree_cursor_get_uncoupled_key(btc), 0, 
+                            cursor);
         if (st)
             return (st);
     }
@@ -460,7 +462,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
             return (st);
     }
 
-    /* in any case we set the cursor to nil afterwards */
+    /* on success: set the cursor to nil afterwards */
     cursor_set_to_nil(txn_cursor_get_parent(cursor), 0);
 
     return (0);

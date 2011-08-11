@@ -133,8 +133,8 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
         o make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
-            o env.c
-            o txn_cursor.c
+            x env.c
+            x txn_cursor.c
             o btree_erase.c
             o btree_cursor.c
             o btree_insert.c
