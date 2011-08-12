@@ -1700,7 +1700,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
     btree_cursor_t *btc=(btree_cursor_t *)c;
 
     if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) {
-        ham_cursor_t *clone;
+        ham_cursor_t *clone=0;
         ham_status_t st=ham_cursor_clone(c, &clone);
         if (st)
             return (HAM_FALSE);

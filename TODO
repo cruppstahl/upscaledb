@@ -135,13 +135,14 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
            ham_cursor_t -> need to remove all the casts - this is a big change!
             x env.c
             x txn_cursor.c
-            o btree_erase.c
+            x btree_erase.c
             o btree_cursor.c
             o btree_insert.c
             o btree_stats.c
             o cursor.c
             o db.c
             o remove SIZEOF_CURSOR in cursor.c
+            o remove BTREE_CURSOR_FLAG_COUPLED?
         o rename unittest bt_cursor.cpp to btree_cursor.cpp
         o check usage of btree_cursor_set_to_nil - replace with 
 			cursor_set_to_nil
