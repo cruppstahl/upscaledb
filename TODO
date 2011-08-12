@@ -140,12 +140,16 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x btree_insert.c
             x btree_stats.c
             x cursor.c
-            o db.c
+            x db.c
             o remove SIZEOF_CURSOR in cursor.c
-            o remove BTREE_CURSOR_FLAG_COUPLED?
         o rename unittest bt_cursor.cpp to btree_cursor.cpp
         o check usage of btree_cursor_set_to_nil - replace with 
 			cursor_set_to_nil
+            x btree_insert.c
+            x cursor.c
+            o db.c
+        o can we remove BTREE_CURSOR_FLAG_COUPLED and use getters/setters
+            instead?
         o unify the dupe caches - btree cursor and upper layer cursor have 
             their own dupe-caches each (or not? after all it's possible that
             a txn-cursor is coupled to a different key than the btree,

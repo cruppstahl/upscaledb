@@ -203,7 +203,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             ham_bool_t equal_keys;
             (void)cursor_sync(cursor, 0, &equal_keys);
             if (!equal_keys)
-                btree_cursor_set_to_nil(btc);
+                cursor_set_to_nil(cursor, CURSOR_BTREE);
         }
     }
 

@@ -2728,7 +2728,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                 (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 
                         &is_equal);
                 if (!is_equal)
-                    btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                    cursor_set_to_nil(cursor, CURSOR_BTREE);
 
                 if (!cursor_get_dupecache_count(cursor))
                     st=HAM_KEY_NOT_FOUND;
@@ -2742,7 +2742,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_bool_t is_equal;
             (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
             if (!is_equal)
-                btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                cursor_set_to_nil(cursor, CURSOR_BTREE);
         }
         cursor_couple_to_txnop(cursor);
         op=txn_cursor_get_coupled_op(txnc);
@@ -3069,7 +3069,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the smallest/first key from the btree tree. */
         btrs=btree_cursor_move(cursor_get_btree_cursor(cursor), 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
-            btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+            cursor_set_to_nil(cursor, CURSOR_BTREE);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -3124,13 +3124,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
                             0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                        cursor_set_to_nil(cursor, CURSOR_BTREE);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
-                        cursor_set_to_nil(cursor, CURSOR_TXN);
+                        cursor_set_to_nil(cursor, 0);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
                     goto bail;
@@ -3196,7 +3195,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* fetch the greatest/last key from the btree tree. */
         btrs=btree_cursor_move(cursor_get_btree_cursor(cursor), 0, 0, flags);
         if (btrs==HAM_KEY_NOT_FOUND)
-            btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+            cursor_set_to_nil(cursor, CURSOR_BTREE);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -3251,13 +3250,12 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
                             0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                        cursor_set_to_nil(cursor, CURSOR_BTREE);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
                     st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                     if (st==HAM_KEY_ERASED_IN_TXN) {
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
-                        cursor_set_to_nil(cursor, CURSOR_TXN);
+                        cursor_set_to_nil(cursor, 0);
                         return (SHITTY_HACK_REACHED_EOF);
                     }
                     goto bail;
@@ -3343,7 +3341,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
-                    btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                    cursor_set_to_nil(cursor, CURSOR_BTREE);
                     break;
                 }
 
@@ -3467,7 +3465,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
                             0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                        cursor_set_to_nil(cursor, CURSOR_BTREE);
                     st=0; /* ignore return code */
                 }
                 /* if the key was erased: continue moving "next" till 
@@ -3551,7 +3549,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * ham_cursor_move will not know that the btree-cursor is
                  * invalid */
                 if (btrs==HAM_KEY_NOT_FOUND) {
-                    btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                    cursor_set_to_nil(cursor, CURSOR_BTREE);
                     break;
                 }
 
@@ -3677,7 +3675,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
                             0, 0, flags);
                     if (st==HAM_KEY_NOT_FOUND)
-                        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
+                        cursor_set_to_nil(cursor, CURSOR_BTREE);
                     st=0; /* ignore return code */
                 }
                 /* if the key was erased: continue moving "previous" till 
