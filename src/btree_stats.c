@@ -933,7 +933,7 @@ void
 btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
-    btree_cursor_t *cursor = (btree_cursor_t *)hints->cursor;
+    btree_cursor_t *cursor = cursor_get_btree_cursor(hints->cursor);
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
     ham_assert(hints->force_prepend == HAM_FALSE, (0));

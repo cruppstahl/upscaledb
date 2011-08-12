@@ -180,7 +180,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     dupecache_t *dc=cursor_get_dupecache(cursor);
-    btree_cursor_t *btc=(btree_cursor_t *)cursor;
+    btree_cursor_t *btc=cursor_get_btree_cursor(cursor);
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     ham_assert(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES, (""));
@@ -357,7 +357,7 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
     /* dupe-id is a 1-based index! */
     e=dupecache_get_elements(dc)+(dupe_id-1);
     if (dupecache_line_use_btree(e)) {
-        btree_cursor_t *btc=(btree_cursor_t *)cursor;
+        btree_cursor_t *btc=cursor_get_btree_cursor(cursor);
         cursor_couple_to_btree(cursor);
         btree_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
     }
@@ -378,7 +378,7 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
     txn_cursor_t *txnc=cursor_get_txn_cursor(clone);
     if (st)
         return (st);
-    st=btree_cursor_move((btree_cursor_t *)cursor, &key, 0, 0);
+    st=btree_cursor_move(cursor_get_btree_cursor(cursor), &key, 0, 0);
     if (st) {
         ham_cursor_close(clone);
         return (st);
@@ -419,7 +419,7 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
                     : HAM_FIND_LEQ_MATCH);
         /* the flag DONT_LOAD_KEY does not load the key if there's an
          * approx match - it only positions the cursor */
-        st=btree_cursor_find((btree_cursor_t *)cursor, k, 0, 
+        st=btree_cursor_find(cursor_get_btree_cursor(cursor), k, 0, 
                 CURSOR_SYNC_DONT_LOAD_KEY|flags);
         /* if we had a direct hit instead of an approx. match then
          * set fresh_start to false; otherwise do_local_cursor_move
@@ -433,12 +433,12 @@ cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
         ham_status_t st=ham_cursor_clone(cursor, &clone);
         if (st)
             goto bail;
-        st=btree_cursor_uncouple((btree_cursor_t *)clone, 0);
+        st=btree_cursor_uncouple(cursor_get_btree_cursor(clone), 0);
         if (st) {
             ham_cursor_close(clone);
             goto bail;
         }
-        k=btree_cursor_get_uncoupled_key((btree_cursor_t *)clone);
+        k=btree_cursor_get_uncoupled_key(cursor_get_btree_cursor(clone));
         if (!(flags&CURSOR_SYNC_ONLY_EQUAL_KEY))
             flags=flags|((flags&HAM_CURSOR_NEXT)
                     ? HAM_FIND_GEQ_MATCH
@@ -492,7 +492,7 @@ cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     /* don't use cursor_get_txn_cursor() because it asserts that the struct
      * was setup correctly (but this was not yet the case here) */
     txn_cursor_create(db, txn, flags, &c->_txn_cursor, c);
-    btree_cursor_create(db, txn, flags, (btree_cursor_t *)c, c);
+    btree_cursor_create(db, txn, flags, cursor_get_btree_cursor(c), c);
 
     *pcursor=c;
     return (0);
@@ -515,7 +515,8 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
 
-    st=btree_cursor_clone((btree_cursor_t *)src, (btree_cursor_t *)c, c);
+    st=btree_cursor_clone(cursor_get_btree_cursor(src), 
+                    cursor_get_btree_cursor(c), c);
     if (st)
         return (st);
 
@@ -539,12 +540,14 @@ cursor_is_nil(ham_cursor_t *cursor, int what)
 {
     switch (what) {
       case CURSOR_BTREE:
-        return (__btree_cursor_is_nil((btree_cursor_t *)cursor));
+        return (__btree_cursor_is_nil(cursor_get_btree_cursor(cursor)));
       case CURSOR_TXN:
         return (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)));
       default:
         ham_assert(what==0, (""));
-        return (btree_cursor_is_nil((btree_cursor_t *)cursor));
+        /* TODO btree_cursor_is_nil is different from __btree_cursor_is_nil
+         * - refactor and clean up! */
+        return (btree_cursor_is_nil(cursor_get_btree_cursor(cursor)));
     }
 }
 
@@ -553,14 +556,14 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what)
 {
     switch (what) {
       case CURSOR_BTREE:
-        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
+        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
         break;
       case CURSOR_TXN:
         txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
         break;
       default:
         ham_assert(what==0, (""));
-        btree_cursor_set_to_nil((btree_cursor_t *)cursor);
+        btree_cursor_set_to_nil(cursor_get_btree_cursor(cursor));
         txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
         break;
     }
@@ -581,7 +584,7 @@ cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags)
         st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
     }
     else {
-        st=btree_cursor_erase((btree_cursor_t *)cursor, flags);
+        st=btree_cursor_erase(cursor_get_btree_cursor(cursor), flags);
     }
 
     if (st==0)
@@ -616,7 +619,7 @@ cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn,
         }
     }
     else {
-        st=btree_cursor_get_duplicate_count((btree_cursor_t *)cursor, 
+        st=btree_cursor_get_duplicate_count(cursor_get_btree_cursor(cursor), 
                     pcount, flags);
     }
 
@@ -642,10 +645,11 @@ cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
     if (txn) {
         if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
                 && !(cursor_is_nil(cursor, 0))) {
-            st=btree_cursor_uncouple((btree_cursor_t *)cursor, 0);
+            st=btree_cursor_uncouple(cursor_get_btree_cursor(cursor), 0);
             if (st==0)
                 st=db_insert_txn(db, txn, 
-                    btree_cursor_get_uncoupled_key((btree_cursor_t *)cursor),
+                    btree_cursor_get_uncoupled_key(
+                            cursor_get_btree_cursor(cursor)),
                     record, flags|HAM_OVERWRITE, 
                     cursor_get_txn_cursor(cursor));
         }
@@ -657,7 +661,8 @@ cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
             cursor_couple_to_txnop(cursor);
     }
     else {
-        st=btree_cursor_overwrite((btree_cursor_t *)cursor, record, flags);
+        st=btree_cursor_overwrite(cursor_get_btree_cursor(cursor), 
+                        record, flags);
         if (st==0)
             cursor_couple_to_btree(cursor);
     }
@@ -669,7 +674,7 @@ cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
 void
 cursor_close(ham_cursor_t *cursor)
 {
-    btree_cursor_close((btree_cursor_t *)cursor);
+    btree_cursor_close(cursor_get_btree_cursor(cursor));
     txn_cursor_close(cursor_get_txn_cursor(cursor));
 }
 

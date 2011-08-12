@@ -136,10 +136,10 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x env.c
             x txn_cursor.c
             x btree_erase.c
-            o btree_cursor.c
-            o btree_insert.c
-            o btree_stats.c
-            o cursor.c
+            x btree_cursor.c
+            x btree_insert.c
+            x btree_stats.c
+            x cursor.c
             o db.c
             o remove SIZEOF_CURSOR in cursor.c
             o remove BTREE_CURSOR_FLAG_COUPLED?

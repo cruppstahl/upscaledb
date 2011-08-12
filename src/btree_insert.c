@@ -91,36 +91,36 @@ typedef struct insert_scratchpad_t
  */
 static ham_status_t
 __insert_recursive(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints);
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints);
 
 /**
  * this function inserts a key in a page
  */
 static ham_status_t
 __insert_in_page(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints);
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints);
 
 /**
  * insert a key in a page; the page MUST have free slots
  */
 static ham_status_t
 __insert_nosplit(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, ham_record_t *record, 
-        btree_cursor_t *cursor, insert_hints_t *hints);
+                ham_offset_t rid, ham_record_t *record, 
+                btree_cursor_t *cursor, insert_hints_t *hints);
 
 /**
  * split a page and insert the new element
  */
 static ham_status_t
 __insert_split(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints);
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints);
 
 static ham_status_t
 __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record, 
-        btree_cursor_t *cursor, insert_hints_t *hints);
+                btree_cursor_t *cursor, insert_hints_t *hints);
 
 
 static ham_status_t
@@ -392,11 +392,12 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
 
 ham_status_t
 btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
+                ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=be_get_db(be);
-    insert_hints_t hints = {flags, flags, (ham_cursor_t *)cursor, 0, 
+    insert_hints_t hints = {flags, flags, 
+        cursor ? btree_cursor_get_parent(cursor) : 0, 0, 
         HAM_FALSE, HAM_FALSE, HAM_FALSE, 0, NULL, -1};
 
     btree_insert_get_hints(&hints, db, key);
@@ -440,15 +441,15 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
  */                                                                 
 ham_status_t
 btree_insert(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, ham_u32_t flags)
 {
     return (btree_insert_cursor(be, key, record, 0, flags));
 }
 
 static ham_status_t
 __insert_recursive(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints)
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints)
 {
     ham_status_t st;
     ham_page_t *child;
@@ -509,8 +510,8 @@ __insert_recursive(ham_page_t *page, ham_key_t *key,
 
 static ham_status_t
 __insert_in_page(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints)
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints)
 {
     ham_status_t st;
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
@@ -566,8 +567,8 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
 
 static ham_status_t
 __insert_nosplit(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, ham_record_t *record, 
-        btree_cursor_t *cursor, insert_hints_t *hints)
+                ham_offset_t rid, ham_record_t *record, 
+                btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st;
     ham_u16_t count;
@@ -729,7 +730,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
         btree_cursor_set_coupled_index(cursor, slot);
         btree_cursor_set_dupe_id(cursor, new_dupe_id);
         memset(btree_cursor_get_dupe_cache(cursor), 0, sizeof(dupe_entry_t));
-        page_add_cursor(page, (ham_cursor_t *)cursor);
+        page_add_cursor(page, btree_cursor_get_parent(cursor));
     }
 
     /*
@@ -772,8 +773,8 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
 
 static ham_status_t
 __insert_split(ham_page_t *page, ham_key_t *key, 
-        ham_offset_t rid, insert_scratchpad_t *scratchpad, 
-        insert_hints_t *hints)
+                ham_offset_t rid, insert_scratchpad_t *scratchpad, 
+                insert_hints_t *hints)
 {
     int cmp;
     ham_status_t st;
