@@ -172,6 +172,11 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 o do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
 
+o Ger has patches for configure.in - gconv coverage
+
+o try to compile some low-level modules with C++; i would like to use the 
+    STL and maybe some boost libraries for some of the code
+
 o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
     is only required once then it should be inserted at the tail of the
     totallist, like a page that was not accessed for a very long time
