@@ -21,6 +21,7 @@
 #include "../src/error.h"
 #include "../src/btree.h"
 #include "../src/env.h"
+#include "../src/cursor.h"
 #include "memtracker.h"
 #include "os.hpp"
 
@@ -95,13 +96,10 @@ public:
 
     void createCloseTest(void)
     {
-        btree_cursor_t *cursor;
         ham_cursor_t *c;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(btree_cursor_t *)c;
-        BFC_ASSERT(cursor!=0);
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void cloneTest(void)
@@ -233,22 +231,22 @@ public:
 
     void structureTest(void)
     {
-        btree_cursor_t *cursor;
         ham_cursor_t *c;
+        btree_cursor_t *btc;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-        cursor=(btree_cursor_t *)c;
-        BFC_ASSERT(cursor!=0);
 
-        ham_u32_t flags=btree_cursor_get_flags(cursor);
-        BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
-        btree_cursor_set_flags(cursor, 0x13);
-        BFC_ASSERT(btree_cursor_get_flags(cursor)==0x13);
-        btree_cursor_set_flags(cursor, 0);
-        BFC_ASSERT(btree_cursor_get_flags(cursor)==0);
-        btree_cursor_set_flags(cursor, flags);
+        btc=cursor_get_btree_cursor(c);
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
+        ham_u32_t flags=btree_cursor_get_flags(btc);
+        BFC_ASSERT(btree_cursor_get_flags(btc)==0);
+        btree_cursor_set_flags(btc, 0x13);
+        BFC_ASSERT(btree_cursor_get_flags(btc)==0x13);
+        btree_cursor_set_flags(btc, 0);
+        BFC_ASSERT(btree_cursor_get_flags(btc)==0);
+        btree_cursor_set_flags(btc, flags);
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void linkedListTest(void)
@@ -356,7 +354,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-        btc=(btree_cursor_t *)c;
+        btc=cursor_get_btree_cursor(c);
         /* after create: cursor is NIL */
         BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED));
         BFC_ASSERT(!(btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));

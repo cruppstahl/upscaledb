@@ -21,6 +21,7 @@
 #include "blob.h"
 #include "btree.h"
 #include "btree_cursor.h"
+#include "cursor.h"
 #include "cache.h"
 #include "db.h"
 #include "device.h"

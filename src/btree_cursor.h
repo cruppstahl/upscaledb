@@ -32,9 +32,7 @@
 #define HAM_BTREE_CURSORS_H__
 
 #include "internal_fwd_decl.h"
-
 #include "blob.h"
-#include "cursor.h"
 
 
 #ifdef __cplusplus
@@ -44,12 +42,8 @@ extern "C" {
 /**
  * the Cursor structure for a b+tree cursor
  */
-typedef struct btree_cursor_t btree_cursor_t;
-struct btree_cursor_t
+typedef struct btree_cursor_t
 {
-    /** the common declarations of all cursors */
-    CURSOR_DECLARATIONS(btree_cursor_t);
-
     /** the parent cursor */
     ham_cursor_t *_parent;
 
@@ -83,7 +77,8 @@ struct btree_cursor_t
         } _uncoupled;
 
     } _u;
-};
+
+} btree_cursor_t;
 
 /** cursor flag: the cursor is coupled */
 #define BTREE_CURSOR_FLAG_COUPLED              1

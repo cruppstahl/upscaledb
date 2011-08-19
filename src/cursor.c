@@ -22,13 +22,13 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 
-#define SIZEOF_CURSOR (sizeof(*c)+sizeof(btree_cursor_t)) /* TODO unify structs! */
 
 static ham_bool_t
 __btree_cursor_is_nil(btree_cursor_t *btc)
 {
-    return (!(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED));
+    ham_cursor_t *parent=btree_cursor_get_parent(btc);
+    return (!(cursor_get_flags(parent)&BTREE_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(parent)&BTREE_CURSOR_FLAG_UNCOUPLED));
 }
 
 static ham_status_t
@@ -482,7 +482,8 @@ cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     *pcursor=0;
 
-    c=(ham_cursor_t *)allocator_calloc(env_get_allocator(env), SIZEOF_CURSOR);
+    c=(ham_cursor_t *)allocator_calloc(env_get_allocator(env), 
+            sizeof(ham_cursor_t));
     if (!c)
         return (HAM_OUT_OF_MEMORY);
 
@@ -508,10 +509,11 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     *dest=0;
 
-    c=(ham_cursor_t *)allocator_alloc(env_get_allocator(env), SIZEOF_CURSOR);
+    c=(ham_cursor_t *)allocator_alloc(env_get_allocator(env), 
+            sizeof(ham_cursor_t));
     if (!c)
         return (HAM_OUT_OF_MEMORY);
-    memcpy(c, src, SIZEOF_CURSOR);
+    memcpy(c, src, sizeof(ham_cursor_t));
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
 
@@ -538,6 +540,8 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 ham_bool_t
 cursor_is_nil(ham_cursor_t *cursor, int what)
 {
+    ham_assert(cursor!=0, (""));
+
     switch (what) {
       case CURSOR_BTREE:
         return (__btree_cursor_is_nil(cursor_get_btree_cursor(cursor)));
@@ -676,6 +680,7 @@ cursor_close(ham_cursor_t *cursor)
 {
     btree_cursor_close(cursor_get_btree_cursor(cursor));
     txn_cursor_close(cursor_get_txn_cursor(cursor));
+    dupecache_clear(cursor_get_dupecache(cursor));
 }
 
 #ifdef HAM_DEBUG

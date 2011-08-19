@@ -74,6 +74,7 @@
 
 #include "error.h"
 #include "txn_cursor.h"
+#include "btree_cursor.h"
 #include "blob.h"
 
 
@@ -206,53 +207,49 @@ dupecache_reset(dupecache_t *c);
 
 
 /**
- * The Cursor structure - these functions and members are "inherited"
- * by every other cursor (i.e. btree, hashdb etc).
- */
-#define CURSOR_DECLARATIONS(clss)                                       \
-    /** Pointer to the Database object */                               \
-    ham_db_t *_db;                                                      \
-                                                                        \
-    /** Pointer to the Transaction */                                   \
-    ham_txn_t *_txn;                                                    \
-                                                                        \
-    /** A Cursor which can walk over Transaction trees */               \
-    txn_cursor_t _txn_cursor;                                           \
-                                                                        \
-    /** The remote database handle */                                   \
-    ham_u64_t _remote_handle;                                           \
-                                                                        \
-    /** Linked list of all Cursors in this Database */                  \
-    clss *_next, *_previous;                                            \
-                                                                        \
-    /** Linked list of Cursors which point to the same page */          \
-    clss *_next_in_page, *_previous_in_page;                            \
-                                                                        \
-    /** A cache for all duplicates of the current key. needed for       \
-     * ham_cursor_move, ham_find and other functions. The cache is      \
-     * used to consolidate all duplicates of btree and txn. */          \
-    dupecache_t _dupecache;                                             \
-                                                                        \
-    /** The current position of the cursor in the cache. This is a      \
-     * 1-based index. 0 means that the cache is not in use. */          \
-    ham_u32_t _dupecache_index;                                         \
-                                                                        \
-    /** Stores the last operation (insert/find or move); needed for     \
-     * ham_cursor_move. Values can be HAM_CURSOR_NEXT,                  \
-     * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */                   \
-    ham_u32_t _lastop;                                                  \
-                                                                        \
-    /** Cursor flags */                                                 \
-    ham_u32_t _flags
-
-
-/**
  * a generic Cursor structure, which has the same memory layout as
  * all other backends
  */
 struct ham_cursor_t
 {
-    CURSOR_DECLARATIONS(ham_cursor_t);
+    /** Pointer to the Database object */
+    ham_db_t *_db;
+
+    /** Pointer to the Transaction */
+    ham_txn_t *_txn;
+
+    /** A Cursor which can walk over Transaction trees */
+    txn_cursor_t _txn_cursor;
+
+    /** A Cursor which can walk over B+trees */
+    btree_cursor_t _btree_cursor;
+
+    /** The remote database handle */
+    ham_u64_t _remote_handle;
+
+    /** Linked list of all Cursors in this Database */
+    ham_cursor_t *_next, *_previous;
+
+    /** Linked list of Cursors which point to the same page */
+    ham_cursor_t *_next_in_page, *_previous_in_page;
+
+    /** A cache for all duplicates of the current key. needed for
+     * ham_cursor_move, ham_find and other functions. The cache is
+     * used to consolidate all duplicates of btree and txn. */
+    dupecache_t _dupecache;
+
+    /** The current position of the cursor in the cache. This is a
+     * 1-based index. 0 means that the cache is not in use. */
+    ham_u32_t _dupecache_index;
+
+    /** Stores the last operation (insert/find or move); needed for
+     * ham_cursor_move. Values can be HAM_CURSOR_NEXT,
+     * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */
+    ham_u32_t _lastop;
+
+    /** Cursor flags */
+    ham_u32_t _flags;
+
 };
 
 /** Get the Cursor flags */
@@ -324,7 +321,7 @@ cursor_get_txn_cursor(ham_cursor_t *cursor);
 #endif
 
 /** Get a pointer to the Btree cursor */
-#define cursor_get_btree_cursor(c)      ((btree_cursor_t *)c)
+#define cursor_get_btree_cursor(c)      (&(c)->_btree_cursor)
 
 /** Get the remote Database handle */
 #define cursor_get_remote_handle(c)     (c)->_remote_handle

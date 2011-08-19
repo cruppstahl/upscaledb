@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "btree.h"
+#include "cursor.h"
 #include "btree_cursor.h"
 #include "db.h"
 #include "env.h"
@@ -405,7 +406,7 @@ no_fast_track:
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
         ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED), 
                 ("coupling a coupled cursor, but need a nil-cursor"));
-        page_add_cursor(page, (ham_cursor_t *)cursor);
+        page_add_cursor(page, btree_cursor_get_parent(cursor));
         btree_cursor_set_flags(cursor, 
                 btree_cursor_get_flags(cursor)|BTREE_CURSOR_FLAG_COUPLED);
         btree_cursor_set_coupled_page(cursor, page);

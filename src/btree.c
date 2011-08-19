@@ -27,6 +27,7 @@
 #include "mem.h"
 #include "page.h"
 #include "txn.h"
+#include "cursor.h"
 
 
 /**

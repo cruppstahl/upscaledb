@@ -22,6 +22,7 @@
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/page.h"
+#include "../src/cursor.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"

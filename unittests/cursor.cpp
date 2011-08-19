@@ -174,12 +174,8 @@ public:
         ham_cursor_t *clone;
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
-        BFC_ASSERT_EQUAL(true, btree_cursor_is_nil((btree_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, btree_cursor_is_nil((btree_cursor_t *)clone));
-        BFC_ASSERT_EQUAL(true, 
-                txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                txn_cursor_is_nil(cursor_get_txn_cursor(clone)));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(clone, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 };
@@ -219,7 +215,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, btree_cursor_is_nil((btree_cursor_t *)clone));
+        BFC_ASSERT_EQUAL(false, cursor_is_nil(clone, CURSOR_BTREE));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 
@@ -237,13 +233,15 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
-                    btree_cursor_uncouple((btree_cursor_t *)m_cursor, 0));
+                  btree_cursor_uncouple(cursor_get_btree_cursor(m_cursor), 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, btree_cursor_is_nil((btree_cursor_t *)clone));
-        ham_key_t *k1=btree_cursor_get_uncoupled_key((btree_cursor_t *)m_cursor);
-        ham_key_t *k2=btree_cursor_get_uncoupled_key((btree_cursor_t *)clone);
+        BFC_ASSERT_EQUAL(false, cursor_is_nil(clone, CURSOR_BTREE));
+        ham_key_t *k1=btree_cursor_get_uncoupled_key(
+                    cursor_get_btree_cursor(m_cursor));
+        ham_key_t *k2=btree_cursor_get_uncoupled_key(
+                    cursor_get_btree_cursor(clone));
         BFC_ASSERT_EQUAL(0, strcmp((char *)k1->data, (char *)k2->data));
         BFC_ASSERT_EQUAL(k1->size, k2->size);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
@@ -261,7 +259,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
-                    btree_cursor_uncouple((btree_cursor_t *)m_cursor, 0));
+                  btree_cursor_uncouple(cursor_get_btree_cursor(m_cursor), 0));
 
         /* will close in teardown() */
     }
@@ -649,7 +647,7 @@ public:
                     ham_cursor_erase(m_cursor, 0));
 
         /* key is now nil */
-        BFC_ASSERT_EQUAL(true, btree_cursor_is_nil((btree_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, CURSOR_BTREE));
 
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -804,7 +802,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, btree_cursor_is_nil((btree_cursor_t *)clone));
+        BFC_ASSERT_EQUAL(false, 
+                btree_cursor_is_nil((cursor_get_btree_cursor(clone))));
         BFC_ASSERT_EQUAL(2u, txn_get_cursor_refcount(m_txn));
         BFC_ASSERT_EQUAL(
                 txn_cursor_get_coupled_op(cursor_get_txn_cursor(m_cursor)), 
@@ -2294,20 +2293,14 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11112"));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11114"));
         BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaae", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaaf", TXN));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11116"));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
     }
 
     void movePreviousInEmptyTransactionTest(void)
@@ -3487,14 +3480,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3519,14 +3506,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3555,18 +3536,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_erase(m_db, m_txn, &key, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)cursor2));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor3)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)cursor3));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(cursor2, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(cursor3, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor3));
@@ -3591,14 +3563,8 @@ public:
                     ham_erase(m_db, 0, &key, 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_erase(m_db, m_txn, &key, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3639,10 +3605,7 @@ public:
                     ham_erase(m_db, m_txn, &key, 0));
 
         /* cursor must be nil */
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    btree_cursor_is_nil((btree_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil(m_cursor, 0));
     }
 
 };

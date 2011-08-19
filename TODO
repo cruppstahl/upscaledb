@@ -131,7 +131,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         x combine dupecache_reset and cursor_set_dupecache_index(c, 0)
             into cursor_clear_dupecache
 
-        o make btree_cursor similar to txn_cursor and include it into
+        x make btree_cursor similar to txn_cursor and include it into
            ham_cursor_t -> need to remove all the casts - this is a big change!
             x env.c
             x txn_cursor.c
@@ -141,7 +141,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x btree_stats.c
             x cursor.c
             x db.c
-            o remove SIZEOF_CURSOR in cursor.c
+            x get rid of CURSOR_DECLARATIONS
+            x remove SIZEOF_CURSOR in cursor.c
+
         o rename unittest bt_cursor.cpp to btree_cursor.cpp
         x check usage of btree_cursor_set_to_nil - replace with 
 			cursor_set_to_nil

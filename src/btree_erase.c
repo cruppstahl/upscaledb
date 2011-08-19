@@ -33,6 +33,7 @@
 #include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
+#include "cursor.h"
 
 
 /*
@@ -1310,15 +1311,18 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
-        btree_cursor_t *c=cursor_get_btree_cursor(db_get_cursors(db));
-        btree_cursor_t *cursor=scratchpad->cursor;
+        ham_cursor_t *cursors=db_get_cursors(db);
+        btree_cursor_t *btc=0;
         ham_u32_t dupe_id=0;
+
+        if (cursors)
+            btc=cursor_get_btree_cursor(cursors);
 
         hints->processed_leaf_page = page;
         hints->processed_slot = slot;
 
-        if (cursor)
-            dupe_id=btree_cursor_get_dupe_id(cursor)+1;
+        if (scratchpad->cursor)
+            dupe_id=btree_cursor_get_dupe_id(scratchpad->cursor)+1;
         else if (scratchpad->dupe_id) /* +1-based index */
             dupe_id=scratchpad->dupe_id;
 
@@ -1340,23 +1344,27 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
              * 
              * TODO why? all cursors on this page were uncoupled above!
              */
-            while (c && cursor) {
-                btree_cursor_t *next=cursor_get_btree_cursor(cursor_get_next(c));
-                if (c!=cursor) {
-                    if (btree_cursor_get_dupe_id(c)
-                            ==btree_cursor_get_dupe_id(cursor)) {
-                        if (btree_cursor_points_to(c, bte))
-                            btree_cursor_set_to_nil(c);
+            while (btc && scratchpad->cursor) {
+                btree_cursor_t *next=0;
+                if (cursor_get_next(cursors)) {
+                    cursors=cursor_get_next(cursors);
+                    next=cursor_get_btree_cursor(cursors);
+                }
+                if (btc!=scratchpad->cursor) {
+                    if (btree_cursor_get_dupe_id(btc)
+                            ==btree_cursor_get_dupe_id(scratchpad->cursor)) {
+                        if (btree_cursor_points_to(btc, bte))
+                            btree_cursor_set_to_nil(btc);
                     }
-                    else if (btree_cursor_get_dupe_id(c)>
-                            btree_cursor_get_dupe_id(cursor)) {
-                        btree_cursor_set_dupe_id(c, 
-                                btree_cursor_get_dupe_id(c)-1);
-                        memset(btree_cursor_get_dupe_cache(c), 0,
+                    else if (btree_cursor_get_dupe_id(btc)>
+                            btree_cursor_get_dupe_id(scratchpad->cursor)) {
+                        btree_cursor_set_dupe_id(btc, 
+                                btree_cursor_get_dupe_id(btc)-1);
+                        memset(btree_cursor_get_dupe_cache(btc), 0,
                                 sizeof(dupe_entry_t));
                     }
                 }
-                c=next;
+                btc=next;
             }
     
             /*
@@ -1367,26 +1375,32 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             return (0);
         }
         else {
-            btree_cursor_t *c;
+            btree_cursor_t *btc=0;
 
             st=key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return (st);
 
 free_all:
-            c=cursor_get_btree_cursor(db_get_cursors(db));
+            if (cursors) {
+                btc=cursor_get_btree_cursor(cursors);
 
-            /*
-             * make sure that no cursor is pointing to this key
-             */
-            while (c) {
-                btree_cursor_t *cur=cursor_get_btree_cursor(c);
-                btree_cursor_t *next=cursor_get_btree_cursor(cursor_get_next(c));
-                if (c!=cursor) {
-                    if (btree_cursor_points_to(cur, bte))
-                        btree_cursor_set_to_nil(cur);
+                /*
+                 * make sure that no cursor is pointing to this key
+                 */
+                while (btc) {
+                    btree_cursor_t *cur=btc;
+                    btree_cursor_t *next=0;
+                    if (cursor_get_next(cursors)) {
+                        cursors=cursor_get_next(cursors);
+                        next=cursor_get_btree_cursor(cursors);
+                    }
+                    if (btc!=scratchpad->cursor) {
+                        if (btree_cursor_points_to(cur, bte))
+                            btree_cursor_set_to_nil(cur);
+                    }
+                    btc=next;
                 }
-                c=next;
             }
         }
     }
