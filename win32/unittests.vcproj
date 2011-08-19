@@ -356,7 +356,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\unittests\bt_cursor.cpp"
+			RelativePath="..\unittests\btree_cursor.cpp"
 			>
 		</File>
 		<File

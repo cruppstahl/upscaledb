@@ -144,7 +144,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x get rid of CURSOR_DECLARATIONS
             x remove SIZEOF_CURSOR in cursor.c
 
-        o rename unittest bt_cursor.cpp to btree_cursor.cpp
+        x rename unittest bt_cursor.cpp to btree_cursor.cpp
         x check usage of btree_cursor_set_to_nil - replace with 
 			cursor_set_to_nil
             x btree_insert.c
