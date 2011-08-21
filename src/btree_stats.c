@@ -961,8 +961,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
              given key - which can be rather costly - so we rather wait for the
              statistical cavalry a little later on in this program then.
              */
-            if (btree_cursor_get_flags(cursor) & BTREE_CURSOR_FLAG_COUPLED) 
-            {
+            if (btree_cursor_is_coupled(cursor)) {
                 ham_page_t *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 
@@ -995,8 +994,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
              given key - which can be rather costly - so we rather wait for the
              statistical cavalry a little later on in this program then.
              */
-            if (btree_cursor_get_flags(cursor) & BTREE_CURSOR_FLAG_COUPLED) 
-            {
+            if (btree_cursor_is_coupled(cursor)) {
                 ham_page_t *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 

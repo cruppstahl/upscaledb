@@ -26,9 +26,7 @@
 static ham_bool_t
 __btree_cursor_is_nil(btree_cursor_t *btc)
 {
-    ham_cursor_t *parent=btree_cursor_get_parent(btc);
-    return (!(cursor_get_flags(parent)&BTREE_CURSOR_FLAG_COUPLED) &&
-            !(cursor_get_flags(parent)&BTREE_CURSOR_FLAG_UNCOUPLED));
+    return (!btree_cursor_is_coupled(btc) && !btree_cursor_is_uncoupled(btc));
 }
 
 static ham_status_t

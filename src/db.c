@@ -1699,7 +1699,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
     ham_db_t *db=cursor_get_db(c);
     btree_cursor_t *btc=cursor_get_btree_cursor(c);
 
-    if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) {
+    if (btree_cursor_is_coupled(btc)) {
         ham_cursor_t *clone=0;
         ham_status_t st=ham_cursor_clone(c, &clone);
         if (st)
@@ -1714,7 +1714,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
             ret=HAM_TRUE;
         ham_cursor_close(clone);
     }
-    else if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_UNCOUPLED) {
+    else if (btree_cursor_is_uncoupled(btc)) {
         ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
         if (0==db_compare_keys(db, key, k))
             ret=HAM_TRUE;
@@ -2989,7 +2989,7 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
     ham_assert(!cursor_is_nil(cursor, 0), (""));
     ham_assert(!txn_cursor_is_nil(txnc), (""));
 
-    if (btree_cursor_get_flags(btrc)&BTREE_CURSOR_FLAG_COUPLED) {
+    if (btree_cursor_is_coupled(btrc)) {
         /* clone the cursor, then uncouple the clone; get the uncoupled key
          * and discard the clone again */
         
@@ -3019,7 +3019,7 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
         *pcmp=cmp;
         return (0);
     }
-    else if (btree_cursor_get_flags(btrc)&BTREE_CURSOR_FLAG_UNCOUPLED) {
+    else if (btree_cursor_is_uncoupled(btrc)) {
         /* TODO error codes are swallowed */
         *pcmp=db_compare_keys(db, btree_cursor_get_uncoupled_key(btrc), txnk);
         return (0);

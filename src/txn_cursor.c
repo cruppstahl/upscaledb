@@ -443,7 +443,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     /* case 1 described above */
     if (txn_cursor_is_nil(cursor)) {
         btree_cursor_t *btc=cursor_get_btree_cursor(parent);
-        if (btree_cursor_get_flags(btc)&BTREE_CURSOR_FLAG_COUPLED) {
+        if (btree_cursor_is_coupled(btc)) {
             st=btree_cursor_uncouple(btc, 0);
             if (st)
                 return (st);

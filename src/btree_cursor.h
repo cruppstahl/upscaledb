@@ -128,6 +128,14 @@ typedef struct btree_cursor_t
 /** set the key we're pointing to - if the cursor is uncoupled */
 #define btree_cursor_set_uncoupled_key(c, k)  (c)->_u._uncoupled._key=k
 
+/** check if the cursor is coupled */
+#define btree_cursor_is_coupled(c)            (btree_cursor_get_flags(c)&     \
+                                              BTREE_CURSOR_FLAG_COUPLED)
+
+/** check if the cursor is uncoupled */
+#define btree_cursor_is_uncoupled(c)          (btree_cursor_get_flags(c)&     \
+                                              BTREE_CURSOR_FLAG_UNCOUPLED)
+
 /**
  * Create a new cursor
  */

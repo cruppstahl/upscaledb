@@ -402,9 +402,9 @@ no_fast_track:
 
     /* set the cursor-position to this key */
     if (cursor) {
-        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_UNCOUPLED), 
+        ham_assert(!btree_cursor_is_uncoupled(cursor), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
-        ham_assert(!(btree_cursor_get_flags(cursor)&BTREE_CURSOR_FLAG_COUPLED), 
+        ham_assert(!btree_cursor_is_coupled(cursor),
                 ("coupling a coupled cursor, but need a nil-cursor"));
         page_add_cursor(page, btree_cursor_get_parent(cursor));
         btree_cursor_set_flags(cursor, 
