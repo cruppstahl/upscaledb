@@ -66,7 +66,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         also make sure that in case of errors the changeset and the local txn
         are correctly cleaned up
 
-    o cleanups: the cursor does not need the function pointers. 
+    x cleanups: the cursor does not need the function pointers. 
         simplify the whole interface!
         x btree_cursor functions should receive a btree_cursor as a 
            parameter which does NOT include the parent functions, but 
@@ -150,20 +150,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             x btree_insert.c
             x cursor.c
             x db.c
-
-        o remove BTREE_CURSOR_FLAG_COUPLED and use getters/setters instead
-            x use getters (is_coupled, is_uncoupled)
-            o instead of 
-                    btree_cursor_set_coupled_page(c, page);
-                    btree_cursor_set_coupled_index(c, 0);
-                    btree_cursor_set_flags(c,
-                           btree_cursor_get_flags(c)|BTREE_CURSOR_FLAG_COUPLED);
-                    btree_cursor_set_dupe_id(c, 0);
-                use a distinct function
-                    btree_cursor_couple(c, page, index, dupe_id)
-                and check if we really need all those macros
-
-        o unify the dupe caches - btree cursor and upper layer cursor have 
+        x remove BTREE_CURSOR_FLAG_COUPLED and use getters instead
+            (is_coupled, is_uncoupled)
+        x unify the dupe caches - btree cursor and upper layer cursor have 
             their own dupe-caches each (or not? after all it's possible that
             a txn-cursor is coupled to a different key than the btree,
             and destroying the dupecache could bring problems)
