@@ -161,48 +161,47 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         o cursor_set_lastop: store operation, direction, last compare value
             of txn-key vs. btree-key?
 
-    o there are a lot of areas where a btree cursor is uncoupled, just to 
-        retrieve the key and to couple the txn-key. that's not efficient
-        o move to a separate function
-        o try to optimize
-
     o cleanup txn_cursor_insert, _erase, _find, _overwrite - move to cursor.c,
 	    simplify the functions in db.c
 
-    o unittests for all new functions in cursor.h
-
-o do some profiling - i am afraid that changeset_get_page() is not efficient
-    enough; maybe a hash table is better?
+    o make sure that all unittests and monster tests are now working
 
 o Ger has patches for configure.in - gconv coverage
+    o add unittests for all new functions in cursor.h
 
-o try to compile some low-level modules with C++; i would like to use the 
+x check the output of the monster tests - is device->read/write required at
+    all? any other functions that are not required? - no, they're all required
+
+o compare performance against 1.1.13 (with and without Transactions)
+    o do some profiling - i am afraid that changeset_get_page() is not efficient
+        enough; maybe a hash table is better?
+    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
+        is only required once then it should be inserted at the tail of the
+        totallist, like a page that was not accessed for a very long time
+    o opnode: use key instead of key* (pointer) - this saves one allocation 
+        per node
+
+. there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+. try to compile some low-level modules with C++; i would like to use the 
     STL and maybe some boost libraries for some of the code
 
-o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
-    is only required once then it should be inserted at the tail of the
-    totallist, like a page that was not accessed for a very long time
+. many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
-o add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
-
-o make sure that all tests are successful and performance is as good as 
-    before (1.1.12)
-
-o should the changeset become part of the log? it would make sense
-
-o opnode: use key instead of key* (pointer) - this saves one allocation 
-    per node
-
-o many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
-
-o also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
+. also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
     then teardown() is not called and all other tests fail b/c the file handle
     is still occupied
 
-o check the output of the monster tests - is device->read/write required at
-    all? any other functions that are not required?
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
