@@ -2968,6 +2968,118 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (st);
 }
 
+static ham_status_t
+_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+                ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st=0;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=env_purge_cache(db_get_env(db));
+        if (st)
+            return (st);
+    }
+
+    /*
+     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
+     * if the user requests a PREVIOUS, we set it to LAST, resp.
+     * TODO the btree-cursor has identical code which can be removed
+     */
+    if (cursor_is_nil(cursor, 0)) {
+        if (flags&HAM_CURSOR_NEXT) {
+            flags&=~HAM_CURSOR_NEXT;
+            flags|=HAM_CURSOR_FIRST;
+        }
+        else if (flags&HAM_CURSOR_PREVIOUS) {
+            flags&=~HAM_CURSOR_PREVIOUS;
+            flags|=HAM_CURSOR_LAST;
+        }
+    }
+
+    /* in non-transactional mode - just call the btree function and return */
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
+                key, record, flags);
+        if (st)
+            return (st);
+
+        /* run the record-level filters */
+        return (__record_filters_after_find(db, record));
+    }
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor)
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
+
+    /* everything else is handled by the cursor function */
+    st=cursor_move(cursor, key, record, flags);
+
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
+
+    changeset_clear(env_get_changeset(env));
+
+    /* run the record-level filters */
+    if (st==0 && record)
+        st=__record_filters_after_find(db, record);
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        if (st==HAM_KEY_ERASED_IN_TXN)
+            st=HAM_KEY_NOT_FOUND;
+        return (st);
+    }
+
+    /* store the direction */
+    if (flags&HAM_CURSOR_NEXT)
+        cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
+    else if (flags&HAM_CURSOR_PREVIOUS)
+        cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
+    else
+        cursor_set_lastop(cursor, 0);
+
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else
+        return (st);
+}
+
+ham_status_t
+db_initialize_local(ham_db_t *db)
+{
+    db->_fun_close          =_local_fun_close;
+    db->_fun_get_parameters =_local_fun_get_parameters;
+    db->_fun_check_integrity=_local_fun_check_integrity;
+    db->_fun_get_key_count  =_local_fun_get_key_count;
+    db->_fun_insert         =_local_fun_insert;
+    db->_fun_erase          =_local_fun_erase;
+    db->_fun_find           =_local_fun_find;
+    db->_fun_cursor_create  =_local_cursor_create;
+    db->_fun_cursor_clone   =_local_cursor_clone;
+    db->_fun_cursor_close   =_local_cursor_close;
+    db->_fun_cursor_insert  =_local_cursor_insert;
+    db->_fun_cursor_erase   =_local_cursor_erase;
+    db->_fun_cursor_find    =_local_cursor_find;
+    db->_fun_cursor_get_duplicate_count=_local_cursor_get_duplicate_count;
+    db->_fun_cursor_overwrite=_local_cursor_overwrite;
+    db->_fun_cursor_move    =_local_cursor_move;
+
+    return (0);
+}
+
+#if 0
 /* 
  * this function compares two cursors - or more exactly, the two keys that
  * the cursors point at.
@@ -3028,10 +3140,6 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
     ham_assert(!"shouldn't be here", (""));
     return (0);
 }
-
-static ham_status_t
-_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
-                ham_record_t *record, ham_u32_t flags);
 
 /*
  * this is quite a long function, but bear with me - it has lots of comments
@@ -4093,27 +4201,4 @@ bail_2:
     else
         return (st);
 }
-
-ham_status_t
-db_initialize_local(ham_db_t *db)
-{
-    db->_fun_close          =_local_fun_close;
-    db->_fun_get_parameters =_local_fun_get_parameters;
-    db->_fun_check_integrity=_local_fun_check_integrity;
-    db->_fun_get_key_count  =_local_fun_get_key_count;
-    db->_fun_insert         =_local_fun_insert;
-    db->_fun_erase          =_local_fun_erase;
-    db->_fun_find           =_local_fun_find;
-    db->_fun_cursor_create  =_local_cursor_create;
-    db->_fun_cursor_clone   =_local_cursor_clone;
-    db->_fun_cursor_close   =_local_cursor_close;
-    db->_fun_cursor_insert  =_local_cursor_insert;
-    db->_fun_cursor_erase   =_local_cursor_erase;
-    db->_fun_cursor_find    =_local_cursor_find;
-    db->_fun_cursor_get_duplicate_count=_local_cursor_get_duplicate_count;
-    db->_fun_cursor_overwrite=_local_cursor_overwrite;
-    db->_fun_cursor_move    =_local_cursor_move;
-
-    return (0);
-}
-
+#endif

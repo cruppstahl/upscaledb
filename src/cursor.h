@@ -479,6 +479,13 @@ extern ham_status_t
 cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 
 /**
+ * Moves a Cursor
+ */
+extern ham_status_t
+cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
+                ham_u32_t flags);
+
+/**
  * flag for cursor_sync: do not use approx matching if the key
  * is not available
  */

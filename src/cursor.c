@@ -454,6 +454,63 @@ bail:
     return (st);
 }
 
+ham_status_t
+cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
+                ham_u32_t flags)
+{
+    ham_status_t st=0;
+    ham_bool_t changed_dir=HAM_FALSE;
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+
+    /* synchronize the btree and transaction cursor if the last operation was
+     * not a move next/previous OR if the direction changed */
+    if ((cursor_get_lastop(cursor)==HAM_CURSOR_PREVIOUS)
+            && (flags&HAM_CURSOR_NEXT))
+        changed_dir=HAM_TRUE;
+    else if ((cursor_get_lastop(cursor)==HAM_CURSOR_NEXT)
+            && (flags&HAM_CURSOR_PREVIOUS))
+        changed_dir=HAM_TRUE;
+    if (((flags&HAM_CURSOR_NEXT) || (flags&HAM_CURSOR_PREVIOUS))
+            && (cursor_get_lastop(cursor)==CURSOR_LOOKUP_INSERT
+                || changed_dir)) {
+        /* TODO this needs to update the last cursor state! */
+        st=cursor_sync(cursor, flags, 0);
+        if (st)
+            goto bail;
+    }
+
+/*
+TODO TODO TODO
+add the logic
+TODO TODO TODO
+*/
+
+    /* retrieve key/record, if requested */
+    if (st==0) {
+        if (cursor_is_coupled_to_txnop(cursor)) {
+            txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+            ham_assert(!(txn_op_get_flags(op)&TXN_OP_ERASE), (""));
+            if (key) {
+                st=txn_cursor_get_key(txnc, key);
+                if (st)
+                    goto bail;
+            }
+            if (record) {
+                st=txn_cursor_get_record(txnc, record);
+                if (st)
+                    goto bail;
+            }
+        }
+        else {
+            st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
+                    key, record, 0);
+        }
+    }
+
+bail:
+    return (st);
+}
+
 ham_size_t
 cursor_get_dupecache_count(ham_cursor_t *cursor)
 {

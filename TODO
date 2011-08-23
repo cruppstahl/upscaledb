@@ -159,12 +159,13 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
 
     o completely rewrite _local_cursor_move and move to cursor.c!
         o cursor_set_lastop: store operation, direction, last compare value
-            of txn-key vs. btree-key?
+            of txn-key vs. btree-key and rename the flags/values
 
     o cleanup txn_cursor_insert, _erase, _find, _overwrite - move to cursor.c,
 	    simplify the functions in db.c
 
     o make sure that all unittests and monster tests are now working
+        (also check with valgrind!)
 
 o Ger has patches for configure.in - gconv coverage
     o add unittests for all new functions in cursor.h
