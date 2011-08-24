@@ -242,14 +242,19 @@ struct ham_cursor_t
      * 1-based index. 0 means that the cache is not in use. */
     ham_u32_t _dupecache_index;
 
-    /** Stores the last operation (insert/find or move); needed for
+    /** The last operation (insert/find or move); needed for
      * ham_cursor_move. Values can be HAM_CURSOR_NEXT,
      * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */
     ham_u32_t _lastop;
 
+    /** the result of the last compare operation between btree and txn cursor;
+     * -1 if btree cursor is smaller, 0 if they are equal, +1 if btree cursor
+     * is larger; every other value means that the compare value needs to be
+     * updated. only used in cursor_move() */
+    int _lastcmp; 
+
     /** Cursor flags */
     ham_u32_t _flags;
-
 };
 
 /** Get the Cursor flags */
@@ -343,6 +348,12 @@ cursor_get_txn_cursor(ham_cursor_t *cursor);
 
 /** Store the current operation; needed for ham_cursor_move */
 #define cursor_set_lastop(c, o)         (c)->_lastop=(o)
+
+/** Get the previous compare operation */
+#define cursor_get_lastcmp(c)           (c)->_lastcmp
+
+/** Store the current compare operation; needed for cursor_move */
+#define cursor_set_lastcmp(c, cmp)      (c)->_lastcmp=(cmp)
 
 /** flag for cursor_set_lastop */
 #define CURSOR_LOOKUP_INSERT            0x10000

@@ -3039,6 +3039,8 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             (void)txn_abort(local_txn, 0);
         if (st==HAM_KEY_ERASED_IN_TXN)
             st=HAM_KEY_NOT_FOUND;
+        /* trigger a sync when the function is called again */
+        cursor_set_lastop(cursor, 0);
         return (st);
     }
 

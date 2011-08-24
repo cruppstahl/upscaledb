@@ -160,6 +160,14 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
     o completely rewrite _local_cursor_move and move to cursor.c!
         o cursor_set_lastop: store operation, direction, last compare value
             of txn-key vs. btree-key and rename the flags/values
+            -> really required??
+NEXT STEP:
+        o cursor_move is implemented for HAM_CURSOR_FIRST - try all unittests
+        o HAM_CURSOR_LAST
+        o HAM_CURSOR_NEXT
+        o HAM_CURSOR_PREVIOUS
+        o cursor_update_dupecache: calls cursor_sync; really required?
+            can the interface be simplified?
 
     o cleanup txn_cursor_insert, _erase, _find, _overwrite - move to cursor.c,
 	    simplify the functions in db.c
