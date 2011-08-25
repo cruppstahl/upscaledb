@@ -1167,6 +1167,8 @@ public:
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     }
 
     void moveLastInEmptyTransactionTest(void)
