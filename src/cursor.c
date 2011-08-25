@@ -524,13 +524,13 @@ __cursor_move_last_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 static ham_status_t
 __cursor_move_next_key(ham_cursor_t *cursor)
 {
-    return (0);
+    return (HAM_KEY_NOT_FOUND);
 }
 
 static ham_status_t
 __cursor_move_previous_key(ham_cursor_t *cursor)
 {
-    return (0);
+    return (HAM_KEY_NOT_FOUND);
 }
 
 static ham_status_t
@@ -604,11 +604,13 @@ __cursor_move_first_key(ham_cursor_t *cursor)
     else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
         cursor_couple_to_txnop(cursor);
         cursor_update_dupecache(cursor, CURSOR_TXN);
+        return (st);
     }
     /* if txn-tree is empty but btree is not: couple to btree */
     else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
         cursor_couple_to_btree(cursor);
         cursor_update_dupecache(cursor, CURSOR_BTREE);
+        return (st);
     }
     /* if both trees are not empty then pick the smaller key, but make sure
      * that it was not erased in another transaction.
@@ -655,7 +657,7 @@ __cursor_move_first_key(ham_cursor_t *cursor)
                 /* if this btree key was erased or overwritten then couple
                  * to the txn, but already move the btree cursor to the
                  * next item */
-                st=btree_cursor_move(btrc, 0, 0, HAM_CURSOR_NEXT);
+                (void)btree_cursor_move(btrc, 0, 0, HAM_CURSOR_NEXT);
                 /* if the key was erased: continue moving "next" till 
                  * we find a key or reach the end of the database */
                 st=__cursor_move_next_key(cursor);
@@ -674,11 +676,13 @@ __cursor_move_first_key(ham_cursor_t *cursor)
                 st=__cursor_move_next_key(cursor);
                 return (st);
             }
+            ham_assert(!"shouldn't be here", (""));
         }
         else if (cmp<1) {
             /* couple to btree */
             cursor_couple_to_btree(cursor);
             cursor_update_dupecache(cursor, CURSOR_BTREE);
+            return (0);
         }
         else {
             if (txns==HAM_TXN_CONFLICT)
@@ -686,6 +690,7 @@ __cursor_move_first_key(ham_cursor_t *cursor)
             /* couple to txn */
             cursor_couple_to_txnop(cursor);
             cursor_update_dupecache(cursor, CURSOR_TXN);
+            return (0);
         }
     }
 
@@ -737,17 +742,13 @@ cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
     }
 
     /* should we move through the duplicate list? */
-    if (!skip_duplicates) {
+    if (!skip_duplicates
+            && !(flags&HAM_CURSOR_FIRST) 
+            && !(flags&HAM_CURSOR_LAST)) {
         if (flags&HAM_CURSOR_NEXT)
             st=__cursor_move_next_dupe(cursor, flags);
         else if (flags&HAM_CURSOR_PREVIOUS)
             st=__cursor_move_previous_dupe(cursor, flags);
-        else if (flags&HAM_CURSOR_FIRST)
-            st=__cursor_move_first_dupe(cursor, flags);
-        else {
-            ham_assert(flags&HAM_CURSOR_LAST, (""));
-            st=__cursor_move_last_dupe(cursor, flags);
-        }
         if (st==0)
             goto retrieve_key_and_record;
         if (st!=HAM_LIMITS_REACHED)

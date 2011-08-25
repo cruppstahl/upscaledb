@@ -163,6 +163,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             -> really required??
 NEXT STEP:
         o cursor_move is implemented for HAM_CURSOR_FIRST - try all unittests
+            continue at error #1 in LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
+cursor.cpp:1167 assertion failed in expr 0 != ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST); actual values: '0' == '-11'
+
         o HAM_CURSOR_LAST
         o HAM_CURSOR_NEXT
         o HAM_CURSOR_PREVIOUS
