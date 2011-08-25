@@ -524,6 +524,68 @@ __cursor_move_last_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 static ham_status_t
 __cursor_move_next_key(ham_cursor_t *cursor)
 {
+#if 0
+    int cmp=0;
+
+    if (txnc.nil && !btrc.nil) {
+        do {
+            if (st=btrc.next)
+                return (st);
+        } while (!btrc.has_duplicates);
+        
+        cmp=-1;
+    }
+    else if (!txnc.nil && btrc.nil) {
+        do {
+            if (st=txnc.next)
+                return (st);
+        } while (txnc==erase && !txnc.has_duplicates);
+
+        cmp=+1;
+    }
+    else {
+        ham_bool_t found=HAM_FALSE;
+
+        do {
+            /* TODO this compare value could be cached??? */
+            cmp=__compare_keys(...);
+
+            if (cmp<0) {
+                do {
+                    if (st=btrc.next)
+                        return (st);
+                } while (!btrc.is_erased_in_txn && !btrc.has_duplicates);
+                found=true;
+            }
+            else if (cmp>0) {
+                do {
+                    if (st=txnc.next)
+                        return (st);
+                } while (txnc==erase && !txnc.has_duplicates);
+                found=true;
+            }
+        } while (!found);
+    }
+
+    if (cmp<0) {
+        /* btree is smaller - use it */
+    }
+    else if (cmp>0) {
+        /* txn is smaller - use it */
+    }
+    else { /* both are equal - check if btree key is overwritten, 
+            * erased or if there's a txn conflict */
+        if (duplicate) {
+            return 0;
+        }
+        if (erased || conflict) {
+            /* move btree and txn to next */
+        }
+        else { 
+            /* overwritten - couple to txn */
+        }
+    }
+#endif 
     return (HAM_KEY_NOT_FOUND);
 }
 
