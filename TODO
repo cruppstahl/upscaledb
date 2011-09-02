@@ -175,6 +175,8 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
     o make sure that all unittests and monster tests are now working
         (also check with valgrind!)
 
+o apply patch from Aurelien (also on master)
+
 o Ger has patches for configure.in - gconv coverage
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
 
