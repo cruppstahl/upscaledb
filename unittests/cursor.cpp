@@ -2000,7 +2000,7 @@ public:
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
-        /* skip the first key, and overwrite all others in the transaction */
+        /* overwrite all keys but the last */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
         BFC_ASSERT_EQUAL(0,

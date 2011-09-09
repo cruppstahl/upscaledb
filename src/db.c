@@ -3034,6 +3034,14 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (st==0 && record)
         st=__record_filters_after_find(db, record);
 
+    /* store the direction */
+    if (flags&HAM_CURSOR_NEXT)
+        cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
+    else if (flags&HAM_CURSOR_PREVIOUS)
+        cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
+    else
+        cursor_set_lastop(cursor, 0);
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -3043,14 +3051,6 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         cursor_set_lastop(cursor, 0);
         return (st);
     }
-
-    /* store the direction */
-    if (flags&HAM_CURSOR_NEXT)
-        cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
-    else if (flags&HAM_CURSOR_PREVIOUS)
-        cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
-    else
-        cursor_set_lastop(cursor, 0);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));

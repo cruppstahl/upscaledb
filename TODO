@@ -167,7 +167,9 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         x HAM_CURSOR_FIRST
         x HAM_CURSOR_LAST
         o HAM_CURSOR_NEXT
-            o LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
+            o cursor_get_dupecache_count must return 1 if duplicates
+                are disabled but key exists; also check usage in loops of 
+                cursor_move_next
         o HAM_CURSOR_PREVIOUS
         o cursor_update_dupecache: calls cursor_sync; really required?
             can the interface be simplified?
