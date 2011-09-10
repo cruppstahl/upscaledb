@@ -181,7 +181,8 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     btree_cursor_t *btc=cursor_get_btree_cursor(cursor);
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
-    ham_assert(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES, (""));
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+        return (0);
 
     /* if the cache already exists: no need to continue, it should be
      * up to date */

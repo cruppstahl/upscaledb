@@ -161,18 +161,17 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             and destroying the dupecache could bring problems)
 
     o completely rewrite _local_cursor_move and move to cursor.c!
-        o cursor_set_lastop: store operation, direction, last compare value
-            of txn-key vs. btree-key and rename the flags/values
-            -> really required??
         x HAM_CURSOR_FIRST
         x HAM_CURSOR_LAST
-        o HAM_CURSOR_NEXT
-            o cursor_get_dupecache_count must return 1 if duplicates
+        x HAM_CURSOR_NEXT
+            x cursor_get_dupecache_count must return 1 if duplicates
                 are disabled but key exists; also check usage in loops of 
                 cursor_move_next
-        o HAM_CURSOR_PREVIOUS
-        o cursor_update_dupecache: calls cursor_sync; really required?
-            can the interface be simplified?
+        x HAM_CURSOR_PREVIOUS
+        o with duplicates...
+===> RemoteTest::cursorMoveTest
+     DupeCursorTest
+    ...
 
     o make sure that all unittests and monster tests are now working
         (also check with valgrind!)

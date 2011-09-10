@@ -323,10 +323,10 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
     /*
      * otherwise allocate memory for the table
      */
-    table=allocator_alloc(env_get_allocator(env), (ham_size_t)blob_get_size(&hdr));
-    if (!table) {
-        return HAM_OUT_OF_MEMORY;
-    }
+    table=(dupe_table_t *)allocator_alloc(env_get_allocator(env), 
+                (ham_size_t)blob_get_size(&hdr));
+    if (!table)
+        return (HAM_OUT_OF_MEMORY);
 
     /*
      * then read the rest of the blob
@@ -505,7 +505,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
         ham_u8_t *ptr;
         ham_size_t gapsize=record->partial_offset;
 
-        ptr=allocator_calloc(env_get_allocator(env), 
+        ptr=(ham_u8_t *)allocator_calloc(env_get_allocator(env), 
                                     gapsize > env_get_pagesize(env)
                                         ? env_get_pagesize(env)
                                         : gapsize);
@@ -606,7 +606,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
              * memory buffer, thus saving some allocations
              */
             while (gapsize>env_get_pagesize(env)) {
-                ham_u8_t *ptr=allocator_calloc(env_get_allocator(env), 
+                ham_u8_t *ptr=(ham_u8_t *)allocator_calloc(env_get_allocator(env), 
                                             env_get_pagesize(env));
                 if (!ptr)
                     return (HAM_OUT_OF_MEMORY);
@@ -629,7 +629,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
             ham_assert(gapsize<env_get_pagesize(env), (""));
 
             chunk_size[0]=gapsize;
-            ptr=chunk_data[0]=allocator_calloc(env_get_allocator(env), gapsize);
+            ptr=chunk_data[0]=(ham_u8_t *)allocator_calloc(env_get_allocator(env), gapsize);
             if (!ptr)
                 return (HAM_OUT_OF_MEMORY);
 
@@ -771,7 +771,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
                     blobid+sizeof(blob_t)+(flags&HAM_PARTIAL 
                             ? record->partial_offset 
                             : 0),
-                    record->data, blobsize);
+                    (ham_u8_t *)record->data, blobsize);
     if (st)
         return (st);
 
@@ -901,7 +901,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
             if (st)
                 return (st);
 
-            chunk_data[0]=record->data;
+            chunk_data[0]=(ham_u8_t *)record->data;
             chunk_size[0]=record->partial_size;
             st=__write_chunks(env, page, 
                     blob_get_self(&new_hdr)+sizeof(new_hdr)
@@ -913,7 +913,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
         else {
             chunk_data[0]=(ham_u8_t *)&new_hdr;
             chunk_size[0]=sizeof(new_hdr);
-            chunk_data[1]=record->data;
+            chunk_data[1]=(ham_u8_t *)record->data;
             chunk_size[1]=(flags&HAM_PARTIAL) 
                                 ? record->partial_size 
                                 : record->size;
@@ -1056,8 +1056,8 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         if (st)
             return (st);
 
-        cmp = foo(db, record->data, record->size, 
-                        item_record.data, item_record.size);
+        cmp = foo(db, (ham_u8_t *)record->data, record->size, 
+                        (ham_u8_t *)item_record.data, item_record.size);
         /* item is lower than the left-most item of our range */
         if (m == l) {
             if (cmp < 0)
@@ -1116,7 +1116,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     if (!table_id) {
         ham_assert(num_entries==2, (""));
         /* allocates space for 8 (!) entries */
-        table=allocator_calloc(env_get_allocator(env), 
+        table=(dupe_table_t *)allocator_calloc(env_get_allocator(env), 
                         sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
         if (!table)
             return HAM_OUT_OF_MEMORY;
@@ -1158,8 +1158,8 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         else
             new_cap += new_cap/3;
 
-        table=allocator_calloc(env_get_allocator(env), sizeof(dupe_table_t)+
-                        (new_cap-1)*sizeof(dupe_entry_t));
+        table=(dupe_table_t *)allocator_calloc(env_get_allocator(env), 
+                    sizeof(dupe_table_t)+(new_cap-1)*sizeof(dupe_entry_t));
         if (!table)
             return (HAM_OUT_OF_MEMORY);
         dupe_table_set_capacity(table, new_cap);

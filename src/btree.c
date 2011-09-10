@@ -65,7 +65,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
             *slot=i;
             cmp=1;
             ham_assert(i>=0, (0));
-            ham_assert(i<MAX_KEYS_PER_NODE+1, (0));
+            ham_assert(i<(int)MAX_KEYS_PER_NODE+1, (0));
             break;
         }
         
