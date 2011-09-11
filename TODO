@@ -160,7 +160,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
             a txn-cursor is coupled to a different key than the btree,
             and destroying the dupecache could bring problems)
 
-    o completely rewrite _local_cursor_move and move to cursor.c!
+    x completely rewrite _local_cursor_move and move to cursor.c!
         x HAM_CURSOR_FIRST
         x HAM_CURSOR_LAST
         x HAM_CURSOR_NEXT
@@ -168,10 +168,7 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
                 are disabled but key exists; also check usage in loops of 
                 cursor_move_next
         x HAM_CURSOR_PREVIOUS
-        o with duplicates...
-===> RemoteTest::cursorMoveTest
-     DupeCursorTest
-    ...
+        x with duplicates...
 
     o make sure that all unittests and monster tests are now working
         (also check with valgrind!)

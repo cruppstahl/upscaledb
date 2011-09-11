@@ -215,7 +215,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             if (!node)
                 return (HAM_KEY_NOT_FOUND);
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
-            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN))
+            if (st==HAM_KEY_NOT_FOUND)
                 continue;
             return (st);
         }
@@ -238,7 +238,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             if (!node)
                 return (HAM_KEY_NOT_FOUND);
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
-            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN))
+            if (st==HAM_KEY_NOT_FOUND)
                 continue;
             return (st);
         }

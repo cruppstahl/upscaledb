@@ -379,7 +379,7 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 extern ham_bool_t
 cursor_is_nil(ham_cursor_t *cursor, int what);
 
-#define CURSOR_BOTH         0
+#define CURSOR_BOTH         (CURSOR_BTREE|CURSOR_TXN)
 #define CURSOR_BTREE        1
 #define CURSOR_TXN          2
 
