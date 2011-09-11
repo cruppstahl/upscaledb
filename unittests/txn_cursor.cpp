@@ -858,6 +858,10 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* move next */
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+                    moveCursor(cursor, 0, HAM_CURSOR_NEXT));
+
+        /* move next */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* reached the end */
@@ -893,6 +897,10 @@ public:
 
         /* find the first key */
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
+
+        /* move next */
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+                    moveCursor(cursor, 0, HAM_CURSOR_NEXT));
 
         /* move next */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
@@ -1082,6 +1090,10 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key3"));
 
         /* move previous */
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+                    moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
+
+        /* move previous */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* reached the end */
@@ -1117,6 +1129,10 @@ public:
 
         /* find the last key */
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key3"));
+
+        /* move previous */
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+                    moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
 
         /* move previous */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));

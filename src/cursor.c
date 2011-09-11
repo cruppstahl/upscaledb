@@ -1283,7 +1283,8 @@ cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
         return (st);
 
     /* if ALL duplicates were erased: move next or previous */
-    if (!__cursor_has_duplicates(cursor)) {
+    if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) && 
+            !__cursor_has_duplicates(cursor)) {
         goto move_next_or_previous;
     }
 
