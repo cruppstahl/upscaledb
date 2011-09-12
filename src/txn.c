@@ -171,24 +171,19 @@ txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data)
     }
 }
 
-static ham_key_t *
-__copy_key(mem_allocator_t *alloc, ham_key_t *key)
+static void *
+__copy_key_data(mem_allocator_t *alloc, ham_key_t *key)
 {
-    ham_key_t *keycopy;
-    keycopy=(ham_key_t *)allocator_alloc(alloc, sizeof(*key));
-    if (!keycopy)
-        return (0);
-    *keycopy=*key;
-    if (key->data && key->size) {
-        keycopy->data=(void *)allocator_alloc(alloc, key->size);
-        if (!keycopy->data)
-            return (0);
-        memcpy(keycopy->data, key->data, key->size);
-    }
-    else
-        keycopy->data=0;
+    void *data=0;
 
-    return (keycopy);
+    if (key->data && key->size) {
+        data=(void *)allocator_alloc(alloc, key->size);
+        if (!data)
+            return (0);
+        memcpy(data, key->data, key->size);
+    }
+
+    return (data);
 }
 
 txn_opnode_t *
@@ -247,11 +242,8 @@ txn_opnode_create(ham_db_t *db, ham_key_t *key)
     if (!node)
         return (0);
     memset(node, 0, sizeof(*node));
-    txn_opnode_set_key(node, __copy_key(alloc, key));
-    if (!txn_opnode_get_key(node)) {
-        allocator_free(alloc, node);
-        return (0);
-    }
+    txn_opnode_set_key(node, key);
+    txn_opnode_get_key(node)->data=__copy_key_data(alloc, key);
     txn_opnode_set_db(node, db);
     txn_opnode_set_tree(node, tree);
 
@@ -432,15 +424,15 @@ txn_free_optree(txn_optree_t *tree)
 void
 txn_opnode_free(ham_env_t *env, txn_opnode_t *node)
 {
+    ham_key_t *key;
+
     txn_optree_t *tree=txn_opnode_get_tree(node);
     rbt_remove(tree, node);
-    /* also remove the ham_key_t structure */
-    if (txn_opnode_get_key(node)) {
-        ham_key_t *key=txn_opnode_get_key(node);
-        if (key->data)
-            allocator_free(env_get_allocator(env), key->data);
-        allocator_free(env_get_allocator(env), key);
-    }
+
+    key=txn_opnode_get_key(node);
+    if (key->data)
+        allocator_free(env_get_allocator(env), key->data);
+
     allocator_free(env_get_allocator(env), node);
 }
 
