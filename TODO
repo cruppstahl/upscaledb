@@ -178,6 +178,7 @@ x apply patch from Aurelien (also on master)
 x many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
 o Ger has patches for configure.in - gconv coverage
+    https://github.com/GerHobbelt/hamsterdb/blob/ger-old-work/configure.in
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
 
 o make sure that all unittests and monster tests are now working
@@ -193,7 +194,7 @@ o compare performance against 1.1.13 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
         is only required once then it should be inserted at the tail of the
         totallist, like a page that was not accessed for a very long time
-    o opnode: use key instead of key* (pointer) - this saves one allocation 
+    x opnode: use key instead of key* (pointer) - this saves one allocation 
         per node
 
 . there are a couple of areas where a btree cursor is uncoupled, just to 

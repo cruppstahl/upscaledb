@@ -203,7 +203,7 @@ typedef struct txn_opnode_t
     ham_db_t *_db;
 
     /** this is the key which is modified */
-    ham_key_t *_key;
+    ham_key_t _key;
 
     /** the parent key */
     struct txn_optree_t *_tree;
@@ -223,10 +223,10 @@ typedef struct txn_opnode_t
 #define txn_opnode_set_db(t, db)                (t)->_db=db
 
 /** get pointer to the modified key */
-#define txn_opnode_get_key(t)                   (t)->_key
+#define txn_opnode_get_key(t)                   (&(t)->_key)
 
 /** set pointer to the modified key */
-#define txn_opnode_set_key(t, k)                (t)->_key=k
+#define txn_opnode_set_key(t, k)                (t)->_key=(*k)
 
 /** get pointer to the parent tree */
 #define txn_opnode_get_tree(t)                  (t)->_tree
