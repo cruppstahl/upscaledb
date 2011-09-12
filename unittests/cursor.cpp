@@ -3997,8 +3997,6 @@ public:
 
     virtual void setup() 
     { 
-        //__super::setup();
-
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));

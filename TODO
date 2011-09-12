@@ -175,6 +175,8 @@ x try to compile some low-level modules with C++; i would like to use the
 
 x apply patch from Aurelien (also on master)
 
+x many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
+
 o Ger has patches for configure.in - gconv coverage
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
 
@@ -202,8 +204,6 @@ o compare performance against 1.1.13 (with and without Transactions)
         txn_cursor.c:cursor_overwrite
     o move to a separate function
     o try to optimize
-
-. many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
 . also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
     then teardown() is not called and all other tests fail b/c the file handle

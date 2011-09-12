@@ -57,12 +57,14 @@ public:
 
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        BFC_ASSERT(ham_create_ex(m_db, 0, HAM_IN_MEMORY_DB, 0644, 
-                        &p[0])==HAM_SUCCESS);
-
-        m_env=db_get_env(m_db);
+        BFC_ASSERT_NOTNULL((m_alloc=memtracker_new()));
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create_ex(m_env, 0, HAM_IN_MEMORY_DB, 0644, &p[0]));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create_db(m_env, m_db, 1, 0, 0));
     }
     
     virtual void teardown() 
@@ -70,8 +72,11 @@ public:
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         ham_delete(m_db);
+        ham_env_delete(m_env);
         m_db=0;
+        m_env=0;
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
