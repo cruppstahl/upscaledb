@@ -173,13 +173,13 @@ x refactor cursor; separate backend-cursor and txn-cursor; make the
 x try to compile some low-level modules with C++; i would like to use the 
     STL and maybe some boost libraries for some of the code
 
-o make sure that all unittests and monster tests are now working
-    (also check with valgrind!)
-
-o apply patch from Aurelien (also on master)
+x apply patch from Aurelien (also on master)
 
 o Ger has patches for configure.in - gconv coverage
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
+
+o make sure that all unittests and monster tests are now working
+    (also check with valgrind!)
 
 o add unittests for all new functions in cursor.h
 

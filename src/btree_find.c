@@ -438,7 +438,8 @@ no_fast_track:
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=btree_read_record(db, record, &key_get_rawptr(entry), flags);
+        st=btree_read_record(db, record, 
+                        (ham_u64_t *)&key_get_rawptr(entry), flags);
         if (st) {
             btree_stats_update_find_fail(db, &hints);
             return (st);

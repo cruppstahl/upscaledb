@@ -622,12 +622,12 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
             }
             record->_intflags=dupe_entry_get_flags(e);
             record->_rid=dupe_entry_get_rid(e);
-            ridptr=&dupe_entry_get_ridptr(e);
+            ridptr=(ham_u64_t *)&dupe_entry_get_ridptr(e);
         }
         else {
             record->_intflags=key_get_flags(entry);
             record->_rid=key_get_ptr(entry);
-            ridptr=&key_get_rawptr(entry);
+            ridptr=(ham_u64_t *)&key_get_rawptr(entry);
         }
         st=btree_read_record(db, record, ridptr, flags);
         if (st)

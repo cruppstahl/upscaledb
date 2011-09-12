@@ -1039,7 +1039,6 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         m = (l + r) / 2;
     }
     ham_assert(m <= r, (0));
-    //ham_assert(r >= 1, (0));
         
     while (l <= r) {
         ham_assert(m<dupe_table_get_count(table), (""));
@@ -1052,7 +1051,7 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
                                                          |KEY_BLOB_SIZE_TINY
                                                          |KEY_BLOB_SIZE_EMPTY);
         st=btree_read_record(db, &item_record, 
-                    &dupe_entry_get_ridptr(e), flags);
+                    (ham_u64_t *)&dupe_entry_get_ridptr(e), flags);
         if (st)
             return (st);
 
