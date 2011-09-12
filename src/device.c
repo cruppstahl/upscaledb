@@ -143,7 +143,8 @@ __f_read(ham_device_t *self, ham_offset_t offset,
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(env, head, buffer, (ham_size_t)size);
+            st=head->after_read_cb(env, head, (ham_u8_t *)buffer, 
+                        (ham_size_t)size);
             if (st)
                 return (st);
         }
@@ -188,7 +189,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     else {
 fallback_rw:
 		if (page_get_pers(page)==0) {
-            buffer=allocator_alloc(device_get_allocator(self), size);
+            buffer=(ham_u8_t *)allocator_alloc(device_get_allocator(self), 
+                                size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
             page_set_pers(page, (ham_perm_page_union_t *)buffer);
@@ -453,7 +455,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page)
 
     ham_assert(page_get_pers(page)==0, (0));
 
-    buffer=allocator_alloc(device_get_allocator(self), size);
+    buffer=(ham_u8_t *)allocator_alloc(device_get_allocator(self), size);
     if (!buffer)
         return (HAM_OUT_OF_MEMORY);
     page_set_pers(page, (ham_perm_page_union_t *)buffer);

@@ -1286,6 +1286,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     btree_node_t *node;
     ham_size_t keysize;
     ham_db_t *db;
+    btree_cursor_t *btc=0;
 
     db=page_get_owner(page);
     node=page_get_btree_node(page);
@@ -1312,7 +1313,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      */
     if (btree_node_is_leaf(node)) {
         ham_cursor_t *cursors=db_get_cursors(db);
-        btree_cursor_t *btc=0;
         ham_u32_t dupe_id=0;
 
         if (cursors)
@@ -1375,8 +1375,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             return (0);
         }
         else {
-            btree_cursor_t *btc=0;
-
             st=key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return (st);

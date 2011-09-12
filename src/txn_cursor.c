@@ -113,6 +113,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
     txn_op_t *lastdup=0;
+    ham_txn_t *optxn=0;
     ham_cursor_t *pc=txn_cursor_get_parent(cursor);
 
     if (!op)
@@ -121,7 +122,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         goto next;
 
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from 
          * committed transactions */
         if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))

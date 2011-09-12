@@ -229,10 +229,13 @@ __freel_cache_resize(ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache,
     ham_size_t i;
     freelist_entry_t *entries;
     ham_size_t size_bits = __freel_get_freelist_entry_maxspan(dev, env, cache);
-    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
+    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0, 
+            ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
+             "due to the scan algorithm"));
 
     ham_assert(new_count > freel_cache_get_count(cache), (0));
-    entries=allocator_alloc(env_get_allocator(env), sizeof(*entries)*new_count);
+    entries=(freelist_entry_t *)allocator_alloc(env_get_allocator(env), 
+                    sizeof(*entries)*new_count);
     if (!entries)
         return HAM_OUT_OF_MEMORY;
     memcpy(entries, freel_cache_get_entries(cache),
@@ -3465,7 +3468,8 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     ham_assert(cache != 0, (0));
     ham_assert(!freel_cache_get_entries(cache), (0));
 
-    entry=allocator_calloc(env_get_allocator(env), sizeof(*entry)*1);
+    entry=(freelist_entry_t *)allocator_calloc(env_get_allocator(env), 
+                    sizeof(*entry)*1);
     if (!entry)
         return HAM_OUT_OF_MEMORY;
 
@@ -3918,7 +3922,8 @@ the environment, but that wouldn't be nice...
 
 
 ham_status_t 
-freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, ham_env_t *env)
+freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
+                ham_env_t *env)
 {
     //ham_status_t st;
     freelist_cache_t *cache;
@@ -3927,11 +3932,10 @@ freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, ham
 
     *cache_ref = 0;
 
-    cache = allocator_calloc(env_get_allocator(env), sizeof(*cache));
+    cache = (freelist_cache_t *)allocator_calloc(env_get_allocator(env), 
+                    sizeof(*cache));
     if (!cache)
-    {
         return HAM_OUT_OF_MEMORY;
-    }
 
     ham_assert(env_get_header_page(env), (0));
     ham_assert(env_get_header(env), (0));
@@ -4146,7 +4150,8 @@ freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db)
 #else
 
 ham_status_t
-freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, ham_env_t *env)
+freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
+                ham_env_t *env)
 {
     freelist_cache_t *cache;
     
@@ -4154,11 +4159,10 @@ freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, ham
 
     *cache_ref = 0;
 
-    cache = allocator_calloc(env_get_allocator(env), sizeof(*cache));
+    cache = (freelist_cache_t *)allocator_calloc(env_get_allocator(env), 
+                        sizeof(*cache));
     if (!cache)
-    {
         return HAM_OUT_OF_MEMORY;
-    }
 
     ham_assert(env_get_header_page(env), (0));
     ham_assert(env_get_header(env), (0));

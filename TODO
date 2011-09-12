@@ -58,7 +58,7 @@ x review non-cursor operations - make sure that the txn-layer is
 x check the output of the monster tests - is device->read/write required at
     all? any other functions that are not required? - no, they're all required
 
-o refactor cursor; separate backend-cursor and txn-cursor; make the 
+x refactor cursor; separate backend-cursor and txn-cursor; make the 
     x rename bt_cursor -> btree_cursor?
 
     x cursor_has_duplicates: move to cursor.c; often is used in 
@@ -170,8 +170,11 @@ o refactor cursor; separate backend-cursor and txn-cursor; make the
         x HAM_CURSOR_PREVIOUS
         x with duplicates...
 
-    o make sure that all unittests and monster tests are now working
-        (also check with valgrind!)
+x try to compile some low-level modules with C++; i would like to use the 
+    STL and maybe some boost libraries for some of the code
+
+o make sure that all unittests and monster tests are now working
+    (also check with valgrind!)
 
 o apply patch from Aurelien (also on master)
 
@@ -199,9 +202,6 @@ o compare performance against 1.1.13 (with and without Transactions)
         txn_cursor.c:cursor_overwrite
     o move to a separate function
     o try to optimize
-
-. try to compile some low-level modules with C++; i would like to use the 
-    STL and maybe some boost libraries for some of the code
 
 . many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 

@@ -560,7 +560,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      */
     if (db_get_extkey_cache(db)) {
         st = extkey_cache_insert(db_get_extkey_cache(db),
-                blobid, key_length, ext_key->data);
+                blobid, key_length, (ham_u8_t *)ext_key->data);
         if (st)
             return st;
     }
@@ -587,7 +587,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         /*
          * no!
          */
-        return (foo(db, lhs->data, lhs->size, rhs->data, rhs->size));
+        return (foo(db, (ham_u8_t *)lhs->data, lhs->size, 
+                        (ham_u8_t *)rhs->data, rhs->size));
     }
 
     /*
@@ -607,8 +608,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         else
             rhsprefixlen=rhs->size;
 
-        cmp=prefoo(db, lhs->data, lhsprefixlen, lhs->size, 
-                    rhs->data, rhsprefixlen, rhs->size);
+        cmp=prefoo(db, (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
+                    (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
         if (cmp < -1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
             return cmp; /* unexpected error! */
     }
@@ -622,9 +623,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
          */
         if (lhs->_flags & KEY_IS_EXTENDED) 
         {
-            st = db_get_extended_key(db, lhs->data,
-                    lhs->size, lhs->_flags,
-                    lhs);
+            st = db_get_extended_key(db, (ham_u8_t *)lhs->data,
+                    lhs->size, lhs->_flags, lhs);
             if (st)
             {
                 ham_assert(st < -1, (0));
@@ -636,9 +636,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
          * 2. load the second key, if needed
          */
         if (rhs->_flags & KEY_IS_EXTENDED) {
-            st = db_get_extended_key(db, rhs->data,
-                    rhs->size, rhs->_flags,
-                    rhs);
+            st = db_get_extended_key(db, (ham_u8_t *)rhs->data,
+                    rhs->size, rhs->_flags, rhs);
             if (st)
             {
                 ham_assert(st < -1, (0));
@@ -649,7 +648,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         /*
          * 3. run the comparison function
          */
-        cmp=foo(db, lhs->data, lhs->size, rhs->data, rhs->size);
+        cmp=foo(db, (ham_u8_t *)lhs->data, lhs->size, 
+                        (ham_u8_t *)rhs->data, rhs->size);
     }
 
     return (cmp);
@@ -1082,7 +1082,7 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
      * extended key: copy the whole key
      */
     if (source->_flags&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, source->data,
+        ham_status_t st=db_get_extended_key(db, (ham_u8_t *)source->data,
                     source->size, source->_flags, dest);
         if (st) {
             return st;
@@ -2519,7 +2519,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             /* if duplicate keys are enabled: set the duplicate index of
              * the new key */
             if (st==0 && cursor_get_dupecache_count(cursor)) {
-                int i;
+                ham_size_t i;
                 txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
                 txn_op_t *op=txn_cursor_get_coupled_op(txnc);
                 ham_assert(op!=0, (""));

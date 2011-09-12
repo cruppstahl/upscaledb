@@ -39,7 +39,7 @@ cache_new(ham_env_t *env, ham_size_t max_size)
     ham_assert(max_size, (0));
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
-    cache=allocator_calloc(env_get_allocator(env), mem);
+    cache=(ham_cache_t *)allocator_calloc(env_get_allocator(env), mem);
     if (!cache)
         return (0);
     cache_set_env(cache, env);

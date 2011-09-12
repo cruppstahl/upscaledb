@@ -103,7 +103,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     (void)mmaph;    /* only used on win32-platforms */
 
 #if HAVE_MMAP
-    *buffer=mmap(0, size, prot, MAP_PRIVATE, fd, position);
+    *buffer=(ham_u8_t *)mmap(0, size, prot, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
         ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
@@ -164,7 +164,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     ham_offset_t total=0;
 
     while (total<bufferlen) {
-        r=pread(fd, buffer+total, bufferlen-total, addr+total);
+        r=pread(fd, (ham_u8_t *)buffer+total, bufferlen-total, addr+total);
         if (r<0) {
             ham_log(("os_pread failed with status %u (%s)", 
                     errno, strerror(errno)));

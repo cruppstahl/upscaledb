@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <ham/hamsterdb_int.h>
 #include <ham/hamsterdb_srv.h>
-#include "memtracker.h"
 #include "../src/env.h"
 #include "os.hpp"
 

@@ -31,9 +31,11 @@
 #ifndef __ssize_t_defined
 typedef signed ssize_t;
 #endif
+#ifndef __cplusplus
 typedef int bool;
 #define true 1
 #define false (!true)
+#endif /* __cpluscplus */
 
 static int
 __cmpfoo(void *vlhs, void *vrhs)
@@ -50,9 +52,9 @@ __cmpfoo(void *vlhs, void *vrhs)
     foo=db_get_compare_func(db);
 
     return (foo(db, 
-                txn_opnode_get_key(lhs)->data, 
+                (ham_u8_t *)txn_opnode_get_key(lhs)->data, 
                 txn_opnode_get_key(lhs)->size,
-                txn_opnode_get_key(rhs)->data, 
+                (ham_u8_t *)txn_opnode_get_key(rhs)->data, 
                 txn_opnode_get_key(rhs)->size));
 }
 

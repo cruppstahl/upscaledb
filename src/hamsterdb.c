@@ -77,170 +77,148 @@ my_strncat_ex(char *buf, size_t buflen, const char *interject, const char *src)
         interject = "|";
     if (!src)
         src = "???";
-    if (buf && buflen > (*buf ? strlen(interject) : 0) + strlen(src))
-    {
+    if (buf && buflen > (*buf ? strlen(interject) : 0) + strlen(src)) {
         if (*buf)
-        {
             strcat(buf, interject);
-        }
         strcat(buf, src);
     }
-    if (buf && buflen)
-    {
+    if (buf && buflen) {
         buf[buflen - 1] = 0;
-        return buf;
+        return (buf);
     }
-    return "???";
+    ham_assert(!"shouldn't be here", (""));
+    return ((char *)"???");
 }
 
 static const char *
 ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
 {
-    if (!buf || !buflen) 
-    {
+    if (!buf || !buflen) {
         buflen = 0;
         buf = NULL;
     }
     else 
-    {
         buf[0] = 0;
-    }
 
-    if (flags & HAM_WRITE_THROUGH            )
-    {
+    if (flags & HAM_WRITE_THROUGH) {
         flags &= ~HAM_WRITE_THROUGH            ;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_WRITE_THROUGH");
     }
-    if (flags & HAM_READ_ONLY                )
-    {
-        flags &= ~HAM_READ_ONLY                ;
+    if (flags & HAM_READ_ONLY) {
+        flags &= ~HAM_READ_ONLY;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_READ_ONLY");
     }
-    if (flags & HAM_USE_BTREE                )
-    {
-        flags &= ~HAM_USE_BTREE                ;
+    if (flags & HAM_USE_BTREE) {
+        flags &= ~HAM_USE_BTREE;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_USE_BTREE");
     }
-    if (flags & HAM_DISABLE_VAR_KEYLEN       )
-    {
-        flags &= ~HAM_DISABLE_VAR_KEYLEN       ;
+    if (flags & HAM_DISABLE_VAR_KEYLEN) {
+        flags &= ~HAM_DISABLE_VAR_KEYLEN;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_VAR_KEYLEN");
     }
-    if (flags & HAM_IN_MEMORY_DB             )
+    if (flags & HAM_IN_MEMORY_DB)
     {
-        flags &= ~HAM_IN_MEMORY_DB             ;
+        flags &= ~HAM_IN_MEMORY_DB;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_IN_MEMORY_DB");
     }
-    if (flags & HAM_DISABLE_MMAP             )
+    if (flags & HAM_DISABLE_MMAP)
     {
-        flags &= ~HAM_DISABLE_MMAP             ;
+        flags &= ~HAM_DISABLE_MMAP;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_MMAP");
     }
-    if (flags & HAM_CACHE_STRICT             )
-    {
-        flags &= ~HAM_CACHE_STRICT             ;
+    if (flags & HAM_CACHE_STRICT) {
+        flags &= ~HAM_CACHE_STRICT;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_CACHE_STRICT");
     }
-    if (flags & HAM_DISABLE_FREELIST_FLUSH   )
-    {
-        flags &= ~HAM_DISABLE_FREELIST_FLUSH   ;
+    if (flags & HAM_DISABLE_FREELIST_FLUSH) {
+        flags &= ~HAM_DISABLE_FREELIST_FLUSH;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_FREELIST_FLUSH");
     }
-    if (flags & HAM_LOCK_EXCLUSIVE           )
-    {
-        flags &= ~HAM_LOCK_EXCLUSIVE           ;
+    if (flags & HAM_LOCK_EXCLUSIVE) {
+        flags &= ~HAM_LOCK_EXCLUSIVE;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_LOCK_EXCLUSIVE");
     }
-    if (flags & HAM_RECORD_NUMBER            )
-    {
-        flags &= ~HAM_RECORD_NUMBER            ;
+    if (flags & HAM_RECORD_NUMBER) {
+        flags &= ~HAM_RECORD_NUMBER;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_RECORD_NUMBER");
     }
-    if (flags & HAM_ENABLE_DUPLICATES        )
-    {
-        flags &= ~HAM_ENABLE_DUPLICATES        ;
+    if (flags & HAM_ENABLE_DUPLICATES) {
+        flags &= ~HAM_ENABLE_DUPLICATES;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_DUPLICATES");
     }
-    if (flags & HAM_SORT_DUPLICATES        )
-    {
-        flags &= ~HAM_SORT_DUPLICATES        ;
+    if (flags & HAM_SORT_DUPLICATES) {
+        flags &= ~HAM_SORT_DUPLICATES;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_SORT_DUPLICATES");
     }
-    if (flags & HAM_ENABLE_RECOVERY          )
-    {
-        flags &= ~HAM_ENABLE_RECOVERY          ;
+    if (flags & HAM_ENABLE_RECOVERY) {
+        flags &= ~HAM_ENABLE_RECOVERY;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_RECOVERY");
     }
-    if (flags & HAM_AUTO_RECOVERY            )
-    {
-        flags &= ~HAM_AUTO_RECOVERY            ;
+    if (flags & HAM_AUTO_RECOVERY) {
+        flags &= ~HAM_AUTO_RECOVERY;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_AUTO_RECOVERY");
     }
-    if (flags & HAM_ENABLE_TRANSACTIONS      )
-    {
-        flags &= ~HAM_ENABLE_TRANSACTIONS      ;
+    if (flags & HAM_ENABLE_TRANSACTIONS) {
+        flags &= ~HAM_ENABLE_TRANSACTIONS;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_TRANSACTIONS");
     }
-    if (flags & HAM_CACHE_UNLIMITED          )
-    {
-        flags &= ~HAM_CACHE_UNLIMITED          ;
+    if (flags & HAM_CACHE_UNLIMITED) {
+        flags &= ~HAM_CACHE_UNLIMITED;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_CACHE_UNLIMITED");
     }
 
-    if (flags)
-    {
-        if (buf && buflen > 13 && buflen > strlen(buf) + 13 + 1 + 9)
-        {
+    if (flags) {
+        if (buf && buflen > 13 && buflen > strlen(buf) + 13 + 1 + 9) {
             util_snprintf(buf, buflen, "%sHAM_FLAGS(reserved: 0x%x)", 
                             (*buf ? "|" : ""), (unsigned int)flags);
         }
-        else
-        {
-            buf = "???";
+        else {
+            ham_assert(!"shouldn't be here", (""));
+            buf = (char *)"???";
         }
     }
-    return buf;
+
+    return (buf);
 }
 
 const char * HAM_CALLCONV
 ham_param2str(char *buf, size_t buflen, ham_u32_t name)
 {
-    switch (name)
-    {
-    case HAM_PARAM_CACHESIZE          :
+    switch (name) {
+    case HAM_PARAM_CACHESIZE:
         return "HAM_PARAM_CACHESIZE";
 
-    case HAM_PARAM_PAGESIZE           :
+    case HAM_PARAM_PAGESIZE:
         return "HAM_PARAM_PAGESIZE";
 
-    case HAM_PARAM_KEYSIZE            :
+    case HAM_PARAM_KEYSIZE:
         return "HAM_PARAM_KEYSIZE";
 
-    case HAM_PARAM_MAX_ENV_DATABASES  :
+    case HAM_PARAM_MAX_ENV_DATABASES:
         return "HAM_PARAM_MAX_ENV_DATABASES";
 
-    case HAM_PARAM_DATA_ACCESS_MODE   :
+    case HAM_PARAM_DATA_ACCESS_MODE:
         return "HAM_PARAM_DATA_ACCESS_MODE";
 
-    case HAM_PARAM_GET_FLAGS          :
+    case HAM_PARAM_GET_FLAGS:
         return "HAM_PARAM_GET_FLAGS";
 
     case HAM_PARAM_GET_DATA_ACCESS_MODE:
         return "HAM_PARAM_GET_DATA_ACCESS_MODE";
 
-    case HAM_PARAM_GET_FILEMODE       :
+    case HAM_PARAM_GET_FILEMODE:
         return "HAM_PARAM_GET_FILEMODE";
 
-    case HAM_PARAM_GET_FILENAME       :
+    case HAM_PARAM_GET_FILENAME:
         return "HAM_PARAM_GET_FILENAME";
 
-    case HAM_PARAM_GET_DATABASE_NAME  :
+    case HAM_PARAM_GET_DATABASE_NAME:
         return "HAM_PARAM_GET_DATABASE_NAME";
 
-    case HAM_PARAM_GET_KEYS_PER_PAGE  :
+    case HAM_PARAM_GET_KEYS_PER_PAGE:
         return "HAM_PARAM_GET_KEYS_PER_PAGE";
 
-    case HAM_PARAM_GET_STATISTICS        :
+    case HAM_PARAM_GET_STATISTICS:
         return "HAM_PARAM_GET_STATISTICS";
 
     default:
@@ -251,7 +229,8 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
         break;
     }
 
-    return "???";
+    ham_assert(!"shouldn't be here", (""));
+    return ("???");
 }
 
 static ham_bool_t
@@ -1180,7 +1159,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_max_databases_cached(env, maxdbs);
     if (filename) {
         env_set_filename(env, 
-                allocator_alloc(env_get_allocator(env), 
+                (const char *)allocator_alloc(env_get_allocator(env), 
                     (ham_size_t)strlen(filename)+1));
         if (!env_get_filename(env)) {
             (void)ham_env_close(env, 0);
@@ -1363,7 +1342,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_file_mode(env, 0644);
     if (filename) {
         env_set_filename(env, 
-                allocator_alloc(env_get_allocator(env), 
+                (char *)allocator_alloc(env_get_allocator(env), 
                     (ham_size_t)strlen(filename)+1));
         if (!env_get_filename(env)) {
             (void)ham_env_close(env, 0);
@@ -2243,7 +2222,7 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
         db=0;
     }
 
-    aes_expand_key(key, filter->userdata);
+    aes_expand_key(key, (ham_u8_t *)filter->userdata);
     filter->before_write_cb=__aes_before_write_cb;
     filter->after_read_cb=__aes_after_read_cb;
     filter->close_cb=__aes_close_cb;
@@ -2316,13 +2295,13 @@ __zlib_before_write_cb(ham_db_t *db, ham_record_filter_t *filter,
         else
             newsize+=newsize/4;
 
-        dest=allocator_alloc(env_get_allocator(env), newsize);
+        dest=(ham_u8_t *)allocator_alloc(env_get_allocator(env), newsize);
         if (!dest)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
         newsize-=sizeof(ham_u32_t);
         zret=compress2(dest+sizeof(ham_u32_t), &newsize,
-                record->data, record->size, level);
+                (ham_u8_t *)record->data, record->size, level);
     } while (zret==Z_BUF_ERROR);
 
     newsize+=sizeof(ham_u32_t);
@@ -2368,7 +2347,7 @@ __zlib_after_read_cb(ham_db_t *db, ham_record_filter_t *filter,
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
-    src=allocator_alloc(env_get_allocator(env), newsize);
+    src=(ham_u8_t *)allocator_alloc(env_get_allocator(env), newsize);
     if (!src)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
@@ -2382,7 +2361,7 @@ __zlib_after_read_cb(ham_db_t *db, ham_record_filter_t *filter,
     record->data=db_get_record_allocdata(db);
     newsize=origsize;
 
-    zret=uncompress(record->data, &newsize, src, srcsize);
+    zret=uncompress((Bytef *)record->data, &newsize, (Bytef *)src, srcsize);
     if (zret==Z_MEM_ERROR)
         st=HAM_LIMITS_REACHED;
     if (zret==Z_DATA_ERROR)

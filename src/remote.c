@@ -62,7 +62,8 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 
         /* otherwise we have to buffer the received data */
         buf->packed_size=payload_size+8;
-        buf->packed_data=allocator_alloc(buf->alloc, buf->packed_size);
+        buf->packed_data=(ham_u8_t *)allocator_alloc(buf->alloc, 
+                    buf->packed_size);
         if (!buf->packed_data)
             return (0);
         memcpy(buf->packed_data, &cbuf[0], size*nmemb);

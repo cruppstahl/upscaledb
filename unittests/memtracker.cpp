@@ -41,7 +41,7 @@ verify_mem_desc(memdesc_t *desc)
         throw std::out_of_range("memory blob was corrupted after end");
 }
 
-void *
+static void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
     int magic=MAGIC_STOP;
@@ -67,7 +67,7 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
     return (desc->data);
 }
 
-void 
+static void 
 free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
 {
     memtracker_t *mt=(memtracker_t *)self;
@@ -95,9 +95,9 @@ free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
     free(desc);
 }
 
-void *
+static void *
 realloc_impl(mem_allocator_t *self, const char *file, int line, 
-        const void *ptr, ham_size_t size)
+                const void *ptr, ham_size_t size)
 {
     void *newptr=allocator_alloc(self, size);
     memdesc_t *desc;
@@ -117,7 +117,7 @@ realloc_impl(mem_allocator_t *self, const char *file, int line,
     return (newptr);
 }
 
-void 
+static void 
 close_impl(mem_allocator_t *self)
 {
     memtracker_t *mt=(memtracker_t *)self;

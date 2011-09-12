@@ -49,6 +49,35 @@ extern "C" {
 
 #include "packstart.h"
 
+/*
+ * This header is only available if the (non-persistent) flag
+ * NPERS_NO_HEADER is not set! 
+ *
+ * all blob-areas in the file do not have such a header, if they
+ * span page-boundaries
+ *
+ * !!
+ * if this structure is changed, db_get_usable_pagesize has 
+ * to be changed as well!
+ */
+HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
+    /**
+     * flags of this page - currently only used for the page type
+     * @sa page_type_codes
+     */
+    ham_u32_t _flags;
+
+    /** some reserved bytes */
+    ham_u32_t _reserved1;
+    ham_u32_t _reserved2;
+
+    /**
+     * this is just a blob - the backend (hashdb, btree etc) 
+     * will use it appropriately
+     */
+    ham_u8_t _payload[1];
+} HAM_PACK_2;
+
 /**
  * The page header which is persisted on disc
  *
@@ -58,34 +87,8 @@ extern "C" {
  */
 typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
 {
-    /*
-     * this header is only available if the (non-persistent) flag
-     * NPERS_NO_HEADER is not set! 
-     *
-     * all blob-areas in the file do not have such a header, if they
-     * span page-boundaries
-     *
-     * !!
-     * if this structure is changed, db_get_usable_pagesize has 
-     * to be changed as well!
-     */
-    HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
-        /**
-         * flags of this page - currently only used for the page type
-         * @sa page_type_codes
-         */
-        ham_u32_t _flags;
-
-        /** some reserved bytes */
-        ham_u32_t _reserved1;
-        ham_u32_t _reserved2;
-
-        /**
-         * this is just a blob - the backend (hashdb, btree etc) 
-         * will use it appropriately
-         */
-        ham_u8_t _payload[1];
-    } HAM_PACK_2 _s;
+    /* the persistent header */
+    struct page_union_header_t _s;
 
     /* a char pointer to the allocated storage on disk */
     ham_u8_t _p[1];

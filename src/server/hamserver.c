@@ -47,20 +47,22 @@ typedef struct srv_handle_t
     ham_u64_t handle;
 } srv_handle_t;
 
+struct env_t {
+    ham_env_t *env;
+    os_critsec_t cs;
+    char *urlname;
+    srv_handle_t *handles;
+    ham_u32_t handles_ctr;
+    ham_u32_t handles_size;
+} env_t;
+
 struct ham_srv_t
 {
     /* the mongoose context structure */
     struct mg_context *mg_ctxt;
 
-    /* handler for each Environment */
-    struct env_t {
-        ham_env_t *env;
-        os_critsec_t cs;
-        char *urlname;
-        srv_handle_t *handles;
-        ham_u32_t handles_ctr;
-        ham_u32_t handles_size;
-    } environments[MAX_ENVIRONMENTS];
+    /* handlers for each Environment */
+    struct env_t environments[MAX_ENVIRONMENTS];
 
 };
 

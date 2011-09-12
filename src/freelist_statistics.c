@@ -1366,11 +1366,11 @@ stats_fill_freel_statistics_t(ham_env_t *env, ham_statistics_t *dst)
                 */
                 dst->_free_func_internal_arg = (void *)allocator;
 
-                d = dst->freelist_stats = allocator_alloc(allocator, count * sizeof(dst->freelist_stats[0]));
+                d = dst->freelist_stats = (ham_freelist_page_statistics_t *)
+                            allocator_alloc(allocator, 
+                                    count * sizeof(dst->freelist_stats[0]));
                 if (!d)
-                {
-                    return HAM_OUT_OF_MEMORY;
-                }
+                    return (HAM_OUT_OF_MEMORY);
                 memset(d, 0, count * sizeof(dst->freelist_stats[0]));
 
                 /* now fill those API freelist records from the regular (internal) ones: */
