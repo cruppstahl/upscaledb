@@ -8,18 +8,25 @@ dnl
 
 dnl Initialize autoconf/automake
 AC_INIT(hamsterdb, 2.0.0.rc1)
+AC_CANONICAL_HOST
 AC_CONFIG_SRCDIR(src/hamsterdb.c)
-AC_CONFIG_AUX_DIR(build/scripts)
-AM_INIT_AUTOMAKE(hamsterdb, 1.10)
+AC_CONFIG_MACRO_DIR(m4)
+AM_INIT_AUTOMAKE
 
 AM_CONFIG_HEADER(config.h)
+AC_COPYRIGHT([
+Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de)
+])
 
 AC_PROG_CC
+AC_PROG_CC_STDC
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CXX
-AC_PROG_RANLIB
+LT_INIT # replaces AC_PROG_RANLIB
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
+AC_PROG_SED
 AC_HEADER_STDC
 AC_C_CONST
 AC_TYPE_SIZE_T
@@ -27,7 +34,6 @@ AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
-AC_CANONICAL_SYSTEM
 
 # ARM emulators w/ qemu: disable pread/pwrite; the functions exist, but
 # seem to be buggy
@@ -69,7 +75,7 @@ then
 fi
 
 #
-# track test coverage
+# Track test coverage
 #
 AC_ARG_ENABLE(gcov,
     AC_HELP_STRING([--enable-gcov],

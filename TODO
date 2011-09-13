@@ -180,9 +180,42 @@ x many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 o Ger has patches for configure.in - gconv coverage
     https://github.com/GerHobbelt/hamsterdb/blob/ger-old-work/configure.in
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
+  -> it works! document it (wiki)
+    ./configure --enable-gcov
+    cd unittests && make && ./test
+    cd src
+    cp .libs/*gc* .
+    gcov *.c
 
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
+./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=200 --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=200 --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=200 --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/202.tst
+./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/202.tst
+./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=10000 --use-cursors --duplicate-first ../../testfiles/2/102.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/100.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/202.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/1/220.tst
+./test --use-transactions=all --use-cursors --duplicate ../../testfiles/2/102.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/100.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/202.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/220.tst
+./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/2/102.tst
 
 o add unittests for all new functions in cursor.h
 
