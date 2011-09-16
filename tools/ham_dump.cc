@@ -97,7 +97,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         switch (key_fmt) {
         case FMT_STRING:
             if (((char *)key->data)[key->size-1]!=0) {
-                if (!(zterm=malloc(key->size+1))) {
+                if (!(zterm=(char *)malloc(key->size+1))) {
                     printf("out of memory\n");
                     exit(-1);
                 }
@@ -160,7 +160,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         switch (rec_fmt) {
         case FMT_STRING:
             if (((char *)rec->data)[rec->size-1]!=0) {
-                if (!(zterm=malloc(rec->size+1))) {
+                if (!(zterm=(char *)malloc(rec->size+1))) {
                     printf("out of memory\n");
                     exit(-1);
                 }

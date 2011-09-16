@@ -231,7 +231,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             if (needs_free)
                 allocator_free(env_get_allocator(env), table);
         }
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
     }
 
     /* read duplicates from the txn-cursor? */

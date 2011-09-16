@@ -139,142 +139,98 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 /* set the type of this entry */
 #define log_entry_set_type(l, t)                (l)->_flags|=(t)
 
-
 /**
  * a Log object
  */
-struct ham_log_t 
+class ham_log_t 
 {
-    /** the lsn of this entry */
-    ham_u64_t _lsn;
+  public:
+    /** an "iterator" structure for traversing the log files */
+    typedef ham_offset_t log_iterator_t;
 
-    /** references the Environment this log file is for */
-    ham_env_t *_env;
+    /** constructor */
+    ham_log_t(ham_env_t *env, ham_u32_t flags=0);
 
-    /** the log flags - unused so far */
-    ham_u32_t _flags;
+    /** create a new log */
+    ham_status_t create(void);
 
-    /** the file descriptor of the log file */
-    ham_fd_t _fd;
+    /** open an existing log */
+    ham_status_t open(void);
 
-};
+    /** checks if the log is empty */
+    bool is_empty(void);
 
-/* get the lsn */
-#define log_get_lsn(l)                          (l)->_lsn
+    /** adds an AFTER-image of a page */
+    ham_status_t append_page(ham_page_t *page, ham_u64_t lsn);
 
-/* set the lsn */
-#define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
+    /** clears the logfile */
+    ham_status_t clear(void);
 
-/** get the allocator */
-#define log_get_allocator(l)                    (l)->_env->_alloc
+    /** retrieves the current lsn */
+    ham_u64_t get_lsn(void) {
+        return (m_lsn);
+    }
 
-/** get the environment */
-#define log_get_env(l)                          (l)->_env
+    /** retrieves the file handle (for unittests) */
+    ham_fd_t get_fd(void) {
+        return (m_fd);
+    }
 
-/** set the environment */
-#define log_set_env(l, a)                       (l)->_env=(a)
-
-/** get the log flags */
-#define log_get_flags(l)                        (l)->_flags
-
-/** set the log flags */
-#define log_set_flags(l, f)                     (l)->_flags=(f)
-
-/** get the file descriptor */
-#define log_get_fd(l)                           (l)->_fd
-
-/** set the file descriptor */
-#define log_set_fd(l, fd)                       (l)->_fd=fd
-
-/**
- * this function creates a new ham_log_t object
- */
-extern ham_status_t
-log_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, ham_log_t **log);
-
-/**
- * this function opens an existing log
- */
-extern ham_status_t
-log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **log);
-
-/**
- * returns true if the log is empty
- */
-extern ham_status_t
-log_is_empty(ham_log_t *log, ham_bool_t *isempty);
-
-/**
- * appends an entry to the log
- */
-extern ham_status_t
-log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size);
-
-/**
- * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
- *
- * @note invoked by @ref log_append_page() to save the new 
- * content of the specified page.
- *
- * @sa log_append_page
- */
-extern ham_status_t
-log_append_write(ham_log_t *log, ham_u64_t lsn, ham_offset_t offset, 
-                    ham_u8_t *data, ham_size_t size);
-
-/**
- * clears the logfile to zero, removes all entries
- */
-extern ham_status_t
-log_clear(ham_log_t *log);
-
-/**
- * an "iterator" structure for traversing the log files
- */
-typedef struct log_iterator_t 
-{
-    /** the offset in the file of the NEXT entry */
-    ham_offset_t _offset;
-
-} log_iterator_t;
-
-/**
- * returns the next log entry
- *
- * iter must be initialized with zeroes for the first call
- *
- * 'data' returns the data of the entry, or NULL if there is no data. 
- * The memory has to be freed by the caller.
- *
- * returns SUCCESS and an empty entry (lsn is zero) after the last element.
- */
-extern ham_status_t
-log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
+    /**
+     * returns the next log entry
+     *
+     * iter must be initialized with zeroes for the first call
+     *
+     * 'data' returns the data of the entry, or NULL if there is no data. 
+     * The memory has to be freed by the caller.
+     *
+     * returns SUCCESS and an empty entry (lsn is zero) after the last element.
+     */
+    ham_status_t get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
                 ham_u8_t **data);
 
-/**
- * closes the log, frees all allocated resources
- */
-extern ham_status_t
-log_close(ham_log_t *log, ham_bool_t noclear);
+    /** 
+     * closes the log, frees all allocated resources. 
+     *
+     * if @a noclear is true then the log will not be clear()ed. This is 
+     * useful for debugging.
+     */
+    ham_status_t close(ham_bool_t noclear=false);
 
-/**
- * adds an AFTER-image of a page
- */
-extern ham_status_t
-log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn);
+    /** do the recovery */
+    ham_status_t recover(void);
 
-/**
- * do the recovery
- */
-extern ham_status_t
-log_recover(ham_log_t *log);
+    /** flush the logfile to disk */
+    ham_status_t flush(void);
 
-/**
- * flush the logfile to disk
- */
-extern ham_status_t
-log_flush(ham_log_t *log);
+    /**
+     * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
+     *
+     * @note invoked by @ref ham_log_t::append_page() to save the new 
+     * content of the specified page.
+     *
+     * @sa ham_log_t::append_page
+     */
+    ham_status_t append_write(ham_u64_t lsn, ham_offset_t offset, 
+                    ham_u8_t *data, ham_size_t size);
+
+  private:
+    /** writes a byte buffer to the logfile */
+    ham_status_t append_entry(log_entry_t *entry, ham_size_t size);
+
+    /** references the Environment this log file is for */
+    ham_env_t *m_env;
+
+    /** the log flags - unused so far */
+    ham_u32_t m_flags;
+
+    /** the current lsn */
+    ham_u64_t m_lsn;
+
+    /** the file descriptor of the log file */
+    ham_fd_t m_fd;
+
+};
 
 
 #ifdef __cplusplus

@@ -270,7 +270,7 @@ public:
     void negativeCreateTest(void)
     {
         journal_t *log;
-        const char *oldfilename=env_get_filename(m_env);
+        std::string oldfilename=env_get_filename(m_env);
         env_set_filename(m_env, "/::asdf");
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 journal_create(m_env, 0644, 0, &log));
@@ -282,7 +282,7 @@ public:
     {
         ham_fd_t fd;
         journal_t *log;
-        const char *oldfilename=env_get_filename(m_env);
+        std::string oldfilename=env_get_filename(m_env);
         env_set_filename(m_env, "xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                     journal_open(m_env, 0, &log));

@@ -404,7 +404,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     txn_free_ops(txn);
 
     /* clean up the changeset */
-    changeset_clear(env_get_changeset(txn_get_env(txn)));
+    env_get_changeset(txn_get_env(txn)).clear();
 
     return (0);
 }

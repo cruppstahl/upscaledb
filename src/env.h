@@ -18,6 +18,7 @@
 #define HAM_ENV_H__
 
 #include "internal_fwd_decl.h"
+#include <string>
 
 #include <ham/hamsterdb_stats.h>
 #include <ham/hamsterdb.h>
@@ -108,13 +109,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /**
  * the Environment structure
  */
-struct ham_env_t
+class ham_env_t
 {
+  public:
+    /** default constructor initializes all members */
+    ham_env_t();
+
     /** the current transaction ID */
     ham_u64_t _txn_id;
 
     /** the filename of the environment file */
-    const char *_filename;
+    std::string _filename;
 
     /** the 'mode' parameter of ham_env_create_ex */
     ham_u32_t _file_mode;
@@ -178,16 +183,16 @@ struct ham_env_t
 	ham_u16_t _max_databases;
 
 	/** 
-     * non-zero after this item has been opened/created.
+     * true after this item has been opened/created.
 	 * Indicates whether this environment is 'active', i.e. between 
 	 * a create/open and matching close API call. 
      */
-	unsigned _is_active: 1;
+	bool _is_active;
 
     /**
-     * non-zero if this Environment is pre-1.1.0 format
+     * true if this Environment is pre-1.1.0 format
      */
-	unsigned _is_legacy: 1;
+	bool _is_legacy;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -432,7 +437,7 @@ env_get_header(ham_env_t *env);
 #define env_set_list(env, db)            (env)->_next=(db)
 
 /** get the current changeset */
-#define env_get_changeset(env)           &(env)->_changeset
+#define env_get_changeset(env)           (env)->_changeset
 
 /** get the pagesize as specified in ham_env_create_ex */
 #define env_get_pagesize(env)            (env)->_pagesize
@@ -537,13 +542,13 @@ env_set_serialno(ham_env_t *env, ham_u32_t n);
  * for @a s sets the @a env to 'active', zero(0) sets the @a env 
  * to 'inactive' (closed)
  */
-#define env_set_active(env,s)       (env)->_is_active=!!(s)
+#define env_set_active(env,s)       (env)->_is_active=s
 
 /** check whether this environment has been opened/created.  */
 #define env_is_active(env)          (env)->_is_active
 
 /** set the 'legacy' flag of the environment */
-#define env_set_legacy(env,l)       (env)->_is_legacy=!!(l)
+#define env_set_legacy(env,l)       (env)->_is_legacy=l
 
 /** check whether this environment is a legacy file (pre 1.1.0) */
 #define env_is_legacy(env)          (env)->_is_legacy

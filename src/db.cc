@@ -194,10 +194,10 @@ __cache_needs_purge(ham_env_t *env)
      * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
      * which can happen on 32bit Windows) */
     if (cache && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t purge=cache_too_big(cache);
+        ham_bool_t purge=cache->is_too_big();
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
+            if (cache->get_cur_elements()*env_get_pagesize(env) 
                     > PURGE_THRESHOLD)
                 return (HAM_FALSE);
         }
@@ -486,10 +486,10 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         if (!db_get_extkey_cache(db)) {
-            extkey_cache_t *c=extkey_cache_new(db);
-            db_set_extkey_cache(db, c);
+            extkey_cache_t *c=new extkey_cache_t(db);
             if (!c)
-                return HAM_OUT_OF_MEMORY;
+                return (HAM_OUT_OF_MEMORY);
+            db_set_extkey_cache(db, c);
         }
     }
 
@@ -500,8 +500,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 
     /* fetch from the cache */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
-                        &temp, &ptr);
+        st=db_get_extkey_cache(db)->fetch(blobid, &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
 
@@ -559,8 +558,8 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * insert the FULL key in the extkey-cache 
      */
     if (db_get_extkey_cache(db)) {
-        st = extkey_cache_insert(db_get_extkey_cache(db),
-                blobid, key_length, (ham_u8_t *)ext_key->data);
+        st = db_get_extkey_cache(db)->insert(blobid, key_length, 
+                        (ham_u8_t *)ext_key->data);
         if (st)
             return st;
     }
@@ -685,9 +684,8 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (st)
         return (st);
 
-    if (env_get_cache(env)) {
-        cache_remove_page(env_get_cache(env), page);
-    }
+    if (env_get_cache(env))
+        env_get_cache(env)->remove_page(page);
 
     /*
      * if this page has a header, and it's either a B-Tree root page or 
@@ -753,12 +751,12 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the changeset */
-            page=changeset_get_page(env_get_changeset(env), tellpos);
+            page=env_get_changeset(env).get_page(tellpos);
             if (page)
                 goto done;
             /* try to fetch the page from the cache */
             if (env_get_cache(env)) {
-                page=cache_get_page(env_get_cache(env), tellpos, 0);
+                page=env_get_cache(env)->get_page(tellpos, 0);
                 if (page)
                     goto done;
             }
@@ -787,7 +785,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     }
 
     /* can we allocate a new page for the cache? */
-    if (cache_too_big(env_get_cache(env))) {
+    if (env_get_cache(env)->is_too_big()) {
         if (env_get_rt_flags(env)&HAM_CACHE_STRICT) {
             if (allocated_by_me)
                 page_delete(page);
@@ -812,11 +810,11 @@ done:
 
     /* an allocated page is always flushed if recovery is enabled */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        changeset_add_page(env_get_changeset(env), page);
+        env_get_changeset(env).add_page(page);
 
     /* store the page in the cache */
     if (env_get_cache(env))
-        cache_put_page(env_get_cache(env), page);
+        env_get_cache(env)->put_page(page);
 
     *page_ref = page;
     return (HAM_SUCCESS);
@@ -850,7 +848,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     *page_ref = 0;
 
     /* fetch the page from the changeset */
-    page=changeset_get_page(env_get_changeset(env), address);
+    page=env_get_changeset(env).get_page(address);
     if (page) {
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
@@ -862,7 +860,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
      * fetch the page from the cache
      */
     if (env_get_cache(env)) {
-        page=cache_get_page(env_get_cache(env), address, CACHE_NOREMOVE);
+        page=env_get_cache(env)->get_page(address, ham_cache_t::NOREMOVE);
         if (page) {
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
@@ -876,7 +874,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
              */
             if ((env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
                     && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-                changeset_add_page(env_get_changeset(env), page);
+                env_get_changeset(env).add_page(page);
             return (HAM_SUCCESS);
         }
     }
@@ -886,7 +884,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
 #if HAM_DEBUG
     if (env_get_cache(env)) {
-        ham_assert(cache_get_page(env_get_cache(env), address, 0)==0, (0));
+        ham_assert(env_get_cache(env)->get_page(address)==0, (""));
     }
 #endif
     ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
@@ -894,7 +892,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
 
     /* can we allocate a new page for the cache? */
-    if (cache_too_big(env_get_cache(env))) {
+    if (env_get_cache(env)->is_too_big()) {
         if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
             return (HAM_CACHE_FULL);
     }
@@ -915,11 +913,11 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     /* store the page in the cache */
     if (env_get_cache(env))
-        cache_put_page(env_get_cache(env), page);
+        env_get_cache(env)->put_page(page);
 
     /* store the page in the changeset */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        changeset_add_page(env_get_changeset(env), page);
+        env_get_changeset(env).add_page(page);
 
     *page_ref = page;
     return HAM_SUCCESS;
@@ -955,7 +953,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
      * be careful - don't store the header page in the cache
      */
     if (env_get_cache(env) && page_get_self(page)!=0)
-        cache_put_page(env_get_cache(env), page);
+        env_get_cache(env)->put_page(page);
 
     return (0);
 }
@@ -970,7 +968,7 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
     if (!cache)
         return (0);
 
-    head=cache_get_totallist(cache);
+    head=cache->get_totallist();
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
@@ -979,10 +977,9 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
          * is set (this flag is used i.e. in ham_flush())
          */
         if (!(flags&DB_FLUSH_NODELETE)) {
-            cache_set_totallist(cache,
-                page_list_remove(cache_get_totallist(cache), 
+            cache->set_totallist(page_list_remove(cache->get_totallist(), 
                     PAGE_LIST_CACHED, head));
-            cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
+            cache->dec_cur_elements();
         }
 
         (void)db_write_page_and_delete(head, flags);
@@ -1021,7 +1018,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
         st=db_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
-        cache_remove_page(env_get_cache(env), page);
+        env_get_cache(env)->remove_page(page);
         st=page_free(page);
         if (st)
             return (st);
@@ -1180,8 +1177,8 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
     /* get rid of the extkey-cache */
     if (db_get_extkey_cache(db)) {
-        (void)extkey_cache_purge_all(db_get_extkey_cache(db));
-        extkey_cache_destroy(db_get_extkey_cache(db));
+        db_get_extkey_cache(db)->purge_all();
+        delete db_get_extkey_cache(db);
         db_set_extkey_cache(db, 0);
     }
 
@@ -1201,14 +1198,14 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
     /* clear the changeset */
     if (env)
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
 
     /*
      * flush all pages of this database (but not the header page,
      * it's still required and will be flushed below
      */
     if (env && env_get_cache(env)) {
-        ham_page_t *n, *head=cache_get_totallist(env_get_cache(env)); 
+        ham_page_t *n, *head=env_get_cache(env)->get_totallist();
         while (head) {
             n=page_get_next(head, PAGE_LIST_CACHED);
             if (page_get_owner(head)==db && head!=env_get_header_page(env)) {
@@ -1310,7 +1307,7 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env_get_cachesize(env);
+                p->value=env_get_cache(env)->get_capacity();
                 break;
             case HAM_PARAM_PAGESIZE:
                 p->value=env_get_pagesize(env);
@@ -1328,8 +1325,8 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 p->value=env_get_file_mode(db_get_env(db));
                 break;
             case HAM_PARAM_GET_FILENAME:
-                if (env_get_filename(env))
-                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env));
+                if (env_get_filename(env).size())
+                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env).c_str());
                 else
                     p->value=0;
                 break;
@@ -1393,7 +1390,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 
     /* check the cache integrity */
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        st=cache_check_integrity(env_get_cache(db_get_env(db)));
+        st=env_get_cache(db_get_env(db))->check_integrity();
         if (st)
             return (st);
     }
@@ -1407,7 +1404,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 
     /* call the backend function */
     st=be->_fun_check_integrity(be);
-    changeset_clear(env_get_changeset(db_get_env(db)));
+    env_get_changeset(db_get_env(db)).clear();
 
     return (st);
 }
@@ -1558,7 +1555,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     }
 
 bail:
-    changeset_clear(env_get_changeset(env));
+    env_get_changeset(env).clear();
     return (st);
 }
 
@@ -1798,7 +1795,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
      * checks if a key already exists, and this fills the changeset
      */
     st=db_check_insert_conflicts(db, txn, node, key, flags);
-    changeset_clear(env_get_changeset(db_get_env(db)));
+    env_get_changeset(db_get_env(db)).clear();
     if (st) {
         if (node_created)
             txn_opnode_free(db_get_env(db), node);
@@ -2192,7 +2189,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        changeset_clear(env_get_changeset(db_get_env(db)));
+        env_get_changeset(db_get_env(db)).clear();
 
         return (st);
     }
@@ -2218,7 +2215,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2280,7 +2277,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         if (local_txn)
             (void)txn_abort(local_txn, 0);
     
-        changeset_clear(env_get_changeset(db_get_env(db)));
+        env_get_changeset(db_get_env(db)).clear();
         return (st);
     }
 
@@ -2295,7 +2292,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2375,7 +2372,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(db_get_env(db)).clear();
         return (st);
     }
 
@@ -2389,7 +2386,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2399,7 +2396,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2560,7 +2557,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2592,7 +2589,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2643,7 +2640,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     else {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2656,7 +2653,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2805,7 +2802,7 @@ bail:
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2819,7 +2816,7 @@ bail:
         if (st) {
             if (local_txn)
                 (void)txn_abort(local_txn, 0);
-            changeset_clear(env_get_changeset(env));
+            env_get_changeset(env).clear();
             return (st);
         }
     }
@@ -2834,7 +2831,7 @@ bail:
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2881,7 +2878,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2895,7 +2892,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2951,7 +2948,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        changeset_clear(env_get_changeset(env));
+        env_get_changeset(env).clear();
         return (st);
     }
 
@@ -2963,7 +2960,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -3028,7 +3025,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (local_txn)
         cursor_set_txn(cursor, 0);
 
-    changeset_clear(env_get_changeset(env));
+    env_get_changeset(env).clear();
 
     /* run the record-level filters */
     if (st==0 && record)
@@ -4171,7 +4168,7 @@ bail_2:
         cursor_set_txn(cursor, 0);
 
     /* TODO this will render the changeset_flush below obsolete */
-    changeset_clear(env_get_changeset(env));
+    env_get_changeset(env).clear();
 
     /*
      * run the record-level filters
@@ -4199,7 +4196,7 @@ bail_2:
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }

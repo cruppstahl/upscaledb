@@ -44,12 +44,9 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page,
     if ((st=blob_allocate(db_get_env(db), db, &rec, 0, &blobid)))
         return st;
 
-    if (db_get_extkey_cache(db)) {
-        st = extkey_cache_insert(db_get_extkey_cache(db), blobid, 
-                key->size, (ham_u8_t *)key->data);
-        if (st)
-            return st;
-    }
+    if (db_get_extkey_cache(db))
+        db_get_extkey_cache(db)->insert(blobid, key->size, 
+                        (ham_u8_t *)key->data);
 
     *rid_ref = blobid;
     return HAM_SUCCESS;

@@ -168,9 +168,7 @@ struct ham_device_t {
     /** the pagesize */
     ham_size_t _pagesize;
 
-    /**
-     * The freelist cache: the freelist is managed by the device so it can 
-     * be parallelized */
+    /** the freelist cache is managed by the device */
     freelist_cache_t *_freelist_cache;
 };
 

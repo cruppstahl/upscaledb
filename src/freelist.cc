@@ -182,7 +182,7 @@ __env_set_dirty(ham_env_t *env)
 {
     env_set_dirty(env);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+        env_get_changeset(env).add_page(env_get_header_page(env));
 }
 
 /**
@@ -195,7 +195,7 @@ __page_set_dirty(ham_page_t *page)
     ham_env_t *env=device_get_env(page_get_device(page));
     page_set_dirty(page);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        changeset_add_page(env_get_changeset(env), page);
+        env_get_changeset(env).add_page(page);
 }
 
 /**

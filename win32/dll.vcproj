@@ -341,7 +341,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\blob.c"
+			RelativePath="..\src\blob.cc"
 			>
 		</File>
 		<File
@@ -349,7 +349,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree.c"
+			RelativePath="..\src\btree.cc"
 			>
 		</File>
 		<File
@@ -357,11 +357,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_check.c"
+			RelativePath="..\src\btree_check.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_cursor.c"
+			RelativePath="..\src\btree_cursor.cc"
 			>
 		</File>
 		<File
@@ -369,23 +369,23 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_enum.c"
+			RelativePath="..\src\btree_enum.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_erase.c"
+			RelativePath="..\src\btree_erase.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_find.c"
+			RelativePath="..\src\btree_find.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_insert.c"
+			RelativePath="..\src\btree_insert.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_key.c"
+			RelativePath="..\src\btree_key.cc"
 			>
 		</File>
 		<File
@@ -393,7 +393,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\btree_stats.c"
+			RelativePath="..\src\btree_stats.cc"
 			>
 		</File>
 		<File
@@ -401,7 +401,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\cache.c"
+			RelativePath="..\src\cache.cc"
 			>
 		</File>
 		<File
@@ -409,7 +409,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\changeset.c"
+			RelativePath="..\src\changeset.cc"
 			>
 		</File>
 		<File
@@ -421,7 +421,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\cursor.c"
+			RelativePath="..\src\cursor.cc"
 			>
 		</File>
 		<File
@@ -429,7 +429,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\db.c"
+			RelativePath="..\src\db.cc"
 			>
 		</File>
 		<File
@@ -437,7 +437,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\device.c"
+			RelativePath="..\src\device.cc"
 			>
 		</File>
 		<File
@@ -449,7 +449,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\env.c"
+			RelativePath="..\src\env.cc"
 			>
 		</File>
 		<File
@@ -457,7 +457,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\error.c"
+			RelativePath="..\src\error.cc"
 			>
 		</File>
 		<File
@@ -465,7 +465,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\extkeys.c"
+			RelativePath="..\src\extkeys.cc"
 			>
 		</File>
 		<File
@@ -473,7 +473,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\freelist.c"
+			RelativePath="..\src\freelist.cc"
 			>
 		</File>
 		<File
@@ -481,7 +481,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\freelist_statistics.c"
+			RelativePath="..\src\freelist_statistics.cc"
 			>
 		</File>
 		<File
@@ -489,7 +489,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\freelist_v2.c"
+			RelativePath="..\src\freelist_v2.cc"
 			>
 		</File>
 		<File
@@ -497,7 +497,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\hamsterdb.c"
+			RelativePath="..\src\hamsterdb.cc"
 			>
 		</File>
 		<File
@@ -505,7 +505,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\journal.c"
+			RelativePath="..\src\journal.cc"
 			>
 		</File>
 		<File
@@ -517,7 +517,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\log.c"
+			RelativePath="..\src\log.cc"
 			>
 		</File>
 		<File
@@ -525,7 +525,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\mem.c"
+			RelativePath="..\src\mem.cc"
 			>
 		</File>
 		<File
@@ -537,7 +537,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\os_win32.c"
+			RelativePath="..\src\os_win32.cc"
 			>
 		</File>
 		<File
@@ -549,7 +549,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\page.c"
+			RelativePath="..\src\page.cc"
 			>
 		</File>
 		<File
@@ -561,7 +561,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\remote.c"
+			RelativePath="..\src\remote.cc"
 			>
 		</File>
 		<File
@@ -569,7 +569,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\txn.c"
+			RelativePath="..\src\txn.cc"
 			>
 		</File>
 		<File
@@ -577,7 +577,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\txn_cursor.c"
+			RelativePath="..\src\txn_cursor.cc"
 			>
 		</File>
 		<File
@@ -585,7 +585,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\util.c"
+			RelativePath="..\src\util.cc"
 			>
 		</File>
 		<File

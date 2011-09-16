@@ -19,9 +19,9 @@
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
 void
-changeset_add_page(changeset_t *cs, ham_page_t *page)
+changeset_t::add_page(ham_page_t *page)
 {
-    if (page_is_in_list(changeset_get_head(cs), page, PAGE_LIST_CHANGESET))
+    if (page_is_in_list(m_head, page, PAGE_LIST_CHANGESET))
         return;
 
     ham_assert(0==page_get_next(page, PAGE_LIST_CHANGESET), (""));
@@ -29,16 +29,16 @@ changeset_add_page(changeset_t *cs, ham_page_t *page)
     ham_assert(env_get_rt_flags(device_get_env(page_get_device(page)))
                 &HAM_ENABLE_RECOVERY, (""));
 
-    page_set_next(page, PAGE_LIST_CHANGESET, changeset_get_head(cs));
-    if (changeset_get_head(cs))
-        page_set_previous(changeset_get_head(cs), PAGE_LIST_CHANGESET, page);
-    changeset_set_head(cs, page);
+    page_set_next(page, PAGE_LIST_CHANGESET, m_head);
+    if (m_head)
+        page_set_previous(m_head, PAGE_LIST_CHANGESET, page);
+    m_head=page;
 }
 
 ham_page_t *
-changeset_get_page(changeset_t *cs, ham_offset_t pageid)
+changeset_t::get_page(ham_offset_t pageid)
 {
-    ham_page_t *p=changeset_get_head(cs);
+    ham_page_t *p=m_head;
 
     while (p) {
     	ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
@@ -48,13 +48,14 @@ changeset_get_page(changeset_t *cs, ham_offset_t pageid)
             return (p);
         p=page_get_next(p, PAGE_LIST_CHANGESET);
     }
+
     return (0);
 }
 
 void
-changeset_clear(changeset_t *cs)
+changeset_t::clear(void)
 {
-    ham_page_t *n, *p=changeset_get_head(cs);
+    ham_page_t *n, *p=m_head;
     while (p) {
         n=page_get_next(p, PAGE_LIST_CHANGESET);
 
@@ -62,11 +63,11 @@ changeset_clear(changeset_t *cs)
         page_set_previous(p, PAGE_LIST_CHANGESET, 0);
         p=n;
     }
-    changeset_set_head(cs, 0);
+    m_head=0;
 }
 
 ham_status_t
-changeset_flush(changeset_t *cs, ham_u64_t lsn)
+changeset_t::flush(ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *p;
@@ -76,7 +77,7 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
     /* first write all changed pages to the log; if this fails, clear the log
      * again because recovering an incomplete log would break the database 
      * file */
-    p=changeset_get_head(cs);
+    p=m_head;
     if (!p)
         return (0);
 
@@ -88,9 +89,9 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
 
     while (p) {
         if (page_is_dirty(p)) {
-            st=log_append_page(log, p, lsn);
+            st=log->append_page(p, lsn);
             if (st) {
-                (void)log_clear(log);
+                log->clear();
                 return (st);
             }
         }
@@ -104,7 +105,7 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
     
     /* now write all the pages to the file; if any of these writes fail, 
      * we can still recover from the log */
-    p=changeset_get_head(cs);
+    p=m_head;
     while (p) {
         if (page_is_dirty(p)) {
             st=db_flush_page(env, p, HAM_WRITE_THROUGH);
@@ -115,7 +116,7 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
     }
 
     /* done - we can now clear the changeset and the log */
-    changeset_clear(cs);
-    return (log_clear(log));
+    clear();
+    return (log->clear());
 }
 

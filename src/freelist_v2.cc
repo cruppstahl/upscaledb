@@ -12,7 +12,7 @@
 
 #define IMPLEMENT_MODERN_FREELIST32
 
-#include "freelist.c"
+#include "freelist.cc"
 
 #define DUMMY_LSN  1
 
@@ -89,9 +89,9 @@ __freel_flush_stats32(ham_device_t *dev, ham_env_t *env)
     }
 
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+        return (env_get_changeset(env).flush(DUMMY_LSN));
 
-    changeset_clear(env_get_changeset(env));
+    env_get_changeset(env).clear();
 
     return (0);
 }

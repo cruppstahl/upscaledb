@@ -20,7 +20,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              COPYING.GPL3                               \
              3rdparty                                   \
              build/scripts/*                            \
-             src/*.c src/*.h src/Makefile.am            \
+             src/*.c src/*.cc src/*.h src/Makefile.am   \
              src/Makefile.in                            \
              src/protocol/messages.proto                \
              src/protocol                               \

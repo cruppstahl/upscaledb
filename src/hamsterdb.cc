@@ -1000,12 +1000,12 @@ ham_get_license(const char **licensee, const char **product)
 static ham_status_t 
 __ham_destroy_env(ham_env_t *env)
 {
-    if (env)
-    {
-        memset(env, 0, sizeof(*env));
-        free(env);
+    if (env) {
+        //memset(env, 0, sizeof(*env));
+        //free(env);
+        delete env;
     }
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_status_t HAM_CALLCONV
@@ -1021,7 +1021,8 @@ ham_env_new(ham_env_t **env)
      * we can't use our allocator because it's not yet created! 
      * Also reset the whole structure.
      */
-    *env=(ham_env_t *)calloc(1, sizeof(ham_env_t));
+    *env=new ham_env_t();
+    //*env=(ham_env_t *)calloc(1, sizeof(ham_env_t));
     if (!(*env))
         return (HAM_OUT_OF_MEMORY);
 
@@ -1035,7 +1036,9 @@ ham_env_delete(ham_env_t *env)
 {
     ham_status_t st;
     ham_status_t st2 = HAM_SUCCESS;
+#if HAM_ENABLE_REMOTE
     static ham_u32_t critsec=0;
+#endif
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -1157,16 +1160,8 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_file_mode(env, mode);
     env_set_pagesize(env, pagesize);
     env_set_max_databases_cached(env, maxdbs);
-    if (filename) {
-        env_set_filename(env, 
-                (const char *)allocator_alloc(env_get_allocator(env), 
-                    (ham_size_t)strlen(filename)+1));
-        if (!env_get_filename(env)) {
-            (void)ham_env_close(env, 0);
-            return (HAM_OUT_OF_MEMORY);
-        }
-        strcpy((char *)env_get_filename(env), filename);
-    }
+    if (filename)
+        env_set_filename(env,  filename);
 
     /* initialize function pointers */
     if (__filename_is_local(filename)) {
@@ -1340,16 +1335,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
     env_set_file_mode(env, 0644);
-    if (filename) {
-        env_set_filename(env, 
-                (char *)allocator_alloc(env_get_allocator(env), 
-                    (ham_size_t)strlen(filename)+1));
-        if (!env_get_filename(env)) {
-            (void)ham_env_close(env, 0);
-            return (HAM_OUT_OF_MEMORY);
-        }
-        strcpy((char *)env_get_filename(env), filename);
-    }
+    if (filename)
+        env_set_filename(env, filename);
 
     /*
      * initialize function pointers
@@ -1631,7 +1618,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         return (0);
 
     /* make sure that the changeset is empty */
-    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+    ham_assert(env_get_changeset(env).is_empty(), (""));
 
     /* close all databases?  */
     if (env_get_list(env)) {
@@ -1673,7 +1660,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     st=env_flush_committed_txns(env);
     if (st)
         return (st);
-    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+    ham_assert(env_get_changeset(env).is_empty(), (""));
 
     /*
      * when all transactions have been properly closed... 
@@ -1691,15 +1678,6 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     st=env->_fun_close(env, flags);
     if (st)
         return (st);
-
-    /*
-     * close everything else
-     */
-    if (env_get_filename(env)) {
-        allocator_free(env_get_allocator(env), 
-                (ham_u8_t *)env_get_filename(env));
-        env_set_filename(env, 0);
-    }
 
     /* delete all performance data */
     btree_stats_trash_globdata(env, env_get_global_perf_data(env));
@@ -3113,7 +3091,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     st=db->_fun_cursor_move(cursor, key, record, flags);
 
     /* make sure that the changeset is empty */
-    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+    ham_assert(env_get_changeset(env).is_empty(), (""));
 
     return (db_set_error(db, st));
 }

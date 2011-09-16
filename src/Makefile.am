@@ -10,39 +10,39 @@ AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 
 lib_LTLIBRARIES = libhamsterdb.la
 
-EXTRA_DIST = os_win32.c
+EXTRA_DIST = os_win32.cc
 
-libhamsterdb_la_SOURCES = log.c \
-			cursor.c \
-			blob.c \
-			btree.c \
-			btree_check.c \
-			btree_enum.c \
-			btree_erase.c \
-			btree_find.c \
-			btree_insert.c \
-			btree_key.c \
-			cache.c \
-			db.c \
-			env.c \
-			error.c \
-			extkeys.c \
-			freelist.c \
-			freelist_v2.c \
-			freelist_statistics.c \
-			hamsterdb.c \
-			remote.c \
-			mem.c \
-			os_posix.c \
-			page.c \
-			btree_stats.c \
-			txn.c \
-			txn_cursor.c \
-			util.c \
-			btree_cursor.c \
-			journal.c \
-			changeset.c \
-			device.c
+libhamsterdb_la_SOURCES = log.cc \
+			cursor.cc \
+			blob.cc \
+			btree.cc \
+			btree_check.cc \
+			btree_enum.cc \
+			btree_erase.cc \
+			btree_find.cc \
+			btree_insert.cc \
+			btree_key.cc \
+			cache.cc \
+			db.cc \
+			env.cc \
+			error.cc \
+			extkeys.cc \
+			freelist.cc \
+			freelist_v2.cc \
+			freelist_statistics.cc \
+			hamsterdb.cc \
+			remote.cc \
+			mem.cc \
+			os_posix.cc \
+			page.cc \
+			btree_stats.cc \
+			txn.cc \
+			txn_cursor.cc \
+			util.cc \
+			btree_cursor.cc \
+			journal.cc \
+			changeset.cc \
+			device.cc
 
 libhamsterdb_la_LDFLAGS = -version-info 2:1:0
 
@@ -62,5 +62,6 @@ if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl
 libhamsterdb_la_LDFLAGS += $(top_builddir)/src/protocol/libprotocol.la
 CFLAGS += -DHAM_ENABLE_REMOTE
+CXXFLAGS += -DHAM_ENABLE_REMOTE
 endif
 

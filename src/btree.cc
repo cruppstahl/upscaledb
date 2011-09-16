@@ -401,7 +401,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                 }
                 if (c)
-                    (void)extkey_cache_remove(c, blobid);
+                    c->remove(blobid);
             }
         }
     }

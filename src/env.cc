@@ -44,6 +44,35 @@ typedef struct free_cb_context_t
 
 } free_cb_context_t;
 
+ham_env_t::ham_env_t()
+  : _txn_id(0), _file_mode(0), _context(0), _device(0), _cache(0), _alloc(0),
+    _hdrpage(0), _flushed_txn(0), _oldest_txn(0), _newest_txn(0), _log(0),
+    _journal(0), _rt_flags(0), _next(0), _pagesize(0), _cachesize(0), 
+    _max_databases(0), _is_active(0), _is_legacy(0), _file_filters(0)
+{
+#if HAM_ENABLE_REMOTE
+    _curl=0;
+#endif
+
+	memset(&_perf_data, 0, sizeof(_perf_data));
+	memset(&_changeset, 0, sizeof(_changeset));
+
+    _fun_create=0;
+    _fun_open=0;
+    _fun_rename_db=0;
+    _fun_erase_db=0;
+    _fun_get_database_names=0;
+    _fun_get_parameters=0;
+    _fun_flush=0;
+    _fun_create_db=0;
+    _fun_open_db=0;
+    _fun_txn_begin=0;
+    _fun_txn_abort=0;
+    _fun_txn_commit=0;
+    _fun_close=0;
+	destroy=0;
+}
+
 /* 
  * forward decl - implemented in hamsterdb.c 
  */
@@ -149,8 +178,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         ham_assert(0 == (env_get_pagesize(env) 
                     % DB_PAGESIZE_MIN_REQD_ALIGNMENT), (0));
     }
-    else
-    {
+    else {
         device=env_get_device(env);
         ham_assert(device->get_pagesize(device), (0));
         ham_assert(env_get_pagesize(env) == device->get_pagesize(device), (0));
@@ -204,9 +232,9 @@ _local_fun_create(ham_env_t *env, const char *filename,
      * create a logfile and a journal (if requested)
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_log_t *log;
+        ham_log_t *log=new ham_log_t(env);
         journal_t *journal;
-        st=log_create(env, 0644, 0, &log);
+        st=log->create();
         if (st) { 
             (void)ham_env_close(env, 0);
             return (st);
@@ -221,22 +249,8 @@ _local_fun_create(ham_env_t *env, const char *filename,
         env_set_journal(env, journal);
     }
 
-    /* 
-     * initialize the cache
-     */
-    {
-        ham_cache_t *cache;
-        ham_size_t cachesize=env_get_cachesize(env);
-
-        /* cachesize is specified in BYTES */
-        ham_assert(cachesize, (0));
-        cache=cache_new(env, cachesize);
-        if (!cache) {
-            (void)ham_env_close(env, 0);
-            return (HAM_OUT_OF_MEMORY);
-        }
-        env_set_cache(env, cache);
-    }
+    /* initialize the cache */
+    env_set_cache(env, new ham_cache_t(env, env_get_cachesize(env)));
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -250,26 +264,21 @@ static ham_status_t
 __recover(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_log_t *log=0;
+    ham_log_t *log=new ham_log_t(env);
     journal_t *journal=0;
 
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
     /* open the log */
-    st=log_open(env, 0, &log);
+    st=log->open();
     env_set_log(env, log);
     if (st && st!=HAM_FILE_NOT_FOUND)
         goto bail;
     /* success - check if we need recovery */
     else if (!st) {
-        ham_bool_t isempty;
-        st=log_is_empty(log, &isempty);
-        if (st)
-            goto bail;
-
-        if (!isempty) {
+        if (!log->is_empty()) {
             if (flags&HAM_AUTO_RECOVERY) {
-                st=log_recover(log);
+                st=log->recover();
                 if (st)
                     goto bail;
             }
@@ -311,9 +320,11 @@ goto success;
 
 bail:
     /* in case of errors: close log and journal, but do not delete the files */
-    if (log)
-        log_close(log, HAM_TRUE);
-    env_set_log(env, 0);
+    if (log) {
+        log->close(true);
+        delete log;
+        env_set_log(env, 0);
+    }
     if (journal)
         journal_close(journal, HAM_TRUE);
     env_set_journal(env, 0);
@@ -323,7 +334,8 @@ success:
     /* done with recovering - if there's no log and/or no journal then
      * create them and store them in the environment */
     if (!log) {
-        st=log_create(env, 0644, 0, &log);
+        log=new ham_log_t(env);
+        st=log->create();
         if (st)
             return (st);
     }
@@ -521,23 +533,7 @@ fail_with_fake_cleansing:
      * initialize the cache; the cache is needed during recovery, therefore
      * we have to create the cache BEFORE we attempt to recover
      */
-    {
-        ham_cache_t *cache;
-        ham_size_t cachesize=env_get_cachesize(env);
-
-        if (!cachesize)
-            cachesize=HAM_DEFAULT_CACHESIZE;
-        env_set_cachesize(env, cachesize);
-
-        /* cachesize is specified in BYTES */
-        ham_assert(cachesize, (0));
-        cache=cache_new(env, cachesize);
-        if (!cache) {
-            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
-            return (HAM_OUT_OF_MEMORY);
-        }
-        env_set_cache(env, cache);
-    }
+    env_set_cache(env, new ham_cache_t(env, env_get_cachesize(env)));
 
     /*
      * open the logfile and check if we need recovery. first open the 
@@ -551,8 +547,6 @@ fail_with_fake_cleansing:
             return (st);
         }
     }
-
-    env_set_active(env, HAM_TRUE);
 
     return (HAM_SUCCESS);
 }
@@ -644,18 +638,14 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-            ham_status_t st;
-            ham_bool_t empty;
-            ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-            st=log_is_empty(env_get_log(env), &empty);
-            ham_assert(st==0, (""));
-            ham_assert(empty==HAM_TRUE, (""));
+            ham_assert(env_get_changeset(env).is_empty(), (""));
+            ham_assert(env_get_log(env)->is_empty(), (""));
         }
 #endif
 
     /*
      * delete all blobs and extended keys, also from the cache and
-     * the extkey_cache
+     * the extkey-cache
      *
      * also delete all pages and move them to the freelist; if they're 
      * cached, delete them from the cache
@@ -683,11 +673,10 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         ham_u64_t lsn;
-        changeset_add_page(env_get_changeset(env), 
-                env_get_header_page(env));
+        env_get_changeset(env).add_page(env_get_header_page(env));
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=changeset_flush(env_get_changeset(env), lsn);
+            st=env_get_changeset(env).flush(lsn);
     }
 
     /* clean up and return */
@@ -789,7 +778,7 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      */
     if (env_get_cache(env)) {
         (void)db_flush_all(env_get_cache(env), 0);
-        cache_delete(env_get_cache(env));
+        delete env_get_cache(env);
         env_set_cache(env, 0);
     }
 
@@ -829,9 +818,11 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * close the log and the journal
      */
     if (env_get_log(env)) {
-        st = log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
+        ham_log_t *log=env_get_log(env);
+        st = log->close(flags&HAM_DONT_CLEAR_LOG);
         if (!st2) 
             st2 = st;
+        delete log;
         env_set_log(env, 0);
     }
     if (env_get_journal(env)) {
@@ -853,7 +844,7 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env_get_cachesize(env);
+                p->value=env_get_cache(env)->get_capacity();
                 break;
             case HAM_PARAM_PAGESIZE:
                 p->value=env_get_pagesize(env);
@@ -868,8 +859,8 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 p->value=env_get_file_mode(env);
                 break;
             case HAM_PARAM_GET_FILENAME:
-                if (env_get_filename(env))
-                    p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env)));
+                if (env_get_filename(env).size())
+                    p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env).c_str()));
                 else
                     p->value=0;
                 break;
@@ -1054,12 +1045,8 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
+        ham_assert(env_get_changeset(env).is_empty(), (""));
+        ham_assert(env_get_log(env)->is_empty(), (""));
     }
 #endif
 
@@ -1153,11 +1140,10 @@ bail:
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         ham_u64_t lsn;
-        changeset_add_page(env_get_changeset(env), 
-                env_get_header_page(env));
+        env_get_changeset(env).add_page(env_get_header_page(env));
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=changeset_flush(env_get_changeset(env), lsn);
+            st=env_get_changeset(env).flush(lsn);
     }
 
     return (st);
@@ -1417,7 +1403,7 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
             ham_device_t *device=env_get_device(env);
-            (void)log_flush(env_get_log(env));
+            (void)env_get_log(env)->flush();
             (void)device->flush(device);
         }
     }
@@ -1449,7 +1435,7 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
             ham_device_t *device=env_get_device(env);
-            (void)log_flush(env_get_log(env));
+            (void)env_get_log(env)->flush();
             (void)device->flush(device);
         }
     }
@@ -1535,12 +1521,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
         /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-            ham_status_t st;
-            ham_bool_t empty;
-            ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-            st=log_is_empty(env_get_log(env), &empty);
-            ham_assert(st==0, (""));
-            ham_assert(empty==HAM_TRUE, (""));
+            ham_assert(env_get_changeset(env).is_empty(), (""));
+            ham_assert(env_get_log(env)->is_empty(), (""));
         }
 #endif
 
@@ -1614,9 +1596,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 bail:
         /* now flush the changeset to disk */
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-            changeset_add_page(env_get_changeset(env), 
-                        env_get_header_page(env));
-            st=changeset_flush(env_get_changeset(env), txn_op_get_lsn(op));
+            env_get_changeset(env).add_page(env_get_header_page(env));
+            st=env_get_changeset(env).flush(txn_op_get_lsn(op));
         }
 
         env_set_flushed_txn(env, 0);
@@ -1687,7 +1668,7 @@ env_flush_committed_txns(ham_env_t *env)
 
     /* clear the changeset; if the loop above was not entered or the 
      * transaction was empty then it may still contain pages */
-    changeset_clear(env_get_changeset(env));
+    env_get_changeset(env).clear();
 
     return (0);
 }
@@ -1716,14 +1697,12 @@ __purge_cache_max20(ham_env_t *env)
     ham_status_t st;
     ham_page_t *page;
     ham_cache_t *cache=env_get_cache(env);
-    unsigned i, max_pages=cache_get_cur_elements(cache);
+    unsigned i, max_pages=cache->get_cur_elements();
 
     /* don't remove pages from the cache if it's an in-memory database */
-    if (!cache)
-        return (0);
     if ((env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
         return (0);
-    if (!cache_too_big(cache))
+    if (!cache->is_too_big())
         return (0);
 
     /* 
@@ -1741,7 +1720,7 @@ __purge_cache_max20(ham_env_t *env)
 
     /* try to free 10% of the unused pages */
     for (i=0; i<max_pages; i++) {
-        page=cache_get_unused_page(cache);
+        page=cache->get_unused_page();
         if (!page) {
             if (i==0 && (env_get_rt_flags(env)&HAM_CACHE_STRICT)) 
                 return (HAM_CACHE_FULL);
@@ -1769,7 +1748,7 @@ env_purge_cache(ham_env_t *env)
         st=__purge_cache_max20(env);
         if (st && st!=HAM_LIMITS_REACHED)
             return st;
-    } while (st==HAM_LIMITS_REACHED && cache_too_big(cache));
+    } while (st==HAM_LIMITS_REACHED && cache->is_too_big());
 
     return (0);
 }

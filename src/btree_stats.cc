@@ -658,7 +658,7 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
              */
             if (dbdata->upper_bound_index != btree_node_get_count(node) - 1
                     || dbdata->upper_bound_page_address != page_get_self(page)
-                    || slot == btree_node_get_count(node) - 1) 
+                    || (ham_size_t)slot == btree_node_get_count(node) - 1) 
             {
                 /* only set when not done already */
                 dbdata->upper_bound_set = HAM_TRUE;

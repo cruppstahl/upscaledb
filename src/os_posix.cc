@@ -65,7 +65,7 @@ __lock_exclusive(int fd, ham_bool_t lock)
 }
 
 static void
-my_enable_largefile(int fd)
+__enable_largefile(int fd)
 {
     /*
      * not available on cygwin...
@@ -304,7 +304,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     /*
      * enable O_LARGEFILE support
      */
-    my_enable_largefile(*fd);
+    __enable_largefile(*fd);
 
     return (HAM_SUCCESS);
 }
@@ -357,7 +357,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     /*
      * enable O_LARGEFILE support
      */
-    my_enable_largefile(*fd);
+    __enable_largefile(*fd);
 
     return (HAM_SUCCESS);
 }

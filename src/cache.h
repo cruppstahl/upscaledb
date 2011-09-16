@@ -17,7 +17,10 @@
 #ifndef HAM_CACHE_H__
 #define HAM_CACHE_H__
 
+#include <vector>
+
 #include "internal_fwd_decl.h"
+#include "env.h"
 
 	
 #ifdef __cplusplus
@@ -32,138 +35,124 @@ extern "C" {
 /**
  * the cache manager
  */
-struct ham_cache_t
+class ham_cache_t
 {
+  public:
+    /** don't remove the page from the cache */
+    static const int NOREMOVE=1;
+
+    /** the default constructor
+     * @remark max_size is in bytes!
+     */
+    ham_cache_t(ham_env_t *env, 
+                ham_size_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
+
+    /**
+     * the destructor closes and destroys the cache manager object
+     * @remark this will NOT flush the cache!
+     */
+    ~ham_cache_t() {
+    }
+    
+    /**
+     * get an unused page (or an unreferenced page, if no unused page
+     * was available
+     *
+     * @remark if the page is dirty, it's the caller's responsibility to 
+     * write it to disk!
+     *
+     * @remark the page is removed from the cache
+     */
+    ham_page_t *get_unused_page(void);
+
+    /**
+     * get a page from the cache
+     *
+     * @remark the page is removed from the cache
+     *
+     * @return 0 if the page was not cached
+     */
+    ham_page_t *get_page(ham_offset_t address, ham_u32_t flags=0);
+
+    /**
+     * store a page in the cache
+     */
+    void put_page(ham_page_t *page);
+    
+    /**
+     * remove a page from the cache
+     */
+    void remove_page(ham_page_t *page);
+
+    /**
+     * returns true if the caller should purge the cache
+     */
+    bool is_too_big(void) {
+        return (m_cur_elements*env_get_pagesize(m_env)>m_capacity);
+    }
+
+    /**
+     * get number of currently stored pages
+     */
+    ham_size_t get_cur_elements(void) {
+        return (m_cur_elements);
+    }
+
+    /**
+     * set the HEAD of the global page list
+     */
+    void set_totallist(ham_page_t *l) { 
+        m_totallist=l; 
+    }
+
+    /**
+     * retrieve the HEAD of the global page list
+     */
+    ham_page_t * get_totallist(void) { 
+        return (m_totallist); 
+    }
+
+    /**
+     * decrease number of current elements
+     * TODO this should be private, but db.c needs it
+     */
+    void dec_cur_elements() { 
+        m_cur_elements--; 
+    }
+
+    /**
+     * get the capacity (in bytes)
+     */
+    ham_size_t get_capacity(void) { 
+        return (m_capacity); 
+    }
+
+    /**
+     * check the cache integrity
+     */
+    ham_status_t check_integrity(void);
+
+  private:
     /** the current Environment */
-    ham_env_t *_env;
+    ham_env_t *m_env;
 
     /** the capacity (in bytes) */
-    ham_size_t _capacity;
+    ham_size_t m_capacity;
 
     /** the current number of cached elements */
-    ham_size_t _cur_elements;
-
-    /** the number of buckets */
-    ham_size_t _bucketsize;
+    ham_size_t m_cur_elements;
 
     /** linked list of ALL cached pages */
-    ham_page_t *_totallist;
+    ham_page_t *m_totallist;
 
     /** the tail of the linked "totallist" - this is the oldest element,
      * and therefore the highest candidate for a flush */
-    ham_page_t *_totallist_tail;
+    ham_page_t *m_totallist_tail;
 
     /** the buckets - a linked list of ham_page_t pointers */
-    ham_page_t *_buckets[1];
+    std::vector<ham_page_t *> m_buckets;
 
 };
-
-/* get the current Environment */
-#define cache_get_env(cm)                      (cm)->_env
-
-/* set the current Environment */
-#define cache_set_env(cm, e)                   (cm)->_env=(e)
-
-/* get the capacity (in bytes) */
-#define cache_get_capacity(cm)                 (cm)->_capacity
-
-/* set the capacity (in bytes) */
-#define cache_set_capacity(cm, c)              (cm)->_capacity=(c)
-
-/* get the current number of elements */
-#define cache_get_cur_elements(cm)             (cm)->_cur_elements
-
-/* set the current number of elements */
-#define cache_set_cur_elements(cm, s)          (cm)->_cur_elements=(s)
-
-/* get the bucket-size */
-#define cache_get_bucketsize(cm)               (cm)->_bucketsize
-
-/* set the bucket-size */
-#define cache_set_bucketsize(cm, s)            (cm)->_bucketsize=(s)
-
-/* get the linked list of all pages */
-#define cache_get_totallist(cm)                (cm)->_totallist
-
-/* set the linked list of all pages */
-#define cache_set_totallist(cm, l)             (cm)->_totallist=(l)
-
-/* get the oldest page/tail in totallist */
-#define cache_get_totallist_tail(cm)           (cm)->_totallist_tail
-
-/* set the oldest page/tail in totallist */
-#define cache_set_totallist_tail(cm, p)        (cm)->_totallist_tail=(p)
-
-/* get a bucket */
-#define cache_get_bucket(cm, i)                (cm)->_buckets[i]
-
-/* set a bucket */
-#define cache_set_bucket(cm, i, p)             (cm)->_buckets[i]=p
-
-/**
- * initialize a cache manager object
- *
- * max_size is in bytes!
- */
-extern ham_cache_t *
-cache_new(ham_env_t *env, ham_size_t max_size);
-
-/**
- * close and destroy a cache manager object
- *
- * @remark this will NOT flush the cache!
- */
-extern void
-cache_delete(ham_cache_t *cache);
-
-/**
- * get an unused page (or an unreferenced page, if no unused page
- * was available
- *
- * @remark if the page is dirty, it's the caller's responsibility to 
- * write it to disk!
- *
- * @remark the page is removed from the cache
- */
-extern ham_page_t *
-cache_get_unused_page(ham_cache_t *cache);
-
-/**
- * get a page from the cache
- *
- * @remark the page is removed from the cache
- *
- * @return 0 if the page was not cached
- */
-extern ham_page_t *
-cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
-
-#define CACHE_NOREMOVE   1      /** don't remove the page from the cache */
-
-/**
- * store a page in the cache
- */
-extern void 
-cache_put_page(ham_cache_t *cache, ham_page_t *page);
-
-/**
- * remove a page from the cache
- */
-extern void 
-cache_remove_page(ham_cache_t *cache, ham_page_t *page);
-
-/**
- * returns true if the caller should purge the cache
- */
-#define cache_too_big(c)                                                      \
-    ((cache_get_cur_elements(c)*env_get_pagesize(cache_get_env(c))            \
-            >cache_get_capacity(c)) ? HAM_TRUE : HAM_FALSE) 
-
-/**
- * check the cache integrity
- */
-extern ham_status_t
-cache_check_integrity(ham_cache_t *cache);
 
 
 #ifdef __cplusplus

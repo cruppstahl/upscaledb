@@ -1,10 +1,4 @@
 
-#
-# make sure that our modified CFLAGS are also respected by g++
-#
-AM_CXXFLAGS     = $(CFLAGS)
-CXXFLAGS        = $(CFLAGS)
-
 EXTRA_DIST      = valgrind.supp
 
 noinst_PROGRAMS = test bfc_sample
@@ -73,3 +67,8 @@ bfc_sample_LDADD = -ldl
 
 noinst_BIN      = test bfc_sample
 
+#
+# make sure that our modified CFLAGS are also respected by g++
+#
+AM_CXXFLAGS     = $(CFLAGS)
+CXXFLAGS        = $(CFLAGS)

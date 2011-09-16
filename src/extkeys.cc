@@ -15,7 +15,6 @@
 #include <string.h>
 
 #include "blob.h"
-#include "cache.h"
 #include "db.h"
 #include "env.h"
 #include "error.h"
@@ -27,40 +26,78 @@
  * used in a MODULO hash scheme */
 #define EXTKEY_CACHE_BUCKETSIZE         1021	
 #define EXTKEY_MAX_AGE                     5
+#define __calc_hash(o)                  ((o)%(EXTKEY_CACHE_BUCKETSIZE))
 
-extkey_cache_t *
-extkey_cache_new(ham_db_t *db)
+/**
+ * an extended key
+ */
+struct extkey_t
 {
-    extkey_cache_t *c;
-    int memsize;
+    /** the blobid of this key */
+    ham_offset_t _blobid;
 
-    memsize=sizeof(extkey_cache_t)+EXTKEY_CACHE_BUCKETSIZE*sizeof(extkey_t *);
-    c=(extkey_cache_t *)allocator_calloc(env_get_allocator(db_get_env(db)), 
-                            memsize);
-    if (!c) {
-        // HAM_OUT_OF_MEMORY;
-        return (0);
-    }
+    /** the age of this extkey */
+    ham_u64_t _age;
 
-    extkey_cache_set_db(c, db);
-    extkey_cache_set_bucketsize(c, EXTKEY_CACHE_BUCKETSIZE);
+    /** pointer to the next key in the linked list */
+    extkey_t *_next;
 
-    return (c);
+    /** the size of the extended key */
+    ham_size_t _size;
+
+    /** the key data */
+    ham_u8_t _data[1];
+
+};
+
+/** the size of an extkey_t, without the single data byte */
+#define SIZEOF_EXTKEY_T                     (sizeof(extkey_t)-1)
+
+/** get the blobid */
+#define extkey_get_blobid(e)                (e)->_blobid
+
+/** set the blobid */
+#define extkey_set_blobid(e, id)            (e)->_blobid=(id)
+
+/** get the age of this extkey */
+#define extkey_get_age(e)                   (e)->_age
+
+/** set the age of this extkey */
+#define extkey_set_age(e, age)              (e)->_age=(age)
+
+/** get the next-pointer */
+#define extkey_get_next(e)                  (e)->_next
+
+/** set the next-pointer */
+#define extkey_set_next(e, next)            (e)->_next=(next)
+
+/** get the size */
+#define extkey_get_size(e)                  (e)->_size
+
+/** set the size */
+#define extkey_set_size(e, size)            (e)->_size=(size)
+
+/** get the data pointer */
+#define extkey_get_data(e)                  (e)->_data
+
+
+extkey_cache_t::extkey_cache_t(ham_db_t *db)
+  : m_db(db), m_usedsize(0)
+{
+    for (ham_size_t i=0; i<EXTKEY_CACHE_BUCKETSIZE; i++)
+        m_buckets.push_back(0);
 }
 
-void
-extkey_cache_destroy(extkey_cache_t *cache)
+extkey_cache_t::~extkey_cache_t()
 {
-    ham_size_t i;
     extkey_t *e, *n;
-    ham_db_t *db=extkey_cache_get_db(cache);
-	ham_env_t *env = db_get_env(db);
+	ham_env_t *env=db_get_env(m_db);
 
     /*
      * make sure that all entries are empty
      */
-    for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
-        e=extkey_cache_get_bucket(cache, i);
+    for (ham_size_t i=0; i<EXTKEY_CACHE_BUCKETSIZE; i++) {
+        e=m_buckets[i];
         while (e) {
 #if HAM_DEBUG
             /*
@@ -75,29 +112,21 @@ extkey_cache_destroy(extkey_cache_t *cache)
             e=n;
         }
     }
-
-    allocator_free(env_get_allocator(env), cache);
 }
 
-#define my_calc_hash(cache, o)                                              \
-    ((ham_size_t)(extkey_cache_get_bucketsize(cache)==0                     \
-        ? 0                                                                 \
-        : (((o)%(cache_get_bucketsize(cache))))))
-
 ham_status_t
-extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid, 
-            ham_size_t size, const ham_u8_t *data)
+extkey_cache_t::insert(ham_offset_t blobid, ham_size_t size, 
+                const ham_u8_t *data)
 {
-    ham_size_t h=my_calc_hash(cache, blobid);
+    ham_size_t h=__calc_hash(blobid);
     extkey_t *e;
-    ham_db_t *db=extkey_cache_get_db(cache);
-	ham_env_t *env = db_get_env(db);
+	ham_env_t *env=db_get_env(m_db);
 
     /*
      * DEBUG build: make sure that the item is not inserted twice!
      */
 #ifdef HAM_DEBUG
-    e=extkey_cache_get_bucket(cache, h);
+    e=m_buckets[h];
     while (e) {
         ham_assert(extkey_get_blobid(e)!=blobid, (0));
         e=extkey_get_next(e);
@@ -106,29 +135,28 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 
     e=(extkey_t *)allocator_alloc(env_get_allocator(env), SIZEOF_EXTKEY_T+size);
     if (!e)
-        return HAM_OUT_OF_MEMORY;
+        return (HAM_OUT_OF_MEMORY);
     extkey_set_blobid(e, blobid);
     /* TODO do not use txn id but lsn for age */
     extkey_set_age(e, env_get_txn_id(env));
-    extkey_set_next(e, extkey_cache_get_bucket(cache, h));
+    extkey_set_next(e, m_buckets[h]);
     extkey_set_size(e, size);
     memcpy(extkey_get_data(e), data, size);
 
-    extkey_cache_set_bucket(cache, h, e);
-    extkey_cache_set_usedsize(cache, extkey_cache_get_usedsize(cache)+size);
+    m_buckets[h]=e;
+    m_usedsize+=size;
 
     return (0);
 }
 
-ham_status_t
-extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid)
+void
+extkey_cache_t::remove(ham_offset_t blobid)
 {
-	ham_db_t *db=extkey_cache_get_db(cache);
-	ham_env_t *env = db_get_env(db);
-    ham_size_t h=my_calc_hash(cache, blobid);
+	ham_env_t *env=db_get_env(m_db);
+    ham_size_t h=__calc_hash(blobid);
     extkey_t *e, *prev=0;
 
-    e=extkey_cache_get_bucket(cache, h);
+    e=m_buckets[h];
     while (e) {
         if (extkey_get_blobid(e)==blobid)
             break;
@@ -137,28 +165,24 @@ extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid)
     }
 
     if (!e)
-        return (HAM_KEY_NOT_FOUND);
+        return;
 
     if (prev)
         extkey_set_next(prev, extkey_get_next(e));
     else
-        extkey_cache_set_bucket(cache, h, extkey_get_next(e));
+        m_buckets[h]=extkey_get_next(e);
 
-    extkey_cache_set_usedsize(cache, 
-            extkey_cache_get_usedsize(cache)-extkey_get_size(e));
+    m_usedsize-=extkey_get_size(e);
     allocator_free(env_get_allocator(env), e);
-
-    return (0);
 }
 
 ham_status_t
-extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid, 
-            ham_size_t *size, ham_u8_t **data)
+extkey_cache_t::fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data)
 {
-    ham_size_t h=my_calc_hash(cache, blobid);
+    ham_size_t h=__calc_hash(blobid);
     extkey_t *e;
 
-    e=extkey_cache_get_bucket(cache, h);
+    e=m_buckets[h];
     while (e) {
         if (extkey_get_blobid(e)==blobid)
             break;
@@ -171,35 +195,31 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
     *size=extkey_get_size(e);
     *data=extkey_get_data(e);
     /* TODO do not use txn id but lsn for age */
-    extkey_set_age(e, env_get_txn_id(db_get_env(extkey_cache_get_db(cache))));
+    extkey_set_age(e, env_get_txn_id(db_get_env(m_db)));
 
     return (0);
 }
 
-ham_status_t
-extkey_cache_purge(extkey_cache_t *cache)
+void
+extkey_cache_t::purge(void)
 {
-    ham_size_t i;
     extkey_t *e, *n;
-    ham_env_t *env;
-	
-	ham_assert(extkey_cache_get_db(cache), (0));
-	env = db_get_env(extkey_cache_get_db(cache));
+    ham_env_t *env=db_get_env(m_db);
 
     /*
      * delete all entries which are "too old" (were not 
      * used in the last EXTKEY_MAX_AGE transactions)
      */
-    for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
+    for (ham_size_t i=0; i<EXTKEY_CACHE_BUCKETSIZE; i++) {
         extkey_t *p=0;
-        e=extkey_cache_get_bucket(cache, i);
+        e=m_buckets[i];
         while (e) {
             n=extkey_get_next(e);
             /* TODO do not use txn id but lsn for age */
             if (env_get_txn_id(env)-extkey_get_age(e)>EXTKEY_MAX_AGE) {
                 /* deleted the head element of the list? */
                 if (!p)
-                    extkey_cache_set_bucket(cache, i, n);
+                    m_buckets[i]=n;
                 else
                     extkey_set_next(p, n);
                 allocator_free(env_get_allocator(env), e);
@@ -209,44 +229,32 @@ extkey_cache_purge(extkey_cache_t *cache)
             e=n;
         }
     }
-
-    return (0);
 }
 
-ham_status_t
-extkey_cache_purge_all(extkey_cache_t *cache)
+void
+extkey_cache_t::purge_all(void)
 {
-    ham_size_t i;
     extkey_t *e, *n;
-    ham_env_t *env;
-
-    ham_assert(extkey_cache_get_db(cache), (0));
-    env=db_get_env(extkey_cache_get_db(cache));
+    ham_env_t *env=db_get_env(m_db);
 
     /* delete all entries in the cache */
-    for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
-        e=extkey_cache_get_bucket(cache, i);
+    for (ham_size_t i=0; i<EXTKEY_CACHE_BUCKETSIZE; i++) {
+        e=m_buckets[i];
         while (e) {
             n=extkey_get_next(e);
             allocator_free(env_get_allocator(env), e);
             e=n;
         }
-        extkey_cache_set_bucket(cache, i, 0);
+        m_buckets[i]=0;
     }
-
-    return (0);
 }
 
 ham_status_t
 extkey_remove(ham_db_t *db, ham_offset_t blobid)
 {
-    ham_status_t st;
-
-    if (db_get_extkey_cache(db)) {
-        st=extkey_cache_remove(db_get_extkey_cache(db), blobid);
-        if (st && st!=HAM_KEY_NOT_FOUND)
-            return (st);
-    }
+    if (db_get_extkey_cache(db))
+        db_get_extkey_cache(db)->remove(blobid);
 
     return (blob_free(db_get_env(db), db, blobid, 0));
 }
+

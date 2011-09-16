@@ -26,56 +26,56 @@ extern "C" {
 
 
 /**
- * The changeset structure
+ * The changeset class
  */
-typedef struct changeset_t 
+class changeset_t 
 {
+  public:
+    changeset_t()
+    : m_head(0) {
+    }
+
+    /** is the changeset empty? */
+    bool is_empty() {
+        return (m_head==0);
+    }
+
+    /**
+     * append a new page to the changeset
+     *
+     * this function will assert that the page is not yet part of the changeset!
+     */
+    void add_page(ham_page_t *page);
+
+    /**
+     * get a page from the changeset
+     * returns NULL if the page is not part of the changeset
+     */
+    ham_page_t *get_page(ham_offset_t pageid);
+
+    /**
+     * removes all pages from the changeset
+     */
+    void clear(void);
+
+    /**
+     * flush all pages in the changeset - first write them to the log, then 
+     * write them to the disk
+     *
+     * on success: will clear the changeset and the log 
+     */
+    ham_status_t flush(ham_u64_t lsn);
+
+    /** retrieve the head of the linked list */
+    ham_page_t *get_head(void) {
+        return (m_head);
+    }
+
+  private:
     /* the head of our linked list */
-    ham_page_t *_head;
+    ham_page_t *m_head;
 
-} changeset_t;
-
-/** is the changeset empty? */
-#define changeset_is_empty(cs)          ((cs)->_head==0)
-
-/** get the head of the linked list */
-#define changeset_get_head(cs)          (cs)->_head
-
-/** set the head of the linked list */
-#define changeset_set_head(cs, p)       (cs)->_head=p
-
-/** a static changeset initializer */
-#define CHANGESET_STATIC_INITIALIZER    {0}
-
-/**
- * append a new page to the changeset
- *
- * this function will assert that the page is not yet part of the changeset!
- */
-extern void
-changeset_add_page(changeset_t *cs, ham_page_t *page);
-
-/**
- * get a page from the changeset
- * returns NULL if the page is not part of the changeset
- */
-extern ham_page_t *
-changeset_get_page(changeset_t *cs, ham_offset_t pageid);
-
-/**
- * removes all pages from the changeset
- */
-extern void
-changeset_clear(changeset_t *cs);
-
-/**
- * flush all pages in the changeset - first write them to the log, then 
- * write them to the disk
- *
- * on success: will clear the changeset and the log 
- */
-extern ham_status_t
-changeset_flush(changeset_t *cs, ham_u64_t lsn);
+};
 
 
 #ifdef __cplusplus

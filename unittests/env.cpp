@@ -108,10 +108,10 @@ protected:
         BFC_ASSERT(env_get_device(env)==(ham_device_t *)15);
         env_set_device(env, 0);
 
-        BFC_ASSERT(env_get_filename(env)==0);
+        BFC_ASSERT_EQUAL(0u, env_get_filename(env).size());
         env_set_filename(env, "abcdefg");
-        BFC_ASSERT(0==strcmp(env_get_filename(env), "abcdefg"));
-        env_set_filename(env, 0);
+        BFC_ASSERT_EQUAL(0, strcmp("abcdefg", env_get_filename(env).c_str()));
+        env_set_filename(env, "");
 
         BFC_ASSERT(env_get_file_mode(env)==0);
         env_set_file_mode(env, 12345);
@@ -169,7 +169,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(true, env_is_active(env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
         BFC_ASSERT_EQUAL(1u, env_is_active(env));

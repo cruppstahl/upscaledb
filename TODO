@@ -177,15 +177,46 @@ x apply patch from Aurelien (also on master)
 
 x many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
-o Ger has patches for configure.in - gconv coverage
+x Ger has patches for configure.in - gconv coverage
     https://github.com/GerHobbelt/hamsterdb/blob/ger-old-work/configure.in
     x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
-  -> it works! document it (wiki)
-    ./configure --enable-gcov
-    cd unittests && make && ./test
-    cd src
-    cp .libs/*gc* .
-    gcov *.c
+
+o need a function to get the txn of a conflict (same as in v2)
+    ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
+    o also add to c++ API
+    o add documentation (header file)
+    o add documentation (wiki)
+
+o add unittests for all new functions in cursor.h
+
+o merge largefile support from master branch
+
+o a lot of places in the code check if a cache exists, and if yes
+    they use it. but the cache ALWAYS exists, right? verify this and
+    clean up the code
+    o cleanup use of env_set_cachesize/env_get_cachesize; why is this needed?
+
+o compare performance against 1.1.13 (with and without Transactions)
+    o do some profiling - i am afraid that changeset_get_page() is not efficient
+        enough; maybe a hash table is better?
+    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
+        is only required once then it should be inserted at the tail of the
+        totallist, like a page that was not accessed for a very long time
+    x opnode: use key instead of key* (pointer) - this saves one allocation 
+        per node
+
+. there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
 
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
@@ -217,35 +248,6 @@ o make sure that all unittests and monster tests are now working
 ./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/1/220.tst
 ./test --use-transactions=all --use-cursors --duplicate-first ../../testfiles/2/102.tst
 
-o add unittests for all new functions in cursor.h
-
-o merge largefile support from master branch
-
-o compare performance against 1.1.13 (with and without Transactions)
-    o do some profiling - i am afraid that changeset_get_page() is not efficient
-        enough; maybe a hash table is better?
-    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
-        is only required once then it should be inserted at the tail of the
-        totallist, like a page that was not accessed for a very long time
-    x opnode: use key instead of key* (pointer) - this saves one allocation 
-        per node
-
-. there are a couple of areas where a btree cursor is uncoupled, just to 
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
-
-. also, if a unittest fails in ham_close (i.e. because a cursor was not closed)
-    then teardown() is not called and all other tests fail b/c the file handle
-    is still occupied
-
-. add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
@@ -284,8 +286,6 @@ o fully (!) automize the whole release process for unix; the result (on
     o the output (xml) of the monster tests
 
 . port to WinCE
-
-o need a function to get the txn of a conflict (same as in v2)
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 

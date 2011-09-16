@@ -66,7 +66,7 @@ journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags,
     int i;
     journal_header_t header;
     mem_allocator_t *alloc=env_get_allocator(env);
-    const char *dbpath=env_get_filename(env);
+    const char *dbpath=env_get_filename(env).c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
     journal_t *journal=(journal_t *)allocator_alloc(alloc, sizeof(journal_t));
@@ -118,7 +118,7 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
     journal_header_t header;
     journal_entry_t entry={0};
     mem_allocator_t *alloc=env_get_allocator(env);
-    const char *dbpath=env_get_filename(env);
+    const char *dbpath=env_get_filename(env).c_str();
     ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
@@ -243,6 +243,7 @@ journal_append_entry(journal_t *journal, int fdidx,
         st=os_write(journal_get_fd(journal, fdidx), aux, size);
         if (st)
             return (st);
+        /* TODO rollback the previous write */
     }
 
     return (0);
@@ -648,7 +649,7 @@ journal_recover(journal_t *journal)
 {
     ham_status_t st;
     ham_env_t *env=journal_get_env(journal);
-    ham_u64_t start_lsn=log_get_lsn(env_get_log(env));
+    ham_u64_t start_lsn=env_get_log(env)->get_lsn();
     journal_iterator_t it={0};
     void *aux=0;
 

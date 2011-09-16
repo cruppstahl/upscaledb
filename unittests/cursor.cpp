@@ -1102,7 +1102,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        changeset_clear(env_get_changeset(m_env));
+        env_get_changeset(m_env).clear();
     }
 
     void moveFirstErasedInsertedInTxnTest(void)
@@ -1444,7 +1444,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        changeset_clear(env_get_changeset(m_env));
+        env_get_changeset(m_env).clear();
     }
 
     void moveLastErasedInsertedInTxnTest(void)
