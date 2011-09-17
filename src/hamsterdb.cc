@@ -607,19 +607,8 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
         for (; param->name; param++) {
             switch (param->name) {
             case HAM_PARAM_CACHESIZE:
-                if (pcachesize) {
+                if (pcachesize)
                     cachesize=(ham_size_t)param->value;
-                    if (cachesize > 0) {
-                        if (env && env_get_cache(env)
-                                && cachesize != env_get_cachesize(env)) {
-                            ham_trace(("invalid parameter HAM_PARAM_CACHESIZE - "
-                                       "it's illegal to specify a new "
-                                       "cache size when the cache has already "
-                                       "been initialized"));
-                            return (HAM_INV_PARAMETER);
-                        }
-                    }
-                }
                 break;
 
             case HAM_PARAM_KEYSIZE:

@@ -684,8 +684,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (st)
         return (st);
 
-    if (env_get_cache(env))
-        env_get_cache(env)->remove_page(page);
+    env_get_cache(env)->remove_page(page);
 
     /*
      * if this page has a header, and it's either a B-Tree root page or 
@@ -738,10 +737,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     *page_ref = 0;
     ham_assert(0==(flags&~(PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO)), (0));
-    ham_assert(env_get_cache(env) != 0, 
-            ("This code will not realize the requested page may already exist "
-             "through a previous call to this function or db_fetch_page() "
-             "unless page caching is available!"));
 
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
@@ -755,11 +750,9 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             if (page)
                 goto done;
             /* try to fetch the page from the cache */
-            if (env_get_cache(env)) {
-                page=env_get_cache(env)->get_page(tellpos, 0);
-                if (page)
-                    goto done;
-            }
+            page=env_get_cache(env)->get_page(tellpos, 0);
+            if (page)
+                goto done;
             /* allocate a new page structure */
             page=page_new(env);
             if (!page)
@@ -813,8 +806,7 @@ done:
         env_get_changeset(env).add_page(page);
 
     /* store the page in the cache */
-    if (env_get_cache(env))
-        env_get_cache(env)->put_page(page);
+    env_get_cache(env)->put_page(page);
 
     *page_ref = page;
     return (HAM_SUCCESS);
@@ -835,15 +827,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_status_t st;
 
     ham_assert(0 == (flags & ~(HAM_HINTS_MASK|DB_ONLY_FROM_CACHE)), (0));
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
-            : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
-    ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
-            : env_get_cache(env) != 0, 
-            ("This code will not realize the requested page may already "
-             "exist through a previous call to this function or "
-             "db_alloc_page() unless page caching is available!"));
 
     *page_ref = 0;
 
@@ -859,37 +842,30 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     /* 
      * fetch the page from the cache
      */
-    if (env_get_cache(env)) {
-        page=env_get_cache(env)->get_page(address, ham_cache_t::NOREMOVE);
-        if (page) {
-            *page_ref = page;
-            ham_assert(page_get_pers(page), (""));
-            ham_assert(db ? page_get_owner(page)==db : 1, (""));
-            /* store the page in the changeset, but only if recovery is enabled
-             * and not if Transactions are enabled. 
-             *
-             * when inserting a key in a transaction, this can trigger lookups
-             * with ham_find(). when ham_find() fetches pages, these pages must
-             * not be added to the changeset.
-             */
-            if ((env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-                    && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-                env_get_changeset(env).add_page(page);
-            return (HAM_SUCCESS);
-        }
+    page=env_get_cache(env)->get_page(address, ham_cache_t::NOREMOVE);
+    if (page) {
+        *page_ref = page;
+        ham_assert(page_get_pers(page), (""));
+        ham_assert(db ? page_get_owner(page)==db : 1, (""));
+        /* store the page in the changeset, but only if recovery is enabled
+         * and not if Transactions are enabled. 
+         *
+         * when inserting a key in a transaction, this can trigger lookups
+         * with ham_find(). when ham_find() fetches pages, these pages must
+         * not be added to the changeset.
+         */
+        if ((env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+            env_get_changeset(env).add_page(page);
+        return (HAM_SUCCESS);
     }
 
     if (flags&DB_ONLY_FROM_CACHE)
         return HAM_SUCCESS;
 
 #if HAM_DEBUG
-    if (env_get_cache(env)) {
-        ham_assert(env_get_cache(env)->get_page(address)==0, (""));
-    }
+    ham_assert(env_get_cache(env)->get_page(address)==0, (""));
 #endif
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
-            : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
 
     /* can we allocate a new page for the cache? */
     if (env_get_cache(env)->is_too_big()) {
@@ -912,8 +888,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert(page_get_pers(page), (""));
 
     /* store the page in the cache */
-    if (env_get_cache(env))
-        env_get_cache(env)->put_page(page);
+    env_get_cache(env)->put_page(page);
 
     /* store the page in the changeset */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
@@ -936,9 +911,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
 
     /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
-    if ((flags&HAM_WRITE_THROUGH 
-            || !env_get_cache(env)) 
-            && page_is_dirty(page)) {
+    if (flags&HAM_WRITE_THROUGH && page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
             return (st);
@@ -952,7 +925,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
      * TODO why "put it back"? it's already in the cache
      * be careful - don't store the header page in the cache
      */
-    if (env_get_cache(env) && page_get_self(page)!=0)
+    if (page_get_self(page)!=0)
         env_get_cache(env)->put_page(page);
 
     return (0);

@@ -2726,7 +2726,6 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
     ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0, 
             ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
              "due to the scan algorithm"));
-    ham_assert(env_get_cache(env) != NULL, ("DB MUST have a cache set up or we may fetch dual mmap copies of old pages, which is bad"));
 
     *page_ref = 0;
 
