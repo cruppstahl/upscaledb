@@ -609,7 +609,7 @@ __cursor_move_next_key(ham_cursor_t *cursor)
             st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
             if (st==HAM_KEY_NOT_FOUND)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
-            if (st)
+            if (st && st!=HAM_KEY_ERASED_IN_TXN)
                 goto bail;
             cursor_clear_dupecache(cursor);
         } while (__txn_cursor_is_erase(txnc)); 
@@ -619,6 +619,7 @@ __cursor_move_next_key(ham_cursor_t *cursor)
      * btree cursor (the btree index usually has more data and most likely
      * will therefore succeed). Then look for the smaller one */
     else {
+        bool break_loop;
         /* TODO we might be able to cache this value and reduce
          * the number of calls to the compare function */
         st=__compare_cursors(btrc, txnc, &cmp);
@@ -718,13 +719,22 @@ __cursor_move_next_key(ham_cursor_t *cursor)
             txnnil=txn_cursor_is_nil(txnc);
             btrnil=cursor_is_nil(cursor, CURSOR_BTREE);
             
+            break_loop=true;
             if (!txnnil && !btrnil) {
-                st=__compare_cursors(btrc, txnc, &cmp);
-                if (st)
-                    return (st);
+                __compare_cursors(btrc, txnc, &cmp);
+                if (cmp==0 && st==HAM_KEY_ERASED_IN_TXN)
+                    st=0;
+                else if (cmp==+1 && st==HAM_KEY_ERASED_IN_TXN)
+                    break_loop=false;
+                else if (cmp==-1 && st==HAM_KEY_ERASED_IN_TXN)
+                    st=0;
+                else if (cmp==+1 && __txn_cursor_is_erase(txnc))
+                    break_loop=false;
             }
-
-        } while (0);
+        
+        /* if both keys are equal and the key was erased: continue; otherwise
+         * return to caller */
+        } while (break_loop==false);
     }
 
 bail:
@@ -761,7 +771,7 @@ bail:
             st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
             if (st==HAM_KEY_NOT_FOUND)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
-            else if (st)
+            else if (st && st!=HAM_TXN_CONFLICT && st!=HAM_KEY_ERASED_IN_TXN)
                 return (st);
             st=__cursor_move_next_key(cursor);
             return (st);
@@ -805,7 +815,7 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
             st=txn_cursor_move(txnc, HAM_CURSOR_PREVIOUS);
             if (st==HAM_KEY_NOT_FOUND)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
-            if (st)
+            if (st && st!=HAM_KEY_ERASED_IN_TXN)
                 goto bail;
             cursor_clear_dupecache(cursor);
         } while (__txn_cursor_is_erase(txnc)); 
@@ -815,6 +825,7 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
      * btree cursor (the btree index usually has more data and most likely
      * will therefore succeed). Then look for the larger one */
     else {
+        bool break_loop;
         /* TODO we might be able to cache this value and reduce
          * the number of calls to the compare function */
         st=__compare_cursors(btrc, txnc, &cmp);
@@ -916,14 +927,20 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
             txnnil=txn_cursor_is_nil(txnc);
             btrnil=cursor_is_nil(cursor, CURSOR_BTREE);
             
+            break_loop=true;
             if (!txnnil && !btrnil) {
-                st=__compare_cursors(btrc, txnc, &cmp);
-                if (st)
-                    return (st);
-                break;
+                __compare_cursors(btrc, txnc, &cmp);
+                if (cmp==0 && st==HAM_KEY_ERASED_IN_TXN)
+                    break_loop=true;
+                else if (cmp==-1 && st==HAM_KEY_ERASED_IN_TXN)
+                    break_loop=false;
+                else if (cmp==+1 && st==HAM_KEY_ERASED_IN_TXN)
+                    st=0;
+                else if (cmp==-1 && __txn_cursor_is_erase(txnc))
+                    break_loop=false;
             }
 
-        } while (0);
+        } while (break_loop==false);
     }
 
 bail:
@@ -960,7 +977,7 @@ bail:
             st=txn_cursor_move(txnc, HAM_CURSOR_PREVIOUS);
             if (st==HAM_KEY_NOT_FOUND)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
-            else if (st)
+            else if (st && st!=HAM_TXN_CONFLICT && st!=HAM_KEY_ERASED_IN_TXN)
                 return (st);
             st=__cursor_move_previous_key(cursor);
             return (st);
