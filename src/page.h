@@ -332,16 +332,49 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which);
  *
  * @remark returns the new head of the list
  */
-extern ham_page_t *
-page_list_insert(ham_page_t *head, int which, ham_page_t *page);
+inline ham_page_t *
+page_list_insert(ham_page_t *head, int which, ham_page_t *page)
+{
+    page_set_next(page, which, 0);
+    page_set_previous(page, which, 0);
+
+    if (!head)
+        return (page);
+
+    page_set_next(page, which, head);
+    page_set_previous(head, which, page);
+    return (page);
+}
 
 /**
  * linked list functions: remove the page from a list
  *
  * @remark returns the new head of the list
  */
-extern ham_page_t *
-page_list_remove(ham_page_t *head, int which, ham_page_t *page);
+inline ham_page_t *
+page_list_remove(ham_page_t *head, int which, ham_page_t *page)
+{
+    ham_page_t *n, *p;
+
+    if (page==head) {
+        n=page_get_next(page, which);
+        if (n)
+            page_set_previous(n, which, 0);
+        page_set_next(page, which, 0);
+        page_set_previous(page, which, 0);
+        return (n);
+    }
+
+    n=page_get_next(page, which);
+    p=page_get_previous(page, which);
+    if (p)
+        page_set_next(p, which, n);
+    if (n)
+        page_set_previous(n, which, p);
+    page_set_next(page, which, 0);
+    page_set_previous(page, which, 0);
+    return (head);
+}
 
 /**
  * add a cursor to this page

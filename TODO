@@ -187,8 +187,16 @@ x a lot of places in the code check if a cache exists, and if yes
     x cleanup use of env_set_cachesize/env_get_cachesize; why is this needed?
         -> to temporarily store the create-parameters
 
+o duplicate extended keys are horribly slow, check why and improve it
+    o check if 2.0.0rc1 had the same problems (i think not!)
+    --> __read_chunk is the bottleneck
+        -> called from blob_read (through db_get_extended_key, 
+                            btree_read_record)
+        -> called from __get_duplicate_table
+
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
+./test --duplicate --use-transactions=20 ../../testfiles/1/220.tst
 ./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/100.tst
 ./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/220.tst
 ./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/100.tst
@@ -221,6 +229,16 @@ o add unittests for all new functions in cursor.h
 
 o merge largefile support from master branch (also merge TO master branch)
     o needs a unittest (create/write/close/open/seek/tell/read/close > 2GB)
+
+o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
+    fails with an assert if disk is full; need to make sure that recovery 
+    works fine in such cases, i.e. with an ErrorInducer
+
+    os_posix.cc[221]: pwrite() failed with status 28 (No space left on device)
+    env.cc[1606]: failed to flush op: -18
+    ASSERT FAILED in file env.cc, line 1519:
+        "txn_op_get_flags(op)!=TXN_OP_FLUSHED"
+    db[0]: txn_begin failed w/ status -18
 
 o compare performance against 1.1.13 (with and without Transactions)
     o do some profiling - i am afraid that changeset_get_page() is not efficient

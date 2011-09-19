@@ -153,7 +153,7 @@ dupecache_erase(dupecache_t *c, ham_u32_t position)
 void
 dupecache_clear(dupecache_t *c)
 {
-    ham_env_t *env;
+    ham_env_t *env=0;
     if (dupecache_get_cursor(c))
         env=db_get_env(cursor_get_db(dupecache_get_cursor(c)));
 
@@ -1338,8 +1338,10 @@ retrieve_key_and_record:
     /* retrieve key/record, if requested */
     if (st==0) {
         if (cursor_is_coupled_to_txnop(cursor)) {
+#ifdef HAM_DEBUG
             txn_op_t *op=txn_cursor_get_coupled_op(txnc);
             ham_assert(!(txn_op_get_flags(op)&TXN_OP_ERASE), (""));
+#endif
             if (key) {
                 st=txn_cursor_get_key(txnc, key);
                 if (st)
