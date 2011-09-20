@@ -611,6 +611,13 @@ __cursor_move_next_key(ham_cursor_t *cursor)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
             if (st && st!=HAM_KEY_ERASED_IN_TXN)
                 goto bail;
+            if (st==HAM_KEY_ERASED_IN_TXN) {
+                cursor_update_dupecache(cursor, CURSOR_BOTH);
+                if (__cursor_has_duplicates(cursor)) {
+                    st=0;
+                    goto bail;
+                }
+            }
             cursor_clear_dupecache(cursor);
         } while (__txn_cursor_is_erase(txnc)); 
         cmp=+1;
@@ -734,12 +741,19 @@ __cursor_move_next_key(ham_cursor_t *cursor)
                 __compare_cursors(btrc, txnc, &cmp);
                 if (cmp==0 && st==HAM_KEY_ERASED_IN_TXN)
                     st=0;
-                else if (cmp==+1 && st==HAM_KEY_ERASED_IN_TXN)
-                    break_loop=false;
                 else if (cmp==-1 && st==HAM_KEY_ERASED_IN_TXN)
                     st=0;
-                else if (cmp==+1 && __txn_cursor_is_erase(txnc))
-                    break_loop=false;
+                else if ((cmp==+1 && st==HAM_KEY_ERASED_IN_TXN) ||
+                         (cmp==+1 && __txn_cursor_is_erase(txnc))) {
+                    cursor_update_dupecache(cursor, 
+                            cmp==0 ? CURSOR_BOTH
+                                   : (cmp < 0 ? CURSOR_BTREE
+                                              : CURSOR_TXN));
+                    if (!__cursor_has_duplicates(cursor))
+                        break_loop=false;
+                    else
+                        st=0;
+                }
             }
         
         /* if both keys are equal and the key was erased: continue; otherwise
@@ -831,6 +845,13 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
                 cursor_set_to_nil(cursor, CURSOR_TXN);
             if (st && st!=HAM_KEY_ERASED_IN_TXN)
                 goto bail;
+            if (st==HAM_KEY_ERASED_IN_TXN) {
+                cursor_update_dupecache(cursor, CURSOR_BOTH);
+                if (__cursor_has_duplicates(cursor)) {
+                    st=0;
+                    goto bail;
+                }
+            }
             cursor_clear_dupecache(cursor);
         } while (__txn_cursor_is_erase(txnc)); 
         cmp=-1;
@@ -947,13 +968,20 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
             if (!txnnil && !btrnil) {
                 __compare_cursors(btrc, txnc, &cmp);
                 if (cmp==0 && st==HAM_KEY_ERASED_IN_TXN)
-                    break_loop=true;
-                else if (cmp==-1 && st==HAM_KEY_ERASED_IN_TXN)
-                    break_loop=false;
+                    st=0;
                 else if (cmp==+1 && st==HAM_KEY_ERASED_IN_TXN)
                     st=0;
-                else if (cmp==-1 && __txn_cursor_is_erase(txnc))
-                    break_loop=false;
+                else if ((cmp==-1 && st==HAM_KEY_ERASED_IN_TXN) ||
+                         (cmp==-1 && __txn_cursor_is_erase(txnc))) {
+                    cursor_update_dupecache(cursor, 
+                            cmp==0 ? CURSOR_BOTH
+                                   : (cmp < 0 ? CURSOR_BTREE
+                                              : CURSOR_TXN));
+                    if (!__cursor_has_duplicates(cursor))
+                        break_loop=false;
+                    else
+                        st=0;
+                }
             }
 
         } while (break_loop==false);
