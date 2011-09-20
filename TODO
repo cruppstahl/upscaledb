@@ -188,26 +188,16 @@ x a lot of places in the code check if a cache exists, and if yes
         -> to temporarily store the create-parameters
 
 o duplicate extended keys are horribly slow, check why and improve it
-    o check if 2.0.0rc1 had the same problems (i think not!)
+    o check if 2.0.0rc1 had the same problems (yes, it has)
     --> __read_chunk is the bottleneck
         -> called from blob_read (through db_get_extended_key, 
                             btree_read_record)
         -> called from __get_duplicate_table
+    ./test --use-transactions=200 --duplicate --use-cursors --verbose=1 ../../testfiles/1/202.tst
 
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
-./test --duplicate --use-transactions=20 ../../testfiles/1/220.tst
-./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/100.tst
-./test --use-transactions=20 --use-cursors --duplicate ../../testfiles/1/220.tst
-./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/100.tst
-./test --use-transactions=20 --use-cursors --duplicate-first ../../testfiles/1/220.tst
-./test --use-transactions=200 --duplicate ../../testfiles/1/100.tst
-./test --use-transactions=200 --duplicate ../../testfiles/1/220.tst
-./test --use-transactions=200 --duplicate ../../testfiles/2/102.tst
-./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/100.tst
-./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/202.tst
 ./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/220.tst
-./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/100.tst
 ./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/202.tst
 ./test --use-transactions=200 --use-cursors --duplicate-first ../../testfiles/1/220.tst
 ./test --use-transactions=10000 --use-cursors --duplicate ../../testfiles/1/100.tst

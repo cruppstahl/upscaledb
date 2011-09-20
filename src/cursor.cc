@@ -645,7 +645,8 @@ __cursor_move_next_key(ham_cursor_t *cursor)
                     cmp=-1; /* pretend that btree is smaller */
                     st=0;
                 }
-                goto bail;
+                if (st!=HAM_KEY_ERASED_IN_TXN)
+                    goto bail;
             }
         }
 
@@ -671,6 +672,15 @@ __cursor_move_next_key(ham_cursor_t *cursor)
                         }
                         goto bail;
                     }
+                    /* compare again; maybe the btree cursor is now larger
+                     * than the txn-cursor */
+                    if (!txn_cursor_is_nil(txnc)) {
+                        (void)__compare_cursors(btrc, txnc, &cmp);
+                        if (cmp>0)
+                            break;
+                    }
+
+                    /* no, cursor order did not change. continue as usual */
                     cursor_clear_dupecache(cursor);
                     st=cursor_check_if_btree_key_is_erased_or_overwritten
                             (cursor);
@@ -762,7 +772,11 @@ bail:
             return (st);
     }
     else {
-        if (st!=HAM_TXN_CONFLICT && cursor_get_dupecache_count(cursor)>1) { 
+        ham_db_t *db=cursor_get_db(cursor);
+        if ((st!=HAM_TXN_CONFLICT) && 
+                ((cursor_get_dupecache_count(cursor)>1) ||
+                    ((cursor_get_dupecache_count(cursor)==1) &&
+                        (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)))) {
             cursor_couple_to_txnop(cursor);
             return (cursor_update_dupecache(cursor, CURSOR_TXN));
         }
@@ -851,6 +865,8 @@ __cursor_move_previous_key(ham_cursor_t *cursor)
                     cmp=+1; /* pretend that btree is larger */
                     st=0;
                 }
+                if (st!=HAM_KEY_ERASED_IN_TXN)
+                    goto bail;
                 goto bail;
             }
         }
@@ -968,7 +984,11 @@ bail:
             return (st);
     }
     else {
-        if (st!=HAM_TXN_CONFLICT && cursor_get_dupecache_count(cursor)>1) { 
+        ham_db_t *db=cursor_get_db(cursor);
+        if ((st!=HAM_TXN_CONFLICT) && 
+                ((cursor_get_dupecache_count(cursor)>1) ||
+                    ((cursor_get_dupecache_count(cursor)==1) &&
+                        (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)))) {
             cursor_couple_to_txnop(cursor);
             return (cursor_update_dupecache(cursor, CURSOR_TXN));
         }
