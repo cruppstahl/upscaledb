@@ -187,27 +187,70 @@ x a lot of places in the code check if a cache exists, and if yes
     x cleanup use of env_set_cachesize/env_get_cachesize; why is this needed?
         -> to temporarily store the create-parameters
 
-o duplicate extended keys are horribly slow, check why and improve it
+o make sure that all unittests and monster tests are now working
+    (also check with valgrind!)
+
+. c++-ify the dupecache and the cursor
+
+o merge largefile support from master branch (also merge TO master branch)
+    o needs a unittest (create/write/close/open/seek/tell/read/close > 2GB)
+    o needs checks in configure.in (does it? it's just a #define)
+
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
+
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+o test with tcmalloc
+
+o there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+o duplicate (extended) keys are horribly slow, check why and improve it
     x check if 2.0.0rc1 had the same problems (yes, it has)
     --> __read_chunk is the bottleneck
         -> called from blob_read (through db_get_extended_key, 
                             btree_read_record)
         -> called from __get_duplicate_table
-    ./test --use-transactions=200 --duplicate --use-cursors --verbose=1 ../../testfiles/1/202.tst
+    ./test --use-transactions=200 --duplicate --use-cursors 
+            --verbose=1 ../../testfiles/1/202.tst
     o duplicate tables exist in the btree-cursor AND in the high-level
         cursor. can we eliminate the btree cursor cache, or at least make
         sure that tere's no performance penalty when using both?
         can we cache the duplicate tables??
 
-cursor.cc:682 -> muss auch in _prev!
+o improve journalling and get rid of the physical log as much as possible
+    o recovery: recreate all pending transactions (if requested)
+    o unittests
+    o merge log and journal. There's no need to have two different files. 
+        For all 'simple' operations (insert, erase w/o SMO) a journal entry is 
+        sufficient. For all other operations we can just append the log
+        entries to the journal file. in such cases, the journal entry of an
+        insert or erase (w/ SMO) contains the modified pages as well.
+        ??? really? does that simplify things?
+    o api function to get a list of pending transactions after recovery
+    o be careful - even if the btree operations are atomic, the whole
+        insert/erase is not because it also affects the blob area and the
+        freelist (and maybe the header page, if the root page address is
+        modified)
+        -> this is where we might have to rewrite the btree insert algorithm
 
-o make sure that all unittests and monster tests are now working
-    (also check with valgrind!)
-
-o add unittests for all new functions in cursor.h
-
-o merge largefile support from master branch (also merge TO master branch)
-    o needs a unittest (create/write/close/open/seek/tell/read/close > 2GB)
+o compare performance against 1.1.13 (with and without Transactions)
+    o do some profiling - i am afraid that changeset_get_page() is not efficient
+        enough; maybe a hash table is better?
+    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
+        is only required once then it should be inserted at the tail of the
+        totallist, like a page that was not accessed for a very long time
+    x opnode: use key instead of key* (pointer) - this saves one allocation 
+        per node
 
 o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
     fails with an assert if disk is full; need to make sure that recovery 
@@ -219,14 +262,7 @@ o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
         "txn_op_get_flags(op)!=TXN_OP_FLUSHED"
     db[0]: txn_begin failed w/ status -18
 
-o compare performance against 1.1.13 (with and without Transactions)
-    o do some profiling - i am afraid that changeset_get_page() is not efficient
-        enough; maybe a hash table is better?
-    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
-        is only required once then it should be inserted at the tail of the
-        totallist, like a page that was not accessed for a very long time
-    x opnode: use key instead of key* (pointer) - this saves one allocation 
-        per node
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
@@ -234,23 +270,27 @@ o need a function to get the txn of a conflict (same as in v2)
     o add documentation (header file)
     o add documentation (wiki)
 
-. test with tcmalloc
+o new flag for transactions: HAM_TXN_WILL_COMMIT
+    if this flag is set, then write all records directly to the blob, not
+    to the log. the log will only contain the rid.
+    o document this (and also the drawback - that an abort will lose the 
+        blobs and they cannot be reused
+    -> this affects all temporary ham_insert-transactions 
+    (not sure if this should get high priority)
 
-. there are a couple of areas where a btree cursor is uncoupled, just to 
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
+o test with lessfs (and add lessfs to the monster testsuite)
+    o test with reboots - like those that made problems with lessfs
 
-. add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
-
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+o ham_txn_begin receives Environment handle, not Database handle
+    o need a new parameter (reserved) for parent txn
+    o need a new parameter for txn name (string)
+        o this needs a getter function
+    o update unittests/add new tests
+    o update C++ API
+    o rewrite auto-abort/auto-commit -> move to env
+    o what happens if a database is closed, but it's modified by a txn
+        that is still active? -> error (verify this!)
+    o need to increase libtool version!
 
 o hamsterdb.com
     x add twitter feed
@@ -290,46 +330,8 @@ o fully (!) automize the whole release process for unix; the result (on
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 
-o improve journalling and get rid of the physical log as much as possible
-    o recovery: recreate all pending transactions (if requested)
-    o unittests
-    o merge log and journal. There's no need to have two different files. 
-        For all 'simple' operations (insert, erase w/o SMO) a journal entry is 
-        sufficient. For all other operations we can just append the log
-        entries to the journal file. in such cases, the journal entry of an
-        insert or erase (w/ SMO) contains the modified pages as well.
-        ??? really? does that simplify things?
-    o api function to get a list of pending transactions after recovery
-    o be careful - even if the btree operations are atomic, the whole
-        insert/erase is not because it also affects the blob area and the
-        freelist (and maybe the header page, if the root page address is
-        modified)
-        -> this is where we might have to rewrite the btree insert algorithm
-
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
-
 . if memory consumption in the txn-tree is too high: flush records to disk
     (not sure if this should get high priority)
-
-o new flag for transactions: HAM_TXN_WILL_COMMIT
-    if this flag is set, then write all records directly to the blob, not
-    to the log. the log will only contain the rid.
-    o document this (and also the drawback - that an abort will lose the 
-        blobs and they cannot be reused
-    -> this affects all temporary ham_insert-transactions 
-    (not sure if this should get high priority)
-
-o ham_txn_begin receives Environment handle, not Database handle
-    o need a new parameter (reserved) for parent txn
-    o need a new parameter for txn name (string)
-        o this needs a getter function
-    o update unittests/add new tests
-    o update C++ API
-    o rewrite auto-abort/auto-commit -> move to env
-    o what happens if a database is closed, but it's modified by a txn
-        that is still active? -> error (verify this!)
-    o need to increase libtool version!
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
@@ -340,7 +342,7 @@ o extkeys: don't use txn_id for the 'age', use lsn instead
 
 . allow use of transactions for in-memory databases
 
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o when flushing a changeset: sort by offset, use writev()
 

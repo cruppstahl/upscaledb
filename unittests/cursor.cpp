@@ -104,6 +104,8 @@ public:
                     ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(1u, 
+                    cursor_get_dupecache_count(m_cursor));
     }
 
     void insertFindMultipleCursorsTest(void)
@@ -4122,6 +4124,8 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(4u, 
+                    cursor_get_dupecache_count(m_cursor));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
