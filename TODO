@@ -205,8 +205,6 @@ o add tests to verify that the cursor is not modified if an operation fails!
 
 o the whole c++ protocol should be c++-ified
 
-o page, device -> c++
-
 o blog-eintrag über c++, twitter!
 
 o move the whole configuration (key sizes, parameters, page size, etc) into a 
