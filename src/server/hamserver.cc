@@ -981,10 +981,12 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
                     proto_cursor_insert_request_get_flags(request));
 
     /* recno: return the modified key */
-    if ((st==0) && 
-            (ham_get_flags(cursor_get_db(cursor))&HAM_RECORD_NUMBER)) {
-        ham_assert(key.size==sizeof(ham_offset_t), (""));
-        send_key=HAM_TRUE;
+    if (st==0) {
+        Cursor *c=(Cursor *)cursor;
+        if (ham_get_flags(c->get_db())&HAM_RECORD_NUMBER) {
+            ham_assert(key.size==sizeof(ham_offset_t), (""));
+            send_key=HAM_TRUE;
+        }
     }
 
 bail:

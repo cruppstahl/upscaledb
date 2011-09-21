@@ -731,11 +731,11 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
 
     /* auto-cleanup cursors? */
     if (db_get_cursors(db)) {
-        ham_cursor_t *c=db_get_cursors(db);
+        Cursor *c=db_get_cursors(db);
         while (c) {
-            ham_cursor_t *next=cursor_get_next(c);
+            Cursor *next=c->get_next();
             if (flags&HAM_AUTO_CLEANUP)
-                st=ham_cursor_close(c);
+                st=ham_cursor_close((ham_cursor_t *)c);
             else
                 cursor_close(c);
             if (st) {

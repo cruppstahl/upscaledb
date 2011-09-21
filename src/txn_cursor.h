@@ -43,7 +43,7 @@ extern "C" {
 typedef struct txn_cursor_t
 {
     /** the parent cursor */
-    ham_cursor_t *_parent;
+    Cursor *_parent;
 
     /** 
      * a Cursor can either be coupled or nil ("not in list"). If it's 
@@ -102,7 +102,7 @@ typedef struct txn_cursor_t
  */
 extern ham_status_t
 txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                txn_cursor_t *cursor, ham_cursor_t *parent);
+                txn_cursor_t *cursor, Cursor *parent);
 
 /** 
  * Returns true if the cursor is nil (does not point to any item) 
@@ -126,7 +126,7 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
  */
 extern void
 txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, 
-                ham_cursor_t *parent);
+                Cursor *parent);
 
 /**
  * Closes a cursor

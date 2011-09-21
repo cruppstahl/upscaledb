@@ -397,7 +397,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
     ham_status_t st;
     ham_db_t *db=be_get_db(be);
     insert_hints_t hints = {flags, flags, 
-        cursor ? btree_cursor_get_parent(cursor) : 0, 0, 
+        cursor ? (ham_cursor_t *)btree_cursor_get_parent(cursor) : 0, 0, 
         HAM_FALSE, HAM_FALSE, HAM_FALSE, 0, NULL, -1};
 
     btree_insert_get_hints(&hints, db, key);

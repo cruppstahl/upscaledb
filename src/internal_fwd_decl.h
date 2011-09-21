@@ -40,6 +40,8 @@
 extern "C" {
 #endif 
 
+class Cursor;
+
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
 

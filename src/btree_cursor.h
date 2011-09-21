@@ -45,7 +45,7 @@ extern "C" {
 typedef struct btree_cursor_t
 {
     /** the parent cursor */
-    ham_cursor_t *_parent;
+    Cursor *_parent;
 
     /** the id of the duplicate key to which this cursor is coupled */
     ham_size_t _dupe_id;
@@ -96,10 +96,10 @@ typedef struct btree_cursor_t
 #define btree_cursor_get_db(c)                (c)->_parent->_db
 
 /** get the flags */
-#define btree_cursor_get_flags(c)             (c)->_parent->_flags
+#define btree_cursor_get_flags(c)             (c)->_parent->get_flags()
 
 /** set the flags */
-#define btree_cursor_set_flags(c, f)          (c)->_parent->_flags=(f)
+#define btree_cursor_set_flags(c, f)          (c)->_parent->set_flags(f)
 
 /** get the page we're pointing to - if the cursor is coupled */
 #define btree_cursor_get_coupled_page(c)      (c)->_u._coupled._page
@@ -141,7 +141,7 @@ typedef struct btree_cursor_t
  */
 extern void
 btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                btree_cursor_t *cursor, ham_cursor_t *parent);
+                btree_cursor_t *cursor, Cursor *parent);
 
 /**                                                                 
  * Clone an existing cursor                                         
@@ -149,7 +149,7 @@ btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  */                                                                 
 extern ham_status_t
 btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
-                ham_cursor_t *parent);
+                Cursor *parent);
 
 /**
  * Set the cursor to NIL

@@ -154,7 +154,7 @@ struct ham_db_t
     ham_backend_t *_backend;
 
     /** linked list of all cursors */
-    ham_cursor_t *_cursors;
+    Cursor *_cursors;
 
     /** the size of the last allocated data pointer for records */
     ham_size_t _rec_allocsize;
@@ -254,52 +254,52 @@ struct ham_db_t
      * create a cursor
      */
     ham_status_t (*_fun_cursor_create)(ham_db_t *db, ham_txn_t *txn, 
-                    ham_u32_t flags, ham_cursor_t **cursor);
+                    ham_u32_t flags, Cursor **cursor);
 
     /**
      * clone a cursor
      */
-    ham_status_t (*_fun_cursor_clone)(ham_cursor_t *src, ham_cursor_t **dest);
+    ham_status_t (*_fun_cursor_clone)(Cursor *src, Cursor **dest);
 
     /**
      * insert a key with a cursor
      */
-    ham_status_t (*_fun_cursor_insert)(ham_cursor_t *cursor, 
+    ham_status_t (*_fun_cursor_insert)(Cursor *cursor, 
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     /**
      * erase the key of a cursor
      */
-    ham_status_t (*_fun_cursor_erase)(ham_cursor_t *cursor, ham_u32_t flags);
+    ham_status_t (*_fun_cursor_erase)(Cursor *cursor, ham_u32_t flags);
 
     /**
      * position the cursor on a key and return the record
      */
-    ham_status_t (*_fun_cursor_find)(ham_cursor_t *cursor, ham_key_t *key, 
+    ham_status_t (*_fun_cursor_find)(Cursor *cursor, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /**
      * get number of duplicates
      */
-    ham_status_t (*_fun_cursor_get_duplicate_count)(ham_cursor_t *cursor, 
+    ham_status_t (*_fun_cursor_get_duplicate_count)(Cursor *cursor, 
                     ham_size_t *count, ham_u32_t flags);
 
     /**
      * overwrite a cursor
      */
-    ham_status_t (*_fun_cursor_overwrite)(ham_cursor_t *cursor, 
+    ham_status_t (*_fun_cursor_overwrite)(Cursor *cursor, 
                     ham_record_t *record, ham_u32_t flags);
 
     /**
      * move a cursor, return key and/or record
      */
-    ham_status_t (*_fun_cursor_move)(ham_cursor_t *cursor, 
+    ham_status_t (*_fun_cursor_move)(Cursor *cursor, 
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     /**
      * close a cursor
      */
-    void (*_fun_cursor_close)(ham_cursor_t *cursor);
+    void (*_fun_cursor_close)(Cursor *cursor);
 
     /**
      * close the Database

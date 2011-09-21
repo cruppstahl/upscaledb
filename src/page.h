@@ -146,7 +146,7 @@ struct ham_page_t {
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
 
         /** linked list of all cursors which point to that page */
-        ham_cursor_t *_cursors;
+        Cursor *_cursors;
 
     } _npers; 
 
@@ -380,13 +380,13 @@ page_list_remove(ham_page_t *head, int which, ham_page_t *page)
  * add a cursor to this page
  */
 extern void
-page_add_cursor(ham_page_t *page, ham_cursor_t *cursor);
+page_add_cursor(ham_page_t *page, Cursor *cursor);
 
 /**
  * remove a cursor from this page
  */
 extern void
-page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
+page_remove_cursor(ham_page_t *page, Cursor *cursor);
 
 /**
  * create a new page structure

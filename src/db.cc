@@ -275,10 +275,10 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
-    ham_cursor_t *c = page_get_cursors(page);
+    Cursor *c = page_get_cursors(page);
 
     if (c) {
-        ham_db_t *db = cursor_get_db(c);
+        ham_db_t *db = c->get_db();
         if (db) {
             ham_backend_t *be = db_get_backend(db);
             
@@ -1663,26 +1663,27 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_bool_t
-__btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
+__btree_cursor_points_to(Cursor *c, ham_key_t *key)
 {
     ham_bool_t ret=HAM_FALSE;
-    ham_db_t *db=cursor_get_db(c);
-    btree_cursor_t *btc=cursor_get_btree_cursor(c);
+    ham_db_t *db=c->get_db();
+    btree_cursor_t *btc=c->get_btree_cursor();
 
     if (btree_cursor_is_coupled(btc)) {
-        ham_cursor_t *clone=0;
-        ham_status_t st=ham_cursor_clone(c, &clone);
+        Cursor *clone=0;
+        ham_status_t st=ham_cursor_clone((ham_cursor_t *)c, 
+                                (ham_cursor_t **)&clone);
         if (st)
             return (HAM_FALSE);
-        st=btree_cursor_uncouple(cursor_get_btree_cursor(clone), 0);
+        st=btree_cursor_uncouple(clone->get_btree_cursor(), 0);
         if (st) {
-            ham_cursor_close(clone);
+            ham_cursor_close((ham_cursor_t *)clone);
             return (HAM_FALSE);
         }
         if (0==db_compare_keys(db, key, 
-               btree_cursor_get_uncoupled_key(cursor_get_btree_cursor(clone))))
+               btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
             ret=HAM_TRUE;
-        ham_cursor_close(clone);
+        ham_cursor_close((ham_cursor_t *)clone);
     }
     else if (btree_cursor_is_uncoupled(btc)) {
         ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
@@ -1699,7 +1700,7 @@ __btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
 static void
 __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
 {
-    ham_cursor_t *c=db_get_cursors(db);
+    Cursor *c=db_get_cursors(db);
 
     while (c) {
         ham_bool_t hit=HAM_FALSE;
@@ -1710,7 +1711,7 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
         /* if cursor is coupled to an op in the same node: increment 
          * duplicate index (if required) */
         if (cursor_is_coupled_to_txnop(c)) {
-            txn_cursor_t *txnc=cursor_get_txn_cursor(c);
+            txn_cursor_t *txnc=c->get_txn_cursor();
             txn_opnode_t *n=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
             if (n==node)
                 hit=HAM_TRUE;
@@ -1722,14 +1723,12 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
         }
 
         if (hit) {
-            if (cursor_get_dupecache_index(c)>start) {
-                cursor_set_dupecache_index(c, 
-                    cursor_get_dupecache_index(c)+1);
-            }
+            if (c->get_dupecache_index()>start)
+                c->set_dupecache_index(c->get_dupecache_index()+1);
         }
 
 next:
-        c=cursor_get_next(c);
+        c=c->get_next();
     }
 }
 
@@ -1799,16 +1798,16 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
      * dupecache-index in the op (it's needed for 
      * DUPLICATE_INSERT_BEFORE/NEXT) */
     if (cursor) {
-        ham_cursor_t *c=txn_cursor_get_parent(cursor);
-        if (cursor_get_dupecache_index(c))
-            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
+        Cursor *c=txn_cursor_get_parent(cursor);
+        if (c->get_dupecache_index())
+            txn_op_set_referenced_dupe(op, c->get_dupecache_index());
 
         cursor_set_to_nil(c, CURSOR_TXN);
         txn_cursor_couple(cursor, op);
 
         /* all other cursors need to increment their dupe index, if their
          * index is > this cursor's index */
-        __increment_dupe_index(db, node, cursor_get_dupecache_index(c));
+        __increment_dupe_index(db, node, c->get_dupecache_index());
     }
 
     /* append journal entry */
@@ -1823,28 +1822,27 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 }
 
 static void
-__nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current, 
+__nil_all_cursors_in_node(ham_txn_t *txn, Cursor *current, 
                 txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
     while (op) {
         txn_cursor_t *cursor=txn_op_get_cursors(op);
         while (cursor) {
-            ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+            Cursor *pc=txn_cursor_get_parent(cursor);
             /* is the current cursor to a duplicate? then adjust the 
              * coupled duplicate index of all cursors which point to a
              * duplicate */
             if (current) {
-                if (cursor_get_dupecache_index(current)) {
-                    if (cursor_get_dupecache_index(current)
-                            <cursor_get_dupecache_index(pc)) {
-                        cursor_set_dupecache_index(pc, 
-                            cursor_get_dupecache_index(pc)-1);
+                if (current->get_dupecache_index()) {
+                    if (current->get_dupecache_index()
+                            <pc->get_dupecache_index()) {
+                        pc->set_dupecache_index(pc->get_dupecache_index()-1);
                         cursor=txn_cursor_get_coupled_next(cursor);
                         continue;
                     }
-                    else if (cursor_get_dupecache_index(current)
-                            >cursor_get_dupecache_index(pc)) {
+                    else if (current->get_dupecache_index()
+                            >pc->get_dupecache_index()) {
                         cursor=txn_cursor_get_coupled_next(cursor);
                         continue;
                     }
@@ -1857,7 +1855,7 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
             /* set a flag that the cursor just completed an Insert-or-find 
              * operation; this information is needed in ham_cursor_move 
              * (in this aspect, an erase is the same as insert/find) */
-            cursor_set_lastop(pc, CURSOR_LOOKUP_INSERT);
+            pc->set_lastop(CURSOR_LOOKUP_INSERT);
         }
 
         op=txn_op_get_previous_in_node(op);
@@ -1865,9 +1863,9 @@ __nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current,
 }
 
 static void
-__nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
+__nil_all_cursors_in_btree(ham_db_t *db, Cursor *current, ham_key_t *key)
 {
-    ham_cursor_t *c=db_get_cursors(db);
+    Cursor *c=db_get_cursors(db);
 
     /* foreach cursor in this database:
      *  if it's nil or coupled to the txn: skip it
@@ -1891,15 +1889,14 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
              * coupled duplicate index of all cursors which point to a
              * duplicate */
             if (current) {
-                if (cursor_get_dupecache_index(current)) {
-                    if (cursor_get_dupecache_index(current)
-                            <cursor_get_dupecache_index(c)) {
-                        cursor_set_dupecache_index(c, 
-                            cursor_get_dupecache_index(c)-1);
+                if (current->get_dupecache_index()) {
+                    if (current->get_dupecache_index()
+                            <c->get_dupecache_index()) {
+                        c->set_dupecache_index(c->get_dupecache_index()-1);
                         goto next;
                     }
-                    else if (cursor_get_dupecache_index(current)
-                            >cursor_get_dupecache_index(c)) {
+                    else if (current->get_dupecache_index()
+                            >c->get_dupecache_index()) {
                         goto next;
                     }
                     /* else fall through */
@@ -1908,7 +1905,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
             cursor_set_to_nil(c, 0);
         }
 next:
-        c=cursor_get_next(c);
+        c=c->get_next();
     }
 }
 
@@ -1922,7 +1919,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
-    ham_cursor_t *pc=0;
+    Cursor *pc=0;
     if (cursor)
         pc=txn_cursor_get_parent(cursor);
 
@@ -1944,7 +1941,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
 
     /* check for conflicts of this key - but only if we're not erasing a 
      * duplicate key. dupes are checked for conflicts in _local_cursor_move */
-    if (!pc || (!cursor_get_dupecache_index(pc))) {
+    if (!pc || (!pc->get_dupecache_index())) {
         st=db_check_erase_conflicts(db, txn, node, key, flags);
         if (st) {
             if (node_created)
@@ -1969,8 +1966,8 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     /* is this function called through ham_cursor_erase? then add the 
      * duplicate ID */
     if (cursor) {
-        if (cursor_get_dupecache_index(pc))
-            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(pc));
+        if (pc->get_dupecache_index())
+            txn_op_set_referenced_dupe(op, pc->get_dupecache_index());
     }
 
     /* the current op has no cursors attached; but if there are any 
@@ -2304,8 +2301,9 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
      * because we have to build a duplicate list, and this is currently
      * only available in ham_cursor_find */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
-        ham_cursor_t *c;
-        st=ham_cursor_create(db, txn, 0, &c);
+        Cursor *c;
+        st=ham_cursor_create(db, txn, 0, (ham_cursor_t **)&c);
+HIER GEHTS WEITER
         if (st)
             return (st);
         st=ham_cursor_find_ex(c, key, record, flags);
@@ -2376,7 +2374,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
 static ham_status_t
 _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                ham_cursor_t **cursor)
+                Cursor **cursor)
 {
     ham_backend_t *be;
 
@@ -2388,19 +2386,19 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
-_local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+_local_cursor_clone(Cursor *src, Cursor **dest)
 {
     return (cursor_clone(src, dest));
 }
 
 static void
-_local_cursor_close(ham_cursor_t *cursor)
+_local_cursor_close(Cursor *cursor)
 {
     cursor_close(cursor);
 }
 
 static ham_status_t
-_local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+_local_cursor_insert(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -2567,7 +2565,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 }
 
 static ham_status_t 
-_local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
+_local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=cursor_get_db(cursor);
@@ -2631,7 +2629,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_cursor_find(ham_cursor_t *cursor, ham_key_t *key, 
+_local_cursor_find(Cursor *cursor, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -2808,7 +2806,7 @@ bail:
 }
 
 static ham_status_t
-_local_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+_local_cursor_get_duplicate_count(Cursor *cursor, 
                 ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
@@ -2869,7 +2867,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
 }
 
 static ham_status_t
-_local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
+_local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
                 ham_u32_t flags)
 {
     ham_db_t *db=cursor_get_db(cursor);
@@ -2937,7 +2935,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 }
 
 static ham_status_t
-_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+_local_cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;

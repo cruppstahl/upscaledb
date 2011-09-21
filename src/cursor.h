@@ -145,7 +145,6 @@ class DupeCacheLine
 };
 
 
-
 /**
  * The dupecache is a cache for duplicate keys
  */
@@ -208,61 +207,173 @@ class DupeCache {
 
 
 /**
- * a generic Cursor structure, which has the same memory layout as
- * all other backends
+ * a helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_cursor_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
  */
 struct ham_cursor_t
 {
+    bool _dummy;
+};
+
+
+/**
+ * the Database Cursor
+ */
+class Cursor
+{
+  public:
+    /** Constructor; retrieves pointer to db and txn, initializes all
+     * fields */
+    Cursor(ham_db_t *db=0, ham_txn_t *txn=0);
+
+    /** copy constructor; used in clone() */
+    Cursor(const Cursor &other);
+
+    /** Get the Cursor flags */
+    ham_u32_t get_flags(void) {
+        return (m_flags);
+    }
+
+    /** Set the Cursor flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** Get the Database */
+    ham_db_t *get_db(void) {
+        return (m_db);
+    }
+
+    /** Get the 'next' Cursor in this Database */
+    Cursor *get_next(void) {
+        return (m_next);
+    }
+
+    /** Set the 'next' Cursor in this Database */
+    void set_next(Cursor *next) {
+        m_next=next;
+    }
+
+    /** Get the 'previous' Cursor in this Database */
+    Cursor *get_previous(void) {
+        return (m_previous);
+    }
+
+    /** Set the 'previous' Cursor in this Database */
+    void set_previous(Cursor *previous) {
+        m_previous=previous;
+    }
+
+    /** Get the 'next' Cursor which is attached to the same page */
+    Cursor *get_next_in_page(void) {
+        return (m_next_in_page);
+    }
+
+    /** Set the 'next' Cursor which is attached to the same page */
+    void set_next_in_page(Cursor *next) {
+        m_next_in_page=next;
+    }
+
+    /** Get the 'previous' Cursor which is attached to the same page */
+    Cursor *get_previous_in_page(void) {
+        return (m_previous_in_page);
+    }
+
+    /** Set the 'previous' Cursor which is attached to the same page */
+    void set_previous_in_page(Cursor *previous) {
+        m_previous_in_page=previous;
+    }
+
+    /** Get the Transaction handle */
+    ham_txn_t *get_txn() {
+        return (m_txn);
+    }
+
+    /** Get a pointer to the Transaction cursor */
+    txn_cursor_t *get_txn_cursor(void) {
+        return (&m_txn_cursor);
+    }
+
+    /** Get a pointer to the Btree cursor */
+    btree_cursor_t *get_btree_cursor(void) {
+        return (&m_btree_cursor);
+    }
+
+    /** Get the remote Cursor handle */
+    ham_u64_t get_remote_handle(void) {
+        return (m_remote_handle);
+    }
+
+    /** Set the remote Cursor handle */
+    void set_remote_handle(ham_u64_t handle) {
+        m_remote_handle=handle;
+    }
+
+    /** Get a pointer to the duplicate cache */
+    DupeCache *get_dupecache(void) {
+        return (&m_dupecache);
+    }
+
+    /** Get the current index in the dupe cache */
+    ham_size_t get_dupecache_index(void) {
+        return (m_dupecache_index);
+    }
+
+    /** Set the current index in the dupe cache */
+    void set_dupecache_index(ham_size_t index) {
+        m_dupecache_index=index;
+    }
+
+    /** Get the previous operation */
+    ham_u32_t get_lastop(void) {
+        return (m_lastop);
+    }
+
+    /** Store the current operation; needed for ham_cursor_move */
+    void set_lastop(ham_u32_t lastop) {
+        m_lastop=lastop;
+    }
+
+  private:
     /** Pointer to the Database object */
-    ham_db_t *_db;
+    ham_db_t *m_db;
 
     /** Pointer to the Transaction */
-    ham_txn_t *_txn;
+    ham_txn_t *m_txn;
 
     /** A Cursor which can walk over Transaction trees */
-    txn_cursor_t _txn_cursor;
+    txn_cursor_t m_txn_cursor;
 
     /** A Cursor which can walk over B+trees */
-    btree_cursor_t _btree_cursor;
+    btree_cursor_t m_btree_cursor;
 
     /** The remote database handle */
-    ham_u64_t _remote_handle;
+    ham_u64_t m_remote_handle;
 
     /** Linked list of all Cursors in this Database */
-    ham_cursor_t *_next, *_previous;
+    Cursor *m_next, *m_previous;
 
     /** Linked list of Cursors which point to the same page */
-    ham_cursor_t *_next_in_page, *_previous_in_page;
+    Cursor *m_next_in_page, *m_previous_in_page;
 
     /** A cache for all duplicates of the current key. needed for
      * ham_cursor_move, ham_find and other functions. The cache is
      * used to consolidate all duplicates of btree and txn. */
-    DupeCache _dupecache;
+    DupeCache m_dupecache;
 
     /** The current position of the cursor in the cache. This is a
      * 1-based index. 0 means that the cache is not in use. */
-    ham_u32_t _dupecache_index;
+    ham_u32_t m_dupecache_index;
 
     /** The last operation (insert/find or move); needed for
      * ham_cursor_move. Values can be HAM_CURSOR_NEXT,
      * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */
-    ham_u32_t _lastop;
-
-    /** the result of the last compare operation between btree and txn cursor;
-     * -1 if btree cursor is smaller, 0 if they are equal, +1 if btree cursor
-     * is larger; every other value means that the compare value needs to be
-     * updated. only used in cursor_move() */
-    int _lastcmp; 
+    ham_u32_t m_lastop;
 
     /** Cursor flags */
-    ham_u32_t _flags;
+    ham_u32_t m_flags;
 };
-
-/** Get the Cursor flags */
-#define cursor_get_flags(c)               (c)->_flags
-
-/** Set the Cursor flags */
-#define cursor_set_flags(c, f)            (c)->_flags=(f)
 
 /*
  * the flags have ranges:
@@ -272,90 +383,6 @@ struct ham_cursor_t
 /** Cursor flag: cursor is coupled to the Transaction cursor (_txn_cursor) */
 #define _CURSOR_COUPLED_TO_TXN            0x1000000
 
-/** Get the 'next' pointer of the linked list */
-#define cursor_get_next(c)                (c)->_next
-
-/** Set the 'next' pointer of the linked list */
-#define cursor_set_next(c, n)             (c)->_next=(n)
-
-/** Get the 'previous' pointer of the linked list */
-#define cursor_get_previous(c)            (c)->_previous
-
-/** Set the 'previous' pointer of the linked list */
-#define cursor_set_previous(c, p)         (c)->_previous=(p)
-
-/** Get the 'next' pointer of the linked list */
-#define cursor_get_next_in_page(c)       (c)->_next_in_page
-
-/** Set the 'next' pointer of the linked list */
-#define cursor_set_next_in_page(c, n)                                        \
-    {                                                                        \
-        if (n)                                                                \
-            ham_assert((c)->_previous_in_page!=(n), (0));                    \
-        (c)->_next_in_page=(n);                                                \
-    }
-
-/** Get the 'previous' pointer of the linked list */
-#define cursor_get_previous_in_page(c)   (c)->_previous_in_page
-
-/** Set the 'previous' pointer of the linked list */
-#define cursor_set_previous_in_page(c, p)                                    \
-    {                                                                        \
-        if (p)                                                                \
-            ham_assert((c)->_next_in_page!=(p), (0));                        \
-        (c)->_previous_in_page=(p);                                            \
-    }
-
-/** Set the Database pointer */
-#define cursor_set_db(c, db)            (c)->_db=db
-
-/** Get the Database pointer */
-#define cursor_get_db(c)                (c)->_db
-
-/** Get the Transaction handle */
-#define cursor_get_txn(c)               (c)->_txn
-
-/** Set the Transaction handle */
-#define cursor_set_txn(c, txn)          (c)->_txn=(txn)
-
-/** Get a pointer to the Transaction cursor */
-#ifdef HAM_DEBUG
-extern txn_cursor_t *
-cursor_get_txn_cursor(ham_cursor_t *cursor);
-#else
-#   define cursor_get_txn_cursor(c)     (&(c)->_txn_cursor)
-#endif
-
-/** Get a pointer to the Btree cursor */
-#define cursor_get_btree_cursor(c)      (&(c)->_btree_cursor)
-
-/** Get the remote Database handle */
-#define cursor_get_remote_handle(c)     (c)->_remote_handle
-
-/** Set the remote Database handle */
-#define cursor_set_remote_handle(c, h)  (c)->_remote_handle=(h)
-
-/** Get a pointer to the duplicate cache */
-#define cursor_get_dupecache(c)         (&(c)->_dupecache)
-
-/** Get the current index in the dupe cache */
-#define cursor_get_dupecache_index(c)   (c)->_dupecache_index
-
-/** Set the current index in the dupe cache */
-#define cursor_set_dupecache_index(c, i) (c)->_dupecache_index=i
-
-/** Get the previous operation */
-#define cursor_get_lastop(c)            (c)->_lastop
-
-/** Store the current operation; needed for ham_cursor_move */
-#define cursor_set_lastop(c, o)         (c)->_lastop=(o)
-
-/** Get the previous compare operation */
-#define cursor_get_lastcmp(c)           (c)->_lastcmp
-
-/** Store the current compare operation; needed for cursor_move */
-#define cursor_set_lastcmp(c, cmp)      (c)->_lastcmp=(cmp)
-
 /** flag for cursor_set_lastop */
 #define CURSOR_LOOKUP_INSERT            0x10000
 
@@ -364,13 +391,13 @@ cursor_get_txn_cursor(ham_cursor_t *cursor);
  */
 extern ham_status_t
 cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_cursor_t **pcursor);
+            Cursor **pcursor);
 
 /**
  * Clones an existing cursor
  */
 extern ham_status_t
-cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
+cursor_clone(Cursor *src, Cursor **dest);
 
 /**
  * Returns true if a cursor is nil (Not In List - does not point to any key)
@@ -378,7 +405,7 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * 'what' is one of the flags below
  */
 extern ham_bool_t
-cursor_is_nil(ham_cursor_t *cursor, int what);
+cursor_is_nil(Cursor *cursor, int what);
 
 #define CURSOR_BOTH         (CURSOR_BTREE|CURSOR_TXN)
 #define CURSOR_BTREE        1
@@ -388,31 +415,31 @@ cursor_is_nil(ham_cursor_t *cursor, int what);
  * Sets the cursor to nil
  */
 extern void
-cursor_set_to_nil(ham_cursor_t *cursor, int what);
+cursor_set_to_nil(Cursor *cursor, int what);
 
 /**
  * Returns true if a cursor is coupled to the btree
  */
 #define cursor_is_coupled_to_btree(c)                                         \
-                                 (!(cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN))
+                                 (!(c->get_flags()&_CURSOR_COUPLED_TO_TXN))
 
 /**
  * Returns true if a cursor is coupled to a txn-op
  */
 #define cursor_is_coupled_to_txnop(c)                                         \
-                                    (cursor_get_flags(c)&_CURSOR_COUPLED_TO_TXN)
+                                    (c->get_flags()&_CURSOR_COUPLED_TO_TXN)
 
 /**
  * Couples the cursor to a btree key
  */
 #define cursor_couple_to_btree(c)                                             \
-            (cursor_set_flags(c, cursor_get_flags(c)&(~_CURSOR_COUPLED_TO_TXN)))
+            (c->set_flags(c->get_flags()&(~_CURSOR_COUPLED_TO_TXN)))
 
 /**
  * Couples the cursor to a txn-op
  */
 #define cursor_couple_to_txnop(c)                                             \
-               (cursor_set_flags(c, cursor_get_flags(c)|_CURSOR_COUPLED_TO_TXN))
+            (c->set_flags(c->get_flags()|_CURSOR_COUPLED_TO_TXN))
 
 /**
  * Erases the key/record pair that the cursor points to. 
@@ -422,7 +449,7 @@ cursor_set_to_nil(ham_cursor_t *cursor, int what);
  * that was created only for this single operation.
  */
 extern ham_status_t
-cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags);
+cursor_erase(Cursor *cursor, ham_txn_t *txn, ham_u32_t flags);
 
 /**
  * Retrieves the number of duplicates of the current key
@@ -431,7 +458,7 @@ cursor_erase(ham_cursor_t *cursor, ham_txn_t *txn, ham_u32_t flags);
  * local/temporary Transaction that was created only for this single operation.
  */
 extern ham_status_t
-cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn, 
+cursor_get_duplicate_count(Cursor *cursor, ham_txn_t *txn, 
             ham_u32_t *pcount, ham_u32_t flags);
 
 /**
@@ -441,7 +468,7 @@ cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn,
  * local/temporary Transaction that was created only for this single operation.
  */
 extern ham_status_t 
-cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
+cursor_overwrite(Cursor *cursor, ham_txn_t *txn, ham_record_t *record,
             ham_u32_t flags);
 
 /**
@@ -451,20 +478,20 @@ cursor_overwrite(ham_cursor_t *cursor, ham_txn_t *txn, ham_record_t *record,
  * btree (CURSOR_BTREE), from txn (CURSOR_TXN) or both.
  */
 extern ham_status_t
-cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what);
+cursor_update_dupecache(Cursor *cursor, ham_u32_t what);
 
 /**
  * Clear the dupecache and disconnect the Cursor from any duplicate key
  */
 extern void
-cursor_clear_dupecache(ham_cursor_t *cursor);
+cursor_clear_dupecache(Cursor *cursor);
 
 /**
  * Couples the cursor to a duplicate in the dupe table
  * dupe_id is a 1 based index!!
  */
 extern void
-cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
+cursor_couple_to_dupe(Cursor *cursor, ham_u32_t dupe_id);
 
 /**
  * Checks if a btree cursor points to a key that was overwritten or erased
@@ -474,7 +501,7 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
  * consolidating the btree and the txn-tree
  */
 extern ham_status_t
-cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
+cursor_check_if_btree_key_is_erased_or_overwritten(Cursor *cursor);
 
 /**
  * Synchronizes txn- and btree-cursor
@@ -488,13 +515,13 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
  * equal_key is set to true if the keys in both cursors are equal.
  */
 extern ham_status_t
-cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
+cursor_sync(Cursor *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
 
 /**
  * Moves a Cursor
  */
 extern ham_status_t
-cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
+cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags);
 
 /**
@@ -514,13 +541,13 @@ cursor_move(ham_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
  * The duplicate cache is updated if necessary
  */
 extern ham_size_t
-cursor_get_dupecache_count(ham_cursor_t *cursor);
+cursor_get_dupecache_count(Cursor *cursor);
 
 /**
  * Closes an existing cursor
  */
 extern void
-cursor_close(ham_cursor_t *cursor);
+cursor_close(Cursor *cursor);
 
 
 #ifdef __cplusplus

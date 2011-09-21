@@ -99,7 +99,7 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
 #endif /* HAM_DEBUG */
 
 void
-page_add_cursor(ham_page_t *page, ham_cursor_t *cursor)
+page_add_cursor(ham_page_t *page, Cursor *cursor)
 {
     if (page_get_cursors(page)) {
         cursor_set_next_in_page(cursor, page_get_cursors(page));
@@ -110,9 +110,9 @@ page_add_cursor(ham_page_t *page, ham_cursor_t *cursor)
 }
 
 void
-page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
+page_remove_cursor(ham_page_t *page, Cursor *cursor)
 {
-    ham_cursor_t *n, *p;
+    Cursor *n, *p;
 
     if (cursor==page_get_cursors(page)) {
         n=cursor_get_next_in_page(cursor);
