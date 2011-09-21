@@ -190,20 +190,34 @@ x a lot of places in the code check if a cache exists, and if yes
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
 
-. c++-ify the dupecache and the cursor
+o c++-ify the dupecache and the cursor
+    x it compiles, but there's an assert(0) in dupecache->erase()
+    o also transform dupecache_line_t
+    o also transform cursor
 
 o merge largefile support from master branch (also merge TO master branch)
     o needs a unittest (create/write/close/open/seek/tell/read/close > 2GB)
     o needs checks in configure.in (does it? it's just a #define)
 
-. add tests to verify that the cursor is not modified if an operation fails!
+o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
+o move the whole configuration (key sizes, parameters, page size, etc) into a 
+    separate class which is instantiated by the env
+
+o c++-ify the btree node representation; 
+    o include duplicates as well! disentangle duplicates from blob-handling
+    o c++-ify blob-handling (separately from duplicates)
+
+o c++-ify the page
+
+o c++-ify the device
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-o test with tcmalloc
+o test with tcmalloc; if it works then also use it in the master branch, but
+    make sure that memory consumption does not increase significantly
 
 o there are a couple of areas where a btree cursor is uncoupled, just to 
     retrieve the key and to couple the txn-key. that's not efficient

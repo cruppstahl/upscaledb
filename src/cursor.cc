@@ -29,155 +29,13 @@ __btree_cursor_is_nil(btree_cursor_t *btc)
     return (!btree_cursor_is_coupled(btc) && !btree_cursor_is_uncoupled(btc));
 }
 
-static ham_status_t
-__dupecache_resize(dupecache_t *c, ham_size_t capacity)
-{
-    ham_env_t *env=db_get_env(cursor_get_db(dupecache_get_cursor(c)));
-    dupecache_line_t *ptr=dupecache_get_elements(c);
-
-    if (capacity==0) {
-        dupecache_clear(c);
-        return (0);
-    }
-
-    ptr=(dupecache_line_t *)allocator_realloc(env_get_allocator(env), 
-                    ptr, sizeof(dupecache_line_t)*capacity);
-    if (ptr) {
-        dupecache_set_capacity(c, capacity);
-        dupecache_set_elements(c, ptr);
-        return (0);
-    }
-
-    return (HAM_OUT_OF_MEMORY);
-}
-
-ham_status_t
-dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
-                    ham_size_t capacity)
-{
-    memset(c, 0, sizeof(*c));
-    dupecache_set_cursor(c, cursor);
-
-    return (__dupecache_resize(c, capacity==0 ? 8 : capacity));
-}
-
-ham_status_t
-dupecache_clone(dupecache_t *src, dupecache_t *dest)
-{
-    ham_status_t st;
-
-    *dest=*src;
-    dupecache_set_elements(dest, 0);
-
-    if (!dupecache_get_capacity(src))
-        return (0);
-
-    st=__dupecache_resize(dest, dupecache_get_capacity(src));
-    if (st)
-        return (st);
-
-    memcpy(dupecache_get_elements(dest), dupecache_get_elements(src),
-            dupecache_get_count(dest)*sizeof(dupecache_line_t));
-    return (0);
-}
-
-ham_status_t
-dupecache_insert(dupecache_t *c, ham_u32_t position, dupecache_line_t *dupe)
-{
-    ham_status_t st;
-    dupecache_line_t *e;
-
-    ham_assert(position<=dupecache_get_count(c), (""));
-
-    /* append or insert in the middle? */
-    if (position==dupecache_get_count(c))
-        return (dupecache_append(c, dupe));
-
-    /* resize if necessary */
-    if (dupecache_get_count(c)>=dupecache_get_capacity(c)-1) {
-        st=__dupecache_resize(c, dupecache_get_capacity(c)*2);
-        if (st)
-            return (st);
-    }
-
-    e=dupecache_get_elements(c);
-
-    /* shift elements to the "right" */
-    memmove(&e[position+1], &e[position], 
-                    sizeof(dupecache_line_t)*(dupecache_get_count(c)-position));
-    e[position]=*dupe;
-    dupecache_set_count(c, dupecache_get_count(c)+1);
-
-    return (0);
-}
-
-ham_status_t
-dupecache_append(dupecache_t *c, dupecache_line_t *dupe)
-{
-    ham_status_t st;
-    dupecache_line_t *e;
-
-    /* resize if necessary */
-    if (dupecache_get_count(c)>=dupecache_get_capacity(c)-1) {
-        st=__dupecache_resize(c, dupecache_get_capacity(c)*2);
-        if (st)
-            return (st);
-    }
-
-    e=dupecache_get_elements(c);
-
-    e[dupecache_get_count(c)]=*dupe;
-    dupecache_set_count(c, dupecache_get_count(c)+1);
-
-    return (0);
-}
-
-ham_status_t
-dupecache_erase(dupecache_t *c, ham_u32_t position)
-{
-    dupecache_line_t *e=dupecache_get_elements(c);
-
-    ham_assert(position<dupecache_get_count(c), (""));
-
-    if (position<dupecache_get_count(c)-1) {
-        /* shift elements to the "left" */
-        memmove(&e[position], &e[position+1], 
-                sizeof(dupecache_line_t)*(dupecache_get_count(c)-position-1));
-    }
-
-    dupecache_set_count(c, dupecache_get_count(c)-1);
-
-    return (0);
-}
-
-void
-dupecache_clear(dupecache_t *c)
-{
-    ham_env_t *env=0;
-    if (dupecache_get_cursor(c))
-        env=db_get_env(cursor_get_db(dupecache_get_cursor(c)));
-
-    if (dupecache_get_elements(c))
-        allocator_free(env_get_allocator(env), dupecache_get_elements(c));
-
-    dupecache_set_elements(c, 0);
-    dupecache_set_capacity(c, 0);
-    dupecache_set_count(c, 0);
-}
-
-void
-dupecache_reset(dupecache_t *c)
-{
-    dupecache_set_count(c, 0);
-}
-
 ham_status_t
 cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 {
     ham_status_t st=0;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
-    dupecache_t *dc=cursor_get_dupecache(cursor);
+    DupeCache *dc=cursor_get_dupecache(cursor);
     btree_cursor_t *btc=cursor_get_btree_cursor(cursor);
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
@@ -186,15 +44,8 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 
     /* if the cache already exists: no need to continue, it should be
      * up to date */
-    if (dupecache_get_count(dc)!=0)
+    if (dc->get_count()!=0)
         return (0);
-
-    /* initialize the dupecache, if it was not yet initialized */
-    if (dupecache_get_capacity(dc)==0) {
-        st=dupecache_create(dc, cursor, 8);
-        if (st)
-            return (st);
-    }
 
     if ((what&CURSOR_BTREE) && (what&CURSOR_TXN)) {
         if (cursor_is_nil(cursor, CURSOR_BTREE) 
@@ -219,14 +70,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
         st=0;
         if (table) {
             for (i=0; i<dupe_table_get_count(table); i++) {
-                dupecache_line_t dcl={0};
-                dupecache_line_set_btree(&dcl, HAM_TRUE);
-                dupecache_line_set_btree_dupe_idx(&dcl, i);
-                st=dupecache_append(dc, &dcl);
-                if (st) {
-                    allocator_free(env_get_allocator(env), table);
-                    return (st);
-                }
+                dc->append(DupeCacheLine(true, i));
             }
             if (needs_free)
                 allocator_free(env_get_allocator(env), table);
@@ -255,69 +99,52 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                  * but an overwrite of a duplicate will only overwrite
                  * an entry in the dupecache */
                 if (txn_op_get_flags(op)&TXN_OP_INSERT) {
-                    dupecache_line_t dcl={0};
-                    dupecache_line_set_btree(&dcl, HAM_FALSE);
-                    dupecache_line_set_txn_op(&dcl, op);
                     /* all existing dupes are overwritten */
-                    dupecache_reset(dc);
-                    st=dupecache_append(dc, &dcl);
-                    if (st)
-                        return (st);
+                    dc->clear();
+                    dc->append(DupeCacheLine(false, op));
                 }
                 else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
-                    dupecache_line_t *e=dupecache_get_elements(dc);
+                    DupeCacheLine *e=dc->get_first_element();
                     ham_u32_t ref=txn_op_get_referenced_dupe(op);
                     if (ref) {
-                        ham_assert(ref<=dupecache_get_count(dc), (""));
-                        dupecache_line_set_txn_op(&e[ref-1], op);
-                        dupecache_line_set_btree(&e[ref-1], HAM_FALSE);
+                        ham_assert(ref<=dc->get_count(), (""));
+                        (&e[ref-1])->set_txn_op(op);
                     }
                     else {
-                        dupecache_line_t dcl={0};
-                        dupecache_line_set_btree(&dcl, HAM_FALSE);
-                        dupecache_line_set_txn_op(&dcl, op);
                         /* all existing dupes are overwritten */
-                        dupecache_reset(dc);
-                        st=dupecache_append(dc, &dcl);
-                        if (st)
-                            return (st);
+                        dc->clear();
+                        dc->append(DupeCacheLine(false, op));
                     }
                 }
                 /* insert a duplicate key */
                 else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
                     ham_u32_t of=txn_op_get_orig_flags(op);
                     ham_u32_t ref=txn_op_get_referenced_dupe(op)-1;
-                    dupecache_line_t dcl={0};
-                    dupecache_line_set_btree(&dcl, HAM_FALSE);
-                    dupecache_line_set_txn_op(&dcl, op);
+                    DupeCacheLine dcl(false, op);
                     if (of&HAM_DUPLICATE_INSERT_FIRST)
-                        st=dupecache_insert(dc, 0, &dcl);
+                        dc->insert(0, dcl);
                     else if (of&HAM_DUPLICATE_INSERT_BEFORE) {
-                        st=dupecache_insert(dc, ref, &dcl);
+                        dc->insert(ref, dcl);
                     }
                     else if (of&HAM_DUPLICATE_INSERT_AFTER) {
-                        if (ref+1>=dupecache_get_count(dc))
-                            st=dupecache_append(dc, &dcl);
+                        if (ref+1>=dc->get_count())
+                            dc->append(dcl);
                         else
-                            st=dupecache_insert(dc, ref+1, &dcl);
+                            dc->insert(ref+1, dcl);
                     }
                     else /* default is HAM_DUPLICATE_INSERT_LAST */
-                        st=dupecache_append(dc, &dcl);
-                    if (st)
-                        return (st);
+                        dc->append(dcl);
                 }
                 /* a normal erase will erase ALL duplicate keys */
                 else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                     ham_u32_t ref=txn_op_get_referenced_dupe(op);
                     if (ref) {
-                        ham_assert(ref<=dupecache_get_count(dc), (""));
-                        st=dupecache_erase(dc, ref-1);
-                        if (st)
-                            return (st);
+                        ham_assert(ref<=dc->get_count(), (""));
+                        dc->erase(ref-1);
                     }
                     else {
                         /* all existing dupes are erased */
-                        dupecache_reset(dc);
+                        dc->clear();
                     }
                 }
                 else {
@@ -339,7 +166,7 @@ bail:
 void
 cursor_clear_dupecache(ham_cursor_t *cursor)
 {
-    dupecache_reset(cursor_get_dupecache(cursor));
+    cursor_get_dupecache(cursor)->clear();
     cursor_set_dupecache_index(cursor, 0);
 }
 
@@ -347,21 +174,21 @@ void
 cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
 {
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
-    dupecache_t *dc=cursor_get_dupecache(cursor);
-    dupecache_line_t *e=0;
+    DupeCache *dc=cursor_get_dupecache(cursor);
+    DupeCacheLine *e=0;
 
-    ham_assert(dc && dupecache_get_count(dc)>=dupe_id, (""));
+    ham_assert(dc->get_count()>=dupe_id, (""));
     ham_assert(dupe_id>=1, (""));
 
     /* dupe-id is a 1-based index! */
-    e=dupecache_get_elements(dc)+(dupe_id-1);
-    if (dupecache_line_use_btree(e)) {
+    e=dc->get_element(dupe_id-1);
+    if (e->use_btree()) {
         btree_cursor_t *btc=cursor_get_btree_cursor(cursor);
         cursor_couple_to_btree(cursor);
-        btree_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
+        btree_cursor_set_dupe_id(btc, e->get_btree_dupe_idx());
     }
     else {
-        txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));
+        txn_cursor_couple(txnc, e->get_txn_op());
         cursor_couple_to_txnop(cursor);
     }
     cursor_set_dupecache_index(cursor, dupe_id);
@@ -458,16 +285,16 @@ bail:
 static ham_size_t
 __cursor_has_duplicates(ham_cursor_t *cursor)
 {
-    return (dupecache_get_count(cursor_get_dupecache(cursor)));
+    return (cursor_get_dupecache(cursor)->get_count());
 }
 
 static ham_status_t
 __cursor_move_next_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 {
-    dupecache_t *dc=cursor_get_dupecache(cursor);
+    DupeCache *dc=cursor_get_dupecache(cursor);
 
     if (cursor_get_dupecache_index(cursor)) {
-        if (cursor_get_dupecache_index(cursor)<dupecache_get_count(dc)) {
+        if (cursor_get_dupecache_index(cursor)<dc->get_count()) {
             cursor_set_dupecache_index(cursor, 
                         cursor_get_dupecache_index(cursor)+1);
             cursor_couple_to_dupe(cursor, 
@@ -496,9 +323,9 @@ __cursor_move_previous_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 static ham_status_t
 __cursor_move_first_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 {
-    dupecache_t *dc=cursor_get_dupecache(cursor);
+    DupeCache *dc=cursor_get_dupecache(cursor);
 
-    if (dupecache_get_count(dc)) {
+    if (dc->get_count()) {
         cursor_set_dupecache_index(cursor, 1);
         cursor_couple_to_dupe(cursor, 
                     cursor_get_dupecache_index(cursor));
@@ -510,11 +337,11 @@ __cursor_move_first_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 static ham_status_t
 __cursor_move_last_dupe(ham_cursor_t *cursor, ham_u32_t flags)
 {
-    dupecache_t *dc=cursor_get_dupecache(cursor);
+    DupeCache *dc=cursor_get_dupecache(cursor);
 
-    if (dupecache_get_count(dc)) {
+    if (dc->get_count()) {
         cursor_set_dupecache_index(cursor, 
-                    dupecache_get_count(dc));
+                    dc->get_count());
         cursor_couple_to_dupe(cursor, 
                     cursor_get_dupecache_index(cursor));
         return (0);
@@ -1424,7 +1251,7 @@ cursor_get_dupecache_count(ham_cursor_t *cursor)
     else
         cursor_update_dupecache(cursor, CURSOR_BTREE);
 
-    return (dupecache_get_count(cursor_get_dupecache(cursor)));
+    return (cursor_get_dupecache(cursor)->get_count());
 }
 
 ham_status_t
@@ -1482,10 +1309,8 @@ cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
      * was setup correctly (but this was not yet the case here) */
     txn_cursor_clone(cursor_get_txn_cursor(src), &c->_txn_cursor, c);
 
-    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
-        dupecache_clone(cursor_get_dupecache(src), 
-                        cursor_get_dupecache(c));
-    }
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
+        cursor_get_dupecache(src)->clone(cursor_get_dupecache(c));
 
     *dest=c;
     return (0);
@@ -1563,13 +1388,13 @@ cursor_get_duplicate_count(ham_cursor_t *cursor, ham_txn_t *txn,
     if (txn) {
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
             ham_bool_t dummy;
-            dupecache_t *dc=cursor_get_dupecache(cursor);
+            DupeCache *dc=cursor_get_dupecache(cursor);
 
             (void)cursor_sync(cursor, 0, &dummy);
             st=cursor_update_dupecache(cursor, CURSOR_TXN|CURSOR_BTREE);
             if (st)
                 return (st);
-            *pcount=dupecache_get_count(dc);
+            *pcount=dc->get_count();
         }
         else {
             /* obviously the key exists, since the cursor is coupled to
@@ -1634,7 +1459,7 @@ cursor_close(ham_cursor_t *cursor)
 {
     btree_cursor_close(cursor_get_btree_cursor(cursor));
     txn_cursor_close(cursor_get_txn_cursor(cursor));
-    dupecache_clear(cursor_get_dupecache(cursor));
+    cursor_get_dupecache(cursor)->clear();
 }
 
 #ifdef HAM_DEBUG

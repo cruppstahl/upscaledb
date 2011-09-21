@@ -70,6 +70,8 @@
 #ifndef HAM_CURSORS_H__
 #define HAM_CURSORS_H__
 
+#include <vector>
+
 #include "internal_fwd_decl.h"
 
 #include "error.h"
@@ -86,124 +88,123 @@ extern "C" {
  * A single line in the dupecache structure - can reference a btree
  * record or a txn-op 
  */
-typedef struct dupecache_line_t {
+class DupeCacheLine 
+{
+  public:
+    DupeCacheLine(ham_bool_t use_btree=true, ham_u64_t btree_dupeidx=0)
+    : m_use_btree(use_btree), m_btree_dupeidx(btree_dupeidx), m_op(0) {
+        ham_assert(use_btree==true, (""));
+    }
 
+    DupeCacheLine(ham_bool_t use_btree, txn_op_t *op)
+    : m_use_btree(use_btree), m_btree_dupeidx(0), m_op(op) {
+        ham_assert(use_btree==false, (""));
+    }
+
+    /** Returns true if this cache entry is a duplicate in the btree */
+    ham_bool_t use_btree(void) {
+        return (m_use_btree); 
+    }
+
+    /** Returns the btree duplicate index */
+    ham_offset_t get_btree_dupe_idx(void) {
+        ham_assert(m_use_btree==true, (""));
+        return (m_btree_dupeidx);
+    }
+
+    /** Sets the btree duplicate index */
+    void set_btree_dupe_idx(ham_offset_t idx) {
+        m_use_btree=true;
+        m_btree_dupeidx=idx;
+        m_op=0;
+    }
+
+    /** Returns the txn-op duplicate */
+    txn_op_t *get_txn_op(void) {
+        ham_assert(m_use_btree==false, (""));
+        return (m_op);
+    }
+
+    /** Sets the txn-op duplicate */
+    void set_txn_op(txn_op_t *op) {
+        m_use_btree=false;
+        m_op=op;
+        m_btree_dupeidx=0;
+    }
+
+  private:
     /** Are we using btree or txn duplicates? */
-    ham_bool_t _use_btree;
+    ham_bool_t m_use_btree;
 
-    union {
-        /** The btree duplicate index (of the original btree dupe table) */
-        ham_u64_t _btree_dupeidx;
+    /** The btree duplicate index (of the original btree dupe table) */
+    ham_u64_t m_btree_dupeidx;
 
-        /** The txn op structure */
-        txn_op_t *_op;
-    } _u;
+    /** The txn op structure */
+    txn_op_t *m_op;
 
-} dupecache_line_t;
+};
 
-/** Retrieves which part of the union is used */
-#define dupecache_line_use_btree(dcl)           (dcl)->_use_btree
-
-/** Specifies which part of the union is used */
-#define dupecache_line_set_btree(dcl, b)        (dcl)->_use_btree=b
-
-/** Get the btree duplicate index */
-#define dupecache_line_get_btree_dupe_idx(dcl)  (dcl)->_u._btree_dupeidx
-
-/** Set the btree duplicate index */
-#define dupecache_line_set_btree_dupe_idx(d, i) (d)->_u._btree_dupeidx=i
-
-/** Get txn_op_t pointer of the txn record */
-#define dupecache_line_get_txn_op(dcl)          (dcl)->_u._op
-
-/** Set txn_op_t pointer of the txn record */
-#define dupecache_line_set_txn_op(dcl, op)      (dcl)->_u._op=op
 
 
 /**
  * The dupecache is a cache for duplicate keys
  */
-typedef struct dupecache_t {
-    /** The cursor - needed for allocator etc */
-    struct ham_cursor_t *_cursor;
+class DupeCache {
+  public:
+    /* default constructor - creates an empty dupecache with room for 8 
+     * duplicates */
+    DupeCache(void) {
+        m_elements.reserve(8);
+    }
 
-    /** Capacity of this cache */
-    ham_size_t _capacity;
+    /** retrieve number of elements in the cache */
+    ham_size_t get_count(void) {
+        return (m_elements.size());
+    }
 
-    /** Number of elements tracked in this cache */
-    ham_size_t _count;
+    /** get an element from the cache */
+    DupeCacheLine *get_element(unsigned idx) {
+        return (&m_elements[idx]);
+    }
 
+    /** get a pointer to the first element from the cache */
+    DupeCacheLine *get_first_element(void) {
+        return (&m_elements[0]);
+    }
+
+    /** Clones this dupe-cache into 'other' */
+    void clone(DupeCache *other) {
+        other->m_elements=m_elements;
+    }
+
+    /**
+     * Inserts a new item somewhere in the cache; resizes the 
+     * cache if necessary
+     */
+    void insert(unsigned position, const DupeCacheLine &dcl) {
+        m_elements.insert(m_elements.begin()+position, dcl);
+    }
+
+    /** append an element to the dupecache */
+    void append(const DupeCacheLine &dcl) {
+        m_elements.push_back(dcl);
+    }
+
+    /** Erases an item */
+    void erase(ham_u32_t position) {
+        m_elements.erase(m_elements.begin()+position);
+    }
+
+    /** Clears the cache; frees all resources */
+    void clear(void) {
+        m_elements.resize(0);
+    }
+
+  private:
     /** The cached elements */
-    dupecache_line_t *_elements;
+    std::vector<DupeCacheLine> m_elements;
 
-} dupecache_t;
-
-/** Set the cursor pointer */
-#define dupecache_set_cursor(dc, c)         (dc)->_cursor=(c)
-
-/** Get the cursor pointer */
-#define dupecache_get_cursor(dc)            (dc)->_cursor
-
-/** Set the capacity */
-#define dupecache_set_capacity(dc, c)       (dc)->_capacity=c
-
-/** Get the capacity */
-#define dupecache_get_capacity(dc)          (dc)->_capacity
-
-/** Set the count */
-#define dupecache_set_count(dc, c)          (dc)->_count=c
-
-/** Get the count */
-#define dupecache_get_count(dc)             (dc)->_count
-
-/** Set the pointer to the dupe_entry array */
-#define dupecache_set_elements(dc, e)       (dc)->_elements=e
-
-/** Get the pointer to the dupe_entry array */
-#define dupecache_get_elements(dc)          (dc)->_elements
-
-/**
- * Creates a new dupecache structure
- */
-extern ham_status_t
-dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
-                    ham_size_t capacity);
-
-/**
- * Clones two dupe-caches
- */
-extern ham_status_t
-dupecache_clone(dupecache_t *src, dupecache_t *dest);
-
-/**
- * Inserts a new item somewhere in the cache; resizes the cache if necessary
- */
-extern ham_status_t
-dupecache_insert(dupecache_t *c, ham_u32_t position, dupecache_line_t *dupe);
-
-/**
- * Appends a new item; resizes the cache if necessary
- */
-extern ham_status_t
-dupecache_append(dupecache_t *c, dupecache_line_t *dupe);
-
-/**
- * Erases an item 
- */
-extern ham_status_t
-dupecache_erase(dupecache_t *c, ham_u32_t position);
-
-/**
- * Clears the cache; frees all resources
- */
-extern void
-dupecache_clear(dupecache_t *c);
-
-/**
- * Empties the cache; will not free resources
- */
-extern void
-dupecache_reset(dupecache_t *c);
+};
 
 
 /**
@@ -236,7 +237,7 @@ struct ham_cursor_t
     /** A cache for all duplicates of the current key. needed for
      * ham_cursor_move, ham_find and other functions. The cache is
      * used to consolidate all duplicates of btree and txn. */
-    dupecache_t _dupecache;
+    DupeCache _dupecache;
 
     /** The current position of the cursor in the cache. This is a
      * 1-based index. 0 means that the cache is not in use. */
