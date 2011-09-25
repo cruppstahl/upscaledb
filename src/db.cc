@@ -2303,11 +2303,10 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
         st=ham_cursor_create(db, txn, 0, (ham_cursor_t **)&c);
-HIER GEHTS WEITER
         if (st)
             return (st);
-        st=ham_cursor_find_ex(c, key, record, flags);
-        ham_cursor_close(c);
+        st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, flags);
+        ham_cursor_close((ham_cursor_t *)c);
         return (st);
     }
 
@@ -2405,7 +2404,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
@@ -2464,22 +2463,22 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor->get_txn() 
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
-    if (cursor_get_txn(cursor) || local_txn) {
+    if (cursor->get_txn() || local_txn) {
         st=db_insert_txn(db, 
-                    cursor_get_txn(cursor) 
-                      ? cursor_get_txn(cursor) 
+                    cursor->get_txn() 
+                      ? cursor->get_txn() 
                       : local_txn,
-                    key, &temprec, flags, cursor_get_txn_cursor(cursor));
+                    key, &temprec, flags, cursor->get_txn_cursor());
         if (st==0) {
-            DupeCache *dc=cursor_get_dupecache(cursor);
+            DupeCache *dc=cursor->get_dupecache();
             cursor_couple_to_txnop(cursor);
             /* reset the dupecache, otherwise cursor_has_duplicates()
              * does not update the dupecache correctly */
@@ -2488,14 +2487,14 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
              * the new key */
             if (st==0 && cursor_get_dupecache_count(cursor)) {
                 ham_size_t i;
-                txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+                txn_cursor_t *txnc=cursor->get_txn_cursor();
                 txn_op_t *op=txn_cursor_get_coupled_op(txnc);
                 ham_assert(op!=0, (""));
 
                 for (i=0; i<dc->get_count(); i++) {
                     DupeCacheLine *l=dc->get_element(i);
                     if (!l->use_btree() && l->get_txn_op()==op) {
-                        cursor_set_dupecache_index(cursor, i+1);
+                        cursor->set_dupecache_index(i+1);
                         break;
                     }
                 }
@@ -2503,7 +2502,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
         }
     }
     else {
-        st=btree_cursor_insert(cursor_get_btree_cursor(cursor), 
+        st=btree_cursor_insert(cursor->get_btree_cursor(), 
                         key, &temprec, flags);
         if (st==0)
             cursor_couple_to_btree(cursor);
@@ -2511,7 +2510,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
@@ -2553,7 +2552,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2568,7 +2567,7 @@ static ham_status_t
 _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
@@ -2583,27 +2582,27 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor->get_txn() 
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
     /* this function will do all the work */
     st=cursor_erase(cursor, 
-                    cursor_get_txn(cursor) ? cursor_get_txn(cursor) : local_txn,
+                    cursor->get_txn() ? cursor->get_txn() : local_txn,
                     flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     /* on success: verify that cursor is now nil */
     if (st==0) {
         cursor_couple_to_btree(cursor);
-        ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
+        ham_assert(txn_cursor_is_nil(cursor->get_txn_cursor()), (""));
         ham_assert(cursor_is_nil(cursor, 0), (""));
         cursor_clear_dupecache(cursor);
     }
@@ -2633,11 +2632,11 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
     ham_env_t *env=db_get_env(db);
-    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -2664,12 +2663,12 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor->get_txn() 
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
     /* reset the dupecache */
@@ -2682,9 +2681,9 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
      *
      * in non-Transaction mode directly search through the btree.
      */
-    if (cursor_get_txn(cursor) || local_txn) {
+    if (cursor->get_txn() || local_txn) {
         txn_op_t *op=0;
-        st=txn_cursor_find(cursor_get_txn_cursor(cursor), key, flags);
+        st=txn_cursor_find(cursor->get_txn_cursor(), key, flags);
         /* if the key was erased in a transaction then fail with an error 
          * (unless we have duplicates - they're checked below) */
         if (st) {
@@ -2723,7 +2722,7 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     }
 
 btree:
-    st=btree_cursor_find(cursor_get_btree_cursor(cursor), key, record, flags);
+    st=btree_cursor_find(cursor->get_btree_cursor(), key, record, flags);
     if (st==0) {
         cursor_couple_to_btree(cursor);
         /* if btree keys were found: reset the dupecache. The previous
@@ -2737,7 +2736,7 @@ check_dupes:
     /* if the key has duplicates: build a duplicate table, then
      * couple to the first/oldest duplicate */
     if (cursor_get_dupecache_count(cursor)) {
-        DupeCacheLine *e=cursor_get_dupecache(cursor)->get_first_element();
+        DupeCacheLine *e=cursor->get_dupecache()->get_first_element();
         if (e->use_btree())
             cursor_couple_to_btree(cursor);
         else
@@ -2751,22 +2750,22 @@ check_dupes:
             * it's possible that we read the record twice. I'm not sure if 
             * this can be avoided, though. */
             if (cursor_is_coupled_to_txnop(cursor))
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), 
+                st=txn_cursor_get_record(cursor->get_txn_cursor(), 
                         record);
             else
-                st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
+                st=btree_cursor_move(cursor->get_btree_cursor(), 
                         0, record, 0);
         }
     }
     else {
         if (cursor_is_coupled_to_txnop(cursor) && record)
-            st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+            st=txn_cursor_get_record(cursor->get_txn_cursor(), record);
     }
 
 bail:
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     if (st) {
         if (local_txn)
@@ -2794,7 +2793,7 @@ bail:
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2810,10 +2809,10 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
                 ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
-    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2827,22 +2826,22 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor->get_txn() 
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
     /* this function will do all the work */
     st=cursor_get_duplicate_count(cursor, 
-                    cursor_get_txn(cursor) ? cursor_get_txn(cursor) : local_txn,
+                    cursor->get_txn() ? cursor->get_txn() : local_txn,
                     count, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     if (st) {
         if (local_txn)
@@ -2855,7 +2854,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2870,7 +2869,7 @@ static ham_status_t
 _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
                 ham_u32_t flags)
 {
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
     ham_record_t temprec;
@@ -2894,22 +2893,22 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor->get_txn() 
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
     /* this function will do all the work */
     st=cursor_overwrite(cursor, 
-                    cursor_get_txn(cursor) ? cursor_get_txn(cursor) : local_txn,
+                    cursor->get_txn() ? cursor->get_txn() : local_txn,
                     &temprec, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     if (temprec.data != record->data)
         allocator_free(env_get_allocator(env), temprec.data);
@@ -2939,7 +2938,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
@@ -2968,7 +2967,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* in non-transactional mode - just call the btree function and return */
     if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=btree_cursor_move(cursor_get_btree_cursor(cursor), 
+        st=btree_cursor_move(cursor->get_btree_cursor(), 
                 key, record, flags);
         if (st)
             return (st);
@@ -2979,12 +2978,12 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor)
+    if (!cursor->get_txn()
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
-        cursor_set_txn(cursor, local_txn);
+        cursor->set_txn(local_txn);
     }
 
     /* everything else is handled by the cursor function */
@@ -2992,7 +2991,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
-        cursor_set_txn(cursor, 0);
+        cursor->set_txn(0);
 
     env_get_changeset(env).clear();
 
@@ -3002,11 +3001,11 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* store the direction */
     if (flags&HAM_CURSOR_NEXT)
-        cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
+        cursor->set_lastop(HAM_CURSOR_NEXT);
     else if (flags&HAM_CURSOR_PREVIOUS)
-        cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
+        cursor->set_lastop(HAM_CURSOR_PREVIOUS);
     else
-        cursor_set_lastop(cursor, 0);
+        cursor->set_lastop(0);
 
     if (st) {
         if (local_txn)
@@ -3014,7 +3013,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
         if (st==HAM_KEY_ERASED_IN_TXN)
             st=HAM_KEY_NOT_FOUND;
         /* trigger a sync when the function is called again */
-        cursor_set_lastop(cursor, 0);
+        cursor->set_lastop(0);
         return (st);
     }
 

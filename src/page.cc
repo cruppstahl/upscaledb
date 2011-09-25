@@ -102,9 +102,9 @@ void
 page_add_cursor(ham_page_t *page, Cursor *cursor)
 {
     if (page_get_cursors(page)) {
-        cursor_set_next_in_page(cursor, page_get_cursors(page));
-        cursor_set_previous_in_page(cursor, 0);
-        cursor_set_previous_in_page(page_get_cursors(page), cursor);
+        cursor->set_next_in_page(page_get_cursors(page));
+        cursor->set_previous_in_page(0);
+        page_get_cursors(page)->set_previous_in_page(cursor);
     }
     page_set_cursors(page, cursor);
 }
@@ -115,22 +115,22 @@ page_remove_cursor(ham_page_t *page, Cursor *cursor)
     Cursor *n, *p;
 
     if (cursor==page_get_cursors(page)) {
-        n=cursor_get_next_in_page(cursor);
+        n=cursor->get_next_in_page();
         if (n)
-            cursor_set_previous_in_page(n, 0);
+            n->set_previous_in_page(0);
         page_set_cursors(page, n);
     }
     else {
-        n=cursor_get_next_in_page(cursor);
-        p=cursor_get_previous_in_page(cursor);
+        n=cursor->get_next_in_page();
+        p=cursor->get_previous_in_page();
         if (p)
-            cursor_set_next_in_page(p, n);
+            p->set_next_in_page(n);
         if (n)
-            cursor_set_previous_in_page(n, p);
+            n->set_previous_in_page(p);
     }
 
-    cursor_set_next_in_page(cursor, 0);
-    cursor_set_previous_in_page(cursor, 0);
+    cursor->set_next_in_page(0);
+    cursor->set_previous_in_page(0);
 }
 
 ham_page_t *

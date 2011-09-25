@@ -42,6 +42,13 @@ extern "C" {
  */
 typedef struct txn_cursor_t
 {
+    txn_cursor_t() {
+        _parent=0;
+        _coupled._op=0;
+        _coupled._next=0;
+        _coupled._previous=0;
+    }
+
     /** the parent cursor */
     Cursor *_parent;
 
@@ -67,7 +74,7 @@ typedef struct txn_cursor_t
 } txn_cursor_t;
 
 /** get the database pointer */
-#define txn_cursor_get_db(c)                        (c)->_parent->_db
+#define txn_cursor_get_db(c)                        (c)->_parent->get_db()
 
 /** get the parent cursor */
 #define txn_cursor_get_parent(c)                    (c)->_parent

@@ -108,7 +108,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT(cursor!=0);
-        BFC_ASSERT_EQUAL(0, cursor_clone(cursor, &clone));
+        BFC_ASSERT_EQUAL(0, cursor_clone((Cursor *)cursor, (Cursor **)&clone));
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -236,7 +236,7 @@ public:
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
 
-        btc=cursor_get_btree_cursor(c);
+        btc=((Cursor *)c)->get_btree_cursor();
 
         ham_u32_t flags=btree_cursor_get_flags(btc);
         BFC_ASSERT(btree_cursor_get_flags(btc)==0);
@@ -354,7 +354,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-        btc=cursor_get_btree_cursor(c);
+        btc=((Cursor *)c)->get_btree_cursor();
         /* after create: cursor is NIL */
         BFC_ASSERT(!btree_cursor_is_coupled(btc));
         BFC_ASSERT(!btree_cursor_is_uncoupled(btc));

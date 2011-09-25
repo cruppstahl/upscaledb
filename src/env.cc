@@ -1553,11 +1553,11 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             }
             else {
                 txn_cursor_t *tc2, *tc1=txn_op_get_cursors(op);
-                ham_cursor_t *c2, *c1=txn_cursor_get_parent(tc1);
+                Cursor *c2, *c1=txn_cursor_get_parent(tc1);
                 /* pick the first cursor, get the parent/btree cursor and
                  * insert the key/record pair in the btree. The btree cursor
                  * then will be coupled to this item. */
-                st=btree_cursor_insert(cursor_get_btree_cursor(c1), 
+                st=btree_cursor_insert(c1->get_btree_cursor(), 
                         txn_opnode_get_key(node), txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
                 if (st)
@@ -1573,9 +1573,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                 while ((tc2=txn_op_get_cursors(op))) {
                     txn_op_remove_cursor(op, tc2);
                     c2=txn_cursor_get_parent(tc2);
-                    btree_cursor_couple_to_other(
-                                cursor_get_btree_cursor(c2), 
-                                cursor_get_btree_cursor(c1));
+                    btree_cursor_couple_to_other(c2->get_btree_cursor(), 
+                                c1->get_btree_cursor());
                     cursor_couple_to_btree(c2);
                     cursor_set_to_nil(c2, CURSOR_TXN);
                 }
@@ -1616,8 +1615,8 @@ bail:
          */
         txn_op_set_flags(op, TXN_OP_FLUSHED);
         while ((cursor=txn_op_get_cursors(op))) {
-            ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            ham_assert(cursor_get_txn_cursor(pc)==cursor, (""));
+            Cursor *pc=txn_cursor_get_parent(cursor);
+            ham_assert(pc->get_txn_cursor()==cursor, (""));
             cursor_couple_to_btree(pc);
             cursor_set_to_nil(pc, CURSOR_TXN);
         }

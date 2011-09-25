@@ -2883,19 +2883,23 @@ ham_close(ham_db_t *db, ham_u32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-        ham_cursor_t **cursor)
+        ham_cursor_t **hcursor)
 {
     ham_env_t *env;
     ham_status_t st;
+    Cursor **cursor=0;
     
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+
+    cursor=(Cursor **)hcursor;
+
     env = db_get_env(db);
     if (!env) {
         ham_trace(("parameter 'db' must be linked to a valid (implicit or "
@@ -2913,36 +2917,39 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         return (db_set_error(db, st));
 
     /* fix the linked list of cursors */
-    cursor_set_next(*cursor, db_get_cursors(db));
+    (*cursor)->set_next(db_get_cursors(db));
     if (db_get_cursors(db))
-        cursor_set_previous(db_get_cursors(db), *cursor);
+        db_get_cursors(db)->set_previous(*cursor);
     db_set_cursors(db, *cursor);
 
-    cursor_set_db(*cursor, db);
     if (txn) {
         txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
-        cursor_set_txn(*cursor, txn);
+        (*cursor)->set_txn(txn);
     }
 
     return (0);
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 {
     ham_db_t *db;
     ham_status_t st;
 
-    if (!src) {
+    if (!hsrc) {
         ham_trace(("parameter 'src' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!dest) {
+    if (!hdest) {
         ham_trace(("parameter 'dest' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(src);
+    Cursor *src, **dest;
+    src=(Cursor *)hsrc;
+    dest=(Cursor **)hdest;
+
+    db=src->get_db();
 
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
@@ -2959,35 +2966,36 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
         return (db_set_error(db, st));
 
     /* fix the linked list of cursors */
-    cursor_set_previous(*dest, 0);
-    cursor_set_next(*dest, db_get_cursors(db));
+    (*dest)->set_previous(0);
+    (*dest)->set_next(db_get_cursors(db));
     ham_assert(db_get_cursors(db)!=0, (0));
-    cursor_set_previous(db_get_cursors(db), *dest);
+    db_get_cursors(db)->set_previous(*dest);
     db_set_cursors(db, *dest);
 
     /* initialize the remaining fields */
-    cursor_set_txn(*dest, cursor_get_txn(src));
-    cursor_set_db(*dest, db);
+    (*dest)->set_txn(src->get_txn());
 
-    if (cursor_get_txn(src))
-        txn_set_cursor_refcount(cursor_get_txn(src), 
-                txn_get_cursor_refcount(cursor_get_txn(src))+1);
+    if (src->get_txn())
+        txn_set_cursor_refcount(src->get_txn(), 
+                txn_get_cursor_refcount(src->get_txn())+1);
 
     return (db_set_error(db, 0));
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
+ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
             ham_u32_t flags)
 {
     ham_db_t *db;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(cursor);
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
 
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
@@ -3023,19 +3031,21 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_env_t *env;
     ham_status_t st;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(cursor);
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
 
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
@@ -3086,24 +3096,26 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
+ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_u32_t flags)
 {
-    return (ham_cursor_find_ex(cursor, key, NULL, flags));
+    return (ham_cursor_find_ex(hcursor, key, NULL, flags));
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key, 
+ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key, 
             ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_env_t *env;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(cursor);
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
@@ -3172,18 +3184,20 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_env_t *env;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(cursor);
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
 
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
@@ -3201,7 +3215,6 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    db=cursor_get_db(cursor);
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
@@ -3316,17 +3329,19 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
+ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_env_t *env;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    db=cursor_get_db(cursor);
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
 
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
@@ -3348,7 +3363,6 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
                    "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-
     if (!db->_fun_cursor_erase) {
         ham_trace(("Database was not initialized"));
         return (db_set_error(db, HAM_NOT_INITIALIZED));
@@ -3359,16 +3373,19 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, 
         ham_size_t *count, ham_u32_t flags)
 {
     ham_db_t *db;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
-    db=cursor_get_db(cursor);
+
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
@@ -3390,16 +3407,19 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_close(ham_cursor_t *cursor)
+ham_cursor_close(ham_cursor_t *hcursor)
 {
     ham_db_t *db;
-    ham_cursor_t *p, *n;
+    Cursor *p, *n;
 
-    if (!cursor) {
+    if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    db = cursor_get_db(cursor);
+
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
@@ -3412,31 +3432,31 @@ ham_cursor_close(ham_cursor_t *cursor)
 
     /* decrease the transaction refcount; the refcount specifies how many
      * cursors are attached to the transaction */
-    if (cursor_get_txn(cursor)) {
-        ham_assert(txn_get_cursor_refcount(cursor_get_txn(cursor))>0, (""));
-        txn_set_cursor_refcount(cursor_get_txn(cursor), 
-                txn_get_cursor_refcount(cursor_get_txn(cursor))-1);
+    if (cursor->get_txn()) {
+        ham_assert(txn_get_cursor_refcount(cursor->get_txn())>0, (""));
+        txn_set_cursor_refcount(cursor->get_txn(), 
+                txn_get_cursor_refcount(cursor->get_txn())-1);
     }
 
     /* now finally close the cursor */
     db->_fun_cursor_close(cursor);
 
     /* fix the linked list of cursors */
-    p=cursor_get_previous(cursor);
-    n=cursor_get_next(cursor);
+    p=cursor->get_previous();
+    n=cursor->get_next();
 
     if (p)
-        cursor_set_next(p, n);
+        p->set_next(n);
     else
         db_set_cursors(db, n);
 
     if (n)
-        cursor_set_previous(n, p);
+        n->set_previous(p);
 
-    cursor_set_next(cursor, 0);
-    cursor_set_previous(cursor, 0);
+    cursor->set_next(0);
+    cursor->set_previous(0);
 
-    allocator_free(env_get_allocator(db_get_env(db)), cursor);
+    delete cursor;
     
     return (0);
 }
@@ -3568,10 +3588,12 @@ ham_env_get_context_data(ham_env_t *env)
 
 
 ham_db_t * HAM_CALLCONV
-ham_cursor_get_database(ham_cursor_t *cursor)
+ham_cursor_get_database(ham_cursor_t *hcursor)
 {
-    if (cursor)
-        return (cursor_get_db(cursor));
+    if (hcursor) {
+        Cursor *cursor=(Cursor *)hcursor;
+        return (cursor->get_db());
+    }
     else
         return (0);
 }

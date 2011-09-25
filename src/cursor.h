@@ -225,10 +225,27 @@ class Cursor
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
-    Cursor(ham_db_t *db=0, ham_txn_t *txn=0);
+    Cursor(ham_db_t *db=0, ham_txn_t *txn=0)
+    : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
+      m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
+      m_lastop(0), m_flags(0) {
+    }
 
     /** copy constructor; used in clone() */
-    Cursor(const Cursor &other);
+    Cursor(const Cursor &other) {
+        m_db=other.m_db; 
+        m_txn=other.m_txn; 
+        m_remote_handle=other.m_remote_handle; 
+        m_next=other.m_next; 
+        m_previous=other.m_previous;
+        m_next_in_page=other.m_next_in_page; 
+        m_previous_in_page=other.m_previous_in_page; 
+        m_dupecache_index=other.m_dupecache_index;
+        m_lastop=other.m_lastop; 
+        m_flags=other.m_flags; 
+        m_txn_cursor=other.m_txn_cursor; 
+        m_btree_cursor=other.m_btree_cursor; 
+    }
 
     /** Get the Cursor flags */
     ham_u32_t get_flags(void) {
@@ -288,6 +305,11 @@ class Cursor
     /** Get the Transaction handle */
     ham_txn_t *get_txn() {
         return (m_txn);
+    }
+
+    /** Sets the Transaction handle */
+    void set_txn(ham_txn_t *txn) {
+        m_txn=txn;
     }
 
     /** Get a pointer to the Transaction cursor */
@@ -421,25 +443,25 @@ cursor_set_to_nil(Cursor *cursor, int what);
  * Returns true if a cursor is coupled to the btree
  */
 #define cursor_is_coupled_to_btree(c)                                         \
-                                 (!(c->get_flags()&_CURSOR_COUPLED_TO_TXN))
+                                 (!((c)->get_flags()&_CURSOR_COUPLED_TO_TXN))
 
 /**
  * Returns true if a cursor is coupled to a txn-op
  */
 #define cursor_is_coupled_to_txnop(c)                                         \
-                                    (c->get_flags()&_CURSOR_COUPLED_TO_TXN)
+                                    ((c)->get_flags()&_CURSOR_COUPLED_TO_TXN)
 
 /**
  * Couples the cursor to a btree key
  */
 #define cursor_couple_to_btree(c)                                             \
-            (c->set_flags(c->get_flags()&(~_CURSOR_COUPLED_TO_TXN)))
+               ((c)->set_flags(c->get_flags()&(~_CURSOR_COUPLED_TO_TXN)))
 
 /**
  * Couples the cursor to a txn-op
  */
 #define cursor_couple_to_txnop(c)                                             \
-            (c->set_flags(c->get_flags()|_CURSOR_COUPLED_TO_TXN))
+               ((c)->set_flags(c->get_flags()|_CURSOR_COUPLED_TO_TXN))
 
 /**
  * Erases the key/record pair that the cursor points to. 

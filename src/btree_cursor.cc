@@ -467,7 +467,7 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
 
 ham_status_t
 btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
-                ham_cursor_t *parent)
+                Cursor *parent)
 {
     ham_status_t st;
     ham_db_t *db=btree_cursor_get_db(src);
@@ -779,12 +779,12 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     ham_status_t st;
     ham_bool_t skipped=HAM_FALSE;
-    ham_cursor_t *n;
-    ham_cursor_t *c=page_get_cursors(page);
+    Cursor *n;
+    Cursor *c=page_get_cursors(page);
 
     while (c) {
-        btree_cursor_t *btc=cursor_get_btree_cursor(c);
-        n=cursor_get_next_in_page(c);
+        btree_cursor_t *btc=c->get_btree_cursor();
+        n=c->get_next_in_page();
 
         /*
          * ignore all cursors which are already uncoupled or which are
@@ -802,8 +802,8 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
             st=btree_cursor_uncouple(btc, 0);
             if (st)
                 return (st);
-            cursor_set_next_in_page(c, 0);
-            cursor_set_previous_in_page(c, 0);
+            c->set_next_in_page(0);
+            c->set_previous_in_page(0);
         }
 
         c=n;
@@ -817,7 +817,7 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 
 void
 btree_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                btree_cursor_t *cursor, ham_cursor_t *parent)
+                btree_cursor_t *cursor, Cursor *parent)
 {
     btree_cursor_set_parent(cursor, parent);
 }

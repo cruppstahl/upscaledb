@@ -44,6 +44,15 @@ extern "C" {
  */
 typedef struct btree_cursor_t
 {
+    btree_cursor_t()
+    : _dupe_cache() {
+        _parent=0;
+        _dupe_id=0;
+        _u._coupled._page=0;
+        _u._coupled._index=0;
+        _u._uncoupled._key=0;
+    }
+
     /** the parent cursor */
     Cursor *_parent;
 
@@ -93,7 +102,7 @@ typedef struct btree_cursor_t
 #define btree_cursor_set_parent(c, p)         (c)->_parent=p
 
 /** get the database pointer */
-#define btree_cursor_get_db(c)                (c)->_parent->_db
+#define btree_cursor_get_db(c)                (c)->_parent->get_db()
 
 /** get the flags */
 #define btree_cursor_get_flags(c)             (c)->_parent->get_flags()

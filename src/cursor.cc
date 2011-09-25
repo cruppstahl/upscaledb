@@ -188,6 +188,7 @@ cursor_couple_to_dupe(Cursor *cursor, ham_u32_t dupe_id)
         btree_cursor_set_dupe_id(btc, e->get_btree_dupe_idx());
     }
     else {
+        ham_assert(e->get_txn_op()!=0, (""));
         txn_cursor_couple(txnc, e->get_txn_op());
         cursor_couple_to_txnop(cursor);
     }

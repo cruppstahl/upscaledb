@@ -20,7 +20,7 @@
 
 ham_status_t
 txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                txn_cursor_t *cursor, ham_cursor_t *parent)
+                txn_cursor_t *cursor, Cursor *parent)
 {
     (void)db;
     (void)txn;
@@ -53,7 +53,7 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op)
 
 void
 txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, 
-                ham_cursor_t *parent)
+                Cursor *parent)
 {
     txn_cursor_set_parent(dest, parent);
     txn_cursor_set_coupled_op(dest, 0);
@@ -71,7 +71,7 @@ txn_cursor_close(txn_cursor_t *cursor)
 ham_status_t 
 txn_cursor_conflicts(txn_cursor_t *cursor)
 {
-    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
 
     if (txn_op_get_txn(op)!=txn) {
@@ -87,7 +87,7 @@ ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
     ham_db_t *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op;
     txn_opnode_t *node;
 
@@ -114,7 +114,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
 {
     txn_op_t *lastdup=0;
     ham_txn_t *optxn=0;
-    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+    Cursor *pc=txn_cursor_get_parent(cursor);
 
     if (!op)
         op=txn_opnode_get_newest_op(node);
@@ -125,7 +125,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from 
          * committed transactions */
-        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
+        if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
                 || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
             /* a normal (overwriting) insert will return this key */
             if ((txn_op_get_flags(op)&TXN_OP_INSERT)
@@ -160,7 +160,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         }
 
 next:
-        cursor_set_dupecache_index(pc, 0);
+        pc->set_dupecache_index(0);
         op=txn_op_get_previous_in_node(op);
     }
 
@@ -269,10 +269,10 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
 {
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
     txn_opnode_t *node=txn_op_get_node(op);
-    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+    Cursor *pc=txn_cursor_get_parent(cursor);
 
     ham_assert(!txn_cursor_is_nil(cursor), (""));
-    ham_assert(cursor_get_dupecache_index(pc)!=0, (""));
+    ham_assert(pc->get_dupecache_index()!=0, (""));
 
     op=txn_opnode_get_newest_op(node);
 
@@ -280,13 +280,13 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
         ham_txn_t *optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from 
          * committed transactions */
-        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
+        if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
                 || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
             /* a normal erase deletes ALL the duplicates */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                 ham_u32_t ref=txn_op_get_referenced_dupe(op);
                 if (ref)
-                    return (ref==cursor_get_dupecache_index(pc));
+                    return (ref==pc->get_dupecache_index());
                 return (HAM_TRUE);
             }
         }
@@ -338,7 +338,7 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     ham_db_t *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
 
     return (db_insert_txn(db, txn, key, record, flags, cursor));
 }
@@ -417,14 +417,14 @@ ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor)
 {
     ham_status_t st;
-    ham_db_t *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
     txn_op_t *op;
     txn_opnode_t *node;
-    ham_cursor_t *parent=txn_cursor_get_parent(cursor);
+    ham_db_t *db=txn_cursor_get_db(cursor);
+    Cursor *parent=txn_cursor_get_parent(cursor);
+    ham_txn_t *txn=parent->get_txn();
 
     /* don't continue if cursor is nil */
-    if (btree_cursor_is_nil(cursor_get_btree_cursor(parent))
+    if (btree_cursor_is_nil(parent->get_btree_cursor())
             && txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 
@@ -443,7 +443,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
 
     /* case 1 described above */
     if (txn_cursor_is_nil(cursor)) {
-        btree_cursor_t *btc=cursor_get_btree_cursor(parent);
+        btree_cursor_t *btc=parent->get_btree_cursor();
         if (btree_cursor_is_coupled(btc)) {
             st=btree_cursor_uncouple(btc, 0);
             if (st)
