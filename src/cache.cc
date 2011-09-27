@@ -26,7 +26,7 @@
 #include "changeset.h"
 
 
-ham_cache_t::ham_cache_t(ham_env_t *env, ham_size_t capacity_bytes)
+ham_cache_t::ham_cache_t(ham_env_t *env, ham_u64_t capacity_bytes)
   : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0), m_totallist(0),
     m_totallist_tail(0)
 {

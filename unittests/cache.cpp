@@ -48,6 +48,7 @@ public:
         BFC_REGISTER_TEST(CacheTest, setSizeEnvOpenTest);
         BFC_REGISTER_TEST(CacheTest, setSizeDbCreateTest);
         BFC_REGISTER_TEST(CacheTest, setSizeDbOpenTest);
+        BFC_REGISTER_TEST(CacheTest, bigSizeTest);
     }
 
 protected:
@@ -361,6 +362,15 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+    }
+
+    void bigSizeTest(void)
+    {
+        ham_u64_t size=1024ull*1024ull*1024ull*16ull;
+        ham_cache_t *cache=new ham_cache_t(m_env, size);
+        BFC_ASSERT(cache!=0);
+        BFC_ASSERT_EQUAL(size, cache->get_capacity());
+        delete cache;
     }
 };
 

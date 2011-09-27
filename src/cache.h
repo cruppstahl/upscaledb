@@ -45,7 +45,7 @@ class ham_cache_t
      * @remark max_size is in bytes!
      */
     ham_cache_t(ham_env_t *env, 
-                ham_size_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
+                ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
     /**
      * the destructor closes and destroys the cache manager object
@@ -104,7 +104,7 @@ class ham_cache_t
      */
     ham_page_t *get_page(ham_offset_t address, ham_u32_t flags=0) {
         ham_page_t *page;
-        ham_size_t hash=calc_hash(address);
+        ham_u64_t hash=calc_hash(address);
 
         page=m_buckets[hash];
         while (page) {
@@ -136,7 +136,7 @@ class ham_cache_t
      * store a page in the cache
      */
     void put_page(ham_page_t *page) {
-        ham_size_t hash=calc_hash(page_get_self(page));
+        ham_u64_t hash=calc_hash(page_get_self(page));
 
         ham_assert(page_get_pers(page), (""));
 
@@ -190,7 +190,7 @@ class ham_cache_t
 
         /* remove the page from the cache buckets */
         if (page_get_self(page)) {
-            ham_size_t hash=calc_hash(page_get_self(page));
+            ham_u64_t hash=calc_hash(page_get_self(page));
             if (page_is_in_list(m_buckets[hash], page, 
                     PAGE_LIST_BUCKET)) {
                 m_buckets[hash]=page_list_remove(m_buckets[hash], 
@@ -221,7 +221,7 @@ class ham_cache_t
     /**
      * get number of currently stored pages
      */
-    ham_size_t get_cur_elements(void) {
+    ham_u64_t get_cur_elements(void) {
         return (m_cur_elements);
     }
 
@@ -250,7 +250,7 @@ class ham_cache_t
     /**
      * get the capacity (in bytes)
      */
-    ham_size_t get_capacity(void) { 
+    ham_u64_t get_capacity(void) { 
         return (m_capacity); 
     }
 
@@ -260,7 +260,7 @@ class ham_cache_t
     ham_status_t check_integrity(void);
 
   private:
-    ham_size_t calc_hash(ham_offset_t o) {
+    ham_u64_t calc_hash(ham_offset_t o) {
         return (o%CACHE_BUCKET_SIZE);
     }
 
@@ -268,10 +268,10 @@ class ham_cache_t
     ham_env_t *m_env;
 
     /** the capacity (in bytes) */
-    ham_size_t m_capacity;
+    ham_u64_t m_capacity;
 
     /** the current number of cached elements */
-    ham_size_t m_cur_elements;
+    ham_u64_t m_cur_elements;
 
     /** linked list of ALL cached pages */
     ham_page_t *m_totallist;
