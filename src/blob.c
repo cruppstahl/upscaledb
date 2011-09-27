@@ -1059,7 +1059,8 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         item_record._intflags = dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
                                                          |KEY_BLOB_SIZE_TINY
                                                          |KEY_BLOB_SIZE_EMPTY);
-        st=util_read_record(db, &item_record, dupe_entry_get_ridptr(e), flags);
+        st=util_read_record(db, &item_record, 
+                            (ham_u64_t *)dupe_entry_get_ridptr(e), flags);
         if (st)
             return (st);
 
