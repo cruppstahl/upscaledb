@@ -1,6 +1,7 @@
 
 Aug 25, 2011 - chris ---------------------------------------------------
 o configure.in: AM_INIT_AUTOMAKE requests now version 1.10 (thanks, Ger)
+o enabled large file support for 32bit linux (thanks, liheyuan)
 
 Jul 25, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.0rc1

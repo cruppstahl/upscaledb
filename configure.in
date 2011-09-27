@@ -202,6 +202,7 @@ int main(void) {
 }],ac_cv_largefile=yes,ac_cv_largefile=no,ac_cv_largefile=no)])
 if test $ac_cv_largefile = yes; then
     AC_DEFINE(HAVE_O_LARGEFILE,1,[flag O_LARGEFILE is supported])
+    CFLAGS="${CFLAGS} -D_FILE_OFFSET_BITS=64"
 fi
 
 #

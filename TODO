@@ -192,33 +192,27 @@ x c++-ify the dupecache and the cursor
     x also transform dupecache_line_t
     x also transform the cursor
 
-THERE ARE SOME LOCAL MODIFICATIONS
-    - cleanup
-    - test on 32bit linux
+x merge largefile support from master branch (also merge TO master branch)
 
 o make sure that all unittests and monster tests are now working
     (also check with valgrind!)
 
-o merge largefile support from master branch (also merge TO master branch)
-    o needs a unittest (create/write/close/open/seek/tell/read/close > 2GB)
-    o needs checks in configure.in (does it? it's just a #define)
-
-o add tests to verify that the cursor is not modified if an operation fails!
+. add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
-o the whole c++ protocol should be c++-ified
+. the whole c++ protocol should be c++-ified
 
-o blog-eintrag über c++, twitter!
+. blog-eintrag über c++, twitter!
 
-o move the whole configuration (key sizes, parameters, page size, etc) into a 
+. move the whole configuration (key sizes, parameters, page size, etc) into a 
     separate class which is instantiated by the env
 
-o c++-ify the page
+. c++-ify the page
 
-o c++-ify the device
+. c++-ify the device
 
-o c++-ify the btree node representation; 
+. c++-ify the btree node representation; 
     o include duplicates as well! disentangle duplicates from blob-handling
     o c++-ify blob-handling (separately from duplicates)
 
