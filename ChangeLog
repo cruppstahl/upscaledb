@@ -1,4 +1,7 @@
 
+Sep 27, 2011 - chris ---------------------------------------------------
+o the cache size is now a 64bit variable; cachesize can be > 4 GB
+
 Aug 25, 2011 - chris ---------------------------------------------------
 o configure.in: AM_INIT_AUTOMAKE requests now version 1.10 (thanks, Ger)
 

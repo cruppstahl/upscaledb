@@ -29,10 +29,10 @@
 #define __calc_hash(cache, o)      ((o)%(cache_get_bucketsize(cache)))
 
 ham_cache_t *
-cache_new(ham_env_t *env, ham_size_t max_size)
+cache_new(ham_env_t *env, ham_u64_t max_size)
 {
     ham_cache_t *cache;
-    ham_size_t mem, buckets;
+    ham_u64_t mem, buckets;
 
     buckets=CACHE_BUCKET_SIZE;
     ham_assert(buckets, (0));
@@ -156,7 +156,7 @@ ham_page_t *
 cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page;
-    ham_size_t hash=__calc_hash(cache, address);
+    ham_u64_t hash=__calc_hash(cache, address);
 
     page=cache_get_bucket(cache, hash);
     while (page) {
@@ -187,7 +187,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 void 
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash=__calc_hash(cache, page_get_self(page));
+    ham_u64_t hash=__calc_hash(cache, page_get_self(page));
 
     ham_assert(page_get_pers(page), (""));
 
@@ -266,7 +266,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 
     /* remove the page from the cache bucket */
     if (page_get_self(page)) {
-        ham_size_t hash=__calc_hash(cache, page_get_self(page));
+        ham_u64_t hash=__calc_hash(cache, page_get_self(page));
         if (page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET)) {
             cache_set_bucket(cache, hash, 
@@ -300,7 +300,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 ham_status_t
 cache_check_integrity(ham_cache_t *cache)
 {
-    ham_size_t elements=0;
+    ham_u64_t elements=0;
     ham_page_t *head;
     ham_page_t *tail=cache_get_totallist_tail(cache);
 

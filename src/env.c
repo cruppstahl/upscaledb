@@ -969,7 +969,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
 {
     ham_status_t st;
     ham_u16_t keysize = 0;
-    ham_size_t cachesize = 0;
+    ham_u64_t cachesize = 0;
     ham_u16_t dam = 0;
     ham_u16_t dbi;
     ham_size_t i;

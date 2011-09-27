@@ -50,6 +50,7 @@ public:
         BFC_REGISTER_TEST(CacheTest, setSizeEnvOpenTest);
         BFC_REGISTER_TEST(CacheTest, setSizeDbCreateTest);
         BFC_REGISTER_TEST(CacheTest, setSizeDbOpenTest);
+        BFC_REGISTER_TEST(CacheTest, bigSizeTest);
     }
 
 protected:
@@ -423,6 +424,23 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+    }
+
+    void bigSizeTest(void)
+    {
+        ham_u64_t size=1024ull*1024ull*1024ull*16ull;
+        ham_cache_t *cache=cache_new(m_env, size);
+        BFC_ASSERT(cache!=0);
+        BFC_ASSERT_EQUAL(size, cache_get_capacity(cache));
+        BFC_ASSERT_EQUAL(m_env, cache_get_env(cache));
+        cache_set_cur_elements(cache, 12);
+        BFC_ASSERT_EQUAL(12ull, cache_get_cur_elements(cache));
+        cache_set_bucketsize(cache, 11);
+        BFC_ASSERT_EQUAL(11ull, cache_get_bucketsize(cache));
+        BFC_ASSERT(cache_get_totallist(cache)==0);
+        BFC_ASSERT(cache_get_unused_page(cache)==0);
+        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
+        cache_delete(cache);
     }
 };
 

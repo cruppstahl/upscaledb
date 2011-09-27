@@ -506,13 +506,13 @@ ham_status_t
 __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename, 
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
-        ham_size_t *pcachesize, ham_u16_t *pdbname,
+        ham_u64_t *pcachesize, ham_u16_t *pdbname,
         ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, ham_bool_t create)
 {
     ham_size_t pagesize=0;
     ham_u16_t keysize=0;
     ham_u16_t dbname=HAM_DEFAULT_DATABASE_NAME;
-    ham_size_t cachesize=0;
+    ham_u64_t cachesize=0;
     ham_bool_t no_mmap=HAM_FALSE;
     ham_u16_t dbs=0;
     ham_u16_t dam=0;
@@ -638,7 +638,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
             switch (param->name) {
             case HAM_PARAM_CACHESIZE:
                 if (pcachesize) {
-                    cachesize=(ham_size_t)param->value;
+                    cachesize=param->value;
                     if (cachesize > 0) {
                         if (env && env_get_cache(env)
                                 && cachesize != env_get_cachesize(env)) {
@@ -1143,7 +1143,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     ham_status_t st;
     ham_size_t pagesize = 0;
     ham_u16_t keysize = 0;
-    ham_size_t cachesize = 0;
+    ham_u64_t cachesize = 0;
     ham_u16_t maxdbs = 0;
 
     if (!env) {
@@ -1314,7 +1314,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_size_t cachesize=0;
+    ham_u64_t cachesize=0;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -1795,7 +1795,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 {
     ham_status_t st;
     ham_u16_t dbname=HAM_FIRST_DATABASE_NAME;
-    ham_size_t cachesize=0;
+    ham_u64_t cachesize=0;
     ham_u16_t dam = 0;
     ham_env_t *env;
     ham_u32_t env_flags;
@@ -1911,7 +1911,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_u16_t maxdbs = 0;
     ham_u16_t keysize = 0;
     ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
-    ham_size_t cachesize = 0;
+    ham_u64_t cachesize = 0;
     ham_env_t *env=0;
     ham_u32_t env_flags;
     ham_parameter_t env_param[8]={{0, 0}};

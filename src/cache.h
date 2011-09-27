@@ -38,13 +38,13 @@ struct ham_cache_t
     ham_env_t *_env;
 
     /** the capacity (in bytes) */
-    ham_size_t _capacity;
+    ham_u64_t _capacity;
 
     /** the current number of cached elements */
-    ham_size_t _cur_elements;
+    ham_u64_t _cur_elements;
 
     /** the number of buckets */
-    ham_size_t _bucketsize;
+    ham_u64_t _bucketsize;
 
     /** linked list of ALL cached pages */
     ham_page_t *_totallist;
@@ -64,7 +64,6 @@ struct ham_cache_t
 
     /** the buckets - a linked list of ham_page_t pointers */
     ham_page_t *_buckets[1];
-
 };
 
 /*
@@ -161,7 +160,7 @@ cache_reduce_page_counts(ham_cache_t *cache);
  * max_size is in bytes!
  */
 extern ham_cache_t *
-cache_new(ham_env_t *env, ham_size_t max_size);
+cache_new(ham_env_t *env, ham_u64_t max_size);
 
 /**
  * close and destroy a cache manager object
