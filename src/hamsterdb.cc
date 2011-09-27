@@ -1026,7 +1026,7 @@ ham_env_delete(ham_env_t *env)
     ham_status_t st;
     ham_status_t st2 = HAM_SUCCESS;
 #if HAM_ENABLE_REMOTE
-    static ham_u32_t critsec=0;
+    static ham_u64_t critsec=0;
 #endif
 
     if (!env) {
@@ -1077,7 +1077,7 @@ ham_env_delete(ham_env_t *env)
      * we just use a static variable. This is still not safe, but it should 
      * work for now. */
     if (critsec==0) {
-        ham_u32_t pseudo_random=((ham_u32_t)PTR_TO_U64(env))&0xffffffff;
+        ham_u64_t pseudo_random=((ham_u64_t)PTR_TO_U64(env))&0xffffffff;
         critsec=pseudo_random;
         if (critsec==pseudo_random) {
             /* shutdown libcurl library */

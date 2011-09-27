@@ -2258,6 +2258,8 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     ham_assert(st==0, (""));
 
+    env_get_changeset(env).clear();
+
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
@@ -2969,6 +2971,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=btree_cursor_move(cursor->get_btree_cursor(), 
                 key, record, flags);
+        env_get_changeset(env).clear();
         if (st)
             return (st);
 

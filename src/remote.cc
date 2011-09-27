@@ -418,7 +418,7 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 strncpy(filename, 
                         proto_env_get_parameters_reply_get_filename(reply),
                             sizeof(filename));
-                p->value=PTR_TO_U64(&filename[0]);
+                p->value=(ham_u64_t)(&filename[0]);
             }
             break;
         default:
@@ -860,7 +860,7 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
             ham_assert(proto_db_get_parameters_reply_has_filename(reply), (""));
             strncpy(filename, proto_db_get_parameters_reply_get_filename(reply),
                         sizeof(filename));
-            p->value=PTR_TO_U64(&filename[0]);
+            p->value=(ham_u64_t)(&filename[0]);
             break;
         case HAM_PARAM_KEYSIZE:
             ham_assert(proto_db_get_parameters_reply_has_keysize(reply), (""));
