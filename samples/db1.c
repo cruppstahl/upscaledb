@@ -21,7 +21,7 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 2097152
+#define LOOP 100
 
 void 
 error(const char *foo, ham_status_t st)
@@ -49,7 +49,6 @@ main(int argc, char **argv)
     ham_db_t *db;          /* hamsterdb database object */
     ham_key_t key;         /* the structure for a key */
     ham_record_t record;   /* the structure for a record */
-    char buffer[1024]={0};
 
     memset(&key, 0, sizeof(key));
     memset(&record, 0, sizeof(record));
@@ -81,17 +80,14 @@ main(int argc, char **argv)
         key.data=&i;
         key.size=sizeof(i);
 
-        record.data=&buffer[0];
-        record.size=sizeof(buffer);
+        record.data=&i;
+        record.size=sizeof(i);
 
         st=ham_insert(db, 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
-        if (i%100==0)
-            printf("%d\n", i);
     }
 
-printf("lookup\n");
     /*
      * now lookup all values
      *
