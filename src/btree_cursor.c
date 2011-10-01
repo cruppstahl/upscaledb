@@ -958,6 +958,77 @@ bt_cursor_get_duplicate_count(ham_cursor_t *db_cursor,
     return (0);
 }
 
+static ham_status_t
+bt_cursor_get_record_size(ham_cursor_t *db_cursor, ham_offset_t *size)
+{
+    ham_bt_cursor_t *cursor = (ham_bt_cursor_t *)db_cursor;
+    ham_status_t st;
+    ham_db_t *db=bt_cursor_get_db(cursor);
+    ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    ham_page_t *page;
+    btree_node_t *node;
+    int_key_t *entry;
+    ham_u32_t keyflags=0;
+    ham_u64_t *ridptr=0;
+    ham_u64_t rid=0;
+    dupe_entry_t dupeentry;
+
+    if (!be)
+        return (HAM_NOT_INITIALIZED);
+
+    /*
+     * uncoupled cursor: couple it
+     */
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(cursor);
+        if (st)
+            return (st);
+    }
+    else if (!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED))
+        return (HAM_CURSOR_IS_NIL);
+
+    page=bt_cursor_get_coupled_page(cursor);
+    node=ham_page_get_btree_node(page);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(cursor));
+
+    if (key_get_flags(entry)&KEY_HAS_DUPLICATES) {
+        st=blob_duplicate_get(db_get_env(db), key_get_ptr(entry),
+                        bt_cursor_get_dupe_id(cursor),
+                        &dupeentry);
+        if (st)
+            return st;
+        keyflags=dupe_entry_get_flags(&dupeentry);
+        ridptr=&dupeentry._rid;
+        rid=dupeentry._rid;
+    }
+    else {
+        keyflags=key_get_flags(entry);
+        ridptr=(ham_u64_t *)&key_get_rawptr(entry);
+        rid=key_get_ptr(entry);
+    }
+
+    if (keyflags&KEY_BLOB_SIZE_TINY) {
+        /* the highest byte of the record id is the size of the blob */
+        char *p=(char *)ridptr;
+        *size=p[sizeof(ham_offset_t)-1];
+    }
+    else if (keyflags&KEY_BLOB_SIZE_SMALL) {
+        /* record size is sizeof(ham_offset_t) */
+        *size=sizeof(ham_offset_t);
+    }
+    else if (keyflags&KEY_BLOB_SIZE_EMPTY) {
+        /* record size is 0 */
+        *size=0;
+    }
+    else {
+        st=blob_get_datasize(db, rid, size);
+        if (st)
+            return (st);
+    }
+
+    return (0);
+}
+
 ham_status_t
 bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
@@ -1025,6 +1096,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     c->_fun_insert=bt_cursor_insert;
     c->_fun_erase=bt_cursor_erase;
     c->_fun_get_duplicate_count=bt_cursor_get_duplicate_count;
+    c->_fun_get_record_size=bt_cursor_get_record_size;
 
     *cu=c;
     return (0);

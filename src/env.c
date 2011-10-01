@@ -45,7 +45,7 @@ extern ham_status_t
 __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename, 
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
-        ham_size_t *pcachesize, ham_u16_t *pdbname,
+        ham_u64_t *pcachesize, ham_u16_t *pdbname,
         ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, ham_bool_t create);
 
 /*
@@ -1148,7 +1148,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     ham_db_t *head;
     ham_status_t st;
     ham_u16_t dam = 0;
-    ham_size_t cachesize = 0;
+    ham_u64_t cachesize = 0;
     ham_backend_t *be = 0;
     ham_u16_t dbi;
 

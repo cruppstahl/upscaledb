@@ -2197,6 +2197,33 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
 }
 
 static ham_status_t
+_local_cursor_get_record_size(ham_cursor_t *cursor, ham_offset_t *size)
+{
+    ham_status_t st;
+    ham_txn_t local_txn;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+
+    if (!cursor_get_txn(cursor)) {
+        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
+        if (st)
+            return (st);
+    }
+
+    st=(*cursor->_fun_get_record_size)(cursor, size);
+    if (st) {
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
+        return (st);
+    }
+
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
+}
+
+static ham_status_t
 _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
@@ -2300,6 +2327,7 @@ db_initialize_local(ham_db_t *db)
     db->_fun_cursor_erase   =_local_cursor_erase;
     db->_fun_cursor_find    =_local_cursor_find;
     db->_fun_cursor_get_duplicate_count=_local_cursor_get_duplicate_count;
+    db->_fun_cursor_get_record_size=_local_cursor_get_record_size;
     db->_fun_cursor_overwrite=_local_cursor_overwrite;
     db->_fun_cursor_move    =_local_cursor_move;
 

@@ -1357,6 +1357,15 @@ bail:
 }
 
 static ham_status_t
+_remote_cursor_get_record_size(ham_cursor_t *cursor, ham_u64_t *size)
+{
+    (void)cursor;
+    (void)size;
+    /* need this? send me a mail and i will implement it. */
+    return (HAM_NOT_IMPLEMENTED);
+}
+
+static ham_status_t
 _remote_cursor_overwrite(ham_cursor_t *cursor, 
             ham_record_t *record, ham_u32_t flags)
 {
@@ -1493,6 +1502,7 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_erase   =_remote_cursor_erase;
     db->_fun_cursor_find    =_remote_cursor_find;
     db->_fun_cursor_get_duplicate_count=_remote_cursor_get_duplicate_count;
+    db->_fun_cursor_get_record_size=_remote_cursor_get_record_size;
     db->_fun_cursor_overwrite=_remote_cursor_overwrite;
     db->_fun_cursor_move    =_remote_cursor_move;
     return (0);

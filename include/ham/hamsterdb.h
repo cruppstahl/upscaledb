@@ -2957,6 +2957,21 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, ham_u32_t flags);
 
 /**
+ * Returns the record size of the current key
+ *
+ * Returns the record size of the item to which the Cursor currently refers.
+ *
+ * @param cursor A valid Cursor handle
+ * @param size Returns the record size, in bytes
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_INV_PARAMETER if @a cursor or @a size is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_cursor_get_record_size(ham_cursor_t *cursor, ham_offset_t *size);
+
+/**
  * Closes a Database Cursor
  *
  * Closes a Cursor and frees allocated memory. All Cursors

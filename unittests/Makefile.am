@@ -21,6 +21,7 @@ test_SOURCES    = log.cpp \
                   cppapi.cpp \
                   recno.cpp \
                   duplicates.cpp \
+                  cursor.cpp \
                   env.cpp \
                   hamsterdb.cpp \
                   blob.cpp \

@@ -336,6 +336,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\cursor.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\bfc-signal.c"
 			>
 		</File>

@@ -233,11 +233,19 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
  *
  * stores the data in @a record
  *
- * flags: either 0 or HAM_DIRECT_ACCESS
+ * flags: either 0 or HAM_DIRECT_ACCESS 
  */
 extern ham_status_t
 blob_read(ham_db_t *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags);
+
+/**
+ * retrieve a blob size
+ *
+ * stores the data in @a size
+ */
+extern ham_status_t
+blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size);
 
 /**
  * overwrite an existing blob
