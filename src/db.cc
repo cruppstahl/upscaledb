@@ -2363,6 +2363,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     ham_assert(st==0, (""));
+    env_get_changeset(env).clear();
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2792,6 +2793,7 @@ bail:
     }
 
     ham_assert(st==0, (""));
+    env_get_changeset(env).clear();
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
