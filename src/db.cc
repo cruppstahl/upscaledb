@@ -2870,6 +2870,67 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
 }
 
 static ham_status_t
+_local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
+{
+    ham_status_t st=0;
+    ham_db_t *db=cursor->get_db();
+    ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
+    txn_cursor_t *txnc=cursor->get_txn_cursor();
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=env_purge_cache(db_get_env(db));
+        if (st)
+            return (st);
+    }
+
+    if (cursor_is_nil(cursor, 0) && txn_cursor_is_nil(txnc))
+        return (HAM_CURSOR_IS_NIL);
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor->get_txn() 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor->set_txn(local_txn);
+    }
+
+    /* this function will do all the work */
+    st=cursor_get_record_size(cursor, 
+                    cursor->get_txn() ? cursor->get_txn() : local_txn,
+                    size);
+
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor->set_txn(0);
+
+    env_get_changeset(env).clear();
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
+    }
+
+    ham_assert(st==0, (""));
+
+    /* set a flag that the cursor just completed an Insert-or-find 
+     * operation; this information is needed in ham_cursor_move */
+    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
+
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else
+        return (st);
+}
+
+static ham_status_t
 _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
                 ham_u32_t flags)
 {
@@ -3045,6 +3106,7 @@ db_initialize_local(ham_db_t *db)
     db->_fun_cursor_erase   =_local_cursor_erase;
     db->_fun_cursor_find    =_local_cursor_find;
     db->_fun_cursor_get_duplicate_count=_local_cursor_get_duplicate_count;
+    db->_fun_cursor_get_record_size=_local_cursor_get_record_size;
     db->_fun_cursor_overwrite=_local_cursor_overwrite;
     db->_fun_cursor_move    =_local_cursor_move;
 

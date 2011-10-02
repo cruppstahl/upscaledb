@@ -1,3 +1,7 @@
+Oct 02, 2011 - chris ---------------------------------------------------
+o added a new function ham_cursor_get_record_size; retrieves the record
+    size of the current item
+
 Sep 27, 2011 - chris ---------------------------------------------------
 o the cache size is now 64bit, allowing caches > 4 GB
 

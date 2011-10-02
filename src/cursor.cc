@@ -1440,6 +1440,25 @@ cursor_get_duplicate_count(Cursor *cursor, ham_txn_t *txn,
     return (st);
 }
 
+ham_status_t
+cursor_get_record_size(Cursor *cursor, ham_txn_t *txn, ham_offset_t *psize)
+{
+    ham_status_t st=0;
+
+    *psize=0;
+
+    if (txn) {
+        if (cursor_is_coupled_to_txnop(cursor))
+            st=txn_cursor_get_record_size(cursor->get_txn_cursor(), psize);
+        else
+            st=btree_cursor_get_record_size(cursor->get_btree_cursor(), psize);
+    }
+    else
+        st=btree_cursor_get_record_size(cursor->get_btree_cursor(), psize);
+
+    return (st);
+}
+
 ham_status_t 
 cursor_overwrite(Cursor *cursor, ham_txn_t *txn, ham_record_t *record,
             ham_u32_t flags)

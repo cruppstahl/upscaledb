@@ -781,6 +781,38 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
 }
 
 ham_status_t
+blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size)
+{
+    ham_status_t st;
+    ham_page_t *page;
+    blob_t hdr;
+
+    /*
+     * in-memory-database: the blobid is actually a pointer to the memory
+     * buffer, in which the blob is stored
+     */
+    if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) {
+        blob_t *hdr=(blob_t *)U64_TO_PTR(blobid);
+        *size=(ham_size_t)blob_get_size(hdr);
+        return (0);
+    }
+
+    ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
+
+    /* read the blob header */
+    st=__read_chunk(db_get_env(db), 0, &page, blobid,
+                (ham_u8_t *)&hdr, sizeof(hdr));
+    if (st)
+        return (st);
+    
+    if (blob_get_self(&hdr)!=blobid)
+        return (HAM_BLOB_NOT_FOUND);
+
+    *size=blob_get_size(&hdr);
+    return (0);
+}
+
+ham_status_t
 blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid)
 {

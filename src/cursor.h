@@ -484,6 +484,15 @@ cursor_get_duplicate_count(Cursor *cursor, ham_txn_t *txn,
             ham_u32_t *pcount, ham_u32_t flags);
 
 /**
+ * Retrieves the size of the current record
+ *
+ * The Transaction is passed as a separate pointer since it might be a 
+ * local/temporary Transaction that was created only for this single operation.
+ */
+extern ham_status_t
+cursor_get_record_size(Cursor *cursor, ham_txn_t *txn, ham_offset_t *psize);
+
+/**
  * Overwrites the record of the current key
  *
  * The Transaction is passed as a separate pointer since it might be a 

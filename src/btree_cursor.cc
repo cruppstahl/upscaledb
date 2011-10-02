@@ -869,3 +869,72 @@ btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
                     ptable, needs_free));
 }
 
+ham_status_t
+btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
+{
+    ham_status_t st;
+    ham_db_t *db=btree_cursor_get_db(c);
+    ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    ham_page_t *page;
+    btree_node_t *node;
+    btree_key_t *entry;
+    ham_u32_t keyflags=0;
+    ham_u64_t *ridptr=0;
+    ham_u64_t rid=0;
+    dupe_entry_t dupeentry;
+
+    if (!be)
+        return (HAM_NOT_INITIALIZED);
+
+    /*
+     * uncoupled cursor: couple it
+     */
+    if (btree_cursor_is_uncoupled(c)) {
+        st=btree_cursor_couple(c);
+        if (st)
+            return (st);
+    }
+    else if (!btree_cursor_is_coupled(c))
+        return (HAM_CURSOR_IS_NIL);
+
+    page=btree_cursor_get_coupled_page(c);
+    node=page_get_btree_node(page);
+    entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
+
+    if (key_get_flags(entry)&KEY_HAS_DUPLICATES) {
+        st=blob_duplicate_get(db_get_env(db), key_get_ptr(entry),
+                        btree_cursor_get_dupe_id(c),
+                        &dupeentry);
+        if (st)
+            return st;
+        keyflags=dupe_entry_get_flags(&dupeentry);
+        ridptr=&dupeentry._rid;
+        rid=dupeentry._rid;
+    }
+    else {
+        keyflags=key_get_flags(entry);
+        ridptr=(ham_u64_t *)&key_get_rawptr(entry);
+        rid=key_get_ptr(entry);
+    }
+
+    if (keyflags&KEY_BLOB_SIZE_TINY) {
+        /* the highest byte of the record id is the size of the blob */
+        char *p=(char *)ridptr;
+        *size=p[sizeof(ham_offset_t)-1];
+    }
+    else if (keyflags&KEY_BLOB_SIZE_SMALL) {
+        /* record size is sizeof(ham_offset_t) */
+        *size=sizeof(ham_offset_t);
+    }
+    else if (keyflags&KEY_BLOB_SIZE_EMPTY) {
+        /* record size is 0 */
+        *size=0;
+    }
+    else {
+        st=blob_get_datasize(db, rid, size);
+        if (st)
+            return (st);
+    }
+
+    return (0);
+}

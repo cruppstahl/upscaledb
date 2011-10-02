@@ -201,6 +201,12 @@ extern ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
 
 /**
+ * Retrieves the record size of the current item
+ */
+extern ham_status_t
+txn_cursor_get_record_size(txn_cursor_t *cursor, ham_offset_t *psize);
+
+/**
  * Erases the current item, then 'nil's the cursor
  */
 extern ham_status_t

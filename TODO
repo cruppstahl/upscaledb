@@ -194,6 +194,18 @@ x c++-ify the dupecache and the cursor
 
 x merge largefile support from master branch (also merge TO master branch)
 
+x merge changes from master branch
+    x pagesize is 64bit
+    x large file support
+    x ham_cursor_get_record_size
+
+o make sure that all unittests and monster tests are now working
+    (also check with valgrind!)
+
+. blog-eintrag über c++, twitter!
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 o new test case:
     insert (1)
     insert (2)
@@ -211,16 +223,11 @@ o new test case for cursors
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
 
-o make sure that all unittests and monster tests are now working
-    (also check with valgrind!)
-
 . add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
 . the whole c++ protocol should be c++-ified
-
-. blog-eintrag über c++, twitter!
 
 . move the whole configuration (key sizes, parameters, page size, etc) into a 
     separate class which is instantiated by the env
@@ -232,13 +239,6 @@ o make sure that all unittests and monster tests are now working
 . c++-ify the btree node representation; 
     o include duplicates as well! disentangle duplicates from blob-handling
     o c++-ify blob-handling (separately from duplicates)
-
-. merge changes from master branch
-    x pagesize is 64bit
-    x large file support
-    o ham_cursor_get_record_size
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly

@@ -3407,6 +3407,39 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
 }
 
 ham_status_t HAM_CALLCONV
+ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_offset_t *size)
+{
+    ham_db_t *db;
+
+    if (!hcursor) {
+        ham_trace(("parameter 'cursor' must not be NULL"));
+        return (HAM_INV_PARAMETER);
+    }
+
+    Cursor *cursor=(Cursor *)hcursor;
+
+    db=cursor->get_db();
+    if (!db || !db_get_env(db)) {
+        ham_trace(("parameter 'cursor' must be linked to a valid database"));
+        return (HAM_INV_PARAMETER);
+    }
+    if (!size) {
+        ham_trace(("parameter 'size' must not be NULL"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
+    *size=0;
+
+    if (!db->_fun_cursor_get_record_size) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+    }
+
+    return (db_set_error(db, 
+                db->_fun_cursor_get_record_size(cursor, size)));
+}
+
+ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *hcursor)
 {
     ham_db_t *db;

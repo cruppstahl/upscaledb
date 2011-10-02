@@ -265,6 +265,12 @@ btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
                 ham_bool_t *needs_free);
 
 /**
+ * retrieves the record size of the current record
+ */
+extern ham_status_t
+btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size);
+
+/**
  * Closes an existing cursor
  */
 extern void

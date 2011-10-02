@@ -285,6 +285,12 @@ struct ham_db_t
                     ham_size_t *count, ham_u32_t flags);
 
     /**
+     * get current record size
+     */
+    ham_status_t (*_fun_cursor_get_record_size)(Cursor *cursor, 
+                    ham_offset_t *size);
+
+    /**
      * overwrite a cursor
      */
     ham_status_t (*_fun_cursor_overwrite)(Cursor *cursor, 

@@ -414,6 +414,24 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
 }
 
 ham_status_t
+txn_cursor_get_record_size(txn_cursor_t *cursor, ham_offset_t *psize)
+{
+    ham_record_t *record=0;
+
+    /* coupled cursor? get record from the txn_op structure */
+    if (!txn_cursor_is_nil(cursor)) {
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        record=txn_op_get_record(op);
+        *psize=record->size;
+    }
+    /* otherwise cursor is nil and we cannot return a key */
+    else
+        return (HAM_CURSOR_IS_NIL);
+
+    return (0);
+}
+
+ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor)
 {
     ham_status_t st;

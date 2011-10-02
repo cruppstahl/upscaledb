@@ -33,7 +33,7 @@ class BaseCursorTest : public hamsterDB_fixture
 
 public:
     BaseCursorTest(const char *name="BaseCursorTest")
-    : hamsterDB_fixture(name)
+    : hamsterDB_fixture(name), m_txn(0)
     {
     }
 
@@ -41,6 +41,7 @@ protected:
     ham_cursor_t *m_cursor;
     ham_db_t *m_db;
     ham_env_t *m_env;
+    ham_txn_t *m_txn;
     memtracker_t *m_alloc;
 
 public:
@@ -85,6 +86,75 @@ public:
         ham_delete(m_db);
         ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void getDuplicateRecordSizeTest()
+    {
+        const int MAX=20;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_cursor_t *c;
+        char data[16];
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+
+        for (int i=0; i<MAX; i++) {
+            rec.data=data;
+            rec.size=i;
+            ::memset(&data, i+0x15, sizeof(data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+        }
+
+        for (int i=0; i<MAX; i++) {
+            ham_offset_t size=0;
+
+            ::memset(&key, 0, sizeof(key));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                        i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_get_record_size(c, &size));
+            BFC_ASSERT_EQUAL(size, rec.size);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void getRecordSizeTest()
+    {
+        const int MAX=20;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_cursor_t *c;
+        char data[16];
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+
+        for (int i=0; i<MAX; i++) {
+            key.data=data;
+            key.size=sizeof(data);
+            rec.data=data;
+            rec.size=i;
+            ::memset(&data, i+0x15, sizeof(data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+        }
+
+        for (int i=0; i<MAX; i++) {
+            ham_offset_t size=0;
+
+            key.data=data;
+            key.size=sizeof(data);
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                        i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_get_record_size(c, &size));
+            BFC_ASSERT_EQUAL(size, rec.size);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void insertFindTest(void)
@@ -300,6 +370,8 @@ public:
         BFC_REGISTER_TEST(NoTxnCursorTest, findInEmptyDatabaseTest);
         BFC_REGISTER_TEST(NoTxnCursorTest, nilCursorTest);
         BFC_REGISTER_TEST(NoTxnCursorTest, moveFirstInEmptyDatabaseTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, getRecordSizeTest);
     }
 
     virtual void setup() 
@@ -326,11 +398,40 @@ public:
     }
 };
 
+class InMemoryCursorTest : public BaseCursorTest
+{
+    define_super(hamsterDB_fixture);
+
+public:
+    InMemoryCursorTest()
+    : BaseCursorTest("InMemoryCursorTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(InMemoryCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(InMemoryCursorTest, getRecordSizeTest);
+    }
+
+    virtual void setup() 
+    { 
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                        HAM_IN_MEMORY_DB|HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+    }
+};
+
 class LongTxnCursorTest : public BaseCursorTest
 {
     define_super(hamsterDB_fixture);
 
-    ham_txn_t *m_txn;
 public:
     virtual void setup() 
     { 
@@ -361,6 +462,8 @@ public:
     : BaseCursorTest("LongTxnCursorTest")
     {
         testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(LongTxnCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, getRecordSizeTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyDatabaseTest);
@@ -6348,6 +6451,7 @@ public:
     }
 };
 
+BFC_REGISTER_FIXTURE(InMemoryCursorTest);
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);
 BFC_REGISTER_FIXTURE(LongTxnCursorTest);
 BFC_REGISTER_FIXTURE(NoTxnCursorTest);
