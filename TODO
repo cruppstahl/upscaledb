@@ -206,64 +206,89 @@ o make sure that all unittests and monster tests are now working
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-o new test case:
-    insert (1)
-    insert (2)
-    cursor_move_last
-    cursor_move_previous
-    cursor_move_previous -> KEY_NOT_FOUND
-    insert (0)
-    cursor_move_previous -> OK
-    -> and the same with first/next
+o rewrite cursor_move (once more) 
 
-o new test case for cursors
-    insert (1, a)
-    insert (1, b) (duplicate of 1)
-    move (last) (-> 1, b)
-    insert (1, c)
-    move (last) (-> 1, c)? is the dupecache updated correctly?
+    idea for algorithm:
+        last: 
+            btree_cursor_move(last)
+            txn_cursor_move(last)
+            if (txn_cursor>=btree_cursor)
+                couple_to_txn
+            else
+                couple_to_btree
+            cursor.last_cmp=cmp
 
-. add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
+        previous:
+            if (cursor.last_cmp<0)
+                txn_cursor_move(previous);
+            else 
+                btree_cursor_move(previous);
+            cursor.last_cmp=compare_cursors()
 
-. the whole c++ protocol should be c++-ified
+            if (cursor.last_cmp<0) {
+                if (is_conflict())
+                    return (previous(cursor))
+                // all other error codes (i.e. erased) are
+                // handled by caller)
+                couple_to_btree
+            }
+            else {
+                if (is_conflict())
+                    return (previous(cursor))
+                // all other error codes (i.e. erased) are
+                // handled by caller)
+                couple_to_txn
+            }
 
-. move the whole configuration (key sizes, parameters, page size, etc) into a 
-    separate class which is instantiated by the env
+    o two tests are failing (see README)
+    o too many compares of the cursors
+    o duplicate keys are slow (need a new dupecache which is shared between
+        cursors)
+        -> needs to be invalidated when inserting new keys, erasing them
+    o new test case:
+        insert (1)
+        insert (2)
+        cursor_move_last
+        cursor_move_previous
+        cursor_move_previous -> KEY_NOT_FOUND
+        insert (0)
+        cursor_move_previous -> OK
+        -> and the same with first/next
+    o new test case for cursors
+        insert (1, a)
+        insert (1, b) (duplicate of 1)
+        move (last) (-> 1, b)
+        insert (1, c)
+        move (last) (-> 1, c)? is the dupecache updated correctly?
+    o there are a couple of areas where a btree cursor is uncoupled, just to 
+        retrieve the key and to couple the txn-key. that's not efficient
+            db.c:__btree_cursor_points_to
+            db.c:__compare_cursors
+            txn_cursor.c:cursor_sync
+            txn_cursor.c:cursor_overwrite
+        o move to a separate function
+        o try to optimize
+    o duplicate (extended) keys are horribly slow, check why and improve it
+        x check if 2.0.0rc1 had the same problems (yes, it has)
+        --> __read_chunk is the bottleneck
+            -> called from blob_read (through db_get_extended_key, 
+                                btree_read_record)
+            -> called from __get_duplicate_table
+        ./test --use-transactions=200 --duplicate --use-cursors 
+                --verbose=1 ../../testfiles/1/202.tst
+        o duplicate tables exist in the btree-cursor AND in the high-level
+            cursor. can we eliminate the btree cursor cache, or at least make
+            sure that tere's no performance penalty when using both?
+            can we cache the duplicate tables??
 
-. c++-ify the page
-
-. c++-ify the device
-
-. c++-ify the btree node representation; 
-    o include duplicates as well! disentangle duplicates from blob-handling
-    o c++-ify blob-handling (separately from duplicates)
-
-o test with tcmalloc; if it works then also use it in the master branch, but
-    make sure that memory consumption does not increase significantly
-
-o there are a couple of areas where a btree cursor is uncoupled, just to 
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
-
-o duplicate (extended) keys are horribly slow, check why and improve it
-    x check if 2.0.0rc1 had the same problems (yes, it has)
-    --> __read_chunk is the bottleneck
-        -> called from blob_read (through db_get_extended_key, 
-                            btree_read_record)
-        -> called from __get_duplicate_table
-    ./test --use-transactions=200 --duplicate --use-cursors 
-            --verbose=1 ../../testfiles/1/202.tst
-    o duplicate tables exist in the btree-cursor AND in the high-level
-        cursor. can we eliminate the btree cursor cache, or at least make
-        sure that tere's no performance penalty when using both?
-        can we cache the duplicate tables??
+o compare performance against 1.1.13 (with and without Transactions)
+    o do some profiling - i am afraid that changeset_get_page() is not efficient
+        enough; maybe a hash table is better?
+    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
+        is only required once then it should be inserted at the tail of the
+        totallist, like a page that was not accessed for a very long time
+    x opnode: use key instead of key* (pointer) - this saves one allocation 
+        per node
 
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
@@ -281,14 +306,14 @@ o improve journalling and get rid of the physical log as much as possible
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
 
-o compare performance against 1.1.13 (with and without Transactions)
-    o do some profiling - i am afraid that changeset_get_page() is not efficient
-        enough; maybe a hash table is better?
-    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
-        is only required once then it should be inserted at the tail of the
-        totallist, like a page that was not accessed for a very long time
-    x opnode: use key instead of key* (pointer) - this saves one allocation 
-        per node
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
+
+o the whole c++ protocol should be c++-ified
+
+o test with tcmalloc; if it works then also use it in the master branch, but
+    make sure that memory consumption does not increase significantly
 
 o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
     fails with an assert if disk is full; need to make sure that recovery 
@@ -299,6 +324,17 @@ o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
     ASSERT FAILED in file env.cc, line 1519:
         "txn_op_get_flags(op)!=TXN_OP_FLUSHED"
     db[0]: txn_begin failed w/ status -18
+
+. move the whole configuration (key sizes, parameters, page size, etc) into a 
+    separate class which is instantiated by the env
+
+. c++-ify the page
+
+. c++-ify the device
+
+. c++-ify the btree node representation; 
+    o include duplicates as well! disentangle duplicates from blob-handling
+    o c++-ify blob-handling (separately from duplicates)
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
