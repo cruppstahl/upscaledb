@@ -18,3 +18,12 @@ x new function ham_cursor_get_record_size()
     - with/without dupes
     - with/without in-memory
 
+o fix performance issues reported by Jake
+    o txn_begin does a ham_env_flush, calling db_write_and_delete_page about
+        6.7 times. the O(N) loop is the problem (not the flush)
+        o every dirty page is stored in a separate list
+        o ham_check_integrity: verify this
+        o debug build in db_fun_flush: verify this
+        o db_fun_flush: use this list for flushing files
+    o ham_log_append_prewrite, _write: the memcpy is relatively expensive
+        o can we get around it? i.e. using writev?
