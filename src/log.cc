@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -116,12 +116,6 @@ ham_log_t::is_empty(void)
         return (false);
 
     return (true);
-}
-
-ham_status_t
-ham_log_t::append_entry(log_entry_t *entry, ham_size_t size)
-{
-    return (os_write(m_fd, entry, size));
 }
 
 ham_status_t
@@ -387,30 +381,17 @@ ham_status_t
 ham_log_t::append_write(ham_u64_t lsn, ham_offset_t offset, 
                     ham_u8_t *data, ham_size_t size)
 {
-    ham_status_t st;
-    ham_size_t alloc_size=__get_aligned_entry_size(size);
-    log_entry_t *entry;
-    ham_u8_t *alloc_buf;
-
-    alloc_buf=(ham_u8_t *)allocator_alloc(env_get_allocator(m_env), alloc_size);
-    if (!alloc_buf)
-        return (HAM_OUT_OF_MEMORY);
+    log_entry_t entry={0};
 
     /* store the lsn - it will be needed later when the log file is closed */
     if (lsn)
         m_lsn=lsn;
 
-    entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
+    log_entry_set_lsn(&entry, lsn);
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_offset(&entry, offset);
+    log_entry_set_data_size(&entry, size);
 
-    memset(entry, 0, sizeof(*entry));
-    log_entry_set_lsn(entry, lsn);
-    log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
-    log_entry_set_offset(entry, offset);
-    log_entry_set_data_size(entry, size);
-    memcpy(alloc_buf, data, size);
-
-    st=append_entry((log_entry_t *)alloc_buf, alloc_size);
-    allocator_free(env_get_allocator(m_env), alloc_buf);
-    return (st);
+    return (os_writev(m_fd, data, size, &entry, sizeof(entry)));
 }
 

@@ -20,6 +20,9 @@
 #if HAVE_MMAP
 #  include <sys/mman.h>
 #endif
+#if HAVE_WRITEV
+#  include <sys/uio.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -237,6 +240,34 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         return (st);
     st=os_write(fd, buffer, bufferlen);
     return (st);
+#endif
+}
+ 
+ham_status_t
+os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
+                const void *buffer2, ham_offset_t buffer2_len)
+{
+#ifdef HAVE_WRITEV
+    struct iovec vec[2]={
+        { (void *)buffer1, buffer1_len },
+        { (void *)buffer2, buffer2_len }
+    };
+
+    int w=writev(fd, &vec[0], 2);
+    if (w==-1) {
+        ham_log(("writev failed with status %u (%s)", errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
+    if (w!=buffer1_len+buffer2_len) {
+        ham_log(("writev short write, status %u (%s)", errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
+    return (0);
+#else
+    ham_status_t st=os_write(fd, buffer1, buffer1_len);
+    if (st)
+        return (st);
+    return (os_write(fd, buffer2, buffer2_len));
 #endif
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -163,9 +163,6 @@ class ham_log_t
     /** adds an AFTER-image of a page */
     ham_status_t append_page(ham_page_t *page, ham_u64_t lsn);
 
-    /** clears the logfile */
-    ham_status_t clear(void);
-
     /** retrieves the current lsn */
     ham_u64_t get_lsn(void) {
         return (m_lsn);
@@ -188,6 +185,14 @@ class ham_log_t
      */
     ham_status_t get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
                 ham_u8_t **data);
+
+    /** 
+     * clears the logfile 
+     *
+     * invoked after every checkpoint (which is immediately after each 
+     * txn_commit or txn_abort) 
+     */
+    ham_status_t clear(void);
 
     /** 
      * closes the log, frees all allocated resources. 

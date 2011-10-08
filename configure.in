@@ -30,7 +30,7 @@ AC_PROG_SED
 AC_HEADER_STDC
 AC_C_CONST
 AC_TYPE_SIZE_T
-AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync)
+AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP

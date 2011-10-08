@@ -265,6 +265,20 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
     return (written==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 }
 
+ham_status_t
+os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
+                const void *buffer2, ham_offset_t buffer2_len)
+{
+#if 0
+    /* TODO implement me - i'm sure Win32 has a writev function */
+#else
+    ham_status_t st=os_write(fd, buffer1, buffer1_len);
+    if (st)
+        return (st);
+    return (os_write(fd, buffer2, buffer2_len));
+#endif
+}
+
 #ifndef INVALID_SET_FILE_POINTER
 #   define INVALID_SET_FILE_POINTER  ((DWORD)-1)
 #endif

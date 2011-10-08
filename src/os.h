@@ -68,6 +68,13 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 extern ham_status_t
 os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
 
+/**
+ * append data from two buffers to a file
+ */
+extern ham_status_t
+os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
+                const void *buffer2, ham_offset_t buffer2_len);
+
 #ifdef HAM_OS_POSIX
 #    define HAM_OS_SEEK_SET     SEEK_SET
 #    define HAM_OS_SEEK_END     SEEK_END
