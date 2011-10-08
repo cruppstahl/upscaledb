@@ -2,6 +2,7 @@ Oct 08, 2011 - chris ---------------------------------------------------
 o removed two expensive memcpy's in the logging routines (thanks, Jake)
 o all modified ("dirty") pages are now tracked in their own list for
     performance improvements (thanks, Jake)
+o added ham_cursor_get_record_size to the c++ API
 
 Oct 01, 2011 - chris ---------------------------------------------------
 o added a new function ham_cursor_get_record_size; retrieves the record 

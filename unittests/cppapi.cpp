@@ -488,6 +488,7 @@ public:
         txn=db.begin();
         ham::cursor c(&db, &txn);
         c.insert(&k, &r);
+        BFC_ASSERT_EQUAL(r.get_size(), c.get_record_size());
         c.close();
         txn.abort();
         try {
