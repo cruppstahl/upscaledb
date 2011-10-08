@@ -259,7 +259,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         env_set_max_databases(env, env_get_max_databases_cached(env));
         ham_assert(env_get_max_databases(env) > 0, (0));
 
-        page_set_dirty(page, env); /* [i_a] */
+        page_set_dirty(page, env);
     }
 
     /*
@@ -760,10 +760,18 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * flush the freelist
      */
     st=freel_shutdown(env);
-    if (st)
-    {
+    if (st) {
         if (st2 == 0) 
             st2 = st;
+    }
+
+    /* 
+     * flush all pages, get rid of the cache 
+     */
+    if (env_get_cache(env)) {
+        (void)db_flush_all(env_get_cache(env), 0);
+        cache_delete(env_get_cache(env));
+        env_set_cache(env, 0);
     }
 
     /*
@@ -775,27 +783,17 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * etc. We have to use the device-routines.
      */
     dev=env_get_device(env);
-    if (env_get_header_page(env)) 
-    {
+    if (env_get_header_page(env)) {
         ham_page_t *page=env_get_header_page(env);
         ham_assert(dev, (0));
-        if (page_get_pers(page))
-        {
+        if (page_get_pers(page)) {
             st = dev->free_page(dev, page);
             if (!st2) 
                 st2 = st;
         }
+        page_set_undirty(page);
         allocator_free(env_get_allocator(env), page);
         env_set_header_page(env, 0);
-    }
-
-    /* 
-     * flush all pages, get rid of the cache 
-     */
-    if (env_get_cache(env)) {
-        (void)db_flush_all(env_get_cache(env), 0);
-        cache_delete(env_get_cache(env));
-        env_set_cache(env, 0);
     }
 
     /* 
@@ -899,6 +897,28 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 }
 
 static ham_status_t
+env_flush_dirty(ham_env_t *env)
+{
+    ham_page_t *head;
+
+    head=env_get_dirty_list(env);
+    while (head) {
+        ham_page_t *next=page_get_next(head, PAGE_LIST_DIRTY);
+
+        /* don't touch pages which are currently in use by a transaction */
+        if (page_get_refcount(head)==0) {
+            /* db_write_page_and_delete will call page_set_undirty
+             * and remove the page from the DIRTY list */
+            (void)db_write_page_and_delete(head, 0);
+        }
+
+        head=next;
+    }
+
+    return (HAM_SUCCESS);
+}
+
+static ham_status_t
 _local_fun_flush(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
@@ -945,9 +965,9 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
     }
 
     /*
-     * flush all open pages to disk
+     * flush all dirty pages to disk
      */
-    st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
+    st=env_flush_dirty(env);
     if (st)
         return st;
 

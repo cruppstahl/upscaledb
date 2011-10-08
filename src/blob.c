@@ -1276,28 +1276,24 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     /*
      * write the table back to disk and return the blobid of the table
      */
-    if ((table_id && !page) || resize) 
-    {
+    if ((table_id && !page) || resize) {
         ham_record_t rec={0};
         rec.data=(ham_u8_t *)table;
         rec.size=sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
         st=blob_overwrite(env, db, table_id, &rec, 0, rid);
     }
-    else if (!table_id) 
-    {
+    else if (!table_id) {
         ham_record_t rec={0};
         rec.data=(ham_u8_t *)table;
         rec.size=sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
         st=blob_allocate(env, db, &rec, 0, rid);
     }
-    else if (table_id && page) 
-    {
+    else if (table_id && page) {
         page_set_dirty(page, env);
     }
-    else
-	{
+    else {
         ham_assert(!"shouldn't be here", (0));
 	}
 

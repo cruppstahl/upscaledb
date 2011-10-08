@@ -1357,8 +1357,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
             st=page_flush(env_get_header_page(env));
-            if (st)
-            {
+            if (st) {
                 if (st2 == 0) st2 = st;
             }
         }

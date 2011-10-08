@@ -734,8 +734,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
      * if we're in the leaf: insert, overwrite or append the blob
      * (depends on the flags)
      */
-    if (btree_node_is_leaf(node)) 
-    {
+    if (btree_node_is_leaf(node)) {
         ham_status_t st;
 
         hints->cost++;
@@ -750,8 +749,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
         hints->processed_leaf_page = page;
         hints->processed_slot = slot;
     }
-    else
-    {
+    else {
         key_set_ptr(bte, rid);
     }
 

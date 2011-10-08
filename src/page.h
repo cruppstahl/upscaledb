@@ -44,21 +44,22 @@ extern "C" {
 #define PAGE_LIST_GARBAGE          2
 /* list of all cached pages */
 #define PAGE_LIST_CACHED           3
+/* list of all dirty pages */
+#define PAGE_LIST_DIRTY            4
 /* array limit */
-#define MAX_PAGE_LISTS             4
+#define MAX_PAGE_LISTS             5
 
 #include "packstart.h"
 
 /**
  * The page header which is persisted on disc
  *
- * This structure definition is present outside of @ref ham_page_t scope to allow
- * compile-time OFFSETOF macros to correctly judge the size, depending 
+ * This structure definition is present outside of @ref ham_page_t scope to 
+ * allow compile-time OFFSETOF macros to correctly judge the size, depending 
  * on platform and compiler settings.
  */
 typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
 {
-
     /*
      * this header is only available if the (non-persistent) flag
      * NPERS_NO_HEADER is not set! 
@@ -344,19 +345,20 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #define PAGE_NPERS_NO_HEADER         4
 
 /**
- * get the txn-id of the transaction which dirtied the page
+ * get the txn-id of the transaction which modified the page
  */
 #define page_get_dirty_txn(page)            ((page)->_npers._dirty_txn)
 
 /**
- * set the txn-id of the transaction which dirtied the page
+ * set the txn-id of the transaction which modified the page
  */
-#define page_set_dirty_txn(page, id)        (page)->_npers._dirty_txn=(id)
+extern void
+page_set_dirty_txn(ham_page_t *page, ham_offset_t txn_id);
 
 /** 
  * is this page dirty?
  */
-#define page_is_dirty(page)      (page_get_dirty_txn(page)!=0)
+#define page_is_dirty(page)                 (page_get_dirty_txn(page)!=0)
 
 /**
  * mark the page dirty by the current transaction (if there's no transaction,

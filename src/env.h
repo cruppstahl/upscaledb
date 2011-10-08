@@ -133,6 +133,9 @@ struct ham_env_t
     /** the file header page */
     ham_page_t *_hdrpage;
 
+    /** linked list of all dirty pages */
+    ham_page_t *_dirty_list;
+
     /** the active txn */
     ham_txn_t *_txn;
 
@@ -363,6 +366,16 @@ struct ham_env_t
  * get the header page
  */
 #define env_get_header_page(env)         (env)->_hdrpage
+
+/**
+ * get the list of dirty pages
+ */
+#define env_get_dirty_list(env)          (env)->_dirty_list
+
+/**
+ * set the list of dirty pages
+ */
+#define env_set_dirty_list(env, p)       (env)->_dirty_list=(p)
 
 /**
  * get a pointer to the header data

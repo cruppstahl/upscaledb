@@ -1466,8 +1466,7 @@ free_all:
      * if we delete the last item, it's enough to decrement the item 
      * counter and return...
      */
-    if (slot != btree_node_get_count(node)-1) 
-    {
+    if (slot != btree_node_get_count(node)-1) {
         hints->cost += stats_memmove_cost((db_get_int_key_header_size()
                 + keysize)*(btree_node_get_count(node)-slot-1));
         bte_lhs=btree_node_get_key(db, node, slot);

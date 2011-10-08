@@ -127,6 +127,41 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
 }
 #endif /* HAM_DEBUG */
 
+void
+page_set_dirty_txn(ham_page_t *page, ham_offset_t txn_id)
+{
+    ham_env_t *env=device_get_env(page_get_device(page));
+    ham_page_t *head=env_get_dirty_list(env);
+
+#ifdef HAM_DEBUG
+    /*
+     * not allowed: dirty but not in DIRTY-list
+     * not allowed: not dirty but in DIRTY-list
+     */
+    if (page->_npers._dirty_txn!=0) {
+        ham_assert(head==page || my_is_in_list(page, PAGE_LIST_DIRTY),
+            ("dirty but not in dirty-list"));
+    }
+    else {
+        ham_assert(head!=page && !my_is_in_list(page, PAGE_LIST_DIRTY),
+            ("dirty but not in dirty-list"));
+    }
+#endif
+
+    if (txn_id==0) {
+        if (page_is_in_list(head, page, PAGE_LIST_DIRTY))
+            env_set_dirty_list(env, page_list_remove(head, 
+                        PAGE_LIST_DIRTY, page));
+    }
+    else {
+        if (!page_is_in_list(head, page, PAGE_LIST_DIRTY))
+            env_set_dirty_list(env, page_list_insert(head, 
+                        PAGE_LIST_DIRTY, page));
+    }
+
+    page->_npers._dirty_txn=txn_id;
+}
+
 ham_page_t *
 page_list_insert(ham_page_t *head, int which, ham_page_t *page)
 {
