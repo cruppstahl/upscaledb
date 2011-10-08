@@ -233,7 +233,6 @@ _local_fun_create(ham_env_t *env, const char *filename,
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         Log *log=new Log(env);
-        journal_t *journal;
         st=log->create();
         if (st) { 
             (void)ham_env_close(env, 0);
@@ -241,7 +240,8 @@ _local_fun_create(ham_env_t *env, const char *filename,
         }
         env_set_log(env, log);
 
-        st=journal_create(env, 0644, 0, &journal);
+        Journal *journal=new Journal(env);
+        st=journal->create();
         if (st) { 
             (void)ham_env_close(env, 0);
             return (st);
@@ -265,7 +265,7 @@ __recover(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
     Log *log=new Log(env);
-    journal_t *journal=0;
+    Journal *journal=new Journal(env);
 
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
@@ -291,20 +291,15 @@ __recover(ham_env_t *env, ham_u32_t flags)
 
     /* open the journal - but only if transactions are enabled */
     if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
-        st=journal_open(env, 0, &journal);
+        st=journal->open();
         env_set_journal(env, journal);
         if (st && st!=HAM_FILE_NOT_FOUND)
             goto bail;
         /* success - check if we need recovery */
         else if (!st) {
-            ham_bool_t isempty;
-            st=journal_is_empty(journal, &isempty);
-            if (st)
-                goto bail;
-    
-            if (!isempty) {
+            if (!journal->is_empty()) {
                 if (flags&HAM_AUTO_RECOVERY) {
-                    st=journal_recover(journal);
+                    st=journal->recover();
                     if (st)
                         goto bail;
                 }
@@ -325,9 +320,11 @@ bail:
         delete log;
         env_set_log(env, 0);
     }
-    if (journal)
-        journal_close(journal, HAM_TRUE);
-    env_set_journal(env, 0);
+    if (journal) {
+        journal->close(true);
+        delete journal;
+        env_set_journal(env, 0);
+    }
     return (st);
 
 success:
@@ -343,7 +340,8 @@ success:
 
     if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
         if (!journal) {
-            st=journal_create(env, 0644, 0, &journal);
+            journal=new Journal(env);
+            st=journal->create();
             if (st)
                 return (st);
         }
@@ -826,9 +824,11 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
         env_set_log(env, 0);
     }
     if (env_get_journal(env)) {
-        st = journal_close(env_get_journal(env), (flags&HAM_DONT_CLEAR_LOG));
+        Journal *journal=env_get_journal(env);
+        st=journal->close(flags&HAM_DONT_CLEAR_LOG);
         if (!st2) 
             st2 = st;
+        delete journal;
         env_set_journal(env, 0);
     }
 
@@ -1373,7 +1373,7 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=journal_append_txn_begin(env_get_journal(env), *txn, db, lsn);
+            st=env_get_journal(env)->append_txn_begin(*txn, db, lsn);
     }
 
     return (st);
@@ -1395,7 +1395,7 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=journal_append_txn_commit(env_get_journal(env), &copy, lsn);
+            st=env_get_journal(env)->append_txn_commit(&copy, lsn);
     }
 
     /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
@@ -1427,7 +1427,7 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=journal_append_txn_abort(env_get_journal(env), &copy, lsn);
+            st=env_get_journal(env)->append_txn_abort(&copy, lsn);
     }
 
     /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
@@ -1675,13 +1675,13 @@ env_flush_committed_txns(ham_env_t *env)
 ham_status_t
 env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn) 
 {
-    journal_t *j=env_get_journal(env);
+    Journal *j=env_get_journal(env);
     if (j) {
-        if (journal_get_lsn(j)==0xffffffffffffffffull) {
+        if (j->get_lsn()==0xffffffffffffffffull) {
             ham_log(("journal limits reached (lsn overflow) - please reorg"));
             return (HAM_LIMITS_REACHED);
         }
-        *lsn=journal_increment_lsn(j);
+        *lsn=j->get_incremented_lsn();
         return (0);
     }
     else {

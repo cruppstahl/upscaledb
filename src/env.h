@@ -154,7 +154,7 @@ class ham_env_t
     Log *_log;
 
     /** the logical journal */
-    journal_t *_journal;
+    Journal *_journal;
 
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */

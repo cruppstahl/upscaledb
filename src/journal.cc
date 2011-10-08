@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -35,134 +35,91 @@ __get_aligned_entry_size(ham_size_t s)
     return (s);
 }
 
-static ham_status_t
-__journal_clear_file(journal_t *journal, int idx)
+Journal::Journal(ham_env_t *env) 
+  : m_env(env), m_current_fd(0), m_lsn(0), m_last_cp_lsn(0), 
+    m_threshold(JOURNAL_DEFAULT_THRESHOLD)
 {
-    ham_status_t st;
-
-    st=os_truncate(journal_get_fd(journal, idx), sizeof(journal_header_t));
-    if (st)
-        return (st);
-
-    /* after truncate, the file pointer is far beyond the new end of file;
-     * reset the file pointer, or the next write will resize the file to
-     * the original size */
-    st=os_seek(journal_get_fd(journal, idx), 
-                    sizeof(journal_header_t), HAM_OS_SEEK_SET);
-    if (st)
-        return (st);
-
-    /* clear the transaction counters */
-    journal_set_open_txn(journal, idx, 0);
-    journal_set_closed_txn(journal, idx, 0);
-
-    return (0);
+    m_fd[0]=HAM_INVALID_FD;
+    m_fd[1]=HAM_INVALID_FD;
+    m_open_txn[0]=0;
+    m_open_txn[1]=0;
+    m_closed_txn[0]=0;
+    m_closed_txn[1]=0;
 }
 
 ham_status_t
-journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, 
-                journal_t **pjournal)
+Journal::create(void)
 {
     int i;
-    journal_header_t header;
-    mem_allocator_t *alloc=env_get_allocator(env);
-    const char *dbpath=env_get_filename(env).c_str();
+    Header header;
+    const char *dbpath=env_get_filename(m_env).c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
-    journal_t *journal=(journal_t *)allocator_alloc(alloc, sizeof(journal_t));
-    if (!journal)
-        return (HAM_OUT_OF_MEMORY);
-
-    memset(journal, 0, sizeof(*journal));
-    journal_set_fd(journal, 0, HAM_INVALID_FD);
-    journal_set_fd(journal, 1, HAM_INVALID_FD);
-
-    *pjournal=0;
-
-    ham_assert(env, (0));
-
-    journal_set_env(journal, env);
-    journal_set_lsn(journal, 1);
-    journal_set_threshold(journal, JOURNAL_DEFAULT_THRESHOLD);
 
     /* initialize the magic */
     memset(&header, 0, sizeof(header));
-    journal_header_set_magic(&header, HAM_JOURNAL_HEADER_MAGIC);
+    header.magic=HEADER_MAGIC;
+    m_lsn=1;
 
     /* create the two files */
     for (i=0; i<2; i++) {
         util_snprintf(filename, sizeof(filename), "%s.jrn%d", dbpath, i);
-        st=os_create(filename, 0, mode, &journal_get_fd(journal, i));
+        st=os_create(filename, 0, 0644, &m_fd[i]);
         if (st) {
-            (void)journal_close(journal, HAM_FALSE);
+            (void)close();
             return (st);
         }
 
         /* and write the magic */
-        st=os_write(journal_get_fd(journal, i), &header, sizeof(header));
+        st=os_write(m_fd[i], &header, sizeof(header));
         if (st) {
-            (void)journal_close(journal, HAM_FALSE);
+            (void)close();
             return (st);
         }
     }
-
-    *pjournal=journal;
 
     return (st);
 }
 
 ham_status_t
-journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
+Journal::open(void)
 {
     int i;
-    journal_header_t header;
-    journal_entry_t entry={0};
-    mem_allocator_t *alloc=env_get_allocator(env);
-    const char *dbpath=env_get_filename(env).c_str();
+    Header header;
+    JournalEntry entry;
+    const char *dbpath=env_get_filename(m_env).c_str();
     ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
-    journal_t *journal=(journal_t *)allocator_alloc(alloc, sizeof(journal_t));
-    if (!journal)
-        return (HAM_OUT_OF_MEMORY);
-
-    memset(journal, 0, sizeof(journal_t));
-    journal_set_fd(journal, 0, HAM_INVALID_FD);
-    journal_set_fd(journal, 1, HAM_INVALID_FD);
-
-    *pjournal=0;
-
-    ham_assert(env, (0));
-
-    journal_set_env(journal, env);
-    journal_set_threshold(journal, JOURNAL_DEFAULT_THRESHOLD);
 
     memset(&header, 0, sizeof(header));
+    m_lsn=0;
+    m_current_fd=0;
 
     /* open the two files */
     for (i=0; i<2; i++) {
         util_snprintf(filename, sizeof(filename), "%s.jrn%d", dbpath, i);
-        st=os_open(filename, 0, &journal_get_fd(journal, i));
+        st=os_open(filename, 0, &m_fd[i]);
         if (st) {
-            journal_close(journal, HAM_FALSE);
+            (void)close();
             return (st);
         }
 
         /* check the magic */
-        st=os_pread(journal_get_fd(journal, i), 0, &header, sizeof(header));
+        st=os_pread(m_fd[i], 0, &header, sizeof(header));
         if (st) {
-            (void)journal_close(journal, HAM_FALSE);
+            (void)close();
             return (st);
         }
-        if (journal_header_get_magic(&header)!=HAM_JOURNAL_HEADER_MAGIC) {
+        if (header.magic!=HEADER_MAGIC) {
             ham_trace(("journal has unknown magic or is corrupt"));
-            (void)journal_close(journal, HAM_FALSE);
+            (void)close();
             return (HAM_LOG_INV_FILE_HEADER);
         }
 
         /* read the lsn from the header structure */
-        if (journal_get_lsn(journal)<journal_header_get_lsn(&header))
-            journal_set_lsn(journal, journal_header_get_lsn(&header));
+        if (m_lsn<header.lsn)
+            m_lsn=header.lsn;
     }
 
     /* However, we now just read the lsn from the header structure. if there
@@ -171,21 +128,20 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
     for (i=0; i<2; i++) {
         /* but make sure that the file is large enough! */
         ham_offset_t size;
-        st=os_get_filesize(journal_get_fd(journal, i), &size);
+        st=os_get_filesize(m_fd[i], &size);
         if (st) {
-            (void)journal_close(journal, HAM_FALSE);
+            (void)close();
             return (st);
         }
 
         if (size>=sizeof(entry)) {
-            st=os_pread(journal_get_fd(journal, i), 
-                            size-sizeof(journal_entry_t), 
-                            &entry, sizeof(entry));
+            st=os_pread(m_fd[i], size-sizeof(JournalEntry), 
+                        &entry, sizeof(entry));
             if (st) {
-                (void)journal_close(journal, HAM_FALSE);
+                (void)close();
                 return (st);
             }
-            lsn[i]=journal_entry_get_lsn(&entry);
+            lsn[i]=entry.lsn;
         }
         else
             lsn[i]=0;
@@ -193,54 +149,49 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
 
     /* The file with the higher lsn will become file[0] */
     if (lsn[1]>lsn[0]) {
-        ham_fd_t temp=journal_get_fd(journal, 0);
-        journal_set_fd(journal, 0, journal_get_fd(journal, 1));
-        journal_set_fd(journal, 1, temp);
-        if (journal_get_lsn(journal)<lsn[1])
-            journal_set_lsn(journal, lsn[1]);
+        std::swap(m_fd[0], m_fd[1]);
+        if (m_lsn<lsn[1])
+            m_lsn=lsn[1];
     }
     else {
-        if (journal_get_lsn(journal)<lsn[0])
-            journal_set_lsn(journal, lsn[0]);
+        if (m_lsn<lsn[0])
+            m_lsn=lsn[0];
     }
 
-    *pjournal=journal;
     return (0);
 }
 
-ham_status_t
-journal_is_empty(journal_t *journal, ham_bool_t *isempty)
+bool
+Journal::is_empty(void)
 {
     ham_status_t st; 
     ham_offset_t size;
     int i;
 
     for (i=0; i<2; i++) {
-        st=os_get_filesize(journal_get_fd(journal, i), &size);
+        st=os_get_filesize(m_fd[i], &size);
         if (st)
-            return (st);
-        if (size && size!=sizeof(journal_header_t)) {
-            *isempty=HAM_FALSE;
-            return (0);
-        }
+            return (false); /* TODO throw exception */
+        if (size && size!=sizeof(Header))
+            return (false);
     }
 
-    *isempty=HAM_TRUE;
-    return (0);
+    return (true);
 }
 
 ham_status_t
-journal_append_entry(journal_t *journal, int fdidx, 
-            journal_entry_t *entry, void *aux, ham_size_t size)
+Journal::append_entry(int fdidx, JournalEntry *entry, void *aux, 
+                ham_size_t size)
 {
     ham_status_t st;
 
-    st=os_write(journal_get_fd(journal, fdidx), entry, sizeof(*entry));
+    st=os_write(m_fd[fdidx], entry, sizeof(*entry));
     if (st)
         return (st);
 
+    /* TODO use writev */
     if (size) {
-        st=os_write(journal_get_fd(journal, fdidx), aux, size);
+        st=os_write(m_fd[fdidx], aux, size);
         if (st)
             return (st);
         /* TODO rollback the previous write */
@@ -250,38 +201,36 @@ journal_append_entry(journal_t *journal, int fdidx,
 }
 
 ham_status_t
-journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
-                ham_db_t *db, ham_u64_t lsn)
+Journal::append_txn_begin(struct ham_txn_t *txn, ham_db_t *db, ham_u64_t lsn)
 {
     ham_status_t st;
-    journal_entry_t entry={0};
-    int cur=journal_get_current_fd(journal);
+    JournalEntry entry;
+    int cur=m_current_fd;
     int other=cur ? 0 : 1;
 
-    journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_BEGIN);
-    journal_entry_set_dbname(&entry, db_get_dbname(db));
-    journal_entry_set_lsn(&entry, lsn);
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_TXN_BEGIN;
+    entry.dbname=db_get_dbname(db);
+    entry.lsn=lsn;
 
     /* 
      * determine the journal file which is used for this transaction 
      *
      * if the "current" file is not yet full, continue to write to this file
      */
-    if (journal_get_open_txn(journal, cur)+journal_get_closed_txn(journal, cur)<
-            journal_get_threshold(journal)) {
+    if (m_open_txn[cur]+m_closed_txn[cur]<m_threshold) {
         txn_set_log_desc(txn, cur);
     }
-    else if (journal_get_open_txn(journal, other)==0) {
+    else if (m_open_txn[other]==0) {
         /*
          * Otherwise, if the other file does no longer have open Transactions,
          * delete the other file and use the other file as the current file
          */
-        st=__journal_clear_file(journal, other);
+        st=clear_file(other);
         if (st)
             return (st);
         cur=other;
-        journal_set_current_fd(journal, cur);
+        m_current_fd=cur;
         txn_set_log_desc(txn, cur);
     }
     /*
@@ -292,157 +241,144 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
         txn_set_log_desc(txn, cur);
     }
 
-    st=journal_append_entry(journal, cur, &entry, 0, 0);
+    st=append_entry(cur, &entry, 0, 0);
     if (st)
         return (st);
-    journal_set_open_txn(journal, cur, journal_get_open_txn(journal, cur)+1);
+    m_open_txn[cur]++;
 
     /* store the fp-index in the journal structure; it's needed for
      * journal_append_checkpoint() to quickly find out which file is 
      * the newest */
-    journal_set_current_fd(journal, cur);
+    m_current_fd=cur;
 
     return (0);
 }
 
 ham_status_t
-journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn, 
-                    ham_u64_t lsn)
+Journal::append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
-    journal_entry_t entry={0};
-
-    journal_entry_set_lsn(&entry, lsn);
-    journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_ABORT);
+    JournalEntry entry;
+    entry.lsn=lsn;
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_TXN_ABORT;
 
     /*
      * update the transaction counters of this logfile
      */
     idx=txn_get_log_desc(txn);
-    journal_set_open_txn(journal, idx, 
-                    journal_get_open_txn(journal, idx)-1);
-    journal_set_closed_txn(journal, idx, 
-                    journal_get_closed_txn(journal, idx)+1);
+    m_open_txn[idx]--;
+    m_closed_txn[idx]++;
 
-    st=journal_append_entry(journal, idx, &entry, 0, 0);
+    st=append_entry(idx, &entry, 0, 0);
     if (st)
         return (st);
-    if (env_get_rt_flags(journal_get_env(journal))&HAM_WRITE_THROUGH)
-        return (os_flush(journal_get_fd(journal, idx)));
+    if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
+        return (os_flush(m_fd[idx]));
     return (0);
 }
 
 ham_status_t
-journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
-                    ham_u64_t lsn)
+Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
-    journal_entry_t entry={0};
-
-    journal_entry_set_lsn(&entry, lsn);
-    journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_COMMIT);
+    JournalEntry entry;
+    entry.lsn=lsn;
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_TXN_COMMIT;
 
     /*
      * update the transaction counters of this logfile
      */
     idx=txn_get_log_desc(txn);
-    journal_set_open_txn(journal, idx, 
-                    journal_get_open_txn(journal, idx)-1);
-    journal_set_closed_txn(journal, idx, 
-                    journal_get_closed_txn(journal, idx)+1);
+    m_open_txn[idx]--;
+    m_closed_txn[idx]++;
 
-    st=journal_append_entry(journal, idx, &entry, 0, 0);
+    st=append_entry(idx, &entry, 0, 0);
     if (st)
         return (st);
-    if (env_get_rt_flags(journal_get_env(journal))&HAM_WRITE_THROUGH)
-        return (os_flush(journal_get_fd(journal, idx)));
+    if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
+        return (os_flush(m_fd[idx]));
     return (0);
 }
 
 ham_status_t
-journal_append_insert(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+Journal::append_insert(ham_db_t *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn)
 {
     ham_status_t st;
-    journal_entry_t entry={0};
-    journal_entry_insert_t *ins;
-    ham_size_t size=sizeof(journal_entry_insert_t)+key->size+record->size-1;
+    JournalEntry entry;
+    JournalEntryInsert *ins;
+    ham_size_t size=sizeof(JournalEntryInsert)+key->size+record->size-1;
     size=__get_aligned_entry_size(size);
 
-    ins=(journal_entry_insert_t *)allocator_alloc(
-                        journal_get_allocator(journal), size);
+    ins=(JournalEntryInsert *)allocate(size);
     if (!ins)
         return (HAM_OUT_OF_MEMORY);
     memset(ins, 0, size); /* TODO required? */
-    journal_entry_set_lsn(&entry, lsn);
-    journal_entry_set_dbname(&entry, db_get_dbname(db));
-    journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_INSERT);
-    journal_entry_set_followup_size(&entry, size);
-    journal_entry_insert_set_key_size(ins, key->size);
-    journal_entry_insert_set_record_size(ins, record->size);
-    journal_entry_insert_set_record_partial_size(ins, record->partial_size);
-    journal_entry_insert_set_record_partial_offset(ins, record->partial_offset);
-    journal_entry_insert_set_flags(ins, flags);
-    memcpy(journal_entry_insert_get_key_data(ins), 
-                    key->data, key->size);
-    memcpy(journal_entry_insert_get_record_data(ins), 
-                    record->data, record->size);
+    entry.lsn=lsn;
+    entry.dbname=db_get_dbname(db);
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_INSERT;
+    entry.followup_size=size;
+
+    ins->key_size=key->size;
+    ins->record_size=record->size;
+    ins->record_partial_size=record->partial_size;
+    ins->record_partial_offset=record->partial_offset;
+    ins->insert_flags=flags;
+    memcpy(ins->get_key_data(), key->data, key->size);
+    memcpy(ins->get_record_data(), record->data, record->size);
 
     /* append the entry to the logfile */
-    st=journal_append_entry(journal, txn_get_log_desc(txn), 
-                    &entry, (void *)ins, size);
-    allocator_free(journal_get_allocator(journal), ins);
+    st=append_entry(txn_get_log_desc(txn), &entry, (void *)ins, size);
+    free(ins);
     
     return (st);
 }
 
 ham_status_t
-journal_append_erase(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
-                ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
+Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, 
+                ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
     ham_status_t st;
-    journal_entry_t entry={0};
-    journal_entry_erase_t *aux;
-    ham_size_t size=sizeof(journal_entry_erase_t)+key->size-1;
+    JournalEntry entry;
+    JournalEntryErase *aux;
+    ham_size_t size=sizeof(JournalEntryErase)+key->size-1;
     size=__get_aligned_entry_size(size);
 
-    aux=(journal_entry_erase_t *)allocator_alloc(
-                        journal_get_allocator(journal), size);
+    aux=(JournalEntryErase *)allocate(size);
     if (!aux)
         return (HAM_OUT_OF_MEMORY);
     memset(aux, 0, size); /* TODO required? */
-    journal_entry_set_lsn(&entry, lsn);
-    journal_entry_set_dbname(&entry, db_get_dbname(db));
-    journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_ERASE);
-    journal_entry_set_followup_size(&entry, size);
-    journal_entry_erase_set_key_size(aux, key->size);
-    journal_entry_erase_set_flags(aux, flags);
-    journal_entry_erase_set_dupe(aux, dupe);
-    memcpy(journal_entry_erase_get_key_data(aux), key->data, key->size);
+    entry.lsn=lsn;
+    entry.dbname=db_get_dbname(db);
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_ERASE;
+    entry.followup_size=size;
+    aux->key_size=key->size;
+    aux->erase_flags=flags;
+    aux->duplicate=dupe;
+    memcpy(aux->get_key_data(), key->data, key->size);
 
     /* append the entry to the logfile */
-    st=journal_append_entry(journal, txn_get_log_desc(txn), 
-                    &entry, (journal_entry_t *)aux, size);
-    allocator_free(journal_get_allocator(journal), aux);
+    st=append_entry(txn_get_log_desc(txn), &entry, (JournalEntry *)aux, size);
+    free(aux);
     
     return (st);
 }
 
 ham_status_t
-journal_clear(journal_t *journal)
+Journal::clear()
 {
     ham_status_t st; 
     int i;
 
     for (i=0; i<2; i++) {
-        if ((st=__journal_clear_file(journal, i)))
+        if ((st=clear_file(i)))
             return (st);
     }
 
@@ -450,111 +386,105 @@ journal_clear(journal_t *journal)
 }
 
 ham_status_t
-journal_get_entry(journal_t *journal, journal_iterator_t *iter, 
-                    journal_entry_t *entry, void **aux)
+Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
 {
     ham_status_t st;
     ham_offset_t filesize;
 
     *aux=0;
 
-    /* if iter->_offset is 0, then the iterator was created from scratch
+    /* if iter->offset is 0, then the iterator was created from scratch
      * and we start reading from the first (oldest) entry.
      *
      * The oldest of the two logfiles is always the "other" one (the one
      * NOT in current_fd).
      */
-    if (iter->_offset==0) {
-        iter->_fdstart=iter->_fdidx=
-                    journal_get_current_fd(journal)==0
+    if (iter->offset==0) {
+        iter->fdstart=iter->fdidx=
+                    m_current_fd==0
                         ? 1
                         : 0;
-        iter->_offset=sizeof(journal_header_t);
+        iter->offset=sizeof(Header);
     }
 
     /* get the size of the journal file */
-    st=os_get_filesize(journal_get_fd(journal, iter->_fdidx), &filesize);
+    st=os_get_filesize(m_fd[iter->fdidx], &filesize);
     if (st)
         return (st);
 
     /* reached EOF? then either skip to the next file or we're done */
-    if (filesize==iter->_offset) {
-        if (iter->_fdstart==iter->_fdidx) {
-            iter->_fdidx=iter->_fdidx==1 ? 0 : 1;
-            iter->_offset=sizeof(journal_header_t);
-            st=os_get_filesize(journal_get_fd(journal, iter->_fdidx), 
-                        &filesize);
+    if (filesize==iter->offset) {
+        if (iter->fdstart==iter->fdidx) {
+            iter->fdidx=iter->fdidx==1 ? 0 : 1;
+            iter->offset=sizeof(Header);
+            st=os_get_filesize(m_fd[iter->fdidx], &filesize);
             if (st)
                 return (st);
         }
         else {
-            journal_entry_set_lsn(entry, 0);
+            entry->lsn=0;
             return (0);
         }
     }
 
     /* second file is also empty? then return */
-    if (filesize==iter->_offset) {
-        journal_entry_set_lsn(entry, 0);
+    if (filesize==iter->offset) {
+        entry->lsn=0;
         return (0);
     }
 
     /* now try to read the next entry */
-    st=os_pread(journal_get_fd(journal, iter->_fdidx), iter->_offset, 
+    st=os_pread(m_fd[iter->fdidx], iter->offset, 
                     entry, sizeof(*entry));
     if (st)
         return (st);
 
-    iter->_offset+=sizeof(*entry);
+    iter->offset+=sizeof(*entry);
 
     /* read auxiliary data if it's available */
-    if (journal_entry_get_followup_size(entry)) {
-        ham_size_t size=journal_entry_get_followup_size(entry);
-        *aux=allocator_alloc(journal_get_allocator(journal), size);
+    if (entry->followup_size) {
+        *aux=allocate(entry->followup_size);
         if (!*aux)
             return (HAM_OUT_OF_MEMORY);
 
-        st=os_pread(journal_get_fd(journal, iter->_fdidx), 
-                        iter->_offset, *aux, size);
+        st=os_pread(m_fd[iter->fdidx], iter->offset, *aux, 
+                entry->followup_size);
         if (st) {
-            allocator_free(journal_get_allocator(journal), *aux);
+            free(*aux);
             *aux=0;
             return (st);
         }
 
-        iter->_offset+=size;
+        iter->offset+=entry->followup_size;
     }
 
     return (0);
 }
 
 ham_status_t
-journal_close(journal_t *journal, ham_bool_t noclear)
+Journal::close(ham_bool_t noclear)
 {
     int i;
     ham_status_t st=0;
 
     if (!noclear) {
-        journal_header_t header;
+        Header header;
 
-        (void)journal_clear(journal);
+        (void)clear();
 
         /* update the header page of file 0 to store the lsn */
-        memset(&header, 0, sizeof(header));
-        journal_header_set_magic(&header, HAM_JOURNAL_HEADER_MAGIC);
-        journal_header_set_lsn(&header, journal_get_lsn(journal));
+        header.magic=HEADER_MAGIC;
+        header.lsn=m_lsn;
 
-        st=os_pwrite(journal_get_fd(journal, 0), 0, &header, sizeof(header));
+        st=os_pwrite(m_fd[0], 0, &header, sizeof(header));
     }
 
     for (i=0; i<2; i++) {
-        if (journal_get_fd(journal, i)!=HAM_INVALID_FD) {
-            (void)os_close(journal_get_fd(journal, i), 0);
-            journal_set_fd(journal, i, HAM_INVALID_FD);
+        if (m_fd[i]!=HAM_INVALID_FD) {
+            (void)os_close(m_fd[i], 0);
+            m_fd[i]=HAM_INVALID_FD;
         }
     }
-
-    allocator_free(journal_get_allocator(journal), journal);
 
     return (st);
 }
@@ -645,18 +575,17 @@ __abort_uncommitted_txns(ham_env_t *env)
 }
 
 ham_status_t
-journal_recover(journal_t *journal)
+Journal::recover()
 {
     ham_status_t st;
-    ham_env_t *env=journal_get_env(journal);
-    ham_u64_t start_lsn=env_get_log(env)->get_lsn();
-    journal_iterator_t it={0};
+    ham_u64_t start_lsn=env_get_log(m_env)->get_lsn();
+    Iterator it;
     void *aux=0;
 
     /* recovering the journal is rather simple - we iterate over the 
-     * files and re-issue every operation (incl. txn_begin and txn_abort).
+     * files and re-apply EVERY operation (incl. txn_begin and txn_abort).
      *
-     * in the past this routine just skipped all journal entries that were
+     * in hamsterdb 1.x this routine just skipped all journal entries that were
      * already flushed to disk (i.e. everything with a lsn <= start_lsn
      * was ignored). However, if we also skip the txn_begin entries, then
      * some scenarios will fail:
@@ -665,7 +594,7 @@ journal_recover(journal_t *journal)
      *  BEGIN,    INSERT,    COMMIT
      *  flush(1), flush(2), ^crash  
      *
-     * if the application crashes BEFORE the commit is flushed, then the 
+     * if the application crashes BEFORE the commit is flushed, then 
      * start_lsn will be 2, and the txn_begin will be skipped. During recovery
      * we'd then end up in a situation where we want to commit a transaction
      * which was not created. Therefore start_lsn is ignored for txn_begin/
@@ -679,66 +608,66 @@ journal_recover(journal_t *journal)
 
     /* make sure that there are no pending transactions - we start with 
      * a clean state! */
-    ham_assert(env_get_oldest_txn(env)==0, (""));
+    ham_assert(env_get_oldest_txn(m_env)==0, (""));
 
-    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS, (""));
-    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(env_get_rt_flags(m_env)&HAM_ENABLE_TRANSACTIONS, (""));
+    ham_assert(env_get_rt_flags(m_env)&HAM_ENABLE_RECOVERY, (""));
 
     /* officially disable recovery - otherwise while recovering we log
      * more stuff */
-    env_set_rt_flags(env, env_get_rt_flags(env)&~HAM_ENABLE_RECOVERY);
+    env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
 
     do {
-        journal_entry_t entry={0};
+        JournalEntry entry;
 
         if (aux) {
-            allocator_free(journal_get_allocator(journal), aux);
+            free(aux);
             aux=0;
         }
 
         /* get the next entry */
-        st=journal_get_entry(journal, &it, &entry, (void **)&aux);
+        st=get_entry(&it, &entry, (void **)&aux);
         if (st)
             goto bail;
 
         /* reached end of logfile? */
-        if (!journal_entry_get_lsn(&entry))
+        if (!entry.lsn)
             break;
 
         /* re-apply this operation */
-        switch (journal_entry_get_type(&entry)) {
-        case JOURNAL_ENTRY_TYPE_TXN_BEGIN: {
+        switch (entry.type) {
+        case ENTRY_TYPE_TXN_BEGIN: {
             ham_txn_t *txn;
             ham_db_t *db;
-            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
             st=ham_txn_begin(&txn, db, 0);
             /* on success: patch the txn ID */
             if (st==0) {
-                txn_set_id(txn, journal_entry_get_txn_id(&entry));
-                env_set_txn_id(env, journal_entry_get_txn_id(&entry));
+                txn_set_id(txn, entry.txn_id);
+                env_set_txn_id(m_env, entry.txn_id);
             }
             break;
         }
-        case JOURNAL_ENTRY_TYPE_TXN_ABORT: {
+        case ENTRY_TYPE_TXN_ABORT: {
             ham_txn_t *txn;
-            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
             st=ham_txn_abort(txn, 0);
             break;
         }
-        case JOURNAL_ENTRY_TYPE_TXN_COMMIT: {
+        case ENTRY_TYPE_TXN_COMMIT: {
             ham_txn_t *txn;
-            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
             st=ham_txn_commit(txn, 0);
             break;
         }
-        case JOURNAL_ENTRY_TYPE_INSERT: {
-            journal_entry_insert_t *ins=(journal_entry_insert_t *)aux;
+        case ENTRY_TYPE_INSERT: {
+            JournalEntryInsert *ins=(JournalEntryInsert *)aux;
             ham_txn_t *txn;
             ham_db_t *db;
             ham_key_t key={0};
@@ -749,29 +678,26 @@ journal_recover(journal_t *journal)
             }
 
             /* do not insert if the key was already flushed to disk */
-            if (journal_entry_get_lsn(&entry)<=start_lsn)
+            if (entry.lsn<=start_lsn)
                 continue;
 
-            key.data=journal_entry_insert_get_key_data(ins);
-            key.size=journal_entry_insert_get_key_size(ins);
-            record.data=journal_entry_insert_get_record_data(ins);
-            record.size=journal_entry_insert_get_record_size(ins);
-            record.partial_size=
-                        journal_entry_insert_get_record_partial_size(ins);
-            record.partial_offset=
-                        journal_entry_insert_get_record_partial_offset(ins);
-            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            key.data=ins->get_key_data();
+            key.size=ins->key_size;
+            record.data=ins->get_record_data();
+            record.size=ins->record_size;
+            record.partial_size=ins->record_partial_size;
+            record.partial_offset=ins->record_partial_offset;
+            st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
-            st=ham_insert(db, txn, &key, &record, 
-                        journal_entry_insert_get_flags(ins));
+            st=ham_insert(db, txn, &key, &record, ins->insert_flags);
             break;
         }
-        case JOURNAL_ENTRY_TYPE_ERASE: {
-            journal_entry_erase_t *e=(journal_entry_erase_t *)aux;
+        case ENTRY_TYPE_ERASE: {
+            JournalEntryErase *e=(JournalEntryErase *)aux;
             ham_txn_t *txn;
             ham_db_t *db;
             ham_key_t key={0};
@@ -781,18 +707,18 @@ journal_recover(journal_t *journal)
             }
 
             /* do not erase if the key was already erased from disk */
-            if (journal_entry_get_lsn(&entry)<=start_lsn)
+            if (entry.lsn<=start_lsn)
                 continue;
 
-            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
-            key.data=journal_entry_erase_get_key_data(e);
-            key.size=journal_entry_erase_get_key_size(e);
-            st=ham_erase(db, txn, &key, journal_entry_erase_get_flags(e));
+            key.data=e->get_key_data();
+            key.size=e->key_size;
+            st=ham_erase(db, txn, &key, e->erase_flags);
             break;
         }
         default:
@@ -803,30 +729,30 @@ journal_recover(journal_t *journal)
         if (st)
             goto bail;
 
-        journal_set_lsn(journal, journal_entry_get_lsn(journal));
+        m_lsn=entry.lsn;
     } while (1);
 
 bail:
     if (aux) {
-        allocator_free(journal_get_allocator(journal), aux);
+        free(aux);
         aux=0;
     }
 
     /* all transactions which are not yet committed will be aborted */
-    (void)__abort_uncommitted_txns(env);
+    (void)__abort_uncommitted_txns(m_env);
 
     /* also close and delete all open databases - they were created in
      * __recover_get_db() */
-    (void)__close_all_databases(env);
+    (void)__close_all_databases(m_env);
 
     /* restore original flags */
-    env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
+    env_set_rt_flags(m_env, env_get_rt_flags(m_env)|HAM_ENABLE_RECOVERY);
 
     if (st)
         return (st);
 
     /* clear the journal files */
-    st=journal_clear(journal);
+    st=clear();
     if (st) {
         ham_log(("unable to clear journal; please manually delete the "
                 "journal files before re-opening the Database"));
@@ -835,3 +761,27 @@ bail:
 
     return (0);
 }
+
+ham_status_t
+Journal::clear_file(int idx)
+{
+    ham_status_t st;
+
+    st=os_truncate(m_fd[idx], sizeof(Header));
+    if (st)
+        return (st);
+
+    /* after truncate, the file pointer is far beyond the new end of file;
+     * reset the file pointer, or the next write will resize the file to
+     * the original size */
+    st=os_seek(m_fd[idx], sizeof(Header), HAM_OS_SEEK_SET);
+    if (st)
+        return (st);
+
+    /* clear the transaction counters */
+    m_open_txn[idx]=0;
+    m_closed_txn[idx]=0;
+
+    return (0);
+}
+

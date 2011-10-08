@@ -1743,6 +1743,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
+    ham_env_t *env=db_get_env(db);
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1767,18 +1768,18 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
      * checks if a key already exists, and this fills the changeset
      */
     st=db_check_insert_conflicts(db, txn, node, key, flags);
-    env_get_changeset(db_get_env(db)).clear();
+    env_get_changeset(env).clear();
     if (st) {
         if (node_created)
-            txn_opnode_free(db_get_env(db), node);
+            txn_opnode_free(env, node);
         return (st);
     }
 
     /* get the next lsn */
-    st=env_get_incremented_lsn(db_get_env(db), &lsn);
+    st=env_get_incremented_lsn(env, &lsn);
     if (st) {
         if (node_created)
-            txn_opnode_free(db_get_env(db), node);
+            txn_opnode_free(env, node);
         return (st);
     }
 
@@ -1811,12 +1812,13 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     }
 
     /* append journal entry */
-    if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(db_get_env(db))&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_insert(env_get_journal(db_get_env(db)), db, txn,
-                            key, record, 
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        Journal *j=env_get_journal(env);
+        st=j->append_insert(db, txn, key, record, 
                             flags&HAM_DUPLICATE ? flags : flags|HAM_OVERWRITE, 
                             txn_op_get_lsn(op));
+    }
 
     return (st);
 }
@@ -1919,6 +1921,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
+    ham_env_t *env=db_get_env(db);
     Cursor *pc=0;
     if (cursor)
         pc=txn_cursor_get_parent(cursor);
@@ -1945,16 +1948,16 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
         st=db_check_erase_conflicts(db, txn, node, key, flags);
         if (st) {
             if (node_created)
-                txn_opnode_free(db_get_env(db), node);
+                txn_opnode_free(env, node);
             return (st);
         }
     }
 
     /* get the next lsn */
-    st=env_get_incremented_lsn(db_get_env(db), &lsn);
+    st=env_get_incremented_lsn(env, &lsn);
     if (st) {
         if (node_created)
-            txn_opnode_free(db_get_env(db), node);
+            txn_opnode_free(env, node);
         return (st);
     }
 
@@ -1979,11 +1982,12 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     __nil_all_cursors_in_btree(db, pc, txn_opnode_get_key(node));
 
     /* append journal entry */
-    if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(db_get_env(db))&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_erase(env_get_journal(db_get_env(db)), db, txn,
-                            key, 0, flags|HAM_ERASE_ALL_DUPLICATES,
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        Journal *j=env_get_journal(env);
+        st=j->append_erase(db, txn, key, 0, flags|HAM_ERASE_ALL_DUPLICATES,
                             txn_op_get_lsn(op));
+    }
 
     return (st);
 }

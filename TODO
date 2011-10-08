@@ -206,6 +206,18 @@ o make sure that all unittests and monster tests are now working
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+x journal_entries: hier weitermachen
+
+o journal::append_txn_begin: wofür ist der 'db'-parameter?? wird nicht 
+    gebraucht
+o os_writev: wenn WRITEV nicht existiert muss es trotzdem atomic bleiben
+    -> auch im master ändern
+o journal: writev verwenden
+
+o journal: schauen ob partial writes getestet wurden
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 o new test case:
     insert (1)
     insert (2)

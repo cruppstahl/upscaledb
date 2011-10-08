@@ -175,6 +175,7 @@ public:
 
         txn_set_log_desc(txn, 4);
         BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
+        txn_set_log_desc(txn, 0);
 
         txn_set_oldest_op(txn, (txn_op_t *)2);
         BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_oldest_op(txn));

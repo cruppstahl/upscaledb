@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -53,8 +53,7 @@ typedef struct ham_cache_t ham_cache_t;
 
 class Log;
 
-struct journal_t;
-typedef struct journal_t journal_t;
+class Journal;
 
 struct extkey_t;
 typedef struct extkey_t extkey_t;
