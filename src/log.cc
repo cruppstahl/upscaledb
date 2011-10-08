@@ -25,24 +25,15 @@
 #include "util.h"
 
 
-static ham_size_t 
-__get_aligned_entry_size(ham_size_t data_size)
-{
-    ham_size_t s=sizeof(log_entry_t)+data_size;
-    s+=8-1;
-    s-=(s%8);
-    return (s);
-}
-
-ham_log_t::ham_log_t(ham_env_t *env, ham_u32_t flags)
+Log::Log(ham_env_t *env, ham_u32_t flags)
 : m_env(env), m_flags(flags), m_lsn(0), m_fd(HAM_INVALID_FD)
 {
 }
 
 ham_status_t
-ham_log_t::create(void)
+Log::create(void)
 {
-    log_header_t header;
+    Log::Header header;
     ham_status_t st;
     const char *dbpath=env_get_filename(m_env).c_str();
     char filename[HAM_OS_MAX_PATH];
@@ -56,8 +47,7 @@ ham_log_t::create(void)
         return (st);
 
     /* write the file header with the magic */
-    memset(&header, 0, sizeof(header));
-    log_header_set_magic(&header, HAM_LOG_HEADER_MAGIC);
+    header.magic=HEADER_MAGIC;
 
     st=os_write(m_fd, &header, sizeof(header));
     if (st) {
@@ -69,9 +59,9 @@ ham_log_t::create(void)
 }
 
 ham_status_t
-ham_log_t::open(void)
+Log::open(void)
 {
-    log_header_t header;
+    Log::Header header;
     const char *dbpath=env_get_filename(m_env).c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
@@ -85,26 +75,25 @@ ham_log_t::open(void)
     }
 
     /* check the file header with the magic */
-    memset(&header, 0, sizeof(header));
     st=os_pread(m_fd, 0, &header, sizeof(header));
     if (st) {
         close();
         return (st);
     }
-    if (log_header_get_magic(&header)!=HAM_LOG_HEADER_MAGIC) {
+    if (header.magic!=HEADER_MAGIC) {
         ham_trace(("logfile has unknown magic or is corrupt"));
         close();
         return (HAM_LOG_INV_FILE_HEADER);
     }
 
     /* store the lsn */
-    m_lsn=log_header_get_lsn(&header);
+    m_lsn=header.lsn;
 
     return (0);
 }
 
 bool
-ham_log_t::is_empty(void)
+Log::is_empty(void)
 {
     ham_status_t st; 
     ham_offset_t size;
@@ -112,30 +101,29 @@ ham_log_t::is_empty(void)
     st=os_get_filesize(m_fd, &size);
     if (st)
         return (st);
-    if (size && size!=sizeof(log_header_t))
+    if (size && size!=sizeof(Log::Header))
         return (false);
 
     return (true);
 }
 
 ham_status_t
-ham_log_t::clear(void)
+Log::clear(void)
 {
     ham_status_t st;
 
-    st=os_truncate(m_fd, sizeof(log_header_t));
+    st=os_truncate(m_fd, sizeof(Log::Header));
     if (st)
         return (st);
 
     /* after truncate, the file pointer is far beyond the new end of file;
      * reset the file pointer, or the next write will resize the file to
      * the original size */
-    return (os_seek(m_fd, sizeof(log_header_t), HAM_OS_SEEK_SET));
+    return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
 }
 
 ham_status_t
-ham_log_t::get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
-                ham_u8_t **data)
+Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
 {
     ham_status_t st;
 
@@ -150,32 +138,31 @@ ham_log_t::get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
     }
 
     /* if the current file is empty: no need to continue */
-    if (*iter<=sizeof(log_header_t)) {
-        log_entry_set_lsn(entry, 0);
+    if (*iter<=sizeof(Log::Header)) {
+        entry->lsn=0;
         return (0);
     }
 
-    /* otherwise read the log_entry_t header (without extended data) 
+    /* otherwise read the Log::Entry header (without extended data) 
      * from the file */
-    *iter-=sizeof(log_entry_t);
+    *iter-=sizeof(Log::Entry);
 
     st=os_pread(m_fd, *iter, entry, sizeof(*entry));
     if (st)
         return (st);
 
     /* now read the extended data, if it's available */
-    if (log_entry_get_data_size(entry)) {
-        ham_offset_t pos=(*iter)-log_entry_get_data_size(entry);
+    if (entry->data_size) {
+        ham_offset_t pos=(*iter)-entry->data_size;
         // pos += 8-1;
         pos -= (pos % 8);
 
         *data=(ham_u8_t *)allocator_alloc(env_get_allocator(m_env), 
-                        (ham_size_t)log_entry_get_data_size(entry));
+                        (ham_size_t)entry->data_size);
         if (!*data)
             return (HAM_OUT_OF_MEMORY);
 
-        st=os_pread(m_fd, pos, *data, 
-                    (ham_size_t)log_entry_get_data_size(entry));
+        st=os_pread(m_fd, pos, *data, (ham_size_t)entry->data_size);
         if (st) {
             allocator_free(env_get_allocator(m_env), *data);
             *data=0;
@@ -191,15 +178,14 @@ ham_log_t::get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
 }
 
 ham_status_t
-ham_log_t::close(ham_bool_t noclear)
+Log::close(ham_bool_t noclear)
 {
     ham_status_t st=0;
-    log_header_t header;
+    Log::Header header;
 
     /* write the file header with the magic and the last used lsn */
-    memset(&header, 0, sizeof(header));
-    log_header_set_magic(&header, HAM_LOG_HEADER_MAGIC);
-    log_header_set_lsn(&header, m_lsn);
+    header.magic=HEADER_MAGIC;
+    header.lsn=m_lsn;
 
     st=os_pwrite(m_fd, 0, &header, sizeof(header));
     if (st)
@@ -218,7 +204,7 @@ ham_log_t::close(ham_bool_t noclear)
 }
 
 ham_status_t
-ham_log_t::append_page(ham_page_t *page, ham_u64_t lsn)
+Log::append_page(ham_page_t *page, ham_u64_t lsn)
 {
     ham_status_t st=0;
     ham_file_filter_t *head=env_get_file_filter(m_env);
@@ -258,13 +244,13 @@ ham_log_t::append_page(ham_page_t *page, ham_u64_t lsn)
 }
 
 ham_status_t
-ham_log_t::recover()
+Log::recover()
 {
     ham_status_t st;
     ham_page_t *page;
     ham_device_t *device=env_get_device(m_env);
-    log_entry_t entry;
-    log_iterator_t it=0;
+    Log::Entry entry;
+    Iterator it=0;
     ham_u8_t *data=0;
     ham_offset_t filesize;
 
@@ -290,11 +276,11 @@ ham_log_t::recover()
             goto bail;
 
         /* reached end of the log file? */
-        if (log_entry_get_lsn(&entry)==0)
+        if (entry.lsn==0)
             break;
 
         /* currently we only have support for WRITEs */
-        ham_assert(log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE, (""));
+        ham_assert(entry.type==ENTRY_TYPE_WRITE, (""));
 
         /* 
          * Was the page appended or overwritten? 
@@ -305,9 +291,9 @@ ham_log_t::recover()
          * but then the page ownership is not set correctly (but the 
          * ownership is verified later, and this would fail).
          */
-        if (log_entry_get_offset(&entry)==filesize) {
+        if (entry.offset==filesize) {
             /* appended... */
-            filesize+=log_entry_get_data_size(&entry);
+            filesize+=entry.data_size;
 
             page=page_new(m_env);
             if (st)
@@ -321,19 +307,17 @@ ham_log_t::recover()
             page=page_new(m_env);
             if (st)
                 goto bail;
-            page_set_self(page, log_entry_get_offset(&entry));
+            page_set_self(page, entry.offset);
             st=page_fetch(page);
             if (st)
                 goto bail;
         }
 
-        ham_assert(page_get_self(page)==log_entry_get_offset(&entry), 
-                    (""));
-        ham_assert(env_get_pagesize(m_env)==log_entry_get_data_size(&entry), 
-                    (""));
+        ham_assert(page_get_self(page)==entry.offset, (""));
+        ham_assert(env_get_pagesize(m_env)==entry.data_size, (""));
 
         /* overwrite the page data */
-        memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
+        memcpy(page_get_pers(page), data, entry.data_size);
 
         /* flush the modified page to disk */
         page_set_dirty(page);
@@ -347,7 +331,7 @@ ham_log_t::recover()
 
         /* store the lsn in the log - will be needed later when recovering
          * the journal */
-        m_lsn=log_entry_get_lsn(&entry);
+        m_lsn=entry.lsn;
     }
 
     /* and finally clear the log */
@@ -372,25 +356,25 @@ bail:
 }
 
 ham_status_t
-ham_log_t::flush(void)
+Log::flush(void)
 {
     return (os_flush(m_fd));
 }
 
 ham_status_t
-ham_log_t::append_write(ham_u64_t lsn, ham_offset_t offset, 
+Log::append_write(ham_u64_t lsn, ham_offset_t offset, 
                     ham_u8_t *data, ham_size_t size)
 {
-    log_entry_t entry={0};
+    Log::Entry entry;
 
     /* store the lsn - it will be needed later when the log file is closed */
     if (lsn)
         m_lsn=lsn;
 
-    log_entry_set_lsn(&entry, lsn);
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_WRITE);
-    log_entry_set_offset(&entry, offset);
-    log_entry_set_data_size(&entry, size);
+    entry.lsn=lsn;
+    entry.type=ENTRY_TYPE_WRITE;
+    entry.offset=offset;
+    entry.data_size=size;
 
     return (os_writev(m_fd, data, size, &entry, sizeof(entry)));
 }

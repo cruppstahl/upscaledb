@@ -232,7 +232,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
      * create a logfile and a journal (if requested)
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_log_t *log=new ham_log_t(env);
+        Log *log=new Log(env);
         journal_t *journal;
         st=log->create();
         if (st) { 
@@ -264,7 +264,7 @@ static ham_status_t
 __recover(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_log_t *log=new ham_log_t(env);
+    Log *log=new Log(env);
     journal_t *journal=0;
 
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
@@ -334,7 +334,7 @@ success:
     /* done with recovering - if there's no log and/or no journal then
      * create them and store them in the environment */
     if (!log) {
-        log=new ham_log_t(env);
+        log=new Log(env);
         st=log->create();
         if (st)
             return (st);
@@ -818,8 +818,8 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * close the log and the journal
      */
     if (env_get_log(env)) {
-        ham_log_t *log=env_get_log(env);
-        st = log->close(flags&HAM_DONT_CLEAR_LOG);
+        Log *log=env_get_log(env);
+        st=log->close(flags&HAM_DONT_CLEAR_LOG);
         if (!st2) 
             st2 = st;
         delete log;

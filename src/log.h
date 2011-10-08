@@ -39,117 +39,62 @@ extern "C" {
 #include "packstart.h"
 
 /**
- * the header structure of a log file
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 log_header_t
-{
-    /* the magic */
-    ham_u32_t _magic;
-
-    /* a reserved field */
-    ham_u32_t _reserved;
-
-    /* the last used lsn */
-    ham_u64_t _lsn;
-
-} HAM_PACK_2 log_header_t;
-
-#include "packstop.h"
-
-#define HAM_LOG_HEADER_MAGIC                  (('h'<<24)|('l'<<16)|('o'<<8)|'g')
-
-/* get the log header magic */
-#define log_header_get_magic(l)                 (l)->_magic
-
-/* set the log header magic */
-#define log_header_set_magic(l, m)              (l)->_magic=m
-
-/* get the last used lsn */
-#define log_header_get_lsn(l)                   (l)->_lsn
-
-/* set the last used lsn */
-#define log_header_set_lsn(l, lsn)              (l)->_lsn=lsn
-
-#include "packstart.h"
-
-/**
- * a log file entry
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
-{
-    /** the lsn of this entry */
-    ham_u64_t _lsn;
-
-    /** the flags of this entry; the lowest 8 bits are the 
-     * type of this entry, see below */
-    ham_u32_t _flags;
-
-    /** a reserved value */
-    ham_u32_t _reserved;
-
-    /** the offset of this operation */
-    ham_u64_t _offset;
-
-    /** the size of the data */
-    ham_u64_t _data_size;
-
-} HAM_PACK_2 log_entry_t;
-
-#include "packstop.h"
-
-/** 
-* @defgroup log_entry_type_set the different types of log entries
-* @{
-*/
-
-/** Write ahead the contents of a page */
-#define LOG_ENTRY_TYPE_WRITE                    1
-
-/**
- * @}
- */
-
-/* get the lsn */
-#define log_entry_get_lsn(l)                    (l)->_lsn
-
-/* set the lsn */
-#define log_entry_set_lsn(l, lsn)               (l)->_lsn=lsn
-
-/* get the offset of this entry */
-#define log_entry_get_offset(l)                 (l)->_offset
-
-/* set the offset of this entry */
-#define log_entry_set_offset(l, o)              (l)->_offset=o
-
-/* get the size of this entry */
-#define log_entry_get_data_size(l)              (l)->_data_size
-
-/* set the size of this entry */
-#define log_entry_set_data_size(l, s)           (l)->_data_size=s
-
-/* get the flags of this entry */
-#define log_entry_get_flags(l)                  (l)->_flags
-
-/* set the flags of this entry */
-#define log_entry_set_flags(l, f)               (l)->_flags=f
-
-/* get the type of this entry */
-#define log_entry_get_type(l)                   ((l)->_flags&0xf)
-
-/* set the type of this entry */
-#define log_entry_set_type(l, t)                (l)->_flags|=(t)
-
-/**
  * a Log object
  */
-class ham_log_t 
+class Log 
 {
   public:
+    /** the magic of the header */
+    static const ham_u32_t HEADER_MAGIC=(('h'<<24)|('l'<<16)|('o'<<8)|'g');
+
+    /** Type for Entry::type - write ahead contents of a page */
+    static const ham_u32_t ENTRY_TYPE_WRITE=1;
+
+    /**
+     * the header structure of a log file
+     */
+    HAM_PACK_0 struct HAM_PACK_1 Header
+    {
+        Header() : magic(0), _reserved(0), lsn(0) { };
+    
+        /* the magic */
+        ham_u32_t magic;
+
+        /* a reserved field */
+        ham_u32_t _reserved;
+
+        /* the last used lsn */
+        ham_u64_t lsn;
+    };
+
+    /**
+     * a log file entry
+     */
+    HAM_PACK_0 struct HAM_PACK_1 Entry
+    {
+        Entry() : lsn(0), type(0), _reserved(0), offset(0), data_size(0) { };
+
+        /** the lsn of this entry */
+        ham_u64_t lsn;
+    
+        /** the type of this entry, see below */
+        ham_u32_t type;
+    
+        /** a reserved value */
+        ham_u32_t _reserved;
+
+        /** the offset of this operation */
+        ham_u64_t offset;
+
+        /** the size of the data */
+        ham_u64_t data_size;
+    };
+
     /** an "iterator" structure for traversing the log files */
-    typedef ham_offset_t log_iterator_t;
+    typedef ham_offset_t Iterator;
 
     /** constructor */
-    ham_log_t(ham_env_t *env, ham_u32_t flags=0);
+    Log(ham_env_t *env, ham_u32_t flags=0);
 
     /** create a new log */
     ham_status_t create(void);
@@ -183,7 +128,7 @@ class ham_log_t
      *
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
      */
-    ham_status_t get_entry(ham_log_t::log_iterator_t *iter, log_entry_t *entry,
+    ham_status_t get_entry(Log::Iterator *iter, Log::Entry *entry,
                 ham_u8_t **data);
 
     /** 
@@ -209,19 +154,19 @@ class ham_log_t
     ham_status_t flush(void);
 
     /**
-     * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
+     * append a log entry for @ref ENTRY_TYPE_WRITE.
      *
-     * @note invoked by @ref ham_log_t::append_page() to save the new 
+     * @note invoked by @ref Log::append_page() to save the new 
      * content of the specified page.
      *
-     * @sa ham_log_t::append_page
+     * @sa Log::append_page
      */
     ham_status_t append_write(ham_u64_t lsn, ham_offset_t offset, 
                     ham_u8_t *data, ham_size_t size);
 
   private:
     /** writes a byte buffer to the logfile */
-    ham_status_t append_entry(log_entry_t *entry, ham_size_t size);
+    ham_status_t append_entry(Log::Entry *entry, ham_size_t size);
 
     /** references the Environment this log file is for */
     ham_env_t *m_env;
@@ -234,8 +179,9 @@ class ham_log_t
 
     /** the file descriptor of the log file */
     ham_fd_t m_fd;
-
 };
+
+#include "packstop.h"
 
 
 #ifdef __cplusplus

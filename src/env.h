@@ -151,7 +151,7 @@ class ham_env_t
     ham_txn_t *_newest_txn;
 
     /** the physical log */
-    ham_log_t *_log;
+    Log *_log;
 
     /** the logical journal */
     journal_t *_journal;

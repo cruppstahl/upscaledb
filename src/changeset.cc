@@ -71,8 +71,6 @@ changeset_t::flush(ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *p;
-    ham_env_t *env;
-    ham_log_t *log;
 
     /* first write all changed pages to the log; if this fails, clear the log
      * again because recovering an incomplete log would break the database 
@@ -81,8 +79,8 @@ changeset_t::flush(ham_u64_t lsn)
     if (!p)
         return (0);
 
-    env=device_get_env(page_get_device(p));
-    log=env_get_log(env);
+    ham_env_t *env=device_get_env(page_get_device(p));
+    Log *log=env_get_log(env);
 
     ham_assert(log!=0, (""));
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));

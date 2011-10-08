@@ -331,8 +331,8 @@ public:
         BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 
                 16 + 12 + sizeof(freelist_page_statistics_t)));
         BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
-        BFC_ASSERT(compare_sizes(sizeof(log_header_t), 16));
-        BFC_ASSERT(compare_sizes(sizeof(log_entry_t), 32));
+        BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));
+        BFC_ASSERT(compare_sizes(sizeof(Log::Entry), 32));
         BFC_ASSERT(compare_sizes(sizeof(ham_perm_page_union_t), 13));
         ham_perm_page_union_t p;
         BFC_ASSERT(compare_sizes(sizeof(p._s), 13));

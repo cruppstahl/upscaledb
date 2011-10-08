@@ -51,8 +51,7 @@ typedef struct ham_backend_t ham_backend_t;
 struct ham_cache_t;
 typedef struct ham_cache_t ham_cache_t;
 
-struct ham_log_t;
-typedef struct ham_log_t ham_log_t;
+class Log;
 
 struct journal_t;
 typedef struct journal_t journal_t;
