@@ -12,7 +12,7 @@
 /**
  * @file hamsterdb.hpp
  * @author Christoph Rupp, chris@crupp.de
- * @version 1.1.1
+ * @version 1.1.2
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible. 
@@ -600,6 +600,15 @@ public:
         if (st)
             throw error(st);
         return (c);
+    }
+
+    /** Returns the size of the current record. */
+    ham_u64_t get_record_size() {
+        ham_u64_t s;
+        ham_status_t st=ham_cursor_get_record_size(m_cursor, &s);
+        if (st)
+            throw error(st);
+        return (s);
     }
 
     /** Closes the Cursor. */
