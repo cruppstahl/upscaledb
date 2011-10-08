@@ -813,14 +813,14 @@ public:
     void iterateOverLogMultipleEntryWithDataTest(void)
     {
         ham_txn_t *txn;
-        ham_u8_t buffer[20];
+        ham_u8_t buffer[1024*16];
         ham_log_t *log=env_get_log(m_env);
 
         for (int i=0; i<5; i++) {
             memset(buffer, (char)i, sizeof(buffer));
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
             BFC_ASSERT_EQUAL(0, 
-                            ham_log_append_write(log, txn, i, buffer, i));
+                            ham_log_append_write(log, txn, i, buffer, 1024));
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
@@ -849,10 +849,9 @@ public:
                 break;
 
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE) {
-                ham_u8_t cmp[20];
+                ham_u8_t cmp[1024*16];
                 memset(cmp, (char)writes, sizeof(cmp));
-                BFC_ASSERT_EQUAL((ham_u64_t)writes, 
-                        log_entry_get_data_size(&entry));
+                BFC_ASSERT_EQUAL(1024u, log_entry_get_data_size(&entry));
                 BFC_ASSERT_EQUAL((ham_u64_t)writes, 
                         log_entry_get_offset(&entry));
                 BFC_ASSERT_EQUAL(0, memcmp(data, cmp, 

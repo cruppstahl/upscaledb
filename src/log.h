@@ -155,7 +155,7 @@ struct ham_log_t
     /** the allocator object */
     mem_allocator_t *_alloc;
 
-	/** references the environment (database) this log file is for; may be NULL */
+	/** references the environment this log file is for; may be NULL */
 	ham_env_t *_env;
 
     /** the log flags - unused so far */
@@ -305,13 +305,6 @@ extern ham_status_t
 ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty);
 
 /**
- * appends an entry to the log
- */
-extern ham_status_t
-ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
-        ham_size_t size);
-
-/**
  * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
  */
 extern ham_status_t
@@ -336,32 +329,33 @@ extern ham_status_t
 ham_log_append_checkpoint(ham_log_t *log);
 
 /**
-append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
-
-Process the signal that a page is about to be written to the
-device: save the page to the log file which is linked with
-that page's database transaction, then flush that log file
-to ensure crash recovery.
-
-@note The only time this signal is not delivered is when the
-      database starts a new transaction by generating a new
-	  checkpoint.
-
-	  At that time pages may be flushed to disc, but we will
-	  be sure those pages are already covered by the previous
-	  (by now already closed and flushed) transaction log/flush.
-
-@sa page_flush
+ * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
+ * 
+ * Process the signal that a page is about to be written to the
+ * device: save the page to the log file which is linked with
+ * that page's database transaction, then flush that log file
+ * to ensure crash recovery.
+ * 
+ * @note The only time this signal is not delivered is when the
+ * database starts a new transaction by generating a new
+ * checkpoint.
+ * 
+ * At that time pages may be flushed to disc, but we will
+ * be sure those pages are already covered by the previous
+ * (by now already closed and flushed) transaction log/flush.
+ * 
+ * @sa page_flush
  */
 extern ham_status_t
 ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
 
 /**
  * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
-
- @note invoked by @ref ham_log_add_page_after() to save the new content of the specified page.
-
- @sa ham_log_add_page_after
+ *
+ * @note invoked by @ref ham_log_add_page_after() to save the new content 
+ * of the specified page.
+ *
+ * @sa ham_log_add_page_after
  */
 extern ham_status_t
 ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
@@ -369,10 +363,11 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
 
 /**
  * append a log entry for @ref LOG_ENTRY_TYPE_PREWRITE.
-
- @note invoked by @ref ham_log_add_page_before() to preserve the original content of the specified page.
-
- @sa ham_log_add_page_before
+ *
+ * @note invoked by @ref ham_log_add_page_before() to preserve the 
+ * original content of the specified page.
+ *
+ * @sa ham_log_add_page_before
  */
 extern ham_status_t
 ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,

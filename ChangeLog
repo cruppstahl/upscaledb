@@ -1,3 +1,5 @@
+Oct 08, 2011 - chris ---------------------------------------------------
+o removed two expensive memcpy's in the logging routines (thanks, Jake)
 
 Oct 01, 2011 - chris ---------------------------------------------------
 o added a new function ham_cursor_get_record_size; retrieves the record 

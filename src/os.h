@@ -63,6 +63,14 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_offset_t bufferlen);
 
 /**
+ * write data from two buffers to a file
+ */
+extern ham_status_t
+os_writev(ham_fd_t fd, const void *buffer1, 
+        ham_offset_t buffer1_len, const void *buffer2,
+        ham_offset_t buffer2_len);
+
+/**
  * append data to a file
  */
 extern ham_status_t

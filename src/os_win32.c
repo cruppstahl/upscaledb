@@ -250,6 +250,20 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 }
 
 ham_status_t
+os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len, 
+                const void *buffer2, ham_offset_t buffer2_len)
+{
+#if 0
+    /* TODO implement me - i'm sure Win32 has a writev function */
+#else
+    ham_status_t st=os_write(fd, buffer1, buffer1_len);
+    if (st)
+        return (st);
+    return (os_write(fd, buffer2, buffer2_len));
+#endif
+}
+
+ham_status_t
 os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 {
     ham_status_t st;

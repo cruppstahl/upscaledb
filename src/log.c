@@ -94,15 +94,6 @@ bail:
     return (st);
 }
 
-static ham_size_t 
-my_get_aligned_entry_size(ham_size_t data_size)
-{
-    ham_size_t s=sizeof(log_entry_t)+data_size;
-    s += 8-1;
-    s -= (s % 8);
-    return (s);
-}
-
 static ham_status_t
 __log_clear_file(ham_log_t *log, int idx)
 {
@@ -313,22 +304,31 @@ ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty)
     return (0);
 }
 
-ham_status_t
+static ham_status_t
 ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
         ham_size_t size)
 {
-    ham_status_t st;
+    return (os_write(log_get_fd(log, fdidx), entry, size));
+}
 
-    st=os_write(log_get_fd(log, fdidx), entry, size);
-    if (st)
-        return (st);
-
-#if 0
-    /* disabled flush - it really kills performance */
-    return (os_flush(log_get_fd(log, fdidx)));
-#else
-    return (0);
+#ifdef HAM_DEBUG
+static ham_size_t 
+_get_aligned_entry_size(ham_size_t data_size)
+{
+    ham_size_t s=sizeof(log_entry_t)+data_size;
+    s += 8-1;
+    s -= (s % 8);
+    return (s);
+}
 #endif
+
+static ham_status_t
+ham_log_append_entry2(ham_log_t *log, int fdidx, void *data, 
+        ham_size_t data_size, void *entry, ham_size_t entry_size)
+{
+    //ham_assert(_get_aligned_entry_size(data_size)==data_size+entry_size, (""));
+    return (os_writev(log_get_fd(log, fdidx), data, 
+                data_size, entry, entry_size));
 }
 
 ham_status_t
@@ -507,70 +507,38 @@ ham_status_t
 ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
-    ham_status_t st;
-    ham_size_t alloc_size=my_get_aligned_entry_size(size);
-    log_entry_t *entry;
-    ham_u8_t *alloc_buf;
+    log_entry_t entry={0};
     
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
-    if (!alloc_buf)
-        return (HAM_OUT_OF_MEMORY);
-
-    entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
-
-    memset(entry, 0, sizeof(*entry));
-    log_entry_set_lsn(entry, log_get_lsn(log));
+    log_entry_set_lsn(&entry, log_get_lsn(log));
     log_increment_lsn(log);
     if (txn)
-        log_entry_set_txn_id(entry, txn_get_id(txn));
-    log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
-    log_entry_set_offset(entry, offset);
-    log_entry_set_data_size(entry, size);
-    memcpy(alloc_buf, data, size);
+        log_entry_set_txn_id(&entry, txn_get_id(txn));
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_offset(&entry, offset);
+    log_entry_set_data_size(&entry, size);
 
-    st=ham_log_append_entry(log, 
+    return (ham_log_append_entry2(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-                    (log_entry_t *)alloc_buf, alloc_size);
-    allocator_free(log_get_allocator(log), alloc_buf);
-    if (st)
-        return (st);
-
-    return (0);
+                    data, size, &entry, sizeof(entry)));
 }
 
 ham_status_t
 ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
-    ham_status_t st;
-    ham_size_t alloc_size=my_get_aligned_entry_size(size);
-    log_entry_t *entry;
-    ham_u8_t *alloc_buf;
+    log_entry_t entry={0};
     
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
-    if (!alloc_buf)
-        return (HAM_OUT_OF_MEMORY);
-
-    entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
-
-    memset(entry, 0, sizeof(*entry));
-    log_entry_set_lsn(entry, log_get_lsn(log));
+    log_entry_set_lsn(&entry, log_get_lsn(log));
     log_increment_lsn(log);
     if (txn)
-        log_entry_set_txn_id(entry, txn_get_id(txn));
-    log_entry_set_type(entry, LOG_ENTRY_TYPE_PREWRITE);
-    log_entry_set_offset(entry, offset);
-    log_entry_set_data_size(entry, size);
-    memcpy(alloc_buf, data, size);
+        log_entry_set_txn_id(&entry, txn_get_id(txn));
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_PREWRITE);
+    log_entry_set_offset(&entry, offset);
+    log_entry_set_data_size(&entry, size);
 
-    st=ham_log_append_entry(log, 
+    return (ham_log_append_entry2(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-                    (log_entry_t *)alloc_buf, alloc_size);
-    allocator_free(log_get_allocator(log), alloc_buf);
-    if (st)
-        return (st);
-
-    return (0);
+                    data, size, &entry, sizeof(entry)));
 }
 
 ham_status_t
