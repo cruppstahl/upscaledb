@@ -1019,7 +1019,7 @@ blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     /*
      * sanity check
      */
-    ham_assert(blob_get_self(&hdr)==blobid, 
+    ham_verify(blob_get_self(&hdr)==blobid, 
             ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);

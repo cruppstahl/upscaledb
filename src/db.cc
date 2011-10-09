@@ -613,40 +613,28 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
             return cmp; /* unexpected error! */
     }
 
-    if (cmp==HAM_PREFIX_REQUEST_FULLKEY) 
-    {
+    if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
         ham_status_t st;
 
-        /*
-         * 1. load the first key, if needed
-         */
-        if (lhs->_flags & KEY_IS_EXTENDED) 
-        {
-            st = db_get_extended_key(db, (ham_u8_t *)lhs->data,
+        /* 1. load the first key, if needed */
+        if (lhs->_flags&KEY_IS_EXTENDED) {
+            st=db_get_extended_key(db, (ham_u8_t *)lhs->data,
                     lhs->size, lhs->_flags, lhs);
             if (st)
-            {
-                ham_assert(st < -1, (0));
                 return st;
-            }
+            lhs->_flags&=~KEY_IS_EXTENDED;
         }
 
-        /*
-         * 2. load the second key, if needed
-         */
-        if (rhs->_flags & KEY_IS_EXTENDED) {
-            st = db_get_extended_key(db, (ham_u8_t *)rhs->data,
+        /* 2. load the second key, if needed */
+        if (rhs->_flags&KEY_IS_EXTENDED) {
+            st=db_get_extended_key(db, (ham_u8_t *)rhs->data,
                     rhs->size, rhs->_flags, rhs);
             if (st)
-            {
-                ham_assert(st < -1, (0));
                 return st;
-            }
+            rhs->_flags&=~KEY_IS_EXTENDED;
         }
 
-        /*
-         * 3. run the comparison function
-         */
+        /* 3. run the comparison function */
         cmp=foo(db, (ham_u8_t *)lhs->data, lhs->size, 
                         (ham_u8_t *)rhs->data, rhs->size);
     }
