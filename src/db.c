@@ -667,7 +667,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
                 ham_assert(st < -1, (0));
                 return st;
             }
-            lhs->_flags&=~KEY_IS_EXTENDED;
+            rhs->_flags&=~KEY_IS_EXTENDED;
         }
 
         /*
