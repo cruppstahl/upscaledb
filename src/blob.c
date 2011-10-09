@@ -901,7 +901,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
     /*
      * sanity check
      */
-    ham_assert(blob_get_self(&old_hdr)==old_blobid, 
+    ham_verify(blob_get_self(&old_hdr)==old_blobid, 
             ("invalid blobid %llu != %llu", blob_get_self(&old_hdr), 
             old_blobid));
     if (blob_get_self(&old_hdr)!=old_blobid)

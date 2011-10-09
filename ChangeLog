@@ -1,3 +1,7 @@
+Oct 09, 2011 - chris ---------------------------------------------------
+o fixed a bug when erasing extended keys; sometimes this would try to
+    load extended keys which do not exist (thanks, wandi)
+
 Oct 08, 2011 - chris ---------------------------------------------------
 o removed two expensive memcpy's in the logging routines (thanks, Jake)
 o all modified ("dirty") pages are now tracked in their own list for
