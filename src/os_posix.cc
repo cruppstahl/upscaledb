@@ -258,7 +258,7 @@ os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
         ham_log(("writev failed with status %u (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
-    if (w!=buffer1_len+buffer2_len) {
+    if (w!=(int)(buffer1_len+buffer2_len)) {
         ham_log(("writev short write, status %u (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -267,7 +267,12 @@ os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
     ham_status_t st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
-    return (os_write(fd, buffer2, buffer2_len));
+    st=os_write(fd, buffer2, buffer2_len);
+    if (st) {
+        /* rollback the previous change */
+        (void)os_seek(fd, buffer1_len, HAM_OS_SEEK_END);
+    }
+    return (st);
 #endif
 }
 

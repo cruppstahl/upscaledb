@@ -95,6 +95,7 @@ public:
         BFC_REGISTER_TEST(JournalTest, appendTxnAbortTest);
         BFC_REGISTER_TEST(JournalTest, appendTxnCommitTest);
         BFC_REGISTER_TEST(JournalTest, appendInsertTest);
+        BFC_REGISTER_TEST(JournalTest, appendPartialInsertTest);
         BFC_REGISTER_TEST(JournalTest, appendEraseTest);
         BFC_REGISTER_TEST(JournalTest, clearTest);
         BFC_REGISTER_TEST(JournalTest, iterateOverEmptyLogTest);
@@ -339,6 +340,54 @@ public:
         BFC_ASSERT_EQUAL(0ull, ins->record_partial_size);
         BFC_ASSERT_EQUAL(0ull, ins->record_partial_offset);
         BFC_ASSERT_EQUAL((unsigned)HAM_OVERWRITE, ins->insert_flags);
+        BFC_ASSERT_EQUAL(0, strcmp("key1", (char *)ins->get_key_data()));
+        BFC_ASSERT_EQUAL(0, strcmp("rec1", (char *)ins->get_record_data()));
+
+        j->free(ins);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void appendPartialInsertTest(void)
+    {
+        Journal *j=disconnect_and_create_new_journal();
+        ham_txn_t *txn;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"key1";
+        key.size=5;
+        rec.data=(void *)"rec1";
+        rec.size=15;
+        rec.partial_size=5;
+        rec.partial_offset=10;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
+        BFC_ASSERT_EQUAL(0, 
+                    j->append_insert(m_db, txn, &key, &rec, 
+                                HAM_PARTIAL, lsn));
+        BFC_ASSERT_EQUAL((ham_u64_t)3, j->get_lsn());
+        BFC_ASSERT_EQUAL(0, j->close(true));
+
+        BFC_ASSERT_EQUAL(0, j->open());
+        env_set_journal(m_env, j);
+
+        /* verify that the insert entry was written correctly */
+        Journal::Iterator iter;
+        memset(&iter, 0, sizeof(iter));
+        JournalEntry entry;
+        JournalEntryInsert *ins;
+        BFC_ASSERT_EQUAL(0,  // this is the txn
+                    j->get_entry(&iter, &entry, (void **)&ins));
+        BFC_ASSERT_EQUAL(0,  // this is the insert
+                    j->get_entry(&iter, &entry, (void **)&ins));
+        BFC_ASSERT_EQUAL((ham_u64_t)2, entry.lsn);
+        BFC_ASSERT_EQUAL(5, ins->key_size);
+        BFC_ASSERT_EQUAL(15u, ins->record_size);
+        BFC_ASSERT_EQUAL(5u, ins->record_partial_size);
+        BFC_ASSERT_EQUAL(10u, ins->record_partial_offset);
+        BFC_ASSERT_EQUAL((unsigned)HAM_PARTIAL, ins->insert_flags);
         BFC_ASSERT_EQUAL(0, strcmp("key1", (char *)ins->get_key_data()));
         BFC_ASSERT_EQUAL(0, strcmp("rec1", (char *)ins->get_record_data()));
 

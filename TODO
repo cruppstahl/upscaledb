@@ -208,13 +208,21 @@ XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 x journal_entries: hier weitermachen
 
-o journal::append_txn_begin: wofür ist der 'db'-parameter?? wird nicht 
-    gebraucht
-o os_writev: wenn WRITEV nicht existiert muss es trotzdem atomic bleiben
-    -> auch im master ändern
-o journal: writev verwenden
+x journal::append_txn_begin: why do we need the 'db' parameter? 
+    -> because it's required by ham_txn_begin()
 
-o journal: schauen ob partial writes getestet wurden
+x os_writev: wenn WRITEV nicht existiert muss es trotzdem atomic bleiben
+    x auch im master ändern
+
+x journal: schauen ob partial writes getestet wurden
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+o changes for 2.0.0:
+    o ham_create_db, _erase_db (and others?) get a txn parameter (reserved)
+    o can we remove some of the deprecated functions?
+    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
+        and the Env as parameter (not the db!)
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
@@ -292,6 +300,8 @@ o improve journalling and get rid of the physical log as much as possible
         freelist (and maybe the header page, if the root page address is
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
+
+o journal: use writev if it turns out to make sense
 
 o compare performance against 1.1.13 (with and without Transactions)
     o do some profiling - i am afraid that changeset_get_page() is not efficient

@@ -275,7 +275,12 @@ os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
     ham_status_t st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
-    return (os_write(fd, buffer2, buffer2_len));
+    st=os_write(fd, buffer2, buffer2_len);
+    if (st) {
+        /* rollback the previous change */
+        (void)os_seek(fd, buffer1_len, HAM_OS_SEEK_END);
+    }
+    return (st);
 #endif
 }
 

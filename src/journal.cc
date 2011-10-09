@@ -314,11 +314,9 @@ Journal::append_insert(ham_db_t *db, ham_txn_t *txn,
     JournalEntryInsert *ins;
     ham_size_t size=sizeof(JournalEntryInsert)+key->size+record->size-1;
     size=__get_aligned_entry_size(size);
-
     ins=(JournalEntryInsert *)allocate(size);
     if (!ins)
         return (HAM_OUT_OF_MEMORY);
-    memset(ins, 0, size); /* TODO required? */
     entry.lsn=lsn;
     entry.dbname=db_get_dbname(db);
     entry.txn_id=txn_get_id(txn);
@@ -353,7 +351,6 @@ Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     aux=(JournalEntryErase *)allocate(size);
     if (!aux)
         return (HAM_OUT_OF_MEMORY);
-    memset(aux, 0, size); /* TODO required? */
     entry.lsn=lsn;
     entry.dbname=db_get_dbname(db);
     entry.txn_id=txn_get_id(txn);
