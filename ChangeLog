@@ -1,3 +1,6 @@
+Oct 11, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.14
+
 Oct 09, 2011 - chris ---------------------------------------------------
 o fixed a bug when erasing extended keys; sometimes this would try to
     load extended keys which do not exist (thanks, wandi)
