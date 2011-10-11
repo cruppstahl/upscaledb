@@ -3,7 +3,7 @@ Oct 11, 2011 - chris ---------------------------------------------------
 
 Oct 09, 2011 - chris ---------------------------------------------------
 o fixed a bug when erasing extended keys; sometimes this would try to
-    load extended keys which do not exist (thanks, wandi)
+    load extended keys which do not exist (thanks, Andi Weber)
 
 Oct 08, 2011 - chris ---------------------------------------------------
 o removed two expensive memcpy's in the logging routines (thanks, Jake)
