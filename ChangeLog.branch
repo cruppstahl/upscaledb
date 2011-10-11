@@ -1,6 +1,6 @@
 Oct 09, 2011 - chris ---------------------------------------------------
 o fixed a bug when erasing extended keys; sometimes this would try to
-    load extended keys which do not exist (thanks, wandi)
+    load extended keys which do not exist (thanks, Andi Weber)
 
 Oct 02, 2011 - chris ---------------------------------------------------
 o added a new function ham_cursor_get_record_size; retrieves the record
