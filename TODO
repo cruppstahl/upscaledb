@@ -15,232 +15,7 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-x cleanups: the backend structure does not need the function pointers. 
-    simplify the whole interface!
-    --> no, it's fine. the interface is clean and good as it is.
-
-x be_set_dirty is not really required, is it? the flushes are always explicit
-    --> no, not explicit. better leave it as is.
-
-x db_compare_keys can return errors - do we really need this??
-    --> yes, because extended keys access disk and caches
-
-x log_t: allocator _alloc still needed? we have the Env pointer
-
-x log_entry_t: txn_id still needed?
-
-x journal->_alloc not needed, it's part of the Env
-
-x journal->_lsn - no longer needed?
-    ---> no, it's still required
-
-x cleanup the cache - the garbagelist is not needed, and the age of the pages
-    is also not needed (unless it turns out to improve the performance)
-    x remove the garbage list
-    x the cache should give preference to index pages
-    x cache->_timeslot
-    x cache_reduce_page_counts
-    x update_page_access_counter
-    x DB_NEW_PAGE_DOES_THRASH_CACHE
-
-x review non-cursor operations - make sure that the txn-layer is
-    clearly separated from non-txn layers (db and backend);
-    also make sure that in case of errors the changeset and the local txn
-    are correctly cleaned up
-    x close
-    x get_parameters
-    x check_integrity
-    x get_key_count
-    x insert
-    x erase
-    x find
-
-x check the output of the monster tests - is device->read/write required at
-    all? any other functions that are not required? - no, they're all required
-
-x refactor cursor; separate backend-cursor and txn-cursor; make the 
-    x rename bt_cursor -> btree_cursor?
-
-    x cursor_has_duplicates: move to cursor.c; often is used in 
-        boolean form, but should be: true if >1, false if <=1
-
-    x review all cursor functions, make sure there's a clear separation
-        between txn-cursor and btree-cursor and the upper layer;
-        also make sure that in case of errors the changeset and the local txn
-        are correctly cleaned up
-
-    x cleanups: the cursor does not need the function pointers. 
-        simplify the whole interface!
-        x btree_cursor functions should receive a btree_cursor as a 
-           parameter which does NOT include the parent functions, but 
-           which includes a pointer to the parent cursor
-           that way the parent functions can be removed step by step
-            x cursor_create
-            x cursor_close
-            x cursor_clone
-            x cursor_insert
-            x cursor_find
-            x cursor_erase
-            x cursor_get_duplicate_count
-            x cursor_overwrite
-
-        x unify the "is_nil"-handling and the coupling
-            x use getter/setter instead of flags
-                x coursor_is_nil
-                x coursor_set_to_nil
-                    x one function for 3 states (txn, btree, both)
-                    x env.c:1640
-                x coursor_is_coupled_to_btree
-                x coursor_is_coupled_to_txnop
-                x coursor_couple_to_btree
-                x coursor_couple_to_txnop
-                x it seems there are some places where a txn-cursor->parent
-                    points to a cursor, but cursor->txn_cursor is a different
-                    structure. verify with asserts (i.e. in 
-                    txn_cursor_get_parent) -- no, it's fine
-            x valid states: nil, btree, txn; but btree maintains its own 
-                coupling; currently there are TOO MANY FLAGS!! clean them up!
-                -> no, should be ok for now
-
-        x cleanup cursor.h 
-            x which functions are required to be public, which are not? 
-            x get rid of the function pointers
-                x cursor_create
-                x cursor_close
-                x cursor_clone
-                x cursor_insert
-                x cursor_find
-                x cursor_erase
-                x cursor_get_duplicate_count
-                x cursor_overwrite
-            x add documentation
-
-        x also cleanup btree_cursor.h (and btree_cursor.c)
-            x remove functions that are not required
-            x add documentation
-
-        x also cleanup txn_cursor.h (and txn_cursor.c)
-            x remove functions that are not required
-            x add documentation
-
-        x streamline the cursor flags; the txn_cursor flags have their own 
-		field, and the btree_cursor as well. all 3 can be unified.
-            x get rid of txn_cursor->_flags
-            x combine btree flags and cursor flags (document the namespaces)
-
-        x combine txn_cursor_set_coupled_op and txn_op_add_cursor
-            (-> txn_cursor_couple - why is it not used?)
-
-        x combine dupecache_reset and cursor_set_dupecache_index(c, 0)
-            into cursor_clear_dupecache
-
-        x make btree_cursor similar to txn_cursor and include it into
-           ham_cursor_t -> need to remove all the casts - this is a big change!
-            x env.c
-            x txn_cursor.c
-            x btree_erase.c
-            x btree_cursor.c
-            x btree_insert.c
-            x btree_stats.c
-            x cursor.c
-            x db.c
-            x get rid of CURSOR_DECLARATIONS
-            x remove SIZEOF_CURSOR in cursor.c
-
-        x rename unittest bt_cursor.cpp to btree_cursor.cpp
-        x check usage of btree_cursor_set_to_nil - replace with 
-			cursor_set_to_nil
-            x btree_insert.c
-            x cursor.c
-            x db.c
-        x remove BTREE_CURSOR_FLAG_COUPLED and use getters instead
-            (is_coupled, is_uncoupled)
-        x unify the dupe caches - btree cursor and upper layer cursor have 
-            their own dupe-caches each (or not? after all it's possible that
-            a txn-cursor is coupled to a different key than the btree,
-            and destroying the dupecache could bring problems)
-
-    x completely rewrite _local_cursor_move and move to cursor.c!
-        x HAM_CURSOR_FIRST
-        x HAM_CURSOR_LAST
-        x HAM_CURSOR_NEXT
-            x cursor_get_dupecache_count must return 1 if duplicates
-                are disabled but key exists; also check usage in loops of 
-                cursor_move_next
-        x HAM_CURSOR_PREVIOUS
-        x with duplicates...
-
-x try to compile some low-level modules with C++; i would like to use the 
-    STL and maybe some boost libraries for some of the code
-
-x apply patch from Aurelien (also on master)
-
-x many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
-
-x Ger has patches for configure.in - gconv coverage
-    https://github.com/GerHobbelt/hamsterdb/blob/ger-old-work/configure.in
-    x configure.in - AM_INIT_AUTOMAKE version is wrong (1.10)
-
-x a lot of places in the code check if a cache exists, and if yes
-    they use it. but the cache ALWAYS exists, right? verify this and
-    clean up the code
-    x cleanup use of env_set_cachesize/env_get_cachesize; why is this needed?
-        -> to temporarily store the create-parameters
-
-x c++-ify the dupecache and the cursor
-    x it compiles, but there's an assert(0) in dupecache->erase()
-    x also transform dupecache_line_t
-    x also transform the cursor
-
-x merge largefile support from master branch (also merge TO master branch)
-
-x merge changes from master branch
-    x pagesize is 64bit
-    x large file support
-    x ham_cursor_get_record_size
-
-x journal.cc -> c++-ify
-    x journal_entries: hier weitermachen
-    x journal::append_txn_begin: why do we need the 'db' parameter? 
-        -> because it's required by ham_txn_begin()
-    x os_writev: wenn WRITEV nicht existiert muss es trotzdem atomic bleiben
-        x auch im master ändern
-    x journal: add unittest for partial writes
-
-o make sure that all unittests and monster tests are now working
-    (also check with valgrind!)
-
-. blog-eintrag über c++, twitter!
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-o changes for 2.0.0:
-    o ham_create_db, _erase_db (and others?) get a txn parameter (reserved)
-    o can we remove some of the deprecated functions?
-    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
-        and the Env as parameter (not the db!)
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-o new test case:
-    insert (1)
-    insert (2)
-    cursor_move_last
-    cursor_move_previous
-    cursor_move_previous -> KEY_NOT_FOUND
-    insert (0)
-    cursor_move_previous -> OK
-    -> and the same with first/next
-
-o new test case for cursors
-    insert (1, a)
-    insert (1, b) (duplicate of 1)
-    move (last) (-> 1, b)
-    insert (1, c)
-    move (last) (-> 1, c)? is the dupecache updated correctly?
-=======
 o rewrite cursor_move (once more) 
-
     idea for algorithm:
         last: 
             btree_cursor_move(last)
@@ -313,7 +88,6 @@ o rewrite cursor_move (once more)
             cursor. can we eliminate the btree cursor cache, or at least make
             sure that tere's no performance penalty when using both?
             can we cache the duplicate tables??
->>>>>>> 6302799807445672ef5dea76a24e9bd8ab04c4ef
 
 o compare performance against 1.1.13 (with and without Transactions)
     o do some profiling - i am afraid that changeset_get_page() is not efficient
@@ -321,8 +95,14 @@ o compare performance against 1.1.13 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
         is only required once then it should be inserted at the tail of the
         totallist, like a page that was not accessed for a very long time
-    x opnode: use key instead of key* (pointer) - this saves one allocation 
-        per node
+
+o API changes for 2.0.0
+    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
+    o can we remove some of the deprecated functions?
+    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
+        and the Env as parameter (not the db!)
+    o what else?
+    o increase libtool version
 
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
@@ -340,27 +120,16 @@ o improve journalling and get rid of the physical log as much as possible
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
 
-<<<<<<< HEAD
+. test with tcmalloc; if it works then also use it in the master branch, but
+    make sure that memory consumption does not increase significantly
+
 o journal: use writev if it turns out to make sense
 
-o compare performance against 1.1.13 (with and without Transactions)
-    o do some profiling - i am afraid that changeset_get_page() is not efficient
-        enough; maybe a hash table is better?
-    o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
-        is only required once then it should be inserted at the tail of the
-        totallist, like a page that was not accessed for a very long time
-    x opnode: use key instead of key* (pointer) - this saves one allocation 
-        per node
-=======
 . add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
 
 o the whole c++ protocol should be c++-ified
-
-o test with tcmalloc; if it works then also use it in the master branch, but
-    make sure that memory consumption does not increase significantly
->>>>>>> 6302799807445672ef5dea76a24e9bd8ab04c4ef
 
 o ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
     fails with an assert if disk is full; need to make sure that recovery 
