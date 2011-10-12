@@ -26,7 +26,7 @@ o rewrite cursor_move (once more)
                 couple_to_btree
             cursor.last_cmp=cmp
 
-        previous:
+        previous_single:
             if (cursor.last_cmp<0)
                 txn_cursor_move(previous);
             else 
@@ -36,17 +36,39 @@ o rewrite cursor_move (once more)
             if (cursor.last_cmp<0) {
                 if (is_conflict())
                     return (previous(cursor))
-                // all other error codes (i.e. erased) are
+                // all other error codes (i.e. erased, eof...) are
                 // handled by caller)
                 couple_to_btree
             }
             else {
                 if (is_conflict())
-                    return (previous(cursor))
+                    return (previous_single(cursor))
                 // all other error codes (i.e. erased) are
                 // handled by caller)
                 couple_to_txn
             }
+
+        previous(cursor):
+            if has_more_duplicates:
+                return previous_duplicate()
+
+            while 1:
+                previous_single(cursor)
+                if db.duplicates_enabled:
+                    update_duplicates(cursor) // uses global dupecache
+                if (coupled_to_btree)
+                    if btree.is_erased:
+                        continue
+                    if btree.is_overwritten:
+                        couple_to_txn
+                        break
+                    else
+                        break
+                elif (coupled_to_txn)
+                    if txn.is_erase:
+                        continue
+                    break
+            return (key/record)
 
     o two tests are failing (see README)
     o too many compares of the cursors
