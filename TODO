@@ -15,6 +15,10 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
+x extkey: use a generic hash table
+o cache: use a generic hash table
+o changeset: use a generic hash table
+
 o rewrite cursor_move (once more) 
     idea for algorithm:
         last: 
