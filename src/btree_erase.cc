@@ -587,10 +587,8 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     ham_page_t *ancpage;
     btree_node_t *node, *sibnode, *ancnode;
     btree_key_t *bte_lhs, *bte_rhs;
-    ham_env_t *env;
 
     ham_assert(db, (0));
-    env = db_get_env(db);
 
     keysize=db_get_keysize(db);
     node   =page_get_btree_node(page);

@@ -65,6 +65,10 @@
  * txn_cursor.h. Over time i will clean this up, trying to maintain a clear
  * separation of the 3 layers, and only accessing the top-level layer in
  * cursor.h. This is work in progress.
+ *
+ * In order to speed up cursor_move() we keep track of the last compare 
+ * between the two cursors. i.e. if the btree cursor is currently pointing to
+ * a larger key than the txn-cursor, the 'lastcmp' field is <0 etc. 
  */
 
 #ifndef HAM_CURSORS_H__
@@ -228,7 +232,7 @@ class Cursor
     Cursor(ham_db_t *db=0, ham_txn_t *txn=0)
     : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
       m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
-      m_lastop(0), m_flags(0) {
+      m_lastop(0), m_lastcmp(0), m_flags(0) {
     }
 
     /** copy constructor; used in clone() */
@@ -242,6 +246,7 @@ class Cursor
         m_previous_in_page=other.m_previous_in_page; 
         m_dupecache_index=other.m_dupecache_index;
         m_lastop=other.m_lastop; 
+        m_lastcmp=other.m_lastcmp; 
         m_flags=other.m_flags; 
         m_txn_cursor=other.m_txn_cursor; 
         m_btree_cursor=other.m_btree_cursor; 
@@ -357,6 +362,18 @@ class Cursor
         m_lastop=lastop;
     }
 
+    /** Get the result of the previous compare operation:
+     * db_compare_keys(btree-cursor, txn-cursor) */
+    int get_lastcmp(void) {
+        return (m_lastcmp);
+    }
+
+    /** Set the result of the previous compare operation:
+     * db_compare_keys(btree-cursor, txn-cursor) */
+    void set_lastcmp(int cmp) {
+        m_lastcmp=cmp;
+    }
+
   private:
     /** Pointer to the Database object */
     ham_db_t *m_db;
@@ -392,6 +409,9 @@ class Cursor
      * ham_cursor_move. Values can be HAM_CURSOR_NEXT,
      * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */
     ham_u32_t m_lastop;
+
+    /** The result of the last compare operation */
+    int m_lastcmp;
 
     /** Cursor flags */
     ham_u32_t m_flags;

@@ -1160,14 +1160,9 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
 {
     ham_status_t st=0;
     ham_bool_t changed_dir=HAM_FALSE;
-    ham_bool_t skip_duplicates=HAM_FALSE;
     ham_db_t *db=cursor->get_db();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
     btree_cursor_t *btrc=cursor->get_btree_cursor();
-
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
-            || (flags&HAM_SKIP_DUPLICATES))
-        skip_duplicates=HAM_TRUE;
 
     /* no movement requested? directly retrieve key/record */
     if (!flags)
@@ -1192,7 +1187,8 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
     }
 
     /* should we move through the duplicate list? */
-    if (!skip_duplicates
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
+            && !(flags&HAM_SKIP_DUPLICATES)
             && !(flags&HAM_CURSOR_FIRST) 
             && !(flags&HAM_CURSOR_LAST)) {
         if (flags&HAM_CURSOR_NEXT)
@@ -1206,8 +1202,8 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
     }
 
     /* we have either skipped duplicates or reached the end of the duplicate
-     * list. btree cursor and txn cursor are synced and relative close to 
-     * each other. Move the cursor in the requested direction. */
+     * list. btree cursor and txn cursor are synced and as close to 
+     * each other as possible. Move the cursor in the requested direction. */
     cursor_clear_dupecache(cursor);
     if (flags&HAM_CURSOR_NEXT)
         st=__cursor_move_next_key(cursor);

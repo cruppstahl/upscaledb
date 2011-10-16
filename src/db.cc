@@ -2677,7 +2677,6 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
      * in non-Transaction mode directly search through the btree.
      */
     if (cursor->get_txn() || local_txn) {
-        txn_op_t *op=0;
         st=txn_cursor_find(cursor->get_txn_cursor(), key, flags);
         /* if the key was erased in a transaction then fail with an error 
          * (unless we have duplicates - they're checked below) */
@@ -2706,7 +2705,6 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
                 cursor_set_to_nil(cursor, CURSOR_BTREE);
         }
         cursor_couple_to_txnop(cursor);
-        op=txn_cursor_get_coupled_op(txnc);
         if (!cursor_get_dupecache_count(cursor)) {
             if (record)
                 st=txn_cursor_get_record(txnc, record);

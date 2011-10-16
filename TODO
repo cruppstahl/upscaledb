@@ -26,7 +26,10 @@ o rewrite cursor_move (once more)
                 couple_to_btree
             cursor.last_cmp=cmp
 
-        previous_single:
+        previous_single: -- always move a SINGLE step (although conflicts
+                         -- are skipped). all other errors and states are 
+                         -- handled by the caller - erased keys, overwritten 
+                         -- keys, duplicates. the compare value is cached.
             if (cursor.last_cmp<0)
                 txn_cursor_move(previous);
             else 
@@ -49,13 +52,22 @@ o rewrite cursor_move (once more)
             }
 
         previous(cursor):
-            if has_more_duplicates:
-                return previous_duplicate()
+            if (cursor.dupe_index>0) -- pointing to duplicate?
+                -- read updated dupecache from global dupecache - it might
+                -- have been invalidated in the meantime
+                dupecache_entry=get_and_update_duplicate(cursor) 
+                return previous_duplicate(dupecache_entry)
 
             while 1:
                 previous_single(cursor)
                 if db.duplicates_enabled:
-                    update_duplicates(cursor) // uses global dupecache
+                    // uses global dupecache
+                    dupecache_entry=update_duplicates(cursor) 
+                    if dupecache_entry.empty()
+                        continue
+                    else
+                        __cursor_move_to_last_dupe()
+                        break
                 if (coupled_to_btree)
                     if btree.is_erased:
                         continue
@@ -110,6 +122,9 @@ o rewrite cursor_move (once more)
             cursor. can we eliminate the btree cursor cache, or at least make
             sure that tere's no performance penalty when using both?
             can we cache the duplicate tables??
+    o the cursor is still a mishmash of C functions with a C++ object
+        -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
+        the namespace of the class
 
 o compare performance against 1.1.13 (with and without Transactions)
     o do some profiling - i am afraid that changeset_get_page() is not efficient
