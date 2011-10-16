@@ -385,7 +385,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
         ham_offset_t blobid;
         btree_key_t *bte;
         btree_node_t *node=page_get_btree_node(page);
-        extkey_cache_t *c;
+        ExtKeyCache *c;
 
         ham_assert(db, ("Must be set as page owner when this is a Btree page"));
         ham_assert(db=page_get_owner(page), (""));

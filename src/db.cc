@@ -486,7 +486,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         if (!db_get_extkey_cache(db)) {
-            extkey_cache_t *c=new extkey_cache_t(db);
+            ExtKeyCache *c=new ExtKeyCache(db);
             if (!c)
                 return (HAM_OUT_OF_MEMORY);
             db_set_extkey_cache(db, c);
@@ -554,14 +554,10 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     if (st)
         return st;
 
-    /* 
-     * insert the FULL key in the extkey-cache 
-     */
+    /* insert the FULL key in the extkey-cache */
     if (db_get_extkey_cache(db)) {
-        st = db_get_extkey_cache(db)->insert(blobid, key_length, 
-                        (ham_u8_t *)ext_key->data);
-        if (st)
-            return st;
+        ExtKeyCache *cache=db_get_extkey_cache(db);
+        cache->insert(blobid, key_length, (ham_u8_t *)ext_key->data);
     }
 
     ext_key->size = (ham_u16_t)key_length;
@@ -1138,7 +1134,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
     /* get rid of the extkey-cache */
     if (db_get_extkey_cache(db)) {
-        db_get_extkey_cache(db)->purge_all();
         delete db_get_extkey_cache(db);
         db_set_extkey_cache(db, 0);
     }
@@ -2677,7 +2672,6 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
      * in non-Transaction mode directly search through the btree.
      */
     if (cursor->get_txn() || local_txn) {
-        txn_op_t *op=0;
         st=txn_cursor_find(cursor->get_txn_cursor(), key, flags);
         /* if the key was erased in a transaction then fail with an error 
          * (unless we have duplicates - they're checked below) */
@@ -2706,7 +2700,6 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
                 cursor_set_to_nil(cursor, CURSOR_BTREE);
         }
         cursor_couple_to_txnop(cursor);
-        op=txn_cursor_get_coupled_op(txnc);
         if (!cursor_get_dupecache_count(cursor)) {
             if (record)
                 st=txn_cursor_get_record(txnc, record);

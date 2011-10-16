@@ -221,12 +221,10 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     int cmp;
     ham_size_t i=0;
     ham_size_t count;
-    ham_size_t maxkeys;
     ham_db_t *db=page_get_owner(page);
     btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
 
-    maxkeys=btree_get_maxkeys(scratchpad->be);
     count=btree_node_get_count(node);
 
     if (count==0) {

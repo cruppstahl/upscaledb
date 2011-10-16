@@ -58,8 +58,7 @@ class Journal;
 struct extkey_t;
 typedef struct extkey_t extkey_t;
 
-struct extkey_cache_t;
-typedef struct extkey_cache_t extkey_cache_t;
+class ExtKeyCache;
 
 struct freelist_entry_t;
 typedef struct freelist_entry_t freelist_entry_t;

@@ -178,7 +178,7 @@ struct ham_db_t
     ham_compare_func_t _duperec_func;
 
     /** the cache for extended keys */
-    extkey_cache_t *_extkey_cache;
+    ExtKeyCache *_extkey_cache;
 
     /** the database flags - a combination of the persistent flags
      * and runtime flags */

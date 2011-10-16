@@ -1719,7 +1719,6 @@ ham_new(ham_db_t **db)
 ham_status_t HAM_CALLCONV
 ham_delete(ham_db_t *db)
 {
-    ham_env_t *env;
     ham_status_t st;
     ham_status_t st2 = HAM_SUCCESS;
 
@@ -1727,7 +1726,6 @@ ham_delete(ham_db_t *db)
         ham_trace(("parameter 'db' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
-    env = db_get_env(db);
 
     /* trash all DB performance data */
     btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
@@ -3188,7 +3186,6 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
-    ham_env_t *env;
 
     if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3219,7 +3216,6 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
-    env = db_get_env(db);
 
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot insert to a read-only database"));
@@ -3332,7 +3328,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 {
     ham_db_t *db;
-    ham_env_t *env;
 
     if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3347,7 +3342,6 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
-    env = db_get_env(db);
 
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));

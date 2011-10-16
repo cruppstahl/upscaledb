@@ -347,7 +347,6 @@ public:
     void overwriteRecordTest(void)
     {
         btree_key_t key;
-        ham_offset_t rid;
 
         /* overwrite empty record with a tiny key */
         prepareEmpty(&key);
@@ -379,21 +378,15 @@ public:
 
         /* overwrite normal record with an empty key */
         prepareNormal(&key, "1234123456785678", 16);
-        rid=key_get_ptr(&key);
         overwriteEmpty(&key);
-        /* TODO check if rid is in the freelist */
 
         /* overwrite normal record with a small key */
         prepareNormal(&key, "1234123456785678", 16);
-        rid=key_get_ptr(&key);
         overwriteSmall(&key, "12341234");
-        /* TODO check if rid is in the freelist */
 
         /* overwrite normal record with a tiny key */
         prepareNormal(&key, "1234123456785678", 16);
-        rid=key_get_ptr(&key);
         overwriteTiny(&key, "1234", 4);
-        /* TODO check if rid is in the freelist */
 
         /* overwrite normal record with a normal key */
         prepareNormal(&key, "1234123456785678", 16);

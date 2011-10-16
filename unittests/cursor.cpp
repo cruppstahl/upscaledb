@@ -215,11 +215,8 @@ public:
     void findInEmptyDatabaseTest(void)
     {
         ham_key_t key={0};
-        ham_record_t rec={0};
         key.data=(void *)"12345";
         key.size=6;
-        rec.data=(void *)"abcde";
-        rec.size=6;
 
         /* this looks up a key in an empty database */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -4989,17 +4986,9 @@ public:
             BFC_ASSERT_EQUAL(0, insertTxn  ("k1", buf, HAM_DUPLICATE));
         }
 
-        ham_key_t key={0};
-        key.size=3;
-        key.data=(void *)"k1";
-
-        ham_record_t rec={0};
-
         for (i=0; i<MAX; i++) {
             char buf[20];
             sprintf(buf, "%d", i);
-            rec.data=(void *)&buf[0];
-            rec.size=strlen(buf)+1;
             BFC_ASSERT_EQUAL(0, move("k1", buf, 
                     i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
         }
