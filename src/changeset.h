@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,10 +28,10 @@ extern "C" {
 /**
  * The changeset class
  */
-class changeset_t 
+class Changeset 
 {
   public:
-    changeset_t()
+    Changeset()
     : m_head(0) {
     }
 
@@ -42,8 +42,6 @@ class changeset_t
 
     /**
      * append a new page to the changeset
-     *
-     * this function will assert that the page is not yet part of the changeset!
      */
     void add_page(ham_page_t *page);
 

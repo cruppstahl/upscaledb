@@ -158,7 +158,6 @@ public:
     void txnOpLinkedListTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t key={0};
@@ -167,7 +166,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -230,7 +229,6 @@ public:
     void getKeyFromCoupledCursorTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t k={0};
@@ -240,7 +238,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -260,7 +258,6 @@ public:
     void getKeyFromCoupledCursorUserAllocTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t k={0};
@@ -274,7 +271,7 @@ public:
         k.flags=HAM_KEY_USER_ALLOC;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -294,7 +291,6 @@ public:
     void getKeyFromCoupledCursorEmptyKeyTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t k={0};
@@ -302,7 +298,7 @@ public:
         ham_record_t record={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -322,7 +318,6 @@ public:
     void getKeyFromNilCursorTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t k={0};
@@ -332,7 +327,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -349,7 +344,6 @@ public:
     void getRecordFromCoupledCursorTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t key={0};
@@ -359,7 +353,7 @@ public:
         record.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -379,7 +373,6 @@ public:
     void getRecordFromCoupledCursorUserAllocTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t key={0};
@@ -393,7 +386,7 @@ public:
         r.flags=HAM_RECORD_USER_ALLOC;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -413,7 +406,6 @@ public:
     void getRecordFromCoupledCursorEmptyRecordTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t key={0};
@@ -421,7 +413,7 @@ public:
         ham_record_t r={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -441,7 +433,6 @@ public:
     void getRecordFromNilCursorTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op;
         ham_key_t key={0};
@@ -449,7 +440,7 @@ public:
         ham_record_t r={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);

@@ -35,7 +35,7 @@ extern "C" {
 /**
  * the cache manager
  */
-class ham_cache_t
+class Cache
 {
   public:
     /** don't remove the page from the cache */
@@ -44,14 +44,14 @@ class ham_cache_t
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    ham_cache_t(ham_env_t *env, 
+    Cache(ham_env_t *env, 
                 ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
     /**
      * the destructor closes and destroys the cache manager object
      * @remark this will NOT flush the cache!
      */
-    ~ham_cache_t() {
+    ~Cache() {
     }
     
     /**
@@ -66,7 +66,7 @@ class ham_cache_t
     ham_page_t *get_unused_page(void) {
         ham_page_t *page;
         ham_page_t *oldest;
-        changeset_t &cs=env_get_changeset(m_env);
+        Changeset &cs=env_get_changeset(m_env);
 
         /* get the chronologically oldest page */
         oldest=m_totallist_tail;
@@ -126,7 +126,7 @@ class ham_cache_t
          * head of the "totallist", and therefore it will automatically move
          * far away from the tail. And the pages at the tail are highest 
          * candidates to be deleted when the cache is purged. */
-        if (flags&ham_cache_t::NOREMOVE)
+        if (flags&Cache::NOREMOVE)
             put_page(page);
 
         return (page);

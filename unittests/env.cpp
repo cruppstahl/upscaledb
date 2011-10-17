@@ -119,8 +119,8 @@ protected:
         env_set_file_mode(env, 0);
 
         BFC_ASSERT(env_get_cache(env)==0);
-        env_set_cache(env, (ham_cache_t *)16);
-        BFC_ASSERT(env_get_cache(env)==(ham_cache_t *)16);
+        env_set_cache(env, (Cache *)16);
+        BFC_ASSERT(env_get_cache(env)==(Cache *)16);
         env_set_cache(env, 0);
 
         BFC_ASSERT(env_get_header_page(env)==0);

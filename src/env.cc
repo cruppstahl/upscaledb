@@ -250,7 +250,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
     }
 
     /* initialize the cache */
-    env_set_cache(env, new ham_cache_t(env, env_get_cachesize(env)));
+    env_set_cache(env, new Cache(env, env_get_cachesize(env)));
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -531,7 +531,7 @@ fail_with_fake_cleansing:
      * initialize the cache; the cache is needed during recovery, therefore
      * we have to create the cache BEFORE we attempt to recover
      */
-    env_set_cache(env, new ham_cache_t(env, env_get_cachesize(env)));
+    env_set_cache(env, new Cache(env, env_get_cachesize(env)));
 
     /*
      * open the logfile and check if we need recovery. first open the 
@@ -1695,7 +1695,7 @@ __purge_cache_max20(ham_env_t *env)
 {
     ham_status_t st;
     ham_page_t *page;
-    ham_cache_t *cache=env_get_cache(env);
+    Cache *cache=env_get_cache(env);
     unsigned i, max_pages=cache->get_cur_elements();
 
     /* don't remove pages from the cache if it's an in-memory database */
@@ -1741,7 +1741,7 @@ ham_status_t
 env_purge_cache(ham_env_t *env)
 {
     ham_status_t st;
-    ham_cache_t *cache=env_get_cache(env);
+    Cache *cache=env_get_cache(env);
 
     do {
         st=__purge_cache_max20(env);

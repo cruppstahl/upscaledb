@@ -86,7 +86,7 @@ public:
 
     void newDeleteTest(void)
     {
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
         BFC_ASSERT(cache!=0);
         delete cache;
     }
@@ -96,7 +96,7 @@ public:
         ham_page_t *page;
         ham_perm_page_union_t pers;
         memset(&pers, 0, sizeof(pers));
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
         BFC_ASSERT(cache!=0);
         page=page_new(m_env);
         page_set_self(page, 0x123ull);
@@ -114,7 +114,7 @@ public:
         ham_page_t *page;
         ham_perm_page_union_t pers;
         memset(&pers, 0, sizeof(pers));
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
         BFC_ASSERT(cache!=0);
         page=page_new(m_env);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
@@ -138,7 +138,7 @@ public:
         ham_perm_page_union_t pers1, pers2;
         memset(&pers1, 0, sizeof(pers1));
         memset(&pers2, 0, sizeof(pers2));
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
         BFC_ASSERT(cache!=0);
         page1=page_new(m_env);
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
@@ -169,7 +169,7 @@ public:
     {
         ham_page_t *page[20];
         ham_perm_page_union_t pers[20];
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
 
         for (int i=0; i<20; i++) {
             page[i]=page_new(m_env);
@@ -195,7 +195,7 @@ public:
     
     void negativeGetTest(void)
     {
-        ham_cache_t *cache=new ham_cache_t(m_env, 15);
+        Cache *cache=new Cache(m_env, 15);
         for (int i=0; i<20; i++) {
             BFC_ASSERT(cache->get_page(i*1024*13, 0)==0);
         }
@@ -204,7 +204,7 @@ public:
     
     void overflowTest(void)
     {
-        ham_cache_t *cache=new ham_cache_t(m_env, 15*os_get_pagesize());
+        Cache *cache=new Cache(m_env, 15*os_get_pagesize());
         ham_perm_page_union_t pers;
         memset(&pers, 0, sizeof(pers));
         std::vector<ham_page_t *> v;
@@ -268,7 +268,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, ".test", HAM_CACHE_STRICT, 0644, &param[0]));
         ham_env_t *env=db_get_env(db);
-        ham_cache_t *cache=env_get_cache(env);
+        Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(cache->get_capacity(), 1024*1024*2u);
 
@@ -296,7 +296,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
-        ham_cache_t *cache=env_get_cache(env);
+        Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -317,7 +317,7 @@ public:
         ham_env_close(env, 0);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_ex(env, ".test.db", 0, &param[0]));
-        ham_cache_t *cache=env_get_cache(env);
+        Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -336,7 +336,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0644, &param[0]));
         ham_env_t *env=db_get_env(db);
-        ham_cache_t *cache=env_get_cache(env);
+        Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -356,7 +356,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_open_ex(db, ".test.db", 0, &param[0]));
         ham_env_t *env=db_get_env(db);
-        ham_cache_t *cache=env_get_cache(env);
+        Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -367,7 +367,7 @@ public:
     void bigSizeTest(void)
     {
         ham_u64_t size=1024ull*1024ull*1024ull*16ull;
-        ham_cache_t *cache=new ham_cache_t(m_env, size);
+        Cache *cache=new Cache(m_env, size);
         BFC_ASSERT(cache!=0);
         BFC_ASSERT_EQUAL(size, cache->get_capacity());
         delete cache;

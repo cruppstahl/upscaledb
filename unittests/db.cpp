@@ -172,10 +172,10 @@ public:
         env_set_txn_id(env, 0x12345ull);
         env_set_file_mode(env, 0666);
         env_set_device(env, (ham_device_t *)0x13);
-        env_set_cache(env, (ham_cache_t *)0x14);
+        env_set_cache(env, (Cache *)0x14);
         env_set_rt_flags(env, 0x18);
 
-        BFC_ASSERT_EQUAL((ham_cache_t *)0x14, env_get_cache(env));
+        BFC_ASSERT_EQUAL((Cache *)0x14, env_get_cache(env));
         /* TODO test other stuff! */
 
         BFC_ASSERT_EQUAL(0u, env_is_active(env));

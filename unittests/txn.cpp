@@ -298,7 +298,6 @@ public:
     void txnNodeCreatedOnceTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node, *node2;
         ham_key_t key1, key2;
         memset(&key1, 0, sizeof(key1));
@@ -311,7 +310,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key1);
         BFC_ASSERT(node!=0);
         node2=txn_opnode_get(m_db, &key1, 0);
@@ -327,7 +326,6 @@ public:
     void txnMultipleNodesTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node1, *node2, *node3;
         ham_key_t key;
         memset(&key, 0, sizeof(key));
@@ -337,7 +335,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node1=txn_opnode_create(m_db, &key);
         BFC_ASSERT(node1!=0);
         key.data=(void *)"2222";
@@ -353,7 +351,6 @@ public:
     void txnOpStructureTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op, next;
         ham_key_t key;
@@ -367,7 +364,7 @@ public:
         memset(&next, 0, sizeof(next));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -409,7 +406,6 @@ public:
     void txnMultipleOpsTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
         txn_opnode_t *node;
         txn_op_t *op1, *op2, *op3;
         ham_key_t key;
@@ -422,7 +418,7 @@ public:
         rec.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op1=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);

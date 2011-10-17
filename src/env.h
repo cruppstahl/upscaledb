@@ -131,7 +131,7 @@ class ham_env_t
     ham_device_t *_device;
 
     /** the cache */
-    ham_cache_t *_cache;
+    Cache *_cache;
 
     /** the memory allocator */
     mem_allocator_t *_alloc;
@@ -165,7 +165,7 @@ class ham_env_t
 
     /** the changeset - a list of all pages that were modified during
      * one database operation */
-    changeset_t _changeset;
+    Changeset _changeset;
 
     /** the pagesize which was specified when the env was created */
     ham_size_t _pagesize;

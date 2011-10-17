@@ -675,7 +675,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags);
  * @param cache 
  */
 extern ham_status_t
-db_flush_all(ham_cache_t *cache, ham_u32_t flags);
+db_flush_all(Cache *cache, ham_u32_t flags);
 
 #define DB_FLUSH_NODELETE       1
 

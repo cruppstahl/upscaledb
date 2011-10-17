@@ -186,7 +186,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 static ham_bool_t
 __cache_needs_purge(ham_env_t *env)
 {
-    ham_cache_t *cache=env_get_cache(env);
+    Cache *cache=env_get_cache(env);
     if (!cache)
         return (HAM_FALSE);
 
@@ -826,7 +826,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     /* 
      * fetch the page from the cache
      */
-    page=env_get_cache(env)->get_page(address, ham_cache_t::NOREMOVE);
+    page=env_get_cache(env)->get_page(address, Cache::NOREMOVE);
     if (page) {
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
@@ -916,7 +916,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_flush_all(ham_cache_t *cache, ham_u32_t flags)
+db_flush_all(Cache *cache, ham_u32_t flags)
 {
     ham_page_t *head;
 

@@ -19,7 +19,7 @@
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
 void
-changeset_t::add_page(ham_page_t *page)
+Changeset::add_page(ham_page_t *page)
 {
     if (page_is_in_list(m_head, page, PAGE_LIST_CHANGESET))
         return;
@@ -36,7 +36,7 @@ changeset_t::add_page(ham_page_t *page)
 }
 
 ham_page_t *
-changeset_t::get_page(ham_offset_t pageid)
+Changeset::get_page(ham_offset_t pageid)
 {
     ham_page_t *p=m_head;
 
@@ -53,7 +53,7 @@ changeset_t::get_page(ham_offset_t pageid)
 }
 
 void
-changeset_t::clear(void)
+Changeset::clear(void)
 {
     ham_page_t *n, *p=m_head;
     while (p) {
@@ -67,7 +67,7 @@ changeset_t::clear(void)
 }
 
 ham_status_t
-changeset_t::flush(ham_u64_t lsn)
+Changeset::flush(ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *p;

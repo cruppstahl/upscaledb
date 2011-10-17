@@ -67,7 +67,7 @@ public:
 
     void addPagesTest()
     {
-        changeset_t ch;
+        Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new(m_env);
@@ -93,7 +93,7 @@ public:
 
     void getPagesTest()
     {
-        changeset_t ch;
+        Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new(m_env);
@@ -112,7 +112,7 @@ public:
 
     void clearTest()
     {
-        changeset_t ch;
+        Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new(m_env);

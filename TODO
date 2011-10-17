@@ -16,8 +16,6 @@ threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
 x extkey: use a generic hash table
-o cache: use a generic hash table
-o changeset: use a generic hash table
 
 o rewrite cursor_move (once more) 
     idea for algorithm:
@@ -131,11 +129,18 @@ o rewrite cursor_move (once more)
         the namespace of the class
 
 o compare performance against 1.1.13 (with and without Transactions)
-    o do some profiling - i am afraid that changeset_get_page() is not efficient
-        enough; maybe a hash table is better?
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
         is only required once then it should be inserted at the tail of the
         totallist, like a page that was not accessed for a very long time
+
+o the changeset flushes its pages with WRITE_THROUGH - but that causes
+    fsync?!
+
+. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
+    functor or class w/ operator() instead
+. changeset: use a generic hash table for fast lookup (but leave list in place
+    for everything else)
+. cache: use a generic hash table
 
 o API changes for 2.0.0
     o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
