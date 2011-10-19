@@ -1187,7 +1187,7 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
     }
 
     /* should we move through the duplicate list? */
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)
             && !(flags&HAM_CURSOR_FIRST) 
             && !(flags&HAM_CURSOR_LAST)) {
