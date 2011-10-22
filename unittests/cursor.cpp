@@ -4082,6 +4082,7 @@ public:
     virtual void teardown() 
     { 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+        m_cursor=0;
         if (m_txn)
             BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
