@@ -18,49 +18,13 @@ threads (but then i'll use synchronization in my own code).
 x extkey: use a generic hash table
 
 o rewrite cursor_move (once more) 
-=======================
     CURRENT ACTION:
-    x move_last is working
-    o rewrite move_first (analoguous to move_last)
-    o continue with move_previous, move_next
-=======================
+    x cursor_move_last is working
+    x cursor_move_first is working
+    o continue with cursor_move_previous
+    o cursor_move_next
+
     idea for algorithm:
-        last_single: 
-            btree_cursor_move(last)
-            txn_cursor_move(last)
-            if (txn_cursor>=btree_cursor)
-                couple_to_txn
-            else
-                couple_to_btree
-            cursor.last_cmp=cmp
-
-        last:
-            last_single
-            if db.duplicates_enabled:
-                // uses global dupecache
-                dupecache_entry=update_duplicates(cursor) 
-                if dupecache_entry.empty()
-                    continue
-                else
-                    __cursor_move_to_last_dupe()
-                    break
-
-                if (coupled_to_btree)
-                    if btree.is_erased:
-                        continue
-                    if btree.is_overwritten:
-                        couple_to_txn
-                        break
-                    else
-                        break
-                elif (coupled_to_txn)
-                    if txn.is_erase:
-                        continue
-                    break
-            return (key/record)
-                
-        
-
         previous_single: -- always move a SINGLE step (although conflicts
                          -- are skipped). all other errors and states are 
                          -- handled by the caller - erased keys, overwritten 
@@ -118,7 +82,7 @@ o rewrite cursor_move (once more)
             return (key/record)
 
     o two tests are failing (see README)
-    o too many compares of the cursors
+    o currently there are too many compares of the cursors
     o duplicate keys are slow (need a new dupecache which is shared between
         cursors)
         -> needs to be invalidated when inserting new keys, erasing them
