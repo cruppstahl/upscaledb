@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -292,7 +292,7 @@ __cursor_has_duplicates(Cursor *cursor)
 }
 
 static ham_status_t
-__cursor_move_next_dupe(Cursor *cursor, ham_u32_t flags)
+__cursor_move_next_dupe(Cursor *cursor)
 {
     DupeCache *dc=cursor->get_dupecache();
 
@@ -408,255 +408,169 @@ __compare_cursors(btree_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
 }
 
 static ham_status_t
-__cursor_move_next_key(Cursor *cursor)
+__cursor_move_next_key_singlestep(Cursor *cursor)
 {
     ham_status_t st=0;
-    int cmp=0; /* compare state; -1: btree < txn; +1: txn < btree; 0: equal */
     txn_cursor_t *txnc=cursor->get_txn_cursor();
     btree_cursor_t *btrc=cursor->get_btree_cursor();
-    ham_bool_t txnnil=txn_cursor_is_nil(txnc);
-    ham_bool_t btrnil=cursor_is_nil(cursor, CURSOR_BTREE);
 
-    /* txn cursor is nil, btree cursor is valid? then only move the btree
-     * cursor */
-    if (txnnil && !btrnil) {
-        st=btree_cursor_move(btrc, 0, 0, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES);
-        if (st==HAM_KEY_NOT_FOUND)
-            cursor_set_to_nil(cursor, CURSOR_BTREE);
-        if (st)
-            goto bail;
-        cursor_clear_dupecache(cursor);
-        cmp=-1;
-    }
-    /* txn cursor is valid, btree cursor is nil? then only move the 
-     * txn cursor */
-    else if (!txnnil && btrnil) {
-        do {
-            st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
-            if (st==HAM_KEY_NOT_FOUND) {
-                cursor_set_to_nil(cursor, CURSOR_TXN);
-                goto bail;
-            }
-            if (st && st!=HAM_KEY_ERASED_IN_TXN)
-                goto bail;
-            if (st==HAM_KEY_ERASED_IN_TXN) {
-                cursor_update_dupecache(cursor, CURSOR_BOTH);
-                if (__cursor_has_duplicates(cursor)) {
-                    st=0;
-                    goto bail;
-                }
-            }
-            cursor_clear_dupecache(cursor);
-        } while (__txn_cursor_is_erase(txnc)); 
-        cmp=+1;
-    }
-    /* if both cursors are valid: try to move any of them, but prefer the 
-     * btree cursor (the btree index usually has more data and most likely
-     * will therefore succeed). Then look for the smaller one */
-    else {
-        bool break_loop;
-        /* TODO we might be able to cache this value and reduce
-         * the number of calls to the compare function */
-        st=__compare_cursors(btrc, txnc, &cmp);
-        if (st)
-            return (st);
-
-        if (cmp==0) {
+    /* if both cursors point to the same key: move next with both */
+    if (cursor->get_lastcmp()==0) {
+        if (!cursor_is_nil(cursor, CURSOR_BTREE)) {
             st=btree_cursor_move(btrc, 0, 0, 
-                            HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES);
-            if (st) {
-                if (st==HAM_KEY_NOT_FOUND) {
-                    cursor_set_to_nil(cursor, CURSOR_BTREE);
+                        HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES);
+            if (st==HAM_KEY_NOT_FOUND || st==HAM_CURSOR_IS_NIL) {
+                cursor_set_to_nil(cursor, CURSOR_BTREE); // TODO muss raus
+                if (txn_cursor_is_nil(txnc))
+                    return (HAM_KEY_NOT_FOUND);
+                else {
                     cursor_couple_to_txnop(cursor);
-                    return (__cursor_move_next_key(cursor));
+                    cursor->set_lastcmp(+1);
                 }
-                else
-                    return (st);
-            }
-            st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
-            if (st) {
-                if (st==HAM_KEY_NOT_FOUND) {
-                    cursor_set_to_nil(cursor, CURSOR_TXN);
-                    cmp=-1; /* pretend that btree is smaller */
-                    st=0;
-                }
-                if (st!=HAM_KEY_ERASED_IN_TXN)
-                    goto bail;
-                else
-                    goto compare_keys;
             }
         }
-
-        do {
-            /* btree-cursor points to the smaller key? move next with
-             * the btree cursor */
-            if (cmp<0) {
-                ham_bool_t erased;
-                ham_bool_t overwritten;
-                do {
-                    erased=HAM_FALSE;
-                    overwritten=HAM_FALSE;
-
-                    st=btree_cursor_move(btrc, 0, 0, 
-                                HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES);
-                    if (st) {
-                        /* reached EOF in the btree, therefore continue
-                         * using the txn-cursor. If txn-cursor points to 
-                         * an erased key then skip it (unless we have
-                         * duplicates)
-                         */
-                        if (st==HAM_KEY_NOT_FOUND) {
-                            ham_db_t *db=cursor->get_db();
-                            cursor_set_to_nil(cursor, CURSOR_BTREE);
-                            if (!txn_cursor_is_nil(txnc)) {
-                                if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
-                                        && __txn_cursor_is_erase(txnc))
-                                    return (__cursor_move_next_key(cursor));
-                                st=0;
-                                cmp=+1;
-                            }
-                        }
-                        goto bail;
-                    }
-                    /* compare again; maybe the btree cursor is now larger
-                     * than the txn-cursor */
-                    if (!txn_cursor_is_nil(txnc)) {
-                        (void)__compare_cursors(btrc, txnc, &cmp);
-                        if (cmp>0)
-                            goto compare_keys;
-                    }
-
-                    /* no, cursor order did not change. continue as usual */
-                    cursor_clear_dupecache(cursor);
-                    /* TODO __txn_cursor_is_erased(txnc) should be sufficient?
-                     */
-                    st=cursor_check_if_btree_key_is_erased_or_overwritten
-                            (cursor);
-                    if (st==HAM_KEY_ERASED_IN_TXN)
-                        erased=HAM_TRUE;
-                    else if (st==HAM_TXN_CONFLICT) {
-                        cmp=0;
-                        goto bail;
-                    }
-                    else if (st==0)
-                        overwritten=HAM_TRUE;
-                    st=0;
-                    /* btree-key is erased: move txn-cursor to the next key 
-                     * unless duplicate keys are enabled; they're handled
-                     * by the caller */
-                    if (erased) {
-                        cursor_update_dupecache(cursor, CURSOR_BOTH);
-                        if (__cursor_has_duplicates(cursor))
-                            return (0);
-                        if (HAM_KEY_NOT_FOUND==txn_cursor_move(txnc, 
-                                HAM_CURSOR_NEXT)) {
-                            cursor_set_to_nil(cursor, CURSOR_TXN);
-                            cmp=-1;
-                        }
-                    }
-                } while (erased && __cursor_has_duplicates(cursor)<=1);
-
-                /* btree-key is overwritten: couple to txn */
-                if (overwritten) {
-                    cmp=+1;
-                    goto bail;
+        if (!txn_cursor_is_nil(txnc)) {
+            st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
+            if (st==HAM_KEY_NOT_FOUND || st==HAM_CURSOR_IS_NIL) {
+                cursor_set_to_nil(cursor, CURSOR_TXN); // TODO muss raus
+                if (cursor_is_nil(cursor, CURSOR_BTREE))
+                    return (HAM_KEY_NOT_FOUND);
+                else {
+                    cursor_couple_to_btree(cursor);
+                    cursor->set_lastcmp(-1);
                 }
             }
-            /* txn-cursor points to the smaller key? move next with
-             * the txn-cursor */
-            else if (cmp>0) {
-                st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
-                if (st==HAM_KEY_NOT_FOUND) {
-                    cursor_set_to_nil(cursor, CURSOR_TXN);
-                    if (!cursor_is_nil(cursor, CURSOR_BTREE)) {
-                        cmp=-1;
-                        st=0;
-                    }
-                    goto bail;
-                }
-                cursor_clear_dupecache(cursor);
-            }
-            
-compare_keys:
-            txnnil=txn_cursor_is_nil(txnc);
-            btrnil=cursor_is_nil(cursor, CURSOR_BTREE);
-            
-            break_loop=true;
-            if (!txnnil && !btrnil) {
-                __compare_cursors(btrc, txnc, &cmp);
-                if (cmp==0 && st==HAM_KEY_ERASED_IN_TXN)
-                    st=0;
-                else if (cmp==-1 && st==HAM_KEY_ERASED_IN_TXN)
-                    st=0;
-                else if ((cmp==+1 && st==HAM_KEY_ERASED_IN_TXN) ||
-                         (cmp==+1 && __txn_cursor_is_erase(txnc))) {
-                    cursor_update_dupecache(cursor, 
-                            cmp==0 ? CURSOR_BOTH
-                                   : (cmp < 0 ? CURSOR_BTREE
-                                              : CURSOR_TXN));
-                    if (!__cursor_has_duplicates(cursor))
-                        break_loop=false;
-                    else
-                        st=0;
-                }
-            }
-        
-        /* if both keys are equal and the key was erased: continue; otherwise
-         * return to caller */
-        } while (break_loop==false);
+        }
+    }
+    /* if the btree-key is smaller: move it next */
+    else if (cursor->get_lastcmp()<0) {
+        st=btree_cursor_move(btrc, 0, 0, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES);
+        if (st==HAM_KEY_NOT_FOUND) {
+            cursor_set_to_nil(cursor, CURSOR_BTREE); // TODO Das muss raus!
+            if (txn_cursor_is_nil(txnc))
+                return (st);
+            cursor_couple_to_txnop(cursor);
+            cursor->set_lastcmp(+1);
+        }
+        else {
+            ham_status_t st2=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
+            if (st2==HAM_TXN_CONFLICT)
+                st=st2;
+        }
+        if (txn_cursor_is_nil(txnc))
+            cursor->set_lastcmp(-1);
+    }
+    /* if the txn-key is smaller OR if both keys are equal: move next
+     * with the txn-key (which is chronologically newer) */
+    else {
+        st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
+        if (st==HAM_KEY_NOT_FOUND) {
+            cursor_set_to_nil(cursor, CURSOR_TXN); // TODO Das muss raus!
+            if (cursor_is_nil(cursor, CURSOR_BTREE))
+                return (st);
+            cursor_couple_to_btree(cursor);
+            cursor->set_lastcmp(-1);
+        }
+        if (cursor_is_nil(cursor, CURSOR_BTREE))
+            cursor->set_lastcmp(+1);
     }
 
-bail:
-    if (st && st!=HAM_TXN_CONFLICT)
-        return (st);
+    /* compare keys again */
+    if (!cursor_is_nil(cursor, CURSOR_BTREE) && !txn_cursor_is_nil(txnc)) {
+        int cmp;
+        __compare_cursors(btrc, txnc, &cmp);
+        cursor->set_lastcmp(cmp);
+    }
 
-    ham_assert(st==HAM_TXN_CONFLICT ? cmp==0 : 1, (""));
+    /* if there's a txn conflict: move next */
+    if (st==HAM_TXN_CONFLICT)
+        return (__cursor_move_next_key_singlestep(cursor));
+
+    /* btree-key is smaller */
+    if (cursor->get_lastcmp()<0 || txn_cursor_is_nil(txnc)) {
+        cursor_couple_to_btree(cursor);
+        cursor_update_dupecache(cursor, CURSOR_BTREE);
+        return (0);
+    }
+    /* txn-key is smaller */
+    else if (cursor->get_lastcmp()>0 || btree_cursor_is_nil(btrc)) {
+        //if (txns && txns!=HAM_KEY_ERASED_IN_TXN)
+            //return (txns);
+        cursor_couple_to_txnop(cursor);
+        cursor_update_dupecache(cursor, CURSOR_TXN);
+        return (0);
+    }
+    /* both keys are equal */
+    else {
+        cursor_couple_to_txnop(cursor);
+        cursor_update_dupecache(cursor, CURSOR_TXN|CURSOR_BTREE);
+        return (0);
+    }
+}
+
+static ham_status_t
+__cursor_move_next_key(Cursor *cursor, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor->get_db();
+    txn_cursor_t *txnc=cursor->get_txn_cursor();
+
+    /* are we in the middle of a duplicate list? if yes then move to the
+     * next duplicate */
+    if (cursor->get_dupecache_index()>0 && !(flags&HAM_SKIP_DUPLICATES)) {
+        st=__cursor_move_next_dupe(cursor);
+        if (st!=HAM_LIMITS_REACHED)
+            return (st);
+    }
+
     cursor_clear_dupecache(cursor);
 
-    /* now finalize the results; either couple to one of the cursors or
-     * move next, if both cursors are equal and the btree cursor is overwritten
-     * in the txn-cursor */
-    if (cmp<0) {
-        /* btree is smaller - use it */
-        cursor_couple_to_btree(cursor);
-        st=cursor_update_dupecache(cursor, CURSOR_BTREE);
+    /* either there were no duplicates or we've reached the end of the 
+     * duplicate list. move next till we found a new candidate */
+    while (1) {
+        st=__cursor_move_next_key_singlestep(cursor);
         if (st)
             return (st);
-    }
-    else if (cmp>0) {
-        /* txn is smaller - use it */
-        cursor_couple_to_txnop(cursor);
-        st=cursor_update_dupecache(cursor, CURSOR_TXN);
-        if (st)
-            return (st);
-    }
-    else {
-        ham_db_t *db=cursor->get_db();
-        if ((st!=HAM_TXN_CONFLICT) && 
-                ((cursor_get_dupecache_count(cursor)>1) ||
-                    ((cursor_get_dupecache_count(cursor)==1) &&
-                        (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)))) {
-            cursor_couple_to_txnop(cursor);
-            return (cursor_update_dupecache(cursor, CURSOR_TXN));
+
+        /* check for duplicates. the dupecache was already updated in 
+         * __cursor_move_next_key_singlestep() */
+        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+            /* are there any duplicates? if not then they were all erased and
+             * we move to the previous key */
+            if (!__cursor_has_duplicates(cursor))
+                continue;
+
+            /* otherwise move to the first duplicate */
+            return (__cursor_move_first_dupe(cursor, 0));
         }
-        if (st==HAM_TXN_CONFLICT || __txn_cursor_is_erase(txnc)) {
-            /* move btree and txn to next */
-            st=txn_cursor_move(txnc, HAM_CURSOR_NEXT);
-            if (st==HAM_KEY_NOT_FOUND)
-                cursor_set_to_nil(cursor, CURSOR_TXN);
-            else if (st && st!=HAM_TXN_CONFLICT && st!=HAM_KEY_ERASED_IN_TXN)
+
+        /* no duplicates - make sure that we've not coupled to an erased 
+         * item */
+        if (cursor_is_coupled_to_txnop(cursor)) {
+            if (__txn_cursor_is_erase(txnc))
+                continue;
+            else
+                return (0);
+        }
+        if (cursor_is_coupled_to_btree(cursor)) {
+            st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
+            if (st==HAM_KEY_ERASED_IN_TXN)
+                continue;
+            else if (st==0) {
+                cursor_couple_to_txnop(cursor);
+                return (0);
+            }
+            else if (st==HAM_KEY_NOT_FOUND)
+                return (0);
+            else
                 return (st);
-            st=__cursor_move_next_key(cursor);
-            return (st);
         }
-        else { 
-            /* overwritten - couple to txn */
-            cursor_couple_to_txnop(cursor);
-            return (cursor_update_dupecache(cursor, CURSOR_TXN|CURSOR_BTREE));
-        }
+        else
+            return (HAM_KEY_NOT_FOUND);
     }
 
-    return (0);
+    ham_assert(!"should never reach this", (""));
+    return (HAM_INTERNAL_ERROR);
 }
 
 static ham_status_t
@@ -974,7 +888,7 @@ __cursor_move_first_key_singlestep(Cursor *cursor)
 }
 
 static ham_status_t
-__cursor_move_first_key(Cursor *cursor)
+__cursor_move_first_key(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_db_t *db=cursor->get_db();
@@ -991,7 +905,7 @@ __cursor_move_first_key(Cursor *cursor)
         /* are there any duplicates? if not then they were all erased and we
          * move to the previous key */
         if (!__cursor_has_duplicates(cursor))
-            return (__cursor_move_next_key(cursor));
+            return (__cursor_move_next_key(cursor, flags));
 
         /* otherwise move to the first duplicate */
         return (__cursor_move_first_dupe(cursor, 0));
@@ -1001,14 +915,14 @@ __cursor_move_first_key(Cursor *cursor)
      * item */
     if (cursor_is_coupled_to_txnop(cursor)) {
         if (__txn_cursor_is_erase(txnc))
-            return (__cursor_move_next_key(cursor));
+            return (__cursor_move_next_key(cursor, flags));
         else
             return (0);
     }
     if (cursor_is_coupled_to_btree(cursor)) {
         st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
         if (st==HAM_KEY_ERASED_IN_TXN)
-            return (__cursor_move_next_key(cursor));
+            return (__cursor_move_next_key(cursor, flags));
         else if (st==0) {
             cursor_couple_to_txnop(cursor);
             return (0);
@@ -1167,6 +1081,12 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
         else
             cursor_set_to_nil(cursor, CURSOR_TXN);
         (void)cursor_sync(cursor, flags, 0);
+
+        if (!txn_cursor_is_nil(txnc) && !cursor_is_nil(cursor, CURSOR_BTREE)) {
+            int cmp;
+            __compare_cursors(btrc, txnc, &cmp);
+            cursor->set_lastcmp(cmp);
+        }
     }
 
     /* should we move through the duplicate list? */
@@ -1174,30 +1094,34 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
             && !(flags&HAM_SKIP_DUPLICATES)
             && !(flags&HAM_CURSOR_FIRST) 
             && !(flags&HAM_CURSOR_LAST)) {
-        if (flags&HAM_CURSOR_NEXT)
-            st=__cursor_move_next_dupe(cursor, flags);
-        else if (flags&HAM_CURSOR_PREVIOUS)
+        if (flags&HAM_CURSOR_PREVIOUS) {
             st=__cursor_move_previous_dupe(cursor, flags);
-        if (st==0)
-            goto retrieve_key_and_record;
-        if (st!=HAM_LIMITS_REACHED)
-            return (st);
+            if (st==0)
+                goto retrieve_key_and_record;
+            if (st!=HAM_LIMITS_REACHED)
+                return (st);
+        }
     }
 
     /* we have either skipped duplicates or reached the end of the duplicate
      * list. btree cursor and txn cursor are synced and as close to 
      * each other as possible. Move the cursor in the requested direction. */
-    cursor_clear_dupecache(cursor);
-    if (flags&HAM_CURSOR_NEXT)
-        st=__cursor_move_next_key(cursor);
-    else if (flags&HAM_CURSOR_PREVIOUS)
+    if (flags&HAM_CURSOR_NEXT) {
+        st=__cursor_move_next_key(cursor, flags);
+        goto retrieve_key_and_record;
+    }
+    else if (flags&HAM_CURSOR_PREVIOUS) {
+        cursor_clear_dupecache(cursor);
         st=__cursor_move_previous_key(cursor);
+    }
     else if (flags&HAM_CURSOR_FIRST) {
-        st=__cursor_move_first_key(cursor);
+        cursor_clear_dupecache(cursor);
+        st=__cursor_move_first_key(cursor, flags);
         goto retrieve_key_and_record;
     }
     else {
         ham_assert(flags&HAM_CURSOR_LAST, (""));
+        cursor_clear_dupecache(cursor);
         st=__cursor_move_last_key(cursor);
         goto retrieve_key_and_record;
     }

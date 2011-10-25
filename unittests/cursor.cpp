@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1708,7 +1708,7 @@ public:
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        /* and a "large" one in the btree */
+        /* and a "greater" one in the btree */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
         ham_backend_t *be=db_get_backend(m_db);

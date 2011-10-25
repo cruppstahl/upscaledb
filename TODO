@@ -24,6 +24,12 @@ o rewrite cursor_move (once more)
     o continue with cursor_move_previous
     o cursor_move_next
 
+=============================================
+
+DupeCursorTest::conflictNextTest
+
+=============================================
+
     idea for algorithm:
         previous_single: -- always move a SINGLE step (although conflicts
                          -- are skipped). all other errors and states are 
@@ -96,6 +102,9 @@ o rewrite cursor_move (once more)
                         continue
                     break
             return (key/record)
+
+    o current problem: dupecache is always created even if duplicates are
+        not used
 
     o two tests are failing (see README)
     o currently there are too many compares of the cursors
