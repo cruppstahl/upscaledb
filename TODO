@@ -24,12 +24,21 @@ o rewrite cursor_move (once more)
     x cursor_move_next
     x cursor_move_previous
     x two tests are failing (see README)
+    x current problem: dupecache is always created even if duplicates are
+        not used - no problem, it's a NOP if dupes are disabled
 
-    o current problem: dupecache is always created even if duplicates are
-        not used
+    o _local_cursor_create can return void
+    o _local_cursor_clone can return void
+
+    o the cursor is still a mishmash of C functions with a C++ object
+        -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
+        the namespace of the class
 
     o duplicate keys are slow (need a new dupecache which is shared between
         cursors)
+        o create a global dupecache class and remove it from the cursor
+        o when inserting/erasing new keys: remove them from the dupecache
+        o one dupecache per database
         -> needs to be invalidated when inserting new keys, erasing them
     o new test case:
         insert (1)
@@ -66,9 +75,6 @@ o rewrite cursor_move (once more)
             cursor. can we eliminate the btree cursor cache, or at least make
             sure that tere's no performance penalty when using both?
             can we cache the duplicate tables??
-    o the cursor is still a mishmash of C functions with a C++ object
-        -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
-        the namespace of the class
 
 o compare performance against 1.1.13 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page

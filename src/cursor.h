@@ -229,28 +229,10 @@ class Cursor
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
-    Cursor(ham_db_t *db=0, ham_txn_t *txn=0)
-    : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
-      m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
-      m_lastop(0), m_lastcmp(0), m_flags(0) {
-    }
+    Cursor(ham_db_t *db, ham_txn_t *txn=0, ham_u32_t flags=0);
 
-    /** copy constructor; used in clone() */
-    Cursor(const Cursor &other) {
-        m_db=other.m_db; 
-        m_txn=other.m_txn; 
-        m_remote_handle=other.m_remote_handle; 
-        m_next=other.m_next; 
-        m_previous=other.m_previous;
-        m_next_in_page=other.m_next_in_page; 
-        m_previous_in_page=other.m_previous_in_page; 
-        m_dupecache_index=other.m_dupecache_index;
-        m_lastop=other.m_lastop; 
-        m_lastcmp=other.m_lastcmp; 
-        m_flags=other.m_flags; 
-        m_txn_cursor=other.m_txn_cursor; 
-        m_btree_cursor=other.m_btree_cursor; 
-    }
+    /** Copy constructor; used for cloning a Cursor */
+    Cursor(Cursor &other);
 
     /** Get the Cursor flags */
     ham_u32_t get_flags(void) {
@@ -426,20 +408,7 @@ class Cursor
 #define _CURSOR_COUPLED_TO_TXN            0x1000000
 
 /** flag for cursor_set_lastop */
-#define CURSOR_LOOKUP_INSERT            0x10000
-
-/**
- * Creates a new cursor
- */
-extern ham_status_t
-cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            Cursor **pcursor);
-
-/**
- * Clones an existing cursor
- */
-extern ham_status_t
-cursor_clone(Cursor *src, Cursor **dest);
+#define CURSOR_LOOKUP_INSERT                0x10000
 
 /**
  * Returns true if a cursor is nil (Not In List - does not point to any key)

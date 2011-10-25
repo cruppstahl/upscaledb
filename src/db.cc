@@ -2371,13 +2371,15 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
 
-    return (cursor_create(db, txn, flags, cursor));
+    *cursor=new Cursor(db, txn, flags);
+    return (0);
 }
 
 static ham_status_t
 _local_cursor_clone(Cursor *src, Cursor **dest)
 {
-    return (cursor_clone(src, dest));
+    *dest=new Cursor(*src);
+    return (0);
 }
 
 static void

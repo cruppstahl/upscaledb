@@ -108,7 +108,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT(cursor!=0);
-        BFC_ASSERT_EQUAL(0, cursor_clone((Cursor *)cursor, (Cursor **)&clone));
+        Cursor *c=new Cursor(*(Cursor *)cursor);
+        clone=(ham_cursor_t *)c;
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));

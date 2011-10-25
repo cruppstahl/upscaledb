@@ -980,7 +980,6 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
 {
     ham_status_t st=0;
     ham_bool_t changed_dir=HAM_FALSE;
-    ham_db_t *db=cursor->get_db();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
     btree_cursor_t *btrc=cursor->get_btree_cursor();
 
@@ -1009,20 +1008,6 @@ cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
             int cmp;
             __compare_cursors(btrc, txnc, &cmp);
             cursor->set_lastcmp(cmp);
-        }
-    }
-
-    /* should we move through the duplicate list? */
-    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES
-            && !(flags&HAM_SKIP_DUPLICATES)
-            && !(flags&HAM_CURSOR_FIRST) 
-            && !(flags&HAM_CURSOR_LAST)) {
-        if (flags&HAM_CURSOR_PREVIOUS) {
-            st=__cursor_move_previous_dupe(cursor, flags);
-            if (st==0)
-                goto retrieve_key_and_record;
-            if (st!=HAM_LIMITS_REACHED)
-                return (st);
         }
     }
 
@@ -1093,48 +1078,41 @@ cursor_get_dupecache_count(Cursor *cursor)
     return (cursor->get_dupecache()->get_count());
 }
 
-ham_status_t
-cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            Cursor **pcursor)
+Cursor::Cursor(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+  : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
+    m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
+    m_lastop(0), m_lastcmp(0), m_flags(flags) 
 {
-    Cursor *c=new Cursor(db, txn);
-
-    *pcursor=0;
-
-    c->set_flags(flags);
-
-    txn_cursor_create(db, txn, flags, c->get_txn_cursor(), c);
-    btree_cursor_create(db, txn, flags, c->get_btree_cursor(), c);
-
-    *pcursor=c;
-    return (0);
+    txn_cursor_create(db, txn, flags, get_txn_cursor(), this);
+    btree_cursor_create(db, txn, flags, get_btree_cursor(), this);
 }
 
-ham_status_t
-cursor_clone(Cursor *src, Cursor **dest)
+Cursor::Cursor(Cursor &other) 
 {
-    ham_status_t st;
-    ham_db_t *db=src->get_db();
-    Cursor *c;
+    m_db=other.m_db; 
+    m_txn=other.m_txn; 
+    m_remote_handle=other.m_remote_handle; 
+    m_next=other.m_next; 
+    m_previous=other.m_previous;
+    m_next_in_page=other.m_next_in_page; 
+    m_previous_in_page=other.m_previous_in_page; 
+    m_dupecache_index=other.m_dupecache_index;
+    m_lastop=other.m_lastop; 
+    m_lastcmp=other.m_lastcmp; 
+    m_flags=other.m_flags; 
+    m_txn_cursor=other.m_txn_cursor; 
+    m_btree_cursor=other.m_btree_cursor; 
 
-    *dest=0;
+    set_next_in_page(0);
+    set_previous_in_page(0);
 
-    c=new Cursor(*src);
-    c->set_next_in_page(0);
-    c->set_previous_in_page(0);
-
-    st=btree_cursor_clone(src->get_btree_cursor(), c->get_btree_cursor(), c);
-    if (st)
-        return (st);
+    btree_cursor_clone(other.get_btree_cursor(), get_btree_cursor(), this);
 
     /* always clone the txn-cursor, even if transactions are not required */
-    txn_cursor_clone(src->get_txn_cursor(), c->get_txn_cursor(), c);
+    txn_cursor_clone(other.get_txn_cursor(), get_txn_cursor(), this);
 
-    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
-        src->get_dupecache()->clone(c->get_dupecache());
-
-    *dest=c;
-    return (0);
+    if (db_get_rt_flags(get_db())&HAM_ENABLE_DUPLICATES)
+        other.get_dupecache()->clone(get_dupecache());
 }
 
 ham_bool_t
