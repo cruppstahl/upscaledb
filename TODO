@@ -18,96 +18,16 @@ threads (but then i'll use synchronization in my own code).
 x extkey: use a generic hash table
 
 o rewrite cursor_move (once more) 
-    CURRENT ACTION:
+    x currently there are too many compares of the cursors - decrease them
     x cursor_move_last is working
     x cursor_move_first is working
-    o continue with cursor_move_previous
-    o cursor_move_next
-
-=============================================
-
-DupeCursorTest::conflictNextTest
-
-=============================================
-
-    idea for algorithm:
-        previous_single: -- always move a SINGLE step (although conflicts
-                         -- are skipped). all other errors and states are 
-                         -- handled by the caller - erased keys, overwritten 
-                         -- keys, duplicates. the compare value is cached.
-            if (cursor.last_cmp<0) {
-                txns=txn_cursor_move(previous);
-                if (txns==HAM_KEY_NOT_FOUND) {
-                    cursor.last_cmp=+1;
-                    btrs=btree_cursor_move(previous);
-                    if (btrs==HAM_KEY_NOT_FOUND)
-                        return (HAM_KEY_NOT_FOUND);
-                }
-            }
-            else {
-                btrs=btree_cursor_move(previous);
-                if (btrs==HAM_KEY_NOT_FOUND) {
-                    cursor.last_cmp=-1;
-                    txns=txn_cursor_move(previous);
-                    if (txns==HAM_KEY_NOT_FOUND) {
-                        return (HAM_KEY_NOT_FOUND);
-                }
-            }
-            cursor.last_cmp=compare_cursors()
-
-            if (cursor.last_cmp<0) {
-                if (is_conflict())
-                    return (previous(cursor))
-                // all other error codes (i.e. erased, eof...) are
-                // handled by caller)
-                couple_to_btree
-                update_dupecache
-            }
-            else {
-                if (is_conflict())
-                    return (previous_single(cursor))
-                // all other error codes (i.e. erased) are
-                // handled by caller)
-                couple_to_txn
-                update_dupecache
-            }
-
-        previous(cursor):
-            if (cursor.dupe_index>0) -- pointing to duplicate?
-                -- read updated dupecache from global dupecache - it might
-                -- have been invalidated in the meantime
-                dupecache_entry=get_and_update_duplicate(cursor) 
-                return previous_duplicate(dupecache_entry)
-
-            while 1:
-                previous_single(cursor)
-                if db.duplicates_enabled:
-                    // uses global dupecache
-                    dupecache_entry=update_duplicates(cursor) 
-                    if dupecache_entry.empty()
-                        continue
-                    else
-                        __cursor_move_to_last_dupe()
-                        break
-                if (coupled_to_btree)
-                    if btree.is_erased:
-                        continue
-                    if btree.is_overwritten:
-                        couple_to_txn
-                        break
-                    else
-                        break
-                elif (coupled_to_txn)
-                    if txn.is_erase:
-                        continue
-                    break
-            return (key/record)
+    x cursor_move_next
+    x cursor_move_previous
+    x two tests are failing (see README)
 
     o current problem: dupecache is always created even if duplicates are
         not used
 
-    o two tests are failing (see README)
-    o currently there are too many compares of the cursors
     o duplicate keys are slow (need a new dupecache which is shared between
         cursors)
         -> needs to be invalidated when inserting new keys, erasing them
