@@ -482,7 +482,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     }
 
     /* on success: set the cursor to nil afterwards */
-    cursor_set_to_nil(txn_cursor_get_parent(cursor), 0);
+    txn_cursor_get_parent(cursor)->set_to_nil(0);
 
     return (0);
 }

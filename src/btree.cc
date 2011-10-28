@@ -737,7 +737,7 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
             if (flags&HAM_AUTO_CLEANUP)
                 st=ham_cursor_close((ham_cursor_t *)c);
             else
-                cursor_close(c);
+                c->close();
             if (st) {
                 if (st2 == 0) st2 = st;
                 /* continue to try to close the other cursors, though */

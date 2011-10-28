@@ -718,7 +718,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
      * the cursor always points to NIL.
      */
     if (cursor) {
-        cursor_set_to_nil(btree_cursor_get_parent(cursor), CURSOR_BTREE);
+        btree_cursor_get_parent(cursor)->set_to_nil(Cursor::CURSOR_BTREE);
 
         ham_assert(!btree_cursor_is_uncoupled(cursor), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));

@@ -34,16 +34,16 @@
  *      also "NIL".
  *
  *      relevant functions:
- *          @ref cursor_is_nil
- *          @ref cursor_set_to_nil
+ *          @ref Cursor::is_nil
+ *          @ref Cursor::set_to_nil
  *
  * 2. Coupled to the txn-cursor - meaning that the Cursor points to a key
  *      that is modified in a Transaction. Technically, the txn-cursor points
  *      to a @ref txn_op_t structure.
  *
  *      relevant functions:
- *          @ref cursor_is_coupled_to_txnop
- *          @ref cursor_couple_to_txnop
+ *          @ref Cursor::is_coupled_to_txnop
+ *          @ref Cursor::couple_to_txnop
  *
  * 3. Coupled to the btree-cursor - meaning that the Cursor points to a key
  *      that is stored in a Btree. A Btree cursor itself can then be coupled
@@ -52,8 +52,8 @@
  *      the Cursor is used again. This is described in btree_cursor.h.
  *
  *      relevant functions:
- *          @ref cursor_is_coupled_to_btree
- *          @ref cursor_couple_to_btree
+ *          @ref Cursor::is_coupled_to_btree
+ *          @ref Cursor::couple_to_btree
  *
  * The dupecache is used when information from the btree and the txn-tree 
  * is merged. The btree cursor has its private dupecache. Both will be merged
@@ -66,7 +66,7 @@
  * separation of the 3 layers, and only accessing the top-level layer in
  * cursor.h. This is work in progress.
  *
- * In order to speed up cursor_move() we keep track of the last compare 
+ * In order to speed up Cursor::move() we keep track of the last compare 
  * between the two cursors. i.e. if the btree cursor is currently pointing to
  * a larger key than the txn-cursor, the 'lastcmp' field is <0 etc. 
  */
@@ -220,12 +220,40 @@ struct ham_cursor_t
     bool _dummy;
 };
 
-
 /**
  * the Database Cursor
  */
 class Cursor
 {
+  public:
+    /** flags for set_to_nil, is_nil */
+    static const unsigned CURSOR_BTREE = 1;
+    static const unsigned CURSOR_TXN   = 2;
+    static const unsigned CURSOR_BOTH  = (CURSOR_BTREE|CURSOR_TXN);
+
+    /**
+     * flag for cursor_sync: do not use approx matching if the key
+     * is not available
+     */
+    static const unsigned CURSOR_SYNC_ONLY_EQUAL_KEY = 0x200000;
+
+    /**
+     * flag for cursor_sync: do not load the key if there's an approx.
+     * match. Only positions the cursor.
+     */
+    static const unsigned CURSOR_SYNC_DONT_LOAD_KEY = 0x100000;
+
+    /*
+     * the flags have ranges:
+     *  0 - 0x1000000-1:      btree_cursor
+     *  > 0x1000000:          cursor
+     */
+    /** Cursor flag: cursor is coupled to the txn-cursor */
+    static const unsigned _CURSOR_COUPLED_TO_TXN = 0x1000000;
+
+    /** flag for cursor_set_lastop */
+    static const unsigned CURSOR_LOOKUP_INSERT = 0x10000;
+
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
@@ -233,6 +261,131 @@ class Cursor
 
     /** Copy constructor; used for cloning a Cursor */
     Cursor(Cursor &other);
+
+    /**
+     * Returns true if a cursor is nil (Not In List - does not point to any key)
+     *
+     * 'what' is one of the flags CURSOR_BOTH, CURSOR_TXN, CURSOR_BTREE
+     */
+    ham_bool_t is_nil(int what=CURSOR_BOTH);
+
+    /** Returns true if a cursor is coupled to the btree */
+    bool is_coupled_to_btree(void) {
+        return (!(get_flags()&_CURSOR_COUPLED_TO_TXN));
+    }
+
+    /** Returns true if a cursor is coupled to a txn-op */
+    bool is_coupled_to_txnop(void) {
+        return (get_flags()&_CURSOR_COUPLED_TO_TXN);
+    }
+
+    /** Couples the cursor to a btree key */
+    void couple_to_btree(void) {
+        return (set_flags(get_flags()&(~_CURSOR_COUPLED_TO_TXN)));
+    }
+
+    /** Couples the cursor to a txn-op */
+    void couple_to_txnop(void) {
+        return (set_flags(get_flags()|_CURSOR_COUPLED_TO_TXN));
+    }
+
+    /**
+     * Sets the cursor to nil
+     */
+    void set_to_nil(int what=CURSOR_BOTH);
+
+    /**
+     * Erases the key/record pair that the cursor points to. 
+     *
+     * On success, the cursor is then set to nil. The Transaction is passed 
+     * as a separate pointer since it might be a local/temporary Transaction 
+     * that was created only for this single operation.
+     */
+    ham_status_t erase(ham_txn_t *txn, ham_u32_t flags);
+
+    /**
+     * Retrieves the number of duplicates of the current key
+     *
+     * The Transaction is passed as a separate pointer since it might be a 
+     * local/temporary Transaction that was created only for this single 
+     * operation.
+     */
+    ham_status_t get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, 
+                ham_u32_t flags);
+
+    /**
+     * Retrieves the size of the current record
+     *
+     * The Transaction is passed as a separate pointer since it might be a 
+     * local/temporary Transaction that was created only for this single 
+     * operation.
+     */
+    ham_status_t get_record_size(ham_txn_t *txn, ham_offset_t *psize);
+
+    /**
+     * Overwrites the record of the current key
+     *
+     * The Transaction is passed as a separate pointer since it might be a 
+     * local/temporary Transaction that was created only for this single 
+     * operation.
+     */
+    ham_status_t overwrite(ham_txn_t *txn, ham_record_t *record,
+            ham_u32_t flags);
+
+    /**
+     * Updates (or builds) the dupecache for a cursor
+     *
+     * The 'what' parameter specifies if the dupecache is initialized from
+     * btree (CURSOR_BTREE), from txn (CURSOR_TXN) or both.
+     */
+    ham_status_t update_dupecache(ham_u32_t what);
+
+    /**
+     * Clear the dupecache and disconnect the Cursor from any duplicate key
+     */
+    void clear_dupecache(void);
+
+    /**
+     * Couples the cursor to a duplicate in the dupe table
+     * dupe_id is a 1 based index!!
+     */
+    void couple_to_dupe(ham_u32_t dupe_id);
+
+    /**
+     * Checks if a btree cursor points to a key that was overwritten or erased
+     * in the txn-cursor
+     *
+     * This is needed in db.c when moving the cursor backwards/forwards and 
+     * consolidating the btree and the txn-tree
+     */
+    ham_status_t check_if_btree_key_is_erased_or_overwritten(void);
+
+    /**
+     * Synchronizes txn- and btree-cursor
+     *
+     * If txn-cursor is nil then try to move the txn-cursor to the same key
+     * as the btree cursor.
+     * If btree-cursor is nil then try to move the btree-cursor to the same key
+     * as the txn cursor.
+     * If both are nil, or both are valid, then nothing happens
+     *
+     * equal_key is set to true if the keys in both cursors are equal.
+     */
+    ham_status_t sync(ham_u32_t flags, ham_bool_t *equal_keys);
+
+    /**
+     * Moves a Cursor
+     */
+    ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /**
+     * Returns the number of duplicates in the duplicate cache
+     * The duplicate cache is updated if necessary
+     */
+    ham_size_t get_dupecache_count(void);
+
+    /** Closes an existing cursor */
+    void close(void);
 
     /** Get the Cursor flags */
     ham_u32_t get_flags(void) {
@@ -357,6 +510,50 @@ class Cursor
     }
 
   private:
+    /** Compares btree and txn-cursor; stores result in lastcmp */
+    int compare(void);
+
+    /** Returns true if this key has duplicates */
+    bool has_duplicates(void) {
+        return (get_dupecache()->get_count()>0);
+    }
+
+    /** Move cursor to the first duplicate */
+    ham_status_t move_first_dupe(void);
+
+    /** Move cursor to the last duplicate */
+    ham_status_t move_last_dupe(void);
+
+    /** Move cursor to the next duplicate */
+    ham_status_t move_next_dupe(void);
+
+    /** Move cursor to the previous duplicate */
+    ham_status_t move_previous_dupe(void);
+
+    /** Move cursor to the first key */
+    ham_status_t move_first_key(ham_u32_t flags);
+
+    /** Move cursor to the last key */
+    ham_status_t move_last_key(ham_u32_t flags);
+
+    /** Move cursor to the next key */
+    ham_status_t move_next_key(ham_u32_t flags);
+
+    /** Move cursor to the previous key */
+    ham_status_t move_previous_key(ham_u32_t flags);
+
+    /** Move cursor to the first key - helper function */
+    ham_status_t move_first_key_singlestep(void);
+
+    /** Move cursor to the last key - helper function */
+    ham_status_t move_last_key_singlestep(void);
+
+    /** Move cursor to the next key - helper function */
+    ham_status_t move_next_key_singlestep(void);
+
+    /** Move cursor to the previous key - helper function */
+    ham_status_t move_previous_key_singlestep(void);
+
     /** Pointer to the Database object */
     ham_db_t *m_db;
 
@@ -398,176 +595,6 @@ class Cursor
     /** Cursor flags */
     ham_u32_t m_flags;
 };
-
-/*
- * the flags have ranges:
- *  0 - 0x1000000-1:      btree_cursor
- *  > 0x1000000:          cursor
- */
-/** Cursor flag: cursor is coupled to the Transaction cursor (_txn_cursor) */
-#define _CURSOR_COUPLED_TO_TXN            0x1000000
-
-/** flag for cursor_set_lastop */
-#define CURSOR_LOOKUP_INSERT                0x10000
-
-/**
- * Returns true if a cursor is nil (Not In List - does not point to any key)
- *
- * 'what' is one of the flags below
- */
-extern ham_bool_t
-cursor_is_nil(Cursor *cursor, int what);
-
-#define CURSOR_BOTH         (CURSOR_BTREE|CURSOR_TXN)
-#define CURSOR_BTREE        1
-#define CURSOR_TXN          2
-
-/**
- * Sets the cursor to nil
- */
-extern void
-cursor_set_to_nil(Cursor *cursor, int what);
-
-/**
- * Returns true if a cursor is coupled to the btree
- */
-#define cursor_is_coupled_to_btree(c)                                         \
-                                 (!((c)->get_flags()&_CURSOR_COUPLED_TO_TXN))
-
-/**
- * Returns true if a cursor is coupled to a txn-op
- */
-#define cursor_is_coupled_to_txnop(c)                                         \
-                                    ((c)->get_flags()&_CURSOR_COUPLED_TO_TXN)
-
-/**
- * Couples the cursor to a btree key
- */
-#define cursor_couple_to_btree(c)                                             \
-               ((c)->set_flags(c->get_flags()&(~_CURSOR_COUPLED_TO_TXN)))
-
-/**
- * Couples the cursor to a txn-op
- */
-#define cursor_couple_to_txnop(c)                                             \
-               ((c)->set_flags(c->get_flags()|_CURSOR_COUPLED_TO_TXN))
-
-/**
- * Erases the key/record pair that the cursor points to. 
- *
- * On success, the cursor is then set to nil. The Transaction is passed 
- * as a separate pointer since it might be a local/temporary Transaction 
- * that was created only for this single operation.
- */
-extern ham_status_t
-cursor_erase(Cursor *cursor, ham_txn_t *txn, ham_u32_t flags);
-
-/**
- * Retrieves the number of duplicates of the current key
- *
- * The Transaction is passed as a separate pointer since it might be a 
- * local/temporary Transaction that was created only for this single operation.
- */
-extern ham_status_t
-cursor_get_duplicate_count(Cursor *cursor, ham_txn_t *txn, 
-            ham_u32_t *pcount, ham_u32_t flags);
-
-/**
- * Retrieves the size of the current record
- *
- * The Transaction is passed as a separate pointer since it might be a 
- * local/temporary Transaction that was created only for this single operation.
- */
-extern ham_status_t
-cursor_get_record_size(Cursor *cursor, ham_txn_t *txn, ham_offset_t *psize);
-
-/**
- * Overwrites the record of the current key
- *
- * The Transaction is passed as a separate pointer since it might be a 
- * local/temporary Transaction that was created only for this single operation.
- */
-extern ham_status_t 
-cursor_overwrite(Cursor *cursor, ham_txn_t *txn, ham_record_t *record,
-            ham_u32_t flags);
-
-/**
- * Updates (or builds) the dupecache for a cursor
- *
- * The 'what' parameter specifies if the dupecache is initialized from
- * btree (CURSOR_BTREE), from txn (CURSOR_TXN) or both.
- */
-extern ham_status_t
-cursor_update_dupecache(Cursor *cursor, ham_u32_t what);
-
-/**
- * Clear the dupecache and disconnect the Cursor from any duplicate key
- */
-extern void
-cursor_clear_dupecache(Cursor *cursor);
-
-/**
- * Couples the cursor to a duplicate in the dupe table
- * dupe_id is a 1 based index!!
- */
-extern void
-cursor_couple_to_dupe(Cursor *cursor, ham_u32_t dupe_id);
-
-/**
- * Checks if a btree cursor points to a key that was overwritten or erased
- * in the txn-cursor
- *
- * This is needed in db.c when moving the cursor backwards/forwards and 
- * consolidating the btree and the txn-tree
- */
-extern ham_status_t
-cursor_check_if_btree_key_is_erased_or_overwritten(Cursor *cursor);
-
-/**
- * Synchronizes txn- and btree-cursor
- *
- * If txn-cursor is nil then try to move the txn-cursor to the same key
- * as the btree cursor.
- * If btree-cursor is nil then try to move the btree-cursor to the same key
- * as the txn cursor.
- * If both are nil, or both are valid, then nothing happens
- *
- * equal_key is set to true if the keys in both cursors are equal.
- */
-extern ham_status_t
-cursor_sync(Cursor *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
-
-/**
- * Moves a Cursor
- */
-extern ham_status_t
-cursor_move(Cursor *cursor, ham_key_t *key, ham_record_t *record,
-                ham_u32_t flags);
-
-/**
- * flag for cursor_sync: do not use approx matching if the key
- * is not available
- */
-#define CURSOR_SYNC_ONLY_EQUAL_KEY            0x200000
-
-/**
- * flag for cursor_sync: do not load the key if there's an approx.
- * match. Only positions the cursor.
- */
-#define CURSOR_SYNC_DONT_LOAD_KEY             0x100000
-
-/**
- * Returns the number of duplicates in the duplicate cache
- * The duplicate cache is updated if necessary
- */
-extern ham_size_t
-cursor_get_dupecache_count(Cursor *cursor);
-
-/**
- * Closes an existing cursor
- */
-extern void
-cursor_close(Cursor *cursor);
 
 
 #ifdef __cplusplus

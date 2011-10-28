@@ -2884,7 +2884,6 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         ham_cursor_t **hcursor)
 {
     ham_env_t *env;
-    ham_status_t st;
     Cursor **cursor=0;
     
     if (!db) {
@@ -2910,9 +2909,7 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    st=db->_fun_cursor_create(db, txn, flags, cursor);
-    if (st)
-        return (db_set_error(db, st));
+    *cursor=db->_fun_cursor_create(db, txn, flags);
 
     /* fix the linked list of cursors */
     (*cursor)->set_next(db_get_cursors(db));
@@ -2932,7 +2929,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 {
     ham_db_t *db;
-    ham_status_t st;
 
     if (!hsrc) {
         ham_trace(("parameter 'src' must not be NULL"));
@@ -2959,9 +2955,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    st=db->_fun_cursor_clone(src, dest);
-    if (st)
-        return (db_set_error(db, st));
+    *dest=db->_fun_cursor_clone(src);
 
     /* fix the linked list of cursors */
     (*dest)->set_previous(0);

@@ -1565,8 +1565,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
                 /* uncouple the cursor from the txn-op, and remove it */
                 txn_op_remove_cursor(op, tc1);
-                cursor_couple_to_btree(c1);
-                cursor_set_to_nil(c1, CURSOR_TXN);
+                c1->couple_to_btree();
+                c1->set_to_nil(Cursor::CURSOR_TXN);
 
                 /* all other (btree) cursors need to be coupled to the same 
                  * item as the first one. */
@@ -1575,8 +1575,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                     c2=txn_cursor_get_parent(tc2);
                     btree_cursor_couple_to_other(c2->get_btree_cursor(), 
                                 c1->get_btree_cursor());
-                    cursor_couple_to_btree(c2);
-                    cursor_set_to_nil(c2, CURSOR_TXN);
+                    c2->couple_to_btree();
+                    c2->set_to_nil(Cursor::CURSOR_TXN);
                 }
             }
         }
@@ -1617,8 +1617,8 @@ bail:
         while ((cursor=txn_op_get_cursors(op))) {
             Cursor *pc=txn_cursor_get_parent(cursor);
             ham_assert(pc->get_txn_cursor()==cursor, (""));
-            cursor_couple_to_btree(pc);
-            cursor_set_to_nil(pc, CURSOR_TXN);
+            pc->couple_to_btree();
+            pc->set_to_nil(Cursor::CURSOR_TXN);
         }
 
         /* continue with the next operation of this txn */

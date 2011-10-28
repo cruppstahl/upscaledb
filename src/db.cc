@@ -1688,12 +1688,12 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
     while (c) {
         ham_bool_t hit=HAM_FALSE;
 
-        if (cursor_is_nil(c, 0))
+        if (c->is_nil(0))
             goto next;
 
         /* if cursor is coupled to an op in the same node: increment 
          * duplicate index (if required) */
-        if (cursor_is_coupled_to_txnop(c)) {
+        if (c->is_coupled_to_txnop()) {
             txn_cursor_t *txnc=c->get_txn_cursor();
             txn_opnode_t *n=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
             if (n==node)
@@ -1786,7 +1786,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         if (c->get_dupecache_index())
             txn_op_set_referenced_dupe(op, c->get_dupecache_index());
 
-        cursor_set_to_nil(c, CURSOR_TXN);
+        c->set_to_nil(Cursor::CURSOR_TXN);
         txn_cursor_couple(cursor, op);
 
         /* all other cursors need to increment their dupe index, if their
@@ -1834,13 +1834,13 @@ __nil_all_cursors_in_node(ham_txn_t *txn, Cursor *current,
                     /* else fall through */
                 }
             }
-            cursor_couple_to_btree(pc);
-            cursor_set_to_nil(pc, CURSOR_TXN);
+            pc->couple_to_btree();
+            pc->set_to_nil(Cursor::CURSOR_TXN);
             cursor=txn_op_get_cursors(op);
             /* set a flag that the cursor just completed an Insert-or-find 
              * operation; this information is needed in ham_cursor_move 
              * (in this aspect, an erase is the same as insert/find) */
-            pc->set_lastop(CURSOR_LOOKUP_INSERT);
+            pc->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
         }
 
         op=txn_op_get_previous_in_node(op);
@@ -1864,9 +1864,9 @@ __nil_all_cursors_in_btree(ham_db_t *db, Cursor *current, ham_key_t *key)
      *  coupled key is still needed by the caller
      */
     while (c) {
-        if (cursor_is_nil(c, 0) || c==current)
+        if (c->is_nil(0) || c==current)
             goto next;
-        if (cursor_is_coupled_to_txnop(c))
+        if (c->is_coupled_to_txnop())
             goto next;
 
         if (__btree_cursor_points_to(c, key)) {
@@ -1887,7 +1887,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, Cursor *current, ham_key_t *key)
                     /* else fall through */
                 }
             }
-            cursor_set_to_nil(c, 0);
+            c->set_to_nil(0);
         }
 next:
         c=c->get_next();
@@ -2361,31 +2361,28 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (st);
 }
 
-static ham_status_t
-_local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                Cursor **cursor)
+static Cursor *
+_local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_backend_t *be;
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
+        return (0);
 
-    *cursor=new Cursor(db, txn, flags);
-    return (0);
+    return (new Cursor(db, txn, flags));
 }
 
-static ham_status_t
-_local_cursor_clone(Cursor *src, Cursor **dest)
+static Cursor *
+_local_cursor_clone(Cursor *src)
 {
-    *dest=new Cursor(*src);
-    return (0);
+    return (new Cursor(*src));
 }
 
 static void
 _local_cursor_close(Cursor *cursor)
 {
-    cursor_close(cursor);
+    cursor->close();
 }
 
 static ham_status_t
@@ -2471,13 +2468,13 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
                     key, &temprec, flags, cursor->get_txn_cursor());
         if (st==0) {
             DupeCache *dc=cursor->get_dupecache();
-            cursor_couple_to_txnop(cursor);
+            cursor->couple_to_txnop();
             /* reset the dupecache, otherwise cursor_has_duplicates()
              * does not update the dupecache correctly */
             dc->clear();
             /* if duplicate keys are enabled: set the duplicate index of
              * the new key */
-            if (st==0 && cursor_get_dupecache_count(cursor)) {
+            if (st==0 && cursor->get_dupecache_count()) {
                 ham_size_t i;
                 txn_cursor_t *txnc=cursor->get_txn_cursor();
                 txn_op_t *op=txn_cursor_get_coupled_op(txnc);
@@ -2497,7 +2494,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
         st=btree_cursor_insert(cursor->get_btree_cursor(), 
                         key, &temprec, flags);
         if (st==0)
-            cursor_couple_to_btree(cursor);
+            cursor->couple_to_btree();
     }
 
     /* if we created a temp. txn then clean it up again */
@@ -2544,7 +2541,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2583,9 +2580,7 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
     }
 
     /* this function will do all the work */
-    st=cursor_erase(cursor, 
-                    cursor->get_txn() ? cursor->get_txn() : local_txn,
-                    flags);
+    st=cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
@@ -2593,10 +2588,10 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 
     /* on success: verify that cursor is now nil */
     if (st==0) {
-        cursor_couple_to_btree(cursor);
+        cursor->couple_to_btree();
         ham_assert(txn_cursor_is_nil(cursor->get_txn_cursor()), (""));
-        ham_assert(cursor_is_nil(cursor, 0), (""));
-        cursor_clear_dupecache(cursor);
+        ham_assert(cursor->is_nil(0), (""));
+        cursor->clear_dupecache();
     }
     else {
         if (local_txn)
@@ -2664,7 +2659,7 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     }
 
     /* reset the dupecache */
-    cursor_clear_dupecache(cursor);
+    cursor->clear_dupecache();
 
     /* 
      * first try to find the key in the transaction tree. If it exists and 
@@ -2682,12 +2677,12 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
                 ham_bool_t is_equal;
-                (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, 
-                        &is_equal);
+                (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, 
+                                &is_equal);
                 if (!is_equal)
-                    cursor_set_to_nil(cursor, CURSOR_BTREE);
+                    cursor->set_to_nil(Cursor::CURSOR_BTREE);
 
-                if (!cursor_get_dupecache_count(cursor))
+                if (!cursor->get_dupecache_count())
                     st=HAM_KEY_NOT_FOUND;
                 else
                     st=0;
@@ -2697,12 +2692,12 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
         }
         else {
             ham_bool_t is_equal;
-            (void)cursor_sync(cursor, CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
+            (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
             if (!is_equal)
-                cursor_set_to_nil(cursor, CURSOR_BTREE);
+                cursor->set_to_nil(Cursor::CURSOR_BTREE);
         }
-        cursor_couple_to_txnop(cursor);
-        if (!cursor_get_dupecache_count(cursor)) {
+        cursor->couple_to_txnop();
+        if (!cursor->get_dupecache_count()) {
             if (record)
                 st=txn_cursor_get_record(txnc, record);
             goto bail;
@@ -2714,24 +2709,24 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
 btree:
     st=btree_cursor_find(cursor->get_btree_cursor(), key, record, flags);
     if (st==0) {
-        cursor_couple_to_btree(cursor);
+        cursor->couple_to_btree();
         /* if btree keys were found: reset the dupecache. The previous
          * call to cursor_get_dupecache_count() already initialized the
          * dupecache, but only with txn keys because the cursor was only
          * coupled to the txn */
-        cursor_clear_dupecache(cursor);
+        cursor->clear_dupecache();
     }
 
 check_dupes:
     /* if the key has duplicates: build a duplicate table, then
      * couple to the first/oldest duplicate */
-    if (cursor_get_dupecache_count(cursor)) {
+    if (cursor->get_dupecache_count()) {
         DupeCacheLine *e=cursor->get_dupecache()->get_first_element();
         if (e->use_btree())
-            cursor_couple_to_btree(cursor);
+            cursor->couple_to_btree();
         else
-            cursor_couple_to_txnop(cursor);
-        cursor_couple_to_dupe(cursor, 1);
+            cursor->couple_to_txnop();
+        cursor->couple_to_dupe(1);
         st=0;
 
         /* now read the record */
@@ -2739,7 +2734,7 @@ check_dupes:
             /* TODO this works, but in case of the btree key w/ duplicates
             * it's possible that we read the record twice. I'm not sure if 
             * this can be avoided, though. */
-            if (cursor_is_coupled_to_txnop(cursor))
+            if (cursor->is_coupled_to_txnop())
                 st=txn_cursor_get_record(cursor->get_txn_cursor(), 
                         record);
             else
@@ -2748,7 +2743,7 @@ check_dupes:
         }
     }
     else {
-        if (cursor_is_coupled_to_txnop(cursor) && record)
+        if (cursor->is_coupled_to_txnop() && record)
             st=txn_cursor_get_record(cursor->get_txn_cursor(), record);
     }
 
@@ -2784,7 +2779,7 @@ bail:
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2812,7 +2807,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
             return (st);
     }
 
-    if (cursor_is_nil(cursor, 0) && txn_cursor_is_nil(txnc))
+    if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
         return (HAM_CURSOR_IS_NIL);
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2826,7 +2821,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
     }
 
     /* this function will do all the work */
-    st=cursor_get_duplicate_count(cursor, 
+    st=cursor->get_duplicate_count(
                     cursor->get_txn() ? cursor->get_txn() : local_txn,
                     count, flags);
 
@@ -2845,7 +2840,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2872,7 +2867,7 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
             return (st);
     }
 
-    if (cursor_is_nil(cursor, 0) && txn_cursor_is_nil(txnc))
+    if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
         return (HAM_CURSOR_IS_NIL);
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2886,7 +2881,7 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
     }
 
     /* this function will do all the work */
-    st=cursor_get_record_size(cursor, 
+    st=cursor->get_record_size(
                     cursor->get_txn() ? cursor->get_txn() : local_txn,
                     size);
 
@@ -2906,7 +2901,7 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
-    cursor->set_lastop(CURSOR_LOOKUP_INSERT);
+    cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2954,7 +2949,7 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
     }
 
     /* this function will do all the work */
-    st=cursor_overwrite(cursor, 
+    st=cursor->overwrite(
                     cursor->get_txn() ? cursor->get_txn() : local_txn,
                     &temprec, flags);
 
@@ -3006,7 +3001,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
      * if the user requests a PREVIOUS, we set it to LAST, resp.
      * TODO the btree-cursor has identical code which can be removed
      */
-    if (cursor_is_nil(cursor, 0)) {
+    if (cursor->is_nil(0)) {
         if (flags&HAM_CURSOR_NEXT) {
             flags&=~HAM_CURSOR_NEXT;
             flags|=HAM_CURSOR_FIRST;
@@ -3040,7 +3035,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     }
 
     /* everything else is handled by the cursor function */
-    st=cursor_move(cursor, key, record, flags);
+    st=cursor->move(key, record, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

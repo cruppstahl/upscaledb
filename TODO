@@ -26,13 +26,12 @@ o rewrite cursor_move (once more)
     x two tests are failing (see README)
     x current problem: dupecache is always created even if duplicates are
         not used - no problem, it's a NOP if dupes are disabled
-
-    o _local_cursor_create can return void
-    o _local_cursor_clone can return void
-
-    o the cursor is still a mishmash of C functions with a C++ object
+    x _local_cursor_create can directly return the new Cursor
+    x _local_cursor_clone can directly return the new Cursor
+    x the cursor is still a mishmash of C functions with a C++ object
         -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
         the namespace of the class
+        x __compare_cursors -> int Cursor::compare(flags);
 
     o duplicate keys are slow (need a new dupecache which is shared between
         cursors)
@@ -84,20 +83,6 @@ o compare performance against 1.1.13 (with and without Transactions)
 o the changeset flushes its pages with WRITE_THROUGH - but that causes
     fsync?!
 
-. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
-    functor or class w/ operator() instead
-. changeset: use a generic hash table for fast lookup (but leave list in place
-    for everything else)
-. cache: use a generic hash table
-
-o API changes for 2.0.0
-    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
-    o can we remove some of the deprecated functions?
-    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
-        and the Env as parameter (not the db!)
-    o what else?
-    o increase libtool version
-
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
     o unittests
@@ -113,6 +98,22 @@ o improve journalling and get rid of the physical log as much as possible
         freelist (and maybe the header page, if the root page address is
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
+
+. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
+    functor or class w/ operator() instead
+. changeset: use a generic hash table for fast lookup (but leave list in place
+    for everything else)
+. cache: use a generic hash table
+
+o API changes for 2.0.0
+    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
+    o can we remove some of the deprecated functions?
+    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
+        and the Env as parameter (not the db!)
+    o what else?
+    o increase libtool version
+
+o device, page and os shold no longer return errors but throw exceptions
 
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly

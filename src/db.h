@@ -253,13 +253,13 @@ struct ham_db_t
     /**
      * create a cursor
      */
-    ham_status_t (*_fun_cursor_create)(ham_db_t *db, ham_txn_t *txn, 
-                    ham_u32_t flags, Cursor **cursor);
+    Cursor * (*_fun_cursor_create)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_u32_t flags);
 
     /**
      * clone a cursor
      */
-    ham_status_t (*_fun_cursor_clone)(Cursor *src, Cursor **dest);
+    Cursor * (*_fun_cursor_clone)(Cursor *src);
 
     /**
      * insert a key with a cursor

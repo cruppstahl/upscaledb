@@ -27,6 +27,12 @@
 
 using namespace bfc;
 
+static bool
+cursor_is_nil(Cursor *c, int what) 
+{
+    return (c->is_nil(what));
+}
+
 class BaseCursorTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
@@ -175,7 +181,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_move(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(1u, 
-                    cursor_get_dupecache_count((Cursor *)m_cursor));
+                    ((Cursor *)m_cursor)->get_dupecache_count());
     }
 
     void insertFindMultipleCursorsTest(void)
@@ -284,7 +290,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, CURSOR_BTREE));
+        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, 
+                        Cursor::CURSOR_BTREE));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 
@@ -308,7 +315,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, CURSOR_BTREE));
+        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, 
+                        Cursor::CURSOR_BTREE));
         ham_key_t *k1=btree_cursor_get_uncoupled_key(
                     c->get_btree_cursor());
         ham_key_t *k2=btree_cursor_get_uncoupled_key(
@@ -753,7 +761,8 @@ public:
                     ham_cursor_erase(m_cursor, 0));
 
         /* key is now nil */
-        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, CURSOR_BTREE));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 
+                        Cursor::CURSOR_BTREE));
 
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -1045,7 +1054,7 @@ public:
 
         /* make sure that the cursor is coupled to the txn-op */
         Cursor *c=(Cursor *)m_cursor;
-        BFC_ASSERT(cursor_is_coupled_to_txnop(c));
+        BFC_ASSERT(c->is_coupled_to_txnop());
     }
 
     void moveFirstSmallerInTransactionTest(void)
@@ -1387,7 +1396,7 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
 
         /* make sure that the cursor is coupled to the txn-op */
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
     }
 
     void moveLastSmallerInTransactionTest(void)
@@ -1952,17 +1961,17 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2007,22 +2016,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_is_coupled_to_btree((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2067,22 +2076,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2127,22 +2136,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_btree((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2188,22 +2197,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2265,11 +2274,11 @@ public:
         if (strcmp(rec, (char *)r.data))
             return (HAM_INTERNAL_ERROR);
         if (where==BTREE) {
-            if (cursor_is_coupled_to_txnop((Cursor *)m_cursor))
+            if (((Cursor *)m_cursor)->is_coupled_to_txnop())
                 return (HAM_INTERNAL_ERROR);
         }
         else {
-            if (cursor_is_coupled_to_btree((Cursor *)m_cursor))
+            if (((Cursor *)m_cursor)->is_coupled_to_btree())
                 return (HAM_INTERNAL_ERROR);
         }
         return (0);
@@ -2289,11 +2298,11 @@ public:
         if (strcmp(rec, (char *)r.data))
             return (HAM_INTERNAL_ERROR);
         if (where==BTREE) {
-            if (cursor_is_coupled_to_txnop((Cursor *)m_cursor))
+            if (((Cursor *)m_cursor)->is_coupled_to_txnop())
                 return (HAM_INTERNAL_ERROR);
         }
         else {
-            if (cursor_is_coupled_to_btree((Cursor *)m_cursor))
+            if (((Cursor *)m_cursor)->is_coupled_to_btree())
                 return (HAM_INTERNAL_ERROR);
         }
         return (0);
@@ -2745,19 +2754,19 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
     }
@@ -2800,22 +2809,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_btree((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2860,22 +2869,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2920,22 +2929,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_is_coupled_to_btree((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2981,22 +2990,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_is_coupled_to_txnop((Cursor *)m_cursor));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -4190,7 +4199,7 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(4u, 
-                    cursor_get_dupecache_count((Cursor *)m_cursor));
+                    ((Cursor *)m_cursor)->get_dupecache_count());
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));

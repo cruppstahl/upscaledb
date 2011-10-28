@@ -412,7 +412,7 @@ btree_cursor_is_nil(btree_cursor_t *cursor)
         return (HAM_FALSE);
     if (btree_cursor_is_coupled(cursor))
         return (HAM_FALSE);
-    if (cursor_is_coupled_to_txnop(btree_cursor_get_parent(cursor)))
+    if (btree_cursor_get_parent(cursor)->is_coupled_to_txnop())
         return (HAM_FALSE);
     return (HAM_TRUE);
 }
@@ -790,7 +790,7 @@ btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
          * ignore all cursors which are already uncoupled or which are
          * coupled to the txn
          */
-        if (btree_cursor_is_coupled(btc) || cursor_is_coupled_to_txnop(c)) {
+        if (btree_cursor_is_coupled(btc) || c->is_coupled_to_txnop()) {
             /* skip this cursor if its position is < start */
             if (btree_cursor_get_coupled_index(btc)<start) {
                 c=n;

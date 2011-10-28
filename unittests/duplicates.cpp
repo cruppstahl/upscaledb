@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -781,8 +781,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(!cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -848,8 +848,8 @@ public:
         BFC_ASSERT_EQUAL(3, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(!cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -999,8 +999,8 @@ public:
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1060,8 +1060,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1115,8 +1115,8 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1174,8 +1174,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1229,8 +1229,8 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(!cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1897,8 +1897,8 @@ public:
         BFC_ASSERT_EQUAL(3, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(cursor_is_nil(((Cursor *)c1), CURSOR_BTREE));
-        BFC_ASSERT(!cursor_is_nil(((Cursor *)c2), CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));

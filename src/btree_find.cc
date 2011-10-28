@@ -426,7 +426,7 @@ no_fast_track:
      * is set: */
     if (key 
             && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
-            && !(flags & CURSOR_SYNC_DONT_LOAD_KEY)) {
+            && !(flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
         ham_status_t st=btree_read_key(db, entry, key);
         if (st) {
             btree_stats_update_find_fail(db, &hints);

@@ -1078,9 +1078,8 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     return (st);
 }
 
-static ham_status_t
-_remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-        Cursor **cursor)
+static Cursor *
+_remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
@@ -1094,7 +1093,7 @@ _remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (st) {
         if (reply)
             proto_delete(reply);
-        return (st);
+        return (0);
     }
 
     ham_assert(reply!=0, (""));
@@ -1103,21 +1102,20 @@ _remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     st=proto_cursor_create_reply_get_status(reply);
     if (st) {
         proto_delete(reply);
-        return (st);
+        return (0);
     }
 
-    *cursor=new Cursor(db);
+    Cursor *c=new Cursor(db);
 
-    (*cursor)->set_remote_handle(
-                proto_cursor_create_reply_get_cursor_handle(reply));
+    c->set_remote_handle(proto_cursor_create_reply_get_cursor_handle(reply));
 
     proto_delete(reply);
 
-    return (st);
+    return (c);
 }
 
-static ham_status_t
-_remote_cursor_clone(Cursor *src, Cursor **dest)
+static Cursor *
+_remote_cursor_clone(Cursor *src)
 {
     ham_env_t *env=db_get_env(src->get_db());
     ham_status_t st;
@@ -1130,7 +1128,7 @@ _remote_cursor_clone(Cursor *src, Cursor **dest)
     if (st) {
         if (reply)
             proto_delete(reply);
-        return (st);
+        return (0);
     }
 
     ham_assert(reply!=0, (""));
@@ -1139,17 +1137,16 @@ _remote_cursor_clone(Cursor *src, Cursor **dest)
     st=proto_cursor_clone_reply_get_status(reply);
     if (st) {
         proto_delete(reply);
-        return (st);
+        return (0);
     }
 
-    *dest=new Cursor(src->get_db());
+    Cursor *c=new Cursor(src->get_db());
 
-    (*dest)->set_remote_handle(
-                proto_cursor_clone_reply_get_cursor_handle(reply));
+    c->set_remote_handle(proto_cursor_clone_reply_get_cursor_handle(reply));
 
     proto_delete(reply);
 
-    return (st);
+    return (c);
 }
 
 static void
