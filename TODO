@@ -17,6 +17,9 @@ threads (but then i'll use synchronization in my own code).
 
 x extkey: use a generic hash table
 
+x the changeset flushes its pages with WRITE_THROUGH - but that causes
+    fsync?! - no, it's not. i renamed the flag.
+
 o rewrite cursor_move (once more) 
     x currently there are too many compares of the cursors - decrease them
     x cursor_move_last is working
@@ -33,12 +36,6 @@ o rewrite cursor_move (once more)
         the namespace of the class
         x __compare_cursors -> int Cursor::compare(flags);
 
-    o duplicate keys are slow (need a new dupecache which is shared between
-        cursors)
-        o create a global dupecache class and remove it from the cursor
-        o when inserting/erasing new keys: remove them from the dupecache
-        o one dupecache per database
-        -> needs to be invalidated when inserting new keys, erasing them
     o new test case:
         insert (1)
         insert (2)
@@ -54,6 +51,13 @@ o rewrite cursor_move (once more)
         move (last) (-> 1, b)
         insert (1, c)
         move (last) (-> 1, c)? is the dupecache updated correctly?
+    o duplicate keys are slow (need a new dupecache which is shared between
+        cursors)
+        o more or less identical to extkeys.h/.cc
+        o create a global dupecache class and remove it from the cursor
+        o when inserting/erasing new keys: remove them from the dupecache
+        o one dupecache per database
+        -> needs to be invalidated when inserting new keys, erasing them
     o there are a couple of areas where a btree cursor is uncoupled, just to 
         retrieve the key and to couple the txn-key. that's not efficient
             db.c:__btree_cursor_points_to
@@ -74,14 +78,13 @@ o rewrite cursor_move (once more)
             cursor. can we eliminate the btree cursor cache, or at least make
             sure that tere's no performance penalty when using both?
             can we cache the duplicate tables??
+        o check performance of extkeys (no txn's, no dupes) with 1.1.14
+            -> increase the age of the cache
 
 o compare performance against 1.1.13 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
         is only required once then it should be inserted at the tail of the
         totallist, like a page that was not accessed for a very long time
-
-o the changeset flushes its pages with WRITE_THROUGH - but that causes
-    fsync?!
 
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)

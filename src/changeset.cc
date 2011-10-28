@@ -106,7 +106,7 @@ Changeset::flush(ham_u64_t lsn)
     p=m_head;
     while (p) {
         if (page_is_dirty(p)) {
-            st=db_flush_page(env, p, HAM_WRITE_THROUGH);
+            st=db_flush_page(env, p);
             if (st)
                 return (st);
         }

@@ -274,7 +274,7 @@ public:
             p[i]=(ham_u8_t)i;
         page_set_dirty(page);
         address=page_get_self(page);
-        BFC_ASSERT_EQUAL(0, db_flush_page(m_env, page, 0));
+        BFC_ASSERT_EQUAL(0, db_flush_page(m_env, page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
 
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, address, 0));

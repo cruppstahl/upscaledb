@@ -890,12 +890,12 @@ db_fetch_page(ham_page_t **page_ref, ham_db_t *db,
 }
 
 ham_status_t
-db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
+db_flush_page(ham_env_t *env, ham_page_t *page)
 {
     ham_status_t st;
 
     /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
-    if (flags&HAM_WRITE_THROUGH && page_is_dirty(page)) {
+    if (page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
             return (st);
@@ -1166,7 +1166,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             n=page_get_next(head, PAGE_LIST_CACHED);
             if (page_get_owner(head)==db && head!=env_get_header_page(env)) {
                 if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
-                    (void)db_flush_page(env, head, HAM_WRITE_THROUGH);
+                    (void)db_flush_page(env, head);
                 (void)db_free_page(head, 0);
             }
             head=n;

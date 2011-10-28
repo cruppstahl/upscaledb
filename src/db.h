@@ -665,7 +665,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
  * flush a page
  */
 extern ham_status_t
-db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags);
+db_flush_page(ham_env_t *env, ham_page_t *page);
 
 /**
  * Flush all pages, and clear the cache.
