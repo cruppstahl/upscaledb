@@ -36,7 +36,7 @@ o rewrite cursor_move (once more)
         the namespace of the class
         x __compare_cursors -> int Cursor::compare(flags);
 
-    o new test case:
+    x new test case:
         insert (1)
         insert (2)
         cursor_move_last
@@ -45,12 +45,7 @@ o rewrite cursor_move (once more)
         insert (0)
         cursor_move_previous -> OK
         -> and the same with first/next
-    o new test case for cursors
-        insert (1, a)
-        insert (1, b) (duplicate of 1)
-        move (last) (-> 1, b)
-        insert (1, c)
-        move (last) (-> 1, c)? is the dupecache updated correctly?
+        x clarify documentation
     o duplicate keys are slow (need a new dupecache which is shared between
         cursors)
         o more or less identical to extkeys.h/.cc
@@ -80,6 +75,12 @@ o rewrite cursor_move (once more)
             can we cache the duplicate tables??
         o check performance of extkeys (no txn's, no dupes) with 1.1.14
             -> increase the age of the cache
+    o new test case for cursors
+        insert (1, a)
+        insert (1, b) (duplicate of 1)
+        move (last) (-> 1, b)
+        insert (1, c)
+        move (last) (-> 1, c)? is the dupecache updated correctly?
 
 o compare performance against 1.1.13 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
@@ -101,6 +102,21 @@ o improve journalling and get rid of the physical log as much as possible
         freelist (and maybe the header page, if the root page address is
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
+
+o c++ API
+    o make sure everything is updated
+    o clean up usage of ham_parameter_t - overload functions for bool, u64 
+        and strings
+        (i want the high-level APIs to use the c++ API and not the C one)
+
+o java API
+    o update and rewrite to use the C++ API
+
+o python API
+    o update and rewrite to use the C++ API
+
+o guru.com/twitter: look for someone who can write a PHP or Perl or Ruby
+    wrapper
 
 . hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
     functor or class w/ operator() instead

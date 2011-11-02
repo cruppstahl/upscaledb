@@ -665,6 +665,11 @@ public:
                     eraseKeyWithoutCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyAndFlushTransactionsTest);
+
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastThenInsertNewLastTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstThenInsertNewFirstTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -2415,6 +2420,7 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11112"));
         BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, ((Cursor *)m_cursor)->is_first_use());
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11114"));
@@ -3267,6 +3273,7 @@ public:
         BFC_ASSERT_EQUAL(0, comparePrev("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, comparePrev("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, BTREE));
+        ((Cursor *)m_cursor)->set_to_nil(0);
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaae", TXN));
@@ -3280,6 +3287,7 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11121", "aaaao", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11122", "aaaap", TXN));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, BTREE));
+        ((Cursor *)m_cursor)->set_to_nil(0);
         BFC_ASSERT_EQUAL(0, comparePrev("11122", "aaaap", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11121", "aaaao", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11120", "aaaan", TXN));
@@ -3727,6 +3735,65 @@ public:
 
         /* cursor must be nil */
         BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+    }
+
+    ham_status_t move(const char *key, const char *rec, ham_u32_t flags,
+                ham_cursor_t *cursor=0)
+    {
+        ham_key_t k={0};
+        ham_record_t r={0};
+        ham_status_t st;
+
+        if (!cursor)
+            cursor=m_cursor;
+
+        st=ham_cursor_move(cursor, &k, &r, flags);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (rec)
+            if (strcmp(rec, (char *)r.data))
+                return (HAM_INTERNAL_ERROR);
+
+        // now verify again, but with flags=0
+        if (flags==0)
+            return (0);
+        st=ham_cursor_move(cursor, &k, &r, 0);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (rec)
+            if (strcmp(rec, (char *)r.data))
+                return (HAM_INTERNAL_ERROR);
+        return (0);
+    }
+
+    void moveLastThenInsertNewLastTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn("11111", "bbbbb"));
+        BFC_ASSERT_EQUAL(0, insertTxn("22222", "ccccc"));
+
+        BFC_ASSERT_EQUAL(0, move("22222", "ccccc", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move("11111", "bbbbb", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, insertTxn("00000", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, move("00000", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void moveFirstThenInsertNewFirstTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn("22222", "bbbbb"));
+
+        BFC_ASSERT_EQUAL(0, move("11111", "aaaaa", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move("22222", "bbbbb", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, insertTxn("33333", "ccccc"));
+        BFC_ASSERT_EQUAL(0, move("33333", "ccccc", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
     }
 
 };

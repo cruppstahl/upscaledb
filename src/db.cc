@@ -2997,18 +2997,30 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     }
 
     /*
-     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
-     * if the user requests a PREVIOUS, we set it to LAST, resp.
+     * if the cursor was never used before and the user requests a NEXT then
+     * move the cursor to FIRST; if the user requests a PREVIOUS we set it 
+     * to LAST, resp.
+     *
+     * if the cursor was already used but is nil then we've reached EOF, 
+     * and a NEXT actually tries to move to the LAST key (and PREVIOUS
+     * moves to FIRST)
+     *
      * TODO the btree-cursor has identical code which can be removed
      */
     if (cursor->is_nil(0)) {
         if (flags&HAM_CURSOR_NEXT) {
             flags&=~HAM_CURSOR_NEXT;
-            flags|=HAM_CURSOR_FIRST;
+            if (cursor->is_first_use())
+              flags|=HAM_CURSOR_FIRST;
+            else
+              flags|=HAM_CURSOR_LAST;
         }
         else if (flags&HAM_CURSOR_PREVIOUS) {
             flags&=~HAM_CURSOR_PREVIOUS;
-            flags|=HAM_CURSOR_LAST;
+            if (cursor->is_first_use())
+              flags|=HAM_CURSOR_LAST;
+            else
+              flags|=HAM_CURSOR_FIRST;
         }
     }
 

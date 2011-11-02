@@ -2386,9 +2386,9 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
  * If Transactions are enabled (see @ref HAM_ENABLE_TRANSACTIONS), and 
- * the Cursor moves to a key which is currently modified in an active
- * Transaction (one that is not yet committed or aborted), then hamsterdb
- * will skip the modified key. (This behavior is different from i.e. 
+ * the Cursor moves next or previous to a key which is currently modified 
+ * in an active Transaction (one that is not yet committed or aborted), then 
+ * hamsterdb will skip the modified key. (This behavior is different from i.e. 
  * @a ham_cursor_find, which would return the error @ref HAM_TXN_CONFLICT).
  *
  * If a key has duplicates and any of the duplicates is currently modified
@@ -2396,9 +2396,14 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * moving to the next or previous key.
  *
  * If the first (@ref HAM_CURSOR_FIRST) or last (@ref HAM_CURSOR_LAST) key
- * is requested, and this key (or any of its duplicate keys) is currently
+ * is requested, and the current key (or any of its duplicates) is currently
  * modified in an active Transaction, then @ref HAM_TXN_CONFLICT is 
  * returned.
+ *
+ * If this Cursor is nil (i.e. because it was not yet used or the Cursor's 
+ * item was erased) then the flag @a HAM_CURSOR_NEXT (or @a 
+ * HAM_CURSOR_PREVIOUS) will be identical to @a HAM_CURSOR_FIRST (or 
+ * @a HAM_CURSOR_LAST).
  *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this

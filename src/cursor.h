@@ -267,7 +267,7 @@ class Cursor
      *
      * 'what' is one of the flags CURSOR_BOTH, CURSOR_TXN, CURSOR_BTREE
      */
-    ham_bool_t is_nil(int what=CURSOR_BOTH);
+    bool is_nil(int what=CURSOR_BOTH);
 
     /** Returns true if a cursor is coupled to the btree */
     bool is_coupled_to_btree(void) {
@@ -289,9 +289,7 @@ class Cursor
         return (set_flags(get_flags()|_CURSOR_COUPLED_TO_TXN));
     }
 
-    /**
-     * Sets the cursor to nil
-     */
+    /** Sets the cursor to nil */
     void set_to_nil(int what=CURSOR_BOTH);
 
     /**
@@ -340,9 +338,7 @@ class Cursor
      */
     ham_status_t update_dupecache(ham_u32_t what);
 
-    /**
-     * Clear the dupecache and disconnect the Cursor from any duplicate key
-     */
+    /** Clear the dupecache and disconnect the Cursor from any duplicate key */
     void clear_dupecache(void);
 
     /**
@@ -373,9 +369,7 @@ class Cursor
      */
     ham_status_t sync(ham_u32_t flags, ham_bool_t *equal_keys);
 
-    /**
-     * Moves a Cursor
-     */
+    /** Moves a Cursor */
     ham_status_t move(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     /**
@@ -495,6 +489,7 @@ class Cursor
     /** Store the current operation; needed for ham_cursor_move */
     void set_lastop(ham_u32_t lastop) {
         m_lastop=lastop;
+        m_is_first_use=false;
     }
 
     /** Get the result of the previous compare operation:
@@ -507,6 +502,16 @@ class Cursor
      * db_compare_keys(btree-cursor, txn-cursor) */
     void set_lastcmp(int cmp) {
         m_lastcmp=cmp;
+    }
+
+    /** Returns true if this cursor was never used */
+    bool is_first_use(void) {
+        return (m_is_first_use);
+    }
+
+    /** If true then this cursor was never used (or was deleted) */
+    void set_first_use(bool b) {
+        m_is_first_use=b;
     }
 
   private:
@@ -594,6 +599,9 @@ class Cursor
 
     /** Cursor flags */
     ham_u32_t m_flags;
+
+    /** true if this cursor was never used */
+    bool m_is_first_use;
 };
 
 

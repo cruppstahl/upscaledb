@@ -684,7 +684,7 @@ Cursor::move_previous_key(ham_u32_t flags)
 
     /* either there were no duplicates or we've reached the end of the 
      * duplicate list. move previous till we found a new candidate */
-    while (1) {
+    while (!is_nil(CURSOR_BTREE) || !txn_cursor_is_nil(txnc)) {
         st=move_previous_key_singlestep();
         if (st)
             return (st);
@@ -726,8 +726,7 @@ Cursor::move_previous_key(ham_u32_t flags)
             return (HAM_KEY_NOT_FOUND);
     }
 
-    ham_assert(!"should never reach this", (""));
-    return (HAM_INTERNAL_ERROR);
+    return (HAM_KEY_NOT_FOUND);
 }
 
 ham_status_t
@@ -1052,7 +1051,7 @@ Cursor::get_dupecache_count(void)
 Cursor::Cursor(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
     m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
-    m_lastop(0), m_lastcmp(0), m_flags(flags) 
+    m_lastop(0), m_lastcmp(0), m_flags(flags), m_is_first_use(true)
 {
     txn_cursor_create(db, txn, flags, get_txn_cursor(), this);
     btree_cursor_create(db, txn, flags, get_btree_cursor(), this);
@@ -1073,6 +1072,7 @@ Cursor::Cursor(Cursor &other)
     m_flags=other.m_flags; 
     m_txn_cursor=other.m_txn_cursor; 
     m_btree_cursor=other.m_btree_cursor; 
+    m_is_first_use=other.m_is_first_use; 
 
     set_next_in_page(0);
     set_previous_in_page(0);
@@ -1086,7 +1086,7 @@ Cursor::Cursor(Cursor &other)
         other.get_dupecache()->clone(get_dupecache());
 }
 
-ham_bool_t
+bool
 Cursor::is_nil(int what)
 {
     switch (what) {
@@ -1117,6 +1117,7 @@ Cursor::set_to_nil(int what)
         ham_assert(what==0, (""));
         btree_cursor_set_to_nil(get_btree_cursor());
         txn_cursor_set_to_nil(get_txn_cursor());
+        set_first_use(true);
         break;
     }
 }
