@@ -46,21 +46,17 @@ o rewrite cursor_move (once more)
         cursor_move_previous -> OK
         -> and the same with first/next
         x clarify documentation
-    o duplicate keys are slow (need a new dupecache which is shared between
-        cursors)
-        o more or less identical to extkeys.h/.cc
-        o create a global dupecache class and remove it from the cursor
-        o when inserting/erasing new keys: remove them from the dupecache
-        o one dupecache per database
-        -> needs to be invalidated when inserting new keys, erasing them
-    o there are a couple of areas where a btree cursor is uncoupled, just to 
-        retrieve the key and to couple the txn-key. that's not efficient
-            db.c:__btree_cursor_points_to
-            db.c:__compare_cursors
-            txn_cursor.c:cursor_sync
-            txn_cursor.c:cursor_overwrite
-        o move to a separate function
-        o try to optimize
+
+o duplicate keys are slow (need a new dupecache which is shared between
+    cursors)
+    o existing DupeCache becomes DupeCacheEntry
+    o more or less identical to extkeys.h/.cc
+    o create a global dupecache class and remove it from the cursor
+    o when inserting/erasing new keys: remove them from the dupecache
+    o one dupecache per database
+    o upate Cursor::move (maybe we can cache the pointer to the current
+        dupecache?)
+
     o duplicate (extended) keys are horribly slow, check why and improve it
         x check if 2.0.0rc1 had the same problems (yes, it has)
         --> __read_chunk is the bottleneck
@@ -69,12 +65,7 @@ o rewrite cursor_move (once more)
             -> called from __get_duplicate_table
         ./test --use-transactions=200 --duplicate --use-cursors 
                 --verbose=1 ../../testfiles/1/202.tst
-        o duplicate tables exist in the btree-cursor AND in the high-level
-            cursor. can we eliminate the btree cursor cache, or at least make
-            sure that tere's no performance penalty when using both?
-            can we cache the duplicate tables??
-        o check performance of extkeys (no txn's, no dupes) with 1.1.14
-            -> increase the age of the cache
+
     o new test case for cursors
         insert (1, a)
         insert (1, b) (duplicate of 1)
@@ -82,10 +73,50 @@ o rewrite cursor_move (once more)
         insert (1, c)
         move (last) (-> 1, c)? is the dupecache updated correctly?
 
-o compare performance against 1.1.13 (with and without Transactions)
+o compare performance against 1.1.14 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
         is only required once then it should be inserted at the tail of the
         totallist, like a page that was not accessed for a very long time
+    o check performance of extkeys (no txn's, no dupes) with 1.1.14
+        -> increase the age of the cache
+    o check performance of duplicates (with or without txn's) with 1.1.14
+        -> increase the age of the cache
+
+. there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+o API changes for 2.0.0
+    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
+    o can we remove some of the deprecated functions?
+    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
+        and the Env as parameter (not the db!)
+    o what else?
+    o increase libtool version
+
+o c++ API
+    o make sure everything is updated
+    o clean up usage of ham_parameter_t - overload functions for bool, u64 
+        and strings
+        (i want the high-level APIs to use the c++ API and not the C one)
+
+o java API
+    o update and rewrite to use the C++ API
+
+o python API
+    o update and rewrite to use the C++ API
+
+o guru.com/twitter: look for someone who can write a PHP or Perl or Ruby
+    wrapper
+
+o implement support for partial keys?
+
+o update the tutorial
 
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
@@ -103,34 +134,11 @@ o improve journalling and get rid of the physical log as much as possible
         modified)
         -> this is where we might have to rewrite the btree insert algorithm
 
-o c++ API
-    o make sure everything is updated
-    o clean up usage of ham_parameter_t - overload functions for bool, u64 
-        and strings
-        (i want the high-level APIs to use the c++ API and not the C one)
-
-o java API
-    o update and rewrite to use the C++ API
-
-o python API
-    o update and rewrite to use the C++ API
-
-o guru.com/twitter: look for someone who can write a PHP or Perl or Ruby
-    wrapper
-
 . hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
     functor or class w/ operator() instead
 . changeset: use a generic hash table for fast lookup (but leave list in place
     for everything else)
 . cache: use a generic hash table
-
-o API changes for 2.0.0
-    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
-    o can we remove some of the deprecated functions?
-    o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
-        and the Env as parameter (not the db!)
-    o what else?
-    o increase libtool version
 
 o device, page and os shold no longer return errors but throw exceptions
 
