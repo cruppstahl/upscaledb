@@ -2469,11 +2469,14 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
         if (st==0) {
             DupeCache *dc=cursor->get_dupecache();
             cursor->couple_to_txnop();
-            /* reset the dupecache, otherwise cursor_has_duplicates()
+            /* reset the dupecache, otherwise cursor->get_dupecache_count()
              * does not update the dupecache correctly */
             dc->clear();
             /* if duplicate keys are enabled: set the duplicate index of
-             * the new key */
+             * the new key 
+             *
+             * TODO performance: only run this if there are other cursors
+             * AND if one of these cursors is pointing to the same key */
             if (st==0 && cursor->get_dupecache_count()) {
                 ham_size_t i;
                 txn_cursor_t *txnc=cursor->get_txn_cursor();
@@ -2676,6 +2679,12 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
             if (st==HAM_KEY_NOT_FOUND)
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
+                /* TODO performance: if coupled op erases ALL duplicates
+                 * then we don't have to check this. if coupled op 
+                 * references a single duplicate w/ index > 0+1 then 
+                 * we know that there are other keys. if coupled op 
+                 * references the FIRST duplicate (idx 1) then we have 
+                 * to check if there are other duplicates */
                 ham_bool_t is_equal;
                 (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, 
                                 &is_equal);

@@ -20,7 +20,7 @@ x extkey: use a generic hash table
 x the changeset flushes its pages with WRITE_THROUGH - but that causes
     fsync?! - no, it's not. i renamed the flag.
 
-o rewrite cursor_move (once more) 
+x rewrite cursor_move (once more) 
     x currently there are too many compares of the cursors - decrease them
     x cursor_move_last is working
     x cursor_move_first is working
@@ -35,7 +35,6 @@ o rewrite cursor_move (once more)
         -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
         the namespace of the class
         x __compare_cursors -> int Cursor::compare(flags);
-
     x new test case:
         insert (1)
         insert (2)
@@ -47,31 +46,53 @@ o rewrite cursor_move (once more)
         -> and the same with first/next
         x clarify documentation
 
-o duplicate keys are slow (need a new dupecache which is shared between
-    cursors)
-    o existing DupeCache becomes DupeCacheEntry
-    o more or less identical to extkeys.h/.cc
-    o create a global dupecache class and remove it from the cursor
-    o when inserting/erasing new keys: remove them from the dupecache
-    o one dupecache per database
-    o upate Cursor::move (maybe we can cache the pointer to the current
-        dupecache?)
+o run performance tests w/ transactions, duplicates and cursors
+    valgrind --tool=callgrind ./test --use-transactions=200 --duplicate --use-cursors  --progress ../../testfiles/1/180.tst
+    o a normal insert (w/ duplicates) should not require a 
+        cursor->update_dupecache
+    o local_cursor_find must not call update_dupecache
+    o journal functions must use writev
+    o local_cursor_insert calls __btree_cursor_points_to, which is very
+        costly
+    o can we optimize/flatten txn_opnode_create? 
+    o txn_tree_get_or_create (maybe ALWAYS create the tree?)
+    o txn_opnode_append is an expensive allocation
+        (can we have a lookaside-list in the allocator?)
+    o cursor_erase: no need to purge the cache
+    o flatten txn_op_t
 
-    o duplicate (extended) keys are horribly slow, check why and improve it
-        x check if 2.0.0rc1 had the same problems (yes, it has)
-        --> __read_chunk is the bottleneck
-            -> called from blob_read (through db_get_extended_key, 
-                                btree_read_record)
-            -> called from __get_duplicate_table
-        ./test --use-transactions=200 --duplicate --use-cursors 
-                --verbose=1 ../../testfiles/1/202.tst
+o run performance tests w/ transactions, duplicates and w/o cursors
+o run performance tests w/ transactions and cursors
+o run performance tests w/ transactions and w/o cursors
 
-    o new test case for cursors
-        insert (1, a)
-        insert (1, b) (duplicate of 1)
-        move (last) (-> 1, b)
-        insert (1, c)
-        move (last) (-> 1, c)? is the dupecache updated correctly?
+o duplicate (extended) keys are horribly slow, check why and improve it
+    x check if 2.0.0rc1 had the same problems (yes, it has)
+    --> __read_chunk is the bottleneck
+        -> called from blob_read (through db_get_extended_key, 
+                            btree_read_record)
+        -> called from __get_duplicate_table
+    ./test --use-transactions=200 --duplicate --use-cursors 
+            --verbose=1 ../../testfiles/1/202.tst
+
+o improve journalling and get rid of the physical log as much as possible
+    . recovery: recreate all pending transactions (if requested)
+    . api function to get a list of pending transactions after recovery
+    o be careful - even if the btree operations are atomic, the whole
+        insert/erase is not because it also affects the blob area and the
+        freelist (and maybe the header page, if the root page address is
+        modified)
+        -> this is where we might have to rewrite the btree insert algorithm
+    o do this for ham_insert without SMOs
+    o when inserting a blob (ham_insert) we NEVER have to log the blob pages.
+        if blob_alloc fails then just return the error
+    o do this for ham_erase without SMOs
+
+o new test case for cursors
+    insert (1, a)
+    insert (1, b) (duplicate of 1)
+    move (last) (-> 1, b)
+    insert (1, c)
+    move (last) (-> 1, c)? is the dupecache updated correctly?
 
 o compare performance against 1.1.14 (with and without Transactions)
     o performance: check for DB_NEW_PAGE_DOES_THRASH_CACHE in env.c. If the page
@@ -79,17 +100,6 @@ o compare performance against 1.1.14 (with and without Transactions)
         totallist, like a page that was not accessed for a very long time
     o check performance of extkeys (no txn's, no dupes) with 1.1.14
         -> increase the age of the cache
-    o check performance of duplicates (with or without txn's) with 1.1.14
-        -> increase the age of the cache
-
-. there are a couple of areas where a btree cursor is uncoupled, just to 
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
 
 o API changes for 2.0.0
     o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
@@ -118,21 +128,14 @@ o implement support for partial keys?
 
 o update the tutorial
 
-o improve journalling and get rid of the physical log as much as possible
-    o recovery: recreate all pending transactions (if requested)
-    o unittests
-    o merge log and journal. There's no need to have two different files. 
-        For all 'simple' operations (insert, erase w/o SMO) a journal entry is 
-        sufficient. For all other operations we can just append the log
-        entries to the journal file. in such cases, the journal entry of an
-        insert or erase (w/ SMO) contains the modified pages as well.
-        ??? really? does that simplify things?
-    o api function to get a list of pending transactions after recovery
-    o be careful - even if the btree operations are atomic, the whole
-        insert/erase is not because it also affects the blob area and the
-        freelist (and maybe the header page, if the root page address is
-        modified)
-        -> this is where we might have to rewrite the btree insert algorithm
+. there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
 
 . hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
     functor or class w/ operator() instead
