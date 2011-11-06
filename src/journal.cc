@@ -27,8 +27,6 @@
 
 #define JOURNAL_DEFAULT_THRESHOLD   16
 
-#define _free(ptr)   (allocator_free(env_get_allocator(m_env), ptr))
-
 static ham_size_t 
 __get_aligned_entry_size(ham_size_t s)
 {
@@ -335,7 +333,7 @@ Journal::append_insert(ham_db_t *db, ham_txn_t *txn,
 
     /* append the entry to the logfile */
     st=append_entry(txn_get_log_desc(txn), &entry, (void *)ins, size);
-    _free(ins);
+    free(ins);
     
     return (st);
 }
@@ -365,7 +363,7 @@ Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     /* append the entry to the logfile */
     st=append_entry(txn_get_log_desc(txn), &entry, (JournalEntry *)aux, size);
-    _free(aux);
+    free(aux);
     
     return (st);
 }
@@ -449,7 +447,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
         st=os_pread(m_fd[iter->fdidx], iter->offset, *aux, 
                 entry->followup_size);
         if (st) {
-            _free(*aux);
+            free(*aux);
             *aux=0;
             return (st);
         }
@@ -620,7 +618,7 @@ Journal::recover()
         JournalEntry entry;
 
         if (aux) {
-            _free(aux);
+            free(aux);
             aux=0;
         }
 
@@ -733,7 +731,7 @@ Journal::recover()
 
 bail:
     if (aux) {
-        _free(aux);
+        free(aux);
         aux=0;
     }
 

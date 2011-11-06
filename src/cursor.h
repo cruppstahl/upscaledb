@@ -339,7 +339,10 @@ class Cursor
     ham_status_t update_dupecache(ham_u32_t what);
 
     /** Clear the dupecache and disconnect the Cursor from any duplicate key */
-    void clear_dupecache(void);
+    void clear_dupecache(void) {
+        get_dupecache()->clear();
+        set_dupecache_index(0);
+    }
 
     /**
      * Couples the cursor to a duplicate in the dupe table

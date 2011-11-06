@@ -159,13 +159,6 @@ bail:
 }
 
 void
-Cursor::clear_dupecache(void)
-{
-    get_dupecache()->clear();
-    set_dupecache_index(0);
-}
-
-void
 Cursor::couple_to_dupe(ham_u32_t dupe_id)
 {
     txn_cursor_t *txnc=get_txn_cursor();
