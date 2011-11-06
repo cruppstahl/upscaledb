@@ -709,7 +709,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     return (btree_cursor_set_to_nil(c));
 }
 
-ham_bool_t 
+bool 
 btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
 {
     ham_status_t st;
@@ -718,7 +718,7 @@ btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
     if (btree_cursor_is_uncoupled(cursor)) {
         st=btree_cursor_couple(cursor);
         if (st)
-            return (st);
+            return (false);
     }
 
     if (btree_cursor_is_coupled(cursor)) {
@@ -728,11 +728,60 @@ btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
                         btree_cursor_get_coupled_index(cursor));
 
         if (entry==key)
-            return (1);
+            return (true);
     }
 
-    return (0);
+    return (false);
 }
+
+bool
+btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
+{
+    Cursor *c=btree_cursor_get_parent(btc);
+    ham_db_t *db=c->get_db();
+    bool ret=false;
+
+    if (btree_cursor_is_uncoupled(btc)) {
+        ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
+        if (k->size!=key->size)
+            return (false);
+        return (0==db_compare_keys(db, key, k));
+    }
+
+    if (btree_cursor_is_coupled(btc)) {
+        ham_page_t *page=btree_cursor_get_coupled_page(btc);
+        btree_node_t *node=page_get_btree_node(page);
+        btree_key_t *entry=btree_node_get_key(db, node, 
+                        btree_cursor_get_coupled_index(btc));
+
+        if (key_get_size(entry)!=key->size)
+            return (false);
+
+        bool ret=false;
+        Cursor *clone=0;
+        ham_status_t st=ham_cursor_clone((ham_cursor_t *)c, 
+                                (ham_cursor_t **)&clone);
+        if (st)
+            return (false);
+        st=btree_cursor_uncouple(clone->get_btree_cursor(), 0);
+        if (st) {
+            ham_cursor_close((ham_cursor_t *)clone);
+            return (false);
+        }
+        if (0==db_compare_keys(db, key, 
+               btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
+            ret=true;
+        ham_cursor_close((ham_cursor_t *)clone);
+        return (ret);
+    }
+
+    else {
+        ham_assert(!"shouldn't be here", (""));
+    }
+    
+    return (ret);
+}
+
 
 ham_status_t
 btree_cursor_get_duplicate_count(btree_cursor_t *c, 
@@ -938,3 +987,4 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
 
     return (0);
 }
+

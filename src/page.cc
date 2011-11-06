@@ -181,15 +181,12 @@ ham_status_t
 page_flush(ham_page_t *page)
 {
     ham_status_t st;
-    ham_env_t *env;
     ham_device_t *dev=page_get_device(page);
 
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
     ham_assert(dev, (0));
-    env = device_get_env(dev);
-    ham_assert(env, (0));
 
     st=dev->write_page(dev, page);
     if (st)

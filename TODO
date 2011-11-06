@@ -50,13 +50,13 @@ o run performance tests w/ transactions, duplicates and cursors
     valgrind --tool=callgrind ./test --use-transactions=200 --duplicate --use-cursors  --progress ../../testfiles/1/180.tst
     x flatten txn_op_t
     x txn_tree_get_or_create (maybe ALWAYS create the tree?)
-    o cursor_erase: no need to purge the cache
+    x cursor_erase: no need to purge the cache
+    x local_cursor_insert calls __btree_cursor_points_to, which is very
+        costly
     o a normal insert (w/ duplicates) should not require a 
         cursor->update_dupecache
     o local_cursor_find must not call update_dupecache
     o journal functions must use writev
-    o local_cursor_insert calls __btree_cursor_points_to, which is very
-        costly
 
 o run performance tests w/ transactions, duplicates and w/o cursors
 o run performance tests w/ transactions and cursors

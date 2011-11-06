@@ -183,7 +183,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
     return (CB_CONTINUE);
 }
 
-static ham_bool_t
+inline ham_bool_t
 __cache_needs_purge(ham_env_t *env)
 {
     Cache *cache=env_get_cache(env);
@@ -1643,41 +1643,6 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, 0, flags));
 }
 
-static ham_bool_t
-__btree_cursor_points_to(Cursor *c, ham_key_t *key)
-{
-    ham_bool_t ret=HAM_FALSE;
-    ham_db_t *db=c->get_db();
-    btree_cursor_t *btc=c->get_btree_cursor();
-
-    if (btree_cursor_is_coupled(btc)) {
-        Cursor *clone=0;
-        ham_status_t st=ham_cursor_clone((ham_cursor_t *)c, 
-                                (ham_cursor_t **)&clone);
-        if (st)
-            return (HAM_FALSE);
-        st=btree_cursor_uncouple(clone->get_btree_cursor(), 0);
-        if (st) {
-            ham_cursor_close((ham_cursor_t *)clone);
-            return (HAM_FALSE);
-        }
-        if (0==db_compare_keys(db, key, 
-               btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
-            ret=HAM_TRUE;
-        ham_cursor_close((ham_cursor_t *)clone);
-    }
-    else if (btree_cursor_is_uncoupled(btc)) {
-        ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
-        if (0==db_compare_keys(db, key, k))
-            ret=HAM_TRUE;
-    }
-    else {
-        ham_assert(!"shouldn't be here", (""));
-    }
-    
-    return (ret);
-}
-
 static void
 __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
 {
@@ -1699,7 +1664,8 @@ __increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
         }
         /* if cursor is coupled to the same key in the btree: increment
          * duplicate index (if required) */
-        else if (__btree_cursor_points_to(c, txn_opnode_get_key(node))) {
+        else if (btree_cursor_points_to_key(c->get_btree_cursor(), 
+                        txn_opnode_get_key(node))) {
             hit=HAM_TRUE;
         }
 
@@ -1859,7 +1825,7 @@ __nil_all_cursors_in_btree(ham_db_t *db, Cursor *current, ham_key_t *key)
         if (c->is_coupled_to_txnop())
             goto next;
 
-        if (__btree_cursor_points_to(c, key)) {
+        if (btree_cursor_points_to_key(c->get_btree_cursor(), key)) {
             /* is the current cursor to a duplicate? then adjust the 
              * coupled duplicate index of all cursors which point to a
              * duplicate */
@@ -2187,13 +2153,6 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;
-    }
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
-        if (st)
-            return (st);
     }
 
     if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
@@ -2546,13 +2505,6 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
     ham_txn_t *local_txn=0;
 
     db_update_global_stats_erase_query(db, 0);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
-        if (st)
-            return (st);
-    }
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */

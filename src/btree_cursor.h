@@ -196,10 +196,16 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 #define BTREE_CURSOR_UNCOUPLE_NO_REMOVE        1
 
 /**
- * returns true if a cursor points to this key, otherwise false
+ * returns true if a cursor points to this btree key, otherwise false
  */
-extern ham_bool_t 
+extern bool 
 btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key);
+
+/**
+ * returns true if a cursor points to this external key, otherwise false
+ */
+extern bool 
+btree_cursor_points_to_key(btree_cursor_t *cursor, ham_key_t *key);
 
 /**
  * uncouple all cursors from a page
