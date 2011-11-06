@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -124,7 +124,6 @@ public:
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 0);
         key_set_flags(&src, 0);
-        src._key[0]=0;
 
         BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
@@ -159,7 +158,7 @@ public:
         key_set_ptr(src, 0x12345);
         key_set_size(src, 8);
         key_set_flags(src, 0);
-        ::strcpy((char *)src->_key, "1234567\0");
+        ::memcpy((char *)src->_key, "1234567\0", 8);
 
         BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
@@ -177,7 +176,7 @@ public:
         key_set_ptr(src, 0x12345);
         key_set_size(src, 16);
         key_set_flags(src, 0);
-        ::strcpy((char *)src->_key, "123456781234567\0");
+        ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
         BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));

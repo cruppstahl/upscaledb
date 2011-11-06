@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -69,7 +69,7 @@ typedef struct txn_op_t
     ham_u64_t _other_lsn;
 
     /** the record */
-    ham_record_t *_record;
+    ham_record_t _record;
 
     /** a linked list of cursors which are attached to this txn_op */
     struct txn_cursor_t *_cursors;
@@ -161,10 +161,7 @@ typedef struct txn_op_t
 #define txn_op_set_other_lsn(t, l)         (t)->_other_lsn=l
 
 /** get record */
-#define txn_op_get_record(t)               (t)->_record
-
-/** set record */
-#define txn_op_set_record(t, r)            (t)->_record=r
+#define txn_op_get_record(t)               (&(t)->_record)
 
 /** get cursor list */
 #define txn_op_get_cursors(t)              (t)->_cursors
@@ -472,7 +469,7 @@ extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /**
- * frees the txn_optree_t structure; asserts that the tree is empty
+ * frees all nodes in the tree
  */
 extern void
 txn_free_optree(txn_optree_t *tree);

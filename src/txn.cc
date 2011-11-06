@@ -259,44 +259,35 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 {
     mem_allocator_t *alloc=env_get_allocator(txn_get_env(txn));
     txn_op_t *op;
-    ham_record_t *newrec=0;
-
-    /* create a copy of the record structure */
-    if (record) {
-        newrec=(ham_record_t *)allocator_alloc(alloc, sizeof(ham_record_t));
-        if (!newrec)
-            return (0);
-        *newrec=*record;
-        if (record->size && record->data) {
-            newrec->data=allocator_alloc(alloc, record->size);
-            if (!newrec->data) {
-                allocator_free(alloc, newrec);
-                return (0);
-            }
-            memcpy(newrec->data, record->data, record->size);
-        }
-        else {
-            newrec->data=0;
-            newrec->size=0;
-        }
-    }
 
     /* create and initialize a new txn_op_t structure */
     op=(txn_op_t *)allocator_alloc(alloc, sizeof(*op));
-    if (!op) {
-        if (newrec) {
-            allocator_free(alloc, newrec->data);
-            allocator_free(alloc, newrec);
-        }
+    if (!op)
         return (0);
-    }
     memset(op, 0, sizeof(*op));
     txn_op_set_flags(op, flags);
     txn_op_set_orig_flags(op, orig_flags);
     txn_op_set_lsn(op, lsn);
-    txn_op_set_record(op, newrec);
     txn_op_set_txn(op, txn);
     txn_op_set_node(op, node);
+
+    /* create a copy of the record structure */
+    if (record) {
+        ham_record_t *oprec=txn_op_get_record(op);
+        *oprec=*record;
+        if (record->size && record->data) {
+            oprec->data=allocator_alloc(alloc, record->size);
+            if (!oprec->data) {
+                allocator_free(alloc, op);
+                return (0);
+            }
+            memcpy(oprec->data, record->data, record->size);
+        }
+        else {
+            oprec->size=0;
+            oprec->data=0;
+        }
+    }
 
     /* store it in the chronological list which is managed by the node */
     if (!txn_opnode_get_newest_op(node)) {
@@ -418,6 +409,7 @@ txn_free_optree(txn_optree_t *tree)
     while ((node=rbt_last(tree))) {
         txn_opnode_free(env, node);
     }
+
     allocator_free(env_get_allocator(env), tree);
 }
 
@@ -444,10 +436,9 @@ txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
     txn_opnode_t *node;
 
     rec=txn_op_get_record(op);
-    if (rec) {
-        if (rec->data)
-            allocator_free(env_get_allocator(env), rec->data);
-        allocator_free(env_get_allocator(env), rec);
+    if (rec->data) {
+        allocator_free(env_get_allocator(env), rec->data);
+        rec->data=0;
     }
 
     /* remove 'op' from the two linked lists */

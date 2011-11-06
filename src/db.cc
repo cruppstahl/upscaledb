@@ -1181,7 +1181,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         db_set_key_allocsize(db, 0);
     }
 
-    /* free the transaction tree */
+    /* clean up the transaction tree */
     if (db_get_optree(db)) {
         txn_free_optree(db_get_optree(db));
         db_set_optree(db, 0);

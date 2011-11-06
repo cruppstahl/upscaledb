@@ -470,9 +470,7 @@ struct ham_db_t
 
 /** get the transaction tree */
 #define db_get_optree(db)               (db)->_optree
-
-/** set the transaction tree */
-#define db_set_optree(db, t)            (db)->_optree=t
+#define db_set_optree(db, p)               (db)->_optree=p
 
 /**
  * get the database name

@@ -357,7 +357,7 @@ public:
         memset(&key, 0, sizeof(key));
         key.data=(void *)"hello";
         key.size=5;
-        ham_record_t record, *precord;
+        ham_record_t record;
         memset(&record, 0, sizeof(record));
         record.data=(void *)"world";
         record.size=5;
@@ -388,11 +388,6 @@ public:
         txn_op_set_next_in_txn(op, &next);
         BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_txn(op));
         txn_op_set_next_in_txn(op, 0);
-
-        precord=txn_op_get_record(op);
-        txn_op_set_record(op, 0);
-        BFC_ASSERT_EQUAL((ham_record_t *)0, txn_op_get_record(op));
-        txn_op_set_record(op, precord);
 
         BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
         txn_op_set_cursors(op, (txn_cursor_t *)0x43);
