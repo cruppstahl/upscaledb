@@ -24,6 +24,7 @@
 #include "endianswap.h"
 #include "error.h"
 #include "util.h"
+#include "txn.h"
 
 
 #ifdef __cplusplus
@@ -214,7 +215,7 @@ struct ham_db_t
 #endif
 
     /** the transaction tree */
-    struct txn_optree_t *_optree;
+    struct txn_optree_t _optree;
 
     /**
      * get Database parameters
@@ -469,8 +470,7 @@ struct ham_db_t
 #define db_set_remote_handle(db, h)     (db)->_remote_handle=(h)
 
 /** get the transaction tree */
-#define db_get_optree(db)               (db)->_optree
-#define db_set_optree(db, p)               (db)->_optree=p
+#define db_get_optree(db)               (&(db)->_optree)
 
 /**
  * get the database name

@@ -112,22 +112,11 @@ txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn)
         return (HAM_TRUE);
 }
 
-txn_optree_t *
-txn_tree_get_or_create(ham_db_t *db)
+void
+txn_tree_init(ham_db_t *db, txn_optree_t *tree)
 {
-    ham_env_t *env=db_get_env(db);
-    txn_optree_t *t=db_get_optree(db);
-    if (t)
-        return (t);
-
-    t=(txn_optree_t *)allocator_alloc(env_get_allocator(env), sizeof(*t));
-    if (!t)
-        return (0);
-    txn_optree_set_db(t, db);
-    db_set_optree(db, t);
-    rbt_new(t);
-
-    return (t);
+    txn_optree_set_db(tree, db);
+    rbt_new(tree);
 }
 
 txn_opnode_t *
@@ -410,7 +399,7 @@ txn_free_optree(txn_optree_t *tree)
         txn_opnode_free(env, node);
     }
 
-    allocator_free(env_get_allocator(env), tree);
+    txn_tree_init(txn_optree_get_db(tree), tree);
 }
 
 void

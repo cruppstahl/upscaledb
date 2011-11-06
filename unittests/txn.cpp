@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -206,7 +206,7 @@ public:
         txn_optree_t *tree;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        tree=db_get_optree(m_db);
         BFC_ASSERT(tree!=0);
 
         txn_optree_set_db(tree, (ham_db_t *)1);
@@ -222,9 +222,9 @@ public:
         txn_optree_t *tree, *tree2;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        tree=db_get_optree(m_db);
         BFC_ASSERT(tree!=0);
-        tree2=txn_tree_get_or_create(m_db);
+        tree2=db_get_optree(m_db);
         BFC_ASSERT_EQUAL(tree, tree2);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -242,9 +242,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db3, 15, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree1=txn_tree_get_or_create(m_db);
-        tree2=txn_tree_get_or_create(db2);
-        tree3=txn_tree_get_or_create(db3);
+        tree1=db_get_optree(m_db);
+        tree2=db_get_optree(db2);
+        tree3=db_get_optree(db3);
         BFC_ASSERT(tree1!=0);
         BFC_ASSERT(tree2!=0);
         BFC_ASSERT(tree3!=0);
@@ -269,7 +269,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
+        tree=db_get_optree(m_db);
         node=txn_opnode_create(m_db, &key);
         BFC_ASSERT(node!=0);
 
@@ -310,7 +310,6 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key1);
         BFC_ASSERT(node!=0);
         node2=txn_opnode_get(m_db, &key1, 0);
@@ -335,7 +334,6 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        (void)txn_tree_get_or_create(m_db);
         node1=txn_opnode_create(m_db, &key);
         BFC_ASSERT(node1!=0);
         key.data=(void *)"2222";
@@ -364,7 +362,6 @@ public:
         memset(&next, 0, sizeof(next));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -413,7 +410,6 @@ public:
         rec.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        (void)txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
         op1=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);

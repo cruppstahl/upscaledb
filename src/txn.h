@@ -371,13 +371,10 @@ struct ham_txn_t
 #define txn_set_newest_op(txn, o)               (txn)->_newest_op=o
 
 /**
- * creates an optree for a Database, or retrieves it if it was
- * already created
- *
- * returns NULL if out of memory
+ * initializes the txn-tree
  */
-extern txn_optree_t *
-txn_tree_get_or_create(ham_db_t *db);
+extern void
+txn_tree_init(ham_db_t *db, txn_optree_t *tree);
 
 /**
  * traverses a tree; for each node, a callback function is executed

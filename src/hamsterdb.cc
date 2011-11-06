@@ -1711,6 +1711,8 @@ ham_new(ham_db_t **db)
     if (!(*db))
         return (HAM_OUT_OF_MEMORY);
 
+    txn_tree_init(*db, db_get_optree(*db));
+
     db[0]->_fun_destroy = __ham_destroy_db;
 
     return HAM_SUCCESS;

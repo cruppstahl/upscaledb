@@ -1182,10 +1182,8 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     }
 
     /* clean up the transaction tree */
-    if (db_get_optree(db)) {
+    if (db_get_optree(db))
         txn_free_optree(db_get_optree(db));
-        db_set_optree(db, 0);
-    }
 
     /* close the backend */
     if (be && be_is_active(be)) {
@@ -1721,19 +1719,11 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
                 struct txn_cursor_t *cursor)
 {
     ham_status_t st=0;
-    txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
     ham_env_t *env=db_get_env(db);
-
-    /* get (or create) the txn-tree for this database; we do not need
-     * the returned value, but we call the function to trigger the 
-     * tree creation if it does not yet exist */
-    tree=txn_tree_get_or_create(db);
-    if (!tree)
-        return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
     node=txn_opnode_get(db, key, 0);
@@ -1899,7 +1889,6 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
                 txn_cursor_t *cursor)
 {
     ham_status_t st=0;
-    txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
@@ -1908,13 +1897,6 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     Cursor *pc=0;
     if (cursor)
         pc=txn_cursor_get_parent(cursor);
-
-    /* get (or create) the txn-tree for this database; we do not need
-     * the returned value, but we call the function to trigger the 
-     * tree creation if it does not yet exist */
-    tree=txn_tree_get_or_create(db);
-    if (!tree)
-        return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
     node=txn_opnode_get(db, key, 0);

@@ -48,9 +48,9 @@ x rewrite cursor_move (once more)
 
 o run performance tests w/ transactions, duplicates and cursors
     valgrind --tool=callgrind ./test --use-transactions=200 --duplicate --use-cursors  --progress ../../testfiles/1/180.tst
-    o txn_tree_get_or_create (maybe ALWAYS create the tree?)
-    o cursor_erase: no need to purge the cache
     x flatten txn_op_t
+    x txn_tree_get_or_create (maybe ALWAYS create the tree?)
+    o cursor_erase: no need to purge the cache
     o a normal insert (w/ duplicates) should not require a 
         cursor->update_dupecache
     o local_cursor_find must not call update_dupecache
