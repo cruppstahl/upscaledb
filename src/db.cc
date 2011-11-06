@@ -2613,22 +2613,34 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
             if (st==HAM_KEY_NOT_FOUND)
                 goto btree;
             if (st==HAM_KEY_ERASED_IN_TXN) {
-                /* TODO performance: if coupled op erases ALL duplicates
-                 * then we don't have to check this. if coupled op 
-                 * references a single duplicate w/ index > 0+1 then 
-                 * we know that there are other keys. if coupled op 
+                /* performance hack: if coupled op erases ALL duplicates
+                 * then we know that the key no longer exists. if coupled op 
+                 * references a single duplicate w/ index > 1 then 
+                 * we know that there are other duplicates. if coupled op 
                  * references the FIRST duplicate (idx 1) then we have 
                  * to check if there are other duplicates */
-                ham_bool_t is_equal;
-                (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, 
-                                &is_equal);
-                if (!is_equal)
-                    cursor->set_to_nil(Cursor::CURSOR_BTREE);
-
-                if (!cursor->get_dupecache_count())
+                txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+                ham_assert(txn_op_get_flags(op)&TXN_OP_ERASE, (""));
+                if (!txn_op_get_referenced_dupe(op)) {
+                    // ALL!
                     st=HAM_KEY_NOT_FOUND;
-                else
+                }
+                else if (txn_op_get_referenced_dupe(op)>1) {
+                    // not the first dupe - there are other dupes
                     st=0;
+                }
+                else if (txn_op_get_referenced_dupe(op)==1) {
+                    // check if there are other dupes
+                    ham_bool_t is_equal;
+                    (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, 
+                                    &is_equal);
+                    if (!is_equal)
+                        cursor->set_to_nil(Cursor::CURSOR_BTREE);
+                    if (!cursor->get_dupecache_count())
+                        st=HAM_KEY_NOT_FOUND;
+                    else
+                        st=0;
+                }
             }
             if (st)
                 goto bail;
