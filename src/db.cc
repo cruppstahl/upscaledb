@@ -2414,10 +2414,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
              * does not update the dupecache correctly */
             dc->clear();
             /* if duplicate keys are enabled: set the duplicate index of
-             * the new key 
-             *
-             * TODO performance: only run this if there are other cursors
-             * AND if one of these cursors is pointing to the same key */
+             * the new key  */
             if (st==0 && cursor->get_dupecache_count()) {
                 ham_size_t i;
                 txn_cursor_t *txnc=cursor->get_txn_cursor();

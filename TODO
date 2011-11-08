@@ -46,7 +46,7 @@ x rewrite cursor_move (once more)
         -> and the same with first/next
         x clarify documentation
 
-o run performance tests w/ transactions, duplicates and cursors
+x run performance tests w/ transactions, duplicates and cursors
     valgrind --tool=callgrind ./test --use-transactions=200 --duplicate --use-cursors  --progress ../../testfiles/1/180.tst
     x flatten txn_op_t
     x txn_tree_get_or_create (maybe ALWAYS create the tree?)
@@ -55,14 +55,23 @@ o run performance tests w/ transactions, duplicates and cursors
         costly
     x local_cursor_find must not call update_dupecache - not possible :(
     x local_cursor_find must not call cursor_sync - not possible :(
-    o local_cursor_insert must not require a cursor->update_dupecache
-    o journal functions must use writev (erase, insert)
+    x local_cursor_insert must not require a cursor->update_dupecache - not
+        possible :(
 
+o run performance tests w/ transactions and w/o duplicates
+    valgrind --tool=callgrind ./test --use-transactions=200 --progress ../../testfiles/1/180.tst
+o run performance tests w/ transactions and w/o duplicates and w/ cursors
 o run performance tests w/ transactions, duplicates and w/o cursors
 o run performance tests w/ transactions and cursors
 o run performance tests w/ transactions and w/o cursors
 
+o run performance tests w/o transactions and w/o duplicates
+o run performance tests w/o transactions and w/ duplicates
+o run performance tests w/o transactions and w/ duplicates and w/ cursors
+
 o memory-allocator: use a lookaside list
+
+o journal functions must use writev (erase, insert)
 
 o duplicate (extended) keys are horribly slow, check why and improve it
     x check if 2.0.0rc1 had the same problems (yes, it has)
