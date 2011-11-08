@@ -1742,7 +1742,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2367,7 +2367,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2532,7 +2532,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2670,7 +2670,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
