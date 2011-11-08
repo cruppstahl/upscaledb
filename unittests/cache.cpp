@@ -51,6 +51,7 @@ public:
         BFC_REGISTER_TEST(CacheTest, setSizeDbCreateTest);
         BFC_REGISTER_TEST(CacheTest, setSizeDbOpenTest);
         BFC_REGISTER_TEST(CacheTest, bigSizeTest);
+        BFC_REGISTER_TEST(CacheTest, bigSizePublicApiTest);
     }
 
 protected:
@@ -79,11 +80,17 @@ public:
     virtual void teardown() { 
         __super::teardown();
 
-        ham_env_close(m_env, 0);
-        ham_close(m_db, 0);
-        ham_delete(m_db);
-        ham_env_delete(m_env);
+        if (m_db) {
+            ham_close(m_db, 0);
+            ham_delete(m_db);
+        }
+        if (m_env) {
+            ham_env_close(m_env, 0);
+            ham_env_delete(m_env);
+        }
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+        m_db=0;
+        m_env=0;
     }
 
     void newDeleteTest(void)
@@ -441,6 +448,32 @@ public:
         BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         cache_delete(cache);
+    }
+
+    void bigSizePublicApiTest(void)
+    {
+        teardown();
+
+        ham_u64_t size=1024ull*1024ull*1024ull*16ull;
+        ham_env_t *env;
+        ham_env_new(&env);
+        ham_parameter_t params[]={
+            {HAM_PARAM_CACHESIZE, size},
+            {0, 0}
+        };
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_ex(env, BFC_OPATH(".test"), 0, 
+                    0644, &params[0]));
+
+        ham_cache_t *cache=env_get_cache(env);
+        BFC_ASSERT(cache!=0);
+        BFC_ASSERT_EQUAL(size, cache_get_capacity(cache));
+
+        params[0].value=0;
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
+        BFC_ASSERT_EQUAL(size, params[0].value);
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
     }
 };
 

@@ -1,3 +1,9 @@
+Nov 08, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.15
+Nov 08, 2011 - chris ---------------------------------------------------
+o fixed a bug when using HAM_PARAM_CACHESIZE with values > 2GB; cachesize
+	was truncated to 32bit (thanks, Jake)
+
 Oct 11, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.14
 

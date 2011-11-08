@@ -281,7 +281,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
      */
     {
         ham_cache_t *cache;
-        ham_size_t cachesize=env_get_cachesize(env);
+        ham_u64_t cachesize=env_get_cachesize(env);
 
         /* cachesize is specified in BYTES */
         ham_assert(cachesize, (0));
@@ -531,7 +531,7 @@ fail_with_fake_cleansing:
      */
     {
         ham_cache_t *cache;
-        ham_size_t cachesize=env_get_cachesize(env);
+        ham_u64_t cachesize=env_get_cachesize(env);
 
         if (!cachesize)
             cachesize=HAM_DEFAULT_CACHESIZE;
