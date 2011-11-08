@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS	= -I m4
 
-VERSION=1.1.14
+VERSION=1.1.15
 
 SUBDIRS = 3rdparty src include samples tools unittests
 

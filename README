@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.14                  Mon Oct 10 15:59:12 CEST 2011
+hamsterdb Embedded Storage 1.1.15                  Tue Nov  8 11:18:21 CET 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,32 +12,26 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release improves performance and scalability for databases with several 
-million items. It fixes a bug when erasing extended keys caused an SMO (btree
-re-balancing). A new function ham_cursor_get_record_size was introduced. The
-cache size is now a 64bit variable and can be > 4 GB. Large files were enabled
-on 32bit linux.
+This release fixes a bug: a cache size > 2 GB was truncated to 2 GB because 
+it was casted to a 32bit variable.
 
 2. Changes
 
 New Features
-* added a new function ham_cursor_get_record_size
+* none
 
 Bugfixes
-* when rebalancing the btree after erasing extended keys the overflow area 
-    was sometimes not loaded correctly, resulting in a crash or an error
+* no longer truncating cache sizes to 32bit
 
 Other Changes
-* the cache size can now set to values > 4 GB
-* vast performance improvements for big databases with millions of items)
-* large files are now enabled on 32bit linux
+* none
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
 - This "stable" development branch is in maintenance mode. Active developments
-and new features are only added to the "bleeding_edge" branch (2.0.0.rc1 and 
+and new features are only added to the "bleeding_edge" branch (2.0.0.rc2 and 
 newer) which will replace the "master" branch after going through the
 current stabilization phase.
 
