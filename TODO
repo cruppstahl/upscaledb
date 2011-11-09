@@ -58,20 +58,52 @@ x run performance tests w/ transactions, duplicates and cursors
     x local_cursor_insert must not require a cursor->update_dupecache - not
         possible :(
 
-o run performance tests w/ transactions and w/o duplicates
-    valgrind --tool=callgrind ./test --use-transactions=200 --progress ../../testfiles/1/180.tst
-o run performance tests w/ transactions and w/o duplicates and w/ cursors
-o run performance tests w/ transactions, duplicates and w/o cursors
+x run performance tests w/ transactions and w/o duplicates
+    01-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-01-00 ./test --use-transactions=200 ../../testfiles/1/180.tst
+
+x run performance tests w/ transactions and w/ overwrite
+    02-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-02-00 ./test --use-transactions=200 --overwrite ../../testfiles/1/180.tst
+
+x run performance tests w/ transactions, duplicates and w/o cursors
+    03-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-03-00 ./test --use-transactions=200 --duplicate ../../testfiles/1/180.tst
+
+x run performance tests w/o transactions and w/o duplicates
+    06-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-06-00 ./test ../../testfiles/1/180.tst
+
+x run performance tests w/o transactions and w/ duplicates
+    07-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-07-00 ./test --duplicate ../../testfiles/1/180.tst
+
+x run performance tests w/o transactions and w/ duplicates and w/ cursors
+    08-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-08-00 ./test --duplicate --use-cursors ../../testfiles/1/180.tst
+
+o run performance tests w/ transactions and cursors and duplicates
+    05-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-05-00 ./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/180.tst
+    o btree_cursor_points_to_key is the big blocker
+
 o run performance tests w/ transactions and cursors
-o run performance tests w/ transactions and w/o cursors
+    04-00
+valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --use-transactions=200 --use-cursors ../../testfiles/1/180.tst
+    o uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
+        although duplicates are disabled
 
-o run performance tests w/o transactions and w/o duplicates
-o run performance tests w/o transactions and w/ duplicates
-o run performance tests w/o transactions and w/ duplicates and w/ cursors
-
-o memory-allocator: use a lookaside list
-
-o journal functions must use writev (erase, insert)
+o improve performance
+    o use writev in journal
+    o use tcmalloc
+        o OR use lookaside list in memory allocator
+    o changeset.clear should be O(1), use std::vector
+    o prepare_key/prepare_record: inline or macro?
+    o Why ever call changeset::get_page when fetching a page??
+    o 08: local_cursor_erase calls Cursor::set_to_nil, but btree_cursor_erase
+        also sets to nil
+    o 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
+        that's not necessary because it's anyway set to nil
 
 o duplicate (extended) keys are horribly slow, check why and improve it
     x check if 2.0.0rc1 had the same problems (yes, it has)
@@ -103,6 +135,10 @@ o improve journalling and get rid of the physical log as much as possible
         - what about the freelist??
 
 o use writev when writing blobs directly to disk
+
+o document how to optimize for performance
+    o with transactions: try not to use duplicates
+    o use overwrite as often as possible
 
 o new test case for cursors
     insert (1, a)
