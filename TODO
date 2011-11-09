@@ -94,6 +94,15 @@ o improve journalling and get rid of the physical log as much as possible
     o when inserting a blob (ham_insert) we NEVER have to log the blob pages.
         if blob_alloc fails then just return the error
     o do this for ham_erase without SMOs
+    o what about blobs? if blobs are immediately written to disk then 
+        they do not be logged, and we do not need undo information
+        alternatively: the changeset first flushes all blobs without
+        logging them. all other pages are logged, then flushed (if there's
+        more than one page left). 
+        - actually we could just writev the blobs and bypass the cache
+        - what about the freelist??
+
+o use writev when writing blobs directly to disk
 
 o new test case for cursors
     insert (1, a)
@@ -115,7 +124,25 @@ o API changes for 2.0.0
     o ham_txn_begin: receives a name (reserved), a parent pointer (reserved)
         and the Env as parameter (not the db!)
     o what else?
+    o move all deprecated functions and macros into a separate file; only 
+        include it if -DHAM_USE_DEPRECATED
     o increase libtool version
+    o ham_txn_begin receives Environment handle, not Database handle
+        o need a new parameter (reserved) for parent txn
+        o need a new parameter for txn name (string)
+            o this needs a getter function
+        o update unittests/add new tests
+        o update C++ API
+        o rewrite auto-abort/auto-commit -> move to env
+        o what happens if a database is closed, but it's modified by a txn
+            that is still active? -> error (verify this!)
+        o need to increase libtool version!
+
+o test with tcmalloc; if it works then also use it in the master branch, but
+    make sure that memory consumption does not increase significantly
+
+
+
 
 o c++ API
     o make sure everything is updated
@@ -128,6 +155,12 @@ o java API
 
 o python API
     o update and rewrite to use the C++ API
+
+o iOS port - try to include in main branch
+
+o Android port - try to include in main branch
+
+o create a facebook page for hamsterdb
 
 o guru.com/twitter: look for someone who can write a PHP or Perl or Ruby
     wrapper
@@ -152,9 +185,6 @@ o update the tutorial
 . cache: use a generic hash table
 
 o device, page and os shold no longer return errors but throw exceptions
-
-. test with tcmalloc; if it works then also use it in the master branch, but
-    make sure that memory consumption does not increase significantly
 
 o journal: use writev if it turns out to make sense
 
@@ -193,7 +223,10 @@ o need a function to get the txn of a conflict (same as in v2)
     o add documentation (header file)
     o add documentation (wiki)
 
-o new flag for transactions: HAM_TXN_WILL_COMMIT
+o recovery: re-create pending transactions (if required)
+    o needs a function to enumerate them
+
+. new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
     to the log. the log will only contain the rid.
     o document this (and also the drawback - that an abort will lose the 
@@ -203,17 +236,6 @@ o new flag for transactions: HAM_TXN_WILL_COMMIT
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
-
-o ham_txn_begin receives Environment handle, not Database handle
-    o need a new parameter (reserved) for parent txn
-    o need a new parameter for txn name (string)
-        o this needs a getter function
-    o update unittests/add new tests
-    o update C++ API
-    o rewrite auto-abort/auto-commit -> move to env
-    o what happens if a database is closed, but it's modified by a txn
-        that is still active? -> error (verify this!)
-    o need to increase libtool version!
 
 o hamsterdb.com
     x add twitter feed
@@ -267,7 +289,11 @@ o extkeys: don't use txn_id for the 'age', use lsn instead
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+o ham_get_count: could be atomically updated with every journal entry
+
 o when flushing a changeset: sort by offset, use writev()
+
+o add concurrency (on a high level)
 
 o flush transactions in background
 
