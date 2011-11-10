@@ -85,7 +85,7 @@ static __inline void *
 _allocator_alloc(mem_allocator_t *a, const char *fname, 
                     const int lineno, ham_size_t size)
 {
-    return a->alloc(a, fname, lineno, size);
+    return (a->alloc(a, fname, lineno, size));
 }
 
 /** 
@@ -114,7 +114,7 @@ static __inline void *
 _allocator_realloc(mem_allocator_t *a, const char *fname, 
                     const int lineno, const void *ptr, ham_size_t size)
 {
-    return a->realloc(a, fname, lineno, ptr, size);
+    return (a->realloc(a, fname, lineno, ptr, size));
 }
 
 /**
@@ -130,7 +130,7 @@ _allocator_calloc(mem_allocator_t *a, const char *fname,
 
     if (p)
         memset(p, 0, size);
-    return p;
+    return (p);
 }
 
 #pragma pop_macro("alloc")
@@ -172,7 +172,7 @@ _allocator_calloc(mem_allocator_t *a, const int lineno, ham_size_t size)
 
     if (p)
         memset(p, 0, size);
-    return p;
+    return (p);
 }
 
 #endif /* defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC) */

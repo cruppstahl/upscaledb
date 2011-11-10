@@ -13,6 +13,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <stack>
 
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
@@ -23,34 +24,80 @@
 #include "db.h"
 #include "error.h"
 #include "mem.h"
+#include "txn.h"
 
+struct Lookasides
+{
+    Lookasides() 
+      : max_sizes(2) {
+        sizes[0]=sizeof(txn_op_t);
+        sizes[1]=sizeof(txn_opnode_t);
+    }
+
+    typedef std::stack<void *> LookasideList;
+
+    LookasideList lists[2];
+    ham_u32_t sizes[2];
+    int max_sizes;
+};
 
 void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
-    (void)self;
+    void *p=0;
+    Lookasides *ls=(Lookasides *)self->priv;
+
     (void)file;
     (void)line;
 
+    for (int i=0; i<ls->max_sizes; i++) {
+        if (size==ls->sizes[i] && !ls->lists[i].empty()) {
+            p=ls->lists[i].top();
+            ls->lists[i].pop();
+            break;
+        }
+    }
+
+    if (p)
+        return ((char *)p+sizeof(ham_u32_t));
+
 #if defined(_CRTDBG_MAP_ALLOC)
-    return (_malloc_dbg(size, _NORMAL_BLOCK, file, line));
+    p=_malloc_dbg(size+sizeof(ham_u32_t), _NORMAL_BLOCK, file, line);
 #else
-    return (malloc(size));
+    p=malloc(size+sizeof(ham_u32_t));
 #endif
+    if (p) {
+        *(ham_u32_t *)p=size;
+        return ((char *)p+sizeof(ham_u32_t));
+    }
+    return (0);
 }
 
 void 
 free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
 {
-    (void)self;
+    ham_u32_t size;
+    void *p=0;
+    Lookasides *ls=(Lookasides *)self->priv;
     (void)file;
     (void)line;
 
     ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line));
+
+    p=(char *)ptr-sizeof(ham_u32_t);
+    size=*(ham_u32_t *)p;
+
+    for (int i=0; i<ls->max_sizes; i++) {
+        if (size==ls->sizes[i] && ls->lists[i].size()<10) {
+            ls->lists[i].push(p);
+            return;
+        }
+    }
+
 #if defined(_CRTDBG_MAP_ALLOC)
-    _free_dbg((void *)ptr, _NORMAL_BLOCK);
+    _free_dbg((void *)p, _NORMAL_BLOCK);
 #else
-    free((void *)ptr);
+    free((void *)p);
 #endif
 }
 
@@ -62,16 +109,25 @@ realloc_impl(mem_allocator_t *self, const char *file, int line,
     (void)file;
     (void)line;
 
+    void *p=ptr ? (char *)ptr-sizeof(ham_u32_t) : 0;
+
 #if defined(_CRTDBG_MAP_ALLOC)
-    return (_realloc_dbg((void *)ptr, size, _NORMAL_BLOCK, file, line));
+    ptr=_realloc_dbg((void *)p, size+sizeof(ham_u32_t), 
+                _NORMAL_BLOCK, file, line);
 #else
-    return (realloc((void *)ptr, size));
+    ptr=realloc((void *)p, size+sizeof(ham_u32_t));
 #endif
+    if (ptr) {
+        *(ham_u32_t *)ptr=size;
+        return ((char *)ptr+sizeof(ham_u32_t));
+    }
+    return (0);
 }
 
 void 
 close_impl(mem_allocator_t *self)
 {
+    delete (Lookasides *)self->priv;
 #if defined(_CRTDBG_MAP_ALLOC)
     _free_dbg(self, _NORMAL_BLOCK);
 #else
@@ -98,6 +154,7 @@ _ham_default_allocator_new(const char *fname, const int lineno)
     m->free   =free_impl;
     m->realloc=realloc_impl;
     m->close  =close_impl;
+    m->priv   =new Lookasides;
      
     return (m);
 }

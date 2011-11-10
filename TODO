@@ -94,12 +94,13 @@ valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --us
         although duplicates are disabled
 
 o improve performance
+    o use lookaside list in memory allocator for objects of these sizes:
+        txn_opnode_t, txn_op_t
     o use writev in journal
-    o use tcmalloc
-        o OR use lookaside list in memory allocator
     o changeset.clear should be O(1), use std::vector
     o prepare_key/prepare_record: inline or macro?
     o Why ever call changeset::get_page when fetching a page??
+        - because then it's not put in the changeset twice (no problem!)
     o 08: local_cursor_erase calls Cursor::set_to_nil, but btree_cursor_erase
         also sets to nil
     o 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
