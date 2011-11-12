@@ -245,20 +245,43 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
  
 ham_status_t
 os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
-                const void *buffer2, ham_offset_t buffer2_len)
+                const void *buffer2, ham_offset_t buffer2_len,
+                const void *buffer3, ham_offset_t buffer3_len,
+                const void *buffer4, ham_offset_t buffer4_len)
 {
 #ifdef HAVE_WRITEV
-    struct iovec vec[2]={
+    struct iovec vec[4]={
         { (void *)buffer1, buffer1_len },
-        { (void *)buffer2, buffer2_len }
+        { (void *)buffer2, buffer2_len },
+        { (void *)buffer3, buffer3_len },
+        { (void *)buffer4, buffer4_len }
     };
 
-    int w=writev(fd, &vec[0], 2);
+    int c=0;
+    ham_size_t s=0;
+    if (buffer1) {
+        c++;
+        s+=buffer1_len;
+    }
+    if (buffer2) {
+        c++;
+        s+=buffer2_len;
+    }
+    if (buffer3) {
+        c++;
+        s+=buffer3_len;
+    }
+    if (buffer4) {
+        c++;
+        s+=buffer4_len;
+    }
+
+    int w=writev(fd, &vec[0], c);
     if (w==-1) {
         ham_log(("writev failed with status %u (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
-    if (w!=(int)(buffer1_len+buffer2_len)) {
+    if (w!=(int)(s)) {
         ham_log(("writev short write, status %u (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -267,10 +290,37 @@ os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
     ham_status_t st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
-    st=os_write(fd, buffer2, buffer2_len);
+    ham_size_t rollback=buffer1_len;
+    if (buffer2) {
+        st=os_write(fd, buffer2, buffer2_len);
+        if (st) {
+            /* rollback the previous change */
+            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
+            return (st);
+        }
+        rollback+=buffer2_len;
+    }
+    if (buffer3) {
+        st=os_write(fd, buffer3, buffer3_len);
+        if (st) {
+            /* rollback the previous change */
+            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
+            return (st);
+        }
+        rollback+=buffer3_len;
+    }
+    if (buffer4) {
+        st=os_write(fd, buffer4, buffer4_len);
+        if (st) {
+            /* rollback the previous change */
+            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
+            return (st);
+        }
+        rollback+=buffer3_len;
+    }
     if (st) {
         /* rollback the previous change */
-        (void)os_seek(fd, buffer1_len, HAM_OS_SEEK_END);
+        (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
     }
     return (st);
 #endif

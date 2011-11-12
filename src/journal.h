@@ -24,6 +24,7 @@
 #include "internal_fwd_decl.h"
 #include "mem.h"
 #include "env.h"
+#include "os.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,7 +70,7 @@ class Journal
     
         /** the last used lsn */
         ham_u64_t lsn;
-    };
+    } HAM_PACK_2;
 
     /**
      * An "iterator" structure for traversing the journal files
@@ -160,8 +161,16 @@ class Journal
 
   private:
     /** appends an entry to the journal */
-    ham_status_t append_entry(int fdidx, JournalEntry *entry, 
-                void *aux, ham_size_t size);
+    ham_status_t append_entry(int fdidx,
+                void *ptr1=0, ham_size_t ptr1_size=0,
+                void *ptr2=0, ham_size_t ptr2_size=0,
+                void *ptr3=0, ham_size_t ptr3_size=0,
+                void *ptr4=0, ham_size_t ptr4_size=0) {
+        return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
+                    ptr2, ptr2_size, 
+                    ptr3, ptr3_size, 
+                    ptr4, ptr4_size));
+    }
 
     /** clears a single file */
     ham_status_t clear_file(int idx);

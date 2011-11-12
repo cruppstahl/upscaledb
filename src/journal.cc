@@ -180,27 +180,6 @@ Journal::is_empty(void)
 }
 
 ham_status_t
-Journal::append_entry(int fdidx, JournalEntry *entry, void *aux, 
-                ham_size_t size)
-{
-    ham_status_t st;
-
-    st=os_write(m_fd[fdidx], entry, sizeof(*entry));
-    if (st)
-        return (st);
-
-    /* TODO use writev */
-    if (size) {
-        st=os_write(m_fd[fdidx], aux, size);
-        if (st)
-            return (st);
-        /* TODO rollback the previous write */
-    }
-
-    return (0);
-}
-
-ham_status_t
 Journal::append_txn_begin(struct ham_txn_t *txn, ham_db_t *db, ham_u64_t lsn)
 {
     ham_status_t st;
@@ -241,7 +220,7 @@ Journal::append_txn_begin(struct ham_txn_t *txn, ham_db_t *db, ham_u64_t lsn)
         txn_set_log_desc(txn, cur);
     }
 
-    st=append_entry(cur, &entry, 0, 0);
+    st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
     if (st)
         return (st);
     m_open_txn[cur]++;
@@ -271,7 +250,7 @@ Journal::append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn)
     m_open_txn[idx]--;
     m_closed_txn[idx]++;
 
-    st=append_entry(idx, &entry, 0, 0);
+    st=append_entry(idx, &entry, sizeof(entry));
     if (st)
         return (st);
     if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
@@ -296,7 +275,7 @@ Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
     m_open_txn[idx]--;
     m_closed_txn[idx]++;
 
-    st=append_entry(idx, &entry, 0, 0);
+    st=append_entry(idx, &entry, sizeof(entry));
     if (st)
         return (st);
     if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
@@ -332,7 +311,8 @@ Journal::append_insert(ham_db_t *db, ham_txn_t *txn,
     memcpy(ins->get_record_data(), record->data, record->size);
 
     /* append the entry to the logfile */
-    st=append_entry(txn_get_log_desc(txn), &entry, (void *)ins, size);
+    st=append_entry(txn_get_log_desc(txn), &entry, sizeof(entry), 
+            (void *)ins, size);
     free(ins);
     
     return (st);
@@ -342,30 +322,33 @@ ham_status_t
 Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, 
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
-    ham_status_t st;
+    char padding[16]={0};
     JournalEntry entry;
-    JournalEntryErase *aux;
+    JournalEntryErase erase;
     ham_size_t size=sizeof(JournalEntryErase)+key->size-1;
-    size=__get_aligned_entry_size(size);
+    ham_size_t padding_size=__get_aligned_entry_size(size)-size;
 
-    aux=(JournalEntryErase *)allocate(size);
-    if (!aux)
-        return (HAM_OUT_OF_MEMORY);
     entry.lsn=lsn;
     entry.dbname=db_get_dbname(db);
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_ERASE;
-    entry.followup_size=size;
-    aux->key_size=key->size;
-    aux->erase_flags=flags;
-    aux->duplicate=dupe;
-    memcpy(aux->get_key_data(), key->data, key->size);
+    entry.followup_size=size+padding_size;
+    erase.key_size=key->size;
+    erase.erase_flags=flags;
+    erase.duplicate=dupe;
 
     /* append the entry to the logfile */
-    st=append_entry(txn_get_log_desc(txn), &entry, (JournalEntry *)aux, size);
-    free(aux);
-    
-    return (st);
+    if (key->data && key->size)
+        return (append_entry(txn_get_log_desc(txn), 
+                &entry, sizeof(entry),
+                (JournalEntry *)&erase, sizeof(JournalEntryErase)-1,
+                key->data, key->size,
+                padding, padding_size));
+    else
+        return (append_entry(txn_get_log_desc(txn), 
+                &entry, sizeof(entry),
+                (JournalEntry *)&erase, sizeof(JournalEntryErase)-1,
+                padding, padding_size));
 }
 
 ham_status_t

@@ -58,6 +58,8 @@ x run performance tests w/ transactions, duplicates and cursors
     x local_cursor_insert must not require a cursor->update_dupecache - not
         possible :(
 
+x review all packed structs/classes for correct usage of HAM_PACKED2!
+
 x run performance tests w/ transactions and w/o duplicates
     01-00
 valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-01-00 ./test --use-transactions=200 ../../testfiles/1/180.tst

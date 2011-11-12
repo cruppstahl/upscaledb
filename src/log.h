@@ -65,7 +65,7 @@ class Log
 
         /* the last used lsn */
         ham_u64_t lsn;
-    };
+    } HAM_PACK_2;
 
     /**
      * a log file entry
@@ -88,7 +88,7 @@ class Log
 
         /** the size of the data */
         ham_u64_t data_size;
-    };
+    } HAM_PACK_2;
 
     /** an "iterator" structure for traversing the log files */
     typedef ham_offset_t Iterator;

@@ -54,7 +54,7 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntry
 
     /** a reserved value */
     ham_u16_t _reserved;
-};
+} HAM_PACK_2;
 
 #include "packstop.h"
 
@@ -98,7 +98,7 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
     ham_u8_t *get_record_data(void) {
         return (&data[key_size]);
     }
-};
+} HAM_PACK_2;
 
 #include "packstop.h"
 
@@ -130,7 +130,7 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
     ham_u8_t *get_key_data(void) {
         return (&data[0]);
     }
-};
+} HAM_PACK_2;
 
 #include "packstop.h"
 
