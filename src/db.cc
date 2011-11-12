@@ -729,10 +729,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         if (tellpos) {
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
-            /* try to fetch the page from the changeset */
-            page=env_get_changeset(env).get_page(tellpos);
-            if (page)
-                goto done;
             /* try to fetch the page from the cache */
             page=env_get_cache(env)->get_page(tellpos, 0);
             if (page)
@@ -813,15 +809,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert(0 == (flags & ~(HAM_HINTS_MASK|DB_ONLY_FROM_CACHE)), (0));
 
     *page_ref = 0;
-
-    /* fetch the page from the changeset */
-    page=env_get_changeset(env).get_page(address);
-    if (page) {
-        *page_ref = page;
-        ham_assert(page_get_pers(page), (""));
-        ham_assert(db ? page_get_owner(page)==db : 1, (""));
-        return (HAM_SUCCESS);
-    }
 
     /* 
      * fetch the page from the cache

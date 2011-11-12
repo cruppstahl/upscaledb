@@ -96,17 +96,19 @@ valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --us
         although duplicates are disabled
 
 o improve performance
-    o use lookaside list in memory allocator for objects of these sizes:
-        txn_opnode_t, txn_op_t
-    o use writev in journal
-    o changeset.clear should be O(1), use std::vector
     x prepare_key/prepare_record: inline or macro?
-    o Why ever call changeset::get_page when fetching a page??
-        - because then it's not put in the changeset twice (no problem!)
-    o 08: local_cursor_erase calls Cursor::set_to_nil, but btree_cursor_erase
+    x 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
+        that's not necessary because it's anyway set to nil -- not possible
+    x 08: local_cursor_erase calls Cursor::set_to_nil, but btree_cursor_erase
         also sets to nil
-    o 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
-        that's not necessary because it's anyway set to nil
+    x use lookaside list in memory allocator for objects of these sizes:
+        txn_opnode_t, txn_op_t
+    x Why ever call changeset::get_page when fetching a page??
+        - because then it's not put in the changeset twice (no problem!)
+    o use writev in journal
+    o cursor::erase -> btree_cursor_erase: if cursor is coupled and 
+        key index > 0 and page has no underflow: directly delete the key
+        from the page without traversing the tree!
 
 o duplicate (extended) keys are horribly slow, check why and improve it
     x check if 2.0.0rc1 had the same problems (yes, it has)
