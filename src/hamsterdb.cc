@@ -421,7 +421,7 @@ ham_strerror(ham_status_t result)
  * @return HAM_FALSE when the @a key structure has @e not been initialized 
  * correctly before.
  */
-static ham_bool_t
+static inline ham_bool_t
 __prepare_key(ham_key_t *key)
 {
     if (key->size && !key->data) {
@@ -448,7 +448,7 @@ __prepare_key(ham_key_t *key)
  * @return HAM_FALSE when the @a record structure has @e not been 
  * initialized correctly before.
  */
-static ham_bool_t
+static inline ham_bool_t
 __prepare_record(ham_record_t *record)
 {
     if (record->size && !record->data) {
