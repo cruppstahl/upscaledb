@@ -226,6 +226,13 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key, btree_cursor_t *cursor,
         ham_u32_t flags);
 
 /**
+ * same as above, but assumes that the cursor is coupled to a leaf page 
+ * and the key can be removed without rebalancing the tree
+ */
+extern ham_status_t
+btree_cursor_erase_fasttrack(ham_btree_t *be, btree_cursor_t *cursor);
+
+/**
  * same as above, but only erases a single duplicate
  */
 extern ham_status_t

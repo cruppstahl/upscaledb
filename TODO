@@ -105,10 +105,12 @@ o improve performance
         txn_opnode_t, txn_op_t
     x Why ever call changeset::get_page when fetching a page??
         - because then it's not put in the changeset twice (no problem!)
-    o use writev in journal
-    o cursor::erase -> btree_cursor_erase: if cursor is coupled and 
+    o 08: cursor::erase -> btree_cursor_erase: if cursor is coupled and 
         key index > 0 and page has no underflow: directly delete the key
         from the page without traversing the tree!
+    o use writev in journal (implemented for erase; check if it made a
+        difference. if yes then also use for insert!)
+        o port os_writev to windows
 
 o duplicate (extended) keys are horribly slow, check why and improve it
     x check if 2.0.0rc1 had the same problems (yes, it has)

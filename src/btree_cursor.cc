@@ -692,11 +692,26 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     if (!be)
         return (HAM_NOT_INITIALIZED);
 
-    /* coupled cursor: uncouple it */
+    /* coupled cursor: try to remove the key directly from the page.
+     * if that's not possible (i.e. because of underflow): uncouple 
+     * the cursor and process the normal erase algorithm */
     if (btree_cursor_is_coupled(c)) {
-        st=btree_cursor_uncouple(c, 0);
-        if (st)
-            return (st);
+        ham_page_t *page=btree_cursor_get_coupled_page(c);
+        btree_node_t *node=page_get_btree_node(page);
+        ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+        ham_size_t maxkeys=btree_get_maxkeys(be);
+        ham_assert(btree_node_is_leaf(node), 
+                ("iterator points to internal node"));
+        if (btree_cursor_get_coupled_index(c)>0 
+                && btree_node_get_count(node)>btree_get_minkeys(maxkeys)) {
+            /* yes, we can remove the key */
+            return (btree_cursor_erase_fasttrack(be, c));
+        }
+        else {
+            st=btree_cursor_uncouple(c, 0);
+            if (st)
+                return (st);
+        }
     }
     else if (!btree_cursor_is_uncoupled(c))
         return (HAM_CURSOR_IS_NIL);

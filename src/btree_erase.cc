@@ -398,8 +398,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
     /*
      * ... and rebalance the tree, if necessary
      */
-    if (newme) 
-    {
+    if (newme) {
         if (slot==-1)
             slot=0;
         st=my_remove_entry(page, slot, scratchpad, hints);
@@ -1293,7 +1292,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     keysize=db_get_keysize(db);
     bte=btree_node_get_key(db, node, slot);
 
-    hints->cost++;
+    if (hints)
+        hints->cost++;
 
     /*
      * uncouple all cursors
@@ -1318,8 +1318,10 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         if (cursors)
             btc=cursors->get_btree_cursor();
 
-        hints->processed_leaf_page = page;
-        hints->processed_slot = slot;
+        if (hints) {
+            hints->processed_leaf_page = page;
+            hints->processed_slot = slot;
+        }
 
         if (scratchpad->cursor)
             dupe_id=btree_cursor_get_dupe_id(scratchpad->cursor)+1;
@@ -1421,9 +1423,9 @@ free_all:
      * if we delete the last item, it's enough to decrement the item 
      * counter and return...
      */
-    if (slot != btree_node_get_count(node)-1) 
-    {
-        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
+    if (slot != btree_node_get_count(node)-1) {
+        if (hints)
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                 + keysize)*(btree_node_get_count(node)-slot-1));
         bte_lhs=btree_node_get_key(db, node, slot);
         bte_rhs=btree_node_get_key(db, node, slot+1);
@@ -1456,4 +1458,21 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
         btree_cursor_t *cursor, ham_u32_t flags) 
 {
     return (btree_erase_impl(be, key, cursor, 0, flags));
+}
+
+ham_status_t
+btree_cursor_erase_fasttrack(ham_btree_t *be, btree_cursor_t *cursor)
+{
+    erase_scratchpad_t scratchpad;
+
+    ham_assert(btree_cursor_is_coupled(cursor), (""));
+
+    /* initialize the scratchpad */
+    memset(&scratchpad, 0, sizeof(scratchpad));
+    scratchpad.be=be;
+    scratchpad.cursor=cursor;
+
+    return (my_remove_entry(btree_cursor_get_coupled_page(cursor),
+                btree_cursor_get_coupled_index(cursor), 
+                &scratchpad, 0));
 }
