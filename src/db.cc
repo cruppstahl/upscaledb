@@ -1631,14 +1631,15 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static void
-__increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
+__increment_dupe_index(ham_db_t *db, txn_opnode_t *node, Cursor *skip,
+                ham_u32_t start)
 {
     Cursor *c=db_get_cursors(db);
 
     while (c) {
         ham_bool_t hit=HAM_FALSE;
 
-        if (c->is_nil(0))
+        if (c==skip || c->is_nil(0))
             goto next;
 
         /* if cursor is coupled to an op in the same node: increment 
@@ -1734,7 +1735,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 
         /* all other cursors need to increment their dupe index, if their
          * index is > this cursor's index */
-        __increment_dupe_index(db, node, c->get_dupecache_index());
+        __increment_dupe_index(db, node, c, c->get_dupecache_index());
     }
 
     /* append journal entry */

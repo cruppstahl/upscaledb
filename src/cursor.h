@@ -82,6 +82,7 @@
 #include "txn_cursor.h"
 #include "btree_cursor.h"
 #include "blob.h"
+#include "env.h"
 
 
 #ifdef __cplusplus
@@ -379,7 +380,17 @@ class Cursor
      * Returns the number of duplicates in the duplicate cache
      * The duplicate cache is updated if necessary
      */
-    ham_size_t get_dupecache_count(void);
+    ham_size_t get_dupecache_count(void) {
+        if (!(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES))
+            return (0);
+
+        txn_cursor_t *txnc=get_txn_cursor();
+        if (txn_cursor_get_coupled_op(txnc))
+            update_dupecache(CURSOR_BTREE|CURSOR_TXN);
+        else
+            update_dupecache(CURSOR_BTREE);
+        return (get_dupecache()->get_count());
+    }
 
     /** Closes an existing cursor */
     void close(void);

@@ -92,7 +92,7 @@ x run performance tests w/ transactions and cursors
     04-00
 valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --use-transactions=200 --use-cursors ../../testfiles/1/180.tst
 
-o improve performance
+x improve performance
     x prepare_key/prepare_record: inline or macro?
     x 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
         that's not necessary because it's anyway set to nil -- not possible
@@ -107,9 +107,11 @@ o improve performance
         from the page without traversing the tree!
     x use writev in journal (implemented for erase; check if it made a
         difference. if yes then also use for insert!)
-    o 05: btree_cursor_points_to_key is the big blocker
-    o 04: uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
-        although duplicates are disabled
+    x 04: uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
+        although duplicates are disabled --> inline both functions
+    x 05: btree_cursor_points_to_key is the big blocker
+
+o btree_cursor_points_to_key fails with extended keys
 
 o port os_writev to windows
 
@@ -132,6 +134,11 @@ o improve journalling and get rid of the physical log as much as possible
         more than one page left). 
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
+    --> most of the funcitonality can be handled in the changeset
+        o identify how the changeset looks after operations that we can optimize
+            (i.e. very simple insert, overwrite, duplicate w/o SMOs)
+          first write blob & freelist (if idempotent) w/o logging, then write
+            the log entry
 
 o use writev when writing blobs directly to disk
 

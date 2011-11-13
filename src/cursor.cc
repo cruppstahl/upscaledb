@@ -1025,22 +1025,6 @@ bail:
     return (st);
 }
 
-ham_size_t
-Cursor::get_dupecache_count(void)
-{
-    txn_cursor_t *txnc=get_txn_cursor();
-
-    if (!(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES))
-        return (HAM_FALSE);
-
-    if (txn_cursor_get_coupled_op(txnc))
-        update_dupecache(CURSOR_BTREE|CURSOR_TXN);
-    else
-        update_dupecache(CURSOR_BTREE);
-
-    return (get_dupecache()->get_count());
-}
-
 Cursor::Cursor(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
     m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
