@@ -117,40 +117,41 @@ x port os_writev to windows
 
 o improve journalling and get rid of the physical log as much as possible
     --> most of the funcitonality can be handled in the changeset
-        o identify how the changeset looks after operations that we can 
-            optimize (all without SMOs)
-            - insert w/ record <= 8
-            - insert w/ record > 8
-            - overwrite key
-            - duplicate
-          first write blob & freelist (if idempotent) w/o logging, then write
-            the log entry
-
-    be careful - even if the btree operations are atomic, the whole
+    --> be careful - even if the btree operations are atomic, the whole
       insert/erase is not because it also affects the blob area and the
       freelist (and maybe the header page, if the root page address is
       modified)
-    when inserting a blob (ham_insert) we NEVER have to log the blob pages.
+    --> when inserting a blob (ham_insert) we NEVER have to log the blob pages.
       if blob_alloc fails then just return the error
+      (NEVER is not correct - we have to if it's overwriting an existing
+      blob over multiple pages, if the blob spans multiple pages or 
+      if the blob is an extended key)
+    --> when adding pages to the changeset then already sort them into
+        "buckets" (for index pages, blobs, freelist etc).
+
+      o identify how the changeset looks after operations that we can 
+          optimize (all without SMOs)
+          - insert w/ record <= 8
+          - insert w/ record > 8 (index page, blob page, freelist)
+          - overwrite key
+          - duplicate
+        first write blob & freelist (if idempotent) w/o logging, then write
+          the log entry
+      o flush: first remove all non-dirty pages
+      o flush: if it's only one modified page: write directly to disk
+
     o also for ham_erase
-    o what about blobs? if blobs are immediately written to disk then 
-        they do not be logged, and we do not need undo information
-        alternatively: the changeset first flushes all blobs without
-        logging them. all other pages are logged, then flushed (if there's
-        more than one page left). 
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
-    --> most of the funcitonality can be handled in the changeset
-        o identify how the changeset looks after operations that we can optimize
-            (i.e. very simple insert, overwrite, duplicate w/o SMOs)
-          first write blob & freelist (if idempotent) w/o logging, then write
-            the log entry
 
+o improve the changeset
+    o clear must be O(1)
+    o store in std::vector
+    o store page->changeset_id: lsn when changeset is created
+
+o more requirements for recovery and transactions
     . recovery: recreate all pending transactions (if requested)
     . api function to get a list of pending transactions after recovery
-
-
-o use writev when writing blobs directly to disk
 
 o document how to optimize for performance
     o with transactions: try not to use duplicates

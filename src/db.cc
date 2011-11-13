@@ -818,15 +818,8 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
         ham_assert(db ? page_get_owner(page)==db : 1, (""));
-        /* store the page in the changeset, but only if recovery is enabled
-         * and not if Transactions are enabled. 
-         *
-         * when inserting a key in a transaction, this can trigger lookups
-         * with ham_find(). when ham_find() fetches pages, these pages must
-         * not be added to the changeset.
-         */
-        if ((env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        /* store the page in the changeset if recovery is enabled */
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
             env_get_changeset(env).add_page(page);
         return (HAM_SUCCESS);
     }
@@ -846,14 +839,14 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     page=page_new(env);
     if (!page)
-        return HAM_OUT_OF_MEMORY;
+        return (HAM_OUT_OF_MEMORY);
 
     page_set_owner(page, db);
     page_set_self(page, address);
     st=page_fetch(page);
     if (st) {
         (void)page_delete(page);
-        return st;
+        return (st);
     }
 
     ham_assert(page_get_pers(page), (""));

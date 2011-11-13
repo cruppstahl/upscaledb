@@ -571,13 +571,11 @@ Journal::recover()
      * which was not created. Therefore start_lsn is ignored for txn_begin/
      * txn_commit/txn_abort, and only checked for insert/erase.
      *
-     * when we're done, we auto-abort all transactions that were not yet
-     * committed. in one of the next releases the user can choose if he wants
-     * to continue working with those transactions, and i will provide an
-     * API to enumerate them.
+     * when done then auto-abort all transactions that were not yet
+     * committed
      */
 
-    /* make sure that there are no pending transactions - we start with 
+    /* make sure that there are no pending transactions - start with 
      * a clean state! */
     ham_assert(env_get_oldest_txn(m_env)==0, (""));
 
