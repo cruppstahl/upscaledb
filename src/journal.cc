@@ -288,34 +288,31 @@ Journal::append_insert(ham_db_t *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn)
 {
-    ham_status_t st;
+    char padding[16]={0};
     JournalEntry entry;
-    JournalEntryInsert *ins;
+    JournalEntryInsert insert;
     ham_size_t size=sizeof(JournalEntryInsert)+key->size+record->size-1;
-    size=__get_aligned_entry_size(size);
-    ins=(JournalEntryInsert *)allocate(size);
-    if (!ins)
-        return (HAM_OUT_OF_MEMORY);
+    ham_size_t padding_size=__get_aligned_entry_size(size)-size;
+
     entry.lsn=lsn;
     entry.dbname=db_get_dbname(db);
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_INSERT;
-    entry.followup_size=size;
+    entry.followup_size=size+padding_size;
 
-    ins->key_size=key->size;
-    ins->record_size=record->size;
-    ins->record_partial_size=record->partial_size;
-    ins->record_partial_offset=record->partial_offset;
-    ins->insert_flags=flags;
-    memcpy(ins->get_key_data(), key->data, key->size);
-    memcpy(ins->get_record_data(), record->data, record->size);
+    insert.key_size=key->size;
+    insert.record_size=record->size;
+    insert.record_partial_size=record->partial_size;
+    insert.record_partial_offset=record->partial_offset;
+    insert.insert_flags=flags;
 
     /* append the entry to the logfile */
-    st=append_entry(txn_get_log_desc(txn), &entry, sizeof(entry), 
-            (void *)ins, size);
-    free(ins);
-    
-    return (st);
+    return (append_entry(txn_get_log_desc(txn), 
+                &entry, sizeof(entry),
+                &insert, sizeof(JournalEntryInsert)-1,
+                key->data, key->size,
+                record->data, record->size,
+                padding, padding_size));
 }
 
 ham_status_t
@@ -338,16 +335,10 @@ Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     erase.duplicate=dupe;
 
     /* append the entry to the logfile */
-    if (key->data && key->size)
-        return (append_entry(txn_get_log_desc(txn), 
+    return (append_entry(txn_get_log_desc(txn), 
                 &entry, sizeof(entry),
                 (JournalEntry *)&erase, sizeof(JournalEntryErase)-1,
                 key->data, key->size,
-                padding, padding_size));
-    else
-        return (append_entry(txn_get_log_desc(txn), 
-                &entry, sizeof(entry),
-                (JournalEntry *)&erase, sizeof(JournalEntryErase)-1,
                 padding, padding_size));
 }
 

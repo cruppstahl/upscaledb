@@ -345,14 +345,16 @@ public:
         BFC_ASSERT_EQUAL(0, os_truncate(fd, 128));
 
         BFC_ASSERT_EQUAL(0,
-                os_writev(fd, hello, strlen(hello), world, strlen(world)+1));
+                os_writev(fd, (void *)hello, strlen(hello), 
+                            (void *)world, strlen(world)+1));
         memset(buffer, 0, sizeof(buffer));
         BFC_ASSERT_EQUAL(0, os_pread(fd, 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, strcmp("hello world!", buffer));
 
         BFC_ASSERT_EQUAL(0, os_seek(fd, 10, HAM_OS_SEEK_SET));
         BFC_ASSERT_EQUAL(0,
-                os_writev(fd, hello, strlen(hello), world, strlen(world)+1));
+                os_writev(fd, (void *)hello, strlen(hello), 
+                            (void *)world, strlen(world)+1));
         BFC_ASSERT_EQUAL(0, os_pread(fd, 10, buffer, sizeof(buffer)-10));
         BFC_ASSERT_EQUAL(0, strcmp("hello world!", buffer));
 

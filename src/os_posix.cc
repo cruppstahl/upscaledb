@@ -244,36 +244,46 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 }
  
 ham_status_t
-os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
-                const void *buffer2, ham_offset_t buffer2_len,
-                const void *buffer3, ham_offset_t buffer3_len,
-                const void *buffer4, ham_offset_t buffer4_len)
+os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
+                void *buffer2, ham_offset_t buffer2_len,
+                void *buffer3, ham_offset_t buffer3_len,
+                void *buffer4, ham_offset_t buffer4_len,
+                void *buffer5, ham_offset_t buffer5_len)
 {
 #ifdef HAVE_WRITEV
-    struct iovec vec[4]={
-        { (void *)buffer1, buffer1_len },
-        { (void *)buffer2, buffer2_len },
-        { (void *)buffer3, buffer3_len },
-        { (void *)buffer4, buffer4_len }
-    };
+    struct iovec vec[5];
 
     int c=0;
     ham_size_t s=0;
     if (buffer1) {
-        c++;
+        vec[c].iov_base=buffer1;
+        vec[c].iov_len=buffer1_len;
         s+=buffer1_len;
+        c++;
     }
     if (buffer2) {
+        vec[c].iov_base=buffer2;
+        vec[c].iov_len=buffer2_len;
         c++;
         s+=buffer2_len;
     }
     if (buffer3) {
+        vec[c].iov_base=buffer3;
+        vec[c].iov_len=buffer3_len;
         c++;
         s+=buffer3_len;
     }
     if (buffer4) {
+        vec[c].iov_base=buffer4;
+        vec[c].iov_len=buffer4_len;
         c++;
         s+=buffer4_len;
+    }
+    if (buffer5) {
+        vec[c].iov_base=buffer5;
+        vec[c].iov_len=buffer5_len;
+        c++;
+        s+=buffer5_len;
     }
 
     int w=writev(fd, &vec[0], c);
@@ -316,7 +326,16 @@ os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
             (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
             return (st);
         }
-        rollback+=buffer3_len;
+        rollback+=buffer4_len;
+    }
+    if (buffer5) {
+        st=os_write(fd, buffer5, buffer5_len);
+        if (st) {
+            /* rollback the previous change */
+            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
+            return (st);
+        }
+        rollback+=buffer5_len;
     }
     if (st) {
         /* rollback the previous change */

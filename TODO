@@ -84,16 +84,13 @@ x run performance tests w/o transactions and w/ duplicates and w/ cursors
     08-00
 valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-08-00 ./test --duplicate --use-cursors ../../testfiles/1/180.tst
 
-o run performance tests w/ transactions and cursors and duplicates
+x run performance tests w/ transactions and cursors and duplicates
     05-00
 valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-05-00 ./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/180.tst
-    o btree_cursor_points_to_key is the big blocker
 
-o run performance tests w/ transactions and cursors
+x run performance tests w/ transactions and cursors
     04-00
 valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --use-transactions=200 --use-cursors ../../testfiles/1/180.tst
-    o uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
-        although duplicates are disabled
 
 o improve performance
     x prepare_key/prepare_record: inline or macro?
@@ -105,21 +102,16 @@ o improve performance
         txn_opnode_t, txn_op_t
     x Why ever call changeset::get_page when fetching a page??
         - because then it's not put in the changeset twice (no problem!)
-    o 08: cursor::erase -> btree_cursor_erase: if cursor is coupled and 
+    x 08: cursor::erase -> btree_cursor_erase: if cursor is coupled and 
         key index > 0 and page has no underflow: directly delete the key
         from the page without traversing the tree!
-    o use writev in journal (implemented for erase; check if it made a
+    x use writev in journal (implemented for erase; check if it made a
         difference. if yes then also use for insert!)
-        o port os_writev to windows
+    o 05: btree_cursor_points_to_key is the big blocker
+    o 04: uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
+        although duplicates are disabled
 
-o duplicate (extended) keys are horribly slow, check why and improve it
-    x check if 2.0.0rc1 had the same problems (yes, it has)
-    --> __read_chunk is the bottleneck
-        -> called from blob_read (through db_get_extended_key, 
-                            btree_read_record)
-        -> called from __get_duplicate_table
-    ./test --use-transactions=200 --duplicate --use-cursors 
-            --verbose=1 ../../testfiles/1/202.tst
+o port os_writev to windows
 
 o improve journalling and get rid of the physical log as much as possible
     . recovery: recreate all pending transactions (if requested)

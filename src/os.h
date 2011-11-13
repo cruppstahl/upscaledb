@@ -72,10 +72,11 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
  * append data from two buffers to a file
  */
 extern ham_status_t
-os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
-                const void *buffer2=0, ham_offset_t buffer2_len=0,
-                const void *buffer3=0, ham_offset_t buffer3_len=0,
-                const void *buffer4=0, ham_offset_t buffer4_len=0);
+os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
+                void *buffer2=0, ham_offset_t buffer2_len=0,
+                void *buffer3=0, ham_offset_t buffer3_len=0,
+                void *buffer4=0, ham_offset_t buffer4_len=0,
+                void *buffer5=0, ham_offset_t buffer5_len=0);
 
 #ifdef HAM_OS_POSIX
 #    define HAM_OS_SEEK_SET     SEEK_SET
