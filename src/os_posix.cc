@@ -297,49 +297,45 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
     }
     return (0);
 #else
+    /* 
+     * Win32 also has a writev implementation, but it requires the pointers
+     * to be memory page aligned 
+     */
+    ham_status_t st;
+    ham_offset_t rollback;
+
+    st=os_tell(fd, &rollback);
+    if (st)
+        return (st);
+
     ham_status_t st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
-    ham_size_t rollback=buffer1_len;
     if (buffer2) {
         st=os_write(fd, buffer2, buffer2_len);
-        if (st) {
-            /* rollback the previous change */
-            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
-            return (st);
-        }
-        rollback+=buffer2_len;
+        if (st)
+            goto bail;
     }
     if (buffer3) {
         st=os_write(fd, buffer3, buffer3_len);
-        if (st) {
-            /* rollback the previous change */
-            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
-            return (st);
-        }
-        rollback+=buffer3_len;
+        if (st)
+            goto bail;
     }
     if (buffer4) {
         st=os_write(fd, buffer4, buffer4_len);
-        if (st) {
-            /* rollback the previous change */
-            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
-            return (st);
-        }
-        rollback+=buffer4_len;
+        if (st)
+            goto bail;
     }
     if (buffer5) {
         st=os_write(fd, buffer5, buffer5_len);
-        if (st) {
-            /* rollback the previous change */
-            (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
-            return (st);
-        }
-        rollback+=buffer5_len;
+        if (st)
+            goto bail;
     }
+
+bail:
     if (st) {
         /* rollback the previous change */
-        (void)os_seek(fd, rollback, HAM_OS_SEEK_END);
+        (void)os_seek(fd, rollback, HAM_OS_SEEK_SET);
     }
     return (st);
 #endif

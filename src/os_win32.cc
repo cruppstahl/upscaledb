@@ -266,22 +266,53 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 }
 
 ham_status_t
-os_writev(ham_fd_t fd, const void *buffer1, ham_offset_t buffer1_len,
-                const void *buffer2, ham_offset_t buffer2_len)
+os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
+                void *buffer2, ham_offset_t buffer2_len,
+                void *buffer3, ham_offset_t buffer3_len,
+                void *buffer4, ham_offset_t buffer4_len,
+                void *buffer5, ham_offset_t buffer5_len)
 {
-#if 0
-    /* TODO implement me - i'm sure Win32 has a writev function */
-#else
+    /* 
+     * Win32 also has a writev implementation, but it requires the pointers
+     * to be memory page aligned 
+     */
+    ham_status_t st;
+    ham_offset_t rollback;
+
+    st=os_tell(fd, &rollback);
+    if (st)
+        return (st);
+
     ham_status_t st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
-    st=os_write(fd, buffer2, buffer2_len);
+    if (buffer2) {
+        st=os_write(fd, buffer2, buffer2_len);
+        if (st)
+            goto bail;
+    }
+    if (buffer3) {
+        st=os_write(fd, buffer3, buffer3_len);
+        if (st)
+            goto bail;
+    }
+    if (buffer4) {
+        st=os_write(fd, buffer4, buffer4_len);
+        if (st)
+            goto bail;
+    }
+    if (buffer5) {
+        st=os_write(fd, buffer5, buffer5_len);
+        if (st)
+            goto bail;
+    }
+
+bail:
     if (st) {
         /* rollback the previous change */
-        (void)os_seek(fd, buffer1_len, HAM_OS_SEEK_END);
+        (void)os_seek(fd, rollback, HAM_OS_SEEK_SET);
     }
     return (st);
-#endif
 }
 
 #ifndef INVALID_SET_FILE_POINTER

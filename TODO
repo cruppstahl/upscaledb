@@ -111,22 +111,28 @@ x improve performance
         although duplicates are disabled --> inline both functions
     x 05: btree_cursor_points_to_key is the big blocker
 
-o btree_cursor_points_to_key fails with extended keys
+x btree_cursor_points_to_key fails with extended keys - no, it's fine
 
-o port os_writev to windows
+x port os_writev to windows
 
 o improve journalling and get rid of the physical log as much as possible
-    . recovery: recreate all pending transactions (if requested)
-    . api function to get a list of pending transactions after recovery
-    o be careful - even if the btree operations are atomic, the whole
-        insert/erase is not because it also affects the blob area and the
-        freelist (and maybe the header page, if the root page address is
-        modified)
-        -> this is where we might have to rewrite the btree insert algorithm
-    o do this for ham_insert without SMOs
-    o when inserting a blob (ham_insert) we NEVER have to log the blob pages.
-        if blob_alloc fails then just return the error
-    o do this for ham_erase without SMOs
+    --> most of the funcitonality can be handled in the changeset
+        o identify how the changeset looks after operations that we can 
+            optimize (all without SMOs)
+            - insert w/ record <= 8
+            - insert w/ record > 8
+            - overwrite key
+            - duplicate
+          first write blob & freelist (if idempotent) w/o logging, then write
+            the log entry
+
+    be careful - even if the btree operations are atomic, the whole
+      insert/erase is not because it also affects the blob area and the
+      freelist (and maybe the header page, if the root page address is
+      modified)
+    when inserting a blob (ham_insert) we NEVER have to log the blob pages.
+      if blob_alloc fails then just return the error
+    o also for ham_erase
     o what about blobs? if blobs are immediately written to disk then 
         they do not be logged, and we do not need undo information
         alternatively: the changeset first flushes all blobs without
@@ -139,6 +145,10 @@ o improve journalling and get rid of the physical log as much as possible
             (i.e. very simple insert, overwrite, duplicate w/o SMOs)
           first write blob & freelist (if idempotent) w/o logging, then write
             the log entry
+
+    . recovery: recreate all pending transactions (if requested)
+    . api function to get a list of pending transactions after recovery
+
 
 o use writev when writing blobs directly to disk
 
