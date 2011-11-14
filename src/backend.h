@@ -82,7 +82,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
     /**                                                                 \
      * create and initialize a new backend                              \
      *                                                                  \
-     * @remark this function is called after the @a ham_db_t structure  \
+     * @remark this function is called after the @a Database structure  \
      * and the file were created                                        \
      *                                                                  \
      * the @a flags are stored in the database; only transfer           \
@@ -182,7 +182,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
     /**                                                                 \
      * pointer to the database object                                   \
      */                                                                 \
-    ham_db_t *_db;                                                      \
+    Database *_db;                                                      \
                                                                         \
     /**                                                                 \
      * the last used record number                                      \

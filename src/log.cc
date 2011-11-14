@@ -287,7 +287,7 @@ Log::recover()
          *
          * Either way we have to bypass the cache and all upper layers. We
          * cannot call db_alloc_page() or db_fetch_page() since we do not have
-         * a ham_db_t handle. env_alloc_page()/env_fetch_page() would work,
+         * a Database handle. env_alloc_page()/env_fetch_page() would work,
          * but then the page ownership is not set correctly (but the 
          * ownership is verified later, and this would fail).
          */

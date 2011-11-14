@@ -197,7 +197,7 @@ typedef struct txn_opnode_t
     rb_node(struct txn_opnode_t) node;
 
     /** the database - need this pointer for the compare function */
-    ham_db_t *_db;
+    Database *_db;
 
     /** this is the key which is modified */
     ham_key_t _key;
@@ -251,7 +251,7 @@ typedef struct txn_opnode_t
 typedef struct txn_optree_t
 {
     /* the Database for all operations in this tree */
-    ham_db_t *_db;
+    Database *_db;
 
     /* stuff for rb.h */
     txn_opnode_t *rbt_root;
@@ -374,7 +374,7 @@ struct ham_txn_t
  * initializes the txn-tree
  */
 extern void
-txn_tree_init(ham_db_t *db, txn_optree_t *tree);
+txn_tree_init(Database *db, txn_optree_t *tree);
 
 /**
  * traverses a tree; for each node, a callback function is executed
@@ -405,7 +405,7 @@ txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
  * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
  */
 extern txn_opnode_t *
-txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
+txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags);
 
 /**
  * creates an opnode for an optree; asserts that a node with this
@@ -414,7 +414,7 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
  * returns NULL if out of memory 
  */
 extern txn_opnode_t *
-txn_opnode_create(ham_db_t *db, ham_key_t *key);
+txn_opnode_create(Database *db, ham_key_t *key);
 
 /**
  * insert an actual operation into the txn_tree

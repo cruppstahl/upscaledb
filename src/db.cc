@@ -46,7 +46,7 @@
 
 typedef struct
 {
-    ham_db_t *db;               /* [in] */
+    Database *db;               /* [in] */
     ham_u32_t flags;            /* [in] */
     ham_offset_t total_count;   /* [out] */
     ham_bool_t is_leaf;         /* [scratch] */
@@ -120,7 +120,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 
 typedef struct free_cb_context_t
 {
-    ham_db_t *db;
+    Database *db;
     ham_bool_t is_leaf;
 
 } free_cb_context_t;
@@ -208,17 +208,16 @@ __cache_needs_purge(ham_env_t *env)
 }
 
 static ham_status_t
-__record_filters_before_write(ham_db_t *db, ham_record_t *record)
+__record_filters_before_write(Database *db, ham_record_t *record)
 {
     ham_status_t st=0;
     ham_record_filter_t *record_head;
 
     record_head=db_get_record_filter(db);
-    while (record_head) 
-    {
-        if (record_head->before_write_cb) 
-        {
-            st=record_head->before_write_cb(db, record_head, record);
+    while (record_head) {
+        if (record_head->before_write_cb) {
+            st=record_head->before_write_cb((ham_db_t *)db, 
+                    record_head, record);
             if (st)
                 break;
         }
@@ -249,20 +248,18 @@ __record_filters_before_write(ham_db_t *db, ham_record_t *record)
  * calling the FIRST.
  */
 static ham_status_t
-__record_filters_after_find(ham_db_t *db, ham_record_t *record)
+__record_filters_after_find(Database *db, ham_record_t *record)
 {
     ham_status_t st = 0;
     ham_record_filter_t *record_head;
 
     record_head=db_get_record_filter(db);
-    if (record_head)
-    {
+    if (record_head) {
         record_head = record_head->_prev;
-        do
-        {
-            if (record_head->after_read_cb) 
-            {
-                st=record_head->after_read_cb(db, record_head, record);
+        do {
+            if (record_head->after_read_cb) {
+                st=record_head->after_read_cb((ham_db_t *)db, 
+                        record_head, record);
                 if (st)
                       break;
             }
@@ -272,15 +269,51 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
     return (st);
 }
 
+Database::Database()
+  : m_error(0), m_context(0), m_backend(0), m_cursors(0),
+    m_prefix_func(0), m_cmp_func(0), m_duperec_func(0), _extkey_cache(0),
+    _rec_allocsize(0), _rec_allocdata(0), _key_allocsize(0), _key_allocdata(0),
+    _rt_flags(0), _indexdata_offset(0), _env(0), _next(0),
+    _record_filters(0), _data_access_mode(0), _is_active(0)
+{
+    memset(&_global_perf_data, 0, sizeof(_global_perf_data));
+    memset(&_db_perf_data, 0, sizeof(_db_perf_data));
+
+#if HAM_ENABLE_REMOTE
+    _remote_handle=0;
+#endif
+    txn_tree_init(this, &_optree);
+
+    _fun_get_parameters=0;
+    _fun_check_integrity=0;
+    _fun_get_key_count=0;
+    _fun_insert=0;
+    _fun_erase=0;
+    _fun_find=0;
+    _fun_cursor_create=0;
+    _fun_cursor_clone=0;
+    _fun_cursor_insert=0;
+    _fun_cursor_erase=0;
+    _fun_cursor_find=0;
+    _fun_cursor_get_duplicate_count=0;
+    _fun_cursor_get_record_size=0;
+    _fun_cursor_overwrite=0;
+    _fun_cursor_move=0;
+    _fun_cursor_close=0;
+    _fun_close=0;
+    _fun_destroy=0;
+};
+
+
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     Cursor *c = page_get_cursors(page);
 
     if (c) {
-        ham_db_t *db = c->get_db();
+        Database *db = c->get_db();
         if (db) {
-            ham_backend_t *be = db_get_backend(db);
+            ham_backend_t *be = db->get_backend();
             
             if (be) {
                 return (*be->_fun_uncouple_all_cursors)(be, page, start);
@@ -288,11 +321,11 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
         }
     }
 
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_u16_t
-db_get_dbname(ham_db_t *db)
+db_get_dbname(Database *db)
 {
     ham_env_t *env;
     
@@ -463,7 +496,7 @@ db_default_recno_compare(ham_db_t *db,
 }
 
 ham_status_t
-db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
+db_get_extended_key(Database *db, ham_u8_t *key_data,
                 ham_size_t key_length, ham_u32_t key_flags,
                 ham_key_t *ext_key)
 {
@@ -566,13 +599,13 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 }
 
 int
-db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
+db_compare_keys(Database *db, ham_key_t *lhs, ham_key_t *rhs)
 {
     int cmp=HAM_PREFIX_REQUEST_FULLKEY;
-    ham_compare_func_t foo=db_get_compare_func(db);
-    ham_prefix_compare_func_t prefoo=db_get_prefix_compare_func(db);
+    ham_compare_func_t foo=db->get_compare_func();
+    ham_prefix_compare_func_t prefoo=db->get_prefix_compare_func();
 
-    db_set_error(db, 0);
+    db->set_error(0);
 
     /*
      * need prefix compare? if no key is extended we can just call the
@@ -582,7 +615,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         /*
          * no!
          */
-        return (foo(db, (ham_u8_t *)lhs->data, lhs->size, 
+        return (foo((ham_db_t *)db, (ham_u8_t *)lhs->data, lhs->size, 
                         (ham_u8_t *)rhs->data, rhs->size));
     }
 
@@ -603,7 +636,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         else
             rhsprefixlen=rhs->size;
 
-        cmp=prefoo(db, (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
+        cmp=prefoo((ham_db_t *)db, 
+                    (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
                     (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
         if (cmp < -1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
             return cmp; /* unexpected error! */
@@ -631,7 +665,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
         }
 
         /* 3. run the comparison function */
-        cmp=foo(db, (ham_u8_t *)lhs->data, lhs->size, 
+        cmp=foo((ham_db_t *)db, (ham_u8_t *)lhs->data, lhs->size, 
                         (ham_u8_t *)rhs->data, rhs->size);
     }
 
@@ -639,7 +673,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
 }
 
 ham_status_t
-db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
+db_create_backend(ham_backend_t **backend_ref, Database *db, ham_u32_t flags)
 {
     *backend_ref = 0;
 
@@ -683,7 +717,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
         ham_backend_t *be;
         
         ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
-        be = db_get_backend(page_get_owner(page));
+        be = page_get_owner(page)->get_backend();
         ham_assert(be, (0));
         
         st = be->_fun_free_page_extkeys(be, page, flags);
@@ -711,7 +745,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
+db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
@@ -793,14 +827,14 @@ done:
 }
 
 ham_status_t
-db_alloc_page(ham_page_t **page_ref, ham_db_t *db, 
+db_alloc_page(ham_page_t **page_ref, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     return (db_alloc_page_impl(page_ref, db_get_env(db), db, type, flags));
 }
 
 ham_status_t
-db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
+db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
@@ -863,7 +897,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 }
 
 ham_status_t
-db_fetch_page(ham_page_t **page_ref, ham_db_t *db,
+db_fetch_page(ham_page_t **page_ref, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
     return (db_fetch_page_impl(page_ref, db_get_env(db), db, address, flags));
@@ -966,7 +1000,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_resize_record_allocdata(ham_db_t *db, ham_size_t size)
+db_resize_record_allocdata(Database *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_record_allocdata(db))
@@ -988,7 +1022,7 @@ db_resize_record_allocdata(ham_db_t *db, ham_size_t size)
 }
 
 ham_status_t
-db_resize_key_allocdata(ham_db_t *db, ham_size_t size)
+db_resize_key_allocdata(Database *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_key_allocdata(db))
@@ -1010,7 +1044,7 @@ db_resize_key_allocdata(ham_db_t *db, ham_size_t size)
 }
 
 ham_status_t
-db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
+db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
 {
     /*
      * extended key: copy the whole key
@@ -1058,14 +1092,14 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 }
 
 static ham_status_t
-_local_fun_close(ham_db_t *db, ham_u32_t flags)
+_local_fun_close(Database *db, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
     ham_status_t st = HAM_SUCCESS;
     ham_status_t st2 = HAM_SUCCESS;
     ham_backend_t *be;
     ham_bool_t has_other_db=HAM_FALSE;
-    ham_db_t *newowner=0;
+    Database *newowner=0;
     ham_record_filter_t *record_head;
 
     /*
@@ -1073,7 +1107,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * delete all environment-members
      */
     if (env) {
-        ham_db_t *n=env_get_list(env);
+        Database *n=env_get_list(env);
         while (n) {
             if (n!=db) {
                 has_other_db=HAM_TRUE;
@@ -1083,7 +1117,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         }
     }
 
-    be=db_get_backend(db);
+    be=db->get_backend();
 
     /* close all open cursors */
     if (be && be->_fun_close_cursors) {
@@ -1184,7 +1218,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
          * this free() should move into the backend destructor 
          */
         allocator_free(env_get_allocator(env), be);
-        db_set_backend(db, 0);
+        db->set_backend(0);
     }
 
     /*
@@ -1193,7 +1227,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * ownership to 0
      */
     if (env) {
-        ham_db_t *head=env_get_list(env);
+        Database *head=env_get_list(env);
         while (head) {
             if (head!=db) {
                 newowner=head;
@@ -1213,7 +1247,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         ham_record_filter_t *next=record_head->_next;
 
         if (record_head->close_cb)
-            record_head->close_cb(db, record_head);
+            record_head->close_cb((ham_db_t *)db, record_head);
         record_head=next;
     }
     db_set_record_filter(db, 0);
@@ -1230,7 +1264,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
+_local_fun_get_parameters(Database *db, ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
     ham_env_t *env;
@@ -1247,7 +1281,7 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 p->value=env_get_pagesize(env);
                 break;
             case HAM_PARAM_KEYSIZE:
-                p->value=db_get_backend(db) ? db_get_keysize(db) : 21;
+                p->value=db->get_backend() ? db_get_keysize(db) : 21;
                 break;
             case HAM_PARAM_MAX_ENV_DATABASES:
                 p->value=env_get_max_databases(env);
@@ -1268,9 +1302,9 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 p->value=(ham_offset_t)db_get_dbname(db);
                 break;
             case HAM_PARAM_GET_KEYS_PER_PAGE:
-                if (db_get_backend(db)) {
+                if (db->get_backend()) {
                     ham_size_t count=0, size=db_get_keysize(db);
-                    ham_backend_t *be = db_get_backend(db);
+                    ham_backend_t *be = db->get_backend();
                     ham_status_t st;
 
                     if (!be->_fun_calc_keycount_per_page)
@@ -1311,12 +1345,12 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 }
 
 static ham_status_t
-_local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
+_local_fun_check_integrity(Database *db, ham_txn_t *txn)
 {
     ham_status_t st;
     ham_backend_t *be;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be)
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_check_integrity)
@@ -1348,14 +1382,14 @@ struct keycount_t
     ham_u64_t c;
     ham_u32_t flags;
     ham_txn_t *txn;
-    ham_db_t *db;
+    Database *db;
 };
 
 static void
 db_get_key_count_txn(txn_opnode_t *node, void *data)
 {
     struct keycount_t *kc=(struct keycount_t *)data;
-    ham_backend_t *be=db_get_backend(kc->db);
+    ham_backend_t *be=kc->db->get_backend();
     txn_op_t *op;
 
     /*
@@ -1436,7 +1470,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
 
 
 static ham_status_t
-_local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+_local_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
                 ham_offset_t *keycount)
 {
     ham_status_t st;
@@ -1452,7 +1486,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         return (HAM_INV_PARAMETER);
     }
 
-    be = db_get_backend(db);
+    be = db->get_backend();
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_enumerate)
@@ -1494,12 +1528,12 @@ bail:
 }
 
 static ham_status_t
-db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
+db_check_insert_conflicts(Database *db, ham_txn_t *txn, 
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     txn_op_t *op=0;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be=db->get_backend();
 
     /*
      * pick the tree_node of this key, and walk through each operation 
@@ -1566,11 +1600,11 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_status_t
-db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn, 
+db_check_erase_conflicts(Database *db, ham_txn_t *txn, 
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     txn_op_t *op=0;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be=db->get_backend();
 
     /*
      * pick the tree_node of this key, and walk through each operation 
@@ -1624,10 +1658,10 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static void
-__increment_dupe_index(ham_db_t *db, txn_opnode_t *node, Cursor *skip,
+__increment_dupe_index(Database *db, txn_opnode_t *node, Cursor *skip,
                 ham_u32_t start)
 {
-    Cursor *c=db_get_cursors(db);
+    Cursor *c=db->get_cursors();
 
     while (c) {
         ham_bool_t hit=HAM_FALSE;
@@ -1661,7 +1695,7 @@ next:
 }
 
 ham_status_t
-db_insert_txn(ham_db_t *db, ham_txn_t *txn,
+db_insert_txn(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor)
 {
@@ -1785,9 +1819,9 @@ __nil_all_cursors_in_node(ham_txn_t *txn, Cursor *current,
 }
 
 static void
-__nil_all_cursors_in_btree(ham_db_t *db, Cursor *current, ham_key_t *key)
+__nil_all_cursors_in_btree(Database *db, Cursor *current, ham_key_t *key)
 {
-    Cursor *c=db_get_cursors(db);
+    Cursor *c=db->get_cursors();
 
     /* foreach cursor in this database:
      *  if it's nil or coupled to the txn: skip it
@@ -1832,7 +1866,7 @@ next:
 }
 
 ham_status_t
-db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
+db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
                 txn_cursor_t *cursor)
 {
     ham_status_t st=0;
@@ -1905,14 +1939,14 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
 }
 
 static ham_status_t
-db_find_txn(ham_db_t *db, ham_txn_t *txn,
+db_find_txn(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
     txn_optree_t *tree=0;
     txn_opnode_t *node=0;
     txn_op_t *op=0;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be=db->get_backend();
 
     /* get the txn-tree for this database; if there's no tree then
      * there's no need to create a new one - we'll just skip the whole
@@ -1989,7 +2023,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_status_t
-_local_fun_insert(ham_db_t *db, ham_txn_t *txn,
+_local_fun_insert(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
@@ -1999,7 +2033,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     ham_u64_t recno = 0;
     ham_record_t temprec;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_insert)
@@ -2107,7 +2141,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_status_t
-_local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+_local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     ham_txn_t *local_txn=0;
@@ -2115,7 +2149,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     ham_backend_t *be;
     ham_offset_t recno=0;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_erase)
@@ -2179,7 +2213,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
+_local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
@@ -2188,7 +2222,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_backend_t *be;
     ham_offset_t recno=0;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
 
@@ -2213,7 +2247,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
      * only available in ham_cursor_find */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
-        st=ham_cursor_create(db, txn, 0, (ham_cursor_t **)&c);
+        st=ham_cursor_create((ham_db_t *)db, txn, 0, (ham_cursor_t **)&c);
         if (st)
             return (st);
         st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, flags);
@@ -2284,11 +2318,11 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 }
 
 static Cursor *
-_local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+_local_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_backend_t *be;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be || !be_is_active(be))
         return (0);
 
@@ -2315,11 +2349,11 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be)
         return (HAM_NOT_INITIALIZED);
 
@@ -2478,7 +2512,7 @@ static ham_status_t
 _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
@@ -2496,6 +2530,10 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 
     /* this function will do all the work */
     st=cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
+
+    /* clear the changeset */
+    if (env)
+        env_get_changeset(env).clear();
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
@@ -2534,7 +2572,7 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
     ham_env_t *env=db_get_env(db);
@@ -2728,7 +2766,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
                 ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
@@ -2788,7 +2826,7 @@ static ham_status_t
 _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
@@ -2849,7 +2887,7 @@ static ham_status_t
 _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
                 ham_u32_t flags)
 {
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
     ham_record_t temprec;
@@ -2918,7 +2956,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
 
@@ -3017,7 +3055,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-db_initialize_local(ham_db_t *db)
+db_initialize_local(Database *db)
 {
     db->_fun_close          =_local_fun_close;
     db->_fun_get_parameters =_local_fun_get_parameters;

@@ -90,7 +90,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, db_copy_key((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -107,7 +107,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, db_copy_key((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -125,7 +125,7 @@ public:
         key_set_size(&src, 0);
         key_set_flags(&src, 0);
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
         BFC_ASSERT_EQUAL((void *)0, dest.data);
     }
@@ -142,7 +142,7 @@ public:
         key_set_flags(&src, 0);
         src._key[0]='a';
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(1, dest.size);
         BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
         allocator_free(env_get_allocator(m_env), dest.data);
@@ -160,7 +160,7 @@ public:
         key_set_flags(src, 0);
         ::memcpy((char *)src->_key, "1234567\0", 8);
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
         allocator_free(env_get_allocator(m_env), dest.data);
@@ -178,7 +178,7 @@ public:
         key_set_flags(src, 0);
         ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 

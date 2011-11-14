@@ -116,7 +116,7 @@ class ExtKeyCache
 
   public:
     /** the default constructor */
-    ExtKeyCache(ham_db_t *db);
+    ExtKeyCache(Database *db);
 
     /** the destructor */
     ~ExtKeyCache();
@@ -151,7 +151,7 @@ class ExtKeyCache
 
   private:
     /** the owner of the cache */
-    ham_db_t *m_db;
+    Database *m_db;
 
     /** the used size, in byte */
     ham_size_t m_usedsize;
@@ -167,7 +167,7 @@ class ExtKeyCache
  * a combination of extkey_cache_remove and blob_free
  */
 extern ham_status_t 
-extkey_remove(ham_db_t *db, ham_offset_t blobid);
+extkey_remove(Database *db, ham_offset_t blobid);
 
 
 #ifdef __cplusplus

@@ -183,7 +183,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
+blob_allocate(ham_env_t *env, Database *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid);
 
 /**
@@ -194,7 +194,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-blob_read(ham_db_t *db, ham_offset_t blobid, 
+blob_read(Database *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -203,7 +203,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
  * stores the size in @a size
  */
 extern ham_status_t
-blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size);
+blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size);
 
 /**
  * overwrite an existing blob
@@ -212,14 +212,14 @@ blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size);
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(ham_env_t *env, Database *db, ham_offset_t old_blobid, 
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
 
 /**
  * delete an existing blob
  */
 extern ham_status_t
-blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
+blob_free(ham_env_t *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
 
 /**
  * create a duplicate table and insert all entries in the duplicate
@@ -230,7 +230,7 @@ blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
  * entry depending on the flags (only one entry is allowed in this case)
  */
 extern ham_status_t
-blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+blob_duplicate_insert(Database *db, ham_offset_t table_id, 
         ham_record_t *record, ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position);
@@ -244,7 +244,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
  * sets new_table_id to 0 if the table is empty
  */
 extern ham_status_t
-blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
+blob_duplicate_erase(Database *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
 
 /**

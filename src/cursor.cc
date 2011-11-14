@@ -1025,7 +1025,7 @@ bail:
     return (st);
 }
 
-Cursor::Cursor(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+Cursor::Cursor(Database *db, ham_txn_t *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
     m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
     m_lastop(0), m_lastcmp(0), m_flags(flags), m_is_first_use(true)

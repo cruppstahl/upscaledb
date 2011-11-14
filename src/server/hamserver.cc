@@ -246,7 +246,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
         st=HAM_INV_PARAMETER;
     }
     else {
-        st=ham_get_parameters(db, &params[0]);
+        st=ham_get_parameters((ham_db_t *)db, &params[0]);
     }
     if (st) {
         reply=proto_init_db_get_parameters_reply(st);
@@ -403,9 +403,10 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
         ham_delete(db);
     }
 
+    /* do not use db_get_rt_flags() because they're
+     * mixed with the flags from the Environment! */
     reply=proto_init_env_create_db_reply(st, db_handle,
-            db->_rt_flags); /* do not use db_get_rt_flags() because they're
-                          * mixed with the flags from the Environment! */
+            ((Database *)db)->_rt_flags);
     send_wrapper(env, conn, reply);
     proto_delete(reply);
 }
@@ -438,7 +439,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
         if (envh->handles[i].ptr!=0) {
             if (envh->handles[i].type==HANDLE_TYPE_DATABASE) {
                 db=(ham_db_t *)envh->handles[i].ptr;
-                if (db_get_dbname(db)==dbname)
+                if (db_get_dbname((Database *)db)==dbname)
                     break;
                 else
                     db=0;
@@ -462,9 +463,10 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
         }
     }
 
+    /* do not use db_get_rt_flags() because they're
+     * mixed with the flags from the Environment! */
     reply=proto_init_env_open_db_reply(st, db_handle,
-            db->_rt_flags); /* do not use db_get_rt_flags() because they're
-                          * mixed with the flags from the Environment! */
+            ((Database *)db)->_rt_flags);
     send_wrapper(env, conn, reply);
     proto_delete(reply);
 }
@@ -983,7 +985,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
     /* recno: return the modified key */
     if (st==0) {
         Cursor *c=(Cursor *)cursor;
-        if (ham_get_flags(c->get_db())&HAM_RECORD_NUMBER) {
+        if (ham_get_flags((ham_db_t *)c->get_db())&HAM_RECORD_NUMBER) {
             ham_assert(key.size==sizeof(ham_offset_t), (""));
             send_key=HAM_TRUE;
         }

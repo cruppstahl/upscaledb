@@ -460,7 +460,7 @@ _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_remote_fun_create_db(ham_env_t *env, ham_db_t *db, 
+_remote_fun_create_db(ham_env_t *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -536,13 +536,13 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
     env_set_list(env, db);
 
     /*
-     * initialize the remaining function pointers in ham_db_t
+     * initialize the remaining function pointers in Database
      */
     return (db_initialize_remote(db));
 }
 
 static ham_status_t 
-_remote_fun_open_db(ham_env_t *env, ham_db_t *db, 
+_remote_fun_open_db(ham_env_t *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -617,7 +617,7 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
     env_set_list(env, db);
 
     /*
-     * initialize the remaining function pointers in ham_db_t
+     * initialize the remaining function pointers in Database
      */
     return (db_initialize_remote(db));
 }
@@ -636,7 +636,7 @@ _remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
+_remote_fun_txn_begin(ham_env_t *env, Database *db, 
                 ham_txn_t **txn, ham_u32_t flags)
 {
     ham_status_t st;
@@ -736,7 +736,7 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_close(ham_db_t *db, ham_u32_t flags)
+_remote_fun_close(Database *db, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
@@ -746,12 +746,12 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
      * auto-cleanup cursors?
      */
     if (flags&HAM_AUTO_CLEANUP) {
-        Cursor *cursor=db_get_cursors(db);
-        while ((cursor=db_get_cursors(db))) {
+        Cursor *cursor=db->get_cursors();
+        while ((cursor=db->get_cursors())) {
             (void)ham_cursor_close((ham_cursor_t *)cursor);
         }
     }
-    else if (db_get_cursors(db)) {
+    else if (db->get_cursors()) {
         return (HAM_CURSOR_STILL_OPEN);
     }
 
@@ -779,7 +779,7 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
+_remote_fun_get_parameters(Database *db, ham_parameter_t *param)
 {
     static char filename[1024];
     ham_status_t st;
@@ -891,7 +891,7 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 }
 
 static ham_status_t
-_remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
+_remote_fun_check_integrity(Database *db, ham_txn_t *txn)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
@@ -918,7 +918,7 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 }
 
 static ham_status_t
-_remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+_remote_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
     ham_status_t st;
@@ -949,7 +949,7 @@ _remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
-_remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
+_remote_fun_insert(Database *db, ham_txn_t *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -993,7 +993,7 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 }
 
 static ham_status_t
-_remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
+_remote_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1051,7 +1051,7 @@ bail:
 }
 
 static ham_status_t
-_remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+_remote_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
@@ -1079,7 +1079,7 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 }
 
 static Cursor *
-_remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+_remote_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
@@ -1178,7 +1178,7 @@ _remote_cursor_insert(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
     ham_bool_t send_key=HAM_TRUE;
@@ -1223,7 +1223,7 @@ static ham_status_t
 _remote_cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
     
@@ -1253,7 +1253,7 @@ _remote_cursor_find(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
 
@@ -1302,7 +1302,7 @@ _remote_cursor_get_duplicate_count(Cursor *cursor,
         ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
     
@@ -1345,7 +1345,7 @@ _remote_cursor_overwrite(Cursor *cursor,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
     
@@ -1375,7 +1375,7 @@ _remote_cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=cursor->get_db();
+    Database *db=cursor->get_db();
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
     
@@ -1460,7 +1460,7 @@ env_initialize_remote(ham_env_t *env)
 }
 
 ham_status_t
-db_initialize_remote(ham_db_t *db)
+db_initialize_remote(Database *db)
 {
 #if HAM_ENABLE_REMOTE
     db->_fun_close          =_remote_fun_close;

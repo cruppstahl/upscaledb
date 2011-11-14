@@ -66,7 +66,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
         m_dev=env_get_device(m_env);
     }
     
@@ -138,7 +138,7 @@ public:
     {
         ham_page_t page;
         memset(&page, 0, sizeof(page));
-        page_set_owner(&page, m_db);
+        page_set_owner(&page, (Database *)m_db);
 
         BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         BFC_ASSERT_EQUAL(0, m_dev->alloc_page(m_dev, &page));
@@ -164,7 +164,7 @@ public:
         BFC_ASSERT_EQUAL(0, m_dev->truncate(m_dev, ps*10));
         for (i=0; i<10; i++) {
             memset(&pages[i], 0, sizeof(ham_page_t));
-            page_set_owner(&pages[i], m_db);
+            page_set_owner(&pages[i], (Database *)m_db);
             page_set_self(&pages[i], i*ps);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(m_dev, &pages[i]));
         }

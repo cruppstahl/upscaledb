@@ -123,26 +123,26 @@ struct erase_hints_t
  * statistics gathering call for btree_find
  */
 extern void
-db_update_global_stats_find_query(ham_db_t *db, ham_size_t key_size);
+db_update_global_stats_find_query(Database *db, ham_size_t key_size);
 
 /**
  * statistics gathering call for btree_insert
  */
 extern void
-db_update_global_stats_insert_query(ham_db_t *db, ham_size_t key_size, 
+db_update_global_stats_insert_query(Database *db, ham_size_t key_size, 
                     ham_size_t record_size);
 
 /**
  * statistics gathering call for btree_erase
  */
 extern void
-db_update_global_stats_erase_query(ham_db_t *db, ham_size_t key_size);
+db_update_global_stats_erase_query(Database *db, ham_size_t key_size);
 
 /**
  * statistics gathering call for failing lookups (key is out of bounds)
  */
 extern void 
-stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, 
+stats_update_fail_oob(int op, Database *db, ham_size_t cost, 
                     ham_bool_t try_fast_track);
 
 #define btree_stats_update_find_fail_oob(db, hints)  stats_update_fail(HAM_OPERATION_STATS_FIND, db, (hints)->cost, (hints)->try_fast_track)
@@ -153,7 +153,7 @@ stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost,
  * statistics gathering call for other failures
  */
 extern void 
-stats_update_fail(int op, ham_db_t *db, ham_size_t cost, 
+stats_update_fail(int op, Database *db, ham_size_t cost, 
                     ham_bool_t try_fast_track);
 
 #define btree_stats_update_find_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_FIND, db, (hints)->cost, (hints)->try_fast_track)
@@ -163,7 +163,7 @@ stats_update_fail(int op, ham_db_t *db, ham_size_t cost,
 #define btree_stats_update_erase_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_ERASE, db, (hints)->cost, (hints)->try_fast_track)
 
 extern void 
-stats_update(int op, ham_db_t *db, struct ham_page_t *page, 
+stats_update(int op, Database *db, struct ham_page_t *page, 
                     ham_size_t cost, ham_bool_t try_fast_track);
 
 #define btree_stats_update_find(db, page, hints)    stats_update(HAM_OPERATION_STATS_FIND, db, page, (hints)->cost, (hints)->try_fast_track)
@@ -173,21 +173,21 @@ stats_update(int op, ham_db_t *db, struct ham_page_t *page,
 #define btree_stats_update_erase(db, page, hints)    stats_update(HAM_OPERATION_STATS_ERASE, db, page, (hints)->cost, (hints)->try_fast_track)
 
 extern void 
-btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, 
+btree_stats_page_is_nuked(Database *db, struct ham_page_t *page, 
                     ham_bool_t split);
 
 extern void 
-btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, 
+btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot);
 
 extern void 
-btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key);
+btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key);
 
 extern void 
-btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key);
+btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key);
 
 extern void 
-btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key);
+btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key);
 
 extern void
 btree_stats_init_globdata(ham_env_t *env, 
@@ -198,17 +198,17 @@ btree_stats_trash_globdata(ham_env_t *env,
                     ham_runtime_statistics_globdata_t *globdata);
 
 extern void
-btree_stats_init_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata);
+btree_stats_init_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata);
 
 extern void
-btree_stats_flush_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata,
+btree_stats_flush_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata,
                     ham_bool_t last_in_env);
 
 extern void
-btree_stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata);
+btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata);
 
 extern ham_status_t
-btree_stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, 
+btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db, 
                     ham_statistics_t *dst);
 
 

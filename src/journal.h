@@ -101,7 +101,7 @@ class Journal
     bool is_empty(void);
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(struct ham_txn_t *txn, ham_db_t *db, 
+    ham_status_t append_txn_begin(struct ham_txn_t *txn, Database *db, 
                 ham_u64_t lsn);
 
     /** appends a journal entry for 
@@ -113,12 +113,12 @@ class Journal
     ham_status_t append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn);
 
     /** appends a journal entry for ham_insert/ENTRY_TYPE_INSERT */
-    ham_status_t append_insert(ham_db_t *db, ham_txn_t *txn, 
+    ham_status_t append_insert(Database *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn);
 
     /** appends a journal entry for ham_erase/ENTRY_TYPE_ERASE */
-    ham_status_t append_erase(ham_db_t *db, ham_txn_t *txn, 
+    ham_status_t append_erase(Database *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     /** empties the journal, removes all entries */

@@ -308,14 +308,16 @@ public:
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter1));
         BFC_ASSERT(rec_filter1._next==0);
         BFC_ASSERT(rec_filter1._prev==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                db_get_record_filter((Database *)m_db));
 
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter2));
         BFC_ASSERT(rec_filter1._next==&rec_filter2);
         BFC_ASSERT(rec_filter2._prev==&rec_filter1);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter2._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                db_get_record_filter((Database *)m_db));
 
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter3));
         BFC_ASSERT(rec_filter1._next==&rec_filter2);
@@ -324,24 +326,28 @@ public:
         BFC_ASSERT(rec_filter3._prev==&rec_filter2);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter3._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                db_get_record_filter((Database *)m_db));
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter2));
         BFC_ASSERT(rec_filter1._next==&rec_filter3);
         BFC_ASSERT(rec_filter3._prev==&rec_filter1);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter3._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                db_get_record_filter((Database *)m_db));
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter3));
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter1._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                db_get_record_filter((Database *)m_db));
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter1));
-        BFC_ASSERT(0==db_get_record_filter(m_db));
+        BFC_ASSERT(0==db_get_record_filter((Database *)m_db));
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 

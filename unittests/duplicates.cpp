@@ -717,8 +717,8 @@ public:
         insertData("222", "bbbbbbbbbb");
         insertData("333", "cccccccccc");
 
-        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db,
+        ham_btree_t *be=(ham_btree_t *)((Database *)m_db)->get_backend();
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, (Database *)m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
 
@@ -921,7 +921,7 @@ public:
 			BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 			BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
 		}
-        BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
+        BFC_ASSERT(db_get_rt_flags((Database *)m_db)&HAM_ENABLE_DUPLICATES);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         
@@ -1798,7 +1798,7 @@ public:
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
             BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
-            BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
+            BFC_ASSERT(db_get_rt_flags((Database *)m_db)&HAM_ENABLE_DUPLICATES);
 
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 

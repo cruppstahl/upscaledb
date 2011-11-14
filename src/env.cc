@@ -39,7 +39,7 @@
 
 typedef struct free_cb_context_t
 {
-    ham_db_t *db;
+    Database *db;
     ham_bool_t is_leaf;
 
 } free_cb_context_t;
@@ -77,7 +77,7 @@ ham_env_t::ham_env_t()
  * forward decl - implemented in hamsterdb.c 
  */
 extern ham_status_t 
-__check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename, 
+__check_create_parameters(ham_env_t *env, Database *db, const char *filename, 
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
@@ -347,6 +347,8 @@ success:
         }
     	env_set_journal(env, journal);
     }
+    else if (journal)
+        delete journal;
 
     return (0);
 }
@@ -597,7 +599,7 @@ _local_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
 static ham_status_t
 _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
-    ham_db_t *db;
+    Database *db;
     ham_status_t st;
     free_cb_context_t context;
     ham_backend_t *be;
@@ -624,12 +626,12 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /*
      * temporarily load the database
      */
-    st=ham_new(&db);
+    st=ham_new((ham_db_t **)&db);
     if (st)
         return (st);
-    st=ham_env_open_db(env, db, name, 0, 0);
+    st=ham_env_open_db(env, (ham_db_t *)db, name, 0, 0);
     if (st) {
-        (void)ham_delete(db);
+        (void)ham_delete((ham_db_t *)db);
         return (st);
     }
 
@@ -649,17 +651,17 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      * cached, delete them from the cache
      */
     context.db=db;
-    be=db_get_backend(db);
+    be=db->get_backend();
     if (!be || !be_is_active(be))
-        return HAM_INTERNAL_ERROR;
+        return (HAM_INTERNAL_ERROR);
 
     if (!be->_fun_enumerate)
-        return HAM_NOT_IMPLEMENTED;
+        return (HAM_NOT_IMPLEMENTED);
 
     st=be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
     if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
+        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_delete((ham_db_t *)db);
         return (st);
     }
 
@@ -678,8 +680,8 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     }
 
     /* clean up and return */
-    (void)ham_close(db, 0);
-    (void)ham_delete(db);
+    (void)ham_close((ham_db_t *)db, 0);
+    (void)ham_delete((ham_db_t *)db);
 
     return (0);
 }
@@ -743,8 +745,7 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * flush the freelist
      */
     st=freel_shutdown(env);
-    if (st)
-    {
+    if (st) {
         if (st2 == 0) 
             st2 = st;
     }
@@ -894,7 +895,7 @@ static ham_status_t
 _local_fun_flush(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db;
+    Database *db;
     ham_device_t *dev;
 
     (void)flags;
@@ -915,7 +916,7 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
     db = env_get_list(env);
     while (db) 
     {
-        ham_backend_t *be=db_get_backend(db);
+        ham_backend_t *be=db->get_backend();
 
         if (!be || !be_is_active(be))
             return HAM_NOT_INITIALIZED;
@@ -954,7 +955,7 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_local_fun_create_db(ham_env_t *env, ham_db_t *db, 
+_local_fun_create_db(ham_env_t *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -1019,7 +1020,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
         if (!name)
             continue;
         if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME) {
-            (void)ham_close(db, 0);
+            (void)ham_close((ham_db_t *)db, 0);
             return (HAM_DATABASE_ALREADY_EXISTS);
         }
     }
@@ -1038,7 +1039,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
         }
     }
     if (dbi==env_get_max_databases(env)) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         return (HAM_LIMITS_REACHED);
     }
 
@@ -1053,19 +1054,17 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     /* 
      * create the backend
      */
-    be = db_get_backend(db);
+    be = db->get_backend();
     if (be == NULL) {
         st=db_create_backend(&be, db, flags);
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
-            (void)ham_close(db, 0);
+            (void)ham_close((ham_db_t *)db, 0);
             goto bail;
         }
 
-        /* 
-         * store the backend in the database
-         */
-        db_set_backend(db, be);
+        /* store the backend in the database */
+        db->set_backend(be);
     }
 
     /* 
@@ -1073,18 +1072,18 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
      */
     st=be->_fun_create(be, keysize, pflags);
     if (st) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         goto bail;
     }
 
     ham_assert(be_is_active(be) != 0, (0));
 
     /*
-     * initialize the remaining function pointers in ham_db_t
+     * initialize the remaining function pointers in Database
      */
     st=db_initialize_local(db);
     if (st) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         goto bail;
     }
 
@@ -1092,13 +1091,13 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
      * set the default key compare functions
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        ham_set_compare_func(db, db_default_recno_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
-        ham_set_compare_func(db, db_default_compare);
-        ham_set_prefix_compare_func(db, db_default_prefix_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_compare);
+        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func(db, db_default_compare);
+    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
     env_set_dirty(env);
 
     /* 
@@ -1121,13 +1120,13 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
      * set the key compare function
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        ham_set_compare_func(db, db_default_recno_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
-        ham_set_compare_func(db, db_default_compare);
-        ham_set_prefix_compare_func(db, db_default_prefix_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_compare);
+        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func(db, db_default_compare);
+    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1150,10 +1149,10 @@ bail:
 }
 
 static ham_status_t 
-_local_fun_open_db(ham_env_t *env, ham_db_t *db, 
+_local_fun_open_db(ham_env_t *env, Database *db, 
         ham_u16_t name, ham_u32_t flags, const ham_parameter_t *param)
 {
-    ham_db_t *head;
+    Database *head;
     ham_status_t st;
     ham_u16_t dam = 0;
     ham_u64_t cachesize = 0;
@@ -1218,26 +1217,24 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     }
 
     if (dbi==env_get_max_databases(env)) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         return (HAM_DATABASE_NOT_FOUND);
     }
 
     /* 
      * create the backend
      */
-    be = db_get_backend(db);
+    be = db->get_backend();
     if (be == NULL) {
         st=db_create_backend(&be, db, flags);
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
-            (void)ham_close(db, 0);
+            (void)ham_close((ham_db_t *)db, 0);
             return (st);
         }
 
-        /* 
-        * store the backend in the database
-        */
-        db_set_backend(db, be);
+        /* store the backend in the database */
+        db->set_backend(be);
     }
 
     /* 
@@ -1245,18 +1242,18 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
      */
     st=be->_fun_open(be, flags);
     if (st) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         return (st);
     }
 
     ham_assert(be_is_active(be) != 0, (0));
 
     /*
-     * initialize the remaining function pointers in ham_db_t
+     * initialize the remaining function pointers in Database
      */
     st=db_initialize_local(db);
     if (st) {
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         return (st);
     }
 
@@ -1310,7 +1307,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
             && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
                    "enabled for this Database"));
-        (void)ham_close(db, 0);
+        (void)ham_close((ham_db_t *)db, 0);
         return (HAM_INV_PARAMETER);
     }
 
@@ -1334,13 +1331,13 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
      * set the key compare function
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        ham_set_compare_func(db, db_default_recno_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
-        ham_set_compare_func(db, db_default_compare);
-        ham_set_prefix_compare_func(db, db_default_prefix_compare);
+        ham_set_compare_func((ham_db_t *)db, db_default_compare);
+        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func(db, db_default_compare);
+    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1353,7 +1350,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
 }
 
 static ham_status_t
-_local_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
+_local_fun_txn_begin(ham_env_t *env, Database *db, 
                     ham_txn_t **txn, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1512,7 +1509,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
-        ham_backend_t *be=db_get_backend(txn_opnode_get_db(node));
+        ham_backend_t *be=txn_opnode_get_db(node)->get_backend();
 
         /* make sure that this op was not yet flushed - this would be
          * a serious bug */

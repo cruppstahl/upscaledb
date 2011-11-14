@@ -43,15 +43,15 @@ __cmpfoo(void *vlhs, void *vrhs)
     ham_compare_func_t foo;
     txn_opnode_t *lhs=(txn_opnode_t *)vlhs;
     txn_opnode_t *rhs=(txn_opnode_t *)vrhs;
-    ham_db_t *db=txn_opnode_get_db(lhs);
+    Database *db=txn_opnode_get_db(lhs);
 
     ham_assert(txn_opnode_get_db(lhs)==txn_opnode_get_db(rhs), (""));
     if (lhs==rhs)
         return (0);
 
-    foo=db_get_compare_func(db);
+    foo=db->get_compare_func();
 
-    return (foo(db, 
+    return (foo((ham_db_t *)db, 
                 (ham_u8_t *)txn_opnode_get_key(lhs)->data, 
                 txn_opnode_get_key(lhs)->size,
                 (ham_u8_t *)txn_opnode_get_key(rhs)->data, 
@@ -113,7 +113,7 @@ txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn)
 }
 
 void
-txn_tree_init(ham_db_t *db, txn_optree_t *tree)
+txn_tree_init(Database *db, txn_optree_t *tree)
 {
     txn_optree_set_db(tree, db);
     rbt_new(tree);
@@ -176,7 +176,7 @@ __copy_key_data(mem_allocator_t *alloc, ham_key_t *key)
 }
 
 txn_opnode_t *
-txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags)
+txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 {
     int cmp;
     txn_opnode_t *node=0, tmp;
@@ -217,7 +217,7 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags)
 }
 
 txn_opnode_t *
-txn_opnode_create(ham_db_t *db, ham_key_t *key)
+txn_opnode_create(Database *db, ham_key_t *key)
 {
     txn_opnode_t *node=0;
     txn_optree_t *tree=db_get_optree(db);

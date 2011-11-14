@@ -70,6 +70,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    Database *m_dbp;
     ham_env_t *m_env;
     memtracker_t *m_alloc;
 
@@ -92,6 +93,7 @@ public:
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
+        m_dbp=(Database *)m_db;
     }
     
     virtual void teardown() 
@@ -108,7 +110,7 @@ public:
     void checkIfLogCreatedTest(void)
     {
         BFC_ASSERT(env_get_log(m_env)!=0);
-        BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_RECOVERY);
+        BFC_ASSERT(db_get_rt_flags(m_dbp)&HAM_ENABLE_RECOVERY);
     }
 
     void beginCommitTest(void)
@@ -206,12 +208,12 @@ public:
         txn_optree_t *tree;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=db_get_optree(m_db);
+        tree=db_get_optree(m_dbp);
         BFC_ASSERT(tree!=0);
 
-        txn_optree_set_db(tree, (ham_db_t *)1);
-        BFC_ASSERT_EQUAL((ham_db_t *)1, txn_optree_get_db(tree));
-        txn_optree_set_db(tree, (ham_db_t *)m_db);
+        txn_optree_set_db(tree, (Database *)1);
+        BFC_ASSERT_EQUAL((Database *)1, txn_optree_get_db(tree));
+        txn_optree_set_db(tree, m_dbp);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
@@ -222,9 +224,9 @@ public:
         txn_optree_t *tree, *tree2;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=db_get_optree(m_db);
+        tree=db_get_optree(m_dbp);
         BFC_ASSERT(tree!=0);
-        tree2=db_get_optree(m_db);
+        tree2=db_get_optree(m_dbp);
         BFC_ASSERT_EQUAL(tree, tree2);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -242,9 +244,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db3, 15, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree1=db_get_optree(m_db);
-        tree2=db_get_optree(db2);
-        tree3=db_get_optree(db3);
+        tree1=db_get_optree(m_dbp);
+        tree2=db_get_optree((Database *)db2);
+        tree3=db_get_optree((Database *)db3);
         BFC_ASSERT(tree1!=0);
         BFC_ASSERT(tree2!=0);
         BFC_ASSERT(tree3!=0);
@@ -269,13 +271,13 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=db_get_optree(m_db);
-        node=txn_opnode_create(m_db, &key);
+        tree=db_get_optree(m_dbp);
+        node=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node!=0);
 
-        txn_opnode_set_db(tree, (ham_db_t *)1);
-        BFC_ASSERT_EQUAL((ham_db_t *)1, txn_opnode_get_db(tree));
-        txn_opnode_set_db(tree, (ham_db_t *)m_db);
+        txn_opnode_set_db(tree, (Database *)1);
+        BFC_ASSERT_EQUAL((Database *)1, txn_opnode_get_db(tree));
+        txn_opnode_set_db(tree, m_dbp);
 
         ham_key_t *k=txn_opnode_get_key(node);
         BFC_ASSERT_EQUAL(k->size, key.size);
@@ -310,13 +312,13 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key1);
+        node=txn_opnode_create(m_dbp, &key1);
         BFC_ASSERT(node!=0);
-        node2=txn_opnode_get(m_db, &key1, 0);
+        node2=txn_opnode_get(m_dbp, &key1, 0);
         BFC_ASSERT_EQUAL(node, node2);
-        node2=txn_opnode_get(m_db, &key2, 0);
+        node2=txn_opnode_get(m_dbp, &key2, 0);
         BFC_ASSERT_EQUAL((txn_opnode_t *)NULL, node2);
-        node2=txn_opnode_create(m_db, &key2);
+        node2=txn_opnode_create(m_dbp, &key2);
         BFC_ASSERT(node!=node2);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -334,13 +336,13 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node1=txn_opnode_create(m_db, &key);
+        node1=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node1!=0);
         key.data=(void *)"2222";
-        node2=txn_opnode_create(m_db, &key);
+        node2=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node2!=0);
         key.data=(void *)"3333";
-        node3=txn_opnode_create(m_db, &key);
+        node3=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node3!=0);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -362,7 +364,7 @@ public:
         memset(&next, 0, sizeof(next));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create(m_dbp, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -410,7 +412,7 @@ public:
         rec.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create(m_dbp, &key);
         op1=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);
         op2=txn_opnode_append(txn, node, 0, TXN_OP_ERASE, 55, &rec);
@@ -835,17 +837,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
 
-        BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db));
-        BFC_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db));
-        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags(m_db));
+        BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags((Database *)m_db));
+        BFC_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags((Database *)m_db));
+        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags((Database *)m_db));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db)));
-        BFC_ASSERT(!(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db)));
-        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags(m_db));
+        BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags((Database *)m_db)));
+        BFC_ASSERT(!(HAM_ENABLE_RECOVERY&db_get_rt_flags((Database *)m_db)));
+        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags((Database *)m_db));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
@@ -1035,7 +1037,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec2, 0));
@@ -1060,7 +1062,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));

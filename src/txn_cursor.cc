@@ -19,7 +19,7 @@
 #include "btree_cursor.h"
 
 ham_status_t
-txn_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+txn_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, Cursor *parent)
 {
     (void)db;
@@ -86,7 +86,7 @@ txn_cursor_conflicts(txn_cursor_t *cursor)
 ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op;
     txn_opnode_t *node;
@@ -177,7 +177,7 @@ ham_status_t
 txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     txn_opnode_t *node;
 
     if (flags&HAM_CURSOR_FIRST) {
@@ -337,7 +337,7 @@ ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
 
     return (db_insert_txn(db, txn, key, record, flags, cursor));
@@ -346,7 +346,7 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
 ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
 {
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     ham_key_t *source=0;
 
     /* coupled cursor? get key from the txn_op structure */
@@ -383,7 +383,7 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
 ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
 {
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     ham_record_t *source=0;
 
     /* coupled cursor? get record from the txn_op structure */
@@ -437,7 +437,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     ham_status_t st;
     txn_op_t *op;
     txn_opnode_t *node;
-    ham_db_t *db=txn_cursor_get_db(cursor);
+    Database *db=txn_cursor_get_db(cursor);
     Cursor *parent=txn_cursor_get_parent(cursor);
     ham_txn_t *txn=parent->get_txn();
 

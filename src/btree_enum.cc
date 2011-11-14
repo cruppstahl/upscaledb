@@ -55,7 +55,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
     ham_offset_t ptr_left;
     btree_node_t *node;
     ham_status_t st;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     ham_status_t cb_st = CB_CONTINUE;
 
     ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
@@ -167,7 +167,7 @@ _enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
 {
     ham_size_t i;
     ham_size_t count;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
     ham_bool_t is_leaf;

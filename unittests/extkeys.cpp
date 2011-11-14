@@ -52,9 +52,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
-        ExtKeyCache *c=new ExtKeyCache(m_db);
+        ExtKeyCache *c=new ExtKeyCache((Database *)m_db);
         BFC_ASSERT(c!=0);
-        db_set_extkey_cache(m_db, c);
+        db_set_extkey_cache((Database *)m_db, c);
     }
     
     virtual void teardown() 
@@ -68,7 +68,7 @@ public:
 
     void insertFetchRemoveTest(void)
     {
-        ExtKeyCache *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=db_get_extkey_cache((Database *)m_db);
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
@@ -83,7 +83,7 @@ public:
 
     void negativeFetchTest(void)
     {
-        ExtKeyCache *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=db_get_extkey_cache((Database *)m_db);
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
@@ -100,7 +100,7 @@ public:
 
     void bigCacheTest(void)
     {
-        ExtKeyCache *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=db_get_extkey_cache((Database *)m_db);
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
@@ -126,7 +126,7 @@ public:
 
     void purgeTest(void)
     {
-        ExtKeyCache *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=db_get_extkey_cache((Database *)m_db);
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
@@ -134,7 +134,7 @@ public:
             c->insert((ham_offset_t)i, sizeof(buffer), buffer);
         }
 
-        ham_env_t *env=db_get_env(m_db);
+        ham_env_t *env=ham_get_env(m_db);
         env_set_txn_id(env, env_get_txn_id(env)+2000);
 
         c->purge();

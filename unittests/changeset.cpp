@@ -53,7 +53,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
                 HAM_ENABLE_RECOVERY, 0644, 0));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 

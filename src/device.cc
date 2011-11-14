@@ -160,7 +160,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     ham_u8_t *buffer;
     ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     ham_file_filter_t *head=0;
     ham_size_t size=self->get_pagesize(self);
     

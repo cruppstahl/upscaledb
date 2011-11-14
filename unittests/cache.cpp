@@ -267,7 +267,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, ".test", HAM_CACHE_STRICT, 0644, &param[0]));
-        ham_env_t *env=db_get_env(db);
+        ham_env_t *env=ham_get_env(db);
         Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(cache->get_capacity(), 1024*1024*2u);
@@ -275,11 +275,11 @@ public:
         unsigned int max_pages=HAM_DEFAULT_CACHESIZE/(1024*128);
         unsigned int i;
         for (i=0; i<max_pages; i++)
-            BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
+            BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], (Database *)db, 0, 0));
 
-        BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], db, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], (Database *)db, 0, 0));
         BFC_ASSERT_EQUAL(0, env_purge_cache(ham_get_env(db)));
-        BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
+        BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], (Database *)db, 0, 0));
 
         ham_close(db, 0);
         ham_delete(db);
@@ -335,7 +335,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0644, &param[0]));
-        ham_env_t *env=db_get_env(db);
+        ham_env_t *env=ham_get_env(db);
         Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
@@ -355,7 +355,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0644, &param[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_open_ex(db, ".test.db", 0, &param[0]));
-        ham_env_t *env=db_get_env(db);
+        ham_env_t *env=ham_get_env(db);
         Cache *cache=env_get_cache(env);
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());

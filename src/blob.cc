@@ -353,7 +353,7 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
  * Partial writes are handled in this function.
  */
 ham_status_t
-blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
+blob_allocate(ham_env_t *env, Database *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid)
 {
     ham_status_t st;
@@ -645,7 +645,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
 }
 
 ham_status_t
-blob_read(ham_db_t *db, ham_offset_t blobid, 
+blob_read(Database *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -781,7 +781,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
 }
 
 ham_status_t
-blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size)
+blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -813,7 +813,7 @@ blob_get_datasize(ham_db_t *db, ham_offset_t blobid, ham_offset_t *size)
 }
 
 ham_status_t
-blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(ham_env_t *env, Database *db, ham_offset_t old_blobid, 
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid)
 {
     ham_status_t st;
@@ -991,7 +991,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
 }
 
 ham_status_t
-blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
+blob_free(ham_env_t *env, Database *db, ham_offset_t blobid, ham_u32_t flags)
 {
     ham_status_t st;
     blob_t hdr;
@@ -1035,10 +1035,10 @@ blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 }
 
 static ham_size_t
-__get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
+__get_sorted_position(Database *db, dupe_table_t *table, ham_record_t *record,
                 ham_u32_t flags)
 {
-    ham_duplicate_compare_func_t foo = db_get_duplicate_compare_func(db);
+    ham_duplicate_compare_func_t foo = db->get_duplicate_compare_func();
     ham_size_t l, r, m;
     int cmp;
     dupe_entry_t *e;
@@ -1087,7 +1087,7 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         if (st)
             return (st);
 
-        cmp = foo(db, (ham_u8_t *)record->data, record->size, 
+        cmp = foo((ham_db_t *)db, (ham_u8_t *)record->data, record->size, 
                         (ham_u8_t *)item_record.data, item_record.size);
         /* item is lower than the left-most item of our range */
         if (m == l) {
@@ -1128,7 +1128,7 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
 }
 
 ham_status_t
-blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+blob_duplicate_insert(Database *db, ham_offset_t table_id, 
         ham_record_t *record, ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position)
@@ -1287,7 +1287,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 }
 
 ham_status_t
-blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
+blob_duplicate_erase(Database *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id)
 {
     ham_status_t st;

@@ -255,7 +255,7 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 }
 
 void
-db_update_global_stats_find_query(ham_db_t *db, ham_size_t key_size)
+db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 {
     ham_env_t *env = db_get_env(db);
 
@@ -277,7 +277,7 @@ db_update_global_stats_find_query(ham_db_t *db, ham_size_t key_size)
 }
 
 void
-db_update_global_stats_insert_query(ham_db_t *db, ham_size_t key_size, ham_size_t record_size)
+db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_t record_size)
 {
     ham_env_t *env = db_get_env(db);
 
@@ -299,7 +299,7 @@ db_update_global_stats_insert_query(ham_db_t *db, ham_size_t key_size, ham_size_
 }
 
 void
-db_update_global_stats_erase_query(ham_db_t *db, ham_size_t key_size)
+db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 {
     ham_env_t *env = db_get_env(db);
 
@@ -370,7 +370,7 @@ rescale_db_stats(ham_runtime_statistics_dbdata_t *dbstats)
  * update statistics following a followed up out-of-bound hint 
  */
 void 
-stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, 
+stats_update_fail_oob(int op, Database *db, ham_size_t cost, 
                     ham_bool_t try_fast_track)
 {
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
@@ -382,7 +382,7 @@ stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost,
 }
 
 void 
-stats_update_fail(int op, ham_db_t *db, ham_size_t cost, 
+stats_update_fail(int op, Database *db, ham_size_t cost, 
                     ham_bool_t try_fast_track)
 {
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
@@ -417,7 +417,7 @@ stats_update_fail(int op, ham_db_t *db, ham_size_t cost,
 }
 
 void 
-stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, 
+stats_update(int op, Database *db, ham_page_t *page, ham_size_t cost, 
                     ham_bool_t try_fast_track)
 {
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
@@ -476,7 +476,7 @@ stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost,
  * INVALID btree node later on!
  */
 void 
-btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, 
+btree_stats_page_is_nuked(Database *db, struct ham_page_t *page, 
                     ham_bool_t split)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
@@ -526,7 +526,7 @@ btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page,
 }
 
 void 
-btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, 
+btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;
@@ -707,7 +707,7 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
  * hinting in such mixed use cases.
  */
 void 
-btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
+btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_FIND);
@@ -931,7 +931,7 @@ btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
 }
 
 void 
-btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
+btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     btree_cursor_t *cursor = hints->cursor ? 
@@ -1194,7 +1194,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
 }
 
 void 
-btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key)
+btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
 
@@ -1270,13 +1270,13 @@ btree_stats_trash_globdata(ham_env_t *env,
 }
 
 void
-btree_stats_init_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
+btree_stats_init_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
     memset(dbdata, 0, sizeof(*dbdata));
 }
 
 void
-btree_stats_flush_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata,
+btree_stats_flush_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata,
                     ham_bool_t last_in_env)
 {
     /* 
@@ -1286,7 +1286,7 @@ btree_stats_flush_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata,
 }
 
 void
-btree_stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
+btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
     ham_env_t *env = db_get_env(db);
 
@@ -1303,7 +1303,7 @@ btree_stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
 }
 
 ham_status_t
-btree_stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, 
+btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db, 
                     ham_statistics_t *dst)
 {
     ham_status_t st;

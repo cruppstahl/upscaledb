@@ -126,7 +126,7 @@ struct ham_page_t {
         struct mem_allocator_t *_alloc;
 
         /** reference to the database object */
-        ham_db_t *_owner;
+        Database *_owner;
 
         /** the device of this page */
         struct ham_device_t *_device;

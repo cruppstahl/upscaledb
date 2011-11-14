@@ -42,6 +42,8 @@ extern "C" {
 
 class Cursor;
 
+class Database;
+
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
 

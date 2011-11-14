@@ -166,7 +166,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -237,7 +237,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -269,7 +269,7 @@ public:
         k.flags=HAM_KEY_USER_ALLOC;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -295,7 +295,7 @@ public:
         ham_record_t record={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -323,7 +323,7 @@ public:
         key.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -348,7 +348,7 @@ public:
         record.size=5;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -380,7 +380,7 @@ public:
         r.flags=HAM_RECORD_USER_ALLOC;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -406,7 +406,7 @@ public:
         ham_record_t r={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -432,7 +432,7 @@ public:
         ham_record_t r={0};
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        node=txn_opnode_create(m_db, &key);
+        node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 

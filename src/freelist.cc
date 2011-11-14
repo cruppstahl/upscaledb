@@ -150,11 +150,11 @@ __freel_destructor16(ham_device_t *dev, ham_env_t *env);
 extern ham_status_t
 __freel_flush_stats16(ham_device_t *dev, ham_env_t *env);
 extern ham_status_t
-__freel_mark_free16(ham_device_t *dev, ham_env_t *env, ham_db_t *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free16(ham_device_t *dev, ham_env_t *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
 __freel_check_area_is_allocated16(ham_device_t *dev, ham_env_t *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area16(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, ham_db_t *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area16(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
 __freel_init_perf_data16(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
@@ -165,11 +165,11 @@ __freel_destructor32(ham_device_t *dev, ham_env_t *env);
 extern ham_status_t
 __freel_flush_stats32(ham_device_t *dev, ham_env_t *env);
 extern ham_status_t
-__freel_mark_free32(ham_device_t *dev, ham_env_t *env, ham_db_t *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free32(ham_device_t *dev, ham_env_t *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
 __freel_check_area_is_allocated32(ham_device_t *dev, ham_env_t *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, ham_db_t *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
 __freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
@@ -3155,7 +3155,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
 ham_status_t
 __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev, 
-                ham_env_t *env, ham_db_t *db, ham_size_t size, 
+                ham_env_t *env, Database *db, ham_size_t size, 
                 ham_bool_t aligned, ham_offset_t lower_bound_address)
 {
     ham_status_t st;
@@ -3601,7 +3601,7 @@ __freel_destructorXX(ham_device_t *dev, ham_env_t *env)
 
 
 ham_status_t
-__freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, ham_db_t *db, 
+__freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, Database *db, 
                 ham_offset_t address, ham_size_t size, ham_bool_t overwrite)
 {
     ham_status_t st;
@@ -3875,7 +3875,7 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *
 #if defined(IMPLEMENT_MODERN_FREELIST32)
 
 static ham_status_t
-__freel_constructor(ham_device_t *dev, ham_env_t *env, ham_db_t *db)
+__freel_constructor(ham_device_t *dev, ham_env_t *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;
@@ -3999,7 +3999,7 @@ freel_shutdown(ham_env_t *env)
 }
 
 ham_status_t
-freel_mark_free(ham_env_t *env, ham_db_t *db, ham_offset_t address, 
+freel_mark_free(ham_env_t *env, Database *db, ham_offset_t address, 
                 ham_size_t size, ham_bool_t overwrite)
 {
     freelist_cache_t *cache;
@@ -4032,7 +4032,7 @@ freel_mark_free(ham_env_t *env, ham_db_t *db, ham_offset_t address,
 }
 
 ham_status_t
-freel_check_area_is_allocated(ham_env_t *env, ham_db_t *db, 
+freel_check_area_is_allocated(ham_env_t *env, Database *db, 
                 ham_offset_t address, ham_size_t size)
 {
     freelist_cache_t *cache;
@@ -4066,7 +4066,7 @@ freel_check_area_is_allocated(ham_env_t *env, ham_db_t *db,
 
 
 ham_status_t 
-freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db, 
+freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, Database *db, 
                 ham_size_t size)
 {
     return freel_alloc_area_ex(addr_ref, env, db, size, HAM_FALSE, 0);
@@ -4074,7 +4074,7 @@ freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
 
 
 ham_status_t
-freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
+freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, Database *db,
                 ham_size_t size, ham_bool_t aligned, 
                 ham_offset_t lower_bound_address)
 {
@@ -4112,7 +4112,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
 }
 
 ham_status_t
-freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db)
+freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;

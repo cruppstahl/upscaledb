@@ -37,7 +37,7 @@ class DbTest : public hamsterDB_fixture
 public:
     DbTest(bool inmemory=false, const char *name="DbTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_env(0), m_inmemory(inmemory), m_alloc(0)
+        m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory), m_alloc(0)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DbTest, checkStructurePackingTest);
@@ -53,6 +53,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    Database *m_dbp;
     ham_env_t *m_env;
     ham_bool_t m_inmemory;
     memtracker_t *m_alloc;
@@ -72,6 +73,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 
                         HAM_ENABLE_DUPLICATES, 0));
+        m_dbp=(Database *)m_db;
     }
     
     virtual void teardown() 
@@ -108,60 +110,60 @@ public:
     {
         BFC_ASSERT(env_get_header_page(m_env)!=0);
 
-        BFC_ASSERT_EQUAL(0, db_get_error(m_db));
-        db_set_error(m_db, HAM_IO_ERROR);
-        BFC_ASSERT_EQUAL(HAM_IO_ERROR, db_get_error(m_db));
+        BFC_ASSERT_EQUAL(0, m_dbp->get_error());
+        m_dbp->set_error(HAM_IO_ERROR);
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, m_dbp->get_error());
 
-        BFC_ASSERT_NOTNULL(db_get_backend(m_db));// already initialized
-        ham_backend_t *oldbe=db_get_backend(m_db);
-        db_set_backend(m_db, (ham_backend_t *)15);
-        BFC_ASSERT_EQUAL((ham_backend_t *)15, db_get_backend(m_db));
-        db_set_backend(m_db, oldbe);
+        BFC_ASSERT_NOTNULL(m_dbp->get_backend());// already initialized
+        ham_backend_t *oldbe=m_dbp->get_backend();
+        m_dbp->set_backend((ham_backend_t *)15);
+        BFC_ASSERT_EQUAL((ham_backend_t *)15, m_dbp->get_backend());
+        m_dbp->set_backend(oldbe);
 
         BFC_ASSERT_NOTNULL(env_get_cache(m_env));
 
-        BFC_ASSERT(0!=db_get_prefix_compare_func(m_db));
-        ham_prefix_compare_func_t oldfoo=db_get_prefix_compare_func(m_db);
-        db_set_prefix_compare_func(m_db, (ham_prefix_compare_func_t)18);
+        BFC_ASSERT(0!=m_dbp->get_prefix_compare_func());
+        ham_prefix_compare_func_t oldfoo=m_dbp->get_prefix_compare_func();
+        m_dbp->set_prefix_compare_func((ham_prefix_compare_func_t)18);
         BFC_ASSERT_EQUAL((ham_prefix_compare_func_t)18, 
-                db_get_prefix_compare_func(m_db));
-        db_set_prefix_compare_func(m_db, oldfoo);
+                m_dbp->get_prefix_compare_func());
+        m_dbp->set_prefix_compare_func(oldfoo);
 
-        ham_compare_func_t oldfoo2=db_get_compare_func(m_db);
-        BFC_ASSERT(0!=db_get_compare_func(m_db));
-        db_set_compare_func(m_db, (ham_compare_func_t)19);
-        BFC_ASSERT_EQUAL((ham_compare_func_t)19, db_get_compare_func(m_db));
-        db_set_compare_func(m_db, oldfoo2);
+        ham_compare_func_t oldfoo2=m_dbp->get_compare_func();
+        BFC_ASSERT(0!=m_dbp->get_compare_func());
+        m_dbp->set_compare_func((ham_compare_func_t)19);
+        BFC_ASSERT_EQUAL((ham_compare_func_t)19, m_dbp->get_compare_func());
+        m_dbp->set_compare_func(oldfoo2);
 
         page_set_undirty(env_get_header_page(m_env));
         BFC_ASSERT(!env_is_dirty(m_env));
         env_set_dirty(m_env);
         BFC_ASSERT(env_is_dirty(m_env));
 
-        BFC_ASSERT(0!=db_get_rt_flags(m_db));
+        BFC_ASSERT(0!=db_get_rt_flags(m_dbp));
 
-        BFC_ASSERT(db_get_env(m_db)!=0);
+        BFC_ASSERT(db_get_env(m_dbp)!=0);
 
-        BFC_ASSERT_EQUAL((void *)0, db_get_next(m_db));
-        db_set_next(m_db, (ham_db_t *)40);
-        BFC_ASSERT_EQUAL((ham_db_t *)40, db_get_next(m_db));
-        db_set_next(m_db, (ham_db_t *)0);
+        BFC_ASSERT_EQUAL((void *)0, db_get_next(m_dbp));
+        db_set_next(m_dbp, (Database *)40);
+        BFC_ASSERT_EQUAL((Database *)40, db_get_next(m_dbp));
+        db_set_next(m_dbp, (Database *)0);
 
-        BFC_ASSERT_EQUAL(0u, db_get_record_allocsize(m_db));
-        db_set_record_allocsize(m_db, 21);
-        BFC_ASSERT_EQUAL(21u, db_get_record_allocsize(m_db));
-        db_set_record_allocsize(m_db, 0);
+        BFC_ASSERT_EQUAL(0u, db_get_record_allocsize(m_dbp));
+        db_set_record_allocsize(m_dbp, 21);
+        BFC_ASSERT_EQUAL(21u, db_get_record_allocsize(m_dbp));
+        db_set_record_allocsize(m_dbp, 0);
 
-        BFC_ASSERT_EQUAL((void *)0, db_get_record_allocdata(m_db));
-        db_set_record_allocdata(m_db, (void *)22);
-        BFC_ASSERT_EQUAL((void *)22, db_get_record_allocdata(m_db));
-        db_set_record_allocdata(m_db, 0);
+        BFC_ASSERT_EQUAL((void *)0, db_get_record_allocdata(m_dbp));
+        db_set_record_allocdata(m_dbp, (void *)22);
+        BFC_ASSERT_EQUAL((void *)22, db_get_record_allocdata(m_dbp));
+        db_set_record_allocdata(m_dbp, 0);
 
-        BFC_ASSERT_EQUAL(1u, db_is_active(m_db));
-        db_set_active(m_db, HAM_FALSE);
-        BFC_ASSERT_EQUAL(0u, db_is_active(m_db));
-        db_set_active(m_db, HAM_TRUE);
-        BFC_ASSERT_EQUAL(1u, db_is_active(m_db));
+        BFC_ASSERT_EQUAL(1u, db_is_active(m_dbp));
+        db_set_active(m_dbp, HAM_FALSE);
+        BFC_ASSERT_EQUAL(0u, db_is_active(m_dbp));
+        db_set_active(m_dbp, HAM_TRUE);
+        BFC_ASSERT_EQUAL(1u, db_is_active(m_dbp));
     }
 
     void envStructureTest()
@@ -242,8 +244,8 @@ public:
     {
         ham_page_t *page;
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
-        BFC_ASSERT_EQUAL(m_db, page_get_owner(page));
+                db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
+        BFC_ASSERT_EQUAL(m_dbp, page_get_owner(page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
     }
 
@@ -251,10 +253,10 @@ public:
     {
         ham_page_t *p1, *p2;
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&p1, m_db, 0, PAGE_IGNORE_FREELIST));
-        BFC_ASSERT_EQUAL(m_db, page_get_owner(p1));
+                db_alloc_page(&p1, m_dbp, 0, PAGE_IGNORE_FREELIST));
+        BFC_ASSERT_EQUAL(m_dbp, page_get_owner(p1));
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&p2, m_db, page_get_self(p1), 0));
+                db_fetch_page(&p2, m_dbp, page_get_self(p1), 0));
         BFC_ASSERT_EQUAL(page_get_self(p2), page_get_self(p1));
         BFC_ASSERT_EQUAL(0, db_free_page(p1, 0));
     }
@@ -266,9 +268,9 @@ public:
         ham_u8_t *p;
 
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
 
-        BFC_ASSERT(page_get_owner(page)==m_db);
+        BFC_ASSERT(page_get_owner(page)==m_dbp);
         p=page_get_raw_payload(page);
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
@@ -277,7 +279,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_flush_page(m_env, page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
 
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, address, 0));
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_dbp, address, 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(address, page_get_self(page));
         p=page_get_raw_payload(page);
@@ -340,15 +342,14 @@ public:
 
         BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
         ham_page_t page = {{0}};
-        ham_db_t db = {0};
+        Database db;
         ham_backend_t be = {0};
 
         page_set_self(&page, 1000);
         page_set_owner(&page, &db);
-        db_set_backend(&db, &be);
+        db.set_backend(&be);
         be_set_keysize(&be, 666);
-        for (i = 0; i < 5; i++)
-        {
+        for (i = 0; i < 5; i++) {
             BFC_ASSERT_I(compare_sizes(
                 (ham_size_t)btree_node_get_key_offset(&page, i), 
                 (ham_size_t)1000+12+28+(i*(11+666))), i);

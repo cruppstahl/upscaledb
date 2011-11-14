@@ -258,7 +258,7 @@ class Cursor
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
-    Cursor(ham_db_t *db, ham_txn_t *txn=0, ham_u32_t flags=0);
+    Cursor(Database *db, ham_txn_t *txn=0, ham_u32_t flags=0);
 
     /** Copy constructor; used for cloning a Cursor */
     Cursor(Cursor &other);
@@ -406,7 +406,7 @@ class Cursor
     }
 
     /** Get the Database */
-    ham_db_t *get_db(void) {
+    Database *get_db(void) {
         return (m_db);
     }
 
@@ -574,7 +574,7 @@ class Cursor
     ham_status_t move_previous_key_singlestep(void);
 
     /** Pointer to the Database object */
-    ham_db_t *m_db;
+    Database *m_db;
 
     /** Pointer to the Transaction */
     ham_txn_t *m_txn;

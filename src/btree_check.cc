@@ -76,7 +76,7 @@ btree_check_integrity(ham_btree_t *be)
     btree_node_t *node;
     ham_status_t st=0;
     ham_offset_t ptr_left;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     check_scratchpad_t scratchpad;
 
     ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
@@ -122,7 +122,7 @@ btree_check_integrity(ham_btree_t *be)
 }
 
 static int
-__key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
+__key_compare_int_to_int(Database *db, ham_page_t *page, 
         ham_u16_t lhs_int, ham_u16_t rhs_int)
 {
     btree_key_t *l;
@@ -163,7 +163,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
     ham_page_t *child, *leftsib=0;
     ham_status_t st=0;
     btree_node_t *node=page_get_btree_node(page);
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
 
     /* 
      * assert that the parent page's smallest item (item 0) is bigger
@@ -221,7 +221,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     int cmp;
     ham_size_t i=0;
     ham_size_t count;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
 
@@ -232,7 +232,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
          * a rootpage can be empty! check if this page is the 
          * rootpage.
          */
-        ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+        ham_btree_t *be=(ham_btree_t *)db->get_backend();
         if (page_get_self(page)==btree_get_rootpage(be))
             return (0);
 

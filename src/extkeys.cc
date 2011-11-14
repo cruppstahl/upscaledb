@@ -44,7 +44,7 @@
 #define extkey_get_data(e)                  (e)->_data
 
 
-ExtKeyCache::ExtKeyCache(ham_db_t *db)
+ExtKeyCache::ExtKeyCache(Database *db)
   : m_db(db), m_usedsize(0), m_extkeyhelper(new ExtKeyHelper(db_get_env(db))),
     m_hash(*m_extkeyhelper)
 {
@@ -116,7 +116,7 @@ ExtKeyCache::purge_all(void)
 }
 
 ham_status_t
-extkey_remove(ham_db_t *db, ham_offset_t blobid)
+extkey_remove(Database *db, ham_offset_t blobid)
 {
     if (db_get_extkey_cache(db))
         db_get_extkey_cache(db)->remove(blobid);

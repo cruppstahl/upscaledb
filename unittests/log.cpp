@@ -78,7 +78,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
     
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
     }
     
     virtual void teardown() 
@@ -92,7 +92,7 @@ public:
 
     Log *disconnect_log_and_create_new_log(void)
     {
-        ham_env_t *env=db_get_env(m_db);
+        ham_env_t *env=db_get_env((Database *)m_db);
         Log *log=new Log(env);
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, log->create());
         delete log;
@@ -270,7 +270,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
         BFC_ASSERT_EQUAL((Log *)0, env_get_log(m_env));
         log=new Log(m_env);
         BFC_ASSERT_EQUAL(0, log->open());
@@ -377,14 +377,14 @@ public:
                         | HAM_ENABLE_RECOVERY
                         | HAM_ENABLE_DUPLICATES, 0644));
 
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
     }
 
     void open(void)
     {
         // open without recovery and transactions (they imply recovery)!
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
     }
     
     virtual void teardown() 
@@ -428,7 +428,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
         BFC_ASSERT(env_get_log(m_env)!=0);
     }
 
@@ -449,7 +449,7 @@ public:
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        m_env=db_get_env((Database *)m_db);
 
         /* make sure that the log file was deleted and that the lsn is 1 */
         Log *log=env_get_log(m_env);
@@ -630,12 +630,13 @@ public:
     void recoverAllocatePageTest(void)
     {
 #ifndef WIN32
+        Database *db=(Database *)m_db;
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
 
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
         page_set_dirty(page);
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
@@ -660,8 +661,9 @@ public:
         /* recover and make sure that the page exists */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps*2, 0));
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page contains the marker */
         for (int i=0; i<200; i++)
             BFC_ASSERT_EQUAL((ham_u8_t)i, page_get_payload(page)[i]);
@@ -679,10 +681,11 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
+        Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
-                    db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+                    db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
@@ -711,9 +714,10 @@ public:
         /* recover and make sure that the pages exists */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(2+i), 0));
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             /* verify that the pages contain the markers */
             for (int j=0; j<200; j++)
                 BFC_ASSERT_EQUAL((ham_u8_t)(i+j), page_get_payload(page[i])[j]);
@@ -732,9 +736,10 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
+        Database *db=(Database *)m_db;
 
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
         page_set_dirty(page);
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
@@ -759,8 +764,9 @@ public:
         /* recover and make sure that the page is ok */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps*2, 0));
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
             BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[i]);
@@ -778,10 +784,11 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
+        Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
-                    db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+                    db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
@@ -813,10 +820,11 @@ public:
         /* recover and make sure that the page is ok */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
         /* verify that the pages does not contain the "XXX..." */
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(2+i), 0));
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             for (int j=0; j<20; j++)
                 BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page[i])[i]);
         }
@@ -834,10 +842,11 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page[10];
+        Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
-                    db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+                    db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
@@ -871,10 +880,11 @@ public:
         /* recover and make sure that the pages are ok */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
         /* verify that the pages do not contain the "XXX..." */
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(2+i), 0));
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             for (int j=0; j<20; j++)
                 BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page[i])[i]);
         }
@@ -892,10 +902,11 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
+        Database *db=(Database *)m_db;
 
         /* modify the header page by updating the freelist */
         BFC_ASSERT_EQUAL(0, 
-                freel_mark_free(m_env, m_db, ps, DB_CHUNKSIZE, HAM_FALSE));
+                freel_mark_free(m_env, db, ps, DB_CHUNKSIZE, HAM_FALSE));
 
         /* flush and backup the logs */
         BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(9));
@@ -919,7 +930,8 @@ public:
         /* recover and make sure that the header page was restored */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
         page=env_get_header_page(m_env);
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
@@ -1053,13 +1065,15 @@ public:
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_offset_t o=env_get_usable_pagesize(m_env)*8*DB_CHUNKSIZE;
         ham_size_t ps=env_get_pagesize(m_env);
+        Database *db=(Database *)m_db;
 
         BFC_ASSERT_EQUAL(0, 
-                freel_mark_free(m_env, m_db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
+                freel_mark_free(m_env, db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
 
         /* flush and backup the logs */
         BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(19));
         env_get_changeset(m_env).clear();
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)0;
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* now truncate the file - we want to make sure that the freelist
@@ -1083,20 +1097,21 @@ public:
         /* recover and make sure that the freelist was restored */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env(m_db);
+        db=(Database *)m_db;
+        m_env=db_get_env(db);
 
         /*
          * The hinters must be disabled for this test to succeed; at least
          * they need to be instructed to kick in late.
          */
-        db_set_data_access_mode(m_db, 
-                db_get_data_access_mode(m_db) & 
+        db_set_data_access_mode(db, 
+                db_get_data_access_mode(db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
                          | HAM_DAM_RANDOM_WRITE));
 
         ham_offset_t addr;
         BFC_ASSERT_EQUAL(0,
-                freel_alloc_area(&addr, m_env, m_db, DB_CHUNKSIZE));
+                freel_alloc_area(&addr, m_env, db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL(3*o, addr);
         env_get_changeset(m_env).clear();
 

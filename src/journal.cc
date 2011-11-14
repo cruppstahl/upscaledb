@@ -180,7 +180,7 @@ Journal::is_empty(void)
 }
 
 ham_status_t
-Journal::append_txn_begin(struct ham_txn_t *txn, ham_db_t *db, ham_u64_t lsn)
+Journal::append_txn_begin(struct ham_txn_t *txn, Database *db, ham_u64_t lsn)
 {
     ham_status_t st;
     JournalEntry entry;
@@ -284,7 +284,7 @@ Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
 }
 
 ham_status_t
-Journal::append_insert(ham_db_t *db, ham_txn_t *txn, 
+Journal::append_insert(Database *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn)
 {
@@ -316,7 +316,7 @@ Journal::append_insert(ham_db_t *db, ham_txn_t *txn,
 }
 
 ham_status_t
-Journal::append_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, 
+Journal::append_erase(Database *db, ham_txn_t *txn, ham_key_t *key, 
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
     char padding[16]={0};
@@ -461,12 +461,12 @@ Journal::close(ham_bool_t noclear)
 }
 
 static ham_status_t
-__recover_get_db(ham_env_t *env, ham_u16_t dbname, ham_db_t **pdb)
+__recover_get_db(ham_env_t *env, ham_u16_t dbname, Database **pdb)
 {
     ham_status_t st;
 
     /* first check if the Database is already open */
-    ham_db_t *db=env_get_list(env);
+    Database *db=env_get_list(env);
     while (db) {
         ham_u16_t name=index_get_dbname(env_get_indexdata_ptr(env,
                             db_get_indexdata_offset(db)));
@@ -478,11 +478,11 @@ __recover_get_db(ham_env_t *env, ham_u16_t dbname, ham_db_t **pdb)
     }
 
     /* not found - open it */
-    st=ham_new(&db);
+    st=ham_new((ham_db_t **)&db);
     if (st)
         return (st);
 
-    st=ham_env_open_db(env, db, dbname, 0, 0);
+    st=ham_env_open_db(env, (ham_db_t *)db, dbname, 0, 0);
     if (st)
         return (st);
 
@@ -510,17 +510,17 @@ static ham_status_t
 __close_all_databases(ham_env_t *env)
 {
     ham_status_t st;
-    ham_db_t *db;
+    Database *db;
 
     while ((db=env_get_list(env))) {
-        st=ham_close(db, 0);
+        st=ham_close((ham_db_t *)db, 0);
         if (st) {
             ham_log(("ham_close() failed w/ error %d (%s)", st, 
                     ham_strerror(st)));
             return (st);
         }
 
-        ham_delete(db);
+        ham_delete((ham_db_t *)db);
     }
 
     return (0);
@@ -607,11 +607,11 @@ Journal::recover()
         switch (entry.type) {
         case ENTRY_TYPE_TXN_BEGIN: {
             ham_txn_t *txn;
-            ham_db_t *db;
+            Database *db;
             st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
-            st=ham_txn_begin(&txn, db, 0);
+            st=ham_txn_begin(&txn, (ham_db_t *)db, 0);
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);
@@ -638,7 +638,7 @@ Journal::recover()
         case ENTRY_TYPE_INSERT: {
             JournalEntryInsert *ins=(JournalEntryInsert *)aux;
             ham_txn_t *txn;
-            ham_db_t *db;
+            Database *db;
             ham_key_t key={0};
             ham_record_t record={0};
             if (!ins) {
@@ -662,13 +662,14 @@ Journal::recover()
             st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
-            st=ham_insert(db, txn, &key, &record, ins->insert_flags);
+            st=ham_insert((ham_db_t *)db, txn, 
+                    &key, &record, ins->insert_flags);
             break;
         }
         case ENTRY_TYPE_ERASE: {
             JournalEntryErase *e=(JournalEntryErase *)aux;
             ham_txn_t *txn;
-            ham_db_t *db;
+            Database *db;
             ham_key_t key={0};
             if (!e) {
                 st=HAM_IO_ERROR;
@@ -687,7 +688,7 @@ Journal::recover()
                 break;
             key.data=e->get_key_data();
             key.size=e->key_size;
-            st=ham_erase(db, txn, &key, e->erase_flags);
+            st=ham_erase((ham_db_t *)db, txn, &key, e->erase_flags);
             break;
         }
         default:

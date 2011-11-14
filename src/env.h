@@ -161,7 +161,7 @@ class ham_env_t
     ham_u32_t _rt_flags;
 
     /** a linked list of all open databases */
-    ham_db_t *_next;
+    Database *_next;
 
     /** the changeset - a list of all pages that were modified during
      * one database operation */
@@ -259,21 +259,21 @@ class ham_env_t
     /**
      * create a database in the environment
      */
-    ham_status_t (*_fun_create_db)(ham_env_t *env, ham_db_t *db, 
+    ham_status_t (*_fun_create_db)(ham_env_t *env, Database *db, 
                 ham_u16_t dbname, ham_u32_t flags, 
                 const ham_parameter_t *param);
 
     /**
      * open a database in the environment
      */
-    ham_status_t (*_fun_open_db)(ham_env_t *env, ham_db_t *db, 
+    ham_status_t (*_fun_open_db)(ham_env_t *env, Database *db, 
                 ham_u16_t dbname, ham_u32_t flags, 
                 const ham_parameter_t *param);
 
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(ham_env_t *env, ham_db_t *db, 
+    ham_status_t (*_fun_txn_begin)(ham_env_t *env, Database *db, 
                 ham_txn_t **txn, ham_u32_t flags);
 
     /**

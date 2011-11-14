@@ -35,7 +35,7 @@
  * key
  */
 ham_status_t 
-btree_get_slot(ham_db_t *db, ham_page_t *page, 
+btree_get_slot(Database *db, ham_page_t *page, 
                 ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
     int cmp = -1;
@@ -137,7 +137,7 @@ static ham_status_t
 btree_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys, 
                 ham_u16_t keysize)
 {
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
 
     if (keysize == 0) {
         *maxkeys=btree_get_maxkeys(be);
@@ -161,7 +161,7 @@ btree_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys,
 /**                                                                 
  * create and initialize a new backend                              
  *                                                                  
- * @remark this function is called after the @a ham_db_t structure  
+ * @remark this function is called after the @a Database structure  
  * and the file were created                                        
  *                                                                  
  * the @a flags are stored in the database; only transfer           
@@ -173,7 +173,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     ham_status_t st;
     ham_page_t *root;
     ham_size_t maxkeys;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                                 db_get_indexdata_offset(db));
     if (be_is_active(be)) {
@@ -240,7 +240,7 @@ btree_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_offset_t recno;
     ham_u16_t maxkeys;
     ham_u16_t keysize;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                                     db_get_indexdata_offset(db));
 
@@ -273,7 +273,7 @@ btree_fun_open(ham_btree_t *be, ham_u32_t flags)
 static ham_status_t
 btree_fun_flush(ham_btree_t *be)
 {
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                         db_get_indexdata_offset(db));
 
@@ -354,7 +354,7 @@ btree_fun_uncouple_all_cursors(ham_btree_t *be, ham_page_t *page,
 static ham_status_t 
 btree_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
 {
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     ham_assert(db, (0));
     return (btree_close_cursors(db, flags));
 }
@@ -366,7 +366,7 @@ btree_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
 static ham_status_t
 btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
 {
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     
     ham_assert(page_get_owner(page) == db, (0));
     
@@ -410,7 +410,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-btree_create(ham_backend_t **pbe, ham_db_t *db, ham_u32_t flags)
+btree_create(ham_backend_t **pbe, Database *db, ham_u32_t flags)
 {
     ham_btree_t *btree;
 
@@ -444,7 +444,7 @@ btree_create(ham_backend_t **pbe, ham_db_t *db, ham_u32_t flags)
 
 ham_status_t
 btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr, 
-                    ham_db_t *db, ham_page_t *page, ham_key_t *key)
+                    Database *db, ham_page_t *page, ham_key_t *key)
 {
     ham_status_t st;
     ham_s32_t slot;
@@ -478,7 +478,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
 }
 
 ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key, 
+btree_node_search_by_key(Database *db, ham_page_t *page, ham_key_t *key, 
                     ham_u32_t flags)
 {
     int cmp;
@@ -724,14 +724,14 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
  * Always make sure the db cursor set is released, no matter what happens.
  */
 ham_status_t 
-btree_close_cursors(ham_db_t *db, ham_u32_t flags)
+btree_close_cursors(Database *db, ham_u32_t flags)
 {
     ham_status_t st = HAM_SUCCESS;
     ham_status_t st2 = HAM_SUCCESS;
 
     /* auto-cleanup cursors? */
-    if (db_get_cursors(db)) {
-        Cursor *c=db_get_cursors(db);
+    if (db->get_cursors()) {
+        Cursor *c=db->get_cursors();
         while (c) {
             Cursor *next=c->get_next();
             if (flags&HAM_AUTO_CLEANUP)
@@ -744,17 +744,17 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
             }
             c=next;
         }
-        db_set_cursors(db, 0);
+        db->set_cursors(0);
     }
     
     return (st2);
 }
 
 ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, int which, 
+btree_prepare_key_for_compare(Database *db, int which, 
                 btree_key_t *src, ham_key_t *dest)
 {
-    ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    ham_btree_t *be=(ham_btree_t *)db->get_backend();
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
     void *p;
 
@@ -788,7 +788,7 @@ btree_prepare_key_for_compare(ham_db_t *db, int which,
 }
 
 int
-btree_compare_keys(ham_db_t *db, ham_page_t *page, 
+btree_compare_keys(Database *db, ham_page_t *page, 
         ham_key_t *lhs, ham_u16_t rhs_int)
 {
     btree_key_t *r;
@@ -822,7 +822,7 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
 }
 
 ham_status_t
-btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest)
+btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
 {
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
@@ -919,7 +919,7 @@ btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest)
 }
 
 ham_status_t
-btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
+btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
             ham_u32_t flags)
 {
     ham_status_t st;
@@ -1002,7 +1002,7 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
 }
 
 ham_status_t
-btree_copy_key_int2pub(ham_db_t *db, const btree_key_t *source, ham_key_t *dest)
+btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
 {
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 

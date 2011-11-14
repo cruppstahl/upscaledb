@@ -39,7 +39,7 @@ btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor,
     btree_node_t *node = NULL;
     btree_key_t *entry;
     ham_s32_t idx = -1;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     find_hints_t hints = {flags, flags, 0, HAM_FALSE, HAM_FALSE, 1};
 
     btree_find_get_hints(&hints, db, key);

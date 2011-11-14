@@ -682,7 +682,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
@@ -704,7 +704,7 @@ public:
         rec2.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* overwrite it in the Transaction */
@@ -754,7 +754,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* couple the cursor to this key */
@@ -867,7 +867,7 @@ public:
         rec2.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
@@ -962,7 +962,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -983,7 +983,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -1044,7 +1044,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
@@ -1070,7 +1070,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1098,7 +1098,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1124,7 +1124,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1152,7 +1152,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1178,7 +1178,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1205,7 +1205,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1237,7 +1237,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1268,7 +1268,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1305,7 +1305,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
@@ -1326,7 +1326,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
@@ -1387,7 +1387,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
@@ -1412,7 +1412,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1440,7 +1440,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1466,7 +1466,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1494,7 +1494,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1520,7 +1520,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1547,7 +1547,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1579,7 +1579,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1611,7 +1611,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1644,7 +1644,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1725,7 +1725,7 @@ public:
         /* and a "greater" one in the btree */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -1751,7 +1751,7 @@ public:
         /* insert a "small" key into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
@@ -1792,7 +1792,7 @@ public:
         rec.data=(void *)"ccccc";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -1841,7 +1841,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1902,7 +1902,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1939,7 +1939,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1990,7 +1990,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
@@ -2053,7 +2053,7 @@ public:
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2110,7 +2110,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2170,7 +2170,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2234,7 +2234,7 @@ public:
         r.data=(void *)rec;
         r.size=rec ? strlen(rec)+1 : 0;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         return (be->_fun_insert(be, &k, &r, flags));
     }
 
@@ -2438,7 +2438,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2519,7 +2519,7 @@ public:
         /* and a "large" one in the btree */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -2545,7 +2545,7 @@ public:
         /* insert a "small" key into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
@@ -2586,7 +2586,7 @@ public:
         rec.data=(void *)"ccccc";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -2635,7 +2635,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2696,7 +2696,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2733,7 +2733,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2784,7 +2784,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
@@ -2847,7 +2847,7 @@ public:
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2904,7 +2904,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2964,7 +2964,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -4178,7 +4178,7 @@ public:
         r.data=(void *)rec;
         r.size=rec ? strlen(rec)+1 : 0;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         return (be->_fun_insert(be, &k, &r, flags));
     }
 

@@ -133,7 +133,7 @@ struct freelist_entry_t
 	 * will assert that address and size are DB_CHUNKSIZE-aligned!      \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_mark_free)(ham_device_t *dev, ham_env_t *env, ham_db_t *db,      \
+	(*_mark_free)(ham_device_t *dev, ham_env_t *env, Database *db,      \
             ham_offset_t address, ham_size_t size,                      \
 			ham_bool_t overwrite);                                      \
                                                                         \
@@ -156,7 +156,7 @@ struct freelist_entry_t
 	 */                                                                 \
 	ham_status_t                                                        \
 	(*_alloc_area)(ham_offset_t *addr_ref, ham_device_t *dev,			\
-			   ham_env_t *env, ham_db_t *db, ham_size_t size,           \
+			   ham_env_t *env, Database *db, ham_size_t size,           \
                ham_bool_t aligned, ham_offset_t lower_bound_address);   \
                                                                         \
 	/**																	\
@@ -430,7 +430,7 @@ freel_shutdown(ham_env_t *env);
  * @a db can be NULL
  */
 extern ham_status_t
-freel_mark_free(ham_env_t *env, ham_db_t *db, 
+freel_mark_free(ham_env_t *env, Database *db, 
             ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 
 /**
@@ -442,7 +442,7 @@ freel_mark_free(ham_env_t *env, ham_db_t *db,
  * will assert that size is DB_CHUNKSIZE-aligned!
  */
 extern ham_status_t
-freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db, 
+freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, Database *db, 
             ham_size_t size);
 
 /**
@@ -463,7 +463,7 @@ freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
  * on a DB_CHUNKSIZE boundary level anyhow.							
  */
 extern ham_status_t
-freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
+freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, Database *db,
                 ham_size_t size, ham_bool_t aligned, 
                 ham_offset_t lower_bound_address);
 
@@ -475,7 +475,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
  * returns 0 on failure
  */
 extern ham_status_t
-freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db);
+freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, Database *db);
 
 /**																	
  * check whether the given block is administrated in the freelist.
@@ -486,7 +486,7 @@ freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db);
  *   freelist.													
  */
 extern ham_status_t
-freel_check_area_is_allocated(ham_env_t *env, ham_db_t *db, 
+freel_check_area_is_allocated(ham_env_t *env, Database *db, 
                 ham_offset_t address, ham_size_t size);
 
 

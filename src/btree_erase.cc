@@ -127,7 +127,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
  * copy a key
  */
 static ham_status_t
-my_copy_key(ham_db_t *db, btree_key_t *lhs, btree_key_t *rhs);
+my_copy_key(Database *db, btree_key_t *lhs, btree_key_t *rhs);
 
 /*
  * replace two keys in a page 
@@ -157,7 +157,7 @@ btree_erase_impl(ham_btree_t *be, ham_key_t *key,
     ham_page_t *root;
     ham_page_t *p;
     ham_offset_t rootaddr;
-    ham_db_t *db=be_get_db(be);
+    Database *db=be_get_db(be);
     erase_scratchpad_t scratchpad;
     erase_hints_t hints = {flags, flags, 
                     cursor 
@@ -257,7 +257,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
     ham_page_t *newme;
     ham_page_t *child;
     ham_page_t *tempp=0;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     btree_node_t *node=page_get_btree_node(page);
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
 
@@ -582,7 +582,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     ham_status_t st;
     ham_s32_t slot;
     ham_size_t c, keysize;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     ham_page_t *ancpage;
     btree_node_t *node, *sibnode, *ancnode;
     btree_key_t *bte_lhs, *bte_rhs;
@@ -748,7 +748,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     ham_size_t s;
     ham_size_t c;
     ham_size_t keysize;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     ham_page_t *ancpage;
     btree_node_t *node, *sibnode, *ancnode;
     btree_key_t *bte_lhs, *bte_rhs;
@@ -1169,7 +1169,7 @@ cleanup:
 }
 
 static ham_status_t
-my_copy_key(ham_db_t *db, btree_key_t *lhs, btree_key_t *rhs)
+my_copy_key(Database *db, btree_key_t *lhs, btree_key_t *rhs)
 {
     memcpy(lhs, rhs, db_get_int_key_header_size()+db_get_keysize(db));
 
@@ -1206,7 +1206,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
 {
     btree_key_t *lhs;
     ham_status_t st;
-    ham_db_t *db=page_get_owner(page);
+    Database *db=page_get_owner(page);
     btree_node_t *node=page_get_btree_node(page);
 
     hints->cost++;
@@ -1284,7 +1284,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     btree_key_t *bte_lhs, *bte_rhs, *bte;
     btree_node_t *node;
     ham_size_t keysize;
-    ham_db_t *db;
+    Database *db;
     btree_cursor_t *btc=0;
 
     db=page_get_owner(page);
@@ -1312,7 +1312,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
-        Cursor *cursors=db_get_cursors(db);
+        Cursor *cursors=db->get_cursors();
         ham_u32_t dupe_id=0;
 
         if (cursors)
