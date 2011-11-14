@@ -657,7 +657,7 @@ blob_read(Database *db, ham_offset_t blobid,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) {
+    if (env_get_rt_flags(db->get_env())&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)U64_TO_PTR(blobid);
         ham_u8_t *data=(ham_u8_t *)(U64_TO_PTR(blobid))+sizeof(blob_t);
 
@@ -702,7 +702,7 @@ blob_read(Database *db, ham_offset_t blobid,
                     st=db_resize_record_allocdata(db, blobsize);
                     if (st)
                         return (st);
-                    record->data = db_get_record_allocdata(db);
+                    record->data = db->get_record_allocdata();
                 }
                 /* and copy the data */
                 memcpy(record->data, d, blobsize);
@@ -718,7 +718,7 @@ blob_read(Database *db, ham_offset_t blobid,
     /*
      * first step: read the blob header 
      */
-    st=__read_chunk(db_get_env(db), 0, &page, blobid, 
+    st=__read_chunk(db->get_env(), 0, &page, blobid, 
                     (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
@@ -761,13 +761,13 @@ blob_read(Database *db, ham_offset_t blobid,
         st=db_resize_record_allocdata(db, blobsize);
         if (st)
             return (st);
-        record->data = db_get_record_allocdata(db);
+        record->data = db->get_record_allocdata();
     }
 
     /*
      * third step: read the blob data
      */
-    st=__read_chunk(db_get_env(db), page, 0, 
+    st=__read_chunk(db->get_env(), page, 0, 
                     blobid+sizeof(blob_t)+(flags&HAM_PARTIAL 
                             ? record->partial_offset 
                             : 0),
@@ -791,7 +791,7 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) {
+    if (env_get_rt_flags(db->get_env())&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)U64_TO_PTR(blobid);
         *size=(ham_size_t)blob_get_size(hdr);
         return (0);
@@ -800,7 +800,7 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
     ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
 
     /* read the blob header */
-    st=__read_chunk(db_get_env(db), 0, &page, blobid,
+    st=__read_chunk(db->get_env(), 0, &page, blobid,
                 (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
@@ -1062,7 +1062,7 @@ __get_sorted_position(Database *db, dupe_table_t *table, ham_record_t *record,
      * in duplicate-key tables (probably a secondary index table for another
      * table, this one).
      */
-    dam = db_get_data_access_mode(db);
+    dam = db->get_data_access_mode();
     if (dam & HAM_DAM_SEQUENTIAL_INSERT) {
         /* assume the insertion point sits at the end of the dupe table */
         m = r;
@@ -1138,7 +1138,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
     ham_bool_t alloc_table=0;
 	ham_bool_t resize=0;
     ham_page_t *page=0;
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
 
     /*
      * create a new duplicate table if none existed, and insert
@@ -1220,7 +1220,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
                         &entries[0], sizeof(entries[0]));
     }
     else {
-        if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+        if (db->get_rt_flags()&HAM_SORT_DUPLICATES) {
             position=__get_sorted_position(db, table, record, flags);
         }
         else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
@@ -1295,13 +1295,13 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
     ham_size_t i;
     dupe_table_t *table;
     ham_offset_t rid;
-	ham_env_t *env = db_get_env(db);
+	ham_env_t *env = db->get_env();
 
     /* store the public record pointer, otherwise it's destroyed */
-    ham_size_t rs=db_get_record_allocsize(db);
-    void      *rp=db_get_record_allocdata(db);
-    db_set_record_allocdata(db, 0);
-    db_set_record_allocsize(db, 0);
+    ham_size_t rs=db->get_record_allocsize();
+    void      *rp=db->get_record_allocdata();
+    db->set_record_allocdata(0);
+    db->set_record_allocsize(0);
 
     memset(&rec, 0, sizeof(rec));
 
@@ -1313,8 +1313,8 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
         return (st);
 
     /* restore the public record pointer */
-    db_set_record_allocsize(db, rs);
-    db_set_record_allocdata(db, rp);
+    db->set_record_allocsize(rs);
+    db->set_record_allocdata(rp);
 
     table=(dupe_table_t *)rec.data;
 

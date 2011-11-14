@@ -184,7 +184,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         /* first set cursor to nil */
         txn_cursor_set_to_nil(cursor);
 
-        node=txn_tree_get_first(db_get_optree(db));
+        node=txn_tree_get_first(db->get_optree());
         if (!node)
             return (HAM_KEY_NOT_FOUND);
         return (__move_top_in_node(cursor, node, 0, HAM_FALSE, flags));
@@ -193,7 +193,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         /* first set cursor to nil */
         txn_cursor_set_to_nil(cursor);
 
-        node=txn_tree_get_last(db_get_optree(db));
+        node=txn_tree_get_last(db->get_optree());
         if (!node)
             return (HAM_KEY_NOT_FOUND);
         return (__move_top_in_node(cursor, node, 0, HAM_FALSE, flags));
@@ -363,7 +363,7 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
                 ham_status_t st=db_resize_key_allocdata(db, source->size);
                 if (st)
                     return (st);
-                key->data=db_get_key_allocdata(db);
+                key->data=db->get_key_allocdata();
             }
             memcpy(key->data, source->data, source->size);
         }
@@ -397,7 +397,7 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
                 ham_status_t st=db_resize_record_allocdata(db, source->size);
                 if (st)
                     return (st);
-                record->data=db_get_record_allocdata(db);
+                record->data=db->get_record_allocdata();
             }
             memcpy(record->data, source->data, source->size);
         }

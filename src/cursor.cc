@@ -33,12 +33,12 @@ ham_status_t
 Cursor::update_dupecache(ham_u32_t what)
 {
     ham_status_t st=0;
-    ham_env_t *env=db_get_env(m_db);
+    ham_env_t *env=m_db->get_env();
     DupeCache *dc=get_dupecache();
     btree_cursor_t *btc=get_btree_cursor();
     txn_cursor_t *txnc=get_txn_cursor();
 
-    if (!(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES))
+    if (!(m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES))
         return (0);
 
     /* if the cache already exists: no need to continue, it should be
@@ -517,7 +517,7 @@ Cursor::move_next_key(ham_u32_t flags)
 
         /* check for duplicates. the dupecache was already updated in 
          * move_next_key_singlestep() */
-        if (db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES) {
+        if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
             /* are there any duplicates? if not then they were all erased and
              * we move to the previous key */
             if (!has_duplicates())
@@ -684,7 +684,7 @@ Cursor::move_previous_key(ham_u32_t flags)
 
         /* check for duplicates. the dupecache was already updated in 
          * move_previous_key_singlestep() */
-        if (db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES) {
+        if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
             /* are there any duplicates? if not then they were all erased and
              * we move to the previous key */
             if (!has_duplicates())
@@ -797,7 +797,7 @@ Cursor::move_first_key(ham_u32_t flags)
 
     /* check for duplicates. the dupecache was already updated in 
      * move_first_key_singlestep() */
-    if (db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES) {
+    if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         /* are there any duplicates? if not then they were all erased and we
          * move to the previous key */
         if (!has_duplicates())
@@ -907,7 +907,7 @@ Cursor::move_last_key(ham_u32_t flags)
 
     /* check for duplicates. the dupecache was already updated in 
      * move_last_key_singlestep() */
-    if (db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES) {
+    if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         /* are there any duplicates? if not then they were all erased and we
          * move to the previous key */
         if (!has_duplicates())
@@ -1059,7 +1059,7 @@ Cursor::Cursor(Cursor &other)
     /* always clone the txn-cursor, even if transactions are not required */
     txn_cursor_clone(other.get_txn_cursor(), get_txn_cursor(), this);
 
-    if (db_get_rt_flags(get_db())&HAM_ENABLE_DUPLICATES)
+    if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES)
         other.get_dupecache()->clone(get_dupecache());
 }
 
@@ -1131,7 +1131,7 @@ Cursor::get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, ham_u32_t flags)
     *pcount=0;
 
     if (txn) {
-        if (db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES) {
+        if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
             ham_bool_t dummy;
             DupeCache *dc=get_dupecache();
 

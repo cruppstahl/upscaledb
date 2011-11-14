@@ -103,7 +103,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
              max_key_size=0, min_rec_size=0xffffffff, max_rec_size=0,
             total_key_size=0, total_rec_size=0;
 
-    be=(ham_btree_t *)db_get_backend(db);
+    be=(ham_btree_t *)((Database *)db)->get_backend();
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
@@ -117,7 +117,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
     printf("        address of root page:   %llu\n", 
             (long long unsigned int)btree_get_rootpage(be));
     printf("        flags:                  0x%04x\n", 
-            db_get_rt_flags(db));
+            ((Database *)db)->get_rt_flags());
 
     if (!full)
         return;
@@ -148,7 +148,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
         if (rec.size>max_rec_size)
             max_rec_size=rec.size;
 
-        if (key.size>db_get_keysize(db))
+        if (key.size>db_get_keysize((Database *)db))
             ext_keys++;
 
         total_key_size+=key.size;

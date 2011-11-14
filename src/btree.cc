@@ -144,7 +144,7 @@ btree_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys,
     }
     else {
         /* prevent overflow - maxkeys only has 16 bit! */
-        *maxkeys=btree_calc_maxkeys(env_get_pagesize(db_get_env(db)), keysize);
+        *maxkeys=btree_calc_maxkeys(env_get_pagesize(db->get_env()), keysize);
         if (*maxkeys>MAX_KEYS_PER_NODE) {
             ham_trace(("keysize/pagesize ratio too high"));
             return (HAM_INV_KEYSIZE);
@@ -174,15 +174,15 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     ham_page_t *root;
     ham_size_t maxkeys;
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
-                                db_get_indexdata_offset(db));
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
+                                db->get_indexdata_offset());
     if (be_is_active(be)) {
         ham_trace(("backend has alread been initialized before!"));
         return (HAM_ALREADY_INITIALIZED); 
     }
 
     /* prevent overflow - maxkeys only has 16 bit! */
-    maxkeys=btree_calc_maxkeys(env_get_pagesize(db_get_env(db)), keysize);
+    maxkeys=btree_calc_maxkeys(env_get_pagesize(db->get_env()), keysize);
     if (maxkeys>MAX_KEYS_PER_NODE) {
         ham_trace(("keysize/pagesize ratio too high"));
         return (HAM_INV_KEYSIZE);
@@ -221,7 +221,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     index_set_recno(indexdata, 0);
     index_clear_reserved(indexdata);
 
-    env_set_dirty(db_get_env(db));
+    env_set_dirty(db->get_env());
     be_set_active(be, HAM_TRUE);
 
     return (0);
@@ -241,8 +241,8 @@ btree_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_u16_t maxkeys;
     ham_u16_t keysize;
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
-                                    db_get_indexdata_offset(db));
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
+                                    db->get_indexdata_offset());
 
     /*
      * load root address and maxkeys (first two bytes are the
@@ -274,8 +274,8 @@ static ham_status_t
 btree_fun_flush(ham_btree_t *be)
 {
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
-                        db_get_indexdata_offset(db));
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
+                        db->get_indexdata_offset());
 
     /* nothing to do if the backend was not touched */
     if (!be_is_dirty(be))
@@ -288,7 +288,7 @@ btree_fun_flush(ham_btree_t *be)
     index_set_recno(indexdata, be_get_recno(be));
     index_clear_reserved(indexdata);
 
-    env_set_dirty(db_get_env(db));
+    env_set_dirty(db->get_env());
     be_set_dirty(be, HAM_FALSE);
 
     return (0);
@@ -303,7 +303,7 @@ static ham_status_t
 btree_fun_close(ham_btree_t *be)
 {
     ham_status_t st;
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(be_get_db(be)));
+    mem_allocator_t *alloc=env_get_allocator(be_get_db(be)->get_env());
 
     /* only flush the backend info if it's dirty */
     st=btree_fun_flush(be);
@@ -389,13 +389,13 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
 
         ham_assert(db, ("Must be set as page owner when this is a Btree page"));
         ham_assert(db=page_get_owner(page), (""));
-        c=db_get_extkey_cache(db);
+        c=db->get_extkey_cache();
 
         for (i=0; i<btree_node_get_count(node); i++) {
             bte=btree_node_get_key(db, node, i);
             if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                 blobid=key_get_extended_rid(db, bte);
-                if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) {
+                if (env_get_rt_flags(db->get_env())&HAM_IN_MEMORY_DB) {
                     /* delete the blobid to prevent that it's freed twice */
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
@@ -417,7 +417,7 @@ btree_create(ham_backend_t **pbe, Database *db, ham_u32_t flags)
     *pbe=0;
 
     btree=(ham_btree_t *)allocator_calloc(
-                    env_get_allocator(db_get_env(db)), sizeof(*btree));
+                    env_get_allocator(db->get_env()), sizeof(*btree));
     if (!btree)
         return (HAM_OUT_OF_MEMORY);
 
@@ -755,7 +755,7 @@ btree_prepare_key_for_compare(Database *db, int which,
                 btree_key_t *src, ham_key_t *dest)
 {
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+    mem_allocator_t *alloc=env_get_allocator(db->get_env());
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -824,7 +824,7 @@ btree_compare_keys(Database *db, ham_page_t *page,
 ham_status_t
 btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+    mem_allocator_t *alloc=env_get_allocator(db->get_env());
 
     /*
      * extended key: copy the whole key, not just the
@@ -841,7 +841,7 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
                  * key data can be allocated in db_get_extended_key():
                  * prevent that heap memory leak
                  */
-                if (dest->data && (db_get_key_allocdata(db)!=dest->data))
+                if (dest->data && (db->get_key_allocdata()!=dest->data))
                     allocator_free(alloc, dest->data);
                 dest->data=0;
             }
@@ -860,8 +860,8 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
         else {
             if (keysize) {
                 (void)db_resize_key_allocdata(db, 0);
-                db_set_key_allocdata(db, dest->data);
-                db_set_key_allocsize(db, keysize);
+                db->set_key_allocdata(dest->data);
+                db->set_key_allocsize(keysize);
             }
             else {
                 dest->data=0;
@@ -880,14 +880,14 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
                 memcpy(dest->data, key_get_key(source), keysize);
             }
             else {
-                if (keysize > db_get_key_allocsize(db)) {
+                if (keysize > db->get_key_allocsize()) {
                     ham_status_t st=db_resize_key_allocdata(db, keysize);
                     if (st)
                         return (st);
                     else
-                        db_set_key_allocsize(db, keysize);
+                        db->set_key_allocsize(keysize);
                 }
-                dest->data = db_get_key_allocdata(db);
+                dest->data = db->get_key_allocdata();
                 memcpy(dest->data, key_get_key(source), keysize);
             }
         }
@@ -904,7 +904,7 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
     /*
      * recno databases: recno is stored in db-endian!
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_u64_t recno;
         ham_assert(dest->data!=0, ("this should never happen."));
         ham_assert(dest->size==sizeof(ham_u64_t), (0));
@@ -931,7 +931,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
      */
     if (record->_intflags&KEY_HAS_DUPLICATES) {
         dupe_entry_t entry;
-        ham_status_t st=blob_duplicate_get(db_get_env(db), record->_rid, 
+        ham_status_t st=blob_duplicate_get(db->get_env(), record->_rid, 
                                             0, &entry);
         if (st)
             return st;
@@ -988,7 +988,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
                 st=db_resize_record_allocdata(db, blobsize);
                 if (st)
                     return (st);
-                record->data = db_get_record_allocdata(db);
+                record->data = db->get_record_allocdata();
             }
             memcpy(record->data, ridptr, blobsize);
             record->size=blobsize;
@@ -1004,7 +1004,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
 ham_status_t
 btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+    mem_allocator_t *alloc=env_get_allocator(db->get_env());
 
     /*
      * extended key: copy the whole key

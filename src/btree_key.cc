@@ -41,11 +41,11 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db, ham_page_t *page,
     rec.data=data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t));
     rec.size=key->size-(db_get_keysize(db)-sizeof(ham_offset_t)); 
 
-    if ((st=blob_allocate(db_get_env(db), db, &rec, 0, &blobid)))
+    if ((st=blob_allocate(db->get_env(), db, &rec, 0, &blobid)))
         return st;
 
-    if (db_get_extkey_cache(db))
-        db_get_extkey_cache(db)->insert(blobid, key->size, 
+    if (db->get_extkey_cache())
+        db->get_extkey_cache()->insert(blobid, key->size, 
                         (ham_u8_t *)key->data);
 
     *rid_ref = blobid;
@@ -57,7 +57,7 @@ key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
         ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
     ham_status_t st;
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
     ham_offset_t rid = 0;
     ham_offset_t ptr = key_get_ptr(key);
     ham_u8_t oldflags = key_get_flags(key);
@@ -272,7 +272,7 @@ key_erase_record(Database *db, btree_key_t *key,
         }
         else {
             /* delete the blob */
-            st=blob_free(db_get_env(db), db, key_get_ptr(key), 0);
+            st=blob_free(db->get_env(), db, key_get_ptr(key), 0);
             if (st)
                 return (st);
             key_set_ptr(key, 0);

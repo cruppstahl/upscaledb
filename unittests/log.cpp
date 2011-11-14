@@ -78,7 +78,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
     
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -92,7 +92,7 @@ public:
 
     Log *disconnect_log_and_create_new_log(void)
     {
-        ham_env_t *env=db_get_env((Database *)m_db);
+        ham_env_t *env=ham_get_env(m_db);
         Log *log=new Log(env);
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, log->create());
         delete log;
@@ -270,7 +270,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT_EQUAL((Log *)0, env_get_log(m_env));
         log=new Log(m_env);
         BFC_ASSERT_EQUAL(0, log->open());
@@ -377,14 +377,14 @@ public:
                         | HAM_ENABLE_RECOVERY
                         | HAM_ENABLE_DUPLICATES, 0644));
 
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
     }
 
     void open(void)
     {
         // open without recovery and transactions (they imply recovery)!
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -428,7 +428,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT(env_get_log(m_env)!=0);
     }
 
@@ -449,7 +449,7 @@ public:
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
 
         /* make sure that the log file was deleted and that the lsn is 1 */
         Log *log=env_get_log(m_env);
@@ -662,7 +662,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page contains the marker */
         for (int i=0; i<200; i++)
@@ -715,7 +715,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             /* verify that the pages contain the markers */
@@ -765,7 +765,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
@@ -821,7 +821,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         /* verify that the pages does not contain the "XXX..." */
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
@@ -881,7 +881,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         /* verify that the pages do not contain the "XXX..." */
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
@@ -931,7 +931,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
         page=env_get_header_page(m_env);
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
@@ -1098,14 +1098,14 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=db_get_env(db);
+        m_env=ham_get_env(m_db);
 
         /*
          * The hinters must be disabled for this test to succeed; at least
          * they need to be instructed to kick in late.
          */
-        db_set_data_access_mode(db, 
-                db_get_data_access_mode(db) & 
+        db->set_data_access_mode(
+                db->get_data_access_mode() & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
                          | HAM_DAM_RANDOM_WRITE));
 

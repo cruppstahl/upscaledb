@@ -270,10 +270,9 @@ public:
          * The hinters must be disabled for this test to succeed; at least
          * they need to be instructed to kick in late.
          */
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode() &
+                        ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
 
         ham_offset_t addr;
         BFC_ASSERT_EQUAL(0,
@@ -286,10 +285,9 @@ public:
         env_get_changeset(m_env).clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode() &
+                        ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(0,
@@ -327,10 +325,9 @@ public:
          * The hinters must be disabled for this test to succeed; at least
          * they need to be instructed to kick in late.
          */
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode() &
+                        ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
         /*
          * and since we'll be having about 33027 freelist entries in the list, 
          * the hinters will make a ruckus anyhow; the only way to get a hit 
@@ -340,10 +337,9 @@ public:
          * that; however, I'm lazy so I'll just set a special 'impossible mode'
          * to disable the hinters entirely.
          */
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) 
-                        | HAM_DAM_RANDOM_WRITE 
-                        | HAM_DAM_SEQUENTIAL_INSERT);
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode() 
+                        | HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT);
 
         ham_offset_t addr;
         BFC_ASSERT_EQUAL(0, 
@@ -358,14 +354,12 @@ public:
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
 
         /* set DAM - see above */
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) 
-                        | HAM_DAM_RANDOM_WRITE 
-                        | HAM_DAM_SEQUENTIAL_INSERT);
+        ((Database *)m_db)->set_data_access_mode(
+                ((Database *)m_db)->get_data_access_mode() & 
+                        ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode()
+                        | HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT);
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -388,14 +382,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         /* set DAM - see above */
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db) 
-                        | HAM_DAM_RANDOM_WRITE 
-                        | HAM_DAM_SEQUENTIAL_INSERT);
+        ((Database *)m_db)->set_data_access_mode(
+                ((Database *)m_db)->get_data_access_mode() & 
+                        ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
+        ((Database *)m_db)->set_data_access_mode( 
+                ((Database *)m_db)->get_data_access_mode()
+                        | HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT);
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(0,
@@ -511,16 +503,18 @@ public:
     { 
         __super::setup();
 
-        db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db)|HAM_DAM_ENFORCE_PRE110_FORMAT);
+        ((Database *)m_db)->set_data_access_mode(
+                ((Database *)m_db)->get_data_access_mode() |
+                    HAM_DAM_ENFORCE_PRE110_FORMAT);
     }
 
     virtual ham_status_t open(ham_u32_t flags)
     {
         ham_status_t st=ham_open_ex(m_db, BFC_OPATH(".test"), flags, 0);
         if (st==0)
-            db_set_data_access_mode((Database *)m_db, 
-                db_get_data_access_mode((Database *)m_db)|HAM_DAM_ENFORCE_PRE110_FORMAT);
+            ((Database *)m_db)->set_data_access_mode(
+                ((Database *)m_db)->get_data_access_mode()
+                    |HAM_DAM_ENFORCE_PRE110_FORMAT);
         m_env=ham_get_env(m_db);
         return (st);
     }

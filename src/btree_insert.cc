@@ -296,7 +296,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_status_t st;
     ham_page_t *root;
     Database *db=be_get_db(be);
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
     insert_scratchpad_t scratchpad;
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
@@ -581,7 +581,6 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
     ham_s32_t slot;
 
     ham_assert(page_get_owner(page), (0));
-    ham_assert(device_get_env(page_get_device(page)) == db_get_env(page_get_owner(page)), (0));
 
     node=page_get_btree_node(page);
     count=btree_node_get_count(node);
@@ -783,15 +782,13 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
     Database *db=page_get_owner(page);
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
     ham_key_t pivotkey, oldkey;
     ham_offset_t pivotrid;
     ham_u16_t pivot;
     ham_bool_t pivot_at_end=HAM_FALSE;
 
     ham_assert(page_get_owner(page), (0));
-    ham_assert(device_get_env(page_get_device(page)) 
-            == db_get_env(page_get_owner(page)), (0));
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
 
@@ -831,7 +828,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
      * inserted at the very end, then we select the same pivot as for
      * sequential access
      */
-    if (db_get_data_access_mode(db)&HAM_DAM_SEQUENTIAL_INSERT)
+    if (db->get_data_access_mode()&HAM_DAM_SEQUENTIAL_INSERT)
         pivot_at_end=HAM_TRUE;
     else if (btree_node_get_right(obtp)==0) {
         cmp=btree_compare_keys(db, page, key, btree_node_get_count(obtp)-1);

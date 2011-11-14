@@ -23,7 +23,6 @@
 #include <ham/hamsterdb_stats.h>
 #include <ham/hamsterdb.h>
 
-#include "db.h"
 #include "endianswap.h"
 #include "error.h"
 #include "page.h"

@@ -423,7 +423,7 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
     be_set_dirty(scratchpad->be, HAM_TRUE);
     ham_assert(page_get_owner(newroot), (0));
 
-    env = db_get_env(page_get_owner(newroot));
+    env = page_get_owner(newroot)->get_env();
     ham_assert(env!=0, (""));
     env_set_dirty(env);
 
@@ -454,7 +454,6 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
     ham_size_t minkeys=btree_get_minkeys(maxkeys);
 
     ham_assert(page_get_owner(page), (0));
-    ham_assert(page_get_owner(page) ? device_get_env(page_get_device(page)) == db_get_env(page_get_owner(page)) : 1, (0));
 
     *newpage_ref = 0;
     if (!scratchpad->mergepage)
@@ -1191,7 +1190,7 @@ my_copy_key(Database *db, btree_key_t *lhs, btree_key_t *rhs)
         if (st)
             return (st);
 
-        st=blob_allocate(db_get_env(db), db, &record, 0, &lhsblobid);
+        st=blob_allocate(db->get_env(), db, &record, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1263,7 +1262,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         if (st)
             return (st);
 
-        st=blob_allocate(db_get_env(db), db, &record, 0, &lhsblobid);
+        st=blob_allocate(db->get_env(), db, &record, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);

@@ -257,7 +257,7 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 void
 db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 {
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -279,7 +279,7 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 void
 db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_t record_size)
 {
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -301,7 +301,7 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 void
 db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 {
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -385,7 +385,7 @@ void
 stats_update_fail(int op, Database *db, ham_size_t cost, 
                     ham_bool_t try_fast_track)
 {
-    ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
+    ham_runtime_statistics_dbdata_t *dbstats = db->get_perf_data();
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
@@ -420,7 +420,7 @@ void
 stats_update(int op, Database *db, ham_page_t *page, ham_size_t cost, 
                     ham_bool_t try_fast_track)
 {
-    ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
+    ham_runtime_statistics_dbdata_t *dbstats = db->get_perf_data();
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
@@ -479,8 +479,8 @@ void
 btree_stats_page_is_nuked(Database *db, struct ham_page_t *page, 
                     ham_bool_t split)
 {
-    ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
-    ham_env_t *env = db_get_env(db);
+    ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
+    ham_env_t *env = db->get_env();
     int i;
 
     for (i = 0; i <= 2; i++)
@@ -530,8 +530,8 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;
-    ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
-    ham_env_t *env = db_get_env(db);
+    ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
+    ham_env_t *env = db->get_env();
     btree_node_t *node = page_get_btree_node(page);
 
     /* reset both flags - they will be set if lower_bound or 
@@ -709,7 +709,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
 void 
 btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
 {
-    ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
+    ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_FIND);
     ham_u32_t flags = hints->flags;
 
@@ -740,8 +740,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
         if ((flags & HAM_HINTS_MASK) == 0)
         {
             /* no local preference specified; go with the DB-wide DAM config */
-            switch (db_get_data_access_mode(db) & ~HAM_DAM_ENFORCE_PRE110_FORMAT)
-            {
+            switch (db->get_data_access_mode()&~HAM_DAM_ENFORCE_PRE110_FORMAT) {
             default:
                 break;
 
@@ -871,18 +870,15 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
     ham_assert(!(key->_flags & KEY_IS_EXTENDED), (0));
     key->_flags &= ~KEY_IS_EXTENDED;
 
-    if (!db_is_mgt_mode_set(flags, HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)
+    if (!dam_is_set(flags, HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)
         && dbdata->lower_bound_page_address != dbdata->upper_bound_page_address
         && (hints->try_fast_track 
         ? (dbdata->lower_bound_page_address == hints->leaf_page_addr
             || dbdata->upper_bound_page_address == hints->leaf_page_addr)
-            : HAM_TRUE))
-    {
+            : HAM_TRUE)) {
         if (dbdata->lower_bound_set
-            && !db_is_mgt_mode_set(flags, HAM_FIND_GT_MATCH))
-        {
-            if (dbdata->lower_bound_index == 1)
-            {
+                && !dam_is_set(flags, HAM_FIND_GT_MATCH)) {
+            if (dbdata->lower_bound_index == 1) {
                 /*
                 impossible index: this is a marker to signal the table 
                 is completely empty
@@ -890,8 +886,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
                 hints->key_is_out_of_bounds = HAM_TRUE;
                 hints->try_fast_track = HAM_TRUE;
             }
-            else
-            {
+            else {
                 int cmp;
             
                 ham_assert(dbdata->lower_bound_index == 0, (0));
@@ -901,8 +896,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
                 ham_assert(dbdata->lower_bound_page_address != 0, (0));
                 cmp = db_compare_keys(db, key, &dbdata->lower_bound);
 
-                if (cmp < 0)
-                {
+                if (cmp < 0) {
                     hints->key_is_out_of_bounds = HAM_TRUE;
                     hints->try_fast_track = HAM_TRUE;
                 }
@@ -910,8 +904,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
         }
 
         if (dbdata->upper_bound_set
-            && !db_is_mgt_mode_set(flags, HAM_FIND_LT_MATCH))
-        {
+                && !dam_is_set(flags, HAM_FIND_LT_MATCH)) {
             int cmp;
             
             ham_assert(dbdata->upper_bound_index >= 0, (0));
@@ -933,7 +926,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
 void 
 btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
 {
-    ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
+    ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
     btree_cursor_t *cursor = hints->cursor ? 
         ((Cursor *)(hints->cursor))->get_btree_cursor() : 0;
 
@@ -1051,8 +1044,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
         if ((hints->flags & HAM_HINTS_MASK) == 0)
         {
             /* no local preference specified; go with the DB-wide DAM config */
-            switch (db_get_data_access_mode(db) & ~HAM_DAM_ENFORCE_PRE110_FORMAT)
-            {
+            switch (db->get_data_access_mode()&~HAM_DAM_ENFORCE_PRE110_FORMAT) {
             default:
                 break;
 
@@ -1196,7 +1188,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
 void 
 btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
 {
-    ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
+    ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
 
     ham_assert(hints->key_is_out_of_bounds == HAM_FALSE, (0));
     ham_assert(hints->try_fast_track == HAM_FALSE, (0));
@@ -1288,7 +1280,7 @@ btree_stats_flush_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata,
 void
 btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
 
     /* trash the upper/lower bound keys, when set: */
     if (dbdata->upper_bound.data) {
@@ -1335,7 +1327,7 @@ btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db,
         ham_runtime_statistics_dbdata_t *dbdata;
 
         ham_assert(db, (0));
-        dbdata = db_get_db_perf_data(db);
+        dbdata = db->get_perf_data();
         ham_assert(dbdata, (0));
 
         dst->db_stats = *dbdata;

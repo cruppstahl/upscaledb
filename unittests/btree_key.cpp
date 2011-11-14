@@ -67,7 +67,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
 
         m_dbp=(Database *)m_db;
-        m_env=db_get_env(m_dbp);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 

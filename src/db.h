@@ -25,6 +25,7 @@
 #include "error.h"
 #include "util.h"
 #include "txn.h"
+#include "env.h"
 
 
 #ifdef __cplusplus
@@ -131,74 +132,22 @@ typedef HAM_PACK_0 union HAM_PACK_1
 #define index_clear_reserved(p)           { (p)->b._reserved1 = 0;            \
                                             (p)->b._reserved2 = 0; }
 
-/** get the cache for extended keys */
-#define db_get_extkey_cache(db)    (db)->_extkey_cache
-
-/** set the cache for extended keys */
-#define db_set_extkey_cache(db, c) (db)->_extkey_cache=(c)
- 
 /**
- * the database structure
+ * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_db_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
  */
 struct ham_db_t {
     int dummy;
 };
 
+/**
+ * The Database object
+ */
 class Database
 {
   public:
     Database();
-
-    /** the size of the last allocated data pointer for records */
-    ham_size_t _rec_allocsize;
-
-    /** the last allocated data pointer for records */
-    void *_rec_allocdata;
-
-    /** the size of the last allocated data pointer for keys */
-    ham_size_t _key_allocsize;
-
-    /** the last allocated data pointer for keys */
-    void *_key_allocdata;
-
-    /** the cache for extended keys */
-    ExtKeyCache *_extkey_cache;
-
-    /** the database flags - a combination of the persistent flags
-     * and runtime flags */
-    ham_u32_t _rt_flags;
-
-    /** the offset of this database in the environment _indexdata */
-    ham_u16_t _indexdata_offset;
-
-    /** the environment of this database - can be NULL */
-    ham_env_t *_env;
-
-    /** the next database in a linked list of databases */
-    Database *_next;
-
-    /** linked list of all record-level filters */
-    ham_record_filter_t *_record_filters;
-
-    /** current data access mode (DAM) */
-    ham_u16_t _data_access_mode;
-
-    /** non-zero after this istem has been opened/created */
-    unsigned _is_active: 1;
-
-    /** some freelist algorithm specific run-time data */
-    ham_runtime_statistics_globdata_t _global_perf_data;
-
-    /** some database specific run-time data */
-    ham_runtime_statistics_dbdata_t _db_perf_data;
-
-#if HAM_ENABLE_REMOTE
-    /** the remote database handle */
-    ham_u64_t _remote_handle;
-#endif
-
-    /** the transaction tree */
-    struct txn_optree_t _optree;
 
     /**
      * get Database parameters
@@ -371,6 +320,158 @@ class Database
         m_duperec_func=f;
     }
 
+    /**
+     * get the runtime-flags - the flags are "mixed" with the flags from 
+     * the Environment
+     */
+    ham_u32_t get_rt_flags(bool raw = false) {
+        if (raw)
+            return (m_rt_flags);
+        else
+            return (env_get_rt_flags(m_env)|m_rt_flags);
+    }
+
+    /** set the runtime-flags - NOT setting environment flags!  */
+    void set_rt_flags(ham_u32_t flags) {
+        m_rt_flags=flags;
+    }
+
+    /** get the environment pointer */
+    ham_env_t *get_env(void) {
+        return (m_env);
+    }
+
+    /** set the environment pointer */
+    void set_env(ham_env_t *env) {
+        m_env=env;
+    }
+
+    /** get the next database in a linked list of databases */
+    Database *get_next(void) {
+        return (m_next);
+    }
+
+    /** set the pointer to the next database */
+    void set_next(Database *next) {
+        m_next=next;
+    }
+
+    /** get the cache for extended keys */
+    ExtKeyCache *get_extkey_cache(void) {
+        return (m_extkey_cache);
+    }
+
+    /** set the cache for extended keys */
+    void set_extkey_cache(ExtKeyCache *c) {
+        m_extkey_cache=c;
+    }
+ 
+    /** get the index of this database in the indexdata array */
+    ham_u16_t get_indexdata_offset(void) {
+        return (m_indexdata_offset);
+    }
+
+    /** set the index of this database in the indexdata array */
+    void set_indexdata_offset(ham_u16_t offset) {
+        m_indexdata_offset=offset;
+    }
+
+    /** get the linked list of all record-level filters */
+    ham_record_filter_t *get_record_filter(void) {
+        return (m_record_filters);
+    }
+
+    /** set the linked list of all record-level filters */
+    void set_record_filter(ham_record_filter_t *f) {
+        m_record_filters=f;
+    }
+
+    /** get the expected data access mode for this database */
+    ham_u16_t get_data_access_mode(void) {
+        return (m_data_access_mode);
+    }
+
+    /** set the expected data access mode for this database */
+    void set_data_access_mode(ham_u16_t dam) {
+        m_data_access_mode=dam;
+    }
+
+    /** check whether this database has been opened/created */
+    bool is_active(void) {
+        return (m_is_active);
+    }
+
+    /**
+     * set the 'active' flag of the database: a non-zero value 
+     * for @a s sets the @a db to 'active', zero(0) sets the @a db 
+     * to 'inactive' (closed)
+     */
+    void set_active(bool b) {
+        m_is_active=b;
+    }
+
+    /** get a reference to the per-database statistics */
+    ham_runtime_statistics_dbdata_t *get_perf_data() {
+        return (&m_perf_data);
+    }
+
+    /** get the size of the last allocated data blob */
+    ham_size_t get_record_allocsize(void) {
+        return (m_rec_allocsize);
+    }
+
+    /** set the size of the last allocated data blob */
+    void set_record_allocsize(ham_size_t size) {
+        m_rec_allocsize=size;
+    }
+
+    /** get the pointer to the last allocated data blob */
+    void *get_record_allocdata(void) {
+        return (m_rec_allocdata);
+    }
+
+    /** set the pointer to the last allocated data blob */
+    void set_record_allocdata(void *p) {
+        m_rec_allocdata=p;
+    }
+
+    /** get the size of the last allocated key blob */
+    ham_size_t get_key_allocsize(void) {
+        return (m_key_allocsize);
+    }
+
+    /** set the size of the last allocated key blob */
+    void set_key_allocsize(ham_size_t size) {
+        m_key_allocsize=size;
+    }
+
+    /** get the pointer to the last allocated key blob */
+    void *get_key_allocdata(void) {
+        return (m_key_allocdata);
+    }
+
+    /** set the pointer to the last allocated key blob */
+    void set_key_allocdata(void *p) {
+        m_key_allocdata=p;
+    }
+
+#if HAM_ENABLE_REMOTE
+    /** get the remote database handle */
+    ham_u64_t get_remote_handle(void) {
+        return (m_remote_handle);
+    }
+
+    /** set the remote database handle */
+    void set_remote_handle(ham_u64_t handle) {
+        m_remote_handle=handle;
+    }
+#endif
+
+    /** get the transaction tree */
+    struct txn_optree_t *get_optree(void) {
+        return (&m_optree);
+    }
+
   private:
     /** the last error code */
     ham_status_t m_error;
@@ -393,112 +494,59 @@ class Database
     /** the duplicate keys record comparison function */
     ham_compare_func_t m_duperec_func;
 
+    /** the database flags - a combination of the persistent flags
+     * and runtime flags */
+    ham_u32_t m_rt_flags;
+
+    /** the environment of this database - can be NULL */
+    ham_env_t *m_env;
+
+    /** the next database in a linked list of databases */
+    Database *m_next;
+
+    /** the cache for extended keys */
+    ExtKeyCache *m_extkey_cache;
+
+    /** the offset of this database in the environment _indexdata */
+    ham_u16_t m_indexdata_offset;
+
+    /** linked list of all record-level filters */
+    ham_record_filter_t *m_record_filters;
+
+    /** current data access mode (DAM) */
+    ham_u16_t m_data_access_mode;
+
+    /** non-zero after this istem has been opened/created */
+    bool m_is_active;
+
+    /** some database specific run-time data */
+    ham_runtime_statistics_dbdata_t m_perf_data;
+
+    /** the size of the last allocated data pointer for records */
+    ham_size_t m_rec_allocsize;
+
+    /** the last allocated data pointer for records */
+    void *m_rec_allocdata;
+
+    /** the size of the last allocated data pointer for keys */
+    ham_size_t m_key_allocsize;
+
+    /** the last allocated data pointer for keys */
+    void *m_key_allocdata;
+
+#if HAM_ENABLE_REMOTE
+    /** the remote database handle */
+    ham_u64_t m_remote_handle;
+#endif
+
+    /** the transaction tree */
+    struct txn_optree_t m_optree;
 };
 
-/**
- * get the runtime-flags - the flags are "mixed" with the flags from 
- * the Environment
- */
-#define db_get_rt_flags(db)            (env_get_rt_flags(db_get_env(db))      \
-                                            | (db)->_rt_flags)
-
-/** set the runtime-flags - NOT setting environment flags!  */
-#define db_set_rt_flags(db, f)         (db)->_rt_flags=(f)
-
-/** get the index of this database in the indexdata array */
-#define db_get_indexdata_offset(db)    (db)->_indexdata_offset
-
-/** set the index of this database in the indexdata array */
-#define db_set_indexdata_offset(db, o) (db)->_indexdata_offset=(o)
-
-/** get the environment pointer */
-#define db_get_env(db)                 (db)->_env
-
-/** set the environment pointer */
-#define db_set_env(db, env)            (db)->_env=(env)
-
-/** get the next database in a linked list of databases */
-#define db_get_next(db)                (db)->_next
-
-/** set the pointer to the next database */
-#define db_set_next(db, next)          (db)->_next=(next)
-
-/** get the linked list of all record-level filters */
-#define db_get_record_filter(db)       (db)->_record_filters
-
-/** set the linked list of all record-level filters */
-#define db_set_record_filter(db, f)    (db)->_record_filters=(f)
-
-/** get the size of the last allocated data blob */
-#define db_get_record_allocsize(db)    (db)->_rec_allocsize
-
-/** set the size of the last allocated data blob */
-#define db_set_record_allocsize(db, s) (db)->_rec_allocsize=(s)
-
-/** get the pointer to the last allocated data blob */
-#define db_get_record_allocdata(db)    (db)->_rec_allocdata
-
-/** set the pointer to the last allocated data blob */
-#define db_set_record_allocdata(db, p) (db)->_rec_allocdata=(p)
-
-/** get the size of the last allocated key blob */
-#define db_get_key_allocsize(db)       (db)->_key_allocsize
-
-/** set the size of the last allocated key blob */
-#define db_set_key_allocsize(db, s)    (db)->_key_allocsize=(s)
-
-/** get the pointer to the last allocated key blob */
-#define db_get_key_allocdata(db)       (db)->_key_allocdata
-
-/** set the pointer to the last allocated key blob */
-#define db_set_key_allocdata(db, p)    (db)->_key_allocdata=(p)
-
-/** get the expected data access mode for this database */
-#define db_get_data_access_mode(db)   (db)->_data_access_mode
-
-/** set the expected data access mode for this database */
-#define db_set_data_access_mode(db,s)  (db)->_data_access_mode=(s)
-
-/**
- * Mix a set of flag bits into the data access mode, according to the rule
- * 
- * <pre>
- * DAM(new) = (DAM & and_mask) | or_mask
- * </pre>
- * 
- * This is a quick qay to set or unset particular DAM bits.
- * 
- * @sa ham_data_access_modes
- */
-#define db_set_data_access_mode_masked(db, or_mask, and_mask)                \
-    (db)->_data_access_mode=(((db)->_data_access_mode & (and_mask))            \
-                             | (or_mask))
-
 /** check if a given data access mode / mode-set has been set */
-#define db_is_mgt_mode_set(mode_collective, mask)                \
-    (((mode_collective) & (mask)) == (mask))
-
-/** check whether this database has been opened/created */
-#define db_is_active(db)               (db)->_is_active
-
-/**
- * set the 'active' flag of the database: a non-zero value 
- * for @a s sets the @a db to 'active', zero(0) sets the @a db 
- * to 'inactive' (closed)
- */
-#define db_set_active(db,s)            (db)->_is_active=!!(s)
-
-/** get a reference to the per-database statistics */
-#define db_get_db_perf_data(db)         &(db)->_db_perf_data
-
-/** get the remote database handle */
-#define db_get_remote_handle(db)        (db)->_remote_handle
-
-/** set the remote database handle */
-#define db_set_remote_handle(db, h)     (db)->_remote_handle=(h)
-
-/** get the transaction tree */
-#define db_get_optree(db)               (&(db)->_optree)
+inline bool dam_is_set(ham_u32_t coll, ham_u32_t mask) {
+    return ((coll&mask)==mask);
+}
 
 /**
  * get the database name

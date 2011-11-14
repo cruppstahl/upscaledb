@@ -180,7 +180,7 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 {
     int cmp;
     txn_opnode_t *node=0, tmp;
-    txn_optree_t *tree=db_get_optree(db);
+    txn_optree_t *tree=db->get_optree();
 
     if (!tree)
         return (0);
@@ -220,8 +220,8 @@ txn_opnode_t *
 txn_opnode_create(Database *db, ham_key_t *key)
 {
     txn_opnode_t *node=0;
-    txn_optree_t *tree=db_get_optree(db);
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+    txn_optree_t *tree=db->get_optree();
+    mem_allocator_t *alloc=env_get_allocator(db->get_env());
 
     /* make sure that a node with this key does not yet exist */
     ham_assert(txn_opnode_get(db, key, 0)==0, (""));
@@ -392,7 +392,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 void
 txn_free_optree(txn_optree_t *tree)
 {
-    ham_env_t *env=db_get_env(txn_optree_get_db(tree));
+    ham_env_t *env=txn_optree_get_db(tree)->get_env();
     txn_opnode_t *node;
 
     while ((node=rbt_last(tree))) {

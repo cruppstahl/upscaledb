@@ -610,10 +610,10 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     db=env_get_list(env);
     while (db) {
         ham_u16_t dbname=index_get_dbname(env_get_indexdata_ptr(env,
-                            db_get_indexdata_offset(db)));
+                            db->get_indexdata_offset()));
         if (dbname==name)
             return (HAM_DATABASE_ALREADY_OPEN);
-        db=db_get_next(db);
+        db=db->get_next();
     }
 
     /*
@@ -667,7 +667,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 
     /* set database name to 0 and set the header page to dirty */
     index_set_dbname(env_get_indexdata_ptr(env, 
-                        db_get_indexdata_offset(db)), 0);
+                        db->get_indexdata_offset()), 0);
     page_set_dirty(env_get_header_page(env));
 
     /* if logging is enabled: flush the changeset and the header page */
@@ -925,7 +925,7 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
         st = be->_fun_flush(be);
         if (st)
             return st;
-        db = db_get_next(db);
+        db = db->get_next();
     }
 
     /*
@@ -967,29 +967,25 @@ _local_fun_create_db(ham_env_t *env, Database *db,
     ham_backend_t *be;
     ham_u32_t pflags;
 
-    db_set_rt_flags(db, 0);
+    db->set_rt_flags(0);
 
-    /* 
-     * parse parameters
-     */
+    /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param, 
             0, &keysize, &cachesize, &dbname, 0, &dam, HAM_TRUE);
     if (st)
         return (st);
 
-    /*
-     * store the env pointer in the database
-     */
-    db_set_env(db, env);
+    /* store the env pointer in the database */
+    db->set_env(env);
 
     /* reset all DB performance data */
-    btree_stats_init_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_init_dbdata(db, db->get_perf_data());
 
     /*
      * set the flags; strip off run-time (per session) flags for the 
      * backend::create() method though.
      */
-    db_set_rt_flags(db, flags);
+    db->set_rt_flags(flags);
     pflags=flags;
     pflags&=~(HAM_DISABLE_VAR_KEYLEN
              |HAM_CACHE_STRICT
@@ -1034,7 +1030,7 @@ _local_fun_create_db(ham_env_t *env, Database *db,
         ham_u16_t name = index_get_dbname(env_get_indexdata_ptr(env, dbi));
         if (!name) {
             index_set_dbname(env_get_indexdata_ptr(env, dbi), dbname);
-            db_set_indexdata_offset(db, dbi);
+            db->set_indexdata_offset(dbi);
             break;
         }
     }
@@ -1090,7 +1086,7 @@ _local_fun_create_db(ham_env_t *env, Database *db,
     /*
      * set the default key compare functions
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
@@ -1114,12 +1110,12 @@ _local_fun_create_db(ham_env_t *env, Database *db,
             ? HAM_DAM_SEQUENTIAL_INSERT 
             : HAM_DAM_RANDOM_WRITE;
     }
-    db_set_data_access_mode(db, dam);
+    db->set_data_access_mode(dam);
 
     /* 
      * set the key compare function
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
@@ -1132,7 +1128,7 @@ _local_fun_create_db(ham_env_t *env, Database *db,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    db_set_next(db, env_get_list(env));
+    db->set_next(env_get_list(env));
     env_set_list(env, db);
 
 bail:
@@ -1162,12 +1158,12 @@ _local_fun_open_db(ham_env_t *env, Database *db,
     /*
      * make sure that this database is not yet open/created
      */
-    if (db_is_active(db)) {
+    if (db->is_active()) {
         ham_trace(("parameter 'db' is already initialized"));
         return (HAM_DATABASE_ALREADY_OPEN);
     }
 
-    db_set_rt_flags(db, 0);
+    db->set_rt_flags(0);
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param, 
@@ -1181,10 +1177,10 @@ _local_fun_open_db(ham_env_t *env, Database *db,
     head=env_get_list(env);
     while (head) {
         db_indexdata_t *ptr=env_get_indexdata_ptr(env, 
-                                db_get_indexdata_offset(head));
+                                head->get_indexdata_offset());
         if (index_get_dbname(ptr)==name)
             return (HAM_DATABASE_ALREADY_OPEN);
-        head=db_get_next(head);
+        head=head->get_next();
     }
 
     ham_assert(env_get_allocator(env), (""));
@@ -1192,15 +1188,11 @@ _local_fun_open_db(ham_env_t *env, Database *db,
     ham_assert(0 != env_get_header_page(env), (0));
     ham_assert(env_get_max_databases(env) > 0, (0));
 
-    /*
-     * store the env pointer in the database
-     */
-    db_set_env(db, env);
+    /* store the env pointer in the database */
+    db->set_env(env);
 
-    /*
-     * reset the DB performance data
-     */
-    btree_stats_init_dbdata(db, db_get_db_perf_data(db));
+    /* reset the DB performance data */
+    btree_stats_init_dbdata(db, db->get_perf_data());
 
     /*
      * search for a database with this name
@@ -1211,7 +1203,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
         if (!dbname)
             continue;
         if (name==HAM_FIRST_DATABASE_NAME || name==dbname) {
-            db_set_indexdata_offset(db, dbi);
+            db->set_indexdata_offset(dbi);
             break;
         }
     }
@@ -1275,7 +1267,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
              |HAM_SORT_DUPLICATES
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
-    db_set_rt_flags(db, flags|be_get_flags(be));
+    db->set_rt_flags(flags|be_get_flags(be));
     ham_assert(!(be_get_flags(be)&HAM_DISABLE_VAR_KEYLEN), 
             ("invalid persistent database flags 0x%x", be_get_flags(be)));
     ham_assert(!(be_get_flags(be)&HAM_CACHE_STRICT), 
@@ -1304,7 +1296,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
      * with ENABLE_DUPLICATES!
      */
     if ((flags&HAM_SORT_DUPLICATES) 
-            && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
+            && !(db->get_rt_flags()&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
                    "enabled for this Database"));
         (void)ham_close((ham_db_t *)db, 0);
@@ -1321,16 +1313,16 @@ _local_fun_open_db(ham_env_t *env, Database *db,
         env_set_legacy(env, 1);
     }
     if (!dam) {
-        dam=(db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+        dam=(db->get_rt_flags()&HAM_RECORD_NUMBER)
             ? HAM_DAM_SEQUENTIAL_INSERT 
             : HAM_DAM_RANDOM_WRITE;
     }
-    db_set_data_access_mode(db, dam);
+    db->set_data_access_mode(dam);
 
     /* 
      * set the key compare function
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
     }
     else {
@@ -1343,7 +1335,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    db_set_next(db, env_get_list(env));
+    db->set_next(env_get_list(env));
     env_set_list(env, db);
 
     return (0);

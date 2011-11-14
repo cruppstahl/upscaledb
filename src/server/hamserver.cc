@@ -403,10 +403,8 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
         ham_delete(db);
     }
 
-    /* do not use db_get_rt_flags() because they're
-     * mixed with the flags from the Environment! */
     reply=proto_init_env_create_db_reply(st, db_handle,
-            ((Database *)db)->_rt_flags);
+            ((Database *)db)->get_rt_flags(true));
     send_wrapper(env, conn, reply);
     proto_delete(reply);
 }
@@ -463,10 +461,8 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
         }
     }
 
-    /* do not use db_get_rt_flags() because they're
-     * mixed with the flags from the Environment! */
     reply=proto_init_env_open_db_reply(st, db_handle,
-            ((Database *)db)->_rt_flags);
+            ((Database *)db)->get_rt_flags(true));
     send_wrapper(env, conn, reply);
     proto_delete(reply);
 }

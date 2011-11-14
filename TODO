@@ -151,10 +151,14 @@ o improve journalling and get rid of the physical log as much as possible
 
 . c++-ify the database
     x create Database object
+    x add getter/setter functions
+    x check compilation of tools
     o move initialization/destruction into constructor/destructor
-    o add getter/setter functions
     o move function pointers into abstract base class and implement
         a LocalDatabase and a RemoteDatabase
+    o check w/ valgrind
+    . the Database doesn't need to be in a linked list; it can be
+        an stl-list
 
 o test with tcmalloc
 

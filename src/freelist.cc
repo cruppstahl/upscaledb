@@ -2888,15 +2888,13 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
     ham_assert(hints->max_rounds <= freel_cache_get_count(cache), (0));
 
-    for (;; hints->max_rounds--)
-    {
-        if (hints->max_rounds == 0)
-        {
+    for (;; hints->max_rounds--) {
+        if (hints->max_rounds == 0) {
             /* it's the end of the road for this one */
             return -1;
         }
 
-        if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT)) {
+        if (dam_is_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT)) {
             if (1) {
                 /*
                  * SEQUENTIAL:
@@ -3165,7 +3163,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
     freelist_cache_t *cache=device_get_freelist_cache(dev);
     ham_page_t *page=0;
     ham_s32_t s=-1;
-    ham_u16_t mgt_mode = db ? db_get_data_access_mode(db) : 0;
+    ham_u16_t mgt_mode = db ? db->get_data_access_mode() : 0;
     freelist_global_hints_t global_hints = 
     { 
         0, 
@@ -3615,7 +3613,7 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, Database *db,
     0,
     0,
     0,
-    db ? db_get_data_access_mode(db) : 0, /* mgt_mode */
+    db ? db->get_data_access_mode() : 0, /* mgt_mode */
     HAM_FALSE,
     0,
     0,

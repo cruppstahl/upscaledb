@@ -469,12 +469,12 @@ __recover_get_db(ham_env_t *env, ham_u16_t dbname, Database **pdb)
     Database *db=env_get_list(env);
     while (db) {
         ham_u16_t name=index_get_dbname(env_get_indexdata_ptr(env,
-                            db_get_indexdata_offset(db)));
+                            db->get_indexdata_offset()));
         if (dbname==name) {
             *pdb=db;
             return (0);
         }
-        db=db_get_next(db);
+        db=db->get_next();
     }
 
     /* not found - open it */

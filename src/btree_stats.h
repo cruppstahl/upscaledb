@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +26,7 @@ extern "C" {
 /**
  * get a reference to the statistics data of the given operation 
  */
-#define db_get_op_perf_data(db, o)        ((db_get_db_perf_data(db))->op + (o))
+#define db_get_op_perf_data(db, o)        ((db->get_perf_data())->op + (o))
 
 #define btree_stats_memmove_cost(size)          (((size) + 512 - 1) / 512)
 

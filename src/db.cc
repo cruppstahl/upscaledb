@@ -85,7 +85,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 
             if (!(c->flags&HAM_SKIP_DUPLICATES)
                     && (key_get_flags(key)&KEY_HAS_DUPLICATES)) {
-                ham_status_t st=blob_duplicate_get_count(db_get_env(c->db), 
+                ham_status_t st=blob_duplicate_get_count(c->db->get_env(), 
                             key_get_ptr(key), &dupcount, 0);
                 if (st)
                     return (st);
@@ -213,7 +213,7 @@ __record_filters_before_write(Database *db, ham_record_t *record)
     ham_status_t st=0;
     ham_record_filter_t *record_head;
 
-    record_head=db_get_record_filter(db);
+    record_head=db->get_record_filter();
     while (record_head) {
         if (record_head->before_write_cb) {
             st=record_head->before_write_cb((ham_db_t *)db, 
@@ -253,7 +253,7 @@ __record_filters_after_find(Database *db, ham_record_t *record)
     ham_status_t st = 0;
     ham_record_filter_t *record_head;
 
-    record_head=db_get_record_filter(db);
+    record_head=db->get_record_filter();
     if (record_head) {
         record_head = record_head->_prev;
         do {
@@ -271,18 +271,18 @@ __record_filters_after_find(Database *db, ham_record_t *record)
 
 Database::Database()
   : m_error(0), m_context(0), m_backend(0), m_cursors(0),
-    m_prefix_func(0), m_cmp_func(0), m_duperec_func(0), _extkey_cache(0),
-    _rec_allocsize(0), _rec_allocdata(0), _key_allocsize(0), _key_allocdata(0),
-    _rt_flags(0), _indexdata_offset(0), _env(0), _next(0),
-    _record_filters(0), _data_access_mode(0), _is_active(0)
+    m_prefix_func(0), m_cmp_func(0), m_duperec_func(0), 
+    m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0), 
+    m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0), 
+    m_is_active(0), m_rec_allocsize(0), m_rec_allocdata(0), 
+    m_key_allocsize(0), m_key_allocdata(0)
 {
-    memset(&_global_perf_data, 0, sizeof(_global_perf_data));
-    memset(&_db_perf_data, 0, sizeof(_db_perf_data));
+    memset(&m_perf_data, 0, sizeof(m_perf_data));
 
 #if HAM_ENABLE_REMOTE
-    _remote_handle=0;
+    m_remote_handle=0;
 #endif
-    txn_tree_init(this, &_optree);
+    txn_tree_init(this, &m_optree);
 
     _fun_get_parameters=0;
     _fun_check_integrity=0;
@@ -330,13 +330,13 @@ db_get_dbname(Database *db)
     ham_env_t *env;
     
     ham_assert(db!=0, (""));
-    ham_assert(db_get_env(db), (""));
+    ham_assert(db->get_env(), (""));
 
-    env=db_get_env(db);
+    env=db->get_env();
 
     if (env_get_header_page(env) && page_get_pers(env_get_header_page(env))) {
         db_indexdata_t *idx=env_get_indexdata_ptr(env, 
-            db_get_indexdata_offset(db));
+            db->get_indexdata_offset());
         return (index_get_dbname(idx));
     }
     
@@ -505,7 +505,7 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
     ham_size_t temp;
     ham_record_t record;
     ham_u8_t *ptr;
-    ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db->get_env();
     mem_allocator_t *alloc=env_get_allocator(env);
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
@@ -518,12 +518,8 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
      * therefore we don't use it.
      */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        if (!db_get_extkey_cache(db)) {
-            ExtKeyCache *c=new ExtKeyCache(db);
-            if (!c)
-                return (HAM_OUT_OF_MEMORY);
-            db_set_extkey_cache(db, c);
-        }
+        if (!db->get_extkey_cache())
+            db->set_extkey_cache(new ExtKeyCache(db));
     }
 
     /* almost the same as: blobid = key_get_extended_rid(db, key); */
@@ -533,7 +529,7 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
 
     /* fetch from the cache */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        st=db_get_extkey_cache(db)->fetch(blobid, &temp, &ptr);
+        st=db->get_extkey_cache()->fetch(blobid, &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
 
@@ -588,8 +584,8 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
         return st;
 
     /* insert the FULL key in the extkey-cache */
-    if (db_get_extkey_cache(db)) {
-        ExtKeyCache *cache=db_get_extkey_cache(db);
+    if (db->get_extkey_cache()) {
+        ExtKeyCache *cache=db->get_extkey_cache();
         cache->insert(blobid, key_length, (ham_u8_t *)ext_key->data);
     }
 
@@ -693,7 +689,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     
     ham_assert(page_get_owner(page) 
                 ? device_get_env(page_get_device(page)) 
-                        == db_get_env(page_get_owner(page)) 
+                        == page_get_owner(page)->get_env() 
                 : 1, (0));
 
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
@@ -830,7 +826,7 @@ ham_status_t
 db_alloc_page(ham_page_t **page_ref, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
-    return (db_alloc_page_impl(page_ref, db_get_env(db), db, type, flags));
+    return (db_alloc_page_impl(page_ref, db->get_env(), db, type, flags));
 }
 
 ham_status_t
@@ -900,7 +896,7 @@ ham_status_t
 db_fetch_page(ham_page_t **page_ref, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
-    return (db_fetch_page_impl(page_ref, db_get_env(db), db, address, flags));
+    return (db_fetch_page_impl(page_ref, db->get_env(), db, address, flags));
 }
 
 ham_status_t
@@ -1003,19 +999,19 @@ ham_status_t
 db_resize_record_allocdata(Database *db, ham_size_t size)
 {
     if (size==0) {
-        if (db_get_record_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), 
-                    db_get_record_allocdata(db));
-        db_set_record_allocdata(db, 0);
-        db_set_record_allocsize(db, 0);
+        if (db->get_record_allocdata())
+            allocator_free(env_get_allocator(db->get_env()), 
+                    db->get_record_allocdata());
+        db->set_record_allocdata(0);
+        db->set_record_allocsize(0);
     }
-    else if (size>db_get_record_allocsize(db)) {
-        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
-                db_get_record_allocdata(db), size);
+    else if (size>db->get_record_allocsize()) {
+        void *newdata=allocator_realloc(env_get_allocator(db->get_env()), 
+                db->get_record_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
-        db_set_record_allocdata(db, newdata);
-        db_set_record_allocsize(db, size);
+        db->set_record_allocdata(newdata);
+        db->set_record_allocsize(size);
     }
 
     return (0);
@@ -1025,19 +1021,19 @@ ham_status_t
 db_resize_key_allocdata(Database *db, ham_size_t size)
 {
     if (size==0) {
-        if (db_get_key_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), 
-                    db_get_key_allocdata(db));
-        db_set_key_allocdata(db, 0);
-        db_set_key_allocsize(db, 0);
+        if (db->get_key_allocdata())
+            allocator_free(env_get_allocator(db->get_env()), 
+                    db->get_key_allocdata());
+        db->set_key_allocdata(0);
+        db->set_key_allocsize(0);
     }
-    else if (size>db_get_key_allocsize(db)) {
-        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
-                db_get_key_allocdata(db), size);
+    else if (size>db->get_key_allocsize()) {
+        void *newdata=allocator_realloc(env_get_allocator(db->get_env()), 
+                db->get_key_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
-        db_set_key_allocdata(db, newdata);
-        db_set_key_allocsize(db, size);
+        db->set_key_allocdata(newdata);
+        db->set_key_allocsize(size);
     }
 
     return (0);
@@ -1065,10 +1061,10 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (!dest->data || dest->size < source->size) {
                 if (dest->data)
-                    allocator_free(env_get_allocator(db_get_env(db)), 
+                    allocator_free(env_get_allocator(db->get_env()), 
                                dest->data);
                 dest->data = (ham_u8_t *)allocator_alloc(
-                               env_get_allocator(db_get_env(db)), source->size);
+                               env_get_allocator(db->get_env()), source->size);
                 if (!dest->data) 
                     return (HAM_OUT_OF_MEMORY);
             }
@@ -1081,7 +1077,7 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
         /* key.size is 0 */
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (dest->data)
-                allocator_free(env_get_allocator(db_get_env(db)), dest->data);
+                allocator_free(env_get_allocator(db->get_env()), dest->data);
             dest->data=0;
         }
         dest->size=0;
@@ -1094,7 +1090,7 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
 static ham_status_t
 _local_fun_close(Database *db, ham_u32_t flags)
 {
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_status_t st = HAM_SUCCESS;
     ham_status_t st2 = HAM_SUCCESS;
     ham_backend_t *be;
@@ -1113,7 +1109,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
                 has_other_db=HAM_TRUE;
                 break;
             }
-            n=db_get_next(n);
+            n=n->get_next();
         }
     }
 
@@ -1126,7 +1122,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
             return (st);
     }
     
-    btree_stats_flush_dbdata(db, db_get_db_perf_data(db), has_other_db);
+    btree_stats_flush_dbdata(db, db->get_perf_data(), has_other_db);
 
     /*
      * if we're not in read-only mode, and not an in-memory-database,
@@ -1137,7 +1133,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
             && env_get_device(env) 
             && env_get_device(env)->is_open(env_get_device(env)) 
-            && (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
+            && (!(db->get_rt_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
             st=page_flush(env_get_header_page(env));
@@ -1147,9 +1143,9 @@ _local_fun_close(Database *db, ham_u32_t flags)
     }
 
     /* get rid of the extkey-cache */
-    if (db_get_extkey_cache(db)) {
-        delete db_get_extkey_cache(db);
-        db_set_extkey_cache(db, 0);
+    if (db->get_extkey_cache()) {
+        delete db->get_extkey_cache();
+        db->set_extkey_cache(0);
     }
 
     /* in-memory-database: free all allocated blobs */
@@ -1189,15 +1185,15 @@ _local_fun_close(Database *db, ham_u32_t flags)
 
     /* free cached memory */
     (void)db_resize_record_allocdata(db, 0);
-    if (db_get_key_allocdata(db)) {
-        allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
-        db_set_key_allocdata(db, 0);
-        db_set_key_allocsize(db, 0);
+    if (db->get_key_allocdata()) {
+        allocator_free(env_get_allocator(env), db->get_key_allocdata());
+        db->set_key_allocdata(0);
+        db->set_key_allocsize(0);
     }
 
     /* clean up the transaction tree */
-    if (db_get_optree(db))
-        txn_free_optree(db_get_optree(db));
+    if (db->get_optree())
+        txn_free_optree(db->get_optree());
 
     /* close the backend */
     if (be && be_is_active(be)) {
@@ -1233,7 +1229,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
                 newowner=head;
                 break;
             }
-            head=db_get_next(head);
+            head=head->get_next();
         }
     }
     if (env && env_get_header_page(env)) {
@@ -1242,7 +1238,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
     }
 
     /* close all record-level filters */
-    record_head=db_get_record_filter(db);
+    record_head=db->get_record_filter();
     while (record_head) {
         ham_record_filter_t *next=record_head->_next;
 
@@ -1250,7 +1246,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
             record_head->close_cb((ham_db_t *)db, record_head);
         record_head=next;
     }
-    db_set_record_filter(db, 0);
+    db->set_record_filter(0);
 
     /* 
      * trash all DB performance data 
@@ -1258,7 +1254,7 @@ _local_fun_close(Database *db, ham_u32_t flags)
      * This must happen before the DB is removed from the ENV as the ENV 
      * (when it exists) provides the required allocator.
      */
-    btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_trash_dbdata(db, db->get_perf_data());
 
     return (st2);
 }
@@ -1269,7 +1265,7 @@ _local_fun_get_parameters(Database *db, ham_parameter_t *param)
     ham_parameter_t *p=param;
     ham_env_t *env;
 
-    env=db_get_env(db);
+    env=db->get_env();
 
     if (p) {
         for (; p->name; p++) {
@@ -1287,10 +1283,10 @@ _local_fun_get_parameters(Database *db, ham_parameter_t *param)
                 p->value=env_get_max_databases(env);
                 break;
             case HAM_PARAM_GET_FLAGS:
-                p->value=db_get_rt_flags(db);
+                p->value=db->get_rt_flags();
                 break;
             case HAM_PARAM_GET_FILEMODE:
-                p->value=env_get_file_mode(db_get_env(db));
+                p->value=env_get_file_mode(db->get_env());
                 break;
             case HAM_PARAM_GET_FILENAME:
                 if (env_get_filename(env).size())
@@ -1316,7 +1312,7 @@ _local_fun_get_parameters(Database *db, ham_parameter_t *param)
                 }
                 break;
             case HAM_PARAM_GET_DATA_ACCESS_MODE:
-                p->value=db_get_data_access_mode(db);
+                p->value=db->get_data_access_mode();
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {
@@ -1357,22 +1353,22 @@ _local_fun_check_integrity(Database *db, ham_txn_t *txn)
         return (HAM_NOT_IMPLEMENTED);
 
     /* check the cache integrity */
-    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        st=env_get_cache(db_get_env(db))->check_integrity();
+    if (!(db->get_rt_flags()&HAM_IN_MEMORY_DB)) {
+        st=env_get_cache(db->get_env())->check_integrity();
         if (st)
             return (st);
     }
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
 
     /* call the backend function */
     st=be->_fun_check_integrity(be);
-    env_get_changeset(db_get_env(db)).clear();
+    env_get_changeset(db->get_env()).clear();
 
     return (st);
 }
@@ -1478,7 +1474,7 @@ _local_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
     ham_env_t *env=0;
     calckeys_context_t ctx = {db, flags, 0, HAM_FALSE};
 
-    env=db_get_env(db);
+    env=db->get_env();
 
     if (flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)) {
         ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
@@ -1493,8 +1489,8 @@ _local_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
         return (HAM_NOT_IMPLEMENTED);
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -1512,13 +1508,13 @@ _local_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
      * if transactions are enabled, then also sum up the number of keys
      * from the transaction tree
      */
-    if ((db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) && (db_get_optree(db))) {
+    if ((db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS) && (db->get_optree())) {
         struct keycount_t k;
         k.c=0;
         k.flags=flags;
         k.txn=txn;
         k.db=db;
-        txn_tree_enumerate(db_get_optree(db), db_get_key_count_txn, (void *)&k);
+        txn_tree_enumerate(db->get_optree(), db_get_key_count_txn, (void *)&k);
         *keycount+=k.c;
     }
 
@@ -1704,7 +1700,7 @@ db_insert_txn(Database *db, ham_txn_t *txn,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
 
     /* get (or create) the node for this key */
     node=txn_opnode_get(db, key, 0);
@@ -1874,7 +1870,7 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     Cursor *pc=0;
     if (cursor)
         pc=txn_cursor_get_parent(cursor);
@@ -1951,7 +1947,7 @@ db_find_txn(Database *db, ham_txn_t *txn,
     /* get the txn-tree for this database; if there's no tree then
      * there's no need to create a new one - we'll just skip the whole
      * tree-related code */
-    tree=db_get_optree(db);
+    tree=db->get_optree();
 
     /* get the node for this key (but don't create a new one if it does
      * not yet exist) */
@@ -1994,7 +1990,7 @@ db_find_txn(Database *db, ham_txn_t *txn,
                                     txn_op_get_record(op)->size);
                     if (st)
                         return (st);
-                    record->data=db_get_record_allocdata(db);
+                    record->data=db->get_record_allocdata();
                 }
                 memcpy(record->data, txn_op_get_record(op)->data,
                             txn_op_get_record(op)->size);
@@ -2026,7 +2022,7 @@ static ham_status_t
 _local_fun_insert(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
@@ -2040,13 +2036,13 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
         return (HAM_NOT_IMPLEMENTED);
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
 
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2056,7 +2052,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             ham_assert(key->size==sizeof(ham_u64_t), (""));
             ham_assert(key->data!=0, (""));
@@ -2101,7 +2097,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+        if ((db->get_rt_flags()&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -2109,7 +2105,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        env_get_changeset(db_get_env(db)).clear();
+        env_get_changeset(db->get_env()).clear();
 
         return (st);
     }
@@ -2118,7 +2114,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -2145,7 +2141,7 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_backend_t *be;
     ham_offset_t recno=0;
 
@@ -2154,13 +2150,13 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_erase)
         return (HAM_NOT_IMPLEMENTED);
-    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
+    if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (HAM_DB_READ_ONLY);
     }
 
     /* record number: make sure that we have a valid key structure */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (HAM_INV_PARAMETER);
@@ -2170,7 +2166,7 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         *(ham_offset_t *)key->data=recno;
     }
 
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         if ((st=txn_begin(&local_txn, env, 0)))
             return (st);
     }
@@ -2190,12 +2186,12 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         if (local_txn)
             (void)txn_abort(local_txn, 0);
     
-        env_get_changeset(db_get_env(db)).clear();
+        env_get_changeset(db->get_env()).clear();
         return (st);
     }
 
     /* record number: re-translate the number to host endian */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
@@ -2216,7 +2212,7 @@ static ham_status_t
 _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
@@ -2230,8 +2226,8 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
         return (HAM_NOT_IMPLEMENTED);
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2245,7 +2241,7 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
     /* if this database has duplicates, then we use ham_cursor_find
      * because we have to build a duplicate list, and this is currently
      * only available in ham_cursor_find */
-    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+    if (db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
         st=ham_cursor_create((ham_db_t *)db, txn, 0, (ham_cursor_t **)&c);
         if (st)
@@ -2256,7 +2252,7 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     /* record number: make sure we have a number in little endian */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_assert(key->size==sizeof(ham_u64_t), (""));
         ham_assert(key->data!=0, (""));
         recno=*(ham_offset_t *)key->data;
@@ -2266,7 +2262,7 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
@@ -2287,12 +2283,12 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        env_get_changeset(db_get_env(db)).clear();
+        env_get_changeset(db->get_env()).clear();
         return (st);
     }
 
     /* record number: re-translate the number to host endian */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
     /* run the record-level filters */
@@ -2350,7 +2346,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     ham_u64_t recno = 0;
     ham_record_t temprec;
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
 
     be=db->get_backend();
@@ -2367,7 +2363,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             ham_assert(key->size==sizeof(ham_u64_t), (""));
             ham_assert(key->data!=0, (""));
@@ -2389,8 +2385,8 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     }
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2409,7 +2405,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2463,7 +2459,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+        if ((db->get_rt_flags()&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -2482,7 +2478,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -2513,7 +2509,7 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
 
     db_update_global_stats_erase_query(db, 0);
@@ -2521,7 +2517,7 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2575,14 +2571,14 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     Database *db=cursor->get_db();
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /*
      * record number: make sure that we have a valid key structure,
      * and translate the record number to database endian
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (HAM_INV_PARAMETER);
@@ -2595,8 +2591,8 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     db_update_global_stats_find_query(db, key->size);
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2604,7 +2600,7 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2731,7 +2727,7 @@ bail:
     }
 
     /* record number: re-translate the number to host endian */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
     /* run the record-level filters */
@@ -2767,13 +2763,13 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
 {
     ham_status_t st=0;
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2784,7 +2780,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2827,13 +2823,13 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
 {
     ham_status_t st=0;
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2844,7 +2840,7 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2888,14 +2884,14 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
                 ham_u32_t flags)
 {
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_status_t st;
     ham_record_t temprec;
     ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2912,7 +2908,7 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2957,12 +2953,12 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 {
     ham_status_t st=0;
     Database *db=cursor->get_db();
-    ham_env_t *env=db_get_env(db);
+    ham_env_t *env=db->get_env();
     ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=env_purge_cache(db_get_env(db));
+    if (__cache_needs_purge(db->get_env())) {
+        st=env_purge_cache(db->get_env());
         if (st)
             return (st);
     }
@@ -2996,7 +2992,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     }
 
     /* in non-transactional mode - just call the btree function and return */
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+    if (!(db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=btree_cursor_move(cursor->get_btree_cursor(), 
                 key, record, flags);
         env_get_changeset(env).clear();
@@ -3010,7 +3006,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn()
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);

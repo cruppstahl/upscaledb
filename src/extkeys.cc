@@ -45,7 +45,7 @@
 
 
 ExtKeyCache::ExtKeyCache(Database *db)
-  : m_db(db), m_usedsize(0), m_extkeyhelper(new ExtKeyHelper(db_get_env(db))),
+  : m_db(db), m_usedsize(0), m_extkeyhelper(new ExtKeyHelper(db->get_env())),
     m_hash(*m_extkeyhelper)
 {
 }
@@ -60,7 +60,7 @@ void
 ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
 {
     extkey_t *e;
-    ham_env_t *env=db_get_env(m_db);
+    ham_env_t *env=m_db->get_env();
 
     /* DEBUG build: make sure that the item is not inserted twice!  */
     ham_assert(m_hash.get(blobid)==0, ("")); 
@@ -78,7 +78,7 @@ ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
 void
 ExtKeyCache::remove(ham_offset_t blobid)
 {
-    ham_env_t *env=db_get_env(m_db);
+    ham_env_t *env=m_db->get_env();
     extkey_t *e=m_hash.remove(blobid);
     if (e) {
         m_usedsize-=extkey_get_size(e);
@@ -94,7 +94,7 @@ ExtKeyCache::fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data)
         *size=extkey_get_size(e);
         *data=extkey_get_data(e);
         /* TODO do not use txn id but lsn for age */
-        extkey_set_age(e, env_get_txn_id(db_get_env(m_db)));
+        extkey_set_age(e, env_get_txn_id(m_db->get_env()));
         return (0);
     }
     else
@@ -118,9 +118,9 @@ ExtKeyCache::purge_all(void)
 ham_status_t
 extkey_remove(Database *db, ham_offset_t blobid)
 {
-    if (db_get_extkey_cache(db))
-        db_get_extkey_cache(db)->remove(blobid);
+    if (db->get_extkey_cache())
+        db->get_extkey_cache()->remove(blobid);
 
-    return (blob_free(db_get_env(db), db, blobid, 0));
+    return (blob_free(db->get_env(), db, blobid, 0));
 }
 

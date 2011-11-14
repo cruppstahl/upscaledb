@@ -14,6 +14,7 @@
 #include "env.h"
 #include "log.h"
 #include "device.h"
+#include "db.h"
 
 /* a unittest hook for changeset_flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);

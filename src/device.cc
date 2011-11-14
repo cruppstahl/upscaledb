@@ -164,8 +164,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     ham_file_filter_t *head=0;
     ham_size_t size=self->get_pagesize(self);
     
-    if (db && db_get_env(db))
-        head=env_get_file_filter(db_get_env(db));
+    if (db && db->get_env())
+        head=env_get_file_filter(db->get_env());
 
     /*
      * first, try to mmap the file (if mmap is available/enabled). 
@@ -220,7 +220,7 @@ fallback_rw:
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(db_get_env(db), head, buffer, size);
+            st=head->after_read_cb(db->get_env(), head, buffer, size);
             if (st)
                 return (st);
         }

@@ -19,6 +19,7 @@
 #include <ham/hamsterdb_int.h>
 #include <ham/hamsterdb_srv.h>
 #include "../src/env.h"
+#include "../src/db.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -328,7 +329,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle((Database *)db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -352,7 +353,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, &params[0]));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle((Database *)db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
         params[0].value=0;
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &params[0]));
@@ -376,12 +377,12 @@ protected:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle((Database *)db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x200000000ull, db_get_remote_handle((Database *)db));
+        BFC_ASSERT_EQUAL(0x200000000ull, ((Database *)db)->get_remote_handle());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));

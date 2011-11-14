@@ -90,7 +90,7 @@ public:
                             ? HAM_ENABLE_TRANSACTIONS
                             : 0)), 
                         0644, &params[0]));
-        m_env=db_get_env((Database *)m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 

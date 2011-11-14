@@ -140,30 +140,30 @@ public:
         env_set_dirty(m_env);
         BFC_ASSERT(env_is_dirty(m_env));
 
-        BFC_ASSERT(0!=db_get_rt_flags(m_dbp));
+        BFC_ASSERT(0!=m_dbp->get_rt_flags());
 
-        BFC_ASSERT(db_get_env(m_dbp)!=0);
+        BFC_ASSERT(m_dbp->get_env()!=0);
 
-        BFC_ASSERT_EQUAL((void *)0, db_get_next(m_dbp));
-        db_set_next(m_dbp, (Database *)40);
-        BFC_ASSERT_EQUAL((Database *)40, db_get_next(m_dbp));
-        db_set_next(m_dbp, (Database *)0);
+        BFC_ASSERT_EQUAL((void *)0, m_dbp->get_next());
+        m_dbp->set_next((Database *)40);
+        BFC_ASSERT_EQUAL((Database *)40, m_dbp->get_next());
+        m_dbp->set_next((Database *)0);
 
-        BFC_ASSERT_EQUAL(0u, db_get_record_allocsize(m_dbp));
-        db_set_record_allocsize(m_dbp, 21);
-        BFC_ASSERT_EQUAL(21u, db_get_record_allocsize(m_dbp));
-        db_set_record_allocsize(m_dbp, 0);
+        BFC_ASSERT_EQUAL(0u, m_dbp->get_record_allocsize());
+        m_dbp->set_record_allocsize(21);
+        BFC_ASSERT_EQUAL(21u, m_dbp->get_record_allocsize());
+        m_dbp->set_record_allocsize(0);
 
-        BFC_ASSERT_EQUAL((void *)0, db_get_record_allocdata(m_dbp));
-        db_set_record_allocdata(m_dbp, (void *)22);
-        BFC_ASSERT_EQUAL((void *)22, db_get_record_allocdata(m_dbp));
-        db_set_record_allocdata(m_dbp, 0);
+        BFC_ASSERT_EQUAL((void *)0, m_dbp->get_record_allocdata());
+        m_dbp->set_record_allocdata((void *)22);
+        BFC_ASSERT_EQUAL((void *)22, m_dbp->get_record_allocdata());
+        m_dbp->set_record_allocdata(0);
 
-        BFC_ASSERT_EQUAL(1u, db_is_active(m_dbp));
-        db_set_active(m_dbp, HAM_FALSE);
-        BFC_ASSERT_EQUAL(0u, db_is_active(m_dbp));
-        db_set_active(m_dbp, HAM_TRUE);
-        BFC_ASSERT_EQUAL(1u, db_is_active(m_dbp));
+        BFC_ASSERT_EQUAL(1u, m_dbp->is_active());
+        m_dbp->set_active(HAM_FALSE);
+        BFC_ASSERT_EQUAL(0u, m_dbp->is_active());
+        m_dbp->set_active(HAM_TRUE);
+        BFC_ASSERT_EQUAL(1u, m_dbp->is_active());
     }
 
     void envStructureTest()

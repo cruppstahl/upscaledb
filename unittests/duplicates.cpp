@@ -921,7 +921,7 @@ public:
 			BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 			BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
 		}
-        BFC_ASSERT(db_get_rt_flags((Database *)m_db)&HAM_ENABLE_DUPLICATES);
+        BFC_ASSERT(((Database *)m_db)->get_rt_flags()&HAM_ENABLE_DUPLICATES);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         
@@ -1798,7 +1798,7 @@ public:
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
             BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
-            BFC_ASSERT(db_get_rt_flags((Database *)m_db)&HAM_ENABLE_DUPLICATES);
+            BFC_ASSERT(((Database *)m_db)->get_rt_flags()&HAM_ENABLE_DUPLICATES);
 
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 
