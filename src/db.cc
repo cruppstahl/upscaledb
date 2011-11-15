@@ -275,7 +275,7 @@ Database::Database()
     m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0), 
     m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0), 
     m_is_active(0), m_rec_allocsize(0), m_rec_allocdata(0), 
-    m_key_allocsize(0), m_key_allocdata(0)
+    m_key_allocsize(0), m_key_allocdata(0), m_impl(0)
 {
     memset(&m_perf_data, 0, sizeof(m_perf_data));
 
@@ -283,27 +283,15 @@ Database::Database()
     m_remote_handle=0;
 #endif
     txn_tree_init(this, &m_optree);
+}
 
-    _fun_get_parameters=0;
-    _fun_check_integrity=0;
-    _fun_get_key_count=0;
-    _fun_insert=0;
-    _fun_erase=0;
-    _fun_find=0;
-    _fun_cursor_create=0;
-    _fun_cursor_clone=0;
-    _fun_cursor_insert=0;
-    _fun_cursor_erase=0;
-    _fun_cursor_find=0;
-    _fun_cursor_get_duplicate_count=0;
-    _fun_cursor_get_record_size=0;
-    _fun_cursor_overwrite=0;
-    _fun_cursor_move=0;
-    _fun_cursor_close=0;
-    _fun_close=0;
-    _fun_destroy=0;
-};
+Database::~Database()
+{
+    /* trash all DB performance data */
+    btree_stats_trash_dbdata(this, get_perf_data());
 
+    delete m_impl;
+}
 
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
@@ -1087,292 +1075,6 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
     return (HAM_SUCCESS);
 }
 
-static ham_status_t
-_local_fun_close(Database *db, ham_u32_t flags)
-{
-    ham_env_t *env=db->get_env();
-    ham_status_t st = HAM_SUCCESS;
-    ham_status_t st2 = HAM_SUCCESS;
-    ham_backend_t *be;
-    ham_bool_t has_other_db=HAM_FALSE;
-    Database *newowner=0;
-    ham_record_filter_t *record_head;
-
-    /*
-     * if this Database is the last database in the environment: 
-     * delete all environment-members
-     */
-    if (env) {
-        Database *n=env_get_list(env);
-        while (n) {
-            if (n!=db) {
-                has_other_db=HAM_TRUE;
-                break;
-            }
-            n=n->get_next();
-        }
-    }
-
-    be=db->get_backend();
-
-    /* close all open cursors */
-    if (be && be->_fun_close_cursors) {
-        st=be->_fun_close_cursors(be, flags);
-        if (st)
-            return (st);
-    }
-    
-    btree_stats_flush_dbdata(db, db->get_perf_data(), has_other_db);
-
-    /*
-     * if we're not in read-only mode, and not an in-memory-database,
-     * and the dirty-flag is true: flush the page-header to disk
-     */
-    if (env
-            && env_get_header_page(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && env_get_device(env) 
-            && env_get_device(env)->is_open(env_get_device(env)) 
-            && (!(db->get_rt_flags()&HAM_READ_ONLY))) {
-        /* flush the database header, if it's dirty */
-        if (env_is_dirty(env)) {
-            st=page_flush(env_get_header_page(env));
-            if (st && st2==0)
-                st2=st;
-        }
-    }
-
-    /* get rid of the extkey-cache */
-    if (db->get_extkey_cache()) {
-        delete db->get_extkey_cache();
-        db->set_extkey_cache(0);
-    }
-
-    /* in-memory-database: free all allocated blobs */
-    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
-        ham_txn_t *txn;
-        free_cb_context_t context;
-        context.db=db;
-        st=txn_begin(&txn, env, 0);
-        if (st && st2==0)
-            st2=st;
-        else {
-            (void)be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
-            (void)txn_commit(txn, 0);
-        }
-    }
-
-    /* clear the changeset */
-    if (env)
-        env_get_changeset(env).clear();
-
-    /*
-     * flush all pages of this database (but not the header page,
-     * it's still required and will be flushed below
-     */
-    if (env && env_get_cache(env)) {
-        ham_page_t *n, *head=env_get_cache(env)->get_totallist();
-        while (head) {
-            n=page_get_next(head, PAGE_LIST_CACHED);
-            if (page_get_owner(head)==db && head!=env_get_header_page(env)) {
-                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
-                    (void)db_flush_page(env, head);
-                (void)db_free_page(head, 0);
-            }
-            head=n;
-        }
-    }
-
-    /* free cached memory */
-    (void)db_resize_record_allocdata(db, 0);
-    if (db->get_key_allocdata()) {
-        allocator_free(env_get_allocator(env), db->get_key_allocdata());
-        db->set_key_allocdata(0);
-        db->set_key_allocsize(0);
-    }
-
-    /* clean up the transaction tree */
-    if (db->get_optree())
-        txn_free_optree(db->get_optree());
-
-    /* close the backend */
-    if (be && be_is_active(be)) {
-        st=be->_fun_close(be);
-        if (st && st2==0)
-            st2=st;
-    }
-
-    if (be) {
-        ham_assert(!be_is_active(be), (0));
-
-        st=be->_fun_delete(be);
-        if (st2==0)
-            st2=st;
-
-        /*
-         * TODO
-         * this free() should move into the backend destructor 
-         */
-        allocator_free(env_get_allocator(env), be);
-        db->set_backend(0);
-    }
-
-    /*
-     * environment: move the ownership to another database.
-     * it's possible that there's no other page, then set the 
-     * ownership to 0
-     */
-    if (env) {
-        Database *head=env_get_list(env);
-        while (head) {
-            if (head!=db) {
-                newowner=head;
-                break;
-            }
-            head=head->get_next();
-        }
-    }
-    if (env && env_get_header_page(env)) {
-        ham_assert(env_get_header_page(env), (0));
-        page_set_owner(env_get_header_page(env), newowner);
-    }
-
-    /* close all record-level filters */
-    record_head=db->get_record_filter();
-    while (record_head) {
-        ham_record_filter_t *next=record_head->_next;
-
-        if (record_head->close_cb)
-            record_head->close_cb((ham_db_t *)db, record_head);
-        record_head=next;
-    }
-    db->set_record_filter(0);
-
-    /* 
-     * trash all DB performance data 
-     *
-     * This must happen before the DB is removed from the ENV as the ENV 
-     * (when it exists) provides the required allocator.
-     */
-    btree_stats_trash_dbdata(db, db->get_perf_data());
-
-    return (st2);
-}
-
-static ham_status_t
-_local_fun_get_parameters(Database *db, ham_parameter_t *param)
-{
-    ham_parameter_t *p=param;
-    ham_env_t *env;
-
-    env=db->get_env();
-
-    if (p) {
-        for (; p->name; p++) {
-            switch (p->name) {
-            case HAM_PARAM_CACHESIZE:
-                p->value=env_get_cache(env)->get_capacity();
-                break;
-            case HAM_PARAM_PAGESIZE:
-                p->value=env_get_pagesize(env);
-                break;
-            case HAM_PARAM_KEYSIZE:
-                p->value=db->get_backend() ? db_get_keysize(db) : 21;
-                break;
-            case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env_get_max_databases(env);
-                break;
-            case HAM_PARAM_GET_FLAGS:
-                p->value=db->get_rt_flags();
-                break;
-            case HAM_PARAM_GET_FILEMODE:
-                p->value=env_get_file_mode(db->get_env());
-                break;
-            case HAM_PARAM_GET_FILENAME:
-                if (env_get_filename(env).size())
-                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env).c_str());
-                else
-                    p->value=0;
-                break;
-            case HAM_PARAM_GET_DATABASE_NAME:
-                p->value=(ham_offset_t)db_get_dbname(db);
-                break;
-            case HAM_PARAM_GET_KEYS_PER_PAGE:
-                if (db->get_backend()) {
-                    ham_size_t count=0, size=db_get_keysize(db);
-                    ham_backend_t *be = db->get_backend();
-                    ham_status_t st;
-
-                    if (!be->_fun_calc_keycount_per_page)
-                        return (HAM_NOT_IMPLEMENTED);
-                    st=be->_fun_calc_keycount_per_page(be, &count, size);
-                    if (st)
-                        return (st);
-                    p->value=count;
-                }
-                break;
-            case HAM_PARAM_GET_DATA_ACCESS_MODE:
-                p->value=db->get_data_access_mode();
-                break;
-            case HAM_PARAM_GET_STATISTICS:
-                if (!p->value) {
-                    ham_trace(("the value for parameter "
-                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
-                               "and reference a ham_statistics_t data "
-                               "structure before invoking "
-                               "ham_[env_]get_parameters"));
-                    return (HAM_INV_PARAMETER);
-                }
-                else {
-                    ham_status_t st=btree_stats_fill_ham_statistics_t(env,
-                            db, (ham_statistics_t *)U64_TO_PTR(p->value));
-                    if (st)
-                        return (st);
-                }
-                break;
-            default:
-                ham_trace(("unknown parameter %d", (int)p->name));
-                return (HAM_INV_PARAMETER);
-            }
-        }
-    }
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_check_integrity(Database *db, ham_txn_t *txn)
-{
-    ham_status_t st;
-    ham_backend_t *be;
-
-    be=db->get_backend();
-    if (!be)
-        return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_check_integrity)
-        return (HAM_NOT_IMPLEMENTED);
-
-    /* check the cache integrity */
-    if (!(db->get_rt_flags()&HAM_IN_MEMORY_DB)) {
-        st=env_get_cache(db->get_env())->check_integrity();
-        if (st)
-            return (st);
-    }
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
-        if (st)
-            return (st);
-    }
-
-    /* call the backend function */
-    st=be->_fun_check_integrity(be);
-    env_get_changeset(db->get_env()).clear();
-
-    return (st);
-}
-
 struct keycount_t 
 {
     ham_u64_t c;
@@ -1462,65 +1164,6 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
 
         op=txn_op_get_previous_in_node(op);
     }
-}
-
-
-static ham_status_t
-_local_fun_get_key_count(Database *db, ham_txn_t *txn, ham_u32_t flags,
-                ham_offset_t *keycount)
-{
-    ham_status_t st;
-    ham_backend_t *be;
-    ham_env_t *env=0;
-    calckeys_context_t ctx = {db, flags, 0, HAM_FALSE};
-
-    env=db->get_env();
-
-    if (flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)) {
-        ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
-                  flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)));
-        return (HAM_INV_PARAMETER);
-    }
-
-    be = db->get_backend();
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_enumerate)
-        return (HAM_NOT_IMPLEMENTED);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
-        if (st)
-            return (st);
-    }
-
-    /*
-     * call the backend function - this will retrieve the number of keys
-     * in the btree
-     */
-    st=be->_fun_enumerate(be, __calc_keys_cb, &ctx);
-    if (st)
-        goto bail;
-    *keycount=ctx.total_count;
-
-    /*
-     * if transactions are enabled, then also sum up the number of keys
-     * from the transaction tree
-     */
-    if ((db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS) && (db->get_optree())) {
-        struct keycount_t k;
-        k.c=0;
-        k.flags=flags;
-        k.txn=txn;
-        k.db=db;
-        txn_tree_enumerate(db->get_optree(), db_get_key_count_txn, (void *)&k);
-        *keycount+=k.c;
-    }
-
-bail:
-    env_get_changeset(env).clear();
-    return (st);
 }
 
 static ham_status_t
@@ -2018,31 +1661,190 @@ db_find_txn(Database *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, record, flags));
 }
 
-static ham_status_t
-_local_fun_insert(Database *db, ham_txn_t *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+ham_status_t 
+DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
 {
-    ham_env_t *env=db->get_env();
+    ham_parameter_t *p=param;
+    ham_env_t *env=m_db->get_env();
+
+    if (p) {
+        for (; p->name; p++) {
+            switch (p->name) {
+            case HAM_PARAM_CACHESIZE:
+                p->value=env_get_cache(env)->get_capacity();
+                break;
+            case HAM_PARAM_PAGESIZE:
+                p->value=env_get_pagesize(env);
+                break;
+            case HAM_PARAM_KEYSIZE:
+                p->value=m_db->get_backend() ? db_get_keysize(m_db) : 21;
+                break;
+            case HAM_PARAM_MAX_ENV_DATABASES:
+                p->value=env_get_max_databases(env);
+                break;
+            case HAM_PARAM_GET_FLAGS:
+                p->value=m_db->get_rt_flags();
+                break;
+            case HAM_PARAM_GET_FILEMODE:
+                p->value=env_get_file_mode(m_db->get_env());
+                break;
+            case HAM_PARAM_GET_FILENAME:
+                if (env_get_filename(env).size())
+                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env).c_str());
+                else
+                    p->value=0;
+                break;
+            case HAM_PARAM_GET_DATABASE_NAME:
+                p->value=(ham_offset_t)db_get_dbname(m_db);
+                break;
+            case HAM_PARAM_GET_KEYS_PER_PAGE:
+                if (m_db->get_backend()) {
+                    ham_size_t count=0, size=db_get_keysize(m_db);
+                    ham_backend_t *be = m_db->get_backend();
+                    ham_status_t st;
+
+                    if (!be->_fun_calc_keycount_per_page)
+                        return (HAM_NOT_IMPLEMENTED);
+                    st=be->_fun_calc_keycount_per_page(be, &count, size);
+                    if (st)
+                        return (st);
+                    p->value=count;
+                }
+                break;
+            case HAM_PARAM_GET_DATA_ACCESS_MODE:
+                p->value=m_db->get_data_access_mode();
+                break;
+            case HAM_PARAM_GET_STATISTICS:
+                if (!p->value) {
+                    ham_trace(("the value for parameter "
+                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
+                               "and reference a ham_statistics_t data "
+                               "structure before invoking "
+                               "ham_[env_]get_parameters"));
+                    return (HAM_INV_PARAMETER);
+                }
+                else {
+                    ham_status_t st=btree_stats_fill_ham_statistics_t(env,
+                            m_db, (ham_statistics_t *)U64_TO_PTR(p->value));
+                    if (st)
+                        return (st);
+                }
+                break;
+            default:
+                ham_trace(("unknown parameter %d", (int)p->name));
+                return (HAM_INV_PARAMETER);
+            }
+        }
+    }
+
+    return (0);
+}
+
+ham_status_t 
+DatabaseImplementationLocal::check_integrity(ham_txn_t *txn)
+{
+    ham_status_t st;
+    ham_backend_t *be;
+
+    be=m_db->get_backend();
+
+    /* check the cache integrity */
+    if (!(m_db->get_rt_flags()&HAM_IN_MEMORY_DB)) {
+        st=env_get_cache(m_db->get_env())->check_integrity();
+        if (st)
+            return (st);
+    }
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(m_db->get_env())) {
+        st=env_purge_cache(m_db->get_env());
+        if (st)
+            return (st);
+    }
+
+    /* call the backend function */
+    st=be->_fun_check_integrity(be);
+    env_get_changeset(m_db->get_env()).clear();
+
+    return (st);
+}
+
+ham_status_t 
+DatabaseImplementationLocal::get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+                ham_offset_t *keycount)
+{
+    ham_status_t st;
+    ham_backend_t *be;
+    ham_env_t *env=m_db->get_env();
+
+    calckeys_context_t ctx = {m_db, flags, 0, HAM_FALSE};
+
+    if (flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)) {
+        ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
+                  flags & ~(HAM_SKIP_DUPLICATES|HAM_FAST_ESTIMATE)));
+        return (HAM_INV_PARAMETER);
+    }
+
+    be = m_db->get_backend();
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
+        if (st)
+            return (st);
+    }
+
+    /*
+     * call the backend function - this will retrieve the number of keys
+     * in the btree
+     */
+    st=be->_fun_enumerate(be, __calc_keys_cb, &ctx);
+    if (st)
+        goto bail;
+    *keycount=ctx.total_count;
+
+    /*
+     * if transactions are enabled, then also sum up the number of keys
+     * from the transaction tree
+     */
+    if ((m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS) 
+            && (m_db->get_optree())) {
+        struct keycount_t k;
+        k.c=0;
+        k.flags=flags;
+        k.txn=txn;
+        k.db=m_db;
+        txn_tree_enumerate(m_db->get_optree(), db_get_key_count_txn, 
+                        (void *)&k);
+        *keycount+=k.c;
+    }
+
+bail:
+    env_get_changeset(env).clear();
+    return (st);
+}
+
+ham_status_t 
+DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags)
+{
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
 
-    be=db->get_backend();
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_insert)
-        return (HAM_NOT_IMPLEMENTED);
+    be=m_db->get_backend();
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
 
-    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2052,7 +1854,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number
      */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             ham_assert(key->size==sizeof(ham_u64_t), (""));
             ham_assert(key->data!=0, (""));
@@ -2075,7 +1877,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      * don't want to mess up the original structure
      */
     temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
+    st=__record_filters_before_write(m_db, &temprec);
 
     /* 
      * if transactions are enabled: only insert the key/record pair into
@@ -2083,7 +1885,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      */
     if (!st) {
         if (txn || local_txn) {
-            st=db_insert_txn(db, txn ? txn : local_txn, 
+            st=db_insert_txn(m_db, txn ? txn : local_txn, 
                             key, &temprec, flags, 0);
         }
         else
@@ -2097,7 +1899,8 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        if ((db->get_rt_flags()&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+        if ((m_db->get_rt_flags()&HAM_RECORD_NUMBER) 
+                && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -2105,7 +1908,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        env_get_changeset(db->get_env()).clear();
+        env_get_changeset(env).clear();
 
         return (st);
     }
@@ -2114,7 +1917,7 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -2136,27 +1939,24 @@ _local_fun_insert(Database *db, ham_txn_t *txn,
         return (st);
 }
 
-static ham_status_t
-_local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+ham_status_t 
+DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key, 
+                ham_u32_t flags)
 {
     ham_status_t st;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_backend_t *be;
     ham_offset_t recno=0;
 
-    be=db->get_backend();
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_erase)
-        return (HAM_NOT_IMPLEMENTED);
-    if (db->get_rt_flags()&HAM_READ_ONLY) {
+    be=m_db->get_backend();
+    if (m_db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (HAM_DB_READ_ONLY);
     }
 
     /* record number: make sure that we have a valid key structure */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (HAM_INV_PARAMETER);
@@ -2166,19 +1966,19 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         *(ham_offset_t *)key->data=recno;
     }
 
-    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         if ((st=txn_begin(&local_txn, env, 0)))
             return (st);
     }
 
-    db_update_global_stats_erase_query(db, key->size);
+    db_update_global_stats_erase_query(m_db, key->size);
 
     /* 
      * if transactions are enabled: append a 'erase key' operation into
      * the txn tree; otherwise immediately erase the key from disk
      */
     if (txn || local_txn)
-        st=db_erase_txn(db, txn ? txn : local_txn, key, flags, 0);
+        st=db_erase_txn(m_db, txn ? txn : local_txn, key, flags, 0);
     else
         st=be->_fun_erase(be, key, flags);
 
@@ -2186,12 +1986,12 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         if (local_txn)
             (void)txn_abort(local_txn, 0);
     
-        env_get_changeset(db->get_env()).clear();
+        env_get_changeset(env).clear();
         return (st);
     }
 
     /* record number: re-translate the number to host endian */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
@@ -2208,32 +2008,26 @@ _local_fun_erase(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         return (st);
 }
 
-static ham_status_t
-_local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
+ham_status_t 
+DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
-    ham_backend_t *be;
+    ham_backend_t *be=m_db->get_backend();
+
     ham_offset_t recno=0;
 
-    be=db->get_backend();
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-
-    if (!be->_fun_find)
-        return (HAM_NOT_IMPLEMENTED);
-
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
 
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-            (key->size>db_get_keysize(db))) {
+    if ((db_get_keysize(m_db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(m_db))) {
         ham_trace(("database does not support variable length keys"));
         return (HAM_INV_KEYSIZE);
     }
@@ -2241,9 +2035,9 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
     /* if this database has duplicates, then we use ham_cursor_find
      * because we have to build a duplicate list, and this is currently
      * only available in ham_cursor_find */
-    if (db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
+    if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
-        st=ham_cursor_create((ham_db_t *)db, txn, 0, (ham_cursor_t **)&c);
+        st=ham_cursor_create((ham_db_t *)m_db, txn, 0, (ham_cursor_t **)&c);
         if (st)
             return (st);
         st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, flags);
@@ -2252,7 +2046,7 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     /* record number: make sure we have a number in little endian */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         ham_assert(key->size==sizeof(ham_u64_t), (""));
         ham_assert(key->data!=0, (""));
         recno=*(ham_offset_t *)key->data;
@@ -2262,20 +2056,20 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!txn && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
 
-    db_update_global_stats_find_query(db, key->size);
+    db_update_global_stats_find_query(m_db, key->size);
 
     /* 
      * if transactions are enabled: read keys from transaction trees, 
      * otherwise read immediately from disk
      */
     if (txn || local_txn)
-        st=db_find_txn(db, txn ? txn : local_txn, key, record, flags);
+        st=db_find_txn(m_db, txn ? txn : local_txn, key, record, flags);
     else
         st=be->_fun_find(be, key, record, flags);
 
@@ -2283,16 +2077,16 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        env_get_changeset(db->get_env()).clear();
+        env_get_changeset(env).clear();
         return (st);
     }
 
     /* record number: re-translate the number to host endian */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER)
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
     /* run the record-level filters */
-    st=__record_filters_after_find(db, record);
+    st=__record_filters_after_find(m_db, record);
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -2307,54 +2101,43 @@ _local_fun_find(Database *db, ham_txn_t *txn, ham_key_t *key,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
 
-static Cursor *
-_local_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags)
+Cursor *
+DatabaseImplementationLocal::cursor_create(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_backend_t *be;
 
-    be=db->get_backend();
+    be=m_db->get_backend();
     if (!be || !be_is_active(be))
         return (0);
 
-    return (new Cursor(db, txn, flags));
+    return (new Cursor(m_db, txn, flags));
 }
 
-static Cursor *
-_local_cursor_clone(Cursor *src)
+Cursor *
+DatabaseImplementationLocal::cursor_clone(Cursor *src)
 {
     return (new Cursor(*src));
 }
 
-static void
-_local_cursor_close(Cursor *cursor)
-{
-    cursor->close();
-}
-
-static ham_status_t
-_local_cursor_insert(Cursor *cursor, ham_key_t *key,
+ham_status_t 
+DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_backend_t *be;
+    ham_backend_t *be=m_db->get_backend();
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
-    be=db->get_backend();
-    if (!be)
-        return (HAM_NOT_INITIALIZED);
-
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-            (key->size>db_get_keysize(db))) {
+    if ((db_get_keysize(m_db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(m_db))) {
         ham_trace(("database does not support variable length keys"));
         return (HAM_INV_KEYSIZE);
     }
@@ -2363,7 +2146,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number
      */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             ham_assert(key->size==sizeof(ham_u64_t), (""));
             ham_assert(key->data!=0, (""));
@@ -2385,8 +2168,8 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     }
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2396,16 +2179,16 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
      * don't want to mess up the original structure
      */
     temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
+    st=__record_filters_before_write(m_db, &temprec);
     if (!st)
-        db_update_global_stats_insert_query(db, key->size, temprec.size);
+        db_update_global_stats_insert_query(m_db, key->size, temprec.size);
     else
         return (st);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2413,10 +2196,10 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     }
 
     if (cursor->get_txn() || local_txn) {
-        st=db_insert_txn(db, 
+        st=db_insert_txn(m_db, 
                     cursor->get_txn() 
-                      ? cursor->get_txn() 
-                      : local_txn,
+                        ? cursor->get_txn() 
+                        : local_txn,
                     key, &temprec, flags, cursor->get_txn_cursor());
         if (st==0) {
             DupeCache *dc=cursor->get_dupecache();
@@ -2444,7 +2227,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     }
     else {
         st=btree_cursor_insert(cursor->get_btree_cursor(), 
-                        key, &temprec, flags);
+                    key, &temprec, flags);
         if (st==0)
             cursor->couple_to_btree();
     }
@@ -2459,7 +2242,8 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        if ((db->get_rt_flags()&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+        if ((m_db->get_rt_flags()&HAM_RECORD_NUMBER) 
+                && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -2478,7 +2262,7 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -2498,26 +2282,25 @@ _local_cursor_insert(Cursor *cursor, ham_key_t *key,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
     else
         return (st);
 }
 
-static ham_status_t 
-_local_cursor_erase(Cursor *cursor, ham_u32_t flags)
+ham_status_t 
+DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
-    db_update_global_stats_erase_query(db, 0);
+    db_update_global_stats_erase_query(m_db, 0);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2563,22 +2346,22 @@ _local_cursor_erase(Cursor *cursor, ham_u32_t flags)
         return (st);
 }
 
-static ham_status_t
-_local_cursor_find(Cursor *cursor, ham_key_t *key, 
-                ham_record_t *record, ham_u32_t flags)
+
+ham_status_t 
+DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    Database *db=cursor->get_db();
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /*
      * record number: make sure that we have a valid key structure,
      * and translate the record number to database endian
      */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             return (HAM_INV_PARAMETER);
@@ -2588,11 +2371,11 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
         *(ham_offset_t *)key->data=recno;
     }
 
-    db_update_global_stats_find_query(db, key->size);
+    db_update_global_stats_find_query(m_db, key->size);
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2600,7 +2383,7 @@ _local_cursor_find(Cursor *cursor, ham_key_t *key,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2727,12 +2510,12 @@ bail:
     }
 
     /* record number: re-translate the number to host endian */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER)
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
     /* run the record-level filters */
     if (record) {
-        st=__record_filters_after_find(db, record);
+        st=__record_filters_after_find(m_db, record);
         if (st) {
             if (local_txn)
                 (void)txn_abort(local_txn, 0);
@@ -2757,19 +2540,19 @@ bail:
         return (st);
 }
 
-static ham_status_t
-_local_cursor_get_duplicate_count(Cursor *cursor, 
-                ham_size_t *count, ham_u32_t flags)
+
+ham_status_t 
+DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor, 
+                    ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2780,7 +2563,7 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2818,18 +2601,19 @@ _local_cursor_get_duplicate_count(Cursor *cursor,
         return (st);
 }
 
-static ham_status_t
-_local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
+
+ham_status_t 
+DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor, 
+                    ham_offset_t *size)
 {
     ham_status_t st=0;
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2840,7 +2624,7 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2879,19 +2663,18 @@ _local_cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
         return (st);
 }
 
-static ham_status_t
-_local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
-                ham_u32_t flags)
+ham_status_t 
+DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor, 
+                    ham_record_t *record, ham_u32_t flags)
 {
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_status_t st;
     ham_record_t temprec;
     ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2901,14 +2684,14 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
      * don't want to mess up the original structure
      */
     temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
+    st=__record_filters_before_write(m_db, &temprec);
     if (st)
         return (st);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn() 
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -2947,18 +2730,17 @@ _local_cursor_overwrite(Cursor *cursor, ham_record_t *record,
         return (st);
 }
 
-static ham_status_t
-_local_cursor_move(Cursor *cursor, ham_key_t *key,
+ham_status_t 
+DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    Database *db=cursor->get_db();
-    ham_env_t *env=db->get_env();
+    ham_env_t *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
-    if (__cache_needs_purge(db->get_env())) {
-        st=env_purge_cache(db->get_env());
+    if (__cache_needs_purge(env)) {
+        st=env_purge_cache(env);
         if (st)
             return (st);
     }
@@ -2992,7 +2774,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
     }
 
     /* in non-transactional mode - just call the btree function and return */
-    if (!(db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+    if (!(m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=btree_cursor_move(cursor->get_btree_cursor(), 
                 key, record, flags);
         env_get_changeset(env).clear();
@@ -3000,13 +2782,13 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
             return (st);
 
         /* run the record-level filters */
-        return (__record_filters_after_find(db, record));
+        return (__record_filters_after_find(m_db, record));
     }
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn()
-            && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
+            && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -3024,7 +2806,7 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* run the record-level filters */
     if (st==0 && record)
-        st=__record_filters_after_find(db, record);
+        st=__record_filters_after_find(m_db, record);
 
     /* store the direction */
     if (flags&HAM_CURSOR_NEXT)
@@ -3050,27 +2832,181 @@ _local_cursor_move(Cursor *cursor, ham_key_t *key,
         return (st);
 }
 
-ham_status_t
-db_initialize_local(Database *db)
+void 
+DatabaseImplementationLocal::cursor_close(Cursor *cursor)
 {
-    db->_fun_close          =_local_fun_close;
-    db->_fun_get_parameters =_local_fun_get_parameters;
-    db->_fun_check_integrity=_local_fun_check_integrity;
-    db->_fun_get_key_count  =_local_fun_get_key_count;
-    db->_fun_insert         =_local_fun_insert;
-    db->_fun_erase          =_local_fun_erase;
-    db->_fun_find           =_local_fun_find;
-    db->_fun_cursor_create  =_local_cursor_create;
-    db->_fun_cursor_clone   =_local_cursor_clone;
-    db->_fun_cursor_close   =_local_cursor_close;
-    db->_fun_cursor_insert  =_local_cursor_insert;
-    db->_fun_cursor_erase   =_local_cursor_erase;
-    db->_fun_cursor_find    =_local_cursor_find;
-    db->_fun_cursor_get_duplicate_count=_local_cursor_get_duplicate_count;
-    db->_fun_cursor_get_record_size=_local_cursor_get_record_size;
-    db->_fun_cursor_overwrite=_local_cursor_overwrite;
-    db->_fun_cursor_move    =_local_cursor_move;
+    cursor->close();
+}
 
-    return (0);
+ham_status_t 
+DatabaseImplementationLocal::close(ham_u32_t flags)
+{
+    ham_env_t *env=m_db->get_env();
+    ham_status_t st=HAM_SUCCESS;
+    ham_status_t st2=HAM_SUCCESS;
+    ham_backend_t *be;
+    ham_bool_t has_other_db=HAM_FALSE;
+    Database *newowner=0;
+    ham_record_filter_t *record_head;
+
+    /*
+     * if this Database is the last database in the environment: 
+     * delete all environment-members
+     */
+    if (env) {
+        Database *n=env_get_list(env);
+        while (n) {
+            if (n!=m_db) {
+                has_other_db=HAM_TRUE;
+                break;
+            }
+            n=n->get_next();
+        }
+    }
+
+    be=m_db->get_backend();
+
+    /* close all open cursors */
+    if (be && be->_fun_close_cursors) {
+        st=be->_fun_close_cursors(be, flags);
+        if (st)
+            return (st);
+    }
+    
+    btree_stats_flush_dbdata(m_db, m_db->get_perf_data(), has_other_db);
+
+    /*
+     * if we're not in read-only mode, and not an in-memory-database,
+     * and the dirty-flag is true: flush the page-header to disk
+     */
+    if (env
+            && env_get_header_page(env) 
+            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            && env_get_device(env) 
+            && env_get_device(env)->is_open(env_get_device(env)) 
+            && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
+        /* flush the database header, if it's dirty */
+        if (env_is_dirty(env)) {
+            st=page_flush(env_get_header_page(env));
+            if (st && st2==0)
+                st2=st;
+        }
+    }
+
+    /* get rid of the extkey-cache */
+    if (m_db->get_extkey_cache()) {
+        delete m_db->get_extkey_cache();
+        m_db->set_extkey_cache(0);
+    }
+
+    /* in-memory-database: free all allocated blobs */
+    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
+        ham_txn_t *txn;
+        free_cb_context_t context;
+        context.db=m_db;
+        st=txn_begin(&txn, env, 0);
+        if (st && st2==0)
+            st2=st;
+        else {
+            (void)be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
+            (void)txn_commit(txn, 0);
+        }
+    }
+
+    /* clear the changeset */
+    if (env)
+        env_get_changeset(env).clear();
+
+    /*
+     * flush all pages of this database (but not the header page,
+     * it's still required and will be flushed below
+     */
+    if (env && env_get_cache(env)) {
+        ham_page_t *n, *head=env_get_cache(env)->get_totallist();
+        while (head) {
+            n=page_get_next(head, PAGE_LIST_CACHED);
+            if (page_get_owner(head)==m_db && head!=env_get_header_page(env)) {
+                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
+                    (void)db_flush_page(env, head);
+                (void)db_free_page(head, 0);
+            }
+            head=n;
+        }
+    }
+
+    /* free cached memory */
+    (void)db_resize_record_allocdata(m_db, 0);
+    if (m_db->get_key_allocdata()) {
+        allocator_free(env_get_allocator(env), m_db->get_key_allocdata());
+        m_db->set_key_allocdata(0);
+        m_db->set_key_allocsize(0);
+    }
+
+    /* clean up the transaction tree */
+    if (m_db->get_optree())
+        txn_free_optree(m_db->get_optree());
+
+    /* close the backend */
+    if (be && be_is_active(be)) {
+        st=be->_fun_close(be);
+        if (st && st2==0)
+            st2=st;
+    }
+
+    if (be) {
+        ham_assert(!be_is_active(be), (0));
+
+        st=be->_fun_delete(be);
+        if (st2==0)
+            st2=st;
+
+        /*
+         * TODO
+         * this free() should move into the backend destructor 
+         */
+        allocator_free(env_get_allocator(env), be);
+        m_db->set_backend(0);
+    }
+
+    /*
+     * environment: move the ownership to another database.
+     * it's possible that there's no other page, then set the 
+     * ownership to 0
+     */
+    if (env) {
+        Database *head=env_get_list(env);
+        while (head) {
+            if (head!=m_db) {
+                newowner=head;
+                break;
+            }
+            head=head->get_next();
+        }
+    }
+    if (env && env_get_header_page(env)) {
+        ham_assert(env_get_header_page(env), (0));
+        page_set_owner(env_get_header_page(env), newowner);
+    }
+
+    /* close all record-level filters */
+    record_head=m_db->get_record_filter();
+    while (record_head) {
+        ham_record_filter_t *next=record_head->_next;
+
+        if (record_head->close_cb)
+            record_head->close_cb((ham_db_t *)m_db, record_head);
+        record_head=next;
+    }
+    m_db->set_record_filter(0);
+
+    /* 
+     * trash all DB performance data 
+     *
+     * This must happen before the DB is removed from the ENV as the ENV 
+     * (when it exists) provides the required allocator.
+     */
+    btree_stats_trash_dbdata(m_db, m_db->get_perf_data());
+
+    return (st2);
 }
 

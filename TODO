@@ -115,6 +115,20 @@ x btree_cursor_points_to_key fails with extended keys - no, it's fine
 
 x port os_writev to windows
 
+. c++-ify the database
+    x create Database object
+    x add getter/setter functions
+    x check compilation of tools
+    x move initialization/destruction into constructor/destructor
+    x move function pointers into abstract base class and implement
+        a LocalDatabase and a RemoteDatabase -- no, that won't work because
+        we do not know the type of the database when it's initialized
+        -> move to seperate Impl-object
+    o move remaining functions into class
+    o check w/ valgrind
+    . the Database doesn't need to be in a linked list; it can be
+        an stl-list
+
 o improve journalling and get rid of the physical log as much as possible
     --> most of the funcitonality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
@@ -148,17 +162,6 @@ o improve journalling and get rid of the physical log as much as possible
     o also for ham_erase
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
-
-. c++-ify the database
-    x create Database object
-    x add getter/setter functions
-    x check compilation of tools
-    o move initialization/destruction into constructor/destructor
-    o move function pointers into abstract base class and implement
-        a LocalDatabase and a RemoteDatabase
-    o check w/ valgrind
-    . the Database doesn't need to be in a linked list; it can be
-        an stl-list
 
 o test with tcmalloc
 

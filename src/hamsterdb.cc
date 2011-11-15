@@ -1696,13 +1696,7 @@ ham_new(ham_db_t **hdb)
         return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * allocate memory for the ham_db_t-structure;
-     * we can't use our allocator because it's not yet created!
-     * Also reset the whole structure 
-     */
     *db=new Database();
-
     return (HAM_SUCCESS);
 }
 
@@ -1715,9 +1709,6 @@ ham_delete(ham_db_t *hdb)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-
-    /* trash all DB performance data */
-    btree_stats_trash_dbdata(db, db->get_perf_data());
 
     delete db;
     return (0);
@@ -1975,15 +1966,9 @@ ham_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
         ham_trace(("parameter 'param' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
-    if (!db->_fun_get_parameters) {
-        ham_trace(("Database was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
-    /*
-     * get the parameters
-     */
-    return (db->_fun_get_parameters(db, param));
+    /* get the parameters */
+    return ((*db)()->get_parameters(param));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2462,12 +2447,7 @@ ham_find(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    if (!db->_fun_find) {
-        ham_trace(("Database was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
-
-    return (db->set_error(db->_fun_find(db, txn, key, record, flags)));
+    return (db->set_error((*db)()->find(txn, key, record, flags)));
 }
 
 int HAM_CALLCONV
@@ -2614,14 +2594,9 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
         }
     }
 
-    if (!db->_fun_insert) {
-        ham_trace(("Database was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
-
     db->set_error(0);
 
-    return (db->set_error(db->_fun_insert(db, txn, key, record, flags)));
+    return (db->set_error((*db)()->insert(txn, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2658,35 +2633,24 @@ ham_erase(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (!__prepare_key(key))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    if (!db->_fun_erase) {
-        ham_trace(("Database was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
-
     db->set_error(0);
 
-    return (db->set_error(db->_fun_erase(db, txn, key, flags)));
+    return (db->set_error((*db)()->erase(txn, key, flags)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *hdb, ham_txn_t *txn)
 {
     Database *db=(Database *)hdb;
-    ham_status_t st;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!db->_fun_check_integrity) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
 
     db->set_error(0);
 
-    st=db->_fun_check_integrity(db, txn);
-    return (db->set_error(st));
+    return (db->set_error((*db)()->check_integrity(txn)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2694,7 +2658,6 @@ ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
                 ham_u16_t keysize)
 {
     Database *db=(Database *)hdb;
-    ham_status_t st;
     ham_backend_t *be;
 
     if (!db) {
@@ -2728,12 +2691,9 @@ ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
         return (db->set_error(HAM_NOT_IMPLEMENTED));
     }
 
-    /*
-     * call the backend function
-     */
-    st=be->_fun_calc_keycount_per_page(be, keycount, keysize);
-
-    return (db->set_error(st));
+    /* call the backend function */
+    return (db->set_error(be->_fun_calc_keycount_per_page(be, 
+                    keycount, keysize)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2756,7 +2716,7 @@ ham_flush(ham_db_t *hdb, ham_u32_t flags)
     }
 
     /* just call ham_env_flush() */
-    return (ham_env_flush(env, flags));
+    return (db->set_error(ham_env_flush(env, flags)));
 }
 
 /*
@@ -2781,13 +2741,11 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    /*
-     * it's ok to close an uninitialized Database
-     */
-    if (!db->_fun_close)
+    /* it's ok to close an uninitialized Database */
+    if (!(*db)())
         return (0);
 
-    env = db->get_env();
+    env=db->get_env();
 
     /*
      * check if there are Database Cursors - they will be closed
@@ -2830,7 +2788,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     /*
      * the function pointer will do the actual implementation
      */
-    st=db->_fun_close(db, flags);
+    st=(*db)()->close(flags);
     if (st)
         return (db->set_error(st));
 
@@ -2893,12 +2851,12 @@ ham_cursor_create(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    if (!db->_fun_cursor_create) {
+    if (!(*db)()) {
         ham_trace(("Database was not initialized"));
         return (db->set_error(HAM_NOT_INITIALIZED));
     }
 
-    *cursor=db->_fun_cursor_create(db, txn, flags);
+    *cursor=(*db)()->cursor_create(txn, flags);
 
     /* fix the linked list of cursors */
     (*cursor)->set_next(db->get_cursors());
@@ -2939,12 +2897,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
         return HAM_INV_PARAMETER;
     }
 
-    if (!db->_fun_cursor_clone) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    *dest=db->_fun_cursor_clone(src);
+    *dest=(*db)()->cursor_clone(src);
 
     /* fix the linked list of cursors */
     (*dest)->set_previous(0);
@@ -3003,12 +2956,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    if (!db->_fun_cursor_overwrite) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    return (db->set_error(db->_fun_cursor_overwrite(cursor, record, flags)));
+    return (db->set_error((*db)()->cursor_overwrite(cursor, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3063,12 +3011,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     if (record && !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    if (!db->_fun_cursor_move) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    st=db->_fun_cursor_move(cursor, key, record, flags);
+    st=(*db)()->cursor_move(cursor, key, record, flags);
 
     /* make sure that the changeset is empty */
     ham_assert(env_get_changeset(env).is_empty(), (""));
@@ -3155,13 +3098,7 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
     if (record &&  !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    if (!db->_fun_cursor_find) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    return (db->set_error(
-                db->_fun_cursor_find(cursor, key, record, flags)));
+    return (db->set_error((*db)()->cursor_find(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3298,13 +3235,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
         }
     }
 
-    if (!db->_fun_cursor_insert) {
-        ham_trace(("Database was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
-
-    return (db->set_error(
-                db->_fun_cursor_insert(cursor, key, record, flags)));
+    return (db->set_error((*db)()->cursor_insert(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3340,13 +3271,8 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
                    "ham_cursor_insert"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (!db->_fun_cursor_erase) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
 
-    return (db->set_error(
-                db->_fun_cursor_erase(cursor, flags)));
+    return (db->set_error((*db)()->cursor_erase(cursor, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3374,13 +3300,8 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
 
     *count=0;
 
-    if (!db->_fun_cursor_get_duplicate_count) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
     return (db->set_error(
-                db->_fun_cursor_get_duplicate_count(cursor, count, flags)));
+                (*db)()->cursor_get_duplicate_count(cursor, count, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3407,13 +3328,8 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_offset_t *size)
 
     *size=0;
 
-    if (!db->_fun_cursor_get_record_size) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
     return (db->set_error(
-                db->_fun_cursor_get_record_size(cursor, size)));
+                (*db)()->cursor_get_record_size(cursor, size)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3435,11 +3351,6 @@ ham_cursor_close(ham_cursor_t *hcursor)
         return HAM_INV_PARAMETER;
     }
 
-    if (!db->_fun_cursor_close) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
     /* decrease the transaction refcount; the refcount specifies how many
      * cursors are attached to the transaction */
     if (cursor->get_txn()) {
@@ -3449,7 +3360,7 @@ ham_cursor_close(ham_cursor_t *hcursor)
     }
 
     /* now finally close the cursor */
-    db->_fun_cursor_close(cursor);
+    (*db)()->cursor_close(cursor);
 
     /* fix the linked list of cursors */
     p=cursor->get_previous();
@@ -3634,7 +3545,6 @@ ham_status_t HAM_CALLCONV
 ham_get_key_count(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
-    ham_status_t st;
     Database *db=(Database *)hdb;
 
     if (!db) {
@@ -3648,15 +3558,7 @@ ham_get_key_count(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
     }
     *keycount = 0;
 
-    if (!db->_fun_get_key_count) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    db->set_error(0);
-
-    st=db->_fun_get_key_count(db, txn, flags, keycount);
-    return (db->set_error(st));
+    return (db->set_error((*db)()->get_key_count(txn, flags, keycount)));
 }
 
 ham_status_t HAM_CALLCONV

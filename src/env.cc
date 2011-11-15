@@ -1077,7 +1077,7 @@ _local_fun_create_db(ham_env_t *env, Database *db,
     /*
      * initialize the remaining function pointers in Database
      */
-    st=db_initialize_local(db);
+    st=db->initialize_local();
     if (st) {
         (void)ham_close((ham_db_t *)db, 0);
         goto bail;
@@ -1243,7 +1243,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
     /*
      * initialize the remaining function pointers in Database
      */
-    st=db_initialize_local(db);
+    st=db->initialize_local();
     if (st) {
         (void)ham_close((ham_db_t *)db, 0);
         return (st);

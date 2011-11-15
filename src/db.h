@@ -132,6 +132,231 @@ typedef HAM_PACK_0 union HAM_PACK_1
 #define index_clear_reserved(p)           { (p)->b._reserved1 = 0;            \
                                             (p)->b._reserved2 = 0; }
 
+/** 
+ * This helper class provides the actual implementation of the 
+ * database - either local file access or through remote http 
+ */
+class DatabaseImplementation
+{
+  public:
+    DatabaseImplementation(Database *db) 
+      : m_db(db) {
+    }
+
+    virtual ~DatabaseImplementation() {
+    }
+
+    /** get Database parameters */
+    virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
+
+    /** check Database integrity */
+    virtual ham_status_t check_integrity(ham_txn_t *txn) = 0;
+
+    /** get number of keys */
+    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+                    ham_offset_t *keycount) = 0;
+
+    /** insert a key/value pair */
+    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** erase a key/value pair */
+    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, 
+                    ham_u32_t flags) = 0;
+
+    /** lookup of a key/value pair */
+    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** create a cursor */
+    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags) = 0;
+
+    /** clone a cursor */
+    virtual Cursor *cursor_clone(Cursor *src) = 0;
+
+    /** insert a key with a cursor */
+    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** erase the key of a cursor */
+    virtual ham_status_t cursor_erase(Cursor *cursor, ham_u32_t flags) = 0;
+
+    /** position the cursor on a key and return the record */
+    virtual ham_status_t cursor_find(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** get number of duplicates */
+    virtual ham_status_t cursor_get_duplicate_count(Cursor *cursor, 
+                    ham_size_t *count, ham_u32_t flags) = 0;
+
+    /** get current record size */
+    virtual ham_status_t cursor_get_record_size(Cursor *cursor, 
+                    ham_offset_t *size) = 0;
+
+    /** overwrite a cursor */
+    virtual ham_status_t cursor_overwrite(Cursor *cursor, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** move a cursor, return key and/or record */
+    virtual ham_status_t cursor_move(Cursor *cursor, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** close a cursor */
+    virtual void cursor_close(Cursor *cursor) = 0;
+
+    /** close the Database */
+    virtual ham_status_t close(ham_u32_t flags) = 0;
+
+  protected:
+    Database *m_db;
+};
+
+/** 
+ * The database implementation for local file access
+ */
+class DatabaseImplementationLocal : public DatabaseImplementation
+{
+  public:
+    DatabaseImplementationLocal(Database *db) 
+      : DatabaseImplementation(db) {
+    }
+
+    /** get Database parameters */
+    virtual ham_status_t get_parameters(ham_parameter_t *param);
+
+    /** check Database integrity */
+    virtual ham_status_t check_integrity(ham_txn_t *txn);
+
+    /** get number of keys */
+    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+                    ham_offset_t *keycount);
+
+    /** insert a key/value pair */
+    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** erase a key/value pair */
+    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+
+    /** lookup of a key/value pair */
+    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** create a cursor */
+    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+
+    /** clone a cursor */
+    virtual Cursor *cursor_clone(Cursor *src);
+
+    /** insert a key with a cursor */
+    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** erase the key of a cursor */
+    virtual ham_status_t cursor_erase(Cursor *cursor, ham_u32_t flags);
+
+    /** position the cursor on a key and return the record */
+    virtual ham_status_t cursor_find(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** get number of duplicates */
+    virtual ham_status_t cursor_get_duplicate_count(Cursor *cursor, 
+                    ham_size_t *count, ham_u32_t flags);
+
+    /** get current record size */
+    virtual ham_status_t cursor_get_record_size(Cursor *cursor, 
+                    ham_offset_t *size);
+
+    /** overwrite a cursor */
+    virtual ham_status_t cursor_overwrite(Cursor *cursor, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** move a cursor, return key and/or record */
+    virtual ham_status_t cursor_move(Cursor *cursor, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /** close a cursor */
+    virtual void cursor_close(Cursor *cursor);
+
+    /** close the Database */
+    virtual ham_status_t close(ham_u32_t flags);
+};
+
+/** 
+ * The database implementation for remote file access
+ */
+#if HAM_ENABLE_REMOTE
+
+class DatabaseImplementationRemote : public DatabaseImplementation
+{
+  public:
+    DatabaseImplementationRemote(Database *db) 
+      : DatabaseImplementation(db) {
+    }
+
+    /** get Database parameters */
+    virtual ham_status_t get_parameters(ham_parameter_t *param);
+
+    /** check Database integrity */
+    virtual ham_status_t check_integrity(ham_txn_t *txn);
+
+    /** get number of keys */
+    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+                    ham_offset_t *keycount);
+
+    /** insert a key/value pair */
+    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** erase a key/value pair */
+    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+
+    /** lookup of a key/value pair */
+    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** create a cursor */
+    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+
+    /** clone a cursor */
+    virtual Cursor *cursor_clone(Cursor *src);
+
+    /** insert a key with a cursor */
+    virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** erase the key of a cursor */
+    virtual ham_status_t cursor_erase(Cursor *cursor, ham_u32_t flags);
+
+    /** position the cursor on a key and return the record */
+    virtual ham_status_t cursor_find(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** get number of duplicates */
+    virtual ham_status_t cursor_get_duplicate_count(Cursor *cursor, 
+                    ham_size_t *count, ham_u32_t flags);
+
+    /** get current record size */
+    virtual ham_status_t cursor_get_record_size(Cursor *cursor, 
+                    ham_offset_t *size);
+
+    /** overwrite a cursor */
+    virtual ham_status_t cursor_overwrite(Cursor *cursor, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** move a cursor, return key and/or record */
+    virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** close a cursor */
+    virtual void cursor_close(Cursor *cursor);
+
+    /** close the Database */
+    virtual ham_status_t close(ham_u32_t flags);
+};
+#endif // HAM_ENABLE_REMOTE
+
+
 /**
  * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
  * opaque C structure, but internally we use a C++ class. The ham_db_t
@@ -147,108 +372,32 @@ struct ham_db_t {
 class Database
 {
   public:
+    /** constructor */
     Database();
 
-    /**
-     * get Database parameters
-     */
-    ham_status_t (*_fun_get_parameters)(Database *db, ham_parameter_t *param);
+    /** destructor */
+    ~Database();
 
-    /**
-     * check Database integrity
-     */
-    ham_status_t (*_fun_check_integrity)(Database *db, ham_txn_t *txn);
+    /** initialize the database for local use */
+    ham_status_t initialize_local(void) {
+        m_impl=new DatabaseImplementationLocal(this);
+        return (0);
+    }
 
-    /**
-     * get number of keys
-     */
-    ham_status_t (*_fun_get_key_count)(Database *db, ham_txn_t *txn, 
-                    ham_u32_t flags, ham_offset_t *keycount);
+    /** initialize the database for remote use (http) */
+    ham_status_t initialize_remote(void) {
+#if HAM_ENABLE_REMOTE
+        m_impl=new DatabaseImplementationRemote(this);
+        return (0);
+#else
+        return (HAM_NOT_IMPLEMENTED);
+#endif
+    }
 
-    /**
-     * insert a key/value pair
-     */
-    ham_status_t (*_fun_insert)(Database *db, ham_txn_t *txn, 
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * erase a key/value pair
-     */
-    ham_status_t (*_fun_erase)(Database *db, ham_txn_t *txn, 
-                    ham_key_t *key, ham_u32_t flags);
-
-    /**
-     * lookup of a key/value pair
-     */
-    ham_status_t (*_fun_find)(Database *db, ham_txn_t *txn, 
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * create a cursor
-     */
-    Cursor * (*_fun_cursor_create)(Database *db, ham_txn_t *txn, 
-                    ham_u32_t flags);
-
-    /**
-     * clone a cursor
-     */
-    Cursor * (*_fun_cursor_clone)(Cursor *src);
-
-    /**
-     * insert a key with a cursor
-     */
-    ham_status_t (*_fun_cursor_insert)(Cursor *cursor, 
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * erase the key of a cursor
-     */
-    ham_status_t (*_fun_cursor_erase)(Cursor *cursor, ham_u32_t flags);
-
-    /**
-     * position the cursor on a key and return the record
-     */
-    ham_status_t (*_fun_cursor_find)(Cursor *cursor, ham_key_t *key, 
-                    ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * get number of duplicates
-     */
-    ham_status_t (*_fun_cursor_get_duplicate_count)(Cursor *cursor, 
-                    ham_size_t *count, ham_u32_t flags);
-
-    /**
-     * get current record size
-     */
-    ham_status_t (*_fun_cursor_get_record_size)(Cursor *cursor, 
-                    ham_offset_t *size);
-
-    /**
-     * overwrite a cursor
-     */
-    ham_status_t (*_fun_cursor_overwrite)(Cursor *cursor, 
-                    ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * move a cursor, return key and/or record
-     */
-    ham_status_t (*_fun_cursor_move)(Cursor *cursor, 
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * close a cursor
-     */
-    void (*_fun_cursor_close)(Cursor *cursor);
-
-    /**
-     * close the Database
-     */
-    ham_status_t (*_fun_close)(Database *db, ham_u32_t flags);
-
-    /**
-    * destroy the database object, free all memory
-    */
-    ham_status_t (*_fun_destroy)(Database *self);
+    /** syntactic sugar to access the implementation object */
+    DatabaseImplementation *operator()(void) {
+        return (m_impl);
+    }
 
     /** get the last error code */
     ham_status_t get_error(void) {
@@ -541,7 +690,11 @@ class Database
 
     /** the transaction tree */
     struct txn_optree_t m_optree;
+
+    /** the object which does the actual work */
+    DatabaseImplementation *m_impl;
 };
+
 
 /** check if a given data access mode / mode-set has been set */
 inline bool dam_is_set(ham_u32_t coll, ham_u32_t mask) {
