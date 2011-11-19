@@ -756,7 +756,7 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
         ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
         if (k->size!=key->size)
             return (false);
-        return (0==db_compare_keys(db, key, k));
+        return (0==db->compare_keys(key, k));
     }
 
     if (btree_cursor_is_coupled(btc)) {
@@ -779,7 +779,7 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
             ham_cursor_close((ham_cursor_t *)clone);
             return (false);
         }
-        if (0==db_compare_keys(db, key, 
+        if (0==db->compare_keys(key, 
                btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
             ret=true;
         ham_cursor_close((ham_cursor_t *)clone);

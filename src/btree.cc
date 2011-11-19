@@ -409,17 +409,13 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
-btree_create(ham_backend_t **pbe, Database *db, ham_u32_t flags)
+ham_backend_t *
+btree_create(Database *db, ham_u32_t flags)
 {
-    ham_btree_t *btree;
-
-    *pbe=0;
-
-    btree=(ham_btree_t *)allocator_calloc(
+    ham_btree_t *btree=(ham_btree_t *)allocator_calloc(
                     env_get_allocator(db->get_env()), sizeof(*btree));
     if (!btree)
-        return (HAM_OUT_OF_MEMORY);
+        return (0);
 
     /* initialize the backend */
     btree->_db=db;
@@ -438,8 +434,7 @@ btree_create(ham_backend_t **pbe, Database *db, ham_u32_t flags)
     btree->_fun_uncouple_all_cursors=btree_fun_uncouple_all_cursors;
     btree->_fun_free_page_extkeys=btree_fun_free_page_extkeys;
 
-    *pbe=(ham_backend_t *)btree;
-    return (HAM_SUCCESS);
+    return ((ham_backend_t *)btree);
 }
 
 ham_status_t
@@ -810,7 +805,7 @@ btree_compare_keys(Database *db, ham_page_t *page,
         rhs.data=key_get_key(r);
         rhs.flags=HAM_KEY_USER_ALLOC;
         rhs._flags=key_get_flags(r);
-        return (db_compare_keys(db, lhs, &rhs));
+        return (db->compare_keys(lhs, &rhs));
     }
 
     /* otherwise continue for extended keys */
@@ -818,7 +813,7 @@ btree_compare_keys(Database *db, ham_page_t *page,
     if (st)
         return (st);
 
-    return (db_compare_keys(db, lhs, &rhs));
+    return (db->compare_keys(lhs, &rhs));
 }
 
 ham_status_t
@@ -832,13 +827,13 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
         ham_u16_t keysize = key_get_size(source);
-        ham_status_t st=db_get_extended_key(db, key_get_key(source),
+        ham_status_t st=db->get_extended_key(key_get_key(source),
                     keysize, key_get_flags(source),
                     dest);
         if (st) {
             if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
                 /*
-                 * key data can be allocated in db_get_extended_key():
+                 * key data can be allocated in db->get_extended_key():
                  * prevent that heap memory leak
                  */
                 if (dest->data && (db->get_key_allocdata()!=dest->data))
@@ -859,7 +854,7 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
         }
         else {
             if (keysize) {
-                (void)db_resize_key_allocdata(db, 0);
+                (void)db->resize_key_allocdata(0);
                 db->set_key_allocdata(dest->data);
                 db->set_key_allocsize(keysize);
             }
@@ -880,8 +875,8 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
                 memcpy(dest->data, key_get_key(source), keysize);
             }
             else {
-                if (keysize > db->get_key_allocsize()) {
-                    ham_status_t st=db_resize_key_allocdata(db, keysize);
+                if (keysize>db->get_key_allocsize()) {
+                    ham_status_t st=db->resize_key_allocdata(keysize);
                     if (st)
                         return (st);
                     else
@@ -985,7 +980,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
         }
         else {
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_record_allocdata(db, blobsize);
+                st=db->resize_record_allocdata(blobsize);
                 if (st)
                     return (st);
                 record->data = db->get_record_allocdata();
@@ -1010,16 +1005,14 @@ btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
      * extended key: copy the whole key
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, 
-                    (ham_u8_t *)key_get_key(source),
-                    key_get_size(source), key_get_flags(source),
-                    dest);
+        ham_status_t st=db->get_extended_key((ham_u8_t *)key_get_key(source),
+                    key_get_size(source), key_get_flags(source), dest);
         if (st) {
             return st;
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
-        /* dest->size is set by db_get_extended_key() */
-        ham_assert(dest->size == key_get_size(source), (0)); 
+        /* dest->size is set by db->get_extended_key() */
+        ham_assert(dest->size==key_get_size(source), (0)); 
     }
     else if (key_get_size(source)) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {

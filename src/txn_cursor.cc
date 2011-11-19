@@ -360,7 +360,7 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
         key->size=source->size;
         if (source->data && source->size) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                ham_status_t st=db_resize_key_allocdata(db, source->size);
+                ham_status_t st=db->resize_key_allocdata(source->size);
                 if (st)
                     return (st);
                 key->data=db->get_key_allocdata();
@@ -394,7 +394,7 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
         record->size=source->size;
         if (source->data && source->size) {
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                ham_status_t st=db_resize_record_allocdata(db, source->size);
+                ham_status_t st=db->resize_record_allocdata(source->size);
                 if (st)
                     return (st);
                 record->data=db->get_record_allocdata();

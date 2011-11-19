@@ -2281,7 +2281,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
 
     memcpy(src, (char *)record->data+4, newsize);
 
-    st=db_resize_record_allocdata(db, origsize);
+    st=db->resize_record_allocdata(origsize);
     if (st) {
         allocator_free(env_get_allocator(env), src);
         return (db->set_error(st));
@@ -2579,7 +2579,7 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
                  * allocate memory for the key
                  */
                 if (sizeof(ham_u64_t)>db->get_key_allocsize()) {
-                    st=db_resize_key_allocdata(db, sizeof(ham_u64_t));
+                    st=db->resize_key_allocdata(sizeof(ham_u64_t));
                     if (st)
                         return (db->set_error(st));
                     else
@@ -2793,8 +2793,8 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         return (db->set_error(st));
 
     /* free cached data pointers */
-    (void)db_resize_record_allocdata(db, 0);
-    (void)db_resize_key_allocdata(db, 0);
+    (void)db->resize_record_allocdata(0);
+    (void)db->resize_key_allocdata(0);
 
     /*
      * remove this database from the environment
@@ -3220,7 +3220,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                  * allocate memory for the key
                  */
                 if (sizeof(ham_u64_t)>db->get_key_allocsize()) {
-                    st=db_resize_key_allocdata(db, sizeof(ham_u64_t));
+                    st=db->resize_key_allocdata(sizeof(ham_u64_t));
                     if (st)
                         return (db->set_error(st));
                     else

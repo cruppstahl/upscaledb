@@ -124,13 +124,30 @@ x port os_writev to windows
         a LocalDatabase and a RemoteDatabase -- no, that won't work because
         we do not know the type of the database when it's initialized
         -> move to seperate Impl-object
+        x db_compare_keys
+        o db_get_extended_key
+        o the local functions...
+            o db_insert_txn
+            o db_erase_txn
     o move remaining functions into class
     o check w/ valgrind
+    o test compilation w/o remote functionality
     . the Database doesn't need to be in a linked list; it can be
         an stl-list
 
+o move forum to google groups; 3 mailing lists: dev, users, announcements
+
+. c++-ify the page
+
+. c++-ify the device
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
+
 o improve journalling and get rid of the physical log as much as possible
-    --> most of the funcitonality can be handled in the changeset
+    --> most of the functionality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
       insert/erase is not because it also affects the blob area and the
       freelist (and maybe the header page, if the root page address is
@@ -149,6 +166,14 @@ o improve journalling and get rid of the physical log as much as possible
           - insert w/ record > 8 (index page, blob page, freelist)
         first write blob & freelist (if idempotent) w/o logging, then write
           the log entry
+      o new function changeset->describe_operation(flag);
+            DESCRIBE_INSERT_OPERATION
+            DESCRIBE_ERASE_OPERATION
+            OPERATION_IS_OVERWRITE
+            OPERATION_IS_DUPLICATE
+            OPERATION_IS_EXTENDED_KEY
+            OPERATION_IS_BLOB
+            ...
       o flush: first remove all non-dirty pages
       o flush: if it's only one modified page: write directly to disk
         o add test
@@ -158,12 +183,23 @@ o improve journalling and get rid of the physical log as much as possible
         o need to inform log that it's a "simple insert w/o extkeys"
         o add test
       o also check scenarios for overwritten key, duplicate key
+      o create an object "ErrorInducer" which hooks into the log and is
+        controlled from the unittests
+        class ErrorInducer {
+            add_action(int action, int loops, int error);
+            std::map<int, std::pair<int, int> > errors;
+        };
+        #define induce(inducer, action)                          \
+            if (++inducer[action].count>inducer[action].loops)   \
+                return (inducer[action].error)
 
     o also for ham_erase
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
 
 o test with tcmalloc
+
+. db_uncouple_all_cursors() -> move to page
 
 o document how to optimize for performance
     o with transactions: try not to use duplicates
@@ -270,16 +306,10 @@ o update the tutorial
 . move the whole configuration (key sizes, parameters, page size, etc) into a 
     separate class which is instantiated by the env
 
-. c++-ify the page
-
-. c++-ify the device
-
 . c++-ify the btree node representation; 
     o include duplicates as well! disentangle duplicates from blob-handling
 
 . c++-ify the blob handling and split off the duplicates
-
-. c++-ify the database
 
 . c++-ify the environment
 
@@ -290,7 +320,7 @@ o update the tutorial
 o device, page and os shold no longer return errors but throw exceptions
 
 
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);

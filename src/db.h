@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,6 +26,8 @@
 #include "util.h"
 #include "txn.h"
 #include "env.h"
+#include "btree_key.h"
+#include "btree.h"
 
 
 #ifdef __cplusplus
@@ -604,6 +606,24 @@ class Database
         m_key_allocdata=p;
     }
 
+    /**
+     * Resize the record data buffer. This buffer is an internal storage for 
+     * record buffers. When a ham_record_t structure is returned to the user,
+     * the record->data pointer will point to this buffer.
+     *
+     * Set the size to 0, and the data is freed.
+     */
+    ham_status_t resize_record_allocdata(ham_size_t size);
+
+    /**
+     * Resize the key data buffer. This buffer is an internal storage for 
+     * key buffers. When a ham_key_t structure is returned to the user,
+     * the key->data pointer will point to this buffer.
+     *
+     * Set the size to 0, and the data is freed.
+     */
+    ham_status_t resize_key_allocdata(ham_size_t size);
+
 #if HAM_ENABLE_REMOTE
     /** get the remote database handle */
     ham_u64_t get_remote_handle(void) {
@@ -620,6 +640,86 @@ class Database
     struct txn_optree_t *get_optree(void) {
         return (&m_optree);
     }
+
+    /** get the database name */
+    ham_u16_t get_name(void) {
+        db_indexdata_t *idx=env_get_indexdata_ptr(get_env(), 
+            get_indexdata_offset());
+        return (index_get_dbname(idx));
+    }
+
+    /**
+     * function which compares two keys
+     *
+     * @return -1, 0, +1 or higher positive values are the result of a 
+     *         successful key comparison (0 if both keys match, -1 when 
+     *         LHS < RHS key, +1 when LHS > RHS key).
+     */
+    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) {
+        int cmp=HAM_PREFIX_REQUEST_FULLKEY;
+        ham_compare_func_t foo=get_compare_func();
+        ham_prefix_compare_func_t prefoo=get_prefix_compare_func();
+    
+        set_error(0);
+    
+        /* need prefix compare? if no key is extended we can just call the
+         * normal compare function */
+        if (!(lhs->_flags&KEY_IS_EXTENDED) && !(rhs->_flags&KEY_IS_EXTENDED)) {
+            return (foo((ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
+                            (ham_u8_t *)rhs->data, rhs->size));
+        }
+    
+        /* yes! - run prefix comparison */
+        if (prefoo) {
+            ham_size_t lhsprefixlen, rhsprefixlen;
+            if (lhs->_flags&KEY_IS_EXTENDED)
+                lhsprefixlen=db_get_keysize(this)-sizeof(ham_offset_t);
+            else
+                lhsprefixlen=lhs->size;
+            if (rhs->_flags&KEY_IS_EXTENDED)
+                rhsprefixlen=db_get_keysize(this)-sizeof(ham_offset_t);
+            else
+                rhsprefixlen=rhs->size;
+    
+            cmp=prefoo((ham_db_t *)this, 
+                        (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
+                        (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
+            if (cmp<-1 && cmp!=HAM_PREFIX_REQUEST_FULLKEY)
+                return (cmp); /* unexpected error! */
+        }
+    
+        if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
+            /* 1. load the first key, if needed */
+            if (lhs->_flags&KEY_IS_EXTENDED) {
+                ham_status_t st=get_extended_key((ham_u8_t *)lhs->data,
+                        lhs->size, lhs->_flags, lhs);
+                if (st)
+                    return st;
+                lhs->_flags&=~KEY_IS_EXTENDED;
+            }
+    
+            /* 2. load the second key, if needed */
+            if (rhs->_flags&KEY_IS_EXTENDED) {
+                ham_status_t st=get_extended_key((ham_u8_t *)rhs->data,
+                        rhs->size, rhs->_flags, rhs);
+                if (st)
+                    return st;
+                rhs->_flags&=~KEY_IS_EXTENDED;
+            }
+
+            /* 3. run the comparison function */
+            cmp=foo((ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
+                            (ham_u8_t *)rhs->data, rhs->size);
+        }
+        return (cmp);
+    }
+
+    /**
+     * load an extended key
+     * @a ext_key must have been initialized before calling this function.
+     */
+    ham_status_t get_extended_key(ham_u8_t *key_data, ham_size_t key_length, 
+                    ham_u32_t key_flags, ham_key_t *ext_key);
 
   private:
     /** the last error code */
@@ -700,20 +800,6 @@ class Database
 inline bool dam_is_set(ham_u32_t coll, ham_u32_t mask) {
     return ((coll&mask)==mask);
 }
-
-/**
- * get the database name
- */
-extern ham_u16_t
-db_get_dbname(Database *db);
-
-/**
- * uncouple all cursors from a page
- *
- * @remark this is called whenever the page is deleted or becoming invalid
- */
-extern ham_status_t
-db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**
  * compare two keys
@@ -799,41 +885,12 @@ db_default_dupe_compare(ham_db_t *db,
                     const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
- * load an extended key
- * returns the full data of the extended key in ext_key
- * 'ext_key' must have been initialized before calling this function.
+ * uncouple all cursors from a page
  *
- * @note
- * This routine can cope with @ref HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+ * @remark this is called whenever the page is deleted or becoming invalid
  */
 extern ham_status_t
-db_get_extended_key(Database *db, ham_u8_t *key_data,
-                    ham_size_t key_length, ham_u32_t key_flags,
-                    ham_key_t *ext_key);
-
-/**
- * function which compares two keys
- *
- * calls the comparison function
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful 
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate 
- *         a failed comparison execution: these are listed in 
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes 
- */
-extern int
-db_compare_keys(Database *db, ham_key_t *lsh, ham_key_t *rhs);
-
-/**
- * create a backend object according to the database flags.
- */
-extern ham_status_t
-db_create_backend(ham_backend_t **backend_ref, Database *db, ham_u32_t flags);
+db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**
  * fetch a page.
@@ -961,26 +1018,6 @@ db_free_page(ham_page_t *page, ham_u32_t flags);
 extern ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
 
-/**
- * Resize the record data buffer. This buffer is an internal storage for 
- * record buffers. When a ham_record_t structure is returned to the user,
- * the record->data pointer will point to this buffer.
- *
- * Set the size to 0, and the data is freed.
- */
-extern ham_status_t
-db_resize_record_allocdata(Database *db, ham_size_t size);
-
-/**
- * Resize the key data buffer. This buffer is an internal storage for 
- * key buffers. When a ham_key_t structure is returned to the user,
- * the key->data pointer will point to this buffer.
- *
- * Set the size to 0, and the data is freed.
- */
-extern ham_status_t
-db_resize_key_allocdata(Database *db, ham_size_t size);
-
 /** 
  * copy a key
  *
@@ -1034,18 +1071,6 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest);
 /**
  * @}
  */
-
-/*
- * initialize the Database structure for accessing local files
- */
-extern ham_status_t
-db_initialize_local(Database *db);
-
-/*
- * initialize the Database structure for accessing a remote server
- */
-extern ham_status_t
-db_initialize_remote(Database *db);
 
 /*
  * insert a key/record pair in a txn node; if cursor is not NULL it will

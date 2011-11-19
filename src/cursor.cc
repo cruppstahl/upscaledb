@@ -370,7 +370,7 @@ Cursor::compare(void)
             return (0); /* TODO throw */
         }
         /* TODO error codes are swallowed */
-        cmp=db_compare_keys(m_db, 
+        cmp=get_db()->compare_keys(
                 btree_cursor_get_uncoupled_key(clone->get_btree_cursor()), 
                 txnk);
         ham_cursor_close((ham_cursor_t *)clone);
@@ -380,8 +380,7 @@ Cursor::compare(void)
     }
     else if (btree_cursor_is_uncoupled(btrc)) {
         /* TODO error codes are swallowed */
-        cmp=db_compare_keys(m_db, btree_cursor_get_uncoupled_key(btrc), 
-                        txnk);
+        cmp=get_db()->compare_keys(btree_cursor_get_uncoupled_key(btrc), txnk);
         set_lastcmp(cmp);
         return (cmp);
     }

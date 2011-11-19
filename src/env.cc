@@ -1047,25 +1047,20 @@ _local_fun_create_db(ham_env_t *env, Database *db,
     }
 #endif
 
-    /* 
-     * create the backend
-     */
-    be = db->get_backend();
-    if (be == NULL) {
-        st=db_create_backend(&be, db, flags);
-        ham_assert(st ? be == NULL : 1, (0));
+    /* create the backend */
+    be=db->get_backend();
+    if (be==NULL) {
+        be=btree_create(db, flags);
         if (!be) {
+            st=HAM_OUT_OF_MEMORY;
             (void)ham_close((ham_db_t *)db, 0);
             goto bail;
         }
-
         /* store the backend in the database */
         db->set_backend(be);
     }
 
-    /* 
-     * initialize the backend
-     */
+    /* initialize the backend */
     st=be->_fun_create(be, keysize, pflags);
     if (st) {
         (void)ham_close((ham_db_t *)db, 0);
@@ -1213,25 +1208,19 @@ _local_fun_open_db(ham_env_t *env, Database *db,
         return (HAM_DATABASE_NOT_FOUND);
     }
 
-    /* 
-     * create the backend
-     */
-    be = db->get_backend();
-    if (be == NULL) {
-        st=db_create_backend(&be, db, flags);
-        ham_assert(st ? be == NULL : 1, (0));
+    /* create the backend */
+    be=db->get_backend();
+    if (be==NULL) {
+        be=btree_create(db, flags);
         if (!be) {
             (void)ham_close((ham_db_t *)db, 0);
-            return (st);
+            return (HAM_OUT_OF_MEMORY);
         }
-
         /* store the backend in the database */
         db->set_backend(be);
     }
 
-    /* 
-     * initialize the backend 
-     */
+    /* initialize the backend */
     st=be->_fun_open(be, flags);
     if (st) {
         (void)ham_close((ham_db_t *)db, 0);

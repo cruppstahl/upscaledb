@@ -508,13 +508,13 @@ class Cursor
     }
 
     /** Get the result of the previous compare operation:
-     * db_compare_keys(btree-cursor, txn-cursor) */
+     * db->compare_keys(btree-cursor, txn-cursor) */
     int get_lastcmp(void) {
         return (m_lastcmp);
     }
 
     /** Set the result of the previous compare operation:
-     * db_compare_keys(btree-cursor, txn-cursor) */
+     * db->compare_keys(btree-cursor, txn-cursor) */
     void set_lastcmp(int cmp) {
         m_lastcmp=cmp;
     }

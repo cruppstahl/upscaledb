@@ -699,7 +699,7 @@ blob_read(Database *db, ham_offset_t blobid,
             else {
                 /* resize buffer, if necessary */
                 if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                    st=db_resize_record_allocdata(db, blobsize);
+                    st=db->resize_record_allocdata(blobsize);
                     if (st)
                         return (st);
                     record->data = db->get_record_allocdata();
@@ -758,7 +758,7 @@ blob_read(Database *db, ham_offset_t blobid,
      * second step: resize the blob buffer
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        st=db_resize_record_allocdata(db, blobsize);
+        st=db->resize_record_allocdata(blobsize);
         if (st)
             return (st);
         record->data = db->get_record_allocdata();

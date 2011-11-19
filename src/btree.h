@@ -172,12 +172,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
  * "constructor" - initializes a new ham_btree_t object
  *
  * @return a pointer to a new created B+-tree backend 
- *         instance in @a backend_ref
  *
  * @remark flags are from @ref ham_env_open_db() or @ref ham_env_create_db()
  */
-extern ham_status_t
-btree_create(ham_backend_t **backend_ref, Database *db, ham_u32_t flags);
+extern ham_backend_t *
+btree_create(Database *db, ham_u32_t flags);
 
 /**
  * search the btree structures for a record
@@ -336,8 +335,8 @@ btree_compare_keys(Database *db, ham_page_t *page,
 
 /**
  * create a preliminary copy of an @ref btree_key_t key to a @ref ham_key_t
- * in such a way that @ref db_compare_keys can use the data and optionally
- * call @ref db_get_extended_key on this key to obtain all key data, when this
+ * in such a way that @ref db->compare_keys can use the data and optionally
+ * call @ref db->get_extended_key on this key to obtain all key data, when this
  * is an extended key.
  *
  * @param which specifies whether keydata1 (which = 0) or keydata2 is used

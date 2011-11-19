@@ -1038,7 +1038,7 @@ DatabaseImplementationRemote::find(ham_txn_t *txn, ham_key_t *key,
             key->_flags=proto_db_find_reply_get_key_intflags(reply);
             key->size=proto_db_find_reply_get_key_size(reply);
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                st=db_resize_key_allocdata(m_db, key->size);
+                st=m_db->resize_key_allocdata(key->size);
                 if (st)
                     goto bail;
                 key->data=m_db->get_key_allocdata();
@@ -1049,7 +1049,7 @@ DatabaseImplementationRemote::find(ham_txn_t *txn, ham_key_t *key,
         if (proto_db_find_reply_has_record(reply)) {
             record->size=proto_db_find_reply_get_record_size(reply);
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_record_allocdata(m_db, record->size);
+                st=m_db->resize_record_allocdata(record->size);
                 if (st)
                     goto bail;
                 record->data=m_db->get_record_allocdata();
@@ -1244,7 +1244,7 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=proto_cursor_find_reply_get_record_size(reply);
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_record_allocdata(m_db, record->size);
+            st=m_db->resize_record_allocdata(record->size);
             if (st)
                 goto bail;
             record->data=m_db->get_record_allocdata();
@@ -1363,7 +1363,7 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
         key->_flags=proto_cursor_move_reply_get_key_intflags(reply);
         key->size=proto_cursor_move_reply_get_key_size(reply);
         if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-            st=db_resize_key_allocdata(m_db, key->size);
+            st=m_db->resize_key_allocdata(key->size);
             if (st)
                 goto bail;
             key->data=m_db->get_key_allocdata();
@@ -1377,7 +1377,7 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=proto_cursor_move_reply_get_record_size(reply);
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_record_allocdata(m_db, record->size);
+            st=m_db->resize_record_allocdata(record->size);
             if (st)
                 goto bail;
             record->data=m_db->get_record_allocdata();

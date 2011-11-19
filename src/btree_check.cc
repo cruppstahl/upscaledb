@@ -130,28 +130,23 @@ __key_compare_int_to_int(Database *db, ham_page_t *page,
     btree_node_t *node = page_get_btree_node(page);
 	ham_key_t lhs;
 	ham_key_t rhs;
-	int cmp;
 	ham_status_t st;
 
     l=btree_node_get_key(page_get_owner(page), node, lhs_int);
     r=btree_node_get_key(page_get_owner(page), node, rhs_int);
 
-	st = btree_prepare_key_for_compare(db, 0, l, &lhs);
+	st=btree_prepare_key_for_compare(db, 0, l, &lhs);
 	if (st) {
 		ham_assert(st < -1, (0));
 		return (st);
 	}
-	st = btree_prepare_key_for_compare(db, 1, r, &rhs);
+	st=btree_prepare_key_for_compare(db, 1, r, &rhs);
 	if (st) {
 		ham_assert(st < -1, (0));
 		return (st);
 	}
 
-	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
-
-	/* ensures keys are always released; errors will be detected by caller */
-
-	return (cmp);
+	return (page_get_owner(page)->compare_keys(&lhs, &rhs));
 }
 
 static ham_status_t 
@@ -279,7 +274,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             if (st)
                 return (st);
 
-            cmp = db_compare_keys(db, &lhs, &rhs);
+            cmp = db->compare_keys(&lhs, &rhs);
 
             /* error is detected, but ensure keys are always released */
             if (cmp < -1)

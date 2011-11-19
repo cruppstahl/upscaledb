@@ -189,7 +189,7 @@ Journal::append_txn_begin(struct ham_txn_t *txn, Database *db, ham_u64_t lsn)
 
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_TXN_BEGIN;
-    entry.dbname=db_get_dbname(db);
+    entry.dbname=db->get_name();
     entry.lsn=lsn;
 
     /* 
@@ -295,7 +295,7 @@ Journal::append_insert(Database *db, ham_txn_t *txn,
     ham_size_t padding_size=__get_aligned_entry_size(size)-size;
 
     entry.lsn=lsn;
-    entry.dbname=db_get_dbname(db);
+    entry.dbname=db->get_name();
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_INSERT;
     entry.followup_size=size+padding_size;
@@ -326,7 +326,7 @@ Journal::append_erase(Database *db, ham_txn_t *txn, ham_key_t *key,
     ham_size_t padding_size=__get_aligned_entry_size(size)-size;
 
     entry.lsn=lsn;
-    entry.dbname=db_get_dbname(db);
+    entry.dbname=db->get_name();
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_ERASE;
     entry.followup_size=size+padding_size;

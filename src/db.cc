@@ -312,25 +312,6 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
     return (HAM_SUCCESS);
 }
 
-ham_u16_t
-db_get_dbname(Database *db)
-{
-    ham_env_t *env;
-    
-    ham_assert(db!=0, (""));
-    ham_assert(db->get_env(), (""));
-
-    env=db->get_env();
-
-    if (env_get_header_page(env) && page_get_pers(env_get_header_page(env))) {
-        db_indexdata_t *idx=env_get_indexdata_ptr(env, 
-            db->get_indexdata_offset());
-        return (index_get_dbname(idx));
-    }
-    
-    return (0);
-}
-
 int HAM_CALLCONV 
 db_default_prefix_compare(ham_db_t *db, 
                    const ham_u8_t *lhs, ham_size_t lhs_length,
@@ -484,17 +465,15 @@ db_default_recno_compare(ham_db_t *db,
 }
 
 ham_status_t
-db_get_extended_key(Database *db, ham_u8_t *key_data,
-                ham_size_t key_length, ham_u32_t key_flags,
-                ham_key_t *ext_key)
+Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length, 
+                ham_u32_t key_flags, ham_key_t *ext_key)
 {
     ham_offset_t blobid;
     ham_status_t st;
     ham_size_t temp;
     ham_record_t record;
     ham_u8_t *ptr;
-    ham_env_t *env = db->get_env();
-    mem_allocator_t *alloc=env_get_allocator(env);
+    mem_allocator_t *alloc=env_get_allocator(get_env());
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
@@ -505,33 +484,33 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
      * advantages; it only duplicates the data and wastes memory.
      * therefore we don't use it.
      */
-    if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        if (!db->get_extkey_cache())
-            db->set_extkey_cache(new ExtKeyCache(db));
+    if (!(env_get_rt_flags(get_env())&HAM_IN_MEMORY_DB)) {
+        if (!get_extkey_cache())
+            set_extkey_cache(new ExtKeyCache(this));
     }
 
     /* almost the same as: blobid = key_get_extended_rid(db, key); */
-    memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+    memcpy(&blobid, key_data+(db_get_keysize(this)-sizeof(ham_offset_t)), 
             sizeof(blobid));
     blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
-    if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        st=db->get_extkey_cache()->fetch(blobid, &temp, &ptr);
+    if (!(env_get_rt_flags(get_env())&HAM_IN_MEMORY_DB)) {
+        st=get_extkey_cache()->fetch(blobid, &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
 
             if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
-                ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
+                ext_key->data=(ham_u8_t *)allocator_alloc(alloc, key_length);
                 if (!ext_key->data) 
-                    return HAM_OUT_OF_MEMORY;
+                    return (HAM_OUT_OF_MEMORY);
             }
             memcpy(ext_key->data, ptr, key_length);
             ext_key->size=(ham_u16_t)key_length;
             return (0);
         }
         else if (st!=HAM_KEY_NOT_FOUND) {
-            return st;
+            return (st);
         }
     }
 
@@ -551,122 +530,34 @@ db_get_extended_key(Database *db, ham_u8_t *key_data,
      * memory space for the faked record-based blob_read() below.
      */
     if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-        ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
+        ext_key->data=(ham_u8_t *)allocator_alloc(alloc, key_length);
         if (!ext_key->data)
-            return HAM_OUT_OF_MEMORY;
+            return (HAM_OUT_OF_MEMORY);
     }
 
-    memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
+    memmove(ext_key->data, key_data, db_get_keysize(this)-sizeof(ham_offset_t));
 
     /*
      * now read the remainder of the key
      */
     memset(&record, 0, sizeof(record));
     record.data=(((ham_u8_t *)ext_key->data) + 
-                    db_get_keysize(db)-sizeof(ham_offset_t));
-    record.size = key_length - (db_get_keysize(db)-sizeof(ham_offset_t));
-    record.flags = HAM_RECORD_USER_ALLOC;
+                    db_get_keysize(this)-sizeof(ham_offset_t));
+    record.size=key_length-(db_get_keysize(this)-sizeof(ham_offset_t));
+    record.flags=HAM_RECORD_USER_ALLOC;
 
-    st=blob_read(db, blobid, &record, 0);
+    st=blob_read(this, blobid, &record, 0);
     if (st)
-        return st;
+        return (st);
 
     /* insert the FULL key in the extkey-cache */
-    if (db->get_extkey_cache()) {
-        ExtKeyCache *cache=db->get_extkey_cache();
+    if (get_extkey_cache()) {
+        ExtKeyCache *cache=get_extkey_cache();
         cache->insert(blobid, key_length, (ham_u8_t *)ext_key->data);
     }
 
-    ext_key->size = (ham_u16_t)key_length;
-
+    ext_key->size=(ham_u16_t)key_length;
     return (0);
-}
-
-int
-db_compare_keys(Database *db, ham_key_t *lhs, ham_key_t *rhs)
-{
-    int cmp=HAM_PREFIX_REQUEST_FULLKEY;
-    ham_compare_func_t foo=db->get_compare_func();
-    ham_prefix_compare_func_t prefoo=db->get_prefix_compare_func();
-
-    db->set_error(0);
-
-    /*
-     * need prefix compare? if no key is extended we can just call the
-     * normal compare function
-     */
-    if (!(lhs->_flags&KEY_IS_EXTENDED) && !(rhs->_flags&KEY_IS_EXTENDED)) {
-        /*
-         * no!
-         */
-        return (foo((ham_db_t *)db, (ham_u8_t *)lhs->data, lhs->size, 
-                        (ham_u8_t *)rhs->data, rhs->size));
-    }
-
-    /*
-     * yes! - run prefix comparison, but only if we have a prefix
-     * comparison function
-     */
-    if (prefoo) {
-        ham_size_t lhsprefixlen, rhsprefixlen;
-
-        if (lhs->_flags&KEY_IS_EXTENDED)
-            lhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
-        else
-            lhsprefixlen=lhs->size;
-
-        if (rhs->_flags&KEY_IS_EXTENDED)
-            rhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
-        else
-            rhsprefixlen=rhs->size;
-
-        cmp=prefoo((ham_db_t *)db, 
-                    (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
-                    (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
-        if (cmp < -1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
-            return cmp; /* unexpected error! */
-    }
-
-    if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
-        ham_status_t st;
-
-        /* 1. load the first key, if needed */
-        if (lhs->_flags&KEY_IS_EXTENDED) {
-            st=db_get_extended_key(db, (ham_u8_t *)lhs->data,
-                    lhs->size, lhs->_flags, lhs);
-            if (st)
-                return st;
-            lhs->_flags&=~KEY_IS_EXTENDED;
-        }
-
-        /* 2. load the second key, if needed */
-        if (rhs->_flags&KEY_IS_EXTENDED) {
-            st=db_get_extended_key(db, (ham_u8_t *)rhs->data,
-                    rhs->size, rhs->_flags, rhs);
-            if (st)
-                return st;
-            rhs->_flags&=~KEY_IS_EXTENDED;
-        }
-
-        /* 3. run the comparison function */
-        cmp=foo((ham_db_t *)db, (ham_u8_t *)lhs->data, lhs->size, 
-                        (ham_u8_t *)rhs->data, rhs->size);
-    }
-
-    return (cmp);
-}
-
-ham_status_t
-db_create_backend(ham_backend_t **backend_ref, Database *db, ham_u32_t flags)
-{
-    *backend_ref = 0;
-
-    /*
-     * the default backend is the BTREE
-     *
-     * create a ham_backend_t with the size of a ham_btree_t
-     */
-    return btree_create(backend_ref, db, flags);
 }
 
 ham_status_t
@@ -984,44 +875,44 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_resize_record_allocdata(Database *db, ham_size_t size)
+Database::resize_record_allocdata(ham_size_t size)
 {
     if (size==0) {
-        if (db->get_record_allocdata())
-            allocator_free(env_get_allocator(db->get_env()), 
-                    db->get_record_allocdata());
-        db->set_record_allocdata(0);
-        db->set_record_allocsize(0);
+        if (get_record_allocdata())
+            allocator_free(env_get_allocator(get_env()), 
+                    get_record_allocdata());
+        set_record_allocdata(0);
+        set_record_allocsize(0);
     }
-    else if (size>db->get_record_allocsize()) {
-        void *newdata=allocator_realloc(env_get_allocator(db->get_env()), 
-                db->get_record_allocdata(), size);
+    else if (size>get_record_allocsize()) {
+        void *newdata=allocator_realloc(env_get_allocator(get_env()), 
+                get_record_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
-        db->set_record_allocdata(newdata);
-        db->set_record_allocsize(size);
+        set_record_allocdata(newdata);
+        set_record_allocsize(size);
     }
 
     return (0);
 }
 
 ham_status_t
-db_resize_key_allocdata(Database *db, ham_size_t size)
+Database::resize_key_allocdata(ham_size_t size)
 {
     if (size==0) {
-        if (db->get_key_allocdata())
-            allocator_free(env_get_allocator(db->get_env()), 
-                    db->get_key_allocdata());
-        db->set_key_allocdata(0);
-        db->set_key_allocsize(0);
+        if (get_key_allocdata())
+            allocator_free(env_get_allocator(get_env()), 
+                    get_key_allocdata());
+        set_key_allocdata(0);
+        set_key_allocsize(0);
     }
-    else if (size>db->get_key_allocsize()) {
-        void *newdata=allocator_realloc(env_get_allocator(db->get_env()), 
-                db->get_key_allocdata(), size);
+    else if (size>get_key_allocsize()) {
+        void *newdata=allocator_realloc(env_get_allocator(get_env()), 
+                get_key_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
-        db->set_key_allocdata(newdata);
-        db->set_key_allocsize(size);
+        set_key_allocdata(newdata);
+        set_key_allocsize(size);
     }
 
     return (0);
@@ -1034,13 +925,13 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
      * extended key: copy the whole key
      */
     if (source->_flags&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, (ham_u8_t *)source->data,
+        ham_status_t st=db->get_extended_key((ham_u8_t *)source->data,
                     source->size, source->_flags, dest);
         if (st) {
             return st;
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
-        /* dest->size is set by db_get_extended_key() */
+        /* dest->size is set by db->get_extended_key() */
         ham_assert(dest->size == source->size, (0)); 
         /* the extended flag is set later, when this key is inserted */
         dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
@@ -1629,8 +1520,7 @@ db_find_txn(Database *db, ham_txn_t *txn,
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                    st=db_resize_record_allocdata(db, 
-                                    txn_op_get_record(op)->size);
+                    st=db->resize_record_allocdata(txn_op_get_record(op)->size);
                     if (st)
                         return (st);
                     record->data=db->get_record_allocdata();
@@ -1695,7 +1585,7 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                     p->value=0;
                 break;
             case HAM_PARAM_GET_DATABASE_NAME:
-                p->value=(ham_offset_t)db_get_dbname(m_db);
+                p->value=(ham_offset_t)m_db->get_name();
                 break;
             case HAM_PARAM_GET_KEYS_PER_PAGE:
                 if (m_db->get_backend()) {
@@ -2935,7 +2825,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     }
 
     /* free cached memory */
-    (void)db_resize_record_allocdata(m_db, 0);
+    (void)m_db->resize_record_allocdata(0);
     if (m_db->get_key_allocdata()) {
         allocator_free(env_get_allocator(env), m_db->get_key_allocdata());
         m_db->set_key_allocdata(0);

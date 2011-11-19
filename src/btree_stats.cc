@@ -894,7 +894,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
                     dbdata->lower_bound.size == 0 : 
                     dbdata->lower_bound.size > 0, (0));
                 ham_assert(dbdata->lower_bound_page_address != 0, (0));
-                cmp = db_compare_keys(db, key, &dbdata->lower_bound);
+                cmp = db->compare_keys(key, &dbdata->lower_bound);
 
                 if (cmp < 0) {
                     hints->key_is_out_of_bounds = HAM_TRUE;
@@ -912,7 +912,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
                 dbdata->upper_bound.size == 0 : 
                 dbdata->upper_bound.size > 0, (0));
             ham_assert(dbdata->upper_bound_page_address != 0, (0));
-            cmp = db_compare_keys(db, key, &dbdata->upper_bound);
+            cmp = db->compare_keys(key, &dbdata->upper_bound);
 
             if (cmp > 0)
             {
@@ -1140,7 +1140,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
                         dbdata->lower_bound.size == 0 : 
                         dbdata->lower_bound.size > 0, (0));
                     ham_assert(dbdata->lower_bound_page_address != 0, (0));
-                    cmp = db_compare_keys(db, key, &dbdata->lower_bound);
+                    cmp = db->compare_keys(key, &dbdata->lower_bound);
 
                     if (cmp < 0)
                     {
@@ -1161,7 +1161,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
                     dbdata->upper_bound.size == 0 : 
                     dbdata->upper_bound.size > 0, (0));
                 ham_assert(dbdata->upper_bound_page_address != 0, (0));
-                cmp = db_compare_keys(db, key, &dbdata->upper_bound);
+                cmp = db->compare_keys(key, &dbdata->upper_bound);
 
                 if (cmp > 0)
                 {
@@ -1217,7 +1217,7 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
                 dbdata->lower_bound.size == 0 : 
                 dbdata->lower_bound.size > 0, (0));
             ham_assert(dbdata->lower_bound_page_address != 0, (0));
-            cmp = db_compare_keys(db, key, &dbdata->lower_bound);
+            cmp = db->compare_keys(key, &dbdata->lower_bound);
 
             if (cmp < 0)
             {
@@ -1236,7 +1236,7 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
             dbdata->upper_bound.size == 0 : 
             dbdata->upper_bound.size > 0, (0));
         ham_assert(dbdata->upper_bound_page_address != 0, (0));
-        cmp = db_compare_keys(db, key, &dbdata->upper_bound);
+        cmp = db->compare_keys(key, &dbdata->upper_bound);
 
         if (cmp > 0)
         {

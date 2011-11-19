@@ -437,7 +437,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
         if (envh->handles[i].ptr!=0) {
             if (envh->handles[i].type==HANDLE_TYPE_DATABASE) {
                 db=(ham_db_t *)envh->handles[i].ptr;
-                if (db_get_dbname((Database *)db)==dbname)
+                if (((Database *)db)->get_name()==dbname)
                     break;
                 else
                     db=0;
