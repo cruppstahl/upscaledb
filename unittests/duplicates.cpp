@@ -722,22 +722,22 @@ public:
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
 
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
         ham_cursor_close(c);

@@ -207,3 +207,22 @@ page_free(ham_page_t *page)
     return (dev->free_page(dev, page));
 }
 
+ham_status_t
+page_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
+{
+    Cursor *c = page_get_cursors(page);
+
+    if (c) {
+        Database *db = c->get_db();
+        if (db) {
+            ham_backend_t *be = db->get_backend();
+            
+            if (be) {
+                return (*be->_fun_uncouple_all_cursors)(be, page, start);
+            }
+        }
+    }
+
+    return (HAM_SUCCESS);
+}
+

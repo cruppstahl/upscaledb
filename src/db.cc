@@ -293,25 +293,6 @@ Database::~Database()
     delete m_impl;
 }
 
-ham_status_t
-db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
-{
-    Cursor *c = page_get_cursors(page);
-
-    if (c) {
-        Database *db = c->get_db();
-        if (db) {
-            ham_backend_t *be = db->get_backend();
-            
-            if (be) {
-                return (*be->_fun_uncouple_all_cursors)(be, page, start);
-            }
-        }
-    }
-
-    return (HAM_SUCCESS);
-}
-
 int HAM_CALLCONV 
 db_default_prefix_compare(ham_db_t *db, 
                    const ham_u8_t *lhs, ham_size_t lhs_length,
@@ -573,7 +554,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
-    st=db_uncouple_all_cursors(page, 0);
+    st=page_uncouple_all_cursors(page, 0);
     if (st)
         return (st);
 
@@ -587,8 +568,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (page_get_pers(page) && 
         (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
          (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-          page_get_type(page)==PAGE_TYPE_B_INDEX)) 
-    {
+          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_backend_t *be;
         
         ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
@@ -719,9 +699,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db,
 
     *page_ref = 0;
 
-    /* 
-     * fetch the page from the cache
-     */
+    /* fetch the page from the cache */
     page=env_get_cache(env)->get_page(address, Cache::NOREMOVE);
     if (page) {
         *page_ref = page;
@@ -861,7 +839,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
      * free the memory of the page
      */
     if (!(flags&DB_FLUSH_NODELETE)) {
-        st=db_uncouple_all_cursors(page, 0);
+        st=page_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
         env_get_cache(env)->remove_page(page);
@@ -918,54 +896,6 @@ Database::resize_key_allocdata(ham_size_t size)
     return (0);
 }
 
-ham_status_t
-db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest)
-{
-    /*
-     * extended key: copy the whole key
-     */
-    if (source->_flags&KEY_IS_EXTENDED) {
-        ham_status_t st=db->get_extended_key((ham_u8_t *)source->data,
-                    source->size, source->_flags, dest);
-        if (st) {
-            return st;
-        }
-        ham_assert(dest->data!=0, ("invalid extended key"));
-        /* dest->size is set by db->get_extended_key() */
-        ham_assert(dest->size == source->size, (0)); 
-        /* the extended flag is set later, when this key is inserted */
-        dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
-    }
-    else if (source->size) {
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-            if (!dest->data || dest->size < source->size) {
-                if (dest->data)
-                    allocator_free(env_get_allocator(db->get_env()), 
-                               dest->data);
-                dest->data = (ham_u8_t *)allocator_alloc(
-                               env_get_allocator(db->get_env()), source->size);
-                if (!dest->data) 
-                    return (HAM_OUT_OF_MEMORY);
-            }
-        }
-        memcpy(dest->data, source->data, source->size);
-        dest->size=source->size;
-        dest->_flags=source->_flags;
-    }
-    else { 
-        /* key.size is 0 */
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-            if (dest->data)
-                allocator_free(env_get_allocator(db->get_env()), dest->data);
-            dest->data=0;
-        }
-        dest->size=0;
-        dest->_flags=source->_flags;
-    }
-
-    return (HAM_SUCCESS);
-}
-
 struct keycount_t 
 {
     ham_u64_t c;
@@ -975,7 +905,7 @@ struct keycount_t
 };
 
 static void
-db_get_key_count_txn(txn_opnode_t *node, void *data)
+__get_key_count_txn(txn_opnode_t *node, void *data)
 {
     struct keycount_t *kc=(struct keycount_t *)data;
     ham_backend_t *be=kc->db->get_backend();
@@ -1188,8 +1118,8 @@ db_check_erase_conflicts(Database *db, ham_txn_t *txn,
 }
 
 static void
-__increment_dupe_index(Database *db, txn_opnode_t *node, Cursor *skip,
-                ham_u32_t start)
+__increment_dupe_index(Database *db, txn_opnode_t *node, 
+                Cursor *skip, ham_u32_t start)
 {
     Cursor *c=db->get_cursors();
 
@@ -1225,8 +1155,8 @@ next:
 }
 
 ham_status_t
-db_insert_txn(Database *db, ham_txn_t *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor)
 {
     ham_status_t st=0;
@@ -1704,8 +1634,7 @@ DatabaseImplementationLocal::get_key_count(ham_txn_t *txn, ham_u32_t flags,
         k.flags=flags;
         k.txn=txn;
         k.db=m_db;
-        txn_tree_enumerate(m_db->get_optree(), db_get_key_count_txn, 
-                        (void *)&k);
+        txn_tree_enumerate(m_db->get_optree(), __get_key_count_txn, (void *)&k);
         *keycount+=k.c;
     }
 
@@ -2430,7 +2359,6 @@ bail:
         return (st);
 }
 
-
 ham_status_t 
 DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor, 
                     ham_size_t *count, ham_u32_t flags)
@@ -2490,7 +2418,6 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
     else
         return (st);
 }
-
 
 ham_status_t 
 DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor, 

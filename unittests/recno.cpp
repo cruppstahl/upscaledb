@@ -744,7 +744,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, (Database *)m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page_uncouple_all_cursors(page, 0));
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 

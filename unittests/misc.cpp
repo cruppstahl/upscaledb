@@ -90,7 +90,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key((Database *)m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, ((Database *)m_db)->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -107,7 +107,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key((Database *)m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, ((Database *)m_db)->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 

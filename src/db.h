@@ -28,6 +28,7 @@
 #include "env.h"
 #include "btree_key.h"
 #include "btree.h"
+#include "mem.h"
 
 
 #ifdef __cplusplus
@@ -282,6 +283,7 @@ class DatabaseImplementationLocal : public DatabaseImplementation
 
     /** close the Database */
     virtual ham_status_t close(ham_u32_t flags);
+
 };
 
 /** 
@@ -721,6 +723,56 @@ class Database
     ham_status_t get_extended_key(ham_u8_t *key_data, ham_size_t key_length, 
                     ham_u32_t key_flags, ham_key_t *ext_key);
 
+    /** 
+     * copy a key
+     *
+     * @a dest must have been initialized before calling this function; the 
+     * dest->data space will be reused when the specified size is large enough;
+     * otherwise the old dest->data will be ham_mem_free()d and a new space 
+     * allocated.
+     */
+    ham_status_t copy_key(const ham_key_t *source, ham_key_t *dest) {
+        /* extended key: copy the whole key */
+        if (source->_flags&KEY_IS_EXTENDED) {
+            ham_status_t st=get_extended_key((ham_u8_t *)source->data,
+                        source->size, source->_flags, dest);
+            if (st)
+                return st;
+            ham_assert(dest->data!=0, ("invalid extended key"));
+            /* dest->size is set by db->get_extended_key() */
+            ham_assert(dest->size == source->size, (0)); 
+            /* the extended flag is set later, when this key is inserted */
+            dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
+        }
+        else if (source->size) {
+            if (!(dest->flags&HAM_KEY_USER_ALLOC)) {
+                if (!dest->data || dest->size<source->size) {
+                    if (dest->data)
+                        allocator_free(env_get_allocator(get_env()), 
+                                dest->data);
+                    dest->data=(ham_u8_t *)allocator_alloc(
+                                env_get_allocator(get_env()), source->size);
+                    if (!dest->data) 
+                        return (HAM_OUT_OF_MEMORY);
+                }
+            }
+            memcpy(dest->data, source->data, source->size);
+            dest->size=source->size;
+            dest->_flags=source->_flags;
+        }
+        else { 
+            /* key.size is 0 */
+            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+                if (dest->data)
+                    allocator_free(env_get_allocator(get_env()), dest->data);
+                dest->data=0;
+            }
+            dest->size=0;
+            dest->_flags=source->_flags;
+        }
+        return (HAM_SUCCESS);
+    }
+
   private:
     /** the last error code */
     ham_status_t m_error;
@@ -885,14 +937,6 @@ db_default_dupe_compare(ham_db_t *db,
                     const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
- * uncouple all cursors from a page
- *
- * @remark this is called whenever the page is deleted or becoming invalid
- */
-extern ham_status_t
-db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
-
-/**
  * fetch a page.
  *
  * @param page_ref call-by-reference variable which will be set to 
@@ -1018,30 +1062,6 @@ db_free_page(ham_page_t *page, ham_u32_t flags);
 extern ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
 
-/** 
- * copy a key
- *
- * returns 0 if memory can not be allocated, or a pointer to @a dest.
- * uses ham_mem_malloc() - memory in dest->key has to be freed by the caller
- * 
- * @a dest must have been initialized before calling this function; the 
- * dest->data space will be reused when the specified size is large enough;
- * otherwise the old dest->data will be ham_mem_free()d and a new space 
- * allocated.
- * 
- * This can save superfluous heap free+allocation actions in there.
- * 
- * @note
- * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
- * 
- * @note
- * When an error is returned the 'dest->data' 
- * pointer is either NULL or still pointing at allocated space (when 
- * HAM_KEY_USER_ALLOC was not set).
- */
-extern ham_status_t
-db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest);
-
 /**
 * @defgroup ham_database_flags 
 * @{
@@ -1077,9 +1097,9 @@ db_copy_key(Database *db, const ham_key_t *source, ham_key_t *dest);
  * be attached to the new txn_op structure
  */
 struct txn_cursor_t;
-extern ham_status_t
-db_insert_txn(Database *db, ham_txn_t *txn,
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+extern ham_status_t 
+db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor);
 
 /*

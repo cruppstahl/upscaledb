@@ -428,6 +428,14 @@ page_flush(ham_page_t *page);
 extern ham_status_t
 page_free(ham_page_t *page);
 
+/**
+ * uncouple all cursors from a page
+ *
+ * @remark this is called whenever the page is deleted or becoming invalid
+ */
+extern ham_status_t
+page_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
+
 
 #ifdef __cplusplus
 } // extern "C" {

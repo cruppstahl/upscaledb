@@ -125,17 +125,31 @@ x port os_writev to windows
         we do not know the type of the database when it's initialized
         -> move to seperate Impl-object
         x db_compare_keys
-        o db_get_extended_key
+        x db_get_extended_key
+        x db_copy_key
+        x db_uncouple_all_cursors() -> move to page
         o the local functions...
+            x db_get_key_count
+            o db_alloc_page
+            o db_fetch_page
             o db_insert_txn
             o db_erase_txn
-    o move remaining functions into class
-    o check w/ valgrind
-    o test compilation w/o remote functionality
-    . the Database doesn't need to be in a linked list; it can be
-        an stl-list
+            o db_find_txn
+            o db_check_insert_conflicts
+            o db_check_erase_conflicts
+            o __increment_dupe_index
 
 o move forum to google groups; 3 mailing lists: dev, users, announcements
+
+o check w/ valgrind
+
+o test compilation w/o remote functionality
+
+. some functions need a new namespace
+    o db_free_page -> env?
+    o db_flush_page
+    o db_flush_all
+    o db_write_page_and_delete
 
 . c++-ify the page
 
@@ -198,8 +212,6 @@ o improve journalling and get rid of the physical log as much as possible
         - what about the freelist??
 
 o test with tcmalloc
-
-. db_uncouple_all_cursors() -> move to page
 
 o document how to optimize for performance
     o with transactions: try not to use duplicates
@@ -312,6 +324,8 @@ o update the tutorial
 . c++-ify the blob handling and split off the duplicates
 
 . c++-ify the environment
+    . the Databases don't need to be in a linked list; they can be managed
+        in an stl-list or std::map<dbname, db>
 
 . c++-ify the transaction
 

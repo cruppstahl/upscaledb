@@ -52,7 +52,7 @@ btree_cursor_couple(btree_cursor_t *c)
      */
     memset(&key, 0, sizeof(key));
 
-    st=db_copy_key(db, btree_cursor_get_uncoupled_key(c), &key);
+    st=db->copy_key(btree_cursor_get_uncoupled_key(c), &key);
     if (st) {
         if (key.data)
             allocator_free(env_get_allocator(env), key.data);
@@ -490,8 +490,8 @@ btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
         if (!key)
             return (HAM_OUT_OF_MEMORY);
 
-        st=db_copy_key(btree_cursor_get_db(dest), 
-                    btree_cursor_get_uncoupled_key(src), key);
+        st=btree_cursor_get_db(dest)->copy_key(
+                        btree_cursor_get_uncoupled_key(src), key);
         if (st) {
             if (key->data)
                 allocator_free(env_get_allocator(env), key->data);
