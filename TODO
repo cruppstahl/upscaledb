@@ -115,7 +115,7 @@ x btree_cursor_points_to_key fails with extended keys - no, it's fine
 
 x port os_writev to windows
 
-. c++-ify the database
+x c++-ify the database
     x create Database object
     x add getter/setter functions
     x check compilation of tools
@@ -128,16 +128,6 @@ x port os_writev to windows
         x db_get_extended_key
         x db_copy_key
         x db_uncouple_all_cursors() -> move to page
-        o the local functions...
-            x db_get_key_count
-            o db_alloc_page
-            o db_fetch_page
-            o db_insert_txn
-            o db_erase_txn
-            o db_find_txn
-            o db_check_insert_conflicts
-            o db_check_erase_conflicts
-            o __increment_dupe_index
 
 o move forum to google groups; 3 mailing lists: dev, users, announcements
 
@@ -326,6 +316,21 @@ o update the tutorial
 . c++-ify the environment
     . the Databases don't need to be in a linked list; they can be managed
         in an stl-list or std::map<dbname, db>
+
+o cleanup db.h/db.cc - move functions into Database or 
+    DatabaseImplementationLocal namespace - but take care b/c these functions
+    are also used by Cursor or other modules which don't necessarily have
+    access to the Local stuff
+    o db_get_key_count
+    o db_alloc_page
+    o db_fetch_page
+    o db_insert_txn
+    o db_erase_txn
+    o db_find_txn
+    o db_check_insert_conflicts
+    o db_check_erase_conflicts
+    o __increment_dupe_index
+
 
 . c++-ify the transaction
 
