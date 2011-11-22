@@ -114,13 +114,14 @@ class hash_table
             T *previous=0, *next=0, *p=m_buckets[i];
             while (p) {
                 next=m_helper.next(p);
-                if  (m_helper.remove_if(p)) {
+                if (m_helper.remove_if(p)) {
                     if (previous)
                         m_helper.set_next(previous, next);
                     else
                         m_buckets[i]=next;
                 }
-                previous=p;
+                else
+                    previous=p;
                 p=next;
             }
         }
