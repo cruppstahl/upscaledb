@@ -1728,7 +1728,6 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
         }
 
         env_get_changeset(env).clear();
-
         return (st);
     }
 
@@ -1810,16 +1809,15 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
     }
 
     /* record number: re-translate the number to host endian */
-    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
+    if (m_db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
 
     ham_assert(st==0, (""));
 
-    env_get_changeset(env).clear();
-
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2098,8 +2096,10 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
                 && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2130,8 +2130,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     st=cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
 
     /* clear the changeset */
-    if (env)
-        env_get_changeset(env).clear();
+    env_get_changeset(env).clear();
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
@@ -2156,8 +2155,10 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     /* no need to append the journal entry - it's appended in db_erase_txn(),
      * which is called by txn_cursor_erase() */
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2344,14 +2345,15 @@ bail:
     }
 
     ham_assert(st==0, (""));
-    env_get_changeset(env).clear();
 
     /* set a flag that the cursor just completed an Insert-or-find 
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2410,8 +2412,10 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2471,8 +2475,10 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2538,8 +2544,10 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
 
     /* the journal entry is appended in db_insert_txn() */
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
             && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (env_get_changeset(env).flush(DUMMY_LSN));
@@ -2643,8 +2651,10 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
         return (st);
     }
 
-    if (local_txn)
+    if (local_txn) {
+        env_get_changeset(env).clear();
         return (txn_commit(local_txn, 0));
+    }
     else
         return (st);
 }
