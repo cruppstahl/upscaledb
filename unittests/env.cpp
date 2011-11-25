@@ -1832,9 +1832,9 @@ protected:
         BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED,
                 ham_env_set_device(env, dev));
 
-        free(env); /* don't use ham_env_delete, because it tries to 
-                      access the device pointer (which is invalid
-                      in this test */
+        delete env; /* don't use ham_env_delete, because it tries to 
+                     * access the device pointer (which is invalid
+                     * in this test */
     }
 };
 
