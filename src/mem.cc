@@ -28,13 +28,13 @@
 
 struct Lookasides
 {
+    typedef std::stack<void *> LookasideList;
+
     Lookasides() 
       : max_sizes(2) {
         sizes[0]=sizeof(txn_op_t);
         sizes[1]=sizeof(txn_opnode_t);
     }
-
-    typedef std::stack<void *> LookasideList;
 
     LookasideList lists[2];
     ham_u32_t sizes[2];
@@ -87,10 +87,12 @@ free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
     p=(char *)ptr-sizeof(ham_u32_t);
     size=*(ham_u32_t *)p;
 
-    for (int i=0; i<ls->max_sizes; i++) {
-        if (size==ls->sizes[i] && ls->lists[i].size()<10) {
-            ls->lists[i].push(p);
-            return;
+    if (ls) {
+        for (int i=0; i<ls->max_sizes; i++) {
+            if (size==ls->sizes[i] && ls->lists[i].size()<10) {
+                ls->lists[i].push(p);
+                return;
+            }
         }
     }
 
@@ -127,7 +129,20 @@ realloc_impl(mem_allocator_t *self, const char *file, int line,
 void 
 close_impl(mem_allocator_t *self)
 {
-    delete (Lookasides *)self->priv;
+    Lookasides *ls=(Lookasides *)self->priv;
+
+    // avoid infinite recursion
+    self->priv=0;
+
+    for (int i=0; i<ls->max_sizes; i++) {
+        while (!ls->lists[i].empty()) {
+            void *p=(char *)ls->lists[i].top()+sizeof(ham_u32_t);
+            ls->lists[i].pop();
+            free_impl(self, __FILE__, __LINE__, p);
+        }
+    }
+    delete ls;
+
 #if defined(_CRTDBG_MAP_ALLOC)
     _free_dbg(self, _NORMAL_BLOCK);
 #else
