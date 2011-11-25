@@ -384,6 +384,8 @@ class Database
 
     /** initialize the database for local use */
     ham_status_t initialize_local(void) {
+        if (m_impl)
+            delete m_impl;
         m_impl=new DatabaseImplementationLocal(this);
         return (0);
     }

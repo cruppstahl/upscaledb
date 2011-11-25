@@ -235,6 +235,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         Log *log=new Log(env);
         st=log->create();
         if (st) { 
+            delete log;
             (void)ham_env_close(env, 0);
             return (st);
         }

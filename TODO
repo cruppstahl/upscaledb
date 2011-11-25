@@ -129,11 +129,11 @@ x c++-ify the database
         x db_copy_key
         x db_uncouple_all_cursors() -> move to page
 
-o move forum to google groups; 3 mailing lists: dev, users, announcements
+x test compilation w/o remote functionality
 
 o check w/ valgrind
 
-o test compilation w/o remote functionality
+o move forum to google groups; 3 mailing lists: dev, users, announcements
 
 . some functions need a new namespace
     o db_free_page -> env?
