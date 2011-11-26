@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.0.rc2 UNSTABLE      Mon Oct  3 15:42:49 CEST 2011
+hamsterdb Embedded Storage 2.0.0.rc3 UNSTABLE      Sat Nov 26 20:56:01 CET 2011
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,49 +12,38 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release stabilized the changes from 2.0.0.rc1 and fixed several bugs.
-
-Currently known issues are two tests that fail and performance regressions 
-when using duplicate keys in combination with Transactions. These issues will
-be addressed in the next release, which will again focus on stabilization.
-
-This release is not stable and not ready for production.
+This release stabilized the changes from 2.0.0.rc2, improves performance
+and fixes the last known issues from the previous releases.
 
 Users who do not use Transactions should not notice any difference between 
 1.x and this version. 
 
-Compared to 1.x, a few functions were disabled if Transactions are enabled:
+Compared to 1.x, a few functions were disabled *if Transactions are enabled*:
 - sorting duplicate keys (HAM_SORT_DUPLICATES)
 - approximate matching
 - direct access (HAM_DIRECT_ACCESS)
 - partial read/write (HAM_PARTIAL)
 
-See below for known issues and bugs.
-
 2. Changes
 
 New Features
-* added a new function ham_cursor_get_record_size; retrieves the record
-    size of the current item
-* the cache size is now 64bit, allowing caches > 4 GB
-* enabled large file support for 32bit linux (thanks, liheyuan)
+* none
 
 Bugfixes
 * several regressions were fixed
-* configure.in: AM_INIT_AUTOMAKE requests now version 1.10 (thanks, Ger)
 
 Other Changes
 * A lot of code was refactored
-* hamsterdb is still an ANSI C library, but the implementation is now mostly
-    C++
+* Performance was improved compared to the previous 2.0.0x releases
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- stabilize the new code
-- improve performance
-- increase test coverage
+- continue with performance improvements
+- more transactional stuff (i.e. recreate pending transactions when 
+    recovering from a crash)
+- multi threading/concurrency
 
 4. Features
 
@@ -64,12 +53,11 @@ To see a list of all changes, look in the file ChangeLog.
 - Supports record number databases ("auto-increment")
 - Supports duplicate keys (with sorting)
 - Support for logging and recovery
-- Support for Transactions
+- Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases) through http
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
-- Portable ANSI-C implementation
 - Runs on Linux, Unices, Microsoft Windows, Windows CE and on many
     architectures (also embedded and SPARC)
 - Endian-independent file format
@@ -86,11 +74,7 @@ To see a list of all changes, look in the file ChangeLog.
 
 5. Known Issues/Bugs
 
-This is an unstable release and it has some issues. They will be fixed in the
-next release. 
-
-./test --use-transactions=200 --fullcheck-backwards ../../testfiles/1/220.tst
-./test --use-transactions=200 --fullcheck-backwards ../../testfiles/2/102.tst
+None.
 
 6. Compiling 
 

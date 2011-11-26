@@ -131,7 +131,7 @@ x c++-ify the database
 
 x test compilation w/o remote functionality
 
-o check w/ valgrind
+x check w/ valgrind
 
 o move forum to google groups; 3 mailing lists: dev, users, announcements
 
