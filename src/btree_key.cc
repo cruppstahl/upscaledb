@@ -57,7 +57,7 @@ key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
         ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
     ham_status_t st;
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
     ham_offset_t rid = 0;
     ham_offset_t ptr = key_get_ptr(key);
     ham_u8_t oldflags = key_get_flags(key);

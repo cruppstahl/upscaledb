@@ -44,7 +44,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_env_t *m_env;
+    Environment *m_env;
     ham_u32_t m_flags;
     memtracker_t *m_alloc;
 
@@ -65,7 +65,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 
                                 0644, &params[0]));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -187,7 +187,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 
                                 0644, &params[0]));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
 
         for (int i=0; i<7; i++) {
             key.data=&i;

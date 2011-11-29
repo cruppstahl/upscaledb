@@ -60,7 +60,7 @@ void
 ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
 {
     extkey_t *e;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
 
     /* DEBUG build: make sure that the item is not inserted twice!  */
     ham_assert(m_hash.get(blobid)==0, ("")); 
@@ -78,7 +78,7 @@ ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
 void
 ExtKeyCache::remove(ham_offset_t blobid)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     extkey_t *e=m_hash.remove(blobid);
     if (e) {
         m_usedsize-=extkey_get_size(e);

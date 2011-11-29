@@ -97,7 +97,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 

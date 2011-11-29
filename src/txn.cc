@@ -308,7 +308,7 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 }
 
 ham_status_t
-txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
+txn_begin(ham_txn_t **ptxn, Environment *env, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_txn_t *txn;
@@ -333,7 +333,7 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
 ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_env_t *env=txn_get_env(txn);
+    Environment *env=txn_get_env(txn);
 
     /* are cursors attached to this txn? if yes, fail */
     if (txn_get_cursor_refcount(txn)) {
@@ -392,7 +392,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 void
 txn_free_optree(txn_optree_t *tree)
 {
-    ham_env_t *env=txn_optree_get_db(tree)->get_env();
+    Environment *env=txn_optree_get_db(tree)->get_env();
     txn_opnode_t *node;
 
     while ((node=rbt_last(tree))) {
@@ -403,7 +403,7 @@ txn_free_optree(txn_optree_t *tree)
 }
 
 void
-txn_opnode_free(ham_env_t *env, txn_opnode_t *node)
+txn_opnode_free(Environment *env, txn_opnode_t *node)
 {
     ham_key_t *key;
 
@@ -418,7 +418,7 @@ txn_opnode_free(ham_env_t *env, txn_opnode_t *node)
 }
 
 static void
-txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
+txn_op_free(Environment *env, ham_txn_t *txn, txn_op_t *op)
 {
     ham_record_t *rec;
     txn_op_t *next, *prev;
@@ -460,7 +460,7 @@ txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
 void
 txn_free_ops(ham_txn_t *txn)
 {
-    ham_env_t *env=txn_get_env(txn);
+    Environment *env=txn_get_env(txn);
     txn_op_t *n, *op=txn_get_oldest_op(txn);
 
     while (op) {
@@ -476,7 +476,7 @@ txn_free_ops(ham_txn_t *txn)
 void
 txn_free(ham_txn_t *txn)
 {
-    ham_env_t *env=txn_get_env(txn);
+    Environment *env=txn_get_env(txn);
 
     txn_free_ops(txn);
 

@@ -210,7 +210,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc2);
+        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc2);
     }
     
     virtual void teardown() 
@@ -218,8 +218,7 @@ public:
 		__super::teardown();
 
         ham_delete(m_db);
-		if (m_env)
-		{
+		if (m_env) {
 			BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 			BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
 		}
@@ -248,7 +247,7 @@ public:
         BFC_ASSERT(filter1._next==0);
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter1); 
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
         BFC_ASSERT(filter1._next==&filter2);
@@ -256,7 +255,7 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter2); 
         BFC_ASSERT(filter2._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter3));
         BFC_ASSERT(filter1._next==&filter2);
@@ -266,7 +265,7 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter3); 
         BFC_ASSERT(filter3._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter2));
         BFC_ASSERT(filter1._next==&filter3);
@@ -274,16 +273,16 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter3);
         BFC_ASSERT(filter3._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter3));
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter1);
         BFC_ASSERT(filter1._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter1));
-        BFC_ASSERT(0==env_get_file_filter(m_env));
+        BFC_ASSERT(0==env_get_file_filter((Environment *)m_env));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));

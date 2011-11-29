@@ -35,7 +35,7 @@ __get_aligned_entry_size(ham_size_t s)
     return (s);
 }
 
-Journal::Journal(ham_env_t *env) 
+Journal::Journal(Environment *env) 
   : m_env(env), m_current_fd(0), m_lsn(0), m_last_cp_lsn(0), 
     m_threshold(JOURNAL_DEFAULT_THRESHOLD)
 {
@@ -461,7 +461,7 @@ Journal::close(ham_bool_t noclear)
 }
 
 static ham_status_t
-__recover_get_db(ham_env_t *env, ham_u16_t dbname, Database **pdb)
+__recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 {
     ham_status_t st;
 
@@ -482,7 +482,7 @@ __recover_get_db(ham_env_t *env, ham_u16_t dbname, Database **pdb)
     if (st)
         return (st);
 
-    st=ham_env_open_db(env, (ham_db_t *)db, dbname, 0, 0);
+    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname, 0, 0);
     if (st)
         return (st);
 
@@ -491,7 +491,7 @@ __recover_get_db(ham_env_t *env, ham_u16_t dbname, Database **pdb)
 }
 
 static ham_status_t
-__recover_get_txn(ham_env_t *env, ham_u32_t txn_id, ham_txn_t **ptxn)
+__recover_get_txn(Environment *env, ham_u32_t txn_id, ham_txn_t **ptxn)
 {
     ham_txn_t *txn=env_get_oldest_txn(env);
     while (txn) {
@@ -507,7 +507,7 @@ __recover_get_txn(ham_env_t *env, ham_u32_t txn_id, ham_txn_t **ptxn)
 }
 
 static ham_status_t
-__close_all_databases(ham_env_t *env)
+__close_all_databases(Environment *env)
 {
     ham_status_t st;
     Database *db;
@@ -527,7 +527,7 @@ __close_all_databases(ham_env_t *env)
 }
 
 static ham_status_t
-__abort_uncommitted_txns(ham_env_t *env)
+__abort_uncommitted_txns(Environment *env)
 {
     ham_status_t st;
     ham_txn_t *older, *txn=env_get_oldest_txn(env);

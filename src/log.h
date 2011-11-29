@@ -89,7 +89,7 @@ class Log
     typedef ham_offset_t Iterator;
 
     /** constructor */
-    Log(ham_env_t *env, ham_u32_t flags=0);
+    Log(Environment *env, ham_u32_t flags=0);
 
     /** create a new log */
     ham_status_t create(void);
@@ -164,7 +164,7 @@ class Log
     ham_status_t append_entry(Log::Entry *entry, ham_size_t size);
 
     /** references the Environment this log file is for */
-    ham_env_t *m_env;
+    Environment *m_env;
 
     /** the log flags - unused so far */
     ham_u32_t m_flags;

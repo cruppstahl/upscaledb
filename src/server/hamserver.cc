@@ -120,11 +120,12 @@ __remove_handle(struct env_t *envh, ham_u64_t handle)
 }
 
 static void
-send_wrapper(ham_env_t *env, struct mg_connection *conn, 
+send_wrapper(ham_env_t *henv, struct mg_connection *conn, 
                 proto_wrapper_t *wrapper)
 {
     ham_u8_t *data;
     ham_size_t data_size;
+    Environment *env=(Environment *)henv;
 
     if (!proto_pack(wrapper, env_get_allocator(env), &data, &data_size))
         return;
@@ -146,7 +147,8 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
     ham_assert(request!=0, (""));
     ham_assert(proto_has_connect_request(request), (""));
 
-    reply=proto_init_connect_reply(HAM_SUCCESS, env_get_rt_flags(env)); 
+    reply=proto_init_connect_reply(HAM_SUCCESS, 
+                    env_get_rt_flags((Environment *)env)); 
 
     send_wrapper(env, conn, reply);
     proto_delete(reply);

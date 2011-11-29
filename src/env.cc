@@ -44,7 +44,7 @@ typedef struct free_cb_context_t
 
 } free_cb_context_t;
 
-ham_env_t::ham_env_t()
+Environment::Environment()
   : _txn_id(0), _file_mode(0), _context(0), _device(0), _cache(0), _alloc(0),
     _hdrpage(0), _flushed_txn(0), _oldest_txn(0), _newest_txn(0), _log(0),
     _journal(0), _rt_flags(0), _next(0), _pagesize(0), _cachesize(0), 
@@ -77,7 +77,7 @@ ham_env_t::ham_env_t()
  * forward decl - implemented in hamsterdb.c 
  */
 extern ham_status_t 
-__check_create_parameters(ham_env_t *env, Database *db, const char *filename, 
+__check_create_parameters(Environment *env, Database *db, const char *filename, 
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
@@ -91,7 +91,7 @@ extern ham_status_t
 __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_u16_t
-env_get_max_databases(ham_env_t *env)
+env_get_max_databases(Environment *env)
 {
     env_header_t *hdr=(env_header_t*)
                     (page_get_payload(env_get_header_page(env)));
@@ -99,7 +99,7 @@ env_get_max_databases(ham_env_t *env)
 }
 
 ham_u8_t
-env_get_version(ham_env_t *env, ham_size_t idx)
+env_get_version(Environment *env, ham_size_t idx)
 {
     env_header_t *hdr=(env_header_t*)
                     (page_get_payload(env_get_header_page(env)));
@@ -107,7 +107,7 @@ env_get_version(ham_env_t *env, ham_size_t idx)
 }
 
 ham_u32_t
-env_get_serialno(ham_env_t *env)
+env_get_serialno(Environment *env)
 {
     env_header_t *hdr=(env_header_t*)
                     (page_get_payload(env_get_header_page(env)));
@@ -115,7 +115,7 @@ env_get_serialno(ham_env_t *env)
 }
 
 void
-env_set_serialno(ham_env_t *env, ham_u32_t n)
+env_set_serialno(Environment *env, ham_u32_t n)
 {
     env_header_t *hdr=(env_header_t*)
                     (page_get_payload(env_get_header_page(env)));
@@ -123,27 +123,27 @@ env_set_serialno(ham_env_t *env, ham_u32_t n)
 }
 
 env_header_t *
-env_get_header(ham_env_t *env)
+env_get_header(Environment *env)
 {
     return ((env_header_t*)(page_get_payload(env_get_header_page(env))));
 }
 
 ham_status_t
-env_fetch_page(ham_page_t **page_ref, ham_env_t *env, 
+env_fetch_page(ham_page_t **page_ref, Environment *env, 
         ham_offset_t address, ham_u32_t flags)
 {
     return (db_fetch_page_impl(page_ref, env, 0, address, flags));
 }
 
 ham_status_t
-env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
+env_alloc_page(ham_page_t **page_ref, Environment *env,
                 ham_u32_t type, ham_u32_t flags)
 {
     return (db_alloc_page_impl(page_ref, env, 0, type, flags));
 }
 
 static ham_status_t 
-_local_fun_create(ham_env_t *env, const char *filename,
+_local_fun_create(Environment *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st=0;
@@ -189,7 +189,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
     /* create the file */
     st=device->create(device, filename, flags, mode);
     if (st) {
-        (void)ham_env_close(env, 0);
+        (void)ham_env_close((ham_env_t *)env, 0);
         return (st);
     }
 
@@ -201,7 +201,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
 
         page=page_new(env);
         if (!page) {
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close((ham_env_t *)env, 0);
             return (HAM_OUT_OF_MEMORY);
         }
         /* manually set the device pointer */
@@ -209,7 +209,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         st=page_alloc(page);
         if (st) {
             page_delete(page);
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close((ham_env_t *)env, 0);
             return (st);
         }
         memset(page_get_pers(page), 0, pagesize);
@@ -236,7 +236,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         st=log->create();
         if (st) { 
             delete log;
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close((ham_env_t *)env, 0);
             return (st);
         }
         env_set_log(env, log);
@@ -244,7 +244,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         Journal *journal=new Journal(env);
         st=journal->create();
         if (st) { 
-            (void)ham_env_close(env, 0);
+            (void)ham_env_close((ham_env_t *)env, 0);
             return (st);
         }
         env_set_journal(env, journal);
@@ -262,7 +262,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
 }
 
 static ham_status_t
-__recover(ham_env_t *env, ham_u32_t flags)
+__recover(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
     Log *log=new Log(env);
@@ -355,7 +355,7 @@ success:
 }
 
 static ham_status_t 
-_local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags, 
+_local_fun_open(Environment *env, const char *filename, ham_u32_t flags, 
         const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -386,7 +386,7 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
      */
     st=device->open(device, filename, flags);
     if (st) {
-        (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
+        (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
         return (st);
     }
 
@@ -508,7 +508,7 @@ fail_with_fake_cleansing:
 
         /* exit when an error was signaled */
         if (st) {
-            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
 
@@ -517,14 +517,14 @@ fail_with_fake_cleansing:
          */
         page=page_new(env);
         if (!page) {
-            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (HAM_OUT_OF_MEMORY);
         }
         page_set_device(page, device);
         st=page_fetch(page);
         if (st) {
             page_delete(page);
-            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
         env_set_header_page(env, page);
@@ -544,7 +544,7 @@ fail_with_fake_cleansing:
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         st=__recover(env, flags);
         if (st) {
-            (void)ham_env_close(env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
     }
@@ -553,7 +553,7 @@ fail_with_fake_cleansing:
 }
 
 static ham_status_t
-_local_fun_rename_db(ham_env_t *env, ham_u16_t oldname, 
+_local_fun_rename_db(Environment *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
     ham_u16_t dbi;
@@ -598,7 +598,7 @@ _local_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
 }
 
 static ham_status_t
-_local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
+_local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 {
     Database *db;
     ham_status_t st;
@@ -630,7 +630,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     st=ham_new((ham_db_t **)&db);
     if (st)
         return (st);
-    st=ham_env_open_db(env, (ham_db_t *)db, name, 0, 0);
+    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, name, 0, 0);
     if (st) {
         (void)ham_delete((ham_db_t *)db);
         return (st);
@@ -688,7 +688,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_get_database_names(ham_env_t *env, ham_u16_t *names, 
+_local_fun_get_database_names(Environment *env, ham_u16_t *names, 
             ham_size_t *count)
 {
     ham_u16_t name;
@@ -722,7 +722,7 @@ bail:
 }
 
 static ham_status_t
-_local_fun_close(ham_env_t *env, ham_u32_t flags)
+_local_fun_close(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
     ham_status_t st2 = HAM_SUCCESS;
@@ -809,7 +809,7 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
     while (file_head) {
         ham_file_filter_t *next=file_head->_next;
         if (file_head->close_cb)
-            file_head->close_cb(env, file_head);
+            file_head->close_cb((ham_env_t *)env, file_head);
         file_head=next;
     }
     env_set_file_filter(env, 0);
@@ -838,7 +838,7 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
+_local_fun_get_parameters(Environment *env, ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
 
@@ -893,7 +893,7 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 }
 
 static ham_status_t
-_local_fun_flush(ham_env_t *env, ham_u32_t flags)
+_local_fun_flush(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
     Database *db;
@@ -956,7 +956,7 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_local_fun_create_db(ham_env_t *env, Database *db, 
+_local_fun_create_db(Environment *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -1141,7 +1141,7 @@ bail:
 }
 
 static ham_status_t 
-_local_fun_open_db(ham_env_t *env, Database *db, 
+_local_fun_open_db(Environment *env, Database *db, 
         ham_u16_t name, ham_u32_t flags, const ham_parameter_t *param)
 {
     Database *head;
@@ -1332,7 +1332,7 @@ _local_fun_open_db(ham_env_t *env, Database *db,
 }
 
 static ham_status_t
-_local_fun_txn_begin(ham_env_t *env, Database *db, 
+_local_fun_txn_begin(Environment *env, Database *db, 
                     ham_txn_t **txn, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1359,7 +1359,7 @@ _local_fun_txn_begin(ham_env_t *env, Database *db,
 }
 
 static ham_status_t
-_local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
     /* an ugly hack - txn_commit() will free the txn structure, but we need
      * it for the journal; therefore create a temp. copy which we can use
@@ -1391,7 +1391,7 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
     /* an ugly hack - txn_abort() will free the txn structure, but we need
      * it for the journal; therefore create a temp. copy which we can use
@@ -1423,7 +1423,7 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 ham_status_t
-env_initialize_local(ham_env_t *env)
+env_initialize_local(Environment *env)
 {
     env->_fun_create             =_local_fun_create;
     env->_fun_open               =_local_fun_open;
@@ -1443,7 +1443,7 @@ env_initialize_local(ham_env_t *env)
 }
 
 void
-env_append_txn(ham_env_t *env, ham_txn_t *txn)
+env_append_txn(Environment *env, ham_txn_t *txn)
 {
     txn_set_env(txn, env);
 
@@ -1465,7 +1465,7 @@ env_append_txn(ham_env_t *env, ham_txn_t *txn)
 }
 
 void
-env_remove_txn(ham_env_t *env, ham_txn_t *txn)
+env_remove_txn(Environment *env, ham_txn_t *txn)
 {
     if (env_get_newest_txn(env)==txn) {
         env_set_newest_txn(env, txn_get_older(txn));
@@ -1483,7 +1483,7 @@ env_remove_txn(ham_env_t *env, ham_txn_t *txn)
 }
 
 static ham_status_t
-__flush_txn(ham_env_t *env, ham_txn_t *txn)
+__flush_txn(Environment *env, ham_txn_t *txn)
 {
     ham_status_t st=0;
     txn_op_t *op=txn_get_oldest_op(txn);
@@ -1608,7 +1608,7 @@ bail:
 }
 
 ham_status_t
-env_flush_committed_txns(ham_env_t *env)
+env_flush_committed_txns(Environment *env)
 {
     ham_txn_t *oldest;
 
@@ -1652,7 +1652,7 @@ env_flush_committed_txns(ham_env_t *env)
 }
 
 ham_status_t
-env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn) 
+env_get_incremented_lsn(Environment *env, ham_u64_t *lsn) 
 {
     Journal *j=env_get_journal(env);
     if (j) {
@@ -1670,7 +1670,7 @@ env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn)
 }
 
 static ham_status_t
-__purge_cache_max20(ham_env_t *env)
+__purge_cache_max20(Environment *env)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -1717,7 +1717,7 @@ __purge_cache_max20(ham_env_t *env)
 }
 
 ham_status_t
-env_purge_cache(ham_env_t *env)
+env_purge_cache(Environment *env)
 {
     ham_status_t st;
     Cache *cache=env_get_cache(env);

@@ -144,41 +144,41 @@ typedef ham_u32_t                            ham_uXX_t;
 #endif
 
 extern ham_status_t
-__freel_lazy_create16(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env);
+__freel_lazy_create16(freelist_cache_t *cache, ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_destructor16(ham_device_t *dev, ham_env_t *env);
+__freel_destructor16(ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_flush_stats16(ham_device_t *dev, ham_env_t *env);
+__freel_flush_stats16(ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_mark_free16(ham_device_t *dev, ham_env_t *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free16(ham_device_t *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
-__freel_check_area_is_allocated16(ham_device_t *dev, ham_env_t *env, ham_offset_t address, ham_size_t size);
+__freel_check_area_is_allocated16(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area16(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area16(ham_offset_t *addr_ref, ham_device_t *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
-__freel_init_perf_data16(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_payload_t *fp);
+__freel_init_perf_data16(freelist_cache_t *cache, ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 extern ham_status_t
-__freel_lazy_create32(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env);
+__freel_lazy_create32(freelist_cache_t *cache, ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_destructor32(ham_device_t *dev, ham_env_t *env);
+__freel_destructor32(ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_flush_stats32(ham_device_t *dev, ham_env_t *env);
+__freel_flush_stats32(ham_device_t *dev, Environment *env);
 extern ham_status_t
-__freel_mark_free32(ham_device_t *dev, ham_env_t *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free32(ham_device_t *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
-__freel_check_area_is_allocated32(ham_device_t *dev, ham_env_t *env, ham_offset_t address, ham_size_t size);
+__freel_check_area_is_allocated32(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
-__freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_payload_t *fp);
+__freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 /**
  * replacement for the macro env_set_dirty; will call the macro, but also
  * add the header page to the changeset
  */
 static void
-__env_set_dirty(ham_env_t *env)
+__env_set_dirty(Environment *env)
 {
     env_set_dirty(env);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
@@ -192,7 +192,7 @@ __env_set_dirty(ham_env_t *env)
 static void
 __page_set_dirty(ham_page_t *page)
 {
-    ham_env_t *env=device_get_env(page_get_device(page));
+    Environment *env=device_get_env(page_get_device(page));
     page_set_dirty(page);
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         env_get_changeset(env).add_page(page);
@@ -209,7 +209,7 @@ __page_set_dirty(ham_page_t *page)
  * </pre>
  */
 static ham_size_t 
-__freel_get_freelist_entry_maxspan(ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache)
+__freel_get_freelist_entry_maxspan(ham_device_t *dev, Environment *env, freelist_cache_t *cache)
 {
     ham_uXX_t ret;
     ham_size_t size = env_get_usable_pagesize(env) - env_get_freelist_header_sizeXX();
@@ -223,7 +223,7 @@ __freel_get_freelist_entry_maxspan(ham_device_t *dev, ham_env_t *env, freelist_c
 
 
 static ham_status_t
-__freel_cache_resize(ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache, 
+__freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
         ham_size_t new_count)
 {
     ham_size_t i;
@@ -302,7 +302,7 @@ specified @a address.
 
 */
 static ham_status_t 
-__freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache, 
+__freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
         ham_offset_t address)
 {
     ham_size_t i=0;
@@ -361,7 +361,7 @@ __freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, ham_env
 }
 
 static ham_size_t
-__freel_set_bits(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, 
+__freel_set_bits(ham_device_t *dev, Environment *env, freelist_entry_t *entry, 
         freelist_payload_t *fp, ham_bool_t overwrite, 
         ham_size_t start_bit, 
         ham_size_t size_bits, 
@@ -926,7 +926,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 
 
 static ham_s32_t
-__freel_search_bits_ex(ham_device_t *dev, ham_env_t *env, 
+__freel_search_bits_ex(ham_device_t *dev, Environment *env, 
                 freelist_entry_t *entry, freelist_payload_t *f, 
                 ham_size_t size_bits, freelist_hints_t *hints)
 {
@@ -2714,7 +2714,7 @@ __freel_search_bits_ex(ham_device_t *dev, ham_env_t *env,
 }
 
 static ham_status_t
-__freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache, 
+__freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
         freelist_entry_t *entry)
 {
     ham_size_t i;
@@ -2874,7 +2874,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
 static ham_s32_t
 __freel_locate_sufficient_free_space(freelist_hints_t *dst,
         freelist_global_hints_t *hints,
-        ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache, 
+        ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
         ham_s32_t start_index)
 {
     freelist_entry_t *entry;
@@ -3153,7 +3153,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
 ham_status_t
 __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev, 
-                ham_env_t *env, Database *db, ham_size_t size, 
+                Environment *env, Database *db, ham_size_t size, 
                 ham_bool_t aligned, ham_offset_t lower_bound_address)
 {
     ham_status_t st;
@@ -3453,7 +3453,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 
 ham_status_t
 __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev, 
-                ham_env_t *env)
+                Environment *env)
 {
     ham_status_t st;
     ham_size_t size;
@@ -3547,7 +3547,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
  * nothing to persist, really.
  */
 ham_status_t
-__freel_flush_stats16(ham_device_t *dev, ham_env_t *env)
+__freel_flush_stats16(ham_device_t *dev, Environment *env)
 {
     freelist_cache_t *cache;
     freelist_entry_t *entries;
@@ -3577,7 +3577,7 @@ __freel_flush_stats16(ham_device_t *dev, ham_env_t *env)
 
 
 ham_status_t
-__freel_destructorXX(ham_device_t *dev, ham_env_t *env)
+__freel_destructorXX(ham_device_t *dev, Environment *env)
 {
     freelist_cache_t *cache;
     freelist_entry_t *entries;
@@ -3599,7 +3599,7 @@ __freel_destructorXX(ham_device_t *dev, ham_env_t *env)
 
 
 ham_status_t
-__freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, Database *db, 
+__freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db, 
                 ham_offset_t address, ham_size_t size, ham_bool_t overwrite)
 {
     ham_status_t st;
@@ -3710,7 +3710,7 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, Database *db,
 
 
 ham_status_t
-__freel_check_area_is_allocatedXX(ham_device_t *dev, ham_env_t *env, ham_offset_t address, ham_size_t size)
+__freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size)
 {
     ham_status_t st;
     ham_page_t *page=0;
@@ -3807,7 +3807,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, ham_env_t *env, ham_offset_
  * freelist algorithm persists this data to disc.
  */
 ham_status_t                                                        
-__freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, 
+__freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment *env, 
         freelist_entry_t *entry, freelist_payload_t *fp)
 {
     freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
@@ -3873,7 +3873,7 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *
 #if defined(IMPLEMENT_MODERN_FREELIST32)
 
 static ham_status_t
-__freel_constructor(ham_device_t *dev, ham_env_t *env, Database *db)
+__freel_constructor(ham_device_t *dev, Environment *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;
@@ -3920,7 +3920,7 @@ the environment, but that wouldn't be nice...
 
 ham_status_t 
 freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
-                ham_env_t *env)
+                Environment *env)
 {
     //ham_status_t st;
     freelist_cache_t *cache;
@@ -3959,7 +3959,7 @@ freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev,
 
 
 ham_status_t
-freel_shutdown(ham_env_t *env)
+freel_shutdown(Environment *env)
 {
     freelist_cache_t *cache;
     ham_device_t *dev;
@@ -3997,7 +3997,7 @@ freel_shutdown(ham_env_t *env)
 }
 
 ham_status_t
-freel_mark_free(ham_env_t *env, Database *db, ham_offset_t address, 
+freel_mark_free(Environment *env, Database *db, ham_offset_t address, 
                 ham_size_t size, ham_bool_t overwrite)
 {
     freelist_cache_t *cache;
@@ -4030,7 +4030,7 @@ freel_mark_free(ham_env_t *env, Database *db, ham_offset_t address,
 }
 
 ham_status_t
-freel_check_area_is_allocated(ham_env_t *env, Database *db, 
+freel_check_area_is_allocated(Environment *env, Database *db, 
                 ham_offset_t address, ham_size_t size)
 {
     freelist_cache_t *cache;
@@ -4064,7 +4064,7 @@ freel_check_area_is_allocated(ham_env_t *env, Database *db,
 
 
 ham_status_t 
-freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, Database *db, 
+freel_alloc_area(ham_offset_t *addr_ref, Environment *env, Database *db, 
                 ham_size_t size)
 {
     return freel_alloc_area_ex(addr_ref, env, db, size, HAM_FALSE, 0);
@@ -4072,7 +4072,7 @@ freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, Database *db,
 
 
 ham_status_t
-freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, Database *db,
+freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
                 ham_size_t size, ham_bool_t aligned, 
                 ham_offset_t lower_bound_address)
 {
@@ -4110,7 +4110,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, Database *db,
 }
 
 ham_status_t
-freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, Database *db)
+freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;
@@ -4148,7 +4148,7 @@ freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, Database *db)
 
 ham_status_t
 freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
-                ham_env_t *env)
+                Environment *env)
 {
     freelist_cache_t *cache;
     

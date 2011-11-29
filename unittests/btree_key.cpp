@@ -81,11 +81,11 @@ public:
 
     void structureTest(void)
     {
-        ham_page_t *page=page_new(m_env);
+        ham_page_t *page=page_new((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);
-        ::memset(node, 0, env_get_usable_pagesize(m_env));
+        ::memset(node, 0, env_get_usable_pagesize((Environment *)m_env));
 
         btree_key_t *key=btree_node_get_key(m_dbp, node, 0);
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
@@ -104,11 +104,11 @@ public:
 
     void extendedRidTest(void)
     {
-        ham_page_t *page=page_new(m_env);
+        ham_page_t *page=page_new((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);
-        ::memset(node, 0, env_get_usable_pagesize(m_env));
+        ::memset(node, 0, env_get_usable_pagesize((Environment *)m_env));
 
         ham_offset_t blobid;
 
@@ -401,8 +401,9 @@ public:
         BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
 
         dupe_entry_t entry;
-        BFC_ASSERT_EQUAL(0, blob_duplicate_get(m_env, key_get_ptr(key),
-                    (ham_size_t)position, &entry));
+        BFC_ASSERT_EQUAL(0, 
+                    blob_duplicate_get((Environment *)m_env, key_get_ptr(key),
+                            (ham_size_t)position, &entry));
 
         ham_record_t rec;
         memset(&rec, 0, sizeof(rec));

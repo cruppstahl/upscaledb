@@ -177,7 +177,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_env_t *env, Database *db, ham_record_t *record,
+blob_allocate(Environment *env, Database *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid);
 
 /**
@@ -206,14 +206,14 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size);
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_overwrite(ham_env_t *env, Database *db, ham_offset_t old_blobid, 
+blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid, 
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
 
 /**
  * delete an existing blob
  */
 extern ham_status_t
-blob_free(ham_env_t *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
+blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
 
 /**
  * create a duplicate table and insert all entries in the duplicate
@@ -245,14 +245,14 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
  * get the number of duplicates
  */
 extern ham_status_t
-blob_duplicate_get_count(ham_env_t *env, ham_offset_t table_id,
+blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry);
 
 /**
  * get a duplicate
  */
 extern ham_status_t 
-blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
+blob_duplicate_get(Environment *env, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry);
 
 /**
@@ -262,7 +262,7 @@ blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
  * @warning memory has to be freed by the caller IF needs_free is true!
  */
 extern ham_status_t 
-blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
+blob_duplicate_get_table(Environment *env, ham_offset_t table_id, 
                     dupe_table_t **ptable, ham_bool_t *needs_free);
 
 

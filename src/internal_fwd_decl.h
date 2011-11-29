@@ -40,6 +40,8 @@ class Cursor;
 
 class Database;
 
+class Environment;
+
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
 

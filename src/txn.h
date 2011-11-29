@@ -271,7 +271,7 @@ struct ham_txn_t
     ham_u64_t _id;
 
     /** owner of this transaction */
-    ham_env_t *_env;
+    Environment *_env;
 
     /** flags for this transaction */
     ham_u32_t _flags;
@@ -423,7 +423,7 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
  * frees a txn_opnode_t structure, and removes it from its tree
  */
 extern void
-txn_opnode_free(ham_env_t *env, txn_opnode_t *node);
+txn_opnode_free(Environment *env, txn_opnode_t *node);
 
 /**
  * retrieves the next larger sibling of a given node, or NULL if there
@@ -445,7 +445,7 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags);
+txn_begin(ham_txn_t **ptxn, Environment *env, ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 

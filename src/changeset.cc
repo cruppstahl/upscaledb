@@ -80,7 +80,7 @@ Changeset::flush(ham_u64_t lsn)
     if (!p)
         return (0);
 
-    ham_env_t *env=device_get_env(page_get_device(p));
+    Environment *env=device_get_env(page_get_device(p));
     Log *log=env_get_log(env);
 
     ham_assert(log!=0, (""));

@@ -122,7 +122,7 @@ __f_read(ham_device_t *self, ham_offset_t offset,
         void *buffer, ham_offset_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
-    ham_env_t *env=device_get_env(self);
+    Environment *env=device_get_env(self);
     ham_file_filter_t *head=0;
     ham_status_t st;
 
@@ -143,7 +143,7 @@ __f_read(ham_device_t *self, ham_offset_t offset,
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(env, head, (ham_u8_t *)buffer, 
+            st=head->after_read_cb((ham_env_t *)env, head, (ham_u8_t *)buffer, 
                         (ham_size_t)size);
             if (st)
                 return (st);
@@ -220,7 +220,8 @@ fallback_rw:
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(db->get_env(), head, buffer, size);
+            st=head->after_read_cb((ham_env_t *)db->get_env(), head, 
+                                buffer, size);
             if (st)
                 return (st);
         }
@@ -284,7 +285,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     dev_file_t *t=(dev_file_t *)device_get_private(self);
     ham_u8_t *tempdata=0;
     ham_status_t st=0;
-    ham_env_t *env=device_get_env(self);
+    Environment *env=device_get_env(self);
     ham_file_filter_t *head=0;
 
     /*
@@ -306,7 +307,8 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
 
     while (head) {
         if (head->before_write_cb) {
-            st=head->before_write_cb(env, head, tempdata, (ham_size_t)size);
+            st=head->before_write_cb((ham_env_t *)env, head, tempdata, 
+                            (ham_size_t)size);
             if (st) 
                 break;
         }
@@ -555,7 +557,7 @@ __get_flags(ham_device_t *self)
 }
 
 ham_device_t *
-ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
+ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype)
 {
     ham_device_t *dev=(ham_device_t *)allocator_alloc(alloc, sizeof(*dev));
     if (!dev)

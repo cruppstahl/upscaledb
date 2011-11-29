@@ -113,7 +113,7 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
                     }
 
 static ham_status_t
-_perform_request(ham_env_t *env, CURL *handle, proto_wrapper_t *request,
+_perform_request(Environment *env, CURL *handle, proto_wrapper_t *request,
                 proto_wrapper_t **reply)
 {
     CURLcode cc;
@@ -175,7 +175,7 @@ _perform_request(ham_env_t *env, CURL *handle, proto_wrapper_t *request,
 }
 
 static ham_status_t 
-_remote_fun_create(ham_env_t *env, const char *filename,
+_remote_fun_create(Environment *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -210,7 +210,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 }
 
 static ham_status_t 
-_remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags, 
+_remote_fun_open(Environment *env, const char *filename, ham_u32_t flags, 
         const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -245,7 +245,7 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 }
 
 static ham_status_t
-_remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname, 
+_remote_fun_rename_db(Environment *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
     ham_status_t st;
@@ -272,7 +272,7 @@ _remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
 }
 
 static ham_status_t
-_remote_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
+_remote_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 {
     ham_status_t st;
     proto_wrapper_t *request, *reply;
@@ -298,7 +298,7 @@ _remote_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names, 
+_remote_fun_get_database_names(Environment *env, ham_u16_t *names, 
             ham_size_t *count)
 {
     ham_status_t st;
@@ -338,7 +338,7 @@ _remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names,
 }
 
 static ham_status_t 
-_remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
+_remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
 {
     static char filename[1024];
     ham_status_t st;
@@ -434,7 +434,7 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
 }
 
 static ham_status_t
-_remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
+_remote_fun_env_flush(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
     proto_wrapper_t *request, *reply;
@@ -460,7 +460,7 @@ _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_remote_fun_create_db(ham_env_t *env, Database *db, 
+_remote_fun_create_db(Environment *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -540,7 +540,7 @@ _remote_fun_create_db(ham_env_t *env, Database *db,
 }
 
 static ham_status_t 
-_remote_fun_open_db(ham_env_t *env, Database *db, 
+_remote_fun_open_db(Environment *env, Database *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -619,7 +619,7 @@ _remote_fun_open_db(ham_env_t *env, Database *db,
 }
 
 static ham_status_t
-_remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
+_remote_fun_env_close(Environment *env, ham_u32_t flags)
 {
     (void)flags;
 
@@ -632,7 +632,7 @@ _remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_txn_begin(ham_env_t *env, Database *db, 
+_remote_fun_txn_begin(Environment *env, Database *db, 
                 ham_txn_t **txn, ham_u32_t flags)
 {
     ham_status_t st;
@@ -670,7 +670,7 @@ _remote_fun_txn_begin(ham_env_t *env, Database *db,
 }
 
 static ham_status_t
-_remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+_remote_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     proto_wrapper_t *request, *reply;
@@ -701,7 +701,7 @@ _remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+_remote_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     proto_wrapper_t *request, *reply;
@@ -735,7 +735,7 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
-env_initialize_remote(ham_env_t *env)
+env_initialize_remote(Environment *env)
 {
 #if HAM_ENABLE_REMOTE
     env->_fun_create             =_remote_fun_create;
@@ -767,7 +767,7 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
 {
     static char filename[1024];
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     ham_size_t i, num_names=0;
     ham_u32_t *names;
@@ -878,7 +878,7 @@ ham_status_t
 DatabaseImplementationRemote::check_integrity(ham_txn_t *txn)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_check_integrity_request(m_db->get_remote_handle(), 
@@ -907,7 +907,7 @@ DatabaseImplementationRemote::get_key_count(ham_txn_t *txn, ham_u32_t flags,
                     ham_offset_t *keycount)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_db_get_key_count_request(m_db->get_remote_handle(), 
@@ -938,7 +938,7 @@ DatabaseImplementationRemote::insert(ham_txn_t *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     ham_bool_t send_key=HAM_TRUE;
 
@@ -982,7 +982,7 @@ DatabaseImplementationRemote::erase(ham_txn_t *txn, ham_key_t *key,
                 ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_db_erase_request(m_db->get_remote_handle(), 
@@ -1012,7 +1012,7 @@ DatabaseImplementationRemote::find(ham_txn_t *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
 
     request=proto_init_db_find_request(m_db->get_remote_handle(), 
@@ -1068,7 +1068,7 @@ bail:
 Cursor *
 DatabaseImplementationRemote::cursor_create(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_status_t st;
     proto_wrapper_t *request, *reply;
     
@@ -1104,7 +1104,7 @@ DatabaseImplementationRemote::cursor_create(ham_txn_t *txn, ham_u32_t flags)
 Cursor *
 DatabaseImplementationRemote::cursor_clone(Cursor *src)
 {
-    ham_env_t *env=src->get_db()->get_env();
+    Environment *env=src->get_db()->get_env();
     ham_status_t st;
     proto_wrapper_t *request, *reply;
     
@@ -1141,7 +1141,7 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     ham_bool_t send_key=HAM_TRUE;
 
@@ -1186,7 +1186,7 @@ ham_status_t
 DatabaseImplementationRemote::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_cursor_erase_request(cursor->get_remote_handle(), 
@@ -1215,7 +1215,7 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
 
     request=proto_init_cursor_find_request(cursor->get_remote_handle(), 
@@ -1263,7 +1263,7 @@ DatabaseImplementationRemote::cursor_get_duplicate_count(Cursor *cursor,
                     ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_cursor_get_duplicate_count_request(
@@ -1307,7 +1307,7 @@ DatabaseImplementationRemote::cursor_overwrite(Cursor *cursor,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_cursor_overwrite_request(
@@ -1336,7 +1336,7 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_cursor_move_request(cursor->get_remote_handle(), 
@@ -1395,7 +1395,7 @@ void
 DatabaseImplementationRemote::cursor_close(Cursor *cursor)
 {
     ham_status_t st;
-    ham_env_t *env=cursor->get_db()->get_env();
+    Environment *env=cursor->get_db()->get_env();
     proto_wrapper_t *request, *reply;
     
     request=proto_init_cursor_close_request(cursor->get_remote_handle());
@@ -1419,7 +1419,7 @@ ham_status_t
 DatabaseImplementationRemote::close(ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
     /*

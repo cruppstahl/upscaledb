@@ -76,14 +76,17 @@ print_environment(ham_env_t *env)
         error("ham_env_open_db", st);
 
     printf("environment\n");
-    printf("    pagesize:                   %u\n", env_get_pagesize(env));
+    printf("    pagesize:                   %u\n", 
+                    env_get_pagesize((Environment *)env));
     printf("    version:                    %u.%u.%u.%u\n", 
-            env_get_version(env, 0),
-            env_get_version(env, 1),
-            env_get_version(env, 2),
-            env_get_version(env, 3));
-    printf("    serialno:                   %u\n", env_get_serialno(env));
-    printf("    max databases:              %u\n", env_get_max_databases(env));
+                    env_get_version((Environment *)env, 0),
+                    env_get_version((Environment *)env, 1),
+                    env_get_version((Environment *)env, 2),
+                    env_get_version((Environment *)env, 3));
+    printf("    serialno:                   %u\n", 
+                    env_get_serialno((Environment *)env));
+    printf("    max databases:              %u\n", 
+                    env_get_max_databases((Environment *)env));
 
     st=ham_close(db, 0);
     if (st)

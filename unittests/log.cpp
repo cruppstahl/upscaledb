@@ -63,7 +63,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_env_t *m_env;
+    Environment *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -78,7 +78,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
     
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -92,12 +92,11 @@ public:
 
     Log *disconnect_log_and_create_new_log(void)
     {
-        ham_env_t *env=ham_get_env(m_db);
-        Log *log=new Log(env);
+        Log *log=new Log(m_env);
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, log->create());
         delete log;
 
-        log = env_get_log(env);
+        log=env_get_log(m_env);
         BFC_ASSERT_EQUAL(0, log->close());
         BFC_ASSERT_EQUAL(0, log->create());
         BFC_ASSERT_NOTNULL(log);
@@ -129,20 +128,22 @@ public:
 
     void negativeCreateTest(void)
     {
-        Log *log=new Log(m_env);
-        std::string oldfilename=env_get_filename(m_env);
-        env_set_filename(m_env, "/::asdf");
+        Environment *env=(Environment *)m_env;
+        Log *log=new Log(env);
+        std::string oldfilename=env_get_filename(env);
+        env_set_filename(env, "/::asdf");
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, log->create());
-        env_set_filename(m_env, oldfilename);
+        env_set_filename(env, oldfilename);
         delete log;
     }
 
     void negativeOpenTest(void)
     {
-        Log *log=new Log(m_env);
+        Environment *env=(Environment *)m_env;
+        Log *log=new Log(env);
         ham_fd_t fd;
-        std::string oldfilename=env_get_filename(m_env);
-        env_set_filename(m_env, "xxx$$test");
+        std::string oldfilename=env_get_filename(env);
+        env_set_filename(env, "xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, log->open());
 
         /* if log->open() fails, it will call log->close() internally and 
@@ -152,10 +153,10 @@ public:
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        env_set_filename(m_env, "data/log-broken-magic");
+        env_set_filename(env, "data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, log->open());
 
-        env_set_filename(m_env, oldfilename);
+        env_set_filename(env, oldfilename);
         delete log;
     }
 
@@ -270,7 +271,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         BFC_ASSERT_EQUAL((Log *)0, env_get_log(m_env));
         log=new Log(m_env);
         BFC_ASSERT_EQUAL(0, log->open());
@@ -358,7 +359,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_env_t *m_env;
+    Environment *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -377,14 +378,14 @@ public:
                         | HAM_ENABLE_RECOVERY
                         | HAM_ENABLE_DUPLICATES, 0644));
 
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
     }
 
     void open(void)
     {
         // open without recovery and transactions (they imply recovery)!
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -413,13 +414,13 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env) != 0);
+        BFC_ASSERT(env_get_log((Environment *)env) != 0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT(env_get_log(env)==0);
+        BFC_ASSERT(env_get_log((Environment *)env)==0);
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
@@ -428,7 +429,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         BFC_ASSERT(env_get_log(m_env)!=0);
     }
 
@@ -449,7 +450,7 @@ public:
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
 
         /* make sure that the log file was deleted and that the lsn is 1 */
         Log *log=env_get_log(m_env);
@@ -489,17 +490,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT(env_get_log(env)==0);
+        BFC_ASSERT(env_get_log((Environment *)env)==0);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log((Environment *)env)!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -521,7 +522,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT(env_get_log(env)==0);
+        BFC_ASSERT(env_get_log((Environment *)env)==0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
@@ -546,7 +547,7 @@ public:
                 ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
 
         /* make sure that the log files are deleted and that the lsn is 1 */
-        Log *log=env_get_log(env);
+        Log *log=env_get_log((Environment *)env);
         BFC_ASSERT(log!=0);
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log->get_fd(), &filesize));
@@ -590,9 +591,9 @@ public:
         /* for traversing the logfile we need a temp. Env handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664));
-        log=env_get_log(env);
+        log=env_get_log((Environment *)env);
         BFC_ASSERT_EQUAL((Log *)0, log);
-        log=new Log(env);
+        log=new Log((Environment *)env);
         BFC_ASSERT_EQUAL(0, log->open());
 
         while (1) {
@@ -612,13 +613,13 @@ public:
             BFC_ASSERT_EQUAL((*vit).data_size, entry.data_size);
 
             if (data)
-                allocator_free(env_get_allocator(env), data);
+                allocator_free(env_get_allocator((Environment *)env), data);
 
             vit++;
         }
 
         if (data)
-            allocator_free(env_get_allocator(env), data);
+            allocator_free(env_get_allocator((Environment *)env), data);
         BFC_ASSERT_EQUAL(vec.size(), size);
 
         BFC_ASSERT_EQUAL(0, log->close(true));
@@ -662,7 +663,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page contains the marker */
         for (int i=0; i<200; i++)
@@ -715,7 +716,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             /* verify that the pages contain the markers */
@@ -765,7 +766,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
@@ -821,7 +822,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         /* verify that the pages does not contain the "XXX..." */
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
@@ -881,7 +882,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         /* verify that the pages do not contain the "XXX..." */
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
@@ -931,7 +932,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
         page=env_get_header_page(m_env);
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
@@ -959,7 +960,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        ham_size_t ps=env_get_pagesize(env);
+        ham_size_t ps=env_get_pagesize((Environment *)env);
         g_CHANGESET_POST_LOG_HOOK=0;
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 333, 0));
@@ -996,7 +997,7 @@ public:
                 ham_env_open_db(env, db, 333, 0, 0));
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(1ull, env_get_log(env)->get_lsn());
+        BFC_ASSERT_EQUAL(1ull, env_get_log((Environment *)env)->get_lsn());
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         ham_delete(db);
@@ -1021,7 +1022,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        ham_size_t ps=env_get_pagesize(env);
+        ham_size_t ps=env_get_pagesize((Environment *)env);
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 333, 0));
         g_CHANGESET_POST_LOG_HOOK=0;
@@ -1051,7 +1052,7 @@ public:
                 ham_env_open_db(env, db, 333, 0, 0));
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(2ull, env_get_log(env)->get_lsn());
+        BFC_ASSERT_EQUAL(2ull, env_get_log((Environment *)env)->get_lsn());
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         ham_delete(db);
@@ -1098,7 +1099,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         db=(Database *)m_db;
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
 
         /*
          * The hinters must be disabled for this test to succeed; at least

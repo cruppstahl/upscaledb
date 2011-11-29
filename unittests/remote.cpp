@@ -164,16 +164,16 @@ protected:
         ham_env_t *env;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, SERVER_URL, 0, 0664));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -188,12 +188,12 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(0,
             ham_env_open(env, SERVER_URL, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }

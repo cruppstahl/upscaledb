@@ -1743,13 +1743,14 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     }
 
     void callocTest() {
-        char *p=(char *)allocator_calloc(env_get_allocator(m_env), 20);
+        Environment *env=(Environment *)m_env;
+        char *p=(char *)allocator_calloc(env_get_allocator(env), 20);
 
         for (int i=0; i<20; i++) {
             BFC_ASSERT_EQUAL('\0', p[i]);
         }
 
-        allocator_free(env_get_allocator(m_env), p);
+        allocator_free(env_get_allocator(env), p);
     }
 
     void strerrorTest() {

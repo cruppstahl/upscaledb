@@ -417,7 +417,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
 static ham_status_t
 __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 {
-    ham_env_t *env;
+    Environment *env;
 
     btree_set_rootpage(scratchpad->be, page_get_self(newroot));
     be_set_dirty(scratchpad->be, HAM_TRUE);

@@ -9,129 +9,14 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 This Branch Is About Integrating The hamsterdb2 Functionality!!!!!
 -----------------------------------------------------------------------------
-
+The big headline is:
 As a user i want to run many Transactions in parallel with high performance.
 I'm not interested in multiple threads (yet), although i may use several 
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-x extkey: use a generic hash table
-
-x the changeset flushes its pages with WRITE_THROUGH - but that causes
-    fsync?! - no, it's not. i renamed the flag.
-
-x rewrite cursor_move (once more) 
-    x currently there are too many compares of the cursors - decrease them
-    x cursor_move_last is working
-    x cursor_move_first is working
-    x cursor_move_next
-    x cursor_move_previous
-    x two tests are failing (see README)
-    x current problem: dupecache is always created even if duplicates are
-        not used - no problem, it's a NOP if dupes are disabled
-    x _local_cursor_create can directly return the new Cursor
-    x _local_cursor_clone can directly return the new Cursor
-    x the cursor is still a mishmash of C functions with a C++ object
-        -> move all functions (i.e. cursor_set_to_nil, cursor_move...) into
-        the namespace of the class
-        x __compare_cursors -> int Cursor::compare(flags);
-    x new test case:
-        insert (1)
-        insert (2)
-        cursor_move_last
-        cursor_move_previous
-        cursor_move_previous -> KEY_NOT_FOUND
-        insert (0)
-        cursor_move_previous -> OK
-        -> and the same with first/next
-        x clarify documentation
-
-x run performance tests w/ transactions, duplicates and cursors
-    valgrind --tool=callgrind ./test --use-transactions=200 --duplicate --use-cursors  --progress ../../testfiles/1/180.tst
-    x flatten txn_op_t
-    x txn_tree_get_or_create (maybe ALWAYS create the tree?)
-    x cursor_erase: no need to purge the cache
-    x local_cursor_insert calls __btree_cursor_points_to, which is very
-        costly
-    x local_cursor_find must not call update_dupecache - not possible :(
-    x local_cursor_find must not call cursor_sync - not possible :(
-    x local_cursor_insert must not require a cursor->update_dupecache - not
-        possible :(
-
-x review all packed structs/classes for correct usage of HAM_PACKED2!
-
-x run performance tests w/ transactions and w/o duplicates
-    01-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-01-00 ./test --use-transactions=200 ../../testfiles/1/180.tst
-
-x run performance tests w/ transactions and w/ overwrite
-    02-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-02-00 ./test --use-transactions=200 --overwrite ../../testfiles/1/180.tst
-
-x run performance tests w/ transactions, duplicates and w/o cursors
-    03-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-03-00 ./test --use-transactions=200 --duplicate ../../testfiles/1/180.tst
-
-x run performance tests w/o transactions and w/o duplicates
-    06-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-06-00 ./test ../../testfiles/1/180.tst
-
-x run performance tests w/o transactions and w/ duplicates
-    07-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-07-00 ./test --duplicate ../../testfiles/1/180.tst
-
-x run performance tests w/o transactions and w/ duplicates and w/ cursors
-    08-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-08-00 ./test --duplicate --use-cursors ../../testfiles/1/180.tst
-
-x run performance tests w/ transactions and cursors and duplicates
-    05-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-05-00 ./test --use-transactions=200 --use-cursors --duplicate ../../testfiles/1/180.tst
-
-x run performance tests w/ transactions and cursors
-    04-00
-valgrind --tool=callgrind --callgrind-out-file=callgrind-2.0.0-04-00 ./test --use-transactions=200 --use-cursors ../../testfiles/1/180.tst
-
-x improve performance
-    x prepare_key/prepare_record: inline or macro?
-    x 08: " also calls btree_cursor_uncouple, but why? for the current cursor?
-        that's not necessary because it's anyway set to nil -- not possible
-    x 08: local_cursor_erase calls Cursor::set_to_nil, but btree_cursor_erase
-        also sets to nil
-    x use lookaside list in memory allocator for objects of these sizes:
-        txn_opnode_t, txn_op_t
-    x Why ever call changeset::get_page when fetching a page??
-        - because then it's not put in the changeset twice (no problem!)
-    x 08: cursor::erase -> btree_cursor_erase: if cursor is coupled and 
-        key index > 0 and page has no underflow: directly delete the key
-        from the page without traversing the tree!
-    x use writev in journal (implemented for erase; check if it made a
-        difference. if yes then also use for insert!)
-    x 04: uses Cursor::get_dupecache_count and Cursor::clear_dupecache,
-        although duplicates are disabled --> inline both functions
-    x 05: btree_cursor_points_to_key is the big blocker
-
-x btree_cursor_points_to_key fails with extended keys - no, it's fine
-
-x port os_writev to windows
-
-x c++-ify the database
-    x create Database object
-    x add getter/setter functions
-    x check compilation of tools
-    x move initialization/destruction into constructor/destructor
-    x move function pointers into abstract base class and implement
-        a LocalDatabase and a RemoteDatabase -- no, that won't work because
-        we do not know the type of the database when it's initialized
-        -> move to seperate Impl-object
-        x db_compare_keys
-        x db_get_extended_key
-        x db_copy_key
-        x db_uncouple_all_cursors() -> move to page
-
-x test compilation w/o remote functionality
-
-x check w/ valgrind
+x the env is declared as a struct, but implemented as a class. This is no
+    big deal for g++, but the msvc compiler doesn't like it
 
 o move forum to google groups; 3 mailing lists: dev, users, announcements
 
@@ -140,15 +25,6 @@ o move forum to google groups; 3 mailing lists: dev, users, announcements
     o db_flush_page
     o db_flush_all
     o db_write_page_and_delete
-
-. c++-ify the page
-
-. c++-ify the device
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc3 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-
-
 
 o improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
@@ -240,9 +116,9 @@ o c++ API
         and strings
         (i want the high-level APIs to use the c++ API and not the C one)
 
+. c++-ify the page
 
-
-
+. c++-ify the device
 
 o java API
     o update and rewrite to use the C++ API
@@ -254,10 +130,7 @@ o iOS port - try to include in main branch
 
 o Android port - try to include in main branch
 
-o create a facebook page for hamsterdb
-
-o guru.com/twitter: look for someone who can write a PHP or Perl or Ruby
-    wrapper
+o look for someone who can write a PHP or Perl or Ruby wrapper
 
 o implement support for partial keys?
 
@@ -330,7 +203,6 @@ o cleanup db.h/db.cc - move functions into Database or
     o db_check_insert_conflicts
     o db_check_erase_conflicts
     o __increment_dupe_index
-
 
 . c++-ify the transaction
 

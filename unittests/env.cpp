@@ -94,9 +94,9 @@ protected:
     
     void structureTest()
     {
-        ham_env_t *env;
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        ham_env_t *henv;
+        BFC_ASSERT_EQUAL(0, ham_env_new(&henv));
+        Environment *env=(Environment *)henv;
 
         BFC_ASSERT(env_get_txn_id(env)==0);
         env_set_txn_id(env, (ham_u64_t)14);
@@ -146,7 +146,7 @@ protected:
         env_set_list(env, (Database *)22);
         BFC_ASSERT(env_get_list(env)==(Database *)22);
 
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(henv));
     }
 
     void newDeleteTest(void)
@@ -165,16 +165,16 @@ protected:
         ham_env_t *env;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
-        BFC_ASSERT_EQUAL(true, env_is_active(env));
+        BFC_ASSERT_EQUAL(true, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -190,11 +190,11 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            BFC_ASSERT_EQUAL(0u, env_is_active(env));
+            BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
             BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
-            BFC_ASSERT_EQUAL(1u, env_is_active(env));
+            BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-            BFC_ASSERT_EQUAL(0u, env_is_active(env));
+            BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
         }
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -1774,7 +1774,7 @@ protected:
             BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, db, 333, 0, 0));
         }
-        BFC_ASSERT_EQUAL(50, env_get_max_databases(env));
+        BFC_ASSERT_EQUAL(50, env_get_max_databases((Environment *)env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));

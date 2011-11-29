@@ -186,11 +186,11 @@ extern void
 btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key);
 
 extern void
-btree_stats_init_globdata(ham_env_t *env, 
+btree_stats_init_globdata(Environment *env, 
                     ham_runtime_statistics_globdata_t *globdata);
 
 extern void
-btree_stats_trash_globdata(ham_env_t *env, 
+btree_stats_trash_globdata(Environment *env, 
                     ham_runtime_statistics_globdata_t *globdata);
 
 extern void
@@ -204,7 +204,7 @@ extern void
 btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata);
 
 extern ham_status_t
-btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db, 
+btree_stats_fill_ham_statistics_t(Environment *env, Database *db, 
                     ham_statistics_t *dst);
 
 

@@ -67,7 +67,7 @@ public:
                 ham_create(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
         m_env=ham_get_env(m_db);
-        m_dev=env_get_device(m_env);
+        m_dev=env_get_device((Environment *)m_env);
     }
     
     virtual void teardown() 
@@ -130,7 +130,7 @@ public:
         BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, m_dev->alloc(m_dev, 1024, &address));
-            BFC_ASSERT_EQUAL((env_get_pagesize(m_env)*2)+1024*i, address);
+            BFC_ASSERT_EQUAL((env_get_pagesize((Environment *)m_env)*2)+1024*i, address);
         }
     }
 
@@ -231,7 +231,7 @@ public:
         BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         BFC_ASSERT_EQUAL(0, m_dev->truncate(m_dev, ps*2));
         for (i=0; i<2; i++) {
-            BFC_ASSERT((pages[i]=page_new(m_env)));
+            BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
             page_set_self(pages[i], ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(m_dev, pages[i]));
         }
@@ -247,7 +247,7 @@ public:
         for (i=0; i<2; i++) {
             char temp[1024];
             memset(temp, i+1, sizeof(temp));
-            BFC_ASSERT((pages[i]=page_new(m_env)));
+            BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
             page_set_self(pages[i], ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(m_dev, pages[i]));
             BFC_ASSERT_EQUAL(0, 

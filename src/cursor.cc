@@ -33,7 +33,7 @@ ham_status_t
 Cursor::update_dupecache(ham_u32_t what)
 {
     ham_status_t st=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     DupeCache *dc=get_dupecache();
     btree_cursor_t *btc=get_btree_cursor();
     txn_cursor_t *txnc=get_txn_cursor();

@@ -257,7 +257,7 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 void
 db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 {
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -279,7 +279,7 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 void
 db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_t record_size)
 {
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -301,7 +301,7 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 void
 db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 {
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
 
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
     {
@@ -480,7 +480,7 @@ btree_stats_page_is_nuked(Database *db, struct ham_page_t *page,
                     ham_bool_t split)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
     int i;
 
     for (i = 0; i <= 2; i++)
@@ -531,7 +531,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
 {
     ham_status_t st;
     ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
     btree_node_t *node = page_get_btree_node(page);
 
     /* reset both flags - they will be set if lower_bound or 
@@ -1247,14 +1247,14 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
 }
 
 void
-btree_stats_init_globdata(ham_env_t *env, 
+btree_stats_init_globdata(Environment *env, 
                     ham_runtime_statistics_globdata_t *globdata)
 {
     memset(globdata, 0, sizeof(*globdata));
 }
 
 void
-btree_stats_trash_globdata(ham_env_t *env, 
+btree_stats_trash_globdata(Environment *env, 
                     ham_runtime_statistics_globdata_t *globdata)
 {
     /* nothing to trash */
@@ -1280,7 +1280,7 @@ btree_stats_flush_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata,
 void
 btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
 
     /* trash the upper/lower bound keys, when set: */
     if (dbdata->upper_bound.data) {
@@ -1295,7 +1295,7 @@ btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 }
 
 ham_status_t
-btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db, 
+btree_stats_fill_ham_statistics_t(Environment *env, Database *db, 
                     ham_statistics_t *dst)
 {
     ham_status_t st;

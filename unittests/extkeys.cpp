@@ -135,7 +135,8 @@ public:
         }
 
         ham_env_t *env=ham_get_env(m_db);
-        env_set_txn_id(env, env_get_txn_id(env)+2000);
+        env_set_txn_id((Environment *)env, 
+                        env_get_txn_id((Environment *)env)+2000);
 
         c->purge();
 

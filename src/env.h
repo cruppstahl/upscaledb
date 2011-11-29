@@ -10,7 +10,7 @@
  */
 
 /**
- * @brief The ham_env_t structure definitions, getters/setters and functions
+ * @brief The Environment structure definitions, getters/setters and functions
  *
  */
 
@@ -101,13 +101,22 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 
 /**
+ * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_env_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_env_t {
+    int dummy;
+};
+
+/**
  * the Environment structure
  */
-class ham_env_t
+class Environment
 {
   public:
     /** default constructor initializes all members */
-    ham_env_t();
+    Environment();
 
     /** the current transaction ID */
     ham_u64_t _txn_id;
@@ -202,7 +211,7 @@ class ham_env_t
     /*
      * following here: function pointers which implement access to 
      * local or remote databases. they are initialized in ham_env_create_ex
-     * and ham_env_open_ex after the ham_env_t handle was initialized and
+     * and ham_env_open_ex after the Environment handle was initialized and
      * an allocator was created.
      *
      * @see env_initialize_local
@@ -212,85 +221,85 @@ class ham_env_t
     /**
      * initialize and create a new Environment
      */
-    ham_status_t (*_fun_create)(ham_env_t *env, const char *filename,
+    ham_status_t (*_fun_create)(Environment *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode,
             const ham_parameter_t *param);
 
     /**
      * initialize and open a new Environment
      */
-    ham_status_t (*_fun_open)(ham_env_t *env, const char *filename,
+    ham_status_t (*_fun_open)(Environment *env, const char *filename,
             ham_u32_t flags, const ham_parameter_t *param);
 
     /**
      * rename a database in the Environment
      */
-    ham_status_t (*_fun_rename_db)(ham_env_t *env, ham_u16_t oldname, 
+    ham_status_t (*_fun_rename_db)(Environment *env, ham_u16_t oldname, 
             ham_u16_t newname, ham_u32_t flags);
 
     /**
      * erase a database from the Environment
      */
-    ham_status_t (*_fun_erase_db)(ham_env_t *env, ham_u16_t name, 
+    ham_status_t (*_fun_erase_db)(Environment *env, ham_u16_t name, 
             ham_u32_t flags);
 
     /**
      * get all database names
      */
-    ham_status_t (*_fun_get_database_names)(ham_env_t *env, 
+    ham_status_t (*_fun_get_database_names)(Environment *env, 
             ham_u16_t *names, ham_size_t *count);
 
     /**
      * get environment parameters
      */
-    ham_status_t (*_fun_get_parameters)(ham_env_t *env, ham_parameter_t *param);
+    ham_status_t (*_fun_get_parameters)(Environment *env, ham_parameter_t *param);
 
     /**
      * flush the environment
      */
-    ham_status_t (*_fun_flush)(ham_env_t *env, ham_u32_t flags);
+    ham_status_t (*_fun_flush)(Environment *env, ham_u32_t flags);
 
     /**
      * create a database in the environment
      */
-    ham_status_t (*_fun_create_db)(ham_env_t *env, Database *db, 
+    ham_status_t (*_fun_create_db)(Environment *env, Database *db, 
                 ham_u16_t dbname, ham_u32_t flags, 
                 const ham_parameter_t *param);
 
     /**
      * open a database in the environment
      */
-    ham_status_t (*_fun_open_db)(ham_env_t *env, Database *db, 
+    ham_status_t (*_fun_open_db)(Environment *env, Database *db, 
                 ham_u16_t dbname, ham_u32_t flags, 
                 const ham_parameter_t *param);
 
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(ham_env_t *env, Database *db, 
+    ham_status_t (*_fun_txn_begin)(Environment *env, Database *db, 
                 ham_txn_t **txn, ham_u32_t flags);
 
     /**
      * aborts a transaction
      */
-    ham_status_t (*_fun_txn_abort)(ham_env_t *env, ham_txn_t *txn, 
+    ham_status_t (*_fun_txn_abort)(Environment *env, ham_txn_t *txn, 
                 ham_u32_t flags);
 
     /**
      * commits a transaction
      */
-    ham_status_t (*_fun_txn_commit)(ham_env_t *env, ham_txn_t *txn, 
+    ham_status_t (*_fun_txn_commit)(Environment *env, ham_txn_t *txn, 
                 ham_u32_t flags);
 
     /**
      * close the Environment
      */
-    ham_status_t (*_fun_close)(ham_env_t *env, ham_u32_t flags);
+    ham_status_t (*_fun_close)(Environment *env, ham_u32_t flags);
 
 	/**
 	 * destroy the environment object, free all memory
 	 */
-	ham_status_t (*destroy)(ham_env_t *self);
+	ham_status_t (*destroy)(Environment *self);
 };
 
 
@@ -351,7 +360,7 @@ class ham_env_t
  * implemented as a function - a macro would break strict aliasing rules
  */
 extern env_header_t *
-env_get_header(ham_env_t *env);
+env_get_header(Environment *env);
 
 /** set the header page */
 #define env_set_header_page(env, h)      (env)->_hdrpage=(h)
@@ -457,7 +466,7 @@ env_get_header(ham_env_t *env);
  * implemented as a function - a macro would break gcc aliasing rules
  */
 extern ham_u16_t
-env_get_max_databases(ham_env_t *env);
+env_get_max_databases(Environment *env);
 
 /**
  * set the maximum number of databases for this file (cached, not written
@@ -509,7 +518,7 @@ env_get_max_databases(ham_env_t *env);
  * implemented as a function - a macro would break gcc aliasing rules
  */
 extern ham_u8_t
-env_get_version(ham_env_t *env, ham_size_t idx);
+env_get_version(Environment *env, ham_size_t idx);
 
 /**
  * get the serial number
@@ -517,7 +526,7 @@ env_get_version(ham_env_t *env, ham_size_t idx);
  * implemented as a function - a macro would break gcc aliasing rules
  */
 extern ham_u32_t
-env_get_serialno(ham_env_t *env);
+env_get_serialno(Environment *env);
 
 /*
  * set the serial number
@@ -525,7 +534,7 @@ env_get_serialno(ham_env_t *env);
  * implemented as a function - a macro would break gcc aliasing rules
  */
 extern void
-env_set_serialno(ham_env_t *env, ham_u32_t n);
+env_set_serialno(Environment *env, ham_u32_t n);
 
 #define SIZEOF_FULL_HEADER(env)												\
 	(sizeof(env_header_t)+													\
@@ -579,7 +588,7 @@ env_set_serialno(ham_env_t *env, ham_u32_t n);
  * no Database handle
  */
 extern ham_status_t
-env_fetch_page(ham_page_t **page_ref, ham_env_t *env, 
+env_fetch_page(ham_page_t **page_ref, Environment *env, 
         ham_offset_t address, ham_u32_t flags);
 
 /**
@@ -589,20 +598,20 @@ env_fetch_page(ham_page_t **page_ref, ham_env_t *env,
  * no Database handle
  */
 extern ham_status_t
-env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
+env_alloc_page(ham_page_t **page_ref, Environment *env,
                 ham_u32_t type, ham_u32_t flags);
 
 /*
  * create a env_backend_t structure for accessing local files
  */
 extern ham_status_t
-env_initialize_local(ham_env_t *env);
+env_initialize_local(Environment *env);
 
 /*
  * create a env_backend_t structure for accessing remote server
  */
 extern ham_status_t
-env_initialize_remote(ham_env_t *env);
+env_initialize_remote(Environment *env);
 
 /**
  * Ensure that the environment occupies a minimum number of pages.
@@ -631,25 +640,25 @@ env_initialize_remote(ham_env_t *env);
  *    extended freelist.
  */
 extern ham_status_t
-env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
+env_reserve_space(Environment *env, ham_offset_t minimum_page_count);
 
 /**
  * add a new transaction to this Environment
  */
 extern void
-env_append_txn(ham_env_t *env, ham_txn_t *txn);
+env_append_txn(Environment *env, ham_txn_t *txn);
 
 /**
  * remove a transaction to this Environment
  */
 extern void
-env_remove_txn(ham_env_t *env, ham_txn_t *txn);
+env_remove_txn(Environment *env, ham_txn_t *txn);
 
 /*
  * flush all committed Transactions to disk
  */
 extern ham_status_t
-env_flush_committed_txns(ham_env_t *env);
+env_flush_committed_txns(Environment *env);
 
 /*
  * increments the lsn and returns the incremended value; if the lsn
@@ -658,13 +667,13 @@ env_flush_committed_txns(ham_env_t *env);
  * only works if a journal is created! Otherwise assert(0)
  */
 extern ham_status_t
-env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn);
+env_get_incremented_lsn(Environment *env, ham_u64_t *lsn);
 
 /*
  * purge the cache if the limits are exceeded
  */
 extern ham_status_t
-env_purge_cache(ham_env_t *env);
+env_purge_cache(Environment *env);
 
 
 #endif /* HAM_ENV_H__ */

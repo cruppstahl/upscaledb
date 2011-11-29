@@ -40,7 +40,7 @@ class Cache
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    Cache(ham_env_t *env, 
+    Cache(Environment *env, 
                 ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
     /**
@@ -261,7 +261,7 @@ class Cache
     }
 
     /** the current Environment */
-    ham_env_t *m_env;
+    Environment *m_env;
 
     /** the capacity (in bytes) */
     ham_u64_t m_capacity;

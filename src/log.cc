@@ -25,7 +25,7 @@
 #include "util.h"
 
 
-Log::Log(ham_env_t *env, ham_u32_t flags)
+Log::Log(Environment *env, ham_u32_t flags)
 : m_env(env), m_flags(flags), m_lsn(0), m_fd(HAM_INVALID_FD)
 {
 }
@@ -224,7 +224,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn)
 
         while (head) {
             if (head->before_write_cb) {
-                st=head->before_write_cb(m_env, head, p, size);
+                st=head->before_write_cb((ham_env_t *)m_env, head, p, size);
                 if (st) 
                     break;
             }

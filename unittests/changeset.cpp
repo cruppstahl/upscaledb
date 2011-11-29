@@ -70,7 +70,7 @@ public:
         Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new(m_env);
+            page[i]=page_new((Environment *)m_env);
             page_set_self(page[i], 1024*i);
         }
         for (int i=0; i<3; i++)
@@ -96,7 +96,7 @@ public:
         Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new(m_env);
+            page[i]=page_new((Environment *)m_env);
             page_set_self(page[i], 1024*i);
         }
         for (int i=0; i<3; i++)
@@ -115,7 +115,7 @@ public:
         Changeset ch;
         ham_page_t *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new(m_env);
+            page[i]=page_new((Environment *)m_env);
             page_set_self(page[i], 1024*i);
         }
         for (int i=0; i<3; i++)

@@ -134,7 +134,7 @@ page_remove_cursor(ham_page_t *page, Cursor *cursor)
 }
 
 ham_page_t *
-page_new(ham_env_t *env)
+page_new(Environment *env)
 {
     ham_page_t *page;
     mem_allocator_t *alloc=env_get_allocator(env);

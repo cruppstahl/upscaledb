@@ -392,7 +392,7 @@ page_remove_cursor(ham_page_t *page, Cursor *cursor);
  * @return NULL if out of memory
  */
 extern ham_page_t *
-page_new(ham_env_t *env);
+page_new(Environment *env);
 
 /**
  * delete a page structure

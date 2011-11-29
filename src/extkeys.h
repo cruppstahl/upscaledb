@@ -52,7 +52,7 @@ class ExtKeyCache
     class ExtKeyHelper
     {
       public:
-        ExtKeyHelper(ham_env_t *env) : m_env(env) { }
+        ExtKeyHelper(Environment *env) : m_env(env) { }
 
         ham_offset_t key(const extkey_t *extkey) {
             return (extkey->_blobid);
@@ -106,7 +106,7 @@ class ExtKeyCache
         bool m_removeall;
 
       private:
-        ham_env_t *m_env;
+        Environment *m_env;
     };
 
   public:

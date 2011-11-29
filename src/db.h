@@ -487,12 +487,12 @@ class Database
     }
 
     /** get the environment pointer */
-    ham_env_t *get_env(void) {
+    Environment *get_env(void) {
         return (m_env);
     }
 
     /** set the environment pointer */
-    void set_env(ham_env_t *env) {
+    void set_env(Environment *env) {
         m_env=env;
     }
 
@@ -797,7 +797,7 @@ class Database
     ham_u32_t m_rt_flags;
 
     /** the environment of this database - can be NULL */
-    ham_env_t *m_env;
+    Environment *m_env;
 
     /** the next database in a linked list of databases */
     Database *m_next;
@@ -961,7 +961,7 @@ db_fetch_page(ham_page_t **page_ref, Database *db,
  * doing.
  */
 extern ham_status_t
-db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db, 
+db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
                     ham_offset_t address, ham_u32_t flags);
 
 /**
@@ -990,7 +990,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db,
  * flush a page
  */
 extern ham_status_t
-db_flush_page(ham_env_t *env, ham_page_t *page);
+db_flush_page(Environment *env, ham_page_t *page);
 
 /**
  * Flush all pages, and clear the cache.
@@ -1030,7 +1030,7 @@ db_alloc_page(ham_page_t **page_ref, Database *db,
  * doing.
  */
 extern ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db, 
+db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags);
 
 #define PAGE_IGNORE_FREELIST          8

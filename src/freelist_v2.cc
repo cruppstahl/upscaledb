@@ -17,7 +17,7 @@
 #define DUMMY_LSN  1
 
 ham_status_t
-__freel_flush_stats32(ham_device_t *dev, ham_env_t *env)
+__freel_flush_stats32(ham_device_t *dev, Environment *env)
 {
     ham_status_t st;
 

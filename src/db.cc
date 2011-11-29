@@ -184,7 +184,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 }
 
 inline ham_bool_t
-__cache_needs_purge(ham_env_t *env)
+__cache_needs_purge(Environment *env)
 {
     Cache *cache=env_get_cache(env);
     if (!cache)
@@ -545,7 +545,7 @@ ham_status_t
 db_free_page(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=device_get_env(page_get_device(page));
+    Environment *env=device_get_env(page_get_device(page));
     
     ham_assert(page_get_owner(page) 
                 ? device_get_env(page_get_device(page)) 
@@ -600,7 +600,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db, 
+db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
@@ -689,7 +689,7 @@ db_alloc_page(ham_page_t **page_ref, Database *db,
 }
 
 ham_status_t
-db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, Database *db,
+db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
@@ -757,7 +757,7 @@ db_fetch_page(ham_page_t **page_ref, Database *db,
 }
 
 ham_status_t
-db_flush_page(ham_env_t *env, ham_page_t *page)
+db_flush_page(Environment *env, ham_page_t *page)
 {
     ham_status_t st;
 
@@ -818,7 +818,7 @@ ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=device_get_env(page_get_device(page));
+    Environment *env=device_get_env(page_get_device(page));
     
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
@@ -1164,7 +1164,7 @@ db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
-    ham_env_t *env=db->get_env();
+    Environment *env=db->get_env();
 
     /* get (or create) the node for this key */
     node=txn_opnode_get(db, key, 0);
@@ -1334,7 +1334,7 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
-    ham_env_t *env=db->get_env();
+    Environment *env=db->get_env();
     Cursor *pc=0;
     if (cursor)
         pc=txn_cursor_get_parent(cursor);
@@ -1485,7 +1485,7 @@ ham_status_t
 DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
 
     if (p) {
         for (; p->name; p++) {
@@ -1595,7 +1595,7 @@ DatabaseImplementationLocal::get_key_count(ham_txn_t *txn, ham_u32_t flags,
 {
     ham_status_t st;
     ham_backend_t *be;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
 
     calckeys_context_t ctx = {m_db, flags, 0, HAM_FALSE};
 
@@ -1647,7 +1647,7 @@ ham_status_t
 DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
@@ -1763,7 +1763,7 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
 {
     ham_status_t st;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_backend_t *be;
     ham_offset_t recno=0;
 
@@ -1829,7 +1829,7 @@ ham_status_t
 DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be=m_db->get_backend();
@@ -1950,7 +1950,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
     ham_backend_t *be=m_db->get_backend();
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
     if ((db_get_keysize(m_db)<sizeof(ham_offset_t)) &&
@@ -2111,7 +2111,7 @@ ham_status_t
 DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
     db_update_global_stats_erase_query(m_db, 0);
@@ -2174,7 +2174,7 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
     ham_status_t st;
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /*
@@ -2366,7 +2366,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
                     ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
@@ -2428,7 +2428,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
                     ham_offset_t *size)
 {
     ham_status_t st=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
@@ -2490,7 +2490,7 @@ ham_status_t
 DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor, 
                     ham_record_t *record, ham_u32_t flags)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_status_t st;
     ham_record_t temprec;
     ham_txn_t *local_txn=0;
@@ -2560,7 +2560,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
@@ -2668,7 +2668,7 @@ DatabaseImplementationLocal::cursor_close(Cursor *cursor)
 ham_status_t 
 DatabaseImplementationLocal::close(ham_u32_t flags)
 {
-    ham_env_t *env=m_db->get_env();
+    Environment *env=m_db->get_env();
     ham_status_t st=HAM_SUCCESS;
     ham_status_t st2=HAM_SUCCESS;
     ham_backend_t *be;

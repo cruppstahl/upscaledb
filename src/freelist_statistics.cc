@@ -267,7 +267,7 @@ static __inline ham_size_t ham_bucket_index2bitcount(ham_u16_t bucket)
 
 
 static void
-rescale_global_statistics(ham_env_t *env)
+rescale_global_statistics(Environment *env)
 {
     ham_runtime_statistics_globdata_t *globalstats = env_get_global_perf_data(env);
     ham_u16_t b;
@@ -324,7 +324,7 @@ rescale_freelist_page_stats(freelist_cache_t *cache, freelist_entry_t *entry)
 }
 
 void
-db_update_freelist_stats_fail(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry,
+db_update_freelist_stats_fail(ham_device_t *dev, Environment *env, freelist_entry_t *entry,
                     freelist_payload_t *f, 
                     freelist_hints_t *hints)
 {
@@ -440,7 +440,7 @@ db_update_freelist_stats_fail(ham_device_t *dev, ham_env_t *env, freelist_entry_
 
 
 void
-db_update_freelist_stats(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry,
+db_update_freelist_stats(ham_device_t *dev, Environment *env, freelist_entry_t *entry,
                     freelist_payload_t *f, 
                     ham_u32_t position, 
                     freelist_hints_t *hints)
@@ -558,7 +558,7 @@ db_update_freelist_stats(ham_device_t *dev, ham_env_t *env, freelist_entry_t *en
  */
 
 void
-db_update_freelist_stats_edit(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, 
+db_update_freelist_stats_edit(ham_device_t *dev, Environment *env, freelist_entry_t *entry, 
                     freelist_payload_t *f, 
                     ham_u32_t position, 
                     ham_size_t size_bits, 
@@ -755,7 +755,7 @@ db_update_freelist_stats_edit(ham_device_t *dev, ham_env_t *env, freelist_entry_
 
 
 void
-db_update_freelist_globalhints_no_hit(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_hints_t *hints)
+db_update_freelist_globalhints_no_hit(ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_hints_t *hints)
 {
     freelist_cache_t *cache = device_get_freelist_cache(dev);
     ham_runtime_statistics_globdata_t *globalstats = env_get_global_perf_data(env);
@@ -808,7 +808,7 @@ db_update_freelist_globalhints_no_hit(ham_device_t *dev, ham_env_t *env, freelis
  * freelist pages visited.
  */
 void
-db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, ham_env_t *env)
+db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, Environment *env)
 {
     freelist_cache_t *cache = device_get_freelist_cache(dev);
     ham_runtime_statistics_globdata_t *globalstats=env_get_global_perf_data(env);
@@ -1058,7 +1058,7 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, ha
  * where it deems necessary.
  */
 void
-db_get_freelist_entry_hints(freelist_hints_t *dst, ham_device_t *dev, ham_env_t *env, 
+db_get_freelist_entry_hints(freelist_hints_t *dst, ham_device_t *dev, Environment *env, 
         freelist_entry_t *entry)
 {
     freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
@@ -1325,7 +1325,7 @@ static void my_cleanup_ham_statistics_t(ham_statistics_t *dst)
 
 
 ham_status_t
-stats_fill_freel_statistics_t(ham_env_t *env, ham_statistics_t *dst)
+stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst)
 {
     ham_bool_t collect_freelistdata;
 

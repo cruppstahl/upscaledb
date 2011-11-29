@@ -85,7 +85,7 @@ class Journal
     };
 
     /** constructor */
-    Journal(ham_env_t *env);
+    Journal(Environment *env);
 
     /** creates a new journal */
     ham_status_t create(void);
@@ -182,7 +182,7 @@ class Journal
     }
 
 	/** references the Environment this journal file is for */
-	ham_env_t *m_env;
+	Environment *m_env;
 
     /** the index of the file descriptor we are currently writing to */
     ham_size_t m_current_fd;

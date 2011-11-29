@@ -83,7 +83,7 @@ public:
     void newDeleteTest()
     {
         ham_page_t *page;
-        page=page_new(m_env);
+        page=page_new((Environment *)m_env);
         BFC_ASSERT(page!=0);
         page_delete(page);
     }
@@ -91,7 +91,7 @@ public:
     void allocFreeTest()
     {
         ham_page_t *page;
-        page=page_new(m_env);
+        page=page_new((Environment *)m_env);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         BFC_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
@@ -101,10 +101,10 @@ public:
     {
         int i;
         ham_page_t *page;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=env_get_pagesize((Environment *)m_env);
 
         for (i=0; i<10; i++) {
-            page=page_new(m_env);
+            page=page_new((Environment *)m_env);
             BFC_ASSERT_EQUAL(0, page_alloc(page));
             /* i+2 since we need 1 page for the header page and one page
              * for the root page */
@@ -118,10 +118,10 @@ public:
     void fetchFlushTest()
     {
         ham_page_t *page, *temp;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=env_get_pagesize((Environment *)m_env);
 
-        page=page_new(m_env);
-        temp=page_new(m_env);
+        page=page_new((Environment *)m_env);
+        temp=page_new((Environment *)m_env);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         BFC_ASSERT_EQUAL(0, page_free(page));

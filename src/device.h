@@ -146,7 +146,7 @@ struct ham_device_t {
     mem_allocator_t *_malloc;
 
     /** the environment which employs this device */
-    ham_env_t *_env;
+    Environment *_env;
 
     /** Flags of this device
      *
@@ -201,7 +201,7 @@ struct ham_device_t {
  * create a new device structure; either for in-memory or file-based
  */
 extern ham_device_t *
-ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype);
+ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype);
 
 /**
  * Devices: device type IDs

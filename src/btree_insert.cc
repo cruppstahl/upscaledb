@@ -296,7 +296,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_status_t st;
     ham_page_t *root;
     Database *db=be_get_db(be);
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
     insert_scratchpad_t scratchpad;
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
@@ -782,7 +782,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
     Database *db=page_get_owner(page);
-    ham_env_t *env = db->get_env();
+    Environment *env = db->get_env();
     ham_key_t pivotkey, oldkey;
     ham_offset_t pivotrid;
     ham_u16_t pivot;
