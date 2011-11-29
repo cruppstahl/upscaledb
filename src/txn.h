@@ -21,10 +21,6 @@
 #include "rb.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * a single operation in a transaction
  */
@@ -486,9 +482,5 @@ txn_free_ops(ham_txn_t *txn);
 extern void
 txn_free(ham_txn_t *txn);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_TXN_H__ */

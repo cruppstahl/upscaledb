@@ -21,10 +21,6 @@
 #include "freelist_statistics.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * an entry in the freelist cache
  */
@@ -489,9 +485,5 @@ extern ham_status_t
 freel_check_area_is_allocated(ham_env_t *env, Database *db, 
                 ham_offset_t address, ham_size_t size);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_FREELIST_H__ */

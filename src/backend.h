@@ -19,10 +19,6 @@
 
 #include "internal_fwd_decl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
 * @defgroup ham_cb_status hamsterdb Backend Node/Page Enumerator Status Codes
 * @{
@@ -264,9 +260,5 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /** set the active-flag */
 #define be_set_active(be, d)                (be)->_is_active=!!(d)
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BACKEND_H__ */

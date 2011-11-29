@@ -36,10 +36,6 @@
 #include "config.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 class Cursor;
 
 class Database;
@@ -101,9 +97,5 @@ typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif

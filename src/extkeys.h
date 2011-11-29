@@ -24,11 +24,6 @@
 #include "mem.h"
 #include "env.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #define EXTKEY_MAX_AGE  25
 
 /**
@@ -86,7 +81,7 @@ class ExtKeyCache
         void visit(const extkey_t *node) {
         }
 
-        void free(const extkey_t *node) {
+        void free_node(const extkey_t *node) {
             allocator_free(env_get_allocator(m_env), node);
         }
 
@@ -96,11 +91,11 @@ class ExtKeyCache
 
         bool remove_if(const extkey_t *node) {
             if (m_removeall) {
-                free(node);
+                free_node(node);
                 return (true);
             }
             if (env_get_txn_id(m_env)-node->_age>EXTKEY_MAX_AGE) {
-                free(node);
+                free_node(node);
                 return (true);
             }
             return (false);
@@ -169,9 +164,5 @@ class ExtKeyCache
 extern ham_status_t 
 extkey_remove(Database *db, ham_offset_t blobid);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_EXTKEYS_H__ */

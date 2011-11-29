@@ -335,7 +335,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\src\server\hamserver.c"
+			RelativePath="..\src\server\hamserver.cc"
 			>
 		</File>
 		<File

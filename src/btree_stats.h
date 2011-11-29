@@ -19,10 +19,6 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * get a reference to the statistics data of the given operation 
  */
@@ -211,9 +207,5 @@ extern ham_status_t
 btree_stats_fill_ham_statistics_t(ham_env_t *env, Database *db, 
                     ham_statistics_t *dst);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_FREELIST_H__ */

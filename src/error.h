@@ -20,10 +20,6 @@
 #include <ham/hamsterdb.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /*
  * function prototypes
  */
@@ -89,8 +85,5 @@ extern void (*ham_test_abort)(void);
                                 dbg_verify_failed f;                           \
                                 dbg_unlock();                                  \
                              }
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_ERROR_H__ */

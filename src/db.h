@@ -30,11 +30,6 @@
 #include "btree.h"
 #include "mem.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * a macro to cast pointers to u64 and vice versa to avoid compiler
  * warnings if the sizes of ptr and u64 are not equal
@@ -1111,9 +1106,5 @@ extern ham_status_t
 db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
                 struct txn_cursor_t *cursor);
 
-
-#ifdef __cplusplus
-} // extern "C" {
-#endif
 
 #endif /* HAM_DB_H__ */

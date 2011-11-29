@@ -31,11 +31,6 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-
 #include "packstart.h"
 
 /**
@@ -183,9 +178,5 @@ class Log
 
 #include "packstop.h"
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_LOG_H__ */

@@ -35,10 +35,6 @@
 #include "blob.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * the Cursor structure for a b+tree cursor
  */
@@ -282,9 +278,5 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size);
 extern void
 btree_cursor_close(btree_cursor_t *cursor);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BTREE_CURSORS_H__ */

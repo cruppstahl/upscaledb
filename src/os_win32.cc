@@ -168,7 +168,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         return (HAM_IO_ERROR);
     }
 
-    *buffer=MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart, (SIZE_T)size);
+    *buffer=(ham_u8_t *)MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart, (SIZE_T)size);
     if (!*buffer) {
         char buf[256];
         st=(ham_status_t)GetLastError();
@@ -283,7 +283,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
     if (st)
         return (st);
 
-    ham_status_t st=os_write(fd, buffer1, buffer1_len);
+    st=os_write(fd, buffer1, buffer1_len);
     if (st)
         return (st);
     if (buffer2) {
@@ -411,7 +411,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 
 #ifdef UNICODE
     int fnameWlen = calc_wlen4str(filename);
-    WCHAR *wfilename=malloc(fnameWlen * sizeof(wfilename[0]));
+    WCHAR *wfilename=(WCHAR *)malloc(fnameWlen * sizeof(wfilename[0]));
     if (!wfilename)
         return (HAM_OUT_OF_MEMORY);
 
@@ -474,7 +474,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 #ifdef UNICODE
     {
         int fnameWlen = calc_wlen4str(filename);
-        WCHAR *wfilename=malloc(fnameWlen * sizeof(wfilename[0]));
+        WCHAR *wfilename=(WCHAR *)malloc(fnameWlen * sizeof(wfilename[0]));
         if (!wfilename)
             return (HAM_OUT_OF_MEMORY);
 

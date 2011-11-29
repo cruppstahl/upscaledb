@@ -28,11 +28,6 @@
 #include "page.h"
 #include "changeset.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 /**
@@ -671,9 +666,5 @@ env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn);
 extern ham_status_t
 env_purge_cache(ham_env_t *env);
 
-
-#ifdef __cplusplus
-} // extern "C" {
-#endif
 
 #endif /* HAM_ENV_H__ */

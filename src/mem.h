@@ -21,12 +21,6 @@
 
 #include <string.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-
 /**
  * typedefs for allocator function pointers
  */
@@ -61,9 +55,6 @@ _ham_default_allocator_new(const char *fname, const int lineno);
 
 
 #if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
-
-#include "db.h"
-#include "env.h"
 
 #pragma push_macro("alloc")
 #pragma push_macro("free")
@@ -176,9 +167,5 @@ _allocator_calloc(mem_allocator_t *a, const int lineno, ham_size_t size)
 }
 
 #endif /* defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC) */
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_MEM_H__ */

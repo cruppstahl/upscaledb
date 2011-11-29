@@ -1675,7 +1675,7 @@ __purge_cache_max20(ham_env_t *env)
     ham_status_t st;
     ham_page_t *page;
     Cache *cache=env_get_cache(env);
-    unsigned i, max_pages=cache->get_cur_elements();
+    unsigned i, max_pages=(unsigned)cache->get_cur_elements();
 
     /* don't remove pages from the cache if it's an in-memory database */
     if ((env_get_rt_flags(env)&HAM_IN_MEMORY_DB))

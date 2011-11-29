@@ -17,9 +17,6 @@
 #ifndef HAM_VERSION_H__
 #define HAM_VERSION_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 /**
  * the version numbers
@@ -36,9 +33,5 @@ extern "C" {
 #define HAM_VERSION_REV 0
 #define HAM_VERSION_STR "2.0.0 rc3"
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_VERSION_H__ */

@@ -21,10 +21,6 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * the device structure
  */
@@ -214,9 +210,5 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype);
 #define HAM_DEVTYPE_MEMORY   1
 #define HAM_DEVTYPE_CUSTOM   2
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_DEVICE_H__ */

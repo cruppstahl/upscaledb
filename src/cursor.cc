@@ -100,10 +100,10 @@ Cursor::update_dupecache(ham_u32_t what)
                     dc->append(DupeCacheLine(false, op));
                 }
                 else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
-                    DupeCacheLine *e=dc->get_first_element();
                     ham_u32_t ref=txn_op_get_referenced_dupe(op);
                     if (ref) {
                         ham_assert(ref<=dc->get_count(), (""));
+						DupeCacheLine *e=dc->get_first_element();
                         (&e[ref-1])->set_txn_op(op);
                     }
                     else {
@@ -173,7 +173,7 @@ Cursor::couple_to_dupe(ham_u32_t dupe_id)
     if (e->use_btree()) {
         btree_cursor_t *btc=get_btree_cursor();
         couple_to_btree();
-        btree_cursor_set_dupe_id(btc, e->get_btree_dupe_idx());
+        btree_cursor_set_dupe_id(btc, (ham_size_t)e->get_btree_dupe_idx());
     }
     else {
         ham_assert(e->get_txn_op()!=0, (""));
@@ -1067,14 +1067,18 @@ Cursor::is_nil(int what)
 {
     switch (what) {
       case CURSOR_BTREE:
-        return (__btree_cursor_is_nil(get_btree_cursor()));
+        return (__btree_cursor_is_nil(get_btree_cursor())
+			? true
+			: false);
       case CURSOR_TXN:
         return (txn_cursor_is_nil(get_txn_cursor()));
       default:
         ham_assert(what==0, (""));
         /* TODO btree_cursor_is_nil is different from __btree_cursor_is_nil
          * - refactor and clean up! */
-        return (btree_cursor_is_nil(get_btree_cursor()));
+        return (btree_cursor_is_nil(get_btree_cursor())
+			? true
+			: false);
     }
 }
 

@@ -23,10 +23,6 @@
 #include "error.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * indices for page lists
  *
@@ -436,9 +432,5 @@ page_free(ham_page_t *page);
 extern ham_status_t
 page_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
-
-#ifdef __cplusplus
-} // extern "C" {
-#endif
 
 #endif /* HAM_PAGE_H__ */

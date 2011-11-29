@@ -22,11 +22,6 @@
 #include <stdio.h>
 #include <limits.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * read data from a file with mmap
  *
@@ -150,9 +145,5 @@ os_flush(ham_fd_t fd);
 extern ham_status_t
 os_close(ham_fd_t fd, ham_u32_t flags);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_OS_H__ */

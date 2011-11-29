@@ -18,10 +18,6 @@
 #ifndef HAM_ENDIANSWAP_H__
 #define HAM_ENDIANSWAP_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 
 /** 
  * byte swapping macros - we use little endian
@@ -70,9 +66,5 @@ extern "C" {
          (((x) & 0x000000000000ff00ull) << 40) | \
          (((x) & 0x00000000000000ffull) << 56))
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_ENDIANSWAP_H__ */

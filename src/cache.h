@@ -22,10 +22,6 @@
 #include "internal_fwd_decl.h"
 #include "env.h"
 
-	
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
@@ -282,12 +278,6 @@ class Cache
 
     /** the buckets - a linked list of ham_page_t pointers */
     std::vector<ham_page_t *> m_buckets;
-
 };
-
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_CACHE_H__ */

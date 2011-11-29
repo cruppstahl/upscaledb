@@ -17,10 +17,6 @@
 #ifndef HAM_JOURNAL_ENTRIES_H__
 #define HAM_JOURNAL_ENTRIES_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 
 #include "packstart.h"
 
@@ -134,9 +130,5 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
 
 #include "packstop.h"
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_JOURNAL_ENTRIES_H__ */

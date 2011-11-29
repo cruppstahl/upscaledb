@@ -20,10 +20,6 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include "packstart.h"
 
 /**
@@ -181,9 +177,5 @@ extern ham_status_t
 key_erase_record(Database *db, btree_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_KEY_H__ */

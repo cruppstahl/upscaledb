@@ -100,7 +100,7 @@ Log::is_empty(void)
 
     st=os_get_filesize(m_fd, &size);
     if (st)
-        return (st);
+		return (st ? false : true); /* TODO throw */
     if (size && size!=sizeof(Log::Header))
         return (false);
 

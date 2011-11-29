@@ -22,14 +22,6 @@
 #include <ham/hamsterdb_stats.h>
 
 
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-
-
 #include "packstart.h"
 
 /**
@@ -328,13 +320,5 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, ha
 extern ham_status_t
 stats_fill_freel_statistics_t(ham_env_t *env, ham_statistics_t *dst);
 
-
-
-
-
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_FREELIST_H__ */

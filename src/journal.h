@@ -26,10 +26,6 @@
 #include "env.h"
 #include "os.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 
 #include "journal_entries.h"
 
@@ -181,7 +177,7 @@ class Journal
     }
 
     /** helper function for the allocator */
-    void free(void *ptr) {
+    void alloc_free(void *ptr) {
         return (allocator_free(env_get_allocator(m_env), ptr));
     }
 
@@ -215,9 +211,5 @@ class Journal
 
 #include "packstop.h"
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_JOURNAL_H__ */

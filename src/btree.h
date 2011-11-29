@@ -27,10 +27,6 @@
 #include "db.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * the backend structure for a b+tree 
  *
@@ -403,9 +399,5 @@ extern ham_status_t
 btree_copy_key_int2pub(Database *db, const btree_key_t *source, 
                 ham_key_t *dest);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BTREE_H__ */

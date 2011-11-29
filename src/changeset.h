@@ -20,10 +20,6 @@
 
 #include "internal_fwd_decl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 
 /**
  * The changeset class
@@ -74,10 +70,5 @@ class Changeset
     ham_page_t *m_head;
 
 };
-
-
-#ifdef __cplusplus
-} // extern "C" {
-#endif
 
 #endif /* HAM_CHANGESET_H__ */

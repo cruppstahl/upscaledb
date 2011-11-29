@@ -86,10 +86,6 @@
 #include "db.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * A single line in the dupecache structure - can reference a btree
  * record or a txn-op 
@@ -97,19 +93,19 @@ extern "C" {
 class DupeCacheLine 
 {
   public:
-    DupeCacheLine(ham_bool_t use_btree=true, ham_u64_t btree_dupeidx=0)
+    DupeCacheLine(bool use_btree=HAM_TRUE, ham_u64_t btree_dupeidx=0)
     : m_use_btree(use_btree), m_btree_dupeidx(btree_dupeidx), m_op(0) {
         ham_assert(use_btree==true, (""));
     }
 
-    DupeCacheLine(ham_bool_t use_btree, txn_op_t *op)
+    DupeCacheLine(bool use_btree, txn_op_t *op)
     : m_use_btree(use_btree), m_btree_dupeidx(0), m_op(op) {
         ham_assert(use_btree==false, (""));
     }
 
     /** Returns true if this cache entry is a duplicate in the btree */
     ham_bool_t use_btree(void) {
-        return (m_use_btree); 
+        return ((ham_bool_t)m_use_btree); 
     }
 
     /** Returns the btree duplicate index */
@@ -139,15 +135,14 @@ class DupeCacheLine
     }
 
   private:
-    /** Are we using btree or txn duplicates? */
-    ham_bool_t m_use_btree;
+    /** using btree or txn duplicates? */
+    bool m_use_btree;
 
     /** The btree duplicate index (of the original btree dupe table) */
     ham_u64_t m_btree_dupeidx;
 
     /** The txn op structure */
     txn_op_t *m_op;
-
 };
 
 
@@ -164,7 +159,7 @@ class DupeCache {
 
     /** retrieve number of elements in the cache */
     ham_size_t get_count(void) {
-        return (m_elements.size());
+        return ((ham_size_t)m_elements.size());
     }
 
     /** get an element from the cache */
@@ -278,7 +273,7 @@ class Cursor
 
     /** Returns true if a cursor is coupled to a txn-op */
     bool is_coupled_to_txnop(void) {
-        return (get_flags()&_CURSOR_COUPLED_TO_TXN);
+		return ((get_flags()&_CURSOR_COUPLED_TO_TXN) ? true : false);
     }
 
     /** Couples the cursor to a btree key */
@@ -619,9 +614,5 @@ class Cursor
     bool m_is_first_use;
 };
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_CURSORS_H__ */

@@ -421,7 +421,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
         st=os_pread(m_fd[iter->fdidx], iter->offset, *aux, 
                 entry->followup_size);
         if (st) {
-            free(*aux);
+            alloc_free(*aux);
             *aux=0;
             return (st);
         }
@@ -590,7 +590,7 @@ Journal::recover()
         JournalEntry entry;
 
         if (aux) {
-            free(aux);
+            alloc_free(aux);
             aux=0;
         }
 
@@ -704,7 +704,7 @@ Journal::recover()
 
 bail:
     if (aux) {
-        free(aux);
+        alloc_free(aux);
         aux=0;
     }
 

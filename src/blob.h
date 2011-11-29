@@ -19,13 +19,7 @@
 #define HAM_BLOB_H__
 
 #include "internal_fwd_decl.h"
-
 #include "endianswap.h"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 #include "packstart.h"
 
@@ -271,9 +265,5 @@ extern ham_status_t
 blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
                     dupe_table_t **ptable, ham_bool_t *needs_free);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BLOB_H__ */
