@@ -20,6 +20,8 @@
 
 #include "internal_fwd_decl.h"
 
+#include <vector>
+
 
 /**
  * The changeset class
@@ -66,6 +68,11 @@ class Changeset
     }
 
   private:
+    typedef std::vector<ham_page_t *> bucket;
+
+    /* flush all pages in a bucket */
+    ham_status_t flush_bucket(bucket &b, ham_u64_t lsn);
+
     /* the head of our linked list */
     ham_page_t *m_head;
 

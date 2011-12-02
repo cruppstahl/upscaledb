@@ -18,13 +18,7 @@ threads (but then i'll use synchronization in my own code).
 x the env is declared as a struct, but implemented as a class. This is no
     big deal for g++, but the msvc compiler doesn't like it
 
-o move forum to google groups; 3 mailing lists: dev, users, announcements
-
-. some functions need a new namespace
-    o db_free_page -> env?
-    o db_flush_page
-    o db_flush_all
-    o db_write_page_and_delete
+x move forum to google groups; 3 mailing lists: dev, users, announcements
 
 o improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
@@ -39,30 +33,19 @@ o improve journalling and get rid of the physical log as much as possible
       if the blob is an extended key)
     --> when adding pages to the changeset then already sort them into
         "buckets" (for index pages, blobs, freelist etc).
+    --> the following operations do not have to be logged:
+        1. blob operations (unless the freelist operations span multiple pages)
+        2. freelist operations (unless they span multiple pages)
+        3. index operations (unless they span multiple pages)
+      x flush: first remove all non-dirty pages
+      x sort all pages into "buckets" for blob operations, freelist, index
+            and "others"
+      x if there's a single index page (and no "others") then it's idempotent
+      x if idempotent: first flush blobs, then freelists, then the index page
+      x blobs and freelists do NEVER have to be flushed
+      x however: flush EVERYTHING if others.size() > 0
+      o check for regressions and fix unittests
 
-      o identify how the changeset looks after operations that we can 
-          optimize (all without SMOs)
-          - insert w/ record <= 8 (index page)
-          - insert w/ record > 8 (index page, blob page, freelist)
-        first write blob & freelist (if idempotent) w/o logging, then write
-          the log entry
-      o new function changeset->describe_operation(flag);
-            DESCRIBE_INSERT_OPERATION
-            DESCRIBE_ERASE_OPERATION
-            OPERATION_IS_OVERWRITE
-            OPERATION_IS_DUPLICATE
-            OPERATION_IS_EXTENDED_KEY
-            OPERATION_IS_BLOB
-            ...
-      o flush: first remove all non-dirty pages
-      o flush: if it's only one modified page: write directly to disk
-        o add test
-      o flush: if it's a simple insert without extkey then it can be
-        written without log because it's idempotent, but only if freelist
-        and blob are written BEFORE the index page!
-        o need to inform log that it's a "simple insert w/o extkeys"
-        o add test
-      o also check scenarios for overwritten key, duplicate key
       o create an object "ErrorInducer" which hooks into the log and is
         controlled from the unittests
         class ErrorInducer {
@@ -72,27 +55,16 @@ o improve journalling and get rid of the physical log as much as possible
         #define induce(inducer, action)                          \
             if (++inducer[action].count>inducer[action].loops)   \
                 return (inducer[action].error)
+      o make sure that the recovery of the journal works together with the
+            new log
+      o run tests w/o transactions but w/ recovery
 
     o also for ham_erase
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
 
-o test with tcmalloc
-
-o document how to optimize for performance
-    o with transactions: try not to use duplicates
-    o use overwrite as often as possible
-
-o new test case for cursors
-    insert (1, a)
-    insert (1, b) (duplicate of 1)
-    move (last) (-> 1, b)
-    insert (1, c)
-    move (last) (-> 1, c)? is the dupecache updated correctly?
-
 o API changes for 2.0.0
     o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
-    o remove the deprecated functions
     o what else?
     o move all deprecated functions and macros into a separate file; only 
         include it if -DHAM_USE_DEPRECATED
@@ -107,7 +79,6 @@ o API changes for 2.0.0
     o need to increase libtool version!
     o update C++ API
     o update Samples
-    o needs webpage changes (samples of both branches must be displayed)
     o ham_delete should always return 0 - document this (or change interface)
 
 o c++ API
@@ -116,25 +87,54 @@ o c++ API
         and strings
         (i want the high-level APIs to use the c++ API and not the C one)
 
+o webpage
+    o link cloud: remove "forum"
+    o show samples of both branches
+    o show documentation of both branches
+    o store: have a big fat red "buy now" button
+    o download page: document the differences between the two versions and
+        which one to choose
+    o /index/forum should forward to /index/support
+    o make a backup of the old forum
+
+o document how to optimize for performance
+    o with transactions: try not to use duplicates
+    o use overwrite as often as possible
+
+o document migration path for the API
+
+o update the tutorial
+
+. some functions need a new namespace
+    o db_free_page -> env?
+    o db_flush_page
+    o db_flush_all
+    o db_write_page_and_delete
+
+. new test case for cursors
+    insert (1, a)
+    insert (1, b) (duplicate of 1)
+    move (last) (-> 1, b)
+    insert (1, c)
+    move (last) (-> 1, c)? is the dupecache updated correctly?
+
 . c++-ify the page
 
 . c++-ify the device
 
-o java API
+. java API
     o update and rewrite to use the C++ API
 
-o python API
+. python API
     o update and rewrite to use the C++ API (can we use boost::python??)
 
-o iOS port - try to include in main branch
+. iOS port - try to include in main branch
 
-o Android port - try to include in main branch
+. Android port - try to include in main branch
 
-o look for someone who can write a PHP or Perl or Ruby wrapper
+. look for someone who can write a PHP or Perl or Ruby wrapper
 
-o implement support for partial keys?
-
-o update the tutorial
+. implement support for partial keys?
 
 . ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
     fails with an assert if disk is full; need to make sure that recovery 
@@ -152,6 +152,7 @@ o update the tutorial
 
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly
+
 . there are a couple of areas where a btree cursor is uncoupled, just to 
     retrieve the key and to couple the txn-key. that's not efficient
         db.c:__btree_cursor_points_to
@@ -190,7 +191,7 @@ o update the tutorial
     . the Databases don't need to be in a linked list; they can be managed
         in an stl-list or std::map<dbname, db>
 
-o cleanup db.h/db.cc - move functions into Database or 
+. cleanup db.h/db.cc - move functions into Database or 
     DatabaseImplementationLocal namespace - but take care b/c these functions
     are also used by Cursor or other modules which don't necessarily have
     access to the Local stuff
@@ -208,10 +209,9 @@ o cleanup db.h/db.cc - move functions into Database or
 
 . c++-ify everything else
 
-o device, page and os shold no longer return errors but throw exceptions
+. device, page and os shold no longer return errors but throw exceptions
 
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);

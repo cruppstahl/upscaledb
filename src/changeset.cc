@@ -68,34 +68,84 @@ Changeset::clear(void)
 }
 
 ham_status_t
+Changeset::flush_bucket(bucket &b, ham_u64_t lsn) 
+{
+    for (bucket::iterator it=b.begin(); it!=b.end(); ++it) {
+        ham_assert(page_is_dirty(*it), (""));
+
+        Environment *env=device_get_env(page_get_device(*it));
+        Log *log=env_get_log(env);
+
+        ham_status_t st=log->append_page(*it, lsn);
+        if (st)
+            return (st);
+    }
+
+    return (0);
+}
+
+ham_status_t
 Changeset::flush(ham_u64_t lsn)
 {
     ham_status_t st;
-    ham_page_t *p;
+    ham_page_t *n, *p=m_head;
+    bucket blobs, freelists, indices, others;
 
-    /* first write all changed pages to the log; if this fails, clear the log
-     * again because recovering an incomplete log would break the database 
-     * file */
-    p=m_head;
-    if (!p)
+    // first step: remove all pages that are not dirty and sort all others
+    // into the buckets
+    while (p) {
+        n=page_get_next(p, PAGE_LIST_CHANGESET);
+        if (!page_is_dirty(p)) {
+            p=n;
+            continue;
+        }
+
+        switch (page_get_type(p)) {
+          case PAGE_TYPE_BLOB:
+            blobs.push_back(p);
+            break;
+          case PAGE_TYPE_B_ROOT:
+          case PAGE_TYPE_B_INDEX:
+            indices.push_back(p);
+            break;
+          case PAGE_TYPE_FREELIST:
+            freelists.push_back(p);
+            break;
+          default:
+            others.push_back(p);
+            break;
+        }
+        p=n;
+    }
+
+    if (blobs.empty() && freelists.empty() && indices.empty() && others.empty())
         return (0);
+
+    // if "others" is not empty then log everything because we don't really
+    // know what's going on in this operation. otherwise we only need to log
+    // if there's more than one index page
+    //
+    // otherwise skip blobs and freelists because they're idempotent (albeit
+    // it's possible that some data is lost, but that's no big deal)
+    if (others.size() || indices.size()>1) {
+        if ((st=flush_bucket(blobs, lsn)))
+            return (st);
+        if ((st=flush_bucket(freelists, lsn)))
+            return (st);
+        if ((st=flush_bucket(indices, lsn)))
+            return (st);
+        if ((st=flush_bucket(others, lsn)))
+            return (st);
+    }
+
+    // now flush all modified pages to disk
+    p=m_head;
 
     Environment *env=device_get_env(page_get_device(p));
     Log *log=env_get_log(env);
 
     ham_assert(log!=0, (""));
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
-
-    while (p) {
-        if (page_is_dirty(p)) {
-            st=log->append_page(p, lsn);
-            if (st) {
-                log->clear();
-                return (st);
-            }
-        }
-        p=page_get_next(p, PAGE_LIST_CHANGESET);
-    }
 
     /* execute a post-log hook; this hook is set by the unittest framework
      * and can be used to make a backup copy of the logfile */
@@ -104,7 +154,6 @@ Changeset::flush(ham_u64_t lsn)
     
     /* now write all the pages to the file; if any of these writes fail, 
      * we can still recover from the log */
-    p=m_head;
     while (p) {
         if (page_is_dirty(p)) {
             st=db_flush_page(env, p);
