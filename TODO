@@ -44,7 +44,7 @@ o improve journalling and get rid of the physical log as much as possible
       x if idempotent: first flush blobs, then freelists, then the index page
       x blobs and freelists do NEVER have to be flushed
       x however: flush EVERYTHING if others.size() > 0
-      o check for regressions and fix unittests
+      x check for regressions and fix unittests
 
       o create an object "ErrorInducer" which hooks into the log and is
         controlled from the unittests

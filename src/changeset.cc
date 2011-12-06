@@ -118,8 +118,11 @@ Changeset::flush(ham_u64_t lsn)
         p=n;
     }
 
-    if (blobs.empty() && freelists.empty() && indices.empty() && others.empty())
+    if (blobs.empty() && freelists.empty() && indices.empty() 
+            && others.empty()) {
+        clear();
         return (0);
+    }
 
     // if "others" is not empty then log everything because we don't really
     // know what's going on in this operation. otherwise we only need to log
