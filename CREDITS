@@ -4,3 +4,7 @@ ham_env_get_parameters, ham_db_get_parameters and functions for approximate
 matching, minor bugfixes and performance improvements plus documentation 
 improvements were written by Ger Hobbelt, http://www.hobbelt.com, 
 http://www.hebbut.net - THANKS!
+
+Dec 05, 2011
+The iOS port in the contrib directory was written by Peter Liu,
+https://github.com/yeahren, http://www.yeahren.com/ - THANKS!
