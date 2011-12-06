@@ -60,6 +60,8 @@ o improve journalling and get rid of the physical log as much as possible
       o run tests w/o transactions but w/ recovery
 
     o also for ham_erase
+        -> it's possible that freelist entries are freed twice - don't
+            assert in such a case!
         - actually we could just writev the blobs and bypass the cache
         - what about the freelist??
 
