@@ -49,14 +49,18 @@ o improve journalling and get rid of the physical log as much as possible
       o create an object "ErrorInducer" which hooks into the log and is
         controlled from the unittests
         class ErrorInducer {
-            add_action(int action, int loops, int error);
-            std::map<int, std::pair<int, int> > errors;
+            add_action(int action, int loops, int error = HAM_INTERNAL_ERROR);
+            std::pair<int, int> errors[MAX_ERRORS];
         };
-        #define induce(inducer, action)                          \
-            if (++inducer[action].count>inducer[action].loops)   \
-                return (inducer[action].error)
+        changeset->set_inducer(ErrorInducer *inducer);
+        #define induce(action)                                                 \
+            if (m_inducer && ++m_inducer[action].count>m_inducer[action].loops)\
+                return (m_inducer[action].error)
       o make sure that the recovery of the journal works together with the
             new log
+      o insert-tests w/ page splits, with and without duplicates, with 
+            and without extended keys, with and without overwrites
+        -> or: extend monster test??
       o run tests w/o transactions but w/ recovery
 
     o also for ham_erase
@@ -66,10 +70,7 @@ o improve journalling and get rid of the physical log as much as possible
         - what about the freelist??
 
 o API changes for 2.0.0
-    o ham_create_db, _erase_db (and others) get a txn parameter (reserved)
-    o what else?
-    o move all deprecated functions and macros into a separate file; only 
-        include it if -DHAM_USE_DEPRECATED
+    o only include deprecated functions if -DHAM_USE_DEPRECATED
     o ham_txn_begin receives Environment handle, not Database handle
         o need a new parameter (reserved) for parent txn
         o need a new parameter for txn name (string)
@@ -82,6 +83,7 @@ o API changes for 2.0.0
     o update C++ API
     o update Samples
     o ham_delete should always return 0 - document this (or change interface)
+    o what else?
 
 o c++ API
     o make sure everything is updated
@@ -107,6 +109,15 @@ o document migration path for the API
 
 o update the tutorial
 
+o java API
+    o update
+    o embed into /contrib directory
+    o improve build process; do not require any "make install" to start
+        the build and/or the tests
+    o android port (needs new java api)
+
+o iOS port - try to include in main branch
+
 . some functions need a new namespace
     o db_free_page -> env?
     o db_flush_page
@@ -124,15 +135,8 @@ o update the tutorial
 
 . c++-ify the device
 
-. java API
-    o update and rewrite to use the C++ API
-
 . python API
     o update and rewrite to use the C++ API (can we use boost::python??)
-
-. iOS port - try to include in main branch
-
-. Android port - try to include in main branch
 
 . look for someone who can write a PHP or Perl or Ruby wrapper
 
