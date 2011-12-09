@@ -51,7 +51,9 @@ settings=""
 # Default settings: -Wall 
 CFLAGS="${CFLAGS} -Wall"
 
-# Debug mode
+# -------------------------------------------------------------------------
+# Enable debug mode?
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug],
         [Build with diagnostics and debug symbols (slow!)]))
@@ -62,9 +64,48 @@ then
     settings="$settings (debug)"
 fi
 
-#
-# Profiling mode
-#
+# -------------------------------------------------------------------------
+# Overwrite JDK path; if $JDK is empty then fallback to $JAVA_HOME
+# -------------------------------------------------------------------------
+AC_ARG_WITH(jdk, [  --with-jdk=[PATH]       set JDK path])
+if test "$with_jdk" != ""
+then
+    JDK="$with_jdk"
+fi
+if test -d "$JDK"
+then
+    printf ""
+else
+    JDK="$JAVA_HOME"
+fi
+
+# -------------------------------------------------------------------------
+# Disable java wrapper?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(java,
+    AC_HELP_STRING([--disable-java],
+        [Do not build the Java wrapper]))
+if test "$enable_java" = "no"; then
+    settings="$settings (no java)"
+fi
+AM_CONDITIONAL(ENABLE_JAVA, test "x$enable_java" != "xno")
+
+if test "x$enable_java" != "xno"
+then
+    if test -d "$JDK"
+    then
+        AC_MSG_RESULT(["Found JDK at $JDK"])
+    else
+        AC_MSG_ERROR(["JDK not found - please either set JDK or JAVA_HOME, or use the switch --with-jdk=PATH"])
+        exit -1
+    fi
+    CFLAGS="${CFLAGS} -I$JDK/include -I$JDK/include/linux -I$JDK/include/solaris -I$JDK/include/mac"
+    settings="$settings (java)"
+fi
+
+# -------------------------------------------------------------------------
+# Enable profiling mode
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(profile,
     AC_HELP_STRING([--enable-profile],
         [Build with profiling information (gprof)]))
@@ -74,9 +115,9 @@ then
     settings="$settings (profile)"
 fi
 
-#
-# Track test coverage
-#
+# -------------------------------------------------------------------------
+# Enable test coverage
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(gcov,
     AC_HELP_STRING([--enable-gcov],
         [Build with test coverage information (gconf)]))
@@ -86,16 +127,16 @@ then
     settings="$settings (test-coverage)"
 fi
 
-#
+# -------------------------------------------------------------------------
 # Enable internal functions (obsolete)
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(internal,
     AC_HELP_STRING([--enable-internal],
         [obsolete; internal functions are now enabled by default]))
 
-#
+# -------------------------------------------------------------------------
 # Disable AES encryption
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(encryption,
     AC_HELP_STRING([--disable-encryption], 
                    [Disable AES encryption (ham_enable_encryption)]))
@@ -105,9 +146,9 @@ if test "$enable_encryption" = "no"; then
 fi
 AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" != "xno")
 
-#
+# -------------------------------------------------------------------------
 # Disable zlib compression
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(compression,
     AC_HELP_STRING([--disable-compression], 
                    [Disable zlib compression (ham_enable_compression)]))
@@ -117,9 +158,9 @@ if test "$enable_compression" = "no"; then
 fi
 AM_CONDITIONAL(ENABLE_COMPRESSION, test "x$enable_compression" != "xno")
 
-#
+# -------------------------------------------------------------------------
 # Disable server
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(server,
     AC_HELP_STRING([--disable-server], 
                    [Disable build of the server (hamsvr)]))
@@ -128,9 +169,9 @@ if test "$enable_server" = "no"; then
 fi
 AM_CONDITIONAL(ENABLE_SERVER, test "x$enable_server" != "xno")
 
-#
+# -------------------------------------------------------------------------
 # Use system zlib
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(system-zlib,
     AC_HELP_STRING([--enable-system-zlib],
         [Use an already installed zlib]))
@@ -141,9 +182,9 @@ then
 fi
 AM_CONDITIONAL(SYSTEM_ZLIB, test "x$enable_system_zlib" == "xyes")
 
-#
+# -------------------------------------------------------------------------
 # Check for little endian/big endian
-#
+# -------------------------------------------------------------------------
 AC_C_BIGENDIAN(
         ac_big_endian=yes,
         ac_big_endian=no,
@@ -156,9 +197,9 @@ else
     settings="$settings (little endian)"
 fi
 
-#
+# -------------------------------------------------------------------------
 # Check for __FUNCTION__ macro
-#
+# -------------------------------------------------------------------------
 AC_CACHE_CHECK(whether the compiler supports __FUNCTION__ macro,
                ac_cv_FUNCTION1,
     [AC_TRY_RUN([
@@ -170,9 +211,9 @@ if test $ac_cv_FUNCTION1 = yes; then
     AC_DEFINE(HAVE_FUNCTION_MACRO,1,[__FUNCTION__ is supported])
 fi
 
-#
+# -------------------------------------------------------------------------
 # Check if we use gcc >= 4.3 - if yes, disable some optimizations
-#
+# -------------------------------------------------------------------------
 AC_CACHE_CHECK(whether we need -fno-tree-vectorize,
                ac_cv_FUNCTION2,
     [AC_TRY_RUN([
@@ -186,9 +227,9 @@ if test $ac_cv_FUNCTION2 = yes; then
     CFLAGS="${CFLAGS} -fno-tree-vectorize"
 fi
 
-#
+# -------------------------------------------------------------------------
 # Check for O_LARGEFILE
-#
+# -------------------------------------------------------------------------
 AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
     [AC_TRY_RUN([
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
@@ -205,9 +246,9 @@ if test $ac_cv_largefile = yes; then
     CFLAGS="${CFLAGS} -D_FILE_OFFSET_BITS=64"
 fi
 
-#
+# -------------------------------------------------------------------------
 # Check for O_NOATIME
-#
+# -------------------------------------------------------------------------
 AC_CACHE_CHECK(for support of the O_NOATIME flag,ac_cv_noatime,
     [AC_TRY_RUN([
 #define _GNU_SOURCE   1 /* for O_NOATIME */
@@ -223,9 +264,9 @@ if test $ac_cv_noatime = yes; then
     AC_DEFINE(HAVE_O_NOATIME,1,[flag O_NOATIME is supported])
 fi
 
-#
+# -------------------------------------------------------------------------
 # Check if protocol buffers are installed
-#
+# -------------------------------------------------------------------------
 AC_LANG(C++)
 AC_CACHE_CHECK(if google protocol buffers are installed,ac_cv_protobuf,
     [AC_TRY_RUN([
@@ -241,9 +282,9 @@ if test "x$enable_remote" != "xno"; then
 fi
 AC_LANG(C)
 
-#
+# -------------------------------------------------------------------------
 # Check if libcurl is installed
-#
+# -------------------------------------------------------------------------
 AC_CACHE_CHECK(if libcurl is installed,ac_cv_libcurl,
     [AC_TRY_RUN([
 #include <curl/curl.h>
@@ -257,9 +298,9 @@ if test "x$enable_remote" != "xno"; then
     fi
 fi
 
-#
+# -------------------------------------------------------------------------
 # Disable remote client
-#
+# -------------------------------------------------------------------------
 AC_ARG_ENABLE(remote,
     AC_HELP_STRING([--disable-remote], 
                    [Disable access to remote databases]))
@@ -268,9 +309,9 @@ if test "$enable_remote" = "no"; then
 fi
 AM_CONDITIONAL(ENABLE_REMOTE, test "x$enable_remote" != "xno")
 
-#
+# -------------------------------------------------------------------------
 # Solaris: add a flag
-#
+# -------------------------------------------------------------------------
 case $host in 
     *-solaris*)
         CFLAGS="${CFLAGS} -DHAM_SOLARIS"
@@ -281,7 +322,10 @@ esac
 
 CXXFLAGS=${CFLAGS}
 
-AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile src/server/Makefile)
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_OUTPUT
 
 # Messages
@@ -292,6 +336,11 @@ if test "x$enable_remote" = "xno"; then
 printf "#\n"
 printf "# The remote functionality is disabled because you specified\n"
 printf "# --disable-remote or because of missing dependencies!\n"
+fi
+if test "x$enable_java" = "xno"; then
+printf "#\n"
+printf "# The Java API is not built because you specified\n"
+printf "# --disable-java or because JDK is not set\n"
 fi
 printf '#================================================================\n'
 

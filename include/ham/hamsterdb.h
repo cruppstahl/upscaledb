@@ -2074,9 +2074,7 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount);
 
-/**
- * Flag for @ref ham_get_key_count
- */
+/** Flag for @ref ham_get_key_count */
 #define HAM_FAST_ESTIMATE           0x0001
 
 /**
