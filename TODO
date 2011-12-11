@@ -119,13 +119,12 @@ o java API
         o integrate win32 (and automatically update the version)
     x make sure that "make dist" includes the java stuff
 
+x move wince stuff to contrib directory
+    x try to update the visual studio files
+
 o android port (needs new java api) in /contrib directory
 
 o iOS port - try to include in main branch
-
-o move wince stuff to contrib directory
-    o add Ramil's patch
-    o try to update the visual studio files
 
 . some functions need a new namespace
     o db_free_page -> env?

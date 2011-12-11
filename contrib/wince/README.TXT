@@ -1,5 +1,5 @@
 
-hamsterdb Windows CE build environment           Tue Oct 09 18:40:31 UTC 2007
+hamsterdb Windows CE build environment 
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 The Windows CE build environment is a Solution file for Microsoft 
@@ -12,3 +12,5 @@ reference platform. (!)
 If you want to compile hamsterdb for other platforms, you have to modify the
 project settings accordingly.
 
+This project *should* work, but wasn't really tested. If you have updates or
+patches then please share them!
