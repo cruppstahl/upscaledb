@@ -39,8 +39,8 @@ public class DatabaseTest extends TestCase {
 
     public void testGetVersion() {
         Version v=Database.getVersion();
-        assertEquals(1, v.major);
-        assertEquals(1, v.minor);
+        assertEquals(2, v.major);
+        assertEquals(0, v.minor);
     }
 
     public void testGetLicense() {
@@ -148,7 +148,7 @@ public class DatabaseTest extends TestCase {
         catch (DatabaseException err) {
             fail("Exception "+err);
         }
-        assertEquals(2, cmp.m_counter);
+        assertEquals(6, cmp.m_counter);
         db.close();
     }
 
@@ -286,7 +286,7 @@ public class DatabaseTest extends TestCase {
         catch (DatabaseException err) {
             fail("Exception "+err);
         }
-        assertEquals(4, cmp.m_counter);
+        assertEquals(3, cmp.m_counter);
         db.close();
     }
 

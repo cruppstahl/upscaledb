@@ -113,13 +113,13 @@ o java API
     x update sources
     o merge into main repository
         x add to configure
-        o improve build process; do not require any "make install" to start
+        x improve build process; do not require any "make install" to start
             the build and/or the tests
-        o add java readme, changelog, TODO
-        o integrate win32
-    o make sure that "make dist" includes the java stuff
-    o add to release.sh
-    o android port (needs new java api) in /contrib directory
+        x add java readme, changelog, TODO
+        o integrate win32 (and automatically update the version)
+    x make sure that "make dist" includes the java stuff
+
+o android port (needs new java api) in /contrib directory
 
 o iOS port - try to include in main branch
 

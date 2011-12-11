@@ -23,6 +23,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              src/protocol/messages.proto                \
              src/protocol                               \
              src/server                                 \
+             java/*                                     \
              tools/*.h                                  \
              tools/hamzilla.config                      \
              unittests/*.h                              \
@@ -90,5 +91,8 @@ update_version:
 
 test:
 	cd unittests && make && ./test
+if ENABLE_JAVA
+	cd ../java && make test
+endif
 
 .PHONY: doc internal_doc bfc_doc html-dist test

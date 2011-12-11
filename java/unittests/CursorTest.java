@@ -345,6 +345,6 @@ public class CursorTest extends TestCase {
         catch (DatabaseException err) {
             fail("Exception "+err);
         }
-        assertEquals(4, cmp.m_counter);
+        assertEquals(3, cmp.m_counter);
     }
 }

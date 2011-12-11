@@ -57,3 +57,6 @@ de/crupp/hamsterdb/DuplicateCompareCallback.class: de/crupp/hamsterdb/DuplicateC
 de/crupp/hamsterdb/Transaction.class: de/crupp/hamsterdb/Transaction.java
 	$(JDK)/bin/javac de/crupp/hamsterdb/Transaction.java
 
+clean:
+	\rm -rf de/crupp/hamsterdb/*.class
+	\rm -rf *.jar
