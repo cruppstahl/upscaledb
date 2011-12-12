@@ -116,6 +116,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hamzilla", "hamzilla.vcproj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_json", "3rdparty_json.vcproj", "{A199816E-52C4-44CE-B8DD-604DCA2398FF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "java_dll", "java_dll.vcproj", "{3E6B895E-36F2-49E6-AAFB-CA714D582402}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -314,6 +319,14 @@ Global
 		{A199816E-52C4-44CE-B8DD-604DCA2398FF}.Release|Win32.Build.0 = Release|Win32
 		{A199816E-52C4-44CE-B8DD-604DCA2398FF}.Release|x64.ActiveCfg = Release|x64
 		{A199816E-52C4-44CE-B8DD-604DCA2398FF}.Release|x64.Build.0 = Release|x64
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Debug|Win32.Build.0 = Debug|Win32
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Debug|x64.ActiveCfg = Debug|x64
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Debug|x64.Build.0 = Debug|x64
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Release|Win32.ActiveCfg = Release|Win32
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Release|Win32.Build.0 = Release|Win32
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Release|x64.ActiveCfg = Release|x64
+		{3E6B895E-36F2-49E6-AAFB-CA714D582402}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

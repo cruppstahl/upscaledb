@@ -93,7 +93,7 @@ o c++ API
 
 o webpage
     o link cloud: remove "forum"
-    o show samples of both branches
+    o show samples of both branches (really? they did not change!)
     o show documentation of both branches
     o store: have a big fat red "buy now" button
     o download page: document the differences between the two versions and
@@ -111,13 +111,13 @@ o update the tutorial
 
 o java API
     x update sources
-    o merge into main repository
+    x merge into main repository
         x add to configure
         x improve build process; do not require any "make install" to start
             the build and/or the tests
         x add java readme, changelog, TODO
-        o integrate win32 (and automatically update the version)
     x make sure that "make dist" includes the java stuff
+    o integrate win32 (and automatically update the version)
 
 x move wince stuff to contrib directory
     x try to update the visual studio files
@@ -125,6 +125,11 @@ x move wince stuff to contrib directory
 o android port (needs new java api) in /contrib directory
 
 o iOS port - try to include in main branch
+
+o .NET API
+    o include in main repository
+    o add to version update
+    x include a.todorov's fix (forum)
 
 . some functions need a new namespace
     o db_free_page -> env?
