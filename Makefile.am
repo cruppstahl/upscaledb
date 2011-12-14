@@ -44,16 +44,16 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              win32/sample_env1.vcproj                   \
              win32/sample_env2.vcproj                   \
              win32/unittests.vcproj                     \
-             wince                                      \
-             wince/README.TXT                           \
-             wince/hamsterdb.sln                        \
-             wince/lib.vcproj                           \
-             wince/dll.vcproj                           \
-             wince/3rdparty_aes.vcproj                 \
-             wince/3rdparty_zlib.vcproj                 \
-             wince/sample_db1.vcproj                    \
-             wince/sample_env1.vcproj                   \
-             wince/sample_env2.vcproj 
+             contrib/wince                              \
+             contrib/wince/README.TXT                   \
+             contrib/wince/hamsterdb.sln                \
+             contrib/wince/lib.vcproj                   \
+             contrib/wince/dll.vcproj                   \
+             contrib/wince/3rdparty_aes.vcproj          \
+             contrib/wince/3rdparty_zlib.vcproj         \
+             contrib/wince/sample_db1.vcproj            \
+             contrib/wince/sample_env1.vcproj           \
+             contrib/wince/sample_env2.vcproj 
 
 doc:
 	VERSION=$(VERSION) ;            \
@@ -76,18 +76,36 @@ html-dist: doc
 	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
 
 update_version:
-	VERSION=$(VERSION) ;            \
-	export VERSION;                 \
-	sed 's/hamsterdb-[0-9]*.[0-9]*.[0-9]*.dll/hamsterdb-$(VERSION).dll/' win32/dll.vcproj > win32/_dll.vcproj
+	VERSION=$(VERSION)
+	OLD_VERSION=$(OLD_VERSION)
+	sed 's/hamsterdb-$(OLD_VERSION).dll/hamsterdb-$(VERSION).dll/' win32/dll.vcproj > win32/_dll.vcproj
 	mv win32/_dll.vcproj win32/dll.vcproj
-	sed 's/libhamsterdb-[0-9]*.[0-9]*.[0-9]*.lib/libhamsterdb-$(VERSION).lib/' win32/lib.vcproj > win32/_lib.vcproj
+	sed 's/libhamsterdb-$(OLD_VERSION).lib/libhamsterdb-$(VERSION).lib/' win32/lib.vcproj > win32/_lib.vcproj
 	mv win32/_lib.vcproj win32/lib.vcproj
-	sed 's/hamserver-[0-9]*.[0-9]*.[0-9]*.dll/hamserver-$(VERSION).dll/' win32/server_dll.vcproj > win32/_server_dll.vcproj
+	sed 's/hamserver-$(OLD_VERSION).dll/hamserver-$(VERSION).dll/' win32/server_dll.vcproj > win32/_server_dll.vcproj
 	mv win32/_server_dll.vcproj win32/server_dll.vcproj
-	sed 's/libhamserver-[0-9]*.[0-9]*.[0-9]*.lib/libhamserver-$(VERSION).lib/' win32/server_lib.vcproj > win32/_server_lib.vcproj
+	sed 's/libhamserver-$(OLD_VERSION).lib/libhamserver-$(VERSION).lib/' win32/server_lib.vcproj > win32/_server_lib.vcproj
 	mv win32/_server_lib.vcproj win32/server_lib.vcproj
-	sed 's/Version: [0-9]*.[0-9]*.[0-9]*/Version: $(VERSION)/' hamsterdb.spec > _hamsterdb.spec
+	sed 's/Version: $(OLD_VERSION)/Version: $(VERSION)/' hamsterdb.spec > _hamsterdb.spec
 	mv _hamsterdb.spec hamsterdb.spec
+	sed 's/@version $(OLD_VERSION)/@version $(VERSION)/' include/ham/hamsterdb.h > /tmp/hamsterdb.h
+	mv /tmp/hamsterdb.h include/ham/hamsterdb.h
+	sed 's/@version $(OLD_VERSION)/@version $(VERSION)/' include/ham/hamsterdb.hpp > /tmp/hamsterdb.hpp
+	mv /tmp/hamsterdb.hpp include/ham/hamsterdb.hpp
+	sed 's/$(OLD_VERSION)/$(VERSION)/' README > /tmp/README
+	mv /tmp/README README
+	sed 's/$(OLD_VERSION)/$(VERSION)/' src/version.h > /tmp/version.h
+	mv /tmp/version.h src/version.h
+	sed 's/$(OLD_VERSION)/$(VERSION)/' documentation/Doxyfile > /tmp/Doxyfile
+	mv /tmp/Doxyfile documentation/Doxyfile
+	sed 's/$(OLD_VERSION)/$(VERSION)/' documentation/Doxyfile.bfc > /tmp/Doxyfile
+	mv /tmp/Doxyfile documentation/Doxyfile.bfc
+	sed 's/$(OLD_VERSION)/$(VERSION)/' documentation/Doxyfile.int > /tmp/Doxyfile
+	mv /tmp/Doxyfile documentation/Doxyfile.int
+	@echo
+	@echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	@echo Manually update src/version.h
+	@echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 test:
 	cd unittests && make && ./test

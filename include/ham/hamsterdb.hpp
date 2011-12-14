@@ -12,7 +12,7 @@
 /**
  * @file hamsterdb.hpp
  * @author Christoph Rupp, chris@crupp.de
- * @version 1.1.2
+ * @version 2.0.0.rc3
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible. 
@@ -100,13 +100,9 @@ public:
     }
 
     /** Assignment operator. */
-    key &operator=(const key &other) 
-	{
-		/* TODO -- [i_a] copy key data; same for record; depends on USER_ALLOC flags, etc. */
+    key &operator=(const key &other) {
 		if (&other != this)
-		{
 			m_key=other.m_key;
-		}
         return (*this);
     }
 
@@ -726,9 +722,7 @@ public:
             throw error(st);
     }
 
-    /** 
-     * Closes the Environment. 
-     */
+    /** Closes the Environment. */
     void close(void) {
         if (!m_env)
             return;

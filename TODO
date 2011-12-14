@@ -37,6 +37,8 @@ x .NET API
     x include in main repository
     x include a.todorov's fix (forum)
 
+x make sure the C++ API is updated
+
 o improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
@@ -102,11 +104,6 @@ o API changes for 2.0.0
     o ham_delete should always return 0 - document this (or change interface)
     o what else?
 
-o c++ API
-    o make sure everything is updated
-    o clean up usage of ham_parameter_t - overload functions for bool, u64 
-        and strings
-
 o webpage
     o link cloud: replace "forum" with "support"
     o show samples of both branches (really? they did not change!)
@@ -130,8 +127,18 @@ o update the tutorial
 o android port (needs new java api) in /contrib directory
 
 o automatic version upgrade
-    o .net api 
-    o java api
+    x include/ham/hamsterdb.h
+    x include/ham/hamsterdb.hpp
+    x win32
+    x README
+    x hamsterdb.spec
+    x src/version.h
+    x doxygen
+    o .net api (output, native dll)
+    o java api (output, native dll)
+    o contrib/
+
+o "make dist" needs to include contrib and other new directories
 
 . iOS port - try to include in main branch
 
