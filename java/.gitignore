@@ -28,3 +28,4 @@ unittests/DatabaseTest.class
 unittests/EnvironmentTest.class
 unittests/TransactionTest.class
 unittests/*.db*
+unittests/*.dll

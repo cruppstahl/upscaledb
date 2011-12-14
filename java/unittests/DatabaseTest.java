@@ -228,7 +228,8 @@ public class DatabaseTest extends TestCase {
         assertEquals(524288, params[5].value);
         assertEquals(420, params[6].value);
         assertEquals("jtest.db", params[7].stringValue);
-        assertEquals(510, params[8].value);
+        // 510: linux/darwin; 2046: win32
+        assert(params[8].value==510 || params[8].value==2046);
         assertEquals(1, params[9].value);
         db.close();
     }

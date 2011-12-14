@@ -109,7 +109,7 @@ o document migration path for the API
 
 o update the tutorial
 
-o java API
+x java API
     x update sources
     x merge into main repository
         x add to configure
@@ -117,7 +117,7 @@ o java API
             the build and/or the tests
         x add java readme, changelog, TODO
     x make sure that "make dist" includes the java stuff
-    o integrate win32 (and automatically update the version)
+    x integrate win32 (and automatically update the version)
 
 x move wince stuff to contrib directory
     x try to update the visual studio files
