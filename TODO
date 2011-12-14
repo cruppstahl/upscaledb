@@ -20,6 +20,23 @@ x the env is declared as a struct, but implemented as a class. This is no
 
 x move forum to google groups; 3 mailing lists: dev, users, announcements
 
+x java API
+    x update sources
+    x merge into main repository
+        x add to configure
+        x improve build process; do not require any "make install" to start
+            the build and/or the tests
+        x add java readme, changelog, TODO
+    x make sure that "make dist" includes the java stuff
+    x integrate win32 (and automatically update the version)
+
+x move wince stuff to contrib directory
+    x try to update the visual studio files
+
+x .NET API
+    x include in main repository
+    x include a.todorov's fix (forum)
+
 o improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
@@ -89,15 +106,16 @@ o c++ API
     o make sure everything is updated
     o clean up usage of ham_parameter_t - overload functions for bool, u64 
         and strings
-        (i want the high-level APIs to use the c++ API and not the C one)
 
 o webpage
-    o link cloud: remove "forum"
+    o link cloud: replace "forum" with "support"
     o show samples of both branches (really? they did not change!)
     o show documentation of both branches
     o store: have a big fat red "buy now" button
     o download page: document the differences between the two versions and
         which one to choose
+    o "sources" page: make sure that the wrappers are for version 1 
+        (or simply remove them)
     o /index/forum should forward to /index/support
     o make a backup of the old forum
 
@@ -109,27 +127,13 @@ o document migration path for the API
 
 o update the tutorial
 
-x java API
-    x update sources
-    x merge into main repository
-        x add to configure
-        x improve build process; do not require any "make install" to start
-            the build and/or the tests
-        x add java readme, changelog, TODO
-    x make sure that "make dist" includes the java stuff
-    x integrate win32 (and automatically update the version)
-
-x move wince stuff to contrib directory
-    x try to update the visual studio files
-
 o android port (needs new java api) in /contrib directory
 
-o iOS port - try to include in main branch
+o automatic version upgrade
+    o .net api 
+    o java api
 
-o .NET API
-    o include in main repository
-    o add to version update
-    x include a.todorov's fix (forum)
+. iOS port - try to include in main branch
 
 . some functions need a new namespace
     o db_free_page -> env?
