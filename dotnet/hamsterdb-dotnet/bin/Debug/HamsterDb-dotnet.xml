@@ -1,0 +1,2101 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>HamsterDb-dotnet</name>
+    </assembly>
+    <members>
+        <member name="T:Hamster.Parameter">
+            <summary>
+            An extended Parameter, used i.e. in Database.Open, Database.Create
+            </summary>
+        </member>
+        <member name="F:Hamster.Parameter.name">
+            <summary>The name of this Parameter</summary>
+        </member>
+        <member name="F:Hamster.Parameter.value">
+            <summary>The value of this Parameter</summary>
+        </member>
+        <member name="T:Hamster.Version">
+            <summary>
+            Structure for the hamsterdb Version Information
+            </summary>
+            <see cref="M:Hamster.Database.GetVersion"/>
+        </member>
+        <member name="F:Hamster.Version.major">
+            <summary>The major version number</summary>
+        </member>
+        <member name="F:Hamster.Version.minor">
+            <summary>The minor version number</summary>
+        </member>
+        <member name="F:Hamster.Version.revision">
+            <summary>The revision version number</summary>
+        </member>
+        <member name="T:Hamster.License">
+            <summary>
+            Structure for the hamsterdb License Information
+            </summary>
+            <see cref="M:Hamster.Database.GetLicense"/>
+        </member>
+        <member name="F:Hamster.License.licensee">
+            <summary>The name of the licensee, or &quot;&quot; for GPL version</summary>
+        </member>
+        <member name="F:Hamster.License.product">
+            <summary>The name of the licensed product</summary>
+        </member>
+        <member name="T:Hamster.CompareFunc">
+            <summary>
+            Delegate for comparing two keys
+            </summary>
+            <remarks>
+            This delegate compares two keys - the "left-hand side"
+            (lhs) and the "right-hand side" (rhs).
+            <br/>
+            Also see <see cref="M:Hamster.Database.SetCompareFunc(Hamster.CompareFunc)"/>.
+            </remarks>
+            <param name="lhs">The first key</param>
+            <param name="rhs">The second key</param>
+            <returns>-1 if the first key (lhs) is smaller, +1 if the first 
+            key is larger, 0 if both keys are equal</returns>
+        </member>
+        <member name="T:Hamster.PrefixCompareFunc">
+            <summary>
+            Delegate for comparing the prefixes of two keys
+            </summary>
+            <remarks>
+            The compare method compares the prefixes of two keys - the
+            "left-hand side" (lhs) and the "right-hand side (rhs).
+            <br/>
+            Also see <see cref="M:Hamster.Database.SetPrefixCompareFunc(Hamster.PrefixCompareFunc)"/>.
+            </remarks>
+            <param name="lhs">The prefix of the first key</param>
+            <param name="lhsRealLength">The real length of the first key</param>
+            <param name="rhs">The prefix of the second key</param>
+            <param name="rhsRealLength">The real length of the second key</param>
+            <returns>-1 if the first key (lhs) is smaller, +1 if the first 
+            key is larger, 0 if both keys are equal or
+            <see cref="F:Hamster.HamConst.HAM_PREFIX_REQUEST_FULLKEY"/> if the prefixes
+            are not sufficient for the comparison</returns>
+        </member>
+        <member name="T:Hamster.DuplicateCompareFunc">
+            <summary>
+            Delegate for comparing two records of duplicate keys
+            </summary>
+            <remarks>
+            This delegate compares two records - the "left-hand side"
+            (lhs) and the "right-hand side" (rhs).
+            <br/>
+            Also see <see cref="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)"/>.
+            </remarks>
+            <param name="lhs">The first record</param>
+            <param name="rhs">The second record</param>
+            <returns>-1 if the first record (lhs) is smaller, +1 if the first 
+            record is larger, 0 if both records are equal</returns>
+        </member>
+        <member name="T:Hamster.ErrorHandler">
+            <summary>
+            Delegate for handling error messages
+            </summary>
+            <remarks>
+            This delegate method is called whenever a message is emitted.
+            </remarks>
+            <param name="level">The debug level (0 = Debug, 1 = Normal,
+            3 = Fatal)</param>
+            <param name="message">The message text</param>
+        </member>
+        <member name="T:Hamster.Database">
+            <summary>
+            A Database class
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.#ctor">
+            <summary>
+            Default Constructor
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.Finalize">
+            <summary>
+            Destructor - automatically closes the Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.GetVersion">
+            <summary>
+            Returns the hamsterdb.dll version
+            </summary>
+            <returns>The hamsterdb.dll version</returns>
+        </member>
+        <member name="M:Hamster.Database.GetLicense">
+            <summary>
+            Returns the license information
+            </summary>
+            <returns>The license information</returns>
+        </member>
+        <member name="M:Hamster.Database.SetErrorHandler(Hamster.ErrorHandler)">
+            <summary>
+            Sets the global error handler
+            </summary>
+            <remarks>
+            This method wraps the native ham_set_error_handler function.<br />
+            <br />
+            This handler will receive all debug messages that are emitted
+            by hamsterdb. You can install the default handler by setting
+            eh to null.
+            </remarks>
+            <param name="eh">The delegate which is called whenever an
+            error message is emitted; set to null to set the default
+            error handler</param>
+        </member>
+        <member name="M:Hamster.Database.Create(System.String)">
+            <summary>
+            Creates a new Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, 0, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Create(System.String,System.Int32)">
+            <summary>
+            Creates a new Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, flags, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Create(System.String,System.Int32,System.Int32)">
+            <summary>
+            Creates a new Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, flags, mode, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Create(System.String,System.Int32,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Creates a new Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_create_ex function.
+            </remarks>
+            
+            <param name="fileName">The file name of the Database file. If
+            the file already exists, it is overwritten. Can be null if you
+            create an In-Memory Database.</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>
+                    Immediately write modified pages to the disk. This 
+                    slows down all Database operations, but may save the 
+                    Database integrity in case of a system crash.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_USE_BTREE"/>
+                    Use a B+Tree for the index structure. Currently enabled
+                    by default, but future releases of hamsterdb will offer 
+                    additional index structures, i.e. hash tables.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>
+                    Do not allow the use of variable length keys. Inserting 
+                    a key, which is larger than the B+Tree index key size, 
+                    returns <see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>
+                    Creates an In-Memory Database. No file will be created,
+                    and the Database contents are lost after the Database
+                    is closed. The <paramref name="fileName"/> parameter can
+                    be null. Do <b>NOT</b> use in combination with
+                    <see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/> and do <b>NOT</b>
+                    specify a cache size other than 0.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_RECORD_NUMBER"/>
+                    Enable duplicate keys for this Database. By default,
+                    duplicate keys are disabled.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES"/>
+                    Creates an "auto-increment" Database. Keys in Record
+                    Number Databases are automatically assigned an incrementing
+                    64bit value.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>
+                    Sort duplicate keys for this Database. Only allowed in
+                    combination with HAM_ENABLE_DUPLICATES. A compare function
+                    can be set with <see cref="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)"/>. 
+                    This flag is not persistent.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_MMAP"/>
+                    Do not use memory mapped files for I/O. By default, 
+                    hamsterdb checks if it can use mmap, since mmap is faster 
+                    than read/write. For performance reasons, this flag should 
+                    not be used.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/>
+                    Do not allow the cache to grow larger than the size specified
+                    with <see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>. If a 
+                    Database operation needs to resize the cache, it will
+                    fail and return <see cref="F:Hamster.HamConst.HAM_CACHE_FULL"/>.
+                    If the flag is not set, the cache is allowed to allocate
+                    more pages than the maximum cache size, but only if it's
+                    necessary and only for a short time.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/>
+                    This flag is deprecated.</item>
+                <item><see cref="F:Hamster.HamConst.HAM_LOCK_EXCLUSIVE"/>
+                    Place an exclusive lock on the file. Only one process
+                    may hold an exclusive lock for a given file at a given 
+                    time. Deprecated - this is now the default.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>
+                    Enables logging/recovery for this Database. Not allowed in
+                    combination with <see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>,
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/> and
+                    <see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_TRANSACTIONS"/>
+                    Enables Transactions for this Database. This flag implies
+                    <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.</item><br/>
+              </list>
+            </param>
+            <param name="mode">File access rights for the new file. This is 
+            the <i>mode</i> parameter for creat(2). Ignored on 
+            Microsoft Windows.</param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>
+                    The size of the Database cache, in bytes. The default size 
+                    is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE
+                    - usually 2 MB.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_PAGESIZE"/>
+                    The size of a file page, in bytes. It is recommended not 
+                    to change the default size. The default size depends on 
+                    hardware and operating system. Page sizes must be a 
+                    1024 or a multiple of 2048.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_KEYSIZE"/>
+                    The size of the keys in the B+Tree index. The default size
+                    is 21 bytes.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_DATA_ACCESS_MODE"/>
+                    Gives a hint regarding data access patterns. The default 
+                    setting optimizes hamsterdb for random read/write access 
+                    (<see cref="F:Hamster.HamConst.HAM_DAM_RANDOM_WRITE"/>).
+                    Use <see cref="F:Hamster.HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
+                    sequential inserts (this is automatically set for 
+                    record number Databases). This flag is not persistent.</item>
+                </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_IO_ERROR"/>
+                    if the file could not be opened or reading/writing failed</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PAGESIZE"/>
+                    if the page size is not a multiple of 1024</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>
+                    if the key size is too large (at least 4 keys must
+                    fit in a page)</item>
+                <item><see cref="F:Hamster.HamConst.HAM_WOULD_BLOCK"/>
+                    if another process has locked the file</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.Open(System.String)">
+            <summary>
+            Opens an existing Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Open(fileName, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Open(System.String,System.Int32)">
+            <summary>
+            Opens an existing Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Open(fileName, mode, null).
+            </remarks>        
+        </member>
+        <member name="M:Hamster.Database.Open(System.String,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Opens an existing Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_open_ex function.
+            </remarks>
+            <param name="fileName">The file name of the Database file.</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_READ_ONLY"/>
+                    Opens the file for reading only. Operations which need
+                    write access (i.e. Database.Insert) 
+                    will return <see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>.
+                    </item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>
+                    Immediately write modified pages to the disk. This 
+                    slows down all Database operations, but may save the 
+                    Database integrity in case of a system crash.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>
+                    Do not allow the use of variable length keys. Inserting 
+                    a key, which is larger than the B+Tree index key size, 
+                    returns <see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_MMAP"/>
+                    Do not use memory mapped files for I/O. By default, 
+                    hamsterdb checks if it can use mmap, since mmap is faster 
+                    than read/write. For performance reasons, this flag should 
+                    not be used.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/>
+                    Do not allow the cache to grow larger than the size specified
+                    with <see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>. If a 
+                    Database operation needs to resize the cache, it will
+                    fail and return <see cref="F:Hamster.HamConst.HAM_CACHE_FULL"/>.
+                    If the flag is not set, the cache is allowed to allocate
+                    more pages than the maximum cache size, but only if it's
+                    necessary and only for a short time.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/>
+                    This flag is deprecated.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_LOCK_EXCLUSIVE"/>
+                    Place an exclusive lock on the file. Only one process
+                    may hold an exclusive lock for a given file at a given 
+                    time. Deprecated - this is now the default.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>
+                    Enables logging/recovery for this Database. Will return
+                    <see cref="F:Hamster.HamConst.HAM_NEED_RECOVERY"/>, if the
+                    Database is in an inconsistent state. Not allowed in
+                    combination with <see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>,
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/> and
+                    <see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_TRANSACTIONS"/>
+                    Enables Transactions for this Database. This flag implies
+                    <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_AUTO_RECOVERY"/>
+                    Automatically recover the Database, if necessary. This
+                    flag imples <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.
+                    </item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>
+                    Sort duplicate keys for this Database. Only allowed in
+                    combination with HAM_ENABLE_DUPLICATES. A compare function
+                    can be set with <see cref="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)"/>. 
+                    This flag is not persistent.</item><br/>
+              </list>
+            </param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>
+                    The size of the Database cache, in bytes. The default size 
+                    is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE 
+                    - usually 2 MB.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_DATA_ACCESS_MODE"/>
+                    Gives a hint regarding data access patterns. The default 
+                    setting optimizes hamsterdb for random read/write access 
+                    (<see cref="F:Hamster.HamConst.HAM_DAM_RANDOM_WRITE"/>).
+                    Use <see cref="F:Hamster.HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
+                    sequential inserts (this is automatically set for 
+                    record number Databases). This flag is not persistent.</item>
+              </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_FILE_NOT_FOUND"/>
+                    if the file does not exist</item>
+                <item><see cref="F:Hamster.HamConst.HAM_IO_ERROR"/>
+                    if the file could not be opened or reading/writing failed</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_FILE_VERSION"/>
+                    if the Database version is not compatible with the library 
+                    version</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_WOULD_BLOCK"/>
+                    if another process has locked the file</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.SetCompareFunc(Hamster.CompareFunc)">
+            <summary>
+            Sets the comparison function
+            </summary>
+            <remarks>
+            This method wraps the native ham_set_compare_func function.<br/>
+            <br/>
+            The <see cref="T:Hamster.CompareFunc"/> delegate compares two index keys.
+            It returns -1 if the first key is smaller, +1 if the second key
+            is smaller or 0 if both keys are equal.<br/>
+            <br/>
+            If <paramref name="foo"/> is null, hamsterdb will use the default
+            compare function (which is based on memcmp(3)).<br/>
+            <br/>
+            Note that if you use a custom compare function routine in combination
+            with extended keys, it might be useful to disable the prefix 
+            comparison, which is based on memcmp(3). See 
+            <see cref="M:Hamster.Database.SetPrefixCompareFunc(Hamster.PrefixCompareFunc)"/> for details.
+            </remarks>
+            <param name="foo">The compare delegate, or null</param>
+        </member>
+        <member name="M:Hamster.Database.SetPrefixCompareFunc(Hamster.PrefixCompareFunc)">
+            <summary>
+            Sets the prefix comparison function
+            </summary>
+            <remarks>
+            This method wraps the native ham_set_prefix_compare_func function.<br/>
+            <br/>
+            The <see cref="T:Hamster.PrefixCompareFunc"/> delegate is called when an index
+            uses keys with variable length, and at least one of the keys
+            is loaded only partially.<br/>
+            <br/>
+            If <paramref name="foo"/> is null, hamsterdb will use the default
+            prefix compare function (which is based on memcmp(3)).<br/>
+            </remarks>
+            <param name="foo">The prefix compare delegate, or null</param>
+        </member>
+        <member name="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)">
+            <summary>
+            Sets the duplicate comparison function
+            </summary>
+            <remarks>
+            This method wraps the native ham_set_duplicate_compare_func function.<br/>
+            <br/>
+            The <see cref="T:Hamster.CompareFunc"/> delegate compares two records.
+            It returns -1 if the first record is smaller, +1 if the second record
+            is smaller or 0 if both records are equal.<br/>
+            <br/>
+            If <paramref name="foo"/> is null, hamsterdb will use the default
+            compare function (which is based on memcmp(3)).<br/>
+            <br/>
+            Note that duplicate comparison has to be enabled with
+            <see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>.
+            </remarks>
+            <param name="foo">The duplicate compare delegate, or null</param>
+        </member>
+        <member name="M:Hamster.Database.GetLastError">
+            <summary>
+            Returns the last error code
+            </summary>
+            <remarks>
+            This method wraps the native ham_get_error function.
+            </remarks>
+            <returns>The error code of the last operation</returns>
+        </member>
+        <member name="M:Hamster.Database.EnableCompression">
+            <summary>
+            Enables zlib compression for all inserted records.
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.EnableCompression(System.Int32)">
+            <summary>
+            Enables zlib compression for all inserted records.
+            </summary>
+            <remarks>
+            This method wraps the native ham_enable_compression function.<br/>
+            <br/>
+            The compression will be active till <see cref="M:Hamster.Database.Close"/> is
+            called. This method should be called immediately after
+            Database.Create or Database.Open.<br/>
+            <br/>
+            Note that zlib usually has an overhead and often is not effective if
+            the records are small (i.e. less than 128byte), but this highly 
+            depends on the data that is inserted.
+            </remarks>
+            <param name="level">The zlib compression level; set to 0 for the zlib
+            default, 1 for best speed and 9 for minimum size</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if compression level is not between 0 and 9</item>
+                <item><see cref="F:Hamster.HamConst.HAM_NOT_IMPLEMENTED"/>
+                    if hamsterdb was built without support for compression</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.Find(System.Byte[])">
+            <summary>
+            Searches an item in the Database, returns the record
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.Find(Hamster.Transaction,System.Byte[])">
+            <summary>
+            Searches an item in the Database, returns the record
+            </summary>
+            <remarks>
+            This method wraps the native ham_find function.<br/>
+            <br/>
+            This function searches the Database for a key. If the key
+            is found, the method will return the record of this item.
+            <br/>
+            Database.Find can not search for duplicate keys. If the
+            key has multiple duplicates, only the first duplicate is returned.
+            </remarks>
+            <param name="txn">The optional Transaction</param>
+            <param name="key">The key of the item</param>
+            <returns>The record of the item</returns>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/>
+                    if the item was not found</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.Insert(Hamster.Transaction,System.Byte[],System.Byte[])">
+            <summary>
+            Inserts a Database item
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Database.Insert(txn, key, record, 0).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Insert(System.Byte[],System.Byte[])">
+            <summary>
+            Inserts a Database item
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Database.Insert(null, key, record, 0).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Insert(System.Byte[],System.Byte[],System.Int32)">
+            <summary>
+            Inserts a Database item
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Database.Insert(null, key, record, flags).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Insert(Hamster.Transaction,System.Byte[],System.Byte[],System.Int32)">
+            <summary>
+            Inserts a Database Item
+            </summary>
+            <remarks>
+            This method wraps the native ham_insert function.
+            <br/>
+            This function inserts a key/record pair as a new Database item.
+            <br/>
+            If the key already exists in the Database, error code 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_KEY"/> is thrown.
+            <br/>
+            If you wish to overwrite an existing entry specify the flag
+            <see cref="F:Hamster.HamConst.HAM_OVERWRITE"/>
+            <br/>
+            If you wish to insert a duplicate key specify the flag 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE"/>. (Note that 
+            the Database has to be created with the flag 
+            <see cref="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES"/> in order
+            to use duplicate keys.) 
+            The duplicate key is inserted after all other duplicate keys (see
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST"/>).
+            </remarks>
+            <param name="txn">An optional Transaction object</param>
+            <param name="key">The key of the new item</param>
+            <param name="record">The record of the new item</param>
+            <param name="flags">Optional flags for this operation. Possible
+            flags are:
+            <list type="bullet">
+              <item><see cref="F:Hamster.HamConst.HAM_OVERWRITE"/> 
+                    If the key already exists, the record is overwritten. 
+                    Otherwise, the key is inserted.</item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE"/> 
+                    If the key already exists, a duplicate key is inserted. 
+                    The key is inserted before the already existing duplicates.
+                    </item>
+            </list></param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if the flags HamConst.HAM_DUPLICATE <b>AND</b>
+                    HamConst.HAM_OVERWRITE were specified, or if 
+                    HamConst.HAM_DUPLICATE was specified but the Database
+                    was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>
+                    if you tried to insert a key in a read-only Database</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>
+                    if key size is larger than the key size parameter 
+                    specified for Database.Create, and variable
+                    length keys are disabled (see 
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>).</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.Erase(System.Byte[])">
+            <summary>
+            Erases a Database Item
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.Erase(Hamster.Transaction,System.Byte[])">
+            <summary>
+            Erases a Database Item
+            </summary>
+            <remarks>
+            This method wraps the native ham_erase function.
+            <br/>
+            This function erases a Database item. If the item with the 
+            specified key does not exist in the Database, error code 
+            <see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/> is thrown.
+            <br/>
+            Note that this method can not erase a single duplicate key. 
+            If the key has multiple duplicates, all duplicates of this key 
+            will be erased. Use <see cref="M:Hamster.Cursor.Erase"/> to erase a 
+            specific duplicate key.
+            </remarks>
+            <param name="txn">The optional Transaction</param>
+            <param name="key">The key of the item to delete</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/>
+                    if the key was not found</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>
+                    if you tried to insert a key in a read-only Database</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Database.Flush">
+            <summary>
+            Flushes the Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_flush function.
+            <br />
+            This function flushes the Database cache and writes the whole
+            file to disk. If this Database was opened in an Environment, 
+            all other Databases of this Environment are flushed as well.
+            <br />
+            Since In-Memory Databases do not have a file on disk, the
+            function will have no effect and will return successfully.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.GetEnvironment">
+            <summary>
+            Returns the Environment handle of this Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_get_env function.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.GetKeyCount(System.Int32)">
+            <summary>
+            Returns the number of keys in this Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.GetKeyCount(Hamster.Transaction)">
+            <summary>
+            Returns the number of keys in this Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.GetKeyCount">
+            <summary>
+            Returns the number of keys in this Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.GetKeyCount(Hamster.Transaction,System.Int32)">
+            <summary>
+            Returns the number of keys in this Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_get_key_count function.
+            <br />
+            You can specify HAM_SKIP_DUPLICATES if you do now want
+            to include any duplicates in the count; if all you're after is
+            a quick estimate, you can specify the flag HAM_FAST_ESTIMATE
+            (which implies HAM_SKIP_DUPLICATES), which will improve the
+            execution speed of this operation significantly.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Begin">
+            <summary>
+            Begins a new Transaction
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.Begin(System.Int32)">
+            <summary>
+            Begins a new Transaction
+            </summary>
+            <remarks>
+            This method wraps the native ham_txn_begin function.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Close">
+            <summary>
+            Closes the Database
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Database.Close(0).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Close(System.Int32)">
+            <summary>
+            Closes the Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_close function.
+            <br/>
+            Before closing the Database, the cache is flushed to Disk
+            <see cref="M:Hamster.Database.Flush"/>.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Database.Dispose">
+            <summary>
+            Closes the Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.Dispose(System.Boolean)">
+            <summary>
+            Closes the Database
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.AddCursor(Hamster.Cursor)">
+            <summary>
+            Adds a Cursor to the Cursor list
+            </summary>
+        </member>
+        <member name="M:Hamster.Database.RemoveCursor(Hamster.Cursor)">
+            <summary>
+            Removes a Cursor from the Cursor list
+            </summary>
+        </member>
+        <member name="P:Hamster.Database.Handle">
+            <summary>
+            Returns the low-level Database handle
+            </summary>
+        </member>
+        <member name="T:Hamster.Cursor">
+            <summary>
+            A Database Cursor class
+            </summary>
+        </member>
+        <member name="M:Hamster.Cursor.#ctor(Hamster.Database,System.IntPtr)">
+            <summary>
+            Constructor which creates a new Cursor
+            </summary>
+            <param name="db">The Database of this Cursor</param>
+            <param name="handle">The handle of this Cursor</param>
+        </member>
+        <member name="M:Hamster.Cursor.#ctor(Hamster.Database)">
+            <summary>
+            Constructor which creates a new Cursor
+            </summary>
+            <param name="db">The Database of this Cursor</param>
+        </member>
+        <member name="M:Hamster.Cursor.#ctor(Hamster.Database,Hamster.Transaction)">
+            <summary>
+            Constructor which creates a new Cursor in a Transaction
+            </summary>
+        </member>
+        <member name="M:Hamster.Cursor.Finalize">
+            <summary>
+            Destructor; closes the Cursor
+            </summary>
+        </member>
+        <member name="M:Hamster.Cursor.Create(Hamster.Database)">
+             <summary>
+             Creates a new Cursor
+             </summary>
+            
+             <see cref="M:Hamster.Cursor.Create(Hamster.Database,Hamster.Transaction)"/>
+        </member>
+        <member name="M:Hamster.Cursor.Create(Hamster.Database,Hamster.Transaction)">
+            <summary>
+            Creates a new Cursor in a Transaction
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_create function.
+            <br/>
+            Creates a new Database Cursor. Cursors can be used to traverse 
+            the Database from start to end or vice versa. Cursors can also 
+            be used to insert, delete or search Database items.
+            
+            A newly created Cursor does not point to any item in the Database.
+            
+            The application should close all Database Cursors before closing
+            the Database.
+            </remarks>
+            <param name="db">The Database object</param>
+            <param name="txn">The optional Transaction</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if the new structure could not be allocated</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Clone">
+             <summary>
+             Clones a Database Cursor
+             </summary>
+             <remarks>
+             This method wraps the native ham_cursor_clone function.
+             <br/>
+             Clones an existing Cursor. The new Cursor will point to exactly the
+             same item as the old Cursor. If the old Cursor did not point
+             to any item, so will the new Cursor.
+            
+             If the old Cursor is bound to a Transaction, then the new 
+             Cursor will also be bound to this Transaction.
+             </remarks>
+             <returns>The new Cursor object</returns>
+             <exception cref="T:Hamster.DatabaseException">
+               <list type="bullet">
+                 <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                     if the new structure could not be allocated</item>
+               </list>
+             </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Move(System.Int32)">
+            <summary>
+            Moves the Cursor to the direction specified in the flags
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_move function.
+            
+            Moves the Cursor. Use the flags to specify the direction.
+            After the move, use Cursor.GetKey and Cursor.GetRecord to 
+            retrieve key and record of the item. 
+            
+            If the direction is not specified, the Cursor will not move.
+            </remarks>
+            <param name="flags">The direction for the move. If no direction
+            is specified, the Cursor will remain on the current position.
+            Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_FIRST"/> positions
+                    the Cursor to the first item in the Database</item>
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_LAST"/> positions
+                    the Cursor to the last item in the Database</item>
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_NEXT"/> positions
+                    the Cursor to the next item in the Database; if the Cursor
+                    does not point to any item, the function behaves as if
+                    direction was <see cref="F:Hamster.HamConst.HAM_CURSOR_FIRST"/>.</item>
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_PREVIOUS"/> positions
+                    the Cursor to the previous item in the Database; if the Cursor
+                    does not point to any item, the function behaves as if
+                    direction was <see cref="F:Hamster.HamConst.HAM_CURSOR_LAST"/>.</item>
+                <item><see cref="F:Hamster.HamConst.HAM_SKIP_DUPLICATES"/> skips
+                    duplicate keys of the current key. Not allowed in combination
+                    with <see cref="F:Hamster.HamConst.HAM_ONLY_DUPLICATES"/>.</item>
+                <item><see cref="F:Hamster.HamConst.HAM_ONLY_DUPLICATES"/> only
+                    moves through duplicate keys of the current key. Not allowed 
+                    in combination with 
+                    <see cref="F:Hamster.HamConst.HAM_SKIP_DUPLICATES"/>.</item>
+              </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/>
+                    if the Cursor points to the first (or last) item, and a 
+                    move to the previous (or next) item was requested</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.MoveFirst">
+            <summary>
+            Moves the Cursor to the first Database element
+            </summary>
+            <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
+        </member>
+        <member name="M:Hamster.Cursor.MoveLast">
+            <summary>
+            Moves the Cursor to the last Database element
+            </summary>
+            <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
+        </member>
+        <member name="M:Hamster.Cursor.MoveNext">
+            <summary>
+            Moves the Cursor to the next Database element
+            </summary>
+            <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
+        </member>
+        <member name="M:Hamster.Cursor.MoveNext(System.Int32)">
+            <summary>
+            Moves the Cursor to the next Database element
+            </summary>
+            <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
+            <param name="flags">Additional flags for the movement</param>
+        </member>
+        <member name="M:Hamster.Cursor.MovePrevious">
+            <summary>
+            Moves the Cursor to the previous Database element
+            </summary>
+        </member>
+        <member name="M:Hamster.Cursor.MovePrevious(System.Int32)">
+            <summary>
+            Moves the Cursor to the previous Database element
+            </summary>
+            <see cref="M:Hamster.Cursor.Move(System.Int32)"/>
+            <param name="flags">Additional flags for the movement</param>
+        </member>
+        <member name="M:Hamster.Cursor.GetKey">
+            <summary>
+            Retrieves the Key of the current item
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_move function.
+            <br/>
+            Returns the key of the current Database item. Throws
+            <see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/> if the Cursor does 
+            not point to any item.
+            </remarks>
+            <returns>The key of the current item</returns>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/>
+                    if the Cursor does not point to any item</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.GetRecord">
+            <summary>
+            Retrieves the Record of the current item
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_move function.
+            <br/>
+            Returns the record of the current Database item. Throws
+            <see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/> if the Cursor does 
+            not point to any item.
+            </remarks>
+            <returns>The record of the current item</returns>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/>
+                    if the Cursor does not point to any item</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Overwrite(System.Byte[])">
+             <summary>
+             Overwrites the record of the current item
+             </summary>
+             <remarks>
+             This method wraps the native ham_cursor_overwrite function.
+             <br/>
+             This function overwrites the record of the current item.
+            
+             The use of this function is not allowed if the item has duplicate 
+             keys and the duplicate sorting is enabled (see 
+             HamConst.HAM_SORT_DUPLICATES). In this case, 
+             HamConst.HAM_INV_PARAMETER is thrown.
+             </remarks>
+             <exception cref="T:Hamster.DatabaseException">
+               <list type="bullet">
+                 <item><see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/>
+                     if the Cursor does not point to any item</item>
+               </list>
+             </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Find(System.Byte[])">
+            <summary>
+            Searches a key and points the Cursor to this key
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_find function.
+            <br/>
+            Searches for an item in the Database and points the Cursor to this
+            item. If the item could not be found, the Cursor is not modified.
+            <br/>
+            If the key has multiple duplicates, the Cursor is positioned
+            on the first duplicate.
+            </remarks>
+            <param name="key">The key to search for</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_KEY_NOT_FOUND"/>
+                    if the requested key was not found</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Insert(System.Byte[],System.Byte[])">
+            <summary>
+            Inserts a Database item and points the Cursor to the new item
+            </summary>
+            <remarks>
+            This is an overloaded function for Insert(key, record, 0).
+            </remarks>
+            <param name="key">The key of the new item</param>
+            <param name="record">The record of the new item</param>
+        </member>
+        <member name="M:Hamster.Cursor.Insert(System.Byte[],System.Byte[],System.Int32)">
+            <summary>
+            Inserts a Database item and points the Cursor to the new item
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_insert function.
+            <br/>
+            This function inserts a key/record pair as a new Database item.
+            If the key already exists in the Database, error 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_KEY"/> is thrown.
+            <br/>
+            If you wish to overwrite an existing entry specify the flag
+            <see cref="F:Hamster.HamConst.HAM_OVERWRITE"/>
+            <br/>
+            If you wish to insert a duplicate key specify the flag 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE"/>. (Note that 
+            the Database has to be created with the flag 
+            <see cref="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES"/> in order
+            to use duplicate keys.) 
+            By default, the duplicate key is inserted after all other duplicate
+            keys (<see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST"/>). This 
+            behaviour can be overwritten by specifying 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_FIRST"/>, 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> or 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_AFTER"/>.
+            <br/>
+            However, if a sort order is specified (<see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>) then
+            the key is inserted in sorted order. In this case, the use of 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_FIRST"/>, 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST"/>, 
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> and
+            <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_AFTER"/> is
+            not allowed and will throw 
+            <see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>.
+            <br/>
+            Specify the flag <see cref="F:Hamster.HamConst.HAM_HINT_APPEND"/> if you 
+            insert sequential data and the current key is higher than any 
+            other key in this Database. In this case hamsterdb will optimize 
+            the insert algorithm. hamsterdb will verify that this key is 
+            the highest; if not, it will perform a normal insert. This is 
+            the default for Record Number Databases.
+            <br/>
+            Specify the flag <see cref="F:Hamster.HamConst.HAM_HINT_PREPEND"/> if you 
+            insert sequential data and the current key is lower than any 
+            other key in this Database. In this case hamsterdb will optimize 
+            the insert algorithm. hamsterdb will verify that this key is 
+            the lowest; if not, it will perform a normal insert.
+            <br/>
+            After inserting, the Cursor will point to the new item. If inserting
+            the item failed, the Cursor is not modified.
+            </remarks>
+            <param name="key">The key of the new item</param>
+            <param name="record">The record of the new item</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+            <list type="bullet">
+              <item><see cref="F:Hamster.HamConst.HAM_OVERWRITE"/> 
+                    If the key already exists, the record is overwritten. 
+                    Otherwise, the key is inserted.</item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE"/> 
+                    If the key already exists, a duplicate key is inserted. 
+                    The key is inserted after the already existing duplicates.
+                    Same as <see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST"/>.
+                    </item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_BEFORE"/>
+                    If the key already exists, a duplicate key is inserted before
+                    the duplicate pointed to by this Cursor.</item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_AFTER"/>
+                    If the key already exists, a duplicate key is inserted after
+                    the duplicate pointed to by this Cursor.</item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_FIRST"/>
+                    If the key already exists, a duplicate key is inserted as
+                    the first duplicate of the current key.</item>
+              <item><see cref="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST"/>
+                    If the key already exists, a duplicate key is inserted as
+                    the last duplicate of the current key.</item>
+            </list></param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if the flags HamConst.HAM_DUPLICATE <b>AND</b>
+                    HamConst.HAM_OVERWRITE were specified, or if 
+                    HamConst.HAM_DUPLICATE was specified but the Database
+                    was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>
+                    if you tried to insert a key in a read-only Database</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>
+                    if key size is larger than the key size parameter 
+                    specified for Database.Create, and variable
+                    length keys are disabled (see 
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>).</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Erase">
+            <summary>
+            Erases the current key
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_erase function.
+            <br/>
+            Erases a key from the Database. If the erase was successfull, the
+            Cursor is invalidated, and does no longer point to any item.
+            In case of an error, the Cursor is not modified.
+            <br/>
+            If the Database was opened with the flag
+            <see cref="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES"/>, this function erases 
+            only the duplicate item to which the Cursor refers.
+            </remarks>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/>
+                    if the Cursor does not point to any item</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>
+                    if you tried to erase a key from a read-only Database</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.GetDuplicateCount">
+            <summary>
+            Returns the number of duplicate keys
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_get_duplicate_count function.
+            <br/>
+            Returns the number of duplicate keys of the item to which the
+            Cursor currently refers.
+            <br/>
+            Returns 1 if the key has no duplicates.
+            </remarks>
+            <returns>The number of duplicate keys of the current item</returns>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_CURSOR_IS_NIL"/>
+                    if the Cursor does not point to any item</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Cursor.Close">
+            <summary>
+            Closes the Cursor
+            </summary>
+            <remarks>
+            This method wraps the native ham_cursor_close function.
+            <br />
+            Closes this Cursor and frees allocated memory. All Cursors should 
+            be closed before closing the Database.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Cursor.Dispose">
+            <summary>
+            Closes the Cursor
+            </summary>
+            <see cref="M:Hamster.Cursor.Close"/>
+        </member>
+        <member name="M:Hamster.Cursor.Dispose(System.Boolean)">
+            <summary>
+            Closes the Cursor
+            </summary>
+            <see cref="M:Hamster.Cursor.Close"/>
+        </member>
+        <member name="T:Hamster.Environment">
+            <summary>
+            A Database Environment class
+            </summary>
+        </member>
+        <member name="M:Hamster.Environment.#ctor">
+            <summary>
+            Default Constructor
+            </summary>
+        </member>
+        <member name="M:Hamster.Environment.#ctor(System.IntPtr)">
+            <summary>
+            Default Constructor which sets the handle
+            </summary>
+            <remarks>This constructor is used by Database.GetEnvironment()</remarks>
+        </member>
+        <member name="M:Hamster.Environment.Finalize">
+            <summary>
+            Destructor - automatically closes the Environment
+            </summary>
+        </member>
+        <member name="M:Hamster.Environment.Create(System.String)">
+            <summary>
+            Creates a new Environment
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, 0, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.Create(System.String,System.Int32)">
+            <summary>
+            Creates a new Environment
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, flags, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.Create(System.String,System.Int32,System.Int32)">
+            <summary>
+            Creates a new Environment
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Create(fileName, flags, mode, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.Create(System.String,System.Int32,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Creates a new Database
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_create_ex function.
+            <br/>
+            A Database Environment is a collection of Databases, which are all
+            stored in one physical file (or in-memory). Per default, up to 16
+            Databases can be stored in one file (<see cref="F:Hamster.HamConst.HAM_PARAM_MAX_ENV_DATABASES"/>
+            on how to store even more Databases). 
+            <br/>
+            Each Database is identified by a positive 16bit value (except
+            0 and values at or above 0xf000).
+            Databases in an Environment can be created with 
+            <see cref="M:Hamster.Environment.CreateDatabase(System.Int16)"/> or opened with 
+            <see cref="M:Hamster.Environment.OpenDatabase(System.Int16)"/>.
+            </remarks>
+            
+            <param name="fileName">The file name of the Environment file. If
+            the file already exists, it is overwritten. Can be null if you
+            create an In-Memory Environment.</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>
+                    Immediately write modified pages to the disk. This 
+                    slows down all Database operations, but may save the 
+                    Database integrity in case of a system crash.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>
+                    Creates an In-Memory Environment. No file will be created,
+                    and the Databases are lost after the Environment
+                    is closed. The <paramref name="fileName"/> parameter can
+                    be null. Do <b>NOT</b> use in combination with
+                    <see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/> and do <b>NOT</b>
+                    specify a cache size other than 0.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_MMAP"/>
+                    Do not use memory mapped files for I/O. By default, 
+                    hamsterdb checks if it can use mmap, since mmap is faster 
+                    than read/write. For performance reasons, this flag should 
+                    not be used.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/>
+                    Do not allow the cache to grow larger than the size specified
+                    with <see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>. If a 
+                    Database operation needs to resize the cache, it will
+                    fail and return <see cref="F:Hamster.HamConst.HAM_CACHE_FULL"/>.
+                    If the flag is not set, the cache is allowed to allocate
+                    more pages than the maximum cache size, but only if it's
+                    necessary and only for a short time.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/>
+                    This flag is deprecated.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_LOCK_EXCLUSIVE"/>
+                    Place an exclusive lock on the file. Only one process
+                    may hold an exclusive lock for a given file at a given 
+                    time. Deprecated - this is now the default
+                    behaviour.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>
+                    Enables logging/recovery for this Database. Not allowed in
+                    combination with <see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>,
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/> and
+                    <see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_TRANSACTIONS"/>
+                    Enables Transactions for this Database. This flag implies
+                    <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.</item><br/>
+              </list>
+            </param>
+            <param name="mode">File access rights for the new file. This is 
+            the <i>mode</i> parameter for creat(2). Ignored on 
+            Microsoft Windows.</param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>
+                    The size of the Database cache, in bytes. The default size 
+                    is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE
+                    - usually 2 MB.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_PAGESIZE"/>
+                    The size of a file page, in bytes. It is recommended not 
+                    to change the default size. The default size depends on 
+                    hardware and operating system. Page sizes must be 1024 or a 
+                    multiple of 2048.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_MAX_ENV_DATABASES"/>
+                    The number of maximum Databases in this Environment;
+                    default: 16.</item>
+              </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if the value for HAM_PARAM_MAX_ENV_DATABASES is too
+                    high (either decrease it or increase the page size)</item>
+                <item><see cref="F:Hamster.HamConst.HAM_IO_ERROR"/>
+                    if the file could not be opened or reading/writing failed</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PAGESIZE"/>
+                    if the page size is not a multiple of 1024</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>
+                    if the key size is too large (at least 4 keys must
+                    fit in a page)</item>
+                <item><see cref="F:Hamster.HamConst.HAM_WOULD_BLOCK"/>
+                    if another process has locked the file</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Environment.Open(System.String)">
+            <summary>
+            Opens an existing Environment
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Open(fileName, 0, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.Open(System.String,System.Int32)">
+            <summary>
+            Opens an existing Environment
+            </summary>
+            <remarks>
+            This is an overloaded function for 
+              Open(fileName, flags, null).
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.Open(System.String,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Opens an existing Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_open_ex function.
+            </remarks>
+            
+            <param name="fileName">The file name of the Environment file.</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_READ_ONLY"/>
+                    Opens the file for reading only. Operations which need
+                    write access (i.e. Database.Insert) 
+                    will return <see cref="F:Hamster.HamConst.HAM_DB_READ_ONLY"/>.
+                    </item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>
+                    Immediately write modified pages to the disk. This 
+                    slows down all Database operations, but may save the 
+                    Database integrity in case of a system crash.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_MMAP"/>
+                    Do not use memory mapped files for I/O. By default, 
+                    hamsterdb checks if it can use mmap, since mmap is faster 
+                    than read/write. For performance reasons, this flag should 
+                    not be used.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_CACHE_STRICT"/>
+                    Do not allow the cache to grow larger than the size specified
+                    with <see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>. If a 
+                    Database operation needs to resize the cache, it will
+                    fail and return <see cref="F:Hamster.HamConst.HAM_CACHE_FULL"/>.
+                    If the flag is not set, the cache is allowed to allocate
+                    more pages than the maximum cache size, but only if it's
+                    necessary and only for a short time.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/>
+                    This flag is deprecated.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_LOCK_EXCLUSIVE"/>
+                    Place an exclusive lock on the file. Only one process
+                    may hold an exclusive lock for a given file at a given 
+                    time. Deprecated - this is the default 
+                    behaviour.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>
+                    Enables logging/recovery for this Database. Will return
+                    <see cref="F:Hamster.HamConst.HAM_NEED_RECOVERY"/>, if the
+                    Database is in an inconsistent state. Not allowed in
+                    combination with <see cref="F:Hamster.HamConst.HAM_IN_MEMORY_DB"/>,
+                    <see cref="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH"/> and
+                    <see cref="F:Hamster.HamConst.HAM_WRITE_THROUGH"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_AUTO_RECOVERY"/>
+                    Automatically recover the Database, if necessary. This
+                    flag imples <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.
+                    </item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_TRANSACTIONS"/>
+                    Enables Transactions for this Database. This flag implies
+                    <see cref="F:Hamster.HamConst.HAM_ENABLE_RECOVERY"/>.</item><br/>
+              </list>
+            </param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_CACHESIZE"/>
+                    The size of the Database cache, in bytes. The default size 
+                    is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE 
+                    - usually 2 MB.</item><br/>
+              </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_FILE_NOT_FOUND"/>
+                    if the file does not exist</item>
+                <item><see cref="F:Hamster.HamConst.HAM_IO_ERROR"/>
+                    if the file could not be opened or reading/writing failed</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_FILE_VERSION"/>
+                    if the Database version is not compatible with the library 
+                    version</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_WOULD_BLOCK"/>
+                    if another process has locked the file</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Environment.CreateDatabase(System.Int16)">
+            <summary>
+            Creates a new Database in this Environment
+            </summary>
+            <remarks>This is an overloaded function for
+                CreateDatabase(name, 0, null).</remarks>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.CreateDatabase(System.Int16,System.Int32)">
+            <summary>
+            Creates a new Database in this Environment
+            </summary>
+            <remarks>This is an overloaded function for
+                CreateDatabase(name, flags, null).</remarks>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.CreateDatabase(System.Int16,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Creates a new Database in this Environment
+            </summary>
+            <remarks>This method wraps the native ham_env_create_db function.
+            </remarks>
+            <returns>The new Database object</returns>
+            <param name="name">The name of the Database. If a Database
+            with this name already exists, 
+            <see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_EXISTS"/> is thrown.
+            Database names from 0xf000 to 0xffff and 0 are reserved.</param>
+            <param name="flags">Optional flags for creating the Database,
+            combined with bitwise OR. Possible values are:
+              <list>
+                <item><see cref="F:Hamster.HamConst.HAM_USE_BTREE"/>
+                    Use a B+Tree for the index structure. Currently enabled
+                    by default, but future releases of hamsterdb will offer 
+                    additional index structures, i.e. hash tables.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>
+                    Do not allow the use of variable length keys. Inserting 
+                    a key, which is larger than the B+Tree index key size, 
+                    returns <see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_RECORD_NUMBER"/>
+                    Enable duplicate keys for this Database. By default,
+                    duplicate keys are disabled.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES"/>
+                    Creates an "auto-increment" Database. Keys in Record
+                    Number Databases are automatically assigned an incrementing
+                    64bit value.</item>        
+                <item><see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>
+                    Sort duplicate keys for this Database. Only allowed in
+                    combination with HAM_ENABLE_DUPLICATES. A compare function
+                    can be set with <see cref="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)"/>. 
+                    This flag is not persistent.</item><br/>
+              </list>
+            </param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_KEYSIZE"/>
+                    The size of the keys in the B+Tree index. The default size
+                    is 21 bytes.</item><br/>
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_DATA_ACCESS_MODE"/>
+                    Gives a hint regarding data access patterns. The default 
+                    setting optimizes hamsterdb for random read/write access 
+                    (<see cref="F:Hamster.HamConst.HAM_DAM_RANDOM_WRITE"/>).
+                    Use <see cref="F:Hamster.HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
+                    sequential inserts (this is automatically set for 
+                    record number Databases). This flag is not persistent.</item>
+                </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_EXISTS"/>
+                    if a Database with this name already exists in this 
+                    Environment</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>
+                    if the key size is too large (at least 4 keys must
+                    fit in a page)</item>
+                <item><see cref="F:Hamster.HamConst.HAM_LIMITS_REACHED"/>
+                    if the maximum number of Databases per Environment 
+                    was already created</item>
+              </list>
+            </exception>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.OpenDatabase(System.Int16)">
+            <summary>
+            Opens a Database in this Environment
+            </summary>
+            <remarks>This is an overloaded function for
+                OpenDatabase(name, 0).</remarks>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.OpenDatabase(System.Int16,System.Int32)">
+            <summary>
+            Opens a Database in this Environment
+            </summary>
+            <remarks>This is an overloaded function for
+                OpenDatabase(name, flags, null).</remarks>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.OpenDatabase(System.Int16,System.Int32,Hamster.Parameter[])">
+            <summary>
+            Opens a Database in this Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_open_db function.
+            </remarks>
+            <param name="name">The name of the Database. If a Database
+            with this name does not exist, the function will throw
+            <see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>.</param>
+            <param name="flags">Optional flags for this operation, combined
+            with bitwise OR. Possible flags are:
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN"/>
+                    Do not allow the use of variable length keys. Inserting 
+                    a key, which is larger than the B+Tree index key size, 
+                    returns <see cref="F:Hamster.HamConst.HAM_INV_KEYSIZE"/>.</item>
+                <item><see cref="F:Hamster.HamConst.HAM_SORT_DUPLICATES"/>
+                    Sort duplicate keys for this Database. Only allowed in
+                    combination with HAM_ENABLE_DUPLICATES. A compare function
+                    can be set with <see cref="M:Hamster.Database.SetDuplicateCompareFunc(Hamster.DuplicateCompareFunc)"/>. 
+                    This flag is not persistent.</item><br/>
+              </list>
+            </param>
+            <param name="parameters">An array of <see cref="T:Hamster.Parameter"/> 
+            structures. The following parameters are available:<br/>
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_PARAM_DATA_ACCESS_MODE"/>
+                    Gives a hint regarding data access patterns. The default 
+                    setting optimizes hamsterdb for random read/write access 
+                    (<see cref="F:Hamster.HamConst.HAM_DAM_RANDOM_WRITE"/>).
+                    Use <see cref="F:Hamster.HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
+                    sequential inserts (this is automatically set for 
+                    record number Databases). This flag is not persistent.</item>
+                </list>
+            </param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if an invalid combination of flags was specified</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>
+                    if a Database with this name does not exist</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_OPEN"/>
+                    if this Database was already opened</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+                <item><see cref="F:Hamster.HamConst.HAM_WOULD_BLOCK"/>
+                    if another process has locked the file</item>
+              </list>
+            </exception>
+            <returns>The new Database object</returns>
+        </member>
+        <member name="M:Hamster.Environment.RenameDatabase(System.Int16,System.Int16)">
+            <summary>
+            Renames a Database in this Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_rename_db function.
+            </remarks>
+            <param name="oldName">The old name of the Database. If a Database
+            with this name does not exist, the function will throw
+            <see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>.</param>
+            <param name="newName">The new name of the Database. If a Database
+            with this name already exists, the function will throw
+            <see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_EXISTS"/>.</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if the new Database name is reserved</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>
+                    if a Database with this name does not exist</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_EXISTS"/>
+                    if a Database with the new name already exists</item>
+                <item><see cref="F:Hamster.HamConst.HAM_OUT_OF_MEMORY"/>
+                    if memory could not be allocated</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Environment.EraseDatabase(System.Int16)">
+            <summary>
+            Deletes a Database from this Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_erase_db function.
+            </remarks>
+            <param name="name">The name of the Database which is deleted. 
+            If a Database with this name does not exist, the function will throw
+            <see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>.</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND"/>
+                    if a Database with this name does not exist</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_OPEN"/>
+                    if the Database with the new name is still open</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Environment.EnableEncryption(System.Byte[])">
+            <summary>
+            Enables AES encryption
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_enable_encryption function.
+            <br/>
+            This method enables AES encryption for every Database in this
+            Environment.
+            <br/>
+            The AES key is cached in the Environment handle. The AES
+            encryption/decryption is only active when file chunks are written 
+            to disk/read from disk; the cached pages in RAM are decrypted. 
+            Please read the FAQ for security relevant notes.
+            <br/>
+            The encryption has no effect on In-Memory Environments, but the 
+            function will return successfully.
+            </remarks>
+            <param name="aesKey">A 128 bit (16 bytes) encryption key</param>
+            <exception cref="T:Hamster.DatabaseException">
+              <list type="bullet">
+                <item><see cref="F:Hamster.HamConst.HAM_INV_PARAMETER"/>
+                    if aesKey is not 16 bytes long</item>
+                <item><see cref="F:Hamster.HamConst.HAM_ACCESS_DENIED"/>
+                    if the AES key (= passphrase) is wrong</item>
+                <item><see cref="F:Hamster.HamConst.HAM_NOT_IMPLEMENTED"/>
+                    if hamsterdb was compiled without support for encryption</item>
+                <item><see cref="F:Hamster.HamConst.HAM_DATABASE_ALREADY_OPEN"/>
+                    if this function was called <b>AFTER</b>
+                    Environment.OpenDatabase or Environment.CreateDatabase</item>
+                <item><see cref="F:Hamster.HamConst.HAM_ALREADY_INITIALIZED"/>
+                    if encryption was already enabled for this Environment</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Hamster.Environment.Flush">
+            <summary>
+            Flushes the Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_flush function.
+            <br />
+            This function flushes the Database cache and writes the whole
+            file to disk.
+            <br />
+            Since In-Memory Environments do not have a file on disk, the
+            function will have no effect and will return successfully.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.GetDatabaseNames">
+            <summary>
+            Returns the names of all Databases in this Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_get_database_names function.
+            <br />
+            This function returns the names of all Databases and the number of
+            Databases in an Environment.
+            </remarks>
+            <returns>An Array with all Database names</returns>
+        </member>
+        <member name="M:Hamster.Environment.Dispose">
+            <summary>
+            Closes the Environment
+            </summary>
+        </member>
+        <member name="M:Hamster.Environment.Dispose(System.Boolean)">
+            <summary>
+            Closes the Environment
+            </summary>
+        </member>
+        <member name="M:Hamster.Environment.Close">
+            <summary>
+            Closes the Environment
+            </summary>
+            <remarks>
+            This method wraps the native ham_env_close function.
+            <br />
+            </remarks>
+        </member>
+        <member name="M:Hamster.Environment.GetHandle">
+            <summary>
+            Returns the Environment handle
+            </summary>
+        </member>
+        <member name="T:Hamster.Transaction">
+            <summary>
+            A Transaction class
+            </summary>
+        </member>
+        <member name="M:Hamster.Transaction.Finalize">
+            <summary>
+            Destructor; aborts the Transaction
+            </summary>
+        </member>
+        <member name="M:Hamster.Transaction.Commit">
+            <summary>
+            Commits the Transaction
+            </summary>
+            <remarks>
+            This method wraps the native ham_txn_commit function.
+            <br />
+            Note that the function will fail with HAM_CURSOR_STILL_OPEN if
+            a Cursor was attached to this Transaction, and the Cursor was 
+            not closed.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Transaction.Abort">
+            <summary>
+            Aborts the Transaction
+            </summary>
+            <remarks>
+            This method wraps the native ham_txn_abort function.
+            <br />
+            Note that the function will fail with HAM_CURSOR_STILL_OPEN if
+            a Cursor was attached to this Transaction, and the Cursor was 
+            not closed.
+            </remarks>
+        </member>
+        <member name="M:Hamster.Transaction.Dispose">
+            <summary>
+            Aborts the Transaction
+            </summary>
+            <see cref="M:Hamster.Transaction.Abort"/>
+        </member>
+        <member name="M:Hamster.Transaction.Dispose(System.Boolean)">
+            <summary>
+            Aborts the Transaction
+            </summary>
+            <see cref="M:Hamster.Transaction.Abort"/>
+        </member>
+        <member name="P:Hamster.Transaction.Handle">
+            <summary>
+            Returns the low-level Transaction handle
+            </summary>
+        </member>
+        <member name="T:Hamster.DatabaseException">
+            <summary>
+            An Exception class for hamsterdb errors
+            </summary>
+        </member>
+        <member name="M:Hamster.DatabaseException.#ctor">
+            <summary>
+            Empty Constructor
+            </summary>
+        </member>
+        <member name="M:Hamster.DatabaseException.#ctor(System.Int32)">
+            <summary>
+            Constructor accepting an error code
+            </summary>
+            <param name="error">A hamsterdb error code</param>
+        </member>
+        <member name="M:Hamster.DatabaseException.#ctor(System.String)">
+            <summary>
+            Constructor accepting an error message
+            </summary>
+            <param name="message">An error message</param>
+        </member>
+        <member name="M:Hamster.DatabaseException.#ctor(System.String,System.Exception)">
+            <summary>
+            Constructor provided for standard compliancy
+            </summary>
+            <param name="message">An error message</param>
+            <param name="innerException">An inner exception</param>
+        </member>
+        <member name="M:Hamster.DatabaseException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <summary>
+            Constructor accepting Serialization info
+            </summary>
+            <param name="info">The serialization info</param>
+            <param name="context">The serialization context</param>
+        </member>
+        <member name="P:Hamster.DatabaseException.ErrorCode">
+            <summary>
+            The hamsterdb error code
+            </summary>
+        </member>
+        <member name="P:Hamster.DatabaseException.Message">
+            <summary>
+            The hamsterdb error message
+            </summary>
+        </member>
+        <member name="T:Hamster.HamConst">
+            <summary>
+            Hamsterdb constants - error codes and flags
+            </summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DAM_RANDOM_WRITE">
+            <summary>Data Access Mode: random writes</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DAM_SEQUENTIAL_INSERT">
+            <summary>Data Access Mode: sequential inserts</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_SUCCESS">
+            <summary>Operation completed successfully</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INV_KEYSIZE">
+            <summary>Invalid key size</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INV_PAGESIZE">
+            <summary>Invalid page size (must be 1024 or a multiple of 2048)</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_OUT_OF_MEMORY">
+            <summary>Memory allocation failed - out of memory</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_NOT_INITIALIZED">
+            <summary>Object not initialized</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INV_PARAMETER">
+            <summary>Invalid function parameter</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INV_FILE_HEADER">
+            <summary>Invalid file header</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INV_FILE_VERSION">
+            <summary>Invalid file version</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_KEY_NOT_FOUND">
+            <summary>Key was not found</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE_KEY">
+            <summary>Tried to insert a key which already exists</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INTEGRITY_VIOLATED">
+            <summary>Internal Database integrity violated</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_INTERNAL_ERROR">
+            <summary>Internal hamsterdb error</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DB_READ_ONLY">
+            <summary>Tried to modify the Database, but the file was opened as read-only</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_BLOB_NOT_FOUND">
+            <summary>Database record not found</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PREFIX_REQUEST_FULLKEY">
+            <summary>Prefix comparison function needs more data</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_IO_ERROR">
+            <summary>Generic file I/O error</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CACHE_FULL">
+            <summary>Database cache is full</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_NOT_IMPLEMENTED">
+            <summary>Function is not yet implemented</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FILE_NOT_FOUND">
+            <summary>File not found</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_WOULD_BLOCK">
+            <summary>Operation would block</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_NOT_READY">
+            <summary>Object was not initialized correctly</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_LIMITS_REACHED">
+            <summary>Database limits reached</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ACCESS_DENIED">
+            <summary>AES encryption key is wrong</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ALREADY_INITIALIZED">
+            <summary>Object was already initialized</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_NEED_RECOVERY">
+            <summary>Database needs recovery</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_STILL_OPEN">
+            <summary>Cursor must be closed prior to Transaction abort/commit</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FILTER_NOT_FOUND">
+            <summary>Record filter or file filter not found</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_IS_NIL">
+            <summary>Cursor does not point to a valid item</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DATABASE_NOT_FOUND">
+            <summary>Database not found</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DATABASE_ALREADY_EXISTS">
+            <summary>Database name already exists</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DATABASE_ALREADY_OPEN">
+            <summary>Database already open, or: Database handle is already initialized</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ENVIRONMENT_ALREADY_OPEN">
+            <summary>Environment already open, or: Environment handle is already initialized</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_LOG_INV_FILE_HEADER">
+            <summary>Invalid log file header</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DEBUG_LEVEL_DEBUG">
+            <summary>A debug message</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DEBUG_LEVEL_NORMAL">
+            <summary>A normal error message</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DEBUG_LEVEL_FATAL">
+            <summary>A fatal error message</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_TXN_READ_ONLY">
+            <summary>Flag for Transaction.Begin</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_TXN_FORCE_WRITE">
+            <summary>Flag for Transaction.Commit</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_WRITE_THROUGH">
+            <summary>Flag for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_READ_ONLY">
+            <summary>Flag for Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_USE_BTREE">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DISABLE_VAR_KEYLEN">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_IN_MEMORY_DB">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DISABLE_MMAP">
+            <summary>Flag for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CACHE_STRICT">
+            <summary>Flag for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DISABLE_FREELIST_FLUSH">
+            <summary>Flag for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_LOCK_EXCLUSIVE">
+            <summary>Flag for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_RECORD_NUMBER">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ENABLE_DUPLICATES">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ENABLE_RECOVERY">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_AUTO_RECOVERY">
+            <summary>Flag for Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ENABLE_TRANSACTIONS">
+            <summary>Flag for Database.Create, Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CACHE_UNLIMITED">
+            <summary>Flag for Database.Create, Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_SORT_DUPLICATES">
+            <summary>Flag for Database.Create, Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_CACHESIZE">
+            <summary>Parameter name for Database.Open, Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_PAGESIZE">
+            <summary>Parameter name for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_KEYSIZE">
+            <summary>Parameter name for Database.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_MAX_ENV_DATABASES">
+            <summary>Parameter name for Environment.Create</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_DATA_ACCESS_MODE">
+            <summary>Parameter name for Database.Create, Database.Open</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_FLAGS">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_FILEMODE">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_FILENAME">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_DBNAME">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_KEYS_PER_PAGE">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_DAM">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARAM_GET_STATISTICS">
+            <summary>Parameter for GetParameters</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_OVERWRITE">
+            <summary>Flag for Database.Insert, Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE">
+            <summary>Flag for Database.Insert, Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_BEFORE">
+            <summary>Flag for Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_AFTER">
+            <summary>Flag for Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_FIRST">
+            <summary>Flag for Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DUPLICATE_INSERT_LAST">
+            <summary>Flag for Cursor.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DIRECT_ACCESS">
+            <summary>Flag for Database.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_PARTIAL">
+            <summary>Flag for Database.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_HINT_APPEND">
+            <summary>Flag for Database.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_HINT_PREPEND">
+            <summary>Flag for Database.Insert</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FAST_ESTIMATE">
+            <summary>Flag for Database.GetKeyCount</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_AUTO_CLEANUP">
+            <summary>Flag for Database.Close</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_DONT_CLEAR_LOG">
+            <summary>Private flag for testing</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_TXN_AUTO_ABORT">
+            <summary>Flag for Database.Close</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_TXN_AUTO_COMMIT">
+            <summary>Flag for Database.Close</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_FIRST">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_LAST">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_NEXT">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_CURSOR_PREVIOUS">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_SKIP_DUPLICATES">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_ONLY_DUPLICATES">
+            <summary>Flag for Cursor.Move</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_EXACT_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_LT_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_GT_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_LEQ_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_GEQ_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+        <member name="F:Hamster.HamConst.HAM_FIND_NEAR_MATCH">
+            <summary>Flag for Cursor.Find</summary>
+        </member>
+    </members>
+</doc>

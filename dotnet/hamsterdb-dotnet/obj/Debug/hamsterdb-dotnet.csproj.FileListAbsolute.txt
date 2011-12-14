@@ -1,0 +1,6 @@
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\bin\Debug\HamsterDb-dotnet.dll
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\bin\Debug\HamsterDb-dotnet.pdb
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\bin\Debug\HamsterDb-dotnet.xml
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\obj\Debug\ResolveAssemblyReference.cache
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\obj\Debug\HamsterDb-dotnet.dll
+C:\prj\hamsterdb\dotnet\hamsterdb-dotnet\obj\Debug\HamsterDb-dotnet.pdb
