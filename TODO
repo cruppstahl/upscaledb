@@ -117,15 +117,15 @@ o API changes for 2.0.0
     o what else?
 
 o webpage
-    o link cloud: replace "forum" with "support"
-    o show samples of both branches (really? they did not change!)
-    o show documentation of both branches
-    o store: have a big fat red "buy now" button
+    x show samples of both branches (really? they did not change!) - no
+    x show documentation of both branches - no, only 2.0
+    x link cloud: replace "forum" with "support"
+    x /index/forum should forward to /index/support
+    x store: have a big fat red "buy now" button
     o download page: document the differences between the two versions and
         which one to choose
-    o "sources" page: make sure that the wrappers are for version 1 
+    o "sources" page: show that the wrappers are for version 1 
         (or simply remove them)
-    o /index/forum should forward to /index/support
     o make a backup of the old forum
 
 o document how to optimize for performance
