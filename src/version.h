@@ -31,7 +31,7 @@
 #define HAM_VERSION_MAJ 2
 #define HAM_VERSION_MIN 0
 #define HAM_VERSION_REV 0
-#define HAM_VERSION_STR "2.0.0.rc3"
+#define HAM_VERSION_STR "2.0.0.rc4"
 
 
 #endif /* HAM_VERSION_H__ */

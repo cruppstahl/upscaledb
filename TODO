@@ -134,9 +134,8 @@ o automatic version upgrade
     x hamsterdb.spec
     x src/version.h
     x doxygen
+    x java api (output, native dll)
     o .net api (output, native dll)
-    o java api (output, native dll)
-    o contrib/
 
 o "make dist" needs to include contrib and other new directories
 
