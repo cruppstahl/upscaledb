@@ -39,6 +39,18 @@ x .NET API
 
 x make sure the C++ API is updated
 
+x automatic version upgrade
+    x include/ham/hamsterdb.h
+    x include/ham/hamsterdb.hpp
+    x win32
+    x README
+    x hamsterdb.spec
+    x src/version.h
+    x doxygen
+    x java api (output, native dll)
+
+x "make dist" needs to include contrib and other new directories
+
 o improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
@@ -125,19 +137,6 @@ o document migration path for the API
 o update the tutorial
 
 o android port (needs new java api) in /contrib directory
-
-o automatic version upgrade
-    x include/ham/hamsterdb.h
-    x include/ham/hamsterdb.hpp
-    x win32
-    x README
-    x hamsterdb.spec
-    x src/version.h
-    x doxygen
-    x java api (output, native dll)
-    o .net api (output, native dll)
-
-o "make dist" needs to include contrib and other new directories
 
 . iOS port - try to include in main branch
 

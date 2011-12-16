@@ -44,16 +44,10 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              win32/sample_env1.vcproj                   \
              win32/sample_env2.vcproj                   \
              win32/unittests.vcproj                     \
-             contrib/wince                              \
-             contrib/wince/README.TXT                   \
-             contrib/wince/hamsterdb.sln                \
-             contrib/wince/lib.vcproj                   \
-             contrib/wince/dll.vcproj                   \
-             contrib/wince/3rdparty_aes.vcproj          \
-             contrib/wince/3rdparty_zlib.vcproj         \
-             contrib/wince/sample_db1.vcproj            \
-             contrib/wince/sample_env1.vcproj           \
-             contrib/wince/sample_env2.vcproj 
+             java                                       \
+             dotnet                                     \
+             contrib                                    \
+             contrib/wince/*
 
 doc:
 	VERSION=$(VERSION) ;            \

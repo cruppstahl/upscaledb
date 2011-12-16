@@ -15,6 +15,7 @@ then
 fi
 
 FILES="README
+configure.in
 documentation/Doxyfile
 documentation/Doxyfile.bfc
 documentation/Doxyfile.int
