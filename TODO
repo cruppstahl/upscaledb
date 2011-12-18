@@ -87,6 +87,9 @@ o improve journalling and get rid of the physical log as much as possible
         #define induce(action)                                                 \
             if (m_inducer && ++m_inducer[action].count>m_inducer[action].loops)\
                 return (m_inducer[action].error)
+        o tests for ErrorInducer
+        o new g_POSTSPLITHOOK for ham_insert; allows counting of btree splits
+            (-> unittests can loop till a split happened)
       o make sure that the recovery of the journal works together with the
             new log
       o insert-tests w/ page splits, with and without duplicates, with 
