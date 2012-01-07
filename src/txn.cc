@@ -345,12 +345,6 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     /* this transaction is now committed!  */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
-#if 0
-    TODO
-    /* decrease the reference counter of the modified databases */
-    __decrease_db_refcount(txn);
-#endif
-
     /* now flush all committed Transactions to disk */
     if (!(env_get_rt_flags(env)&DB_DISABLE_AUTO_FLUSH))
         return (env_flush_committed_txns(env));

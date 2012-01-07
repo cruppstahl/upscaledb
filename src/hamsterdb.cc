@@ -1000,8 +1000,6 @@ ham_env_new(ham_env_t **env)
 ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *henv)
 {
-    ham_status_t st;
-    ham_status_t st2 = HAM_SUCCESS;
 #if HAM_ENABLE_REMOTE
     static ham_u64_t critsec=0;
 #endif
@@ -1020,16 +1018,10 @@ ham_env_delete(ham_env_t *henv)
     if (env_get_device(env)) {
         ham_device_t *device = env_get_device(env);
         if (device->is_open(device)) {
-            st = device->flush(device);
-            if (!st2) 
-                st2 = st;
-            st = device->close(device);
-            if (!st2) 
-                st2 = st;
+            (void)device->flush(device);
+            (void)device->close(device);
         }
-        st = device->destroy(device);
-        if (!st2) 
-            st2 = st;
+        device->destroy(device);
         env_set_device(env, 0);
     }
 
@@ -1062,7 +1054,7 @@ ham_env_delete(ham_env_t *henv)
     }
 #endif
 
-    return (st2);
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV
@@ -2694,7 +2686,8 @@ ham_flush(ham_db_t *hdb, ham_u32_t flags)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    env = db->get_env();
+
+    env=db->get_env();
     if (!env) {
         ham_trace(("parameter 'db' must be linked to a valid (implicit or "
                    "explicit) environment"));

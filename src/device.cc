@@ -352,14 +352,13 @@ __f_free_page(ham_device_t *self, ham_page_t *page)
     return (0);
 }
 
-static ham_status_t 
+static void 
 __f_destroy(ham_device_t *self)
 {
     ham_assert(!__f_is_open(self), ("destroying a device which is open"));
 
     allocator_free(device_get_allocator(self), device_get_private(self));
     allocator_free(device_get_allocator(self), self);
-    return (0);
 }
 
 static ham_status_t 
@@ -534,14 +533,13 @@ __m_free_page(ham_device_t *self, ham_page_t *page)
     return (HAM_SUCCESS);
 }
 
-static ham_status_t 
+static void 
 __m_destroy(ham_device_t *self)
 {
     ham_assert(!__m_is_open(self), ("destroying a device which is open"));
 
     allocator_free(device_get_allocator(self), device_get_private(self));
     allocator_free(device_get_allocator(self), self);
-    return (HAM_SUCCESS);
 }
 
 static void 

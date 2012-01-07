@@ -19,6 +19,7 @@
 #define HAM_CHANGESET_H__
 
 #include "internal_fwd_decl.h"
+#include "errorinducer.h"
 
 #include <vector>
 
@@ -30,7 +31,12 @@ class Changeset
 {
   public:
     Changeset()
-    : m_head(0) {
+    : m_head(0), m_inducer(0) {
+    }
+
+    ~Changeset() {
+        if (m_inducer)
+            delete m_inducer;
     }
 
     /** is the changeset empty? */
@@ -71,11 +77,14 @@ class Changeset
     typedef std::vector<ham_page_t *> bucket;
 
     /* flush all pages in a bucket */
-    ham_status_t flush_bucket(bucket &b, ham_u64_t lsn);
+    ham_status_t flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) ;
 
     /* the head of our linked list */
     ham_page_t *m_head;
 
+  public:
+    /* an error inducer */
+    ErrorInducer *m_inducer;
 };
 
 #endif /* HAM_CHANGESET_H__ */

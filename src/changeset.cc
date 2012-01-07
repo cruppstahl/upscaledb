@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,7 +17,15 @@
 #include "db.h"
 #include "errorinducer.h"
 
-/* a unittest hook for changeset_flush() */
+#define induce(id)                                                          \
+    while (m_inducer) {                                                     \
+        ham_status_t st=m_inducer->induce(id);                              \
+        if (st)                                                             \
+            return (st);                                                    \
+        break;                                                              \
+    }
+
+/* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
 void
@@ -69,7 +77,7 @@ Changeset::clear(void)
 }
 
 ham_status_t
-Changeset::flush_bucket(bucket &b, ham_u64_t lsn) 
+Changeset::flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) 
 {
     for (bucket::iterator it=b.begin(); it!=b.end(); ++it) {
         ham_assert(page_is_dirty(*it), (""));
@@ -77,7 +85,11 @@ Changeset::flush_bucket(bucket &b, ham_u64_t lsn)
         Environment *env=device_get_env(page_get_device(*it));
         Log *log=env_get_log(env);
 
-        ham_status_t st=log->append_page(*it, lsn);
+        induce(ErrorInducer::CHANGESET_FLUSH);
+
+        ham_assert(page_count>0, (""));
+
+        ham_status_t st=log->append_page(*it, lsn, page_count--);
         if (st)
             return (st);
     }
@@ -91,6 +103,9 @@ Changeset::flush(ham_u64_t lsn)
     ham_status_t st;
     ham_page_t *n, *p=m_head;
     bucket blobs, freelists, indices, others;
+    ham_size_t page_count=0;
+
+    induce(ErrorInducer::CHANGESET_FLUSH);
 
     // first step: remove all pages that are not dirty and sort all others
     // into the buckets
@@ -116,14 +131,19 @@ Changeset::flush(ham_u64_t lsn)
             others.push_back(p);
             break;
         }
+        page_count++;
         p=n;
+
+        induce(ErrorInducer::CHANGESET_FLUSH);
     }
 
-    if (blobs.empty() && freelists.empty() && indices.empty() 
-            && others.empty()) {
+    if (page_count==0) {
+        induce(ErrorInducer::CHANGESET_FLUSH);
         clear();
         return (0);
     }
+
+    induce(ErrorInducer::CHANGESET_FLUSH);
 
     // if "others" is not empty then log everything because we don't really
     // know what's going on in this operation. otherwise we only need to log
@@ -132,15 +152,17 @@ Changeset::flush(ham_u64_t lsn)
     // otherwise skip blobs and freelists because they're idempotent (albeit
     // it's possible that some data is lost, but that's no big deal)
     if (others.size() || indices.size()>1) {
-        if ((st=flush_bucket(blobs, lsn)))
+        if ((st=flush_bucket(blobs, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(freelists, lsn)))
+        if ((st=flush_bucket(freelists, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(indices, lsn)))
+        if ((st=flush_bucket(indices, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(others, lsn)))
+        if ((st=flush_bucket(others, lsn, page_count)))
             return (st);
     }
+
+    induce(ErrorInducer::CHANGESET_FLUSH);
 
     // now flush all modified pages to disk
     p=m_head;
@@ -165,6 +187,8 @@ Changeset::flush(ham_u64_t lsn)
                 return (st);
         }
         p=page_get_next(p, PAGE_LIST_CHANGESET);
+
+        induce(ErrorInducer::CHANGESET_FLUSH);
     }
 
     /* done - we can now clear the changeset and the log */

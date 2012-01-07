@@ -655,7 +655,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         }
     }
 
-    ham_assert(tellpos == 0, (0));
+    ham_assert(tellpos==0, (0));
     st=page_alloc(page);
     if (st)
         return st;
@@ -1352,6 +1352,7 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
      * duplicate key. dupes are checked for conflicts in _local_cursor_move */
     if (!pc || (!pc->get_dupecache_index())) {
         st=db_check_erase_conflicts(db, txn, node, key, flags);
+        env_get_changeset(env).clear();
         if (st) {
             if (node_created)
                 txn_opnode_free(env, node);

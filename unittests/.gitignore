@@ -9,4 +9,4 @@ test
 .test*
 *.db
 *.db.*
-
+recovery

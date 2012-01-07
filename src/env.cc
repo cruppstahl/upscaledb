@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -270,44 +270,41 @@ __recover(Environment *env, ham_u32_t flags)
 
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
-    /* open the log */
+    /* open the log and the journal (if transactions are enabled) */
     st=log->open();
     env_set_log(env, log);
     if (st && st!=HAM_FILE_NOT_FOUND)
         goto bail;
+    if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        st=journal->open();
+        env_set_journal(env, journal);
+        if (st && st!=HAM_FILE_NOT_FOUND)
+            goto bail;
+    }
+
     /* success - check if we need recovery */
-    else if (!st) {
-        if (!log->is_empty()) {
+    if (!log->is_empty()) {
+        if (flags&HAM_AUTO_RECOVERY) {
+            st=log->recover();
+            if (st)
+                goto bail;
+        }
+        else {
+            st=HAM_NEED_RECOVERY;
+            goto bail;
+        }
+    }
+
+    if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        if (!journal->is_empty()) {
             if (flags&HAM_AUTO_RECOVERY) {
-                st=log->recover();
+                st=journal->recover();
                 if (st)
                     goto bail;
             }
             else {
                 st=HAM_NEED_RECOVERY;
                 goto bail;
-            }
-        }
-    }
-
-    /* open the journal - but only if transactions are enabled */
-    if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
-        st=journal->open();
-        env_set_journal(env, journal);
-        if (st && st!=HAM_FILE_NOT_FOUND)
-            goto bail;
-        /* success - check if we need recovery */
-        else if (!st) {
-            if (!journal->is_empty()) {
-                if (flags&HAM_AUTO_RECOVERY) {
-                    st=journal->recover();
-                    if (st)
-                        goto bail;
-                }
-                else {
-                    st=HAM_NEED_RECOVERY;
-                    goto bail;
-                }
             }
         }
     }
@@ -796,9 +793,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             if (!st2) 
                 st2 = st;
         }
-        st = dev->destroy(dev);
-        if (!st2) 
-            st2 = st;
+        dev->destroy(dev);
         env_set_device(env, 0);
     }
 
@@ -1361,21 +1356,21 @@ _local_fun_txn_begin(Environment *env, Database *db,
 static ham_status_t
 _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    /* an ugly hack - txn_commit() will free the txn structure, but we need
-     * it for the journal; therefore create a temp. copy which we can use
-     * later */
-    ham_txn_t copy=*txn;
-    ham_status_t st=txn_commit(txn, flags);
+    ham_status_t st;
 
     /* append journal entry */
-    if (st==0
-            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
-        if (st==0)
-            st=env_get_journal(env)->append_txn_commit(&copy, lsn);
+        if (st)
+            return (st);
+        st=env_get_journal(env)->append_txn_commit(txn, lsn);
+        if (st)
+            return (st);
     }
+
+    st=txn_commit(txn, flags);
 
     /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
      * enabled; then purge caches */
@@ -1492,6 +1487,8 @@ __flush_txn(Environment *env, ham_txn_t *txn)
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
         ham_backend_t *be=txn_opnode_get_db(node)->get_backend();
+        if (!be)
+            return (HAM_INTERNAL_ERROR);
 
         /* make sure that this op was not yet flushed - this would be
          * a serious bug */
@@ -1581,7 +1578,8 @@ bail:
         env_set_flushed_txn(env, 0);
 
         if (st) {
-            ham_trace(("failed to flush op: %d\n", (int)st));
+            ham_trace(("failed to flush op: %d (%s)", 
+                            (int)st, ham_strerror(st)));
             return (st);
         }
 
@@ -1627,15 +1625,6 @@ env_flush_committed_txns(Environment *env)
         }
         else
             break;
-
-#if 0
-        /* decrease the reference counter in the Database */
-        __decrease_db_unflushed(oldest);
-#endif
-
-        /* if we just flushed the last transaction in one of the
-         * logfiles: close and delete the file */
-        /* TODO */
 
         /* now remove the txn from the linked list */
         env_remove_txn(env, oldest);

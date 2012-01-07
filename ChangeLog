@@ -1,3 +1,8 @@
+Jan 05, 2012 - chris ---------------------------------------------------
+o when recovery or transactions are enabled then for most operations the 
+    physical log is no longer required; this reduces I/O and improves 
+    performance
+
 Dec 14, 2011 - chris ---------------------------------------------------
 o dotnet: integrated the files, updated the interface
 

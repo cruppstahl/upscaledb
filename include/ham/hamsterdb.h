@@ -504,7 +504,7 @@ ham_env_new(ham_env_t **env);
  *
  * @param env A valid Environment handle
  *
- * @return This function always returns @ref HAM_SUCCESS
+ * @return @ref HAM_INV_PARAMETER if @a env is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *env);
@@ -1203,7 +1203,7 @@ ham_new(ham_db_t **db);
  *
  * @param db A valid Database handle
  *
- * @return This function always returns @ref HAM_SUCCESS
+ * @return @ref HAM_INV_PARAMETER if @a db is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_delete(ham_db_t *db);

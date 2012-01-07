@@ -35,6 +35,9 @@
 #include "txn.h"
 #include "util.h"
 
+/* a unittest hook triggered when a page is split */
+void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
+
 /**
  * the insert_scratchpad_t structure helps us to propagate return values
  * from the bottom of the tree to the root.
@@ -318,6 +321,9 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_assert(st ? root == NULL : 1, (0));
     if (st)
         return st;
+    /* hack: prior to 2.0, the type of btree root pages was not set
+     * correctly */
+    page_set_type(root, PAGE_TYPE_B_ROOT);
 
     /* 
      * ... and start the recursion 
@@ -973,6 +979,9 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     scratchpad->key=pivotkey;
     scratchpad->rid=pivotrid;
     ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC), (0));
+
+    if (g_BTREE_INSERT_SPLIT_HOOK)
+        g_BTREE_INSERT_SPLIT_HOOK();
 
     return (SPLIT);
 

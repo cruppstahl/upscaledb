@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -201,6 +201,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 
     memset(page_get_raw_payload(root), 0, 
             sizeof(btree_node_t)+sizeof(ham_perm_page_union_t));
+    page_set_type(root, PAGE_TYPE_B_ROOT);
 
     /*
      * calculate the maximum number of keys for this page, 

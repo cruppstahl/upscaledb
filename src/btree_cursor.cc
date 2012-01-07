@@ -87,6 +87,9 @@ __move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     if (st)
         return (st);
+    /* hack: prior to 2.0, the type of btree root pages was not set
+     * correctly */
+    page_set_type(page, PAGE_TYPE_B_ROOT);
 
     /*
      * while we've not reached the leaf: pick the smallest element
@@ -317,6 +320,9 @@ __move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     if (st)
         return (st);
+    /* hack: prior to 2.0, the type of btree root pages was not set
+     * correctly */
+    page_set_type(page, PAGE_TYPE_B_ROOT);
 
     /*
      * while we've not reached the leaf: pick the largest element

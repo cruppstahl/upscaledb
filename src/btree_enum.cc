@@ -66,6 +66,9 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
     ham_assert(st ? !page : 1, (0));
     if (!page)
         return st ? st : HAM_INTERNAL_ERROR;
+    /* hack: prior to 2.0, the type of btree root pages was not set
+     * correctly */
+    page_set_type(page, PAGE_TYPE_B_ROOT);
 
     /* while we found a page... */
     while (page) 

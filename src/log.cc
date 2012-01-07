@@ -204,7 +204,7 @@ Log::close(ham_bool_t noclear)
 }
 
 ham_status_t
-Log::append_page(ham_page_t *page, ham_u64_t lsn)
+Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
 {
     ham_status_t st=0;
     ham_file_filter_t *head=env_get_file_filter(m_env);
@@ -235,7 +235,8 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=append_write(lsn, page_get_self(page), p, size);
+        st=append_write(lsn, page_count==0 ? CHANGESET_IS_COMPLETE : 0, 
+                        page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
         allocator_free(env_get_allocator(m_env), p);
@@ -263,6 +264,33 @@ Log::recover()
     /* temporarily disable logging */
     env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
 
+    /* first make sure that the log is complete; if not then it will not
+     * be applied */
+    while (1) {
+        /* get the next entry in the logfile */
+        st=get_entry(&it, &entry, &data);
+        if (st)
+            goto bail;
+
+        /* we don't need the additional memory */
+        if (data) {
+            allocator_free(env_get_allocator(m_env), data);
+            data=0;
+        }
+
+        /* reached end of the log file? */
+        if (entry.lsn==0)
+            break;
+    }
+
+    if (entry.flags!=CHANGESET_IS_COMPLETE) {
+        ham_log(("log is incomplete and will be ignored"));
+        goto clear;
+    }
+
+    /* now start the loop once more and apply the log */
+    it=0;
+
     while (1) {
         /* clean up memory of the previous loop */
         if (data) {
@@ -278,9 +306,6 @@ Log::recover()
         /* reached end of the log file? */
         if (entry.lsn==0)
             break;
-
-        /* currently we only have support for WRITEs */
-        ham_assert(entry.type==ENTRY_TYPE_WRITE, (""));
 
         /* 
          * Was the page appended or overwritten? 
@@ -334,6 +359,7 @@ Log::recover()
         m_lsn=entry.lsn;
     }
 
+clear:
     /* and finally clear the log */
     st=clear();
     if (st) {
@@ -362,7 +388,7 @@ Log::flush(void)
 }
 
 ham_status_t
-Log::append_write(ham_u64_t lsn, ham_offset_t offset, 
+Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_offset_t offset, 
                     ham_u8_t *data, ham_size_t size)
 {
     Log::Entry entry;
@@ -372,7 +398,7 @@ Log::append_write(ham_u64_t lsn, ham_offset_t offset,
         m_lsn=lsn;
 
     entry.lsn=lsn;
-    entry.type=ENTRY_TYPE_WRITE;
+    entry.flags=flags;
     entry.offset=offset;
     entry.data_size=size;
 

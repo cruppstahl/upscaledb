@@ -689,6 +689,10 @@ Journal::recover()
             key.data=e->get_key_data();
             key.size=e->key_size;
             st=ham_erase((ham_db_t *)db, txn, &key, e->erase_flags);
+            // key might have already been erased when the changeset
+            // was flushed
+            if (st==HAM_KEY_NOT_FOUND)
+                st=0;
             break;
         }
         default:

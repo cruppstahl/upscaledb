@@ -12,7 +12,10 @@
 #ifndef HAM_ERRORINDUCER_H__
 #define HAM_ERRORINDUCER_H__
 
+#include <string.h>
+
 #include <ham/hamsterdb.h>
+#include "error.h"
 
 class ErrorInducer
 {
@@ -25,25 +28,28 @@ class ErrorInducer
 
   public:
     enum Action {
-        MAX_ACTION
+        CHANGESET_FLUSH,
+        MAX_ACTIONS
     };
 
-    ErrorInducer();
+    ErrorInducer() {
+        memset(&m_state[0], 0, sizeof(m_state));
+    }
 
     void add(Action action, int loops, ham_status_t error=HAM_INTERNAL_ERROR) {
         m_state[action].loops=loops;
-        m_state[action].loops=error;
+        m_state[action].error=error;
     }
 
     ham_status_t induce(Action action) {
-        ham_assert(m_state[action].loops!=0, (""));
-        if (--m_state[action].loops==0)
+        ham_assert(m_state[action].loops>=0, (""));
+        if (m_state[action].loops>0 && --m_state[action].loops==0)
             return (m_state[action].error);
         return (0);
     }
 
   private:
-    State m_state[MAX_ACTION];
+    State m_state[MAX_ACTIONS];
 };
 
 #endif /* HAM_ERRORINDUCER_H__ */

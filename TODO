@@ -51,7 +51,7 @@ x automatic version upgrade
 
 x "make dist" needs to include contrib and other new directories
 
-o improve journalling and get rid of the physical log as much as possible
+x improve journalling and get rid of the physical log as much as possible
     --> most of the functionality can be handled in the changeset
     --> be careful - even if the btree operations are atomic, the whole
       insert/erase is not because it also affects the blob area and the
@@ -77,7 +77,9 @@ o improve journalling and get rid of the physical log as much as possible
       x however: flush EVERYTHING if others.size() > 0
       x check for regressions and fix unittests
 
-      o create an object "ErrorInducer" which hooks into the log and is
+      x new g_POSTSPLITHOOK for ham_insert; allows counting of btree splits
+          (-> unittests can loop till a split happened)
+      x create an object "ErrorInducer" which hooks into the log and is
         controlled from the unittests
         class ErrorInducer {
             add_action(int action, int loops, int error = HAM_INTERNAL_ERROR);
@@ -87,24 +89,28 @@ o improve journalling and get rid of the physical log as much as possible
         #define induce(action)                                                 \
             if (m_inducer && ++m_inducer[action].count>m_inducer[action].loops)\
                 return (m_inducer[action].error)
-        o tests for ErrorInducer
-        o new g_POSTSPLITHOOK for ham_insert; allows counting of btree splits
-            (-> unittests can loop till a split happened)
-      o make sure that the recovery of the journal works together with the
-            new log
-      o insert-tests w/ page splits, with and without duplicates, with 
-            and without extended keys, with and without overwrites
-        -> or: extend monster test??
-      o run tests w/o transactions but w/ recovery
+      x insert-tests w/ page splits, with and without duplicates, with 
+          and without extended keys, with and without overwrites
+      x use different "loop"s (number of failures till the inducer returns
+        an error)
+      x ham_find currently checks only every 10th key, but should check
+        EVERY key (including records!)
+      x crash in ./test LogInducerTest::duplicateTest 
+      x other tests are currently failing
+      x try with more values for "loop" - some should go higher than 7!
+    x also for ham_erase
+    x ./test_recovery insert keysize recsize i duplicates inducer-loop
+    x ./test_recovery erase keysize i duplicates inducer-loop
+    x ./test_recovery recover
+    x ./test_recovery verify keysize recsize i duplicates must-exist
+    x need a shell-script or python-script or perl-script
+    x add to makefile and release.sh
+    x performance tests 
 
-    o also for ham_erase
-        -> it's possible that freelist entries are freed twice - don't
-            assert in such a case!
-        - actually we could just writev the blobs and bypass the cache
-        - what about the freelist??
+o test with lessfs (and add lessfs to the monster testsuite)
+    o test with reboots - like those that made problems with lessfs
 
 o API changes for 2.0.0
-    o only include deprecated functions if -DHAM_USE_DEPRECATED
     o ham_txn_begin receives Environment handle, not Database handle
         o need a new parameter (reserved) for parent txn
         o need a new parameter for txn name (string)
@@ -113,10 +119,10 @@ o API changes for 2.0.0
         o rewrite auto-abort/auto-commit -> move to env
         o what happens if a database is closed, but it's modified by a txn
             that is still active? -> error (verify this!)
+    x ham_delete should always return 0 - document this (or change interface)
     o need to increase libtool version!
     o update C++ API
     o update Samples
-    o ham_delete should always return 0 - document this (or change interface)
     o what else?
 
 o webpage
@@ -135,11 +141,13 @@ o document how to optimize for performance
     o with transactions: try not to use duplicates
     o use overwrite as often as possible
 
-o document migration path for the API
+o document migration path for the API (if there are any changes)
 
 o update the tutorial
 
-o android port (needs new java api) in /contrib directory
+o mail an Tony B, Curt M., andere
+
+. android port (needs new java api) in /contrib directory
 
 . iOS port - try to include in main branch
 
@@ -244,6 +252,13 @@ o android port (needs new java api) in /contrib directory
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
+    when it flushes the txn, but the commit was already logged
+    and a recovery would succeed -> the txn is committed although it
+    fails with an error
+    -> this problem will disappear when the txn is flushed in background,
+        but this needs to be documented
+
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
     o also add to c++ API
@@ -260,9 +275,6 @@ o recovery: re-create pending transactions (if required)
         blobs and they cannot be reused
     -> this affects all temporary ham_insert-transactions 
     (not sure if this should get high priority)
-
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
 
 o hamsterdb.com
     x add twitter feed

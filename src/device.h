@@ -140,7 +140,7 @@ struct ham_device_t {
     /**
      * destroy the device object, free all memory
      */
-    ham_status_t (*destroy)(ham_device_t *self);
+    void (*destroy)(ham_device_t *self);
 
     /** the memory allocator */
     mem_allocator_t *_malloc;

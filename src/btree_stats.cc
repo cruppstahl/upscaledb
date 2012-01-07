@@ -640,14 +640,12 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
         }
     }
 
-    if (!btree_node_get_right(node)) 
-    {
+    if (!btree_node_get_right(node)) {
         /* this is the leaf page which carries the upper bound key */
         ham_assert(btree_node_get_count(node) == 0 
                 ? !btree_node_get_left(node) 
                 : 1, (0));
-        if (btree_node_get_count(node) != 0) 
-        {
+        if (btree_node_get_count(node) != 0) {
             /* 
              * range is non-empty; the other case has already been handled 
              * above upper bound key is always located at index [size-1] 
@@ -656,10 +654,10 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
              * some way (slot == size-1). This 'copy anyway' approach 
              * saves us one costly key comparison.
              */
-            if (dbdata->upper_bound_index != btree_node_get_count(node) - 1
-                    || dbdata->upper_bound_page_address != page_get_self(page)
-                    || (ham_size_t)slot == btree_node_get_count(node) - 1) 
-            {
+            if (dbdata->upper_bound_index != 
+                        (ham_u32_t)btree_node_get_count(node)-1
+                    || dbdata->upper_bound_page_address!=page_get_self(page)
+                    || (ham_u16_t)slot==btree_node_get_count(node)-1) {
                 /* only set when not done already */
                 dbdata->upper_bound_set = HAM_TRUE;
                 dbdata->upper_bound_index = btree_node_get_count(node) - 1;

@@ -1,7 +1,7 @@
 
 EXTRA_DIST      = valgrind.supp
 
-noinst_PROGRAMS = test bfc_sample
+noinst_PROGRAMS = test bfc_sample recovery
 
 AM_CPPFLAGS     = -I$(top_builddir)/include
 
@@ -65,10 +65,17 @@ bfc_sample_SOURCES = bfc-sample.cpp \
 
 bfc_sample_LDADD = -ldl
 
-noinst_BIN      = test bfc_sample
+recovery_SOURCES = recovery.cpp
+
+recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la -ldl
+
+noinst_BIN       = test bfc_sample recovery
 
 #
 # make sure that our modified CFLAGS are also respected by g++
 #
 AM_CXXFLAGS     = $(CFLAGS)
 CXXFLAGS        = $(CFLAGS)
+
+test_recovery:
+	perl recovery.pl
