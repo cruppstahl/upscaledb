@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -81,6 +81,12 @@ class Changeset
 
     /* the head of our linked list */
     ham_page_t *m_head;
+
+    /* cached vectors for Changeset::flush() */
+    std::vector<ham_page_t *> m_blobs;
+    std::vector<ham_page_t *> m_freelists;
+    std::vector<ham_page_t *> m_indices;
+    std::vector<ham_page_t *> m_others;
 
   public:
     /* an error inducer */

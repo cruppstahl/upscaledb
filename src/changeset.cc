@@ -102,10 +102,14 @@ Changeset::flush(ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *n, *p=m_head;
-    bucket blobs, freelists, indices, others;
     ham_size_t page_count=0;
 
     induce(ErrorInducer::CHANGESET_FLUSH);
+
+    m_blobs.clear();
+    m_freelists.clear();
+    m_indices.clear();
+    m_others.clear();
 
     // first step: remove all pages that are not dirty and sort all others
     // into the buckets
@@ -118,17 +122,17 @@ Changeset::flush(ham_u64_t lsn)
 
         switch (page_get_type(p)) {
           case PAGE_TYPE_BLOB:
-            blobs.push_back(p);
+            m_blobs.push_back(p);
             break;
           case PAGE_TYPE_B_ROOT:
           case PAGE_TYPE_B_INDEX:
-            indices.push_back(p);
+            m_indices.push_back(p);
             break;
           case PAGE_TYPE_FREELIST:
-            freelists.push_back(p);
+            m_freelists.push_back(p);
             break;
           default:
-            others.push_back(p);
+            m_others.push_back(p);
             break;
         }
         page_count++;
@@ -151,14 +155,14 @@ Changeset::flush(ham_u64_t lsn)
     //
     // otherwise skip blobs and freelists because they're idempotent (albeit
     // it's possible that some data is lost, but that's no big deal)
-    if (others.size() || indices.size()>1) {
-        if ((st=flush_bucket(blobs, lsn, page_count)))
+    if (m_others.size() || m_indices.size()>1) {
+        if ((st=flush_bucket(m_blobs, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(freelists, lsn, page_count)))
+        if ((st=flush_bucket(m_freelists, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(indices, lsn, page_count)))
+        if ((st=flush_bucket(m_indices, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(others, lsn, page_count)))
+        if ((st=flush_bucket(m_others, lsn, page_count)))
             return (st);
     }
 
