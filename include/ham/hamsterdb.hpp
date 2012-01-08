@@ -252,6 +252,11 @@ public:
             throw error(st);
     }
 
+    std::string get_name() {
+        const char *p=ham_txn_get_name(m_txn);
+        return (p ? p : "");
+    }
+
     /** Returns a pointer to the internal ham_txn_t structure. */
     ham_txn_t *get_handle() {
         return (m_txn);

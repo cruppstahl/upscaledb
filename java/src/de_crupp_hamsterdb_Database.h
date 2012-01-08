@@ -167,14 +167,6 @@ JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1key_1count
 JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1close
   (JNIEnv *, jobject, jlong, jint);
 
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_txn_begin
- * Signature: (JI)J
- */
-JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Database_ham_1txn_1begin
-  (JNIEnv *, jobject, jlong, jint);
-
 #ifdef __cplusplus
 }
 #endif

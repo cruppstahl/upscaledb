@@ -12,6 +12,8 @@
 
 package de.crupp.hamsterdb;
 
+import de.crupp.hamsterdb.Transaction;
+
 public class Environment {
     
     private native long ham_env_new();
@@ -44,6 +46,8 @@ public class Environment {
 
     private native int ham_env_flush(long handle);
     
+    private native long ham_txn_begin(long handle, int flags);
+
     private native int ham_env_close(long handle, int flags);
 
     /**
@@ -504,6 +508,31 @@ public class Environment {
         int status=ham_env_flush(m_handle);
         if (status!=0)
             throw new DatabaseException(status);
+    }
+
+    /**
+     * Begins a new Transaction
+     * <p>
+     * This method wraps the native ham_txn_begin function.
+     * <p>
+	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__txn.html#ga680a26a4ed8fea77a8cafc53d2850055">C documentation</a>
+     * 
+     * @param flags flags for beginning the Transaction
+     */
+    public synchronized Transaction begin(int flags) 
+            throws DatabaseException {
+        long h=ham_txn_begin(m_handle, flags);
+        return new Transaction(this, h);
+    }
+
+    /**
+     * Begins a new Transaction
+     * 
+     * @see Database#begin(int)
+     */
+    public synchronized Transaction begin()
+            throws DatabaseException {
+        return begin(0);
     }
 
     /**

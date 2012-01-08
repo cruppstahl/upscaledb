@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -470,8 +470,10 @@ public:
 
         env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
         db=env.create_db(1);
-        txn=env.begin();
+        txn=env.begin("name");
         db.insert(&txn, &k, &r);
+        std::string n=txn.get_name();
+        BFC_ASSERT(n=="name");
         txn.commit();
         out=db.find(&k);
     }

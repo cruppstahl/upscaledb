@@ -254,6 +254,7 @@ Log::recover()
     Iterator it=0;
     ham_u8_t *data=0;
     ham_offset_t filesize;
+    ham_file_filter_t *head=0;
 
     /* get the file size of the database; otherwise we do not know if we
      * modify an existing page or if one of the pages has to be allocated */
@@ -282,6 +283,11 @@ Log::recover()
         ham_log(("log is incomplete and will be ignored"));
         goto clear;
     }
+
+    /* disable file filters - the logged pages were already filtered */
+    head=env_get_file_filter(m_env);
+    if (head)
+        env_set_file_filter(m_env, 0);
 
     /* now start the loop once more and apply the log */
     it=0;
@@ -366,6 +372,10 @@ clear:
 bail:
     /* re-enable the logging */
     env_set_rt_flags(m_env, env_get_rt_flags(m_env)|HAM_ENABLE_RECOVERY);
+
+    /* restore the file filters */
+    if (head) 
+        env_set_file_filter(m_env, head);
     
     /* clean up memory */
     if (data) {

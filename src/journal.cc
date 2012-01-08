@@ -191,6 +191,8 @@ Journal::append_txn_begin(struct ham_txn_t *txn, Environment *env,
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_TXN_BEGIN;
     entry.lsn=lsn;
+    if (name)
+        entry.followup_size=strlen(name)+1;
 
     /* 
      * determine the journal file which is used for this transaction 
@@ -611,7 +613,7 @@ Journal::recover()
         switch (entry.type) {
         case ENTRY_TYPE_TXN_BEGIN: {
             ham_txn_t *txn;
-            st=ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0);
+            st=ham_txn_begin(&txn, (ham_env_t *)m_env, (const char *)aux, 0, 0);
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);

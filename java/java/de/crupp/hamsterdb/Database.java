@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -11,8 +11,6 @@
  */
 
 package de.crupp.hamsterdb;
-
-import de.crupp.hamsterdb.Transaction;
 
 public class Database {
 
@@ -66,8 +64,6 @@ public class Database {
 
     private native int ham_close(long handle, int flags); 
     
-    private native long ham_txn_begin(long handle, int flags);
-
     /**
      * Sets the global error handler.
      * <p>
@@ -751,35 +747,6 @@ public class Database {
         m_handle=0;
     }
 
-    /**
-     * Begins a new Transaction
-     * <p>
-     * Note that it is not possible to create multiple
-     * Transactions in parallel. This limitation will be removed in further
-     * versions of hamsterdb.
-     * <p>
-     * This method wraps the native ham_txn_begin function.
-     * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__txn.html#ga680a26a4ed8fea77a8cafc53d2850055">C documentation</a>
-     * 
-     * @param flags flags for beginning the Transaction
-     */
-    public synchronized Transaction begin(int flags) 
-            throws DatabaseException {
-        long h=ham_txn_begin(m_handle, flags);
-        return new Transaction(this, h);
-    }
-
-    /**
-     * Begins a new Transaction
-     * 
-     * @see Database#begin(int)
-     */
-    public synchronized Transaction begin()
-            throws DatabaseException {
-        return begin(0);
-    }
-    
     /**
      * Retrieves the database handle
      */

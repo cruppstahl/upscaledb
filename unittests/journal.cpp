@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -37,20 +37,21 @@ using namespace bfc;
 struct LogEntry
 {
     LogEntry()
-    :   lsn(0), txn_id(0), type(0), dbname(0)
-    {
+    :   lsn(0), txn_id(0), type(0), dbname(0) {
     }
 
     LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
-                ham_u32_t _type, ham_u16_t _dbname)
-    :   lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname)
-    {
+                ham_u32_t _type, ham_u16_t _dbname, const char *_name=0)
+    :   lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
+        if (_name)
+            name=_name;
     }
 
     ham_u64_t lsn;
     ham_u64_t txn_id;
     ham_u32_t type;
     ham_u16_t dbname;
+    std::string name;
 };
 
 struct InsertLogEntry : public LogEntry
@@ -235,7 +236,8 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[1]);
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_txn_begin(&txn, (ham_env_t *)m_env, "name", 0, 0));
 
         BFC_ASSERT_EQUAL((ham_size_t)1, j->m_open_txn[0]);
         BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[0]);
@@ -554,6 +556,10 @@ public:
             BFC_ASSERT_EQUAL(vec->txn_id, entry.txn_id);
             BFC_ASSERT_EQUAL(vec->type, entry.type);
             BFC_ASSERT_EQUAL(vec->dbname, entry.dbname);
+            if (vec->name.size()) {
+                BFC_ASSERT_NOTNULL(aux);
+                BFC_ASSERT_EQUAL(0, strcmp((char *)aux, vec->name.c_str()));
+            }
 
             if (aux)
                 journal->alloc_free(aux);
@@ -577,9 +583,12 @@ public:
         for (int i=0; i<5; i++) {
             // ham_txn_begin and ham_txn_abort will automatically add a 
             // journal entry
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+            char name[16];
+            sprintf(name, "name%d", i);
+            BFC_ASSERT_EQUAL(0, 
+                    ham_txn_begin(&txn, (ham_env_t *)m_env, name, 0, 0));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
-                            Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                            Journal::ENTRY_TYPE_TXN_BEGIN, 0, &name[0]);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
             vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
                             Journal::ENTRY_TYPE_TXN_ABORT, 0);
@@ -610,7 +619,7 @@ public:
         for (int i=0; i<=7; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
-                            Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
             vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
                             Journal::ENTRY_TYPE_TXN_ABORT, 0);
@@ -643,7 +652,7 @@ public:
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             if (i>=5)
                 vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
-                            Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                            Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
             if (i>=5)
                 vec[p++]=LogEntry(2+i*2, txn_get_id(txn), 
@@ -684,7 +693,7 @@ public:
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id(txn));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
-                        Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                        Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             ham_u64_t txnid=txn_get_id(txn);
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
             vec[p++]=LogEntry(2+i*2, txnid,
@@ -732,7 +741,7 @@ public:
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
-                        Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                        Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
@@ -787,7 +796,7 @@ public:
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
-                        Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                        Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
@@ -860,7 +869,7 @@ public:
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
-                        Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                        Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
@@ -929,7 +938,7 @@ public:
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
-                        Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                        Journal::ENTRY_TYPE_TXN_BEGIN, 0);
         }
         for (int i=0; i<100; i++) {
             key.data=&i;
@@ -993,7 +1002,7 @@ public:
          * duplicates */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
-                    Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
+                    Journal::ENTRY_TYPE_TXN_BEGIN, 0);
         for (int i=0; i<100; i++) {
             int val=i%10; 
             key.data=&val;

@@ -96,7 +96,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

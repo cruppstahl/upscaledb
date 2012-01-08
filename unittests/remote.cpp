@@ -494,7 +494,8 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), "name", 0, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("name", ham_txn_get_name(txn)));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

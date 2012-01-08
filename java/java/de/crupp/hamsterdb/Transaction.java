@@ -19,10 +19,10 @@ public class Transaction {
     private native int ham_txn_abort(long handle, int flags);
     
     /**
-     * Constructor - assigns a Database object and a Transaction handle
+     * Constructor - assigns an Environment object and a Transaction handle
      */
-    public Transaction(Database db, long handle) {
-        m_db=db;
+    public Transaction(Environment env, long handle) {
+        m_env=env;
         m_handle=handle;
     }
     
@@ -46,7 +46,7 @@ public class Transaction {
         int status;
         if (m_handle==0)
             return;
-        synchronized (m_db) {
+        synchronized (m_env) {
             status=ham_txn_abort(m_handle, 0);
         }
         if (status!=0)
@@ -66,7 +66,7 @@ public class Transaction {
         int status;
         if (m_handle==0)
             return;
-        synchronized (m_db) {
+        synchronized (m_env) {
             status=ham_txn_commit(m_handle, 0);
         }
         if (status!=0)
@@ -89,5 +89,5 @@ public class Transaction {
     }
     
     private long m_handle;
-    private Database m_db;
+    private Environment m_env;
 }

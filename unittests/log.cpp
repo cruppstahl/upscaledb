@@ -976,8 +976,8 @@ public:
         /* make sure that the log has two entries - the header file 
          * and the root page of the new database */
         std::vector<LogEntry> vec;
-        vec.push_back(LogEntry(1, ps, ps));
         vec.push_back(LogEntry(1, 0, ps));
+        vec.push_back(LogEntry(1, ps, ps));
         compareLog(BFC_OPATH(".test2"), vec);
 
         /* now modify the file and remove the root page of the new database */
@@ -1193,11 +1193,14 @@ public:
 
         ham_env_t *env;
         ham_db_t *db;
+        char buffer[1024]={0};
 
         ham_key_t key;
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
+        rec.data=buffer;
+        rec.size=sizeof(buffer);
         ham_u8_t aeskey[16] ={0x13};
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));

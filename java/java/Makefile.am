@@ -1,6 +1,7 @@
 
 all:de/crupp/hamsterdb/Const.class \
 	de/crupp/hamsterdb/DatabaseException.class \
+	de/crupp/hamsterdb/Transaction.class \
     de/crupp/hamsterdb/Database.class \
 	de/crupp/hamsterdb/Environment.class \
 	de/crupp/hamsterdb/Cursor.class \
@@ -11,7 +12,6 @@ all:de/crupp/hamsterdb/Const.class \
 	de/crupp/hamsterdb/CompareCallback.class \
 	de/crupp/hamsterdb/PrefixCompareCallback.class \
 	de/crupp/hamsterdb/DuplicateCompareCallback.class \
-	de/crupp/hamsterdb/Transaction.class \
 	jar
 
 jar: 
@@ -60,3 +60,18 @@ de/crupp/hamsterdb/Transaction.class: de/crupp/hamsterdb/Transaction.java
 clean:
 	\rm -rf de/crupp/hamsterdb/*.class
 	\rm -rf *.jar
+
+javah:
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.CompareCallback
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Const
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Cursor
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.DatabaseException
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Database
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.DuplicateCompareCallback
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Environment
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.ErrorHandler
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.License
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Parameter
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.PrefixCompareCallback
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Transaction
+	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Version

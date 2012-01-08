@@ -114,24 +114,23 @@ o API changes for 2.0.0
         x need a new parameter (reserved) for parent txn
         x need a new parameter for txn name (string)
             x this needs a getter function
-=======================>
-    unittests are failing
-=======================>
-    o recovery: re-create txn name
-        o needs unittests
-    o update client/server wrapper
-        o needs unittest to check the name
-    o remote.cpp: add unittest to begin txn with name, query name
+    x c++-api: needs wrapper for ham_txn_get_name()
+    x update client/server wrapper
+        x needs unittest to check the name
+    x recovery: re-create txn name
+        x needs unittests
+================>
     o update java wrapper
+hier geht's weiter; javah wurde geupdated, jetzt src neu compilieren und 
+alle fehler fixen
+================>
     o update .net wrapper
     o rewrite auto-abort/auto-commit -> move to env
     o need to increase libtool version!
-    o what else?
+    o the first loop in log::recover can be merged with the 2nd one
     o what happens if a database is closed, but it's modified by a txn
         that is still active? -> error (verify this!)
     o run unittests with valgrind
-
-o change all copyright strings to 2012 (also on webpage!)
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
@@ -147,6 +146,7 @@ o webpage
     o "sources" page: show that the wrappers are for version 1 
         (or simply remove them)
     o make a backup of the old forum
+    o footer: change copyright to 2012
 
 o document how to optimize for performance
     o with transactions: try not to use duplicates
@@ -157,6 +157,8 @@ o document migration path for the API (if there are any changes)
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
+
+. change all copyright strings to 2012 (also on webpage!)
 
 . android port (needs new java api) in /contrib directory
 

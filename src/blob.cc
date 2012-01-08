@@ -207,7 +207,7 @@ __write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr,
 
 static ham_status_t
 __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage, 
-        ham_offset_t addr, ham_u8_t *data, ham_size_t size)
+        ham_offset_t addr, Database *db, ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
     ham_device_t *device=env_get_device(env);
@@ -230,7 +230,11 @@ __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage,
          * chunk is small
          */
         if (!page) {
-            st=env_fetch_page(&page, env, pageid, 
+            if (db)
+                st=db_fetch_page(&page, db, pageid, 
+                    __blob_from_cache(env, size) ? 0 : DB_ONLY_FROM_CACHE);
+            else
+                st=env_fetch_page(&page, env, pageid, 
                     __blob_from_cache(env, size) ? 0 : DB_ONLY_FROM_CACHE);
 			ham_assert(st ? !page : 1, (0));
             /* blob pages don't have a page header */
@@ -300,10 +304,10 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
     /*
      * load the blob header
      */
-    st=__read_chunk(env, 0, &hdrpage, table_id, (ham_u8_t *)&hdr, sizeof(hdr));
-    if (st) {
+    st=__read_chunk(env, 0, &hdrpage, table_id, 0, 
+                    (ham_u8_t *)&hdr, sizeof(hdr));
+    if (st)
         return st;
-    }
 
     /*
      * if the whole table is in a page (and not split between several
@@ -331,11 +335,10 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
     /*
      * then read the rest of the blob
      */
-    st=__read_chunk(env, hdrpage, 0, table_id+sizeof(hdr), 
+    st=__read_chunk(env, hdrpage, 0, table_id+sizeof(hdr), 0,
             (ham_u8_t *)table, (ham_size_t)blob_get_size(&hdr));
-    if (st) {
+    if (st)
         return st;
-    }
 
     *table_ref = table;
 	return HAM_SUCCESS;
@@ -718,7 +721,7 @@ blob_read(Database *db, ham_offset_t blobid,
     /*
      * first step: read the blob header 
      */
-    st=__read_chunk(db->get_env(), 0, &page, blobid, 
+    st=__read_chunk(db->get_env(), 0, &page, blobid, db,
                     (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
@@ -771,7 +774,7 @@ blob_read(Database *db, ham_offset_t blobid,
                     blobid+sizeof(blob_t)+(flags&HAM_PARTIAL 
                             ? record->partial_offset 
                             : 0),
-                    (ham_u8_t *)record->data, blobsize);
+                    db, (ham_u8_t *)record->data, blobsize);
     if (st)
         return (st);
 
@@ -800,7 +803,7 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
     ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
 
     /* read the blob header */
-    st=__read_chunk(db->get_env(), 0, &page, blobid,
+    st=__read_chunk(db->get_env(), 0, &page, blobid, db,
                 (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
@@ -882,8 +885,8 @@ blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
      * old blob, we overwrite the old blob (and add the remaining
      * space to the freelist, if there is any)
      */
-    st=__read_chunk(env, 0, &page, old_blobid, (ham_u8_t *)&old_hdr, 
-            sizeof(old_hdr));
+    st=__read_chunk(env, 0, &page, old_blobid, db,
+                    (ham_u8_t *)&old_hdr, sizeof(old_hdr));
     if (st)
         return (st);
 
@@ -1010,7 +1013,7 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags)
     /*
      * fetch the blob header 
      */
-    st=__read_chunk(env, 0, 0, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=__read_chunk(env, 0, 0, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 

@@ -105,6 +105,14 @@ JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1flush
 
 /*
  * Class:     de_crupp_hamsterdb_Environment
+ * Method:    ham_txn_begin
+ * Signature: (JI)J
+ */
+JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Environment_ham_1txn_1begin
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     de_crupp_hamsterdb_Environment
  * Method:    ham_env_close
  * Signature: (JI)I
  */

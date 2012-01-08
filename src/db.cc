@@ -715,7 +715,6 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     if (page) {
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
-        ham_assert(db ? page_get_owner(page)==db : 1, (""));
         /* store the page in the changeset if recovery is enabled */
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
             env_get_changeset(env).add_page(page);
