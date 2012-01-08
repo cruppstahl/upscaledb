@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -82,7 +82,7 @@ public:
     void transactionTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_abort(txn, 0));
 
         // reopen the database, check the transaction flag vs. actual 
@@ -96,7 +96,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

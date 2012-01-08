@@ -113,7 +113,7 @@ insert(int argc, char **argv)
     // create a new txn and insert the new key/value pair.
     // flushing the txn will fail b/c of the error inducer
     ham_txn_t *txn;
-    ham_txn_begin(&txn, db, 0);
+    ham_txn_begin(&txn, env, 0, 0, 0);
 
     ErrorInducer *ei=new ErrorInducer();
     env_get_changeset((Environment *)env).m_inducer=ei;
@@ -185,7 +185,7 @@ erase(int argc, char **argv)
     // create a new txn and erase the keys
     // flushing the txn will fail b/c of the error inducer
     ham_txn_t *txn;
-    ham_txn_begin(&txn, db, 0);
+    ham_txn_begin(&txn, env, 0, 0, 0);
 
     ErrorInducer *ei=new ErrorInducer();
     env_get_changeset((Environment *)env).m_inducer=ei;

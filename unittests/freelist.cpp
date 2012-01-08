@@ -125,7 +125,7 @@ public:
     {
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -154,7 +154,7 @@ public:
     {
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, 
@@ -170,7 +170,7 @@ public:
     {
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         for (int i=60; i<70; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -200,7 +200,7 @@ public:
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_offset_t offset=ps;
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         for (int i=60; i<70; i++) {
             BFC_ASSERT_EQUAL_I(0, freel_mark_free((Environment *)m_env, (Database *)m_db, offset, 
@@ -227,7 +227,7 @@ public:
     {
         ham_offset_t o=env_get_usable_pagesize((Environment *)m_env)*8*DB_CHUNKSIZE;
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, o, DB_CHUNKSIZE, HAM_FALSE));
@@ -237,7 +237,7 @@ public:
         env_get_changeset((Environment *)m_env).clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         ham_offset_t addr;
         BFC_ASSERT_EQUAL(0, 
@@ -255,7 +255,7 @@ public:
         env_get_changeset((Environment *)m_env).clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
@@ -270,7 +270,7 @@ public:
     {
         ham_offset_t o=env_get_usable_pagesize((Environment *)m_env)*8*DB_CHUNKSIZE;
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
@@ -296,7 +296,7 @@ public:
         ((Database *)m_db)->set_data_access_mode( 
                 ((Database *)m_db)->get_data_access_mode() &
                         ~(HAM_DAM_SEQUENTIAL_INSERT|HAM_DAM_RANDOM_WRITE));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
@@ -313,7 +313,7 @@ public:
         env_get_changeset((Environment *)m_env).clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
@@ -325,7 +325,7 @@ public:
     {
         ham_offset_t o=(ham_offset_t)1024*1024*1024*4;
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, o, DB_CHUNKSIZE*3, HAM_FALSE));
@@ -369,7 +369,7 @@ public:
                 ((Database *)m_db)->get_data_access_mode()
                         | HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT);
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
@@ -396,7 +396,7 @@ public:
         ((Database *)m_db)->set_data_access_mode( 
                 ((Database *)m_db)->get_data_access_mode()
                         | HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT);
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
@@ -410,7 +410,7 @@ public:
     void markAllocOverflow3Test(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         // this code snippet crashed in an acceptance test
         BFC_ASSERT_EQUAL(0, freel_mark_free((Environment *)m_env, (Database *)m_db, 2036736, 
                     env_get_pagesize((Environment *)m_env)-1024, HAM_FALSE));
@@ -422,7 +422,7 @@ public:
         ham_offset_t addr;
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, ps, ps, HAM_FALSE));
@@ -440,7 +440,7 @@ public:
         ham_offset_t addr;
         ham_size_t ps=env_get_pagesize((Environment *)m_env);
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free((Environment *)m_env, (Database *)m_db, ps, ps*2, HAM_FALSE));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -527,20 +527,13 @@ handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
     ham_txn_t *txn;
     ham_status_t st=0;
     ham_u64_t handle=0;
-    ham_db_t *db;
     ham_env_t *env=envh->env;
 
     ham_assert(request!=0, (""));
     ham_assert(proto_has_txn_begin_request(request), (""));
 
-    db=(ham_db_t *)__get_handle(envh, 
-                proto_txn_begin_request_get_db_handle(request));
-    if (!db) {
-        st=HAM_INV_PARAMETER;
-    }
-    else {
-        st=ham_txn_begin(&txn, db, proto_txn_begin_request_get_flags(request));
-    }
+    st=ham_txn_begin(&txn, env, proto_txn_begin_request_get_name(request), 
+                0, proto_txn_begin_request_get_flags(request));
 
     if (st==0)
         handle=__store_handle(envh, txn, HANDLE_TYPE_TRANSACTION);

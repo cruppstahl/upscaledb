@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -345,15 +345,6 @@ public:
         if (!m_db)
 			return (HAM_NOT_INITIALIZED);
         return (ham_get_error(m_db));
-    }
-
-    /** Begin a new Transaction */
-    txn begin() {
-        ham_txn_t *h;
-        ham_status_t st=ham_txn_begin(&h, get_handle(), 0);
-        if (st)
-            throw error(st);
-        return (txn(h));
     }
 
     /** Sets the prefix comparison function. */
@@ -721,6 +712,16 @@ public:
         if (st)
             throw error(st);
     }
+
+    /** Begin a new Transaction */
+    txn begin(const char *name=0) {
+        ham_txn_t *h;
+        ham_status_t st=ham_txn_begin(&h, m_env, name, 0, 0);
+        if (st)
+            throw error(st);
+        return (txn(h));
+    }
+
 
     /** Closes the Environment. */
     void close(void) {

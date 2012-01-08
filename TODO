@@ -107,23 +107,34 @@ x improve journalling and get rid of the physical log as much as possible
     x add to makefile and release.sh
     x performance tests 
 
+o API changes for 2.0.0
+    x update C++ API
+    x ham_delete should always return 0 - document this (or change interface)
+    x ham_txn_begin receives Environment handle, not Database handle
+        x need a new parameter (reserved) for parent txn
+        x need a new parameter for txn name (string)
+            x this needs a getter function
+=======================>
+    unittests are failing
+=======================>
+    o recovery: re-create txn name
+        o needs unittests
+    o update client/server wrapper
+        o needs unittest to check the name
+    o remote.cpp: add unittest to begin txn with name, query name
+    o update java wrapper
+    o update .net wrapper
+    o rewrite auto-abort/auto-commit -> move to env
+    o need to increase libtool version!
+    o what else?
+    o what happens if a database is closed, but it's modified by a txn
+        that is still active? -> error (verify this!)
+    o run unittests with valgrind
+
+o change all copyright strings to 2012 (also on webpage!)
+
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
-
-o API changes for 2.0.0
-    o ham_txn_begin receives Environment handle, not Database handle
-        o need a new parameter (reserved) for parent txn
-        o need a new parameter for txn name (string)
-            o this needs a getter function
-        o update unittests/add new tests
-        o rewrite auto-abort/auto-commit -> move to env
-        o what happens if a database is closed, but it's modified by a txn
-            that is still active? -> error (verify this!)
-    x ham_delete should always return 0 - document this (or change interface)
-    o need to increase libtool version!
-    o update C++ API
-    o update Samples
-    o what else?
 
 o webpage
     x show samples of both branches (really? they did not change!) - no

@@ -144,10 +144,10 @@ class Log
     ham_status_t close(ham_bool_t noclear=false);
 
     /** do the recovery */
-    ham_status_t recover(void);
+    ham_status_t recover();
 
     /** flush the logfile to disk */
-    ham_status_t flush(void);
+    ham_status_t flush();
 
     /**
      * append a log entry for a page modification

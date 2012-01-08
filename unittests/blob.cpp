@@ -357,7 +357,7 @@ public:
         blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
         BFC_ASSERT(blobid!=0);
         if (!m_inmemory && m_use_txn)
-            BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+            BFC_ASSERT(ham_txn_begin(&txn, m_env, 0, 0, 0)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);

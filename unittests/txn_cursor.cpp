@@ -165,7 +165,7 @@ public:
         key.data=(void *)"hello";
         key.size=5;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -236,7 +236,7 @@ public:
         key.data=(void *)"hello";
         key.size=5;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -268,7 +268,7 @@ public:
         k.data=&buffer[0];
         k.flags=HAM_KEY_USER_ALLOC;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -294,7 +294,7 @@ public:
         ham_key_t key={0};
         ham_record_t record={0};
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -322,7 +322,7 @@ public:
         key.data=(void *)"hello";
         key.size=5;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -347,7 +347,7 @@ public:
         record.data=(void *)"hello";
         record.size=5;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -379,7 +379,7 @@ public:
         r.data=&buffer[0];
         r.flags=HAM_RECORD_USER_ALLOC;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -405,7 +405,7 @@ public:
         ham_record_t record={0};
         ham_record_t r={0};
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -431,7 +431,7 @@ public:
         ham_record_t record={0};
         ham_record_t r={0};
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -545,7 +545,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -577,7 +577,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -607,7 +607,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -648,7 +648,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -683,7 +683,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -707,8 +707,8 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -730,7 +730,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -753,7 +753,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -798,7 +798,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -825,7 +825,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -862,7 +862,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -903,7 +903,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -938,7 +938,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -962,7 +962,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -985,7 +985,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1030,7 +1030,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1057,7 +1057,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1094,7 +1094,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1147,7 +1147,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1177,7 +1177,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1198,7 +1198,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1224,8 +1224,8 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1250,7 +1250,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1280,7 +1280,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1302,7 +1302,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1322,7 +1322,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);
@@ -1353,7 +1353,7 @@ public:
 
         txn_cursor_t *cursor=((Cursor *)m_cursor)->get_txn_cursor();
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
         /* hack the cursor and attach it to the txn */
         ((Cursor *)m_cursor)->set_txn(txn);

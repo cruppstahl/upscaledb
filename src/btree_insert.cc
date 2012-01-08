@@ -321,9 +321,6 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_assert(st ? root == NULL : 1, (0));
     if (st)
         return st;
-    /* hack: prior to 2.0, the type of btree root pages was not set
-     * correctly */
-    page_set_type(root, PAGE_TYPE_B_ROOT);
 
     /* 
      * ... and start the recursion 

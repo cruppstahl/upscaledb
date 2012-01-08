@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1103,15 +1103,13 @@ typedef struct ham_txn_t ham_txn_t;
  * In order to use Transactions, the Environment has to be created or
  * opened with the flag @ref HAM_ENABLE_TRANSACTIONS.
  * 
- * Although for historical reasons @ref ham_txn_begin creates a Transaction
- * and attaches it to a Database (the second parameter is a @ref ham_db_t
- * handle), the Transaction is actually valid for the whole Environment.
- *
  * You can create as many Transactions as you want (older versions of
  * hamsterdb did not allow to create multiple parallel Transactions).
  *
  * @param txn Pointer to a pointer of a Transaction structure
- * @param db A valid Database handle
+ * @param env A valid Environment handle
+ * @param name An optional Transaction name
+ * @param reserved A reserved pointer; always set to NULL
  * @param flags Optional flags for beginning the Transaction, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
@@ -1123,10 +1121,19 @@ typedef struct ham_txn_t ham_txn_t;
  * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
  */
 HAM_EXPORT ham_status_t
-ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
+ham_txn_begin(ham_txn_t **txn, ham_env_t *env, const char *name, 
+        void *reserved, ham_u32_t flags);
 
 /** Flag for @ref ham_txn_begin */
 #define HAM_TXN_READ_ONLY                                       1
+
+/**
+ * Retrieves the Transaction name
+ *
+ * @returns NULL if the name was not assigned or if @a txn is invalid
+ */
+HAM_EXPORT const char *
+ham_txn_get_name(ham_txn_t *txn);
 
 /**
  * Commits a Transaction

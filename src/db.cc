@@ -685,7 +685,18 @@ ham_status_t
 db_alloc_page(ham_page_t **page_ref, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
-    return (db_alloc_page_impl(page_ref, db->get_env(), db, type, flags));
+    ham_status_t st;
+    st=db_alloc_page_impl(page_ref, db->get_env(), db, type, flags);
+    if (st)
+        return (st);
+
+    /* hack: prior to 2.0, the type of btree root pages was not set
+     * correctly */
+    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    if (page_get_self(*page_ref)==btree_get_rootpage(be) 
+            && !(db->get_rt_flags()&HAM_READ_ONLY))
+        page_set_type(*page_ref, PAGE_TYPE_B_ROOT);
+    return (0);
 }
 
 ham_status_t
@@ -1665,7 +1676,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
     }
 
     if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
     }
@@ -1786,7 +1797,7 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
     }
 
     if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        if ((st=txn_begin(&local_txn, env, 0)))
+        if ((st=txn_begin(&local_txn, env, 0, 0)))
             return (st);
     }
 
@@ -1875,7 +1886,7 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
+        st=txn_begin(&local_txn, env, 0, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
@@ -2007,7 +2018,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2121,7 +2132,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2205,7 +2216,7 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2385,7 +2396,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2447,7 +2458,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2516,7 +2527,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn() 
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2615,7 +2626,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
+        st=txn_begin(&local_txn, env, 0, 0);
         if (st)
             return (st);
         cursor->set_txn(local_txn);
@@ -2732,7 +2743,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         ham_txn_t *txn;
         free_cb_context_t context;
         context.db=m_db;
-        st=txn_begin(&txn, env, 0);
+        st=txn_begin(&txn, env, 0, 0);
         if (st && st2==0)
             st2=st;
         else {

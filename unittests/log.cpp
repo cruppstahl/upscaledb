@@ -39,12 +39,7 @@ using namespace bfc;
 extern "C" {
 typedef void (*hook_func_t)(void);
 extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
-extern hook_func_t g_BTREE_INSERT_SPLIT_HOOK;
 }
-
-static int split = 0;
-#define NUM_STEPS    10
-#define MAX_SPLITS    3
 
 
 class LogTest : public hamsterDB_fixture
@@ -170,7 +165,7 @@ public:
     {
         Log *log = disconnect_log_and_create_new_log();
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         ham_u8_t data[100];
         for (int i=0; i<100; i++)
@@ -189,7 +184,7 @@ public:
         BFC_ASSERT_EQUAL(true, log->is_empty());
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, log->append_write(1, 0, 0, data, sizeof(data)));
         BFC_ASSERT_EQUAL(false, log->is_empty());
 
@@ -219,7 +214,7 @@ public:
     {
         ham_txn_t *txn;
         Log *log = disconnect_log_and_create_new_log();
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         ham_u8_t buffer[1024]={0};
         BFC_ASSERT_EQUAL(0, log->append_write(1, 0, 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, log->close(true));
@@ -439,7 +434,7 @@ public:
     void createCloseOpenFullLogRecoverTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
         ham_size_t ps=env_get_pagesize(m_env);
@@ -468,7 +463,7 @@ public:
     void createCloseOpenFullLogTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
 
@@ -511,7 +506,7 @@ public:
     void createCloseOpenFullLogEnvTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
 
@@ -535,7 +530,7 @@ public:
     void createCloseOpenFullLogEnvRecoverTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
 

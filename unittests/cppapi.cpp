@@ -431,6 +431,7 @@ public:
 
     void beginAbortTest(void)
     {
+        ham::env env;
         ham::db db;
         ham::key k;
         ham::record r, out;
@@ -441,8 +442,9 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
-        txn=db.begin();
+        env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
+        db=env.create_db(1);
+        txn=env.begin();
         db.insert(&txn, &k, &r);
         txn.abort();
         try {
@@ -456,6 +458,7 @@ public:
     void beginCommitTest(void)
     {
         ham::db db;
+        ham::env env;
         ham::key k;
         ham::record r, out;
         ham::txn txn;
@@ -465,8 +468,9 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
-        txn=db.begin();
+        env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
+        db=env.create_db(1);
+        txn=env.begin();
         db.insert(&txn, &k, &r);
         txn.commit();
         out=db.find(&k);
@@ -474,6 +478,7 @@ public:
 
     void beginCursorAbortTest(void)
     {
+        ham::env env;
         ham::db db;
         ham::key k;
         ham::record r, out;
@@ -484,8 +489,9 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
-        txn=db.begin();
+        env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
+        db=env.create_db(1);
+        txn=env.begin();
         ham::cursor c(&db, &txn);
         c.insert(&k, &r);
         BFC_ASSERT_EQUAL(r.get_size(), c.get_record_size());
@@ -501,6 +507,7 @@ public:
 
     void beginCursorCommitTest(void)
     {
+        ham::env env;
         ham::db db;
         ham::key k;
         ham::record r, out;
@@ -511,8 +518,9 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
-        txn=db.begin();
+        env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
+        db=env.create_db(1);
+        txn=env.begin();
         ham::cursor c(&db, &txn);
         c.insert(&k, &r);
         c.close();

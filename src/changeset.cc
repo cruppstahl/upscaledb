@@ -89,7 +89,7 @@ Changeset::flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count)
 
         ham_assert(page_count>0, (""));
 
-        ham_status_t st=log->append_page(*it, lsn, page_count--);
+        ham_status_t st=log->append_page(*it, lsn, --page_count);
         if (st)
             return (st);
     }

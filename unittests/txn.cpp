@@ -117,7 +117,7 @@ public:
     {
         ham_txn_t *txn;
 
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_begin(&txn, m_env, 0, 0, 0)==HAM_SUCCESS);
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
@@ -125,9 +125,9 @@ public:
     {
         ham_txn_t *txn1, *txn2, *txn3;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn1));
         BFC_ASSERT_EQUAL(txn2, txn_get_newer(txn1));
@@ -160,7 +160,7 @@ public:
     {
         ham_txn_t *txn;
 
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_begin(&txn, m_env, 0, 0, 0)==HAM_SUCCESS);
         BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
     }
 
@@ -168,7 +168,7 @@ public:
     {
         ham_txn_t *txn;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(m_env, txn_get_env(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
 
@@ -203,7 +203,7 @@ public:
         ham_txn_t *txn;
         txn_optree_t *tree;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree=m_dbp->get_optree();
         BFC_ASSERT(tree!=0);
 
@@ -219,7 +219,7 @@ public:
         ham_txn_t *txn;
         txn_optree_t *tree, *tree2;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree=m_dbp->get_optree();
         BFC_ASSERT(tree!=0);
         tree2=m_dbp->get_optree();
@@ -239,7 +239,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db3));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db3, 15, 0, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree1=m_dbp->get_optree();
         tree2=((Database *)db2)->get_optree();
         tree3=((Database *)db3)->get_optree();
@@ -266,7 +266,7 @@ public:
         ham_record_t rec;
         memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree=m_dbp->get_optree();
         node=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node!=0);
@@ -307,7 +307,7 @@ public:
         ham_record_t rec;
         memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create(m_dbp, &key1);
         BFC_ASSERT(node!=0);
         node2=txn_opnode_get(m_dbp, &key1, 0);
@@ -331,7 +331,7 @@ public:
         ham_record_t rec;
         memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node1=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node1!=0);
         key.data=(void *)"2222";
@@ -359,7 +359,7 @@ public:
         record.size=5;
         memset(&next, 0, sizeof(next));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create(m_dbp, &key);
         op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
@@ -407,7 +407,7 @@ public:
         rec.data=(void *)"world";
         rec.size=5;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create(m_dbp, &key);
         op1=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);
@@ -430,8 +430,8 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     ham_insert(m_db, txn2, &key, &rec, 0));
@@ -450,8 +450,8 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> duplicate */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
@@ -471,8 +471,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * insert(T2, a, OW) -> ok */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, 
@@ -492,8 +492,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * insert(T2, a, DUP) -> ok */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, 
@@ -513,8 +513,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); abort(T1); 
          * insert(T2, a) */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn2, &key, &rec, 0));
@@ -536,8 +536,8 @@ public:
         memset(&rec2, 0, sizeof(rec2));
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); find(T2, a) -> ok */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn2, &key, &rec2, 0));
@@ -562,8 +562,8 @@ public:
         memset(&rec2, 0, sizeof(rec2));
 
         /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     ham_find(m_db, txn2, &key, &rec2, 0));
@@ -587,8 +587,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * commit(T2); find(temp, a) -> ok */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
@@ -610,8 +610,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); abort(T1); 
          * find(T2, a) -> fail */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -635,8 +635,8 @@ public:
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * find(T2, c) -> fail */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -660,7 +660,7 @@ public:
         rec.partial_size=2;
 
         /* insert partial record */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, HAM_PARTIAL));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
@@ -692,8 +692,8 @@ aber nicht)
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); erase(T2, a);
          * find(T2, a) -> fail */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn2, &key, 0));
@@ -720,8 +720,8 @@ aber nicht)
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); commit(T2);
          * erase(T3, a) -> ok; find(T2, a) -> fail */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn2, &key, 0));
@@ -746,8 +746,8 @@ aber nicht)
 
         /* begin(T1); begin(T2); insert(T1, a); abort(T1); erase(T2, a) -> fail;
          * commit(T2); */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_erase(m_db, txn2, &key, 0));
@@ -770,8 +770,8 @@ aber nicht)
 
         /* begin(T1); begin(T2); insert(T1, a); erase(T1, a); -> ok;
          * commit(T2); */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn1, &key, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -875,7 +875,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
@@ -892,7 +892,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -914,7 +914,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -937,7 +937,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
@@ -968,7 +968,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db, 1, 0, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -1002,7 +1002,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db, 1, 0, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_TXN_AUTO_COMMIT));
@@ -1034,7 +1034,7 @@ public:
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
         m_env=ham_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_find(m_db, 0, &key, &rec2, 0));
@@ -1059,7 +1059,7 @@ public:
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
         m_env=ham_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_erase(m_db, 0, &key, 0));
@@ -1118,7 +1118,7 @@ public:
         BFC_ASSERT_EQUAL(1ull, count);
 
         /* in an active txn */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(1ull, count);
         BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec2", 0));
@@ -1137,7 +1137,7 @@ public:
         BFC_ASSERT_EQUAL(2ull, count);
 
         /* in temp. txn */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec1", 0));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(3ull, count);
@@ -1163,7 +1163,7 @@ public:
         BFC_ASSERT_EQUAL(2ull, count);
 
         /* in an active txn */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(2ull, count);
         BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec3", 0));
@@ -1200,7 +1200,7 @@ public:
         BFC_ASSERT_EQUAL(2ull, count);
 
         /* in an active txn */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(2ull, count);
         BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec4", HAM_OVERWRITE));

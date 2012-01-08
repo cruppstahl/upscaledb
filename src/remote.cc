@@ -632,13 +632,13 @@ _remote_fun_env_close(Environment *env, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_txn_begin(Environment *env, Database *db, 
-                ham_txn_t **txn, ham_u32_t flags)
+_remote_fun_txn_begin(Environment *env, ham_txn_t **txn, 
+                const char *name, ham_u32_t flags)
 {
     ham_status_t st;
     proto_wrapper_t *request, *reply;
     
-    request=proto_init_txn_begin_request(db->get_remote_handle(), flags);
+    request=proto_init_txn_begin_request(name, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -657,7 +657,7 @@ _remote_fun_txn_begin(Environment *env, Database *db,
         return (st);
     }
 
-    st=txn_begin(txn, env, flags);
+    st=txn_begin(txn, env, name, flags);
     if (st)
         *txn=0;
     else

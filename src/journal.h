@@ -97,8 +97,8 @@ class Journal
     bool is_empty(void);
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(struct ham_txn_t *txn, Database *db, 
-                ham_u64_t lsn);
+    ham_status_t append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+                const char *name, ham_u64_t lsn);
 
     /** appends a journal entry for 
      * ham_txn_abort/ENTRY_TYPE_TXN_ABORT */

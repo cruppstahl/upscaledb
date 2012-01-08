@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -273,6 +273,9 @@ struct ham_txn_t
     /** owner of this transaction */
     Environment *_env;
 
+    /** the Transaction name */
+    const char *_name;
+
     /** flags for this transaction */
     ham_u32_t _flags;
 
@@ -317,6 +320,12 @@ struct ham_txn_t
 
 /** set the environment pointer */
 #define txn_set_env(txn, env)                   (txn)->_env=(env)
+
+/** get the txn name */
+#define txn_get_name(txn)                       (txn)->_name
+
+/** set the txn name */
+#define txn_set_name(txn, name)                 (txn)->_name=(name)
 
 /** get the flags */
 #define txn_get_flags(txn)                      (txn)->_flags
@@ -445,7 +454,8 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t **ptxn, Environment *env, ham_u32_t flags);
+txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, 
+                ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 

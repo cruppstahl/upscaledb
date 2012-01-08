@@ -454,7 +454,7 @@ public:
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }
 
@@ -3705,7 +3705,7 @@ public:
         /* create a second txn, insert and commit, but do not flush the 
          * first one */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_cursor_t *cursor2;
         BFC_ASSERT_EQUAL(0, 
@@ -4151,7 +4151,7 @@ public:
                     HAM_ENABLE_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
     }
 
@@ -4673,8 +4673,8 @@ public:
         ham_cursor_t *c;
 
         /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_cursor_find(c, &key, 0));
@@ -4696,8 +4696,8 @@ public:
         ham_cursor_t *c;
 
         /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
@@ -6213,7 +6213,7 @@ public:
                     HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
 
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
@@ -6299,7 +6299,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k1", "1", HAM_CURSOR_FIRST, c));
@@ -6316,7 +6316,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, move(0, 0, HAM_CURSOR_FIRST, c));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -6330,7 +6330,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k1", "1", HAM_CURSOR_LAST, c));
@@ -6348,7 +6348,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k3", "1", HAM_CURSOR_LAST, c));
@@ -6367,7 +6367,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_FIRST, c));
         BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_NEXT, c));
@@ -6388,7 +6388,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_LAST, c));
         BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_PREVIOUS, c));
@@ -6404,7 +6404,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -6422,7 +6422,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         key.size=6;
@@ -6439,7 +6439,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -6458,7 +6458,7 @@ public:
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
 
         ham_key_t key={0};
@@ -6479,7 +6479,7 @@ public:
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
 
         ham_key_t key={0};
@@ -6507,7 +6507,7 @@ public:
         /* flush the transaction to disk */
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
 
         /* verify that the duplicate was erased */

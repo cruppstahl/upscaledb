@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -265,22 +265,17 @@ Log::recover()
     env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
 
     /* first make sure that the log is complete; if not then it will not
-     * be applied */
-    while (1) {
-        /* get the next entry in the logfile */
-        st=get_entry(&it, &entry, &data);
-        if (st)
-            goto bail;
+     * be applied 
+     *
+     * get the next entry in the logfile */
+    st=get_entry(&it, &entry, &data);
+    if (st)
+        goto bail;
 
-        /* we don't need the additional memory */
-        if (data) {
-            allocator_free(env_get_allocator(m_env), data);
-            data=0;
-        }
-
-        /* reached end of the log file? */
-        if (entry.lsn==0)
-            break;
+    /* we don't need the additional memory */
+    if (data) {
+        allocator_free(env_get_allocator(m_env), data);
+        data=0;
     }
 
     if (entry.flags!=CHANGESET_IS_COMPLETE) {

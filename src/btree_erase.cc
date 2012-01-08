@@ -205,9 +205,6 @@ btree_erase_impl(ham_btree_t *be, ham_key_t *key,
         btree_stats_update_erase_fail(db, &hints);
         return st ? st : HAM_INTERNAL_ERROR;
     }
-    /* hack: prior to 2.0, the type of btree root pages was not set
-     * correctly */
-    page_set_type(root, PAGE_TYPE_B_ROOT);
 
     /* 
      * ... and start the recursion 

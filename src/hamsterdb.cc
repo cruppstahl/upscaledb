@@ -252,34 +252,42 @@ __check_recovery_flags(ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_begin(ham_txn_t **txn, ham_db_t *hdb, ham_u32_t flags)
+ham_txn_begin(ham_txn_t **txn, ham_env_t *henv, const char *name, 
+                void *reserved, ham_u32_t flags)
 {
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    *txn = NULL;
+    *txn=NULL;
 
-    if (!hdb) {
-        ham_trace(("parameter 'db' must not be NULL"));
+    if (!henv) {
+        ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    Database *db=(Database *)hdb;
-    Environment *env=db->get_env();
+    Environment *env=(Environment *)henv;
 
     if (!(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
     if (!env->_fun_txn_begin) {
         ham_trace(("Environment was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     }
 
     /* initialize the txn structure */
-    return (db->set_error(env->_fun_txn_begin(env, db, txn, flags)));
+    return (env->_fun_txn_begin(env, txn, name, flags));
+}
+
+HAM_EXPORT const char *
+ham_txn_get_name(ham_txn_t *txn)
+{
+    if (!txn)
+        return (0);
+    return (txn_get_name(txn));
 }
 
 ham_status_t

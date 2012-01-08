@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -276,8 +276,8 @@ class Environment
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(Environment *env, Database *db, 
-                ham_txn_t **txn, ham_u32_t flags);
+    ham_status_t (*_fun_txn_begin)(Environment *env, ham_txn_t **txn, 
+                const char *name, ham_u32_t flags);
 
     /**
      * aborts a transaction

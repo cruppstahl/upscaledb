@@ -1326,15 +1326,13 @@ _local_fun_open_db(Environment *env, Database *db,
     return (0);
 }
 
-static ham_status_t
-_local_fun_txn_begin(Environment *env, Database *db, 
-                    ham_txn_t **txn, ham_u32_t flags)
+static ham_status_t 
+_local_fun_txn_begin(Environment *env, ham_txn_t **txn, 
+                    const char *name, ham_u32_t flags)
 {
     ham_status_t st;
 
-    (void)db;
-
-    st=txn_begin(txn, env, flags);
+    st=txn_begin(txn, env, name, flags);
     if (st) {
         txn_free(*txn);
         *txn=0;
@@ -1347,7 +1345,7 @@ _local_fun_txn_begin(Environment *env, Database *db,
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=env_get_journal(env)->append_txn_begin(*txn, db, lsn);
+            st=env_get_journal(env)->append_txn_begin(*txn, env, name, lsn);
     }
 
     return (st);

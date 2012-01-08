@@ -308,7 +308,7 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 }
 
 ham_status_t
-txn_begin(ham_txn_t **ptxn, Environment *env, ham_u32_t flags)
+txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_txn_t *txn;
@@ -320,6 +320,11 @@ txn_begin(ham_txn_t **ptxn, Environment *env, ham_u32_t flags)
     memset(txn, 0, sizeof(*txn));
     txn_set_id(txn, env_get_txn_id(env)+1);
     txn_set_flags(txn, flags);
+    if (name) {
+        char *p=(char *)allocator_alloc(env_get_allocator(env), strlen(name)+1);
+        strcpy(p, name);
+        txn_set_name(txn, p);
+    }
     env_set_txn_id(env, txn_get_id(txn));
 
     /* link this txn with the Environment */
@@ -483,6 +488,9 @@ txn_free(ham_txn_t *txn)
 #if DEBUG
     memset(txn, 0, sizeof(*txn));
 #endif
+
+    if (txn_get_name(txn))
+        allocator_free(env_get_allocator(env), txn_get_name(txn));
 
     allocator_free(env_get_allocator(env), txn);
 }

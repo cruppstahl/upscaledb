@@ -443,7 +443,7 @@ proto_env_open_db_reply_get_db_handle(proto_wrapper_t *wrapper);
  * txn_begin request
  */
 extern proto_wrapper_t *
-proto_init_txn_begin_request(ham_u64_t dbhandle, ham_u32_t flags);
+proto_init_txn_begin_request(const char *name, ham_u32_t flags);
 
 extern ham_bool_t
 proto_has_txn_begin_request(proto_wrapper_t *wrapper);
@@ -451,8 +451,8 @@ proto_has_txn_begin_request(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_txn_begin_request_get_flags(proto_wrapper_t *wrapper);
 
-extern ham_u64_t
-proto_txn_begin_request_get_db_handle(proto_wrapper_t *wrapper);
+extern const char *
+proto_txn_begin_request_get_name(proto_wrapper_t *wrapper);
 
 /*
  * txn_begin reply

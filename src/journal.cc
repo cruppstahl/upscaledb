@@ -180,7 +180,8 @@ Journal::is_empty(void)
 }
 
 ham_status_t
-Journal::append_txn_begin(struct ham_txn_t *txn, Database *db, ham_u64_t lsn)
+Journal::append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+                const char *name, ham_u64_t lsn)
 {
     ham_status_t st;
     JournalEntry entry;
@@ -189,7 +190,6 @@ Journal::append_txn_begin(struct ham_txn_t *txn, Database *db, ham_u64_t lsn)
 
     entry.txn_id=txn_get_id(txn);
     entry.type=ENTRY_TYPE_TXN_BEGIN;
-    entry.dbname=db->get_name();
     entry.lsn=lsn;
 
     /* 
@@ -220,7 +220,11 @@ Journal::append_txn_begin(struct ham_txn_t *txn, Database *db, ham_u64_t lsn)
         txn_set_log_desc(txn, cur);
     }
 
-    st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
+    if (txn_get_name(txn))
+        st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
+                    (void *)txn_get_name(txn), strlen(txn_get_name(txn))+1);
+    else
+        st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
     if (st)
         return (st);
     m_open_txn[cur]++;
@@ -607,11 +611,7 @@ Journal::recover()
         switch (entry.type) {
         case ENTRY_TYPE_TXN_BEGIN: {
             ham_txn_t *txn;
-            Database *db;
-            st=__recover_get_db(m_env, entry.dbname, &db);
-            if (st)
-                break;
-            st=ham_txn_begin(&txn, (ham_db_t *)db, 0);
+            st=ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0);
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);

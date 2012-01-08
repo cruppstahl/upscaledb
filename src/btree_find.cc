@@ -109,9 +109,6 @@ no_fast_track:
             btree_stats_update_find_fail(db, &hints);
 			return st ? st : HAM_INTERNAL_ERROR;
         }
-        /* hack: prior to 2.0, the type of btree root pages was not set
-         * correctly */
-        page_set_type(page, PAGE_TYPE_B_ROOT);
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
         node=page_get_btree_node(page);

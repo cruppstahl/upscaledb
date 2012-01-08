@@ -235,7 +235,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[1]);
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL((ham_size_t)1, j->m_open_txn[0]);
         BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[0]);
@@ -254,7 +254,7 @@ public:
         BFC_ASSERT_EQUAL(true, j->is_empty());
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(false, j->is_empty());
         BFC_ASSERT_EQUAL((ham_u64_t)2, j->get_lsn());
         BFC_ASSERT_EQUAL((ham_size_t)1, j->m_open_txn[0]);
@@ -281,7 +281,7 @@ public:
         BFC_ASSERT_EQUAL(true, j->is_empty());
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(false, j->is_empty());
         BFC_ASSERT_EQUAL((ham_u64_t)2, j->get_lsn());
         BFC_ASSERT_EQUAL((ham_size_t)1, j->m_open_txn[0]);
@@ -312,7 +312,7 @@ public:
         key.size=5;
         rec.data=(void *)"rec1";
         rec.size=5;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         ham_u64_t lsn;
         BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
@@ -360,7 +360,7 @@ public:
         rec.size=15;
         rec.partial_size=5;
         rec.partial_offset=10;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         ham_u64_t lsn;
         BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
@@ -403,7 +403,7 @@ public:
         ham_key_t key={0};
         key.data=(void *)"key1";
         key.size=5;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         ham_u64_t lsn;
         BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
@@ -441,7 +441,7 @@ public:
         BFC_ASSERT_EQUAL(true, j->is_empty());
 
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(false, j->is_empty());
         BFC_ASSERT_EQUAL((ham_u64_t)2, j->get_lsn());
@@ -479,9 +479,9 @@ public:
         ham_txn_t *txn;
         Journal *j=disconnect_and_create_new_journal();
         BFC_ASSERT_EQUAL(1ull, j->get_lsn());
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, 
-                j->append_txn_begin(txn, (Database *)m_db, j->get_lsn()));
+                j->append_txn_begin(txn, m_env, 0, j->get_lsn()));
         BFC_ASSERT_EQUAL(0, j->close(true));
 
         BFC_ASSERT_EQUAL(0, j->open());
@@ -577,7 +577,7 @@ public:
         for (int i=0; i<5; i++) {
             // ham_txn_begin and ham_txn_abort will automatically add a 
             // journal entry
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
@@ -608,7 +608,7 @@ public:
         LogEntry vec[20];
 
         for (int i=0; i<=7; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
@@ -640,7 +640,7 @@ public:
         LogEntry vec[20];
 
         for (int i=0; i<=10; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             if (i>=5)
                 vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
@@ -681,7 +681,7 @@ public:
         unsigned p=0;
 
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id(txn));
             vec[p++]=LogEntry(1+i*2, txn_get_id(txn), 
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
@@ -712,7 +712,7 @@ public:
 
         /* create another transaction and make sure that the transaction
          * IDs and the lsn's continue seamlessly */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(6ull, txn_get_id(txn));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
@@ -730,7 +730,7 @@ public:
         /* create a couple of transaction which insert a key, and commit 
          * them */
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
@@ -785,7 +785,7 @@ public:
         /* create a couple of transaction which insert a key, but do not 
          * commit them! */
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
@@ -858,7 +858,7 @@ public:
          * first; instead, manually append the "commit" of the second
          * transaction to the journal (but not to the database!) */
         for (int i=0; i<2; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
             key.data=&i;
@@ -927,7 +927,7 @@ public:
 
         /* create two transactions with many keys that are inserted */
         for (int i=0; i<2; i++) {
-            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
             vec[p++]=LogEntry(lsn++, txn_get_id(txn[i]), 
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
         }
@@ -991,7 +991,7 @@ public:
 
         /* create a transaction with many keys that are inserted, mostly
          * duplicates */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         vec[p++]=LogEntry(lsn++, txn_get_id(txn), 
                     Journal::ENTRY_TYPE_TXN_BEGIN, 0xf000);
         for (int i=0; i<100; i++) {
@@ -1051,7 +1051,7 @@ public:
         ham_txn_t *txn;
 
         /* this one must work */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
         /* this one must fail */
         BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, ham_txn_commit(txn, 0));
 

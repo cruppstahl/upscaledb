@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -494,7 +494,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -509,7 +509,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -1160,7 +1160,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 14, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, txn, 0, &c));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
@@ -1400,7 +1400,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, HAM_TXN_AUTO_ABORT));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
