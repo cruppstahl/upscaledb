@@ -388,6 +388,8 @@ class Database
     /** initialize the database for remote use (http) */
     ham_status_t initialize_remote(void) {
 #if HAM_ENABLE_REMOTE
+        if (m_impl)
+            delete m_impl;
         m_impl=new DatabaseImplementationRemote(this);
         return (0);
 #else
