@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1229,11 +1229,12 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1close(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL 
-Java_de_crupp_hamsterdb_Database_ham_1txn_1begin(JNIEnv *jenv, jobject jobj, 
-        jlong jhandle, jint jflags)
+Java_de_crupp_hamsterdb_Environment_ham_1txn_1begin
+        (JNIEnv *jenv, jobject jobj, jlong jhandle, jint jflags)
 {
     ham_txn_t *txn;
-    ham_status_t st=ham_txn_begin(&txn, (ham_db_t *)jhandle, (ham_u32_t)jflags);
+    ham_status_t st=ham_txn_begin(&txn, (ham_env_t *)jhandle, 0, 0, 
+                        (ham_u32_t)jflags);
     if (st) {
         jni_throw_error(jenv, st);
         return ((jlong)0);

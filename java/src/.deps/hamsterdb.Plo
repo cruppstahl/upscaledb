@@ -21,12 +21,12 @@ hamsterdb.lo: hamsterdb.c /usr/include/stdlib.h /usr/include/features.h \
  /usr/include/string.h /usr/include/xlocale.h /usr/include/assert.h \
  ../../include/ham/hamsterdb_int.h ../../include/ham/hamsterdb.h \
  ../../include/ham/types.h de_crupp_hamsterdb_Cursor.h \
- /usr/lib/jvm/default-java/include/jni.h /usr/include/stdio.h \
+ /usr/lib/jvm/java-1.6.0-openjdk//include/jni.h /usr/include/stdio.h \
  /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  /usr/lib/gcc/i686-linux-gnu/4.6.1/include/stdarg.h \
  /usr/include/i386-linux-gnu/bits/stdio_lim.h \
  /usr/include/i386-linux-gnu/bits/sys_errlist.h \
- /usr/lib/jvm/default-java/include/jni_md.h \
+ /usr/lib/jvm/java-1.6.0-openjdk//include/jni_md.h \
  de_crupp_hamsterdb_DatabaseException.h de_crupp_hamsterdb_Database.h \
  de_crupp_hamsterdb_Environment.h
 
@@ -92,7 +92,7 @@ hamsterdb.lo: hamsterdb.c /usr/include/stdlib.h /usr/include/features.h \
 
 de_crupp_hamsterdb_Cursor.h:
 
-/usr/lib/jvm/default-java/include/jni.h:
+/usr/lib/jvm/java-1.6.0-openjdk//include/jni.h:
 
 /usr/include/stdio.h:
 
@@ -108,7 +108,7 @@ de_crupp_hamsterdb_Cursor.h:
 
 /usr/include/i386-linux-gnu/bits/sys_errlist.h:
 
-/usr/lib/jvm/default-java/include/jni_md.h:
+/usr/lib/jvm/java-1.6.0-openjdk//include/jni_md.h:
 
 de_crupp_hamsterdb_DatabaseException.h:
 

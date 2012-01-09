@@ -123,6 +123,7 @@ o API changes for 2.0.0
     o update java wrapper
 hier geht's weiter; javah wurde geupdated, jetzt src neu compilieren und 
 alle fehler fixen
+    javah-erzeugte dateien sind nicht in git; sollten sie rein?
 ================>
     o update .net wrapper
     o rewrite auto-abort/auto-commit -> move to env

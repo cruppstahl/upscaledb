@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,13 +16,13 @@ import junit.framework.TestCase;
 public class TransactionTest extends TestCase {
 
     public void testBeginAbort() {
-        Database db=new Database();
+        Environment env=new Environment();
         Transaction txn;
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
-            txn=db.begin();
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            txn=env.begin();
             txn.abort();
-            db.close();
+            env.close();
         }
         catch (DatabaseException err) {
             fail("Exception "+err);
@@ -32,11 +32,13 @@ public class TransactionTest extends TestCase {
     public void testBeginInsertAbort() {
         byte[] k=new byte[5];
         byte[] r=new byte[5];
-        Database db=new Database();
+        Environment env=new Environment();
+        Database db;
         Transaction txn;
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
-            txn=db.begin();
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            db=env.createDatabase((short)1);
+            txn=env.begin();
             db.insert(txn, k, r);
             db.find(txn, k); // ok
             txn.abort();
@@ -47,6 +49,7 @@ public class TransactionTest extends TestCase {
                 assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
             }    
             db.close();
+            env.close();
         }
         catch (DatabaseException err) {
             fail("Exception "+err);
@@ -56,17 +59,18 @@ public class TransactionTest extends TestCase {
     public void testBeginEraseAbort() {
         byte[] k=new byte[5];
         byte[] r=new byte[5];
-        Database db=new Database();
+        Environment env=new Environment();
         Transaction txn;
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            Database db=env.createDatabase((short)1);
             db.insert(k, r);
-            txn=db.begin();
+            txn=env.begin();
             // db.find(k); // ok, but why? -> LIMITS_REACHED???
             db.erase(txn, k);
             txn.abort();
             //db.find(k); // XXX throws KEY_NOT_FOUND - why??? 
-            db.close();
+            env.close();
         }
         catch (DatabaseException err) {
             fail("Exception "+err);
@@ -74,13 +78,13 @@ public class TransactionTest extends TestCase {
     }
 
     public void testBeginCommit() {
-        Database db=new Database();
+        Environment env=new Environment();
         Transaction txn;
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
-            txn=db.begin();
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            txn=env.begin();
             txn.commit();
-            db.close();
+            env.close();
         }
         catch (DatabaseException err) {
             fail("Exception "+err);
@@ -90,16 +94,17 @@ public class TransactionTest extends TestCase {
     public void testBeginInsertCommit() {
         byte[] k=new byte[5];
         byte[] r=new byte[5];
-        Database db=new Database();
+        Environment env=new Environment();
         Transaction txn;
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
-            txn=db.begin();
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            Database db=env.createDatabase((short)1);
+            txn=env.begin();
             db.insert(txn, k, r);
             db.find(txn, k); // ok
             txn.commit();
             db.find(k); // ok
-            db.close();
+            env.close();
         }
         catch (DatabaseException err) {
             fail("Exception "+err);
@@ -107,13 +112,14 @@ public class TransactionTest extends TestCase {
     }
 
     public void testCursor() {
-        Database db=new Database();
+        Environment env=new Environment();
         Transaction txn;
         byte[] key=new byte[10];
         byte[] record=new byte[10];
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
-            txn=db.begin();
+            env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+            Database db=env.createDatabase((short)1);
+            txn=env.begin();
             Cursor c=new Cursor(db, txn);
             db.insert(txn, key, record);
             c.moveFirst();
