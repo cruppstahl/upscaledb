@@ -676,6 +676,33 @@ namespace Hamster
         }
 
         /// <summary>
+        /// Begins a new Transaction
+        /// </summary>
+        public Transaction Begin()
+        {
+            return Begin(0);
+        }
+
+        /// <summary>
+        /// Begins a new Transaction
+        /// </summary>
+        /// <remarks>
+        /// This method wraps the native ham_txn_begin function.
+        /// </remarks>
+        public Transaction Begin(int flags)
+        {
+            int st;
+            IntPtr txnh;
+            lock (this)
+            {
+                st = NativeMethods.TxnBegin(out txnh, handle, null, null, flags);
+            }
+            if (st != 0)
+                throw new DatabaseException(st);
+            return new Transaction(this, txnh);
+        }
+
+        /// <summary>
         /// Closes the Environment
         /// </summary>
         /// <remarks>

@@ -2757,7 +2757,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /*
      * flush all pages of this database (but not the header page,
-     * it's still required and will be flushed below
+     * it's still required and will be flushed below)
      */
     if (env && env_get_cache(env)) {
         ham_page_t *n, *head=env_get_cache(env)->get_totallist();
@@ -2808,7 +2808,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /*
      * environment: move the ownership to another database.
-     * it's possible that there's no other page, then set the 
+     * it's possible that there's no other database, then set the 
      * ownership to 0
      */
     if (env) {

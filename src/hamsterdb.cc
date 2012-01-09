@@ -2747,7 +2747,6 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
 
     /*
      * auto-abort (or commit) all pending transactions
-     * TODO really needed here? it's enough if this is handled in ham_env_close!
      */
     if (env && env_get_newest_txn(env)) {
         ham_txn_t *n, *t=env_get_newest_txn(env);

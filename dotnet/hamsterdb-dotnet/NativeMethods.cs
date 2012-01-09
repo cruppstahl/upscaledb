@@ -142,18 +142,15 @@ namespace Hamster
         static public extern int EnvEnableEncryption(IntPtr handle,
                 byte[] aesKey, int flags);
 
-// TODO this is new
         [DllImport("hamsterdb-2.0.0.rc4.dll", EntryPoint = "ham_txn_begin",
            CallingConvention = CallingConvention.Cdecl)]
-        static public extern int TxnBegin(out IntPtr txnhandle, IntPtr dbhandle,
-                int flags);
+        static public extern int TxnBegin(out IntPtr txnhandle, IntPtr envhandle,
+                String filename, IntPtr reserved, int flags);
 
-// TODO this is new
         [DllImport("hamsterdb-2.0.0.rc4.dll", EntryPoint = "ham_txn_commit",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int TxnCommit(IntPtr handle, int flags);
 
-// TODO this is new
         [DllImport("hamsterdb-2.0.0.rc4.dll", EntryPoint = "ham_txn_abort",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int TxnAbort(IntPtr handle, int flags);

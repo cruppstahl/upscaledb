@@ -255,6 +255,7 @@ Log::recover()
     ham_u8_t *data=0;
     ham_offset_t filesize;
     ham_file_filter_t *head=0;
+    bool first_loop=true;
 
     /* get the file size of the database; otherwise we do not know if we
      * modify an existing page or if one of the pages has to be allocated */
@@ -265,33 +266,12 @@ Log::recover()
     /* temporarily disable logging */
     env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
 
-    /* first make sure that the log is complete; if not then it will not
-     * be applied 
-     *
-     * get the next entry in the logfile */
-    st=get_entry(&it, &entry, &data);
-    if (st)
-        goto bail;
-
-    /* we don't need the additional memory */
-    if (data) {
-        allocator_free(env_get_allocator(m_env), data);
-        data=0;
-    }
-
-    if (entry.flags!=CHANGESET_IS_COMPLETE) {
-        ham_log(("log is incomplete and will be ignored"));
-        goto clear;
-    }
-
     /* disable file filters - the logged pages were already filtered */
     head=env_get_file_filter(m_env);
     if (head)
         env_set_file_filter(m_env, 0);
 
     /* now start the loop once more and apply the log */
-    it=0;
-
     while (1) {
         /* clean up memory of the previous loop */
         if (data) {
@@ -303,6 +283,16 @@ Log::recover()
         st=get_entry(&it, &entry, &data);
         if (st)
             goto bail;
+
+        /* first make sure that the log is complete; if not then it will not
+         * be applied  */
+        if (first_loop) {
+            if (entry.flags!=CHANGESET_IS_COMPLETE) {
+                ham_log(("log is incomplete and will be ignored"));
+                goto clear;
+            }
+            first_loop=false;
+        }
 
         /* reached end of the log file? */
         if (entry.lsn==0)

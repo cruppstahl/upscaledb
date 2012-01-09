@@ -119,19 +119,20 @@ o API changes for 2.0.0
         x needs unittest to check the name
     x recovery: re-create txn name
         x needs unittests
-================>
-    o update java wrapper
-hier geht's weiter; javah wurde geupdated, jetzt src neu compilieren und 
-alle fehler fixen
-    javah-erzeugte dateien sind nicht in git; sollten sie rein?
-================>
+    x update java wrapper
+    x need to increase libtool version!
+    x the first loop in log::recover can be merged with the 2nd one
+    x run unittests with valgrind
     o update .net wrapper
-    o rewrite auto-abort/auto-commit -> move to env
-    o need to increase libtool version!
-    o the first loop in log::recover can be merged with the 2nd one
-    o what happens if a database is closed, but it's modified by a txn
-        that is still active? -> error (verify this!)
-    o run unittests with valgrind
+        ==> started, but needs to be finished on windows
+
+o transactions now belong to the Environment, not to the Database
+    o ham_close: if a database is closed, but it's modified by a txn
+        that is still active -> error
+        o walk through txn-tree and check if any txn_op_t is from an 
+            active txn
+        o needs unittest
+    o ham_close: do no longer AUTO_COMMIT/AUTO_ABORT (unless DB_IS_PRIVATE)
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs

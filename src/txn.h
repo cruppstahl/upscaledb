@@ -198,7 +198,7 @@ typedef struct txn_opnode_t
     /** this is the key which is modified */
     ham_key_t _key;
 
-    /** the parent key */
+    /** the parent tree */
     struct txn_optree_t *_tree;
 
     /** the linked list of operations - head is oldest operation */
