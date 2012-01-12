@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -796,6 +796,7 @@ public:
         BFC_REGISTER_TEST(HighLevelTxnTest, noPersistentDatabaseFlagTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, noPersistentEnvironmentFlagTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, cursorStillOpenTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, txnStillOpenTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, clonedCursorStillOpenTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, autoAbortDatabaseTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, autoCommitDatabaseTest);
@@ -884,6 +885,31 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
+    void txnStillOpenTest(void)
+    {
+        ham_env_t *env;
+
+        ham_env_new(&env);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS, 0644));
+
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 1, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_TRANSACTION_STILL_OPEN, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
     void clonedCursorStillOpenTest(void)
     {
         ham_txn_t *txn;
@@ -964,15 +990,18 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
-                    HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db, 1, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, txn, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 1, 0, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 

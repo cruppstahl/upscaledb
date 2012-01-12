@@ -86,8 +86,6 @@ public:
             m_cursor=0;
         }
         BFC_ASSERT_EQUAL(0, 
-                    ham_close(m_db, HAM_TXN_AUTO_COMMIT|HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, 
                     ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);

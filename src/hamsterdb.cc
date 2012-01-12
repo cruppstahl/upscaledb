@@ -379,6 +379,9 @@ ham_strerror(ham_status_t result)
             return ("Record filter or file filter not found");
         case HAM_TXN_CONFLICT:
             return ("Operation conflicts with another Transaction");
+        case HAM_TRANSACTION_STILL_OPEN:
+            return ("Database cannot be closed because it is modified in a "
+                    "Transaction");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         case HAM_DATABASE_NOT_FOUND:
@@ -1582,7 +1585,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 {
     Environment *env=(Environment *)henv;
     ham_status_t st;
-    ham_status_t st2 = HAM_SUCCESS;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -1595,18 +1597,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 
     /* make sure that the changeset is empty */
     ham_assert(env_get_changeset(env).is_empty(), (""));
-
-    /* close all databases?  */
-    if (env_get_list(env)) {
-        Database *db=env_get_list(env);
-        while (db) {
-            Database *next=db->get_next();
-            st=ham_close((ham_db_t *)db, flags);
-            if (!st2) st2 = st;
-            db=next;
-        }
-        env_set_list(env, 0);
-    }
 
     /* auto-abort (or commit) all pending transactions */
     if (env && env_get_newest_txn(env)) {
@@ -1628,7 +1618,23 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
             }
             t=n;
         }
+        // make sure all Transactions are flushed
+        env_flush_committed_txns(env);
     }
+
+    /* close all databases?  */
+    if (env_get_list(env)) {
+        Database *db=env_get_list(env);
+        while (db) {
+            Database *next=db->get_next();
+            st=ham_close((ham_db_t *)db, flags);
+            if (st)
+                return (st);
+            db=next;
+        }
+        env_set_list(env, 0);
+    }
+
 
     /*
      * flush all transactions
@@ -2732,6 +2738,25 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (!(*db)())
         return (0);
 
+    /* check if this database is modified by an active transaction */
+    txn_optree_t *tree=db->get_optree();
+    if (tree && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE)) {
+        txn_opnode_t *node=txn_tree_get_first(tree);
+        while (node) {
+            txn_op_t *op=txn_opnode_get_newest_op(node);
+            while (op) {
+                ham_u32_t f=txn_get_flags(txn_op_get_txn(op));
+                if (!((f&TXN_STATE_COMMITTED) || (f&TXN_STATE_ABORTED))) {
+                    ham_trace(("cannot close a Database that is modified by "
+                               "a currently active Transaction"));
+                    return (HAM_TRANSACTION_STILL_OPEN);
+                }
+                op=txn_op_get_previous_in_node(op);
+            }
+            node=txn_opnode_get_next_sibling(node);
+        }
+    }
+
     env=db->get_env();
 
     /*
@@ -2745,10 +2770,9 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         }
     }
 
-    /*
-     * auto-abort (or commit) all pending transactions
-     */
-    if (env && env_get_newest_txn(env)) {
+    /* auto-abort (or commit) all pending transactions */
+    if (env && env_get_newest_txn(env) 
+            && db->get_rt_flags(true)&DB_ENV_IS_PRIVATE) {
         ham_txn_t *n, *t=env_get_newest_txn(env);
         while (t) {
             n=txn_get_older(t);
@@ -2771,9 +2795,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
 
     db->set_error(0);
     
-    /*
-     * the function pointer will do the actual implementation
-     */
+    /* the function pointer will do the actual implementation */
     st=(*db)()->close(flags);
     if (st)
         return (db->set_error(st));
@@ -2782,9 +2804,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     (void)db->resize_record_allocdata(0);
     (void)db->resize_key_allocdata(0);
 
-    /*
-     * remove this database from the environment
-     */
+    /* remove this database from the environment */
     if (env) {
         Database *prev=0;
         Database *head=env_get_list(env);

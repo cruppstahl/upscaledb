@@ -371,6 +371,8 @@ typedef struct {
 #define HAM_TXN_CONFLICT             (-31)
 /* internal use: key was erased in a Transaction */
 #define HAM_KEY_ERASED_IN_TXN        (-32)
+/** Database cannot be closed because it is modified in a Transaction */
+#define HAM_TRANSACTION_STILL_OPEN   (-33)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */

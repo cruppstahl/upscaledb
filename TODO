@@ -107,7 +107,7 @@ x improve journalling and get rid of the physical log as much as possible
     x add to makefile and release.sh
     x performance tests 
 
-o API changes for 2.0.0
+x API changes for 2.0.0
     x update C++ API
     x ham_delete should always return 0 - document this (or change interface)
     x ham_txn_begin receives Environment handle, not Database handle
@@ -123,19 +123,31 @@ o API changes for 2.0.0
     x need to increase libtool version!
     x the first loop in log::recover can be merged with the 2nd one
     x run unittests with valgrind
-    o update .net wrapper
-        ==> started, but needs to be finished on windows
 
 o transactions now belong to the Environment, not to the Database
     o ham_close: if a database is closed, but it's modified by a txn
         that is still active -> error
-        o walk through txn-tree and check if any txn_op_t is from an 
-            active txn
+        x walk through txn-tree and check if any txn_op_t is from an active txn
+        x needs unittest
+        o needs new error code, also for wrapper APIs and documentation!
+            -> document this process: what to do if there's a new error code?
+    x ham_close: do no longer AUTO_COMMIT/AUTO_ABORT (unless DB_IS_PRIVATE)
+    o if DB_IS_PRIVATE: do not allow ham_env_create_db, ham_env_open_db
         o needs unittest
-    o ham_close: do no longer AUTO_COMMIT/AUTO_ABORT (unless DB_IS_PRIVATE)
+    o document this!
+    o what about AUTO_ABORT and AUTO_COMMIT? they no longer exist??
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
+
+o API changes for 2.0.0
+    o update .net wrapper
+        ==> started, but needs to be finished on windows
+
+o debug into test and make sure that a normal insert really does not
+    use the log
+
+o run test_recovery without journal (only HAM_ENABLE_RECOVERY)
 
 o webpage
     x show samples of both branches (really? they did not change!) - no
@@ -143,12 +155,14 @@ o webpage
     x link cloud: replace "forum" with "support"
     x /index/forum should forward to /index/support
     x store: have a big fat red "buy now" button
+    x footer: change copyright to 2012
+    x update license terms
     o download page: document the differences between the two versions and
         which one to choose
     o "sources" page: show that the wrappers are for version 1 
         (or simply remove them)
+    o create a comparison table of the old and new version
     o make a backup of the old forum
-    o footer: change copyright to 2012
 
 o document how to optimize for performance
     o with transactions: try not to use duplicates
@@ -160,11 +174,9 @@ o update the tutorial
 
 o mail an Tony B, Curt M., andere
 
-. change all copyright strings to 2012 (also on webpage!)
+. change all copyright strings to 2012
 
 . android port (needs new java api) in /contrib directory
-
-. iOS port - try to include in main branch
 
 . some functions need a new namespace
     o db_free_page -> env?
@@ -190,20 +202,6 @@ o mail an Tony B, Curt M., andere
 
 . implement support for partial keys?
 
-. ./test --use-transactions=10 ../../testfiles/4/blb-002.tst
-    fails with an assert if disk is full; need to make sure that recovery 
-    works fine in such cases, i.e. with an ErrorInducer
-
-    os_posix.cc[221]: pwrite() failed with status 28 (No space left on device)
-    env.cc[1606]: failed to flush op: -18
-    ASSERT FAILED in file env.cc, line 1519:
-        "txn_op_get_flags(op)!=TXN_OP_FLUSHED"
-    db[0]: txn_begin failed w/ status -18
-
-. more requirements for recovery and transactions
-    . recovery: recreate all pending transactions (if requested)
-    . api function to get a list of pending transactions after recovery
-
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly
 
@@ -215,11 +213,6 @@ o mail an Tony B, Curt M., andere
         txn_cursor.c:cursor_overwrite
     o move to a separate function
     o try to optimize
-
-. improve the changeset
-    o clear must be O(1)
-    o store in std::vector
-    o store page->changeset_id: lsn when changeset is created
 
 . hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
     functor or class w/ operator() instead
