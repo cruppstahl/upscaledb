@@ -372,7 +372,7 @@ typedef struct {
 /* internal use: key was erased in a Transaction */
 #define HAM_KEY_ERASED_IN_TXN        (-32)
 /** Database cannot be closed because it is modified in a Transaction */
-#define HAM_TRANSACTION_STILL_OPEN   (-33)
+#define HAM_TXN_STILL_OPEN           (-33)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
@@ -1106,7 +1106,7 @@ typedef struct ham_txn_t ham_txn_t;
  * opened with the flag @ref HAM_ENABLE_TRANSACTIONS.
  * 
  * You can create as many Transactions as you want (older versions of
- * hamsterdb did not allow to create multiple parallel Transactions).
+ * hamsterdb did not allow to create more than one Transaction in parallel).
  *
  * @param txn Pointer to a pointer of a Transaction structure
  * @param env A valid Environment handle
@@ -2283,6 +2283,8 @@ ham_key_get_approximate_match_type(ham_key_t *key);
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
  * @return @ref HAM_CURSOR_STILL_OPEN if not all Cursors of this Database
  *      were closed, and @ref HAM_AUTO_CLEANUP was not specified
+ * @return @ref HAM_TXN_STILL_OPEN if this Database is modified by a 
+ *      currently active Transaction
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_close(ham_db_t *db, ham_u32_t flags);

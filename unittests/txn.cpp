@@ -903,7 +903,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 1, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_TRANSACTION_STILL_OPEN, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_TXN_STILL_OPEN, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));

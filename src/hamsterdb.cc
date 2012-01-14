@@ -379,7 +379,7 @@ ham_strerror(ham_status_t result)
             return ("Record filter or file filter not found");
         case HAM_TXN_CONFLICT:
             return ("Operation conflicts with another Transaction");
-        case HAM_TRANSACTION_STILL_OPEN:
+        case HAM_TXN_STILL_OPEN:
             return ("Database cannot be closed because it is modified in a "
                     "Transaction");
         case HAM_CURSOR_IS_NIL:
@@ -1167,15 +1167,16 @@ ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'env' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-
-    /*
-     * make sure that this database is not yet open/created
-     */
+    if (env->is_private()) {
+        ham_trace(("Environment was not properly created with ham_env_create, "
+                   "ham_env_open"));
+        return (db->set_error(HAM_INV_PARAMETER));
+    }
+    /* make sure that this database is not yet open/created */
     if (db->is_active()) {
         ham_trace(("parameter 'db' is already initialized"));
         return (db->set_error(HAM_DATABASE_ALREADY_OPEN));
     }
-
     if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME 
             && dbname!=HAM_DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
@@ -1212,7 +1213,11 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'env' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-
+    if (env->is_private()) {
+        ham_trace(("Environment was not properly created with ham_env_create, "
+                   "ham_env_open"));
+        return (db->set_error(HAM_INV_PARAMETER));
+    }
     if (!dbname) {
         ham_trace(("parameter 'dbname' must not be 0"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -1234,9 +1239,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    /*
-     * the function handler will do the rest
-     */
+    /* the function handler will do the rest */
     st=env->_fun_open_db(env, db, dbname, flags, param);
     if (st)
         return (st);
@@ -1574,9 +1577,7 @@ ham_env_flush(ham_env_t *henv, ham_u32_t flags)
         return (HAM_NOT_INITIALIZED);
     }
 
-    /*
-     * flush the Environment
-     */
+    /* flush the Environment */
     return (env->_fun_flush(env, flags));
 }
 
@@ -1648,7 +1649,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
      * when all transactions have been properly closed... 
      */
     if (env_is_active(env) && env_get_oldest_txn(env)) {
-        //st2 = HAM_TRANSACTION_STILL_OPEN;
+        //st2 = HAM_TXN_STILL_OPEN;
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs", (0));
         return (HAM_INTERNAL_ERROR);
@@ -1785,9 +1786,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     db_param[0].value=dam;
     db_param[1].name=0;
 
-    /*
-     * now open the Database in this Environment
-     */
+    /* now open the Database in this Environment */
     st=ham_env_open_db(env, (ham_db_t *)db, dbname, flags, db_param);
     if (st)
         goto bail;
@@ -1912,9 +1911,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     db_param[1].value=dam;
     db_param[2].name=0;
 
-    /*
-     * now create the Database
-     */
+    /* now create the Database */
     st=ham_env_create_db(env, (ham_db_t *)db, 
             HAM_DEFAULT_DATABASE_NAME, flags, db_param);
     if (st)
@@ -2749,7 +2746,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
                 if (!((f&TXN_STATE_COMMITTED) || (f&TXN_STATE_ABORTED))) {
                     ham_trace(("cannot close a Database that is modified by "
                                "a currently active Transaction"));
-                    return (HAM_TRANSACTION_STILL_OPEN);
+                    return (HAM_TXN_STILL_OPEN);
                 }
                 op=txn_op_get_previous_in_node(op);
             }

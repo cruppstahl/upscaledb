@@ -208,6 +208,10 @@ class Environment
 	 */
 	ham_runtime_statistics_globdata_t _perf_data;
 
+    /** returns true if this Environment is private to a Database 
+     * (was implicitly created in ham_create/ham_open) */
+    bool is_private();
+
     /*
      * following here: function pointers which implement access to 
      * local or remote databases. they are initialized in ham_env_create_ex

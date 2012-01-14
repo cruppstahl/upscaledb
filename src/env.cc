@@ -73,8 +73,21 @@ Environment::Environment()
 	destroy=0;
 }
 
+bool 
+Environment::is_private()
+{
+    // must have exactly 1 database with the ENV_IS_PRIVATE flag
+    if (!env_get_list(this))
+        return (false);
+    
+    Database *db=env_get_list(this);
+    if (db->get_next())
+        return (false);
+    return (db->get_rt_flags()&DB_ENV_IS_PRIVATE);
+}
+
 /* 
- * forward decl - implemented in hamsterdb.c 
+ * forward decl - implemented in hamsterdb.cc
  */
 extern ham_status_t 
 __check_create_parameters(Environment *env, Database *db, const char *filename, 

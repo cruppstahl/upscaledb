@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -103,6 +103,9 @@ public class Const {
 
     /** Operation conflicts with another Transaction */
 	public final static int HAM_TXN_CONFLICT             		=	   -31;
+
+    /** Database cannot be closed because it is modified in a Transaction */
+	public final static int HAM_TXN_STILL_OPEN           		=	   -33;
 
     /** Cursor does not point to a valid item */
 	public final static int HAM_CURSOR_IS_NIL           		=	  -100;

@@ -79,6 +79,10 @@ namespace Hamster
         public const int HAM_CURSOR_STILL_OPEN              		=      	   -29;
         /// <summary>Record filter or file filter not found</summary>
         public const int HAM_FILTER_NOT_FOUND               		=      	   -30;
+        /// <summary>Operation conflicts with another Transaction</summary>
+        public const int HAM_TXN_CONFLICT                   		=      	   -31;
+        /// <summary>Database cannot be closed because it is modified in a Transaction</summary>
+        public const int HAM_TXN_STIL_OPEN                  		=      	   -33;
         /// <summary>Cursor does not point to a valid item</summary>
 	    public const int HAM_CURSOR_IS_NIL           		=	  -100;
         /// <summary>Database not found</summary>

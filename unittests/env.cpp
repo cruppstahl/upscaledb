@@ -80,6 +80,7 @@ public:
         BFC_REGISTER_TEST(EnvTest, maxDatabasesReopenTest);
         BFC_REGISTER_TEST(EnvTest, createOpenEmptyTest);
         BFC_REGISTER_TEST(EnvTest, setDeviceTest);
+        BFC_REGISTER_TEST(EnvTest, createOpenPrivateTest);
     }
 
 protected:
@@ -1835,6 +1836,26 @@ protected:
         delete env; /* don't use ham_env_delete, because it tries to 
                      * access the device pointer (which is invalid
                      * in this test */
+    }
+
+    void createOpenPrivateTest(void)
+    {
+        ham_db_t *db;
+        ham_db_t *db2;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+
+        BFC_ASSERT_EQUAL(0,
+                ham_create(db, BFC_OPATH(".test"), m_flags, 0664));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_db(ham_get_env(db), db2, 3, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_db(ham_get_env(db), db2, 3, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+        ham_delete(db2);
     }
 };
 

@@ -124,21 +124,17 @@ x API changes for 2.0.0
     x the first loop in log::recover can be merged with the 2nd one
     x run unittests with valgrind
 
-o transactions now belong to the Environment, not to the Database
-    o ham_close: if a database is closed, but it's modified by a txn
+x transactions now belong to the Environment, not to the Database
+    x ham_close: if a database is closed, but it's modified by a txn
         that is still active -> error
         x walk through txn-tree and check if any txn_op_t is from an active txn
         x needs unittest
-        o needs new error code, also for wrapper APIs and documentation!
+        x needs new error code, also for wrapper APIs and documentation!
             -> document this process: what to do if there's a new error code?
     x ham_close: do no longer AUTO_COMMIT/AUTO_ABORT (unless DB_IS_PRIVATE)
-    o if DB_IS_PRIVATE: do not allow ham_env_create_db, ham_env_open_db
-        o needs unittest
-    o document this!
-    o what about AUTO_ABORT and AUTO_COMMIT? they no longer exist??
-
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
+    x if DB_IS_PRIVATE: do not allow ham_env_create_db, ham_env_open_db
+        x needs unittest
+    x document this!
 
 o API changes for 2.0.0
     o update .net wrapper
@@ -148,6 +144,9 @@ o debug into test and make sure that a normal insert really does not
     use the log
 
 o run test_recovery without journal (only HAM_ENABLE_RECOVERY)
+
+o test with lessfs (and add lessfs to the monster testsuite)
+    o test with reboots - like those that made problems with lessfs
 
 o webpage
     x show samples of both branches (really? they did not change!) - no
