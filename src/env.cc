@@ -687,7 +687,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
         env_get_changeset(env).add_page(env_get_header_page(env));
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=env_get_changeset(env).flush(lsn);
+            st=env_get_changeset(env).flush(lsn, true);
     }
 
     /* clean up and return */
@@ -1142,7 +1142,7 @@ bail:
         env_get_changeset(env).add_page(env_get_header_page(env));
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=env_get_changeset(env).flush(lsn);
+            st=env_get_changeset(env).flush(lsn, true);
     }
 
     return (st);

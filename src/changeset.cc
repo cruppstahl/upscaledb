@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -77,7 +77,7 @@ Changeset::clear(void)
 }
 
 ham_status_t
-Changeset::flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) 
+Changeset::log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) 
 {
     for (bucket::iterator it=b.begin(); it!=b.end(); ++it) {
         ham_assert(page_is_dirty(*it), (""));
@@ -98,7 +98,7 @@ Changeset::flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count)
 }
 
 ham_status_t
-Changeset::flush(ham_u64_t lsn)
+Changeset::flush(ham_u64_t lsn, bool header_is_index /* = false */)
 {
     ham_status_t st;
     ham_page_t *n, *p=m_head;
@@ -120,20 +120,32 @@ Changeset::flush(ham_u64_t lsn)
             continue;
         }
 
-        switch (page_get_type(p)) {
-          case PAGE_TYPE_BLOB:
-            m_blobs.push_back(p);
-            break;
-          case PAGE_TYPE_B_ROOT:
-          case PAGE_TYPE_B_INDEX:
+        if (page_get_self(p)==0 && header_is_index) {
             m_indices.push_back(p);
-            break;
-          case PAGE_TYPE_FREELIST:
+        }
+        else if (page_get_self(p)==0 && !header_is_index) {
             m_freelists.push_back(p);
-            break;
-          default:
-            m_others.push_back(p);
-            break;
+        }
+        else if (page_get_npers_flags(p)&PAGE_NPERS_NO_HEADER) {
+            m_blobs.push_back(p);
+        }
+        else {
+            switch (page_get_type(p)) {
+              case PAGE_TYPE_BLOB:
+                m_blobs.push_back(p);
+                break;
+              case PAGE_TYPE_B_ROOT:
+              case PAGE_TYPE_B_INDEX:
+              case PAGE_TYPE_HEADER:
+                m_indices.push_back(p);
+                break;
+              case PAGE_TYPE_FREELIST:
+                m_freelists.push_back(p);
+                break;
+              default:
+                m_others.push_back(p);
+                break;
+            }
         }
         page_count++;
         p=n;
@@ -156,13 +168,13 @@ Changeset::flush(ham_u64_t lsn)
     // otherwise skip blobs and freelists because they're idempotent (albeit
     // it's possible that some data is lost, but that's no big deal)
     if (m_others.size() || m_indices.size()>1) {
-        if ((st=flush_bucket(m_blobs, lsn, page_count)))
+        if ((st=log_bucket(m_blobs, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(m_freelists, lsn, page_count)))
+        if ((st=log_bucket(m_freelists, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(m_indices, lsn, page_count)))
+        if ((st=log_bucket(m_indices, lsn, page_count)))
             return (st);
-        if ((st=flush_bucket(m_others, lsn, page_count)))
+        if ((st=log_bucket(m_others, lsn, page_count)))
             return (st);
     }
 

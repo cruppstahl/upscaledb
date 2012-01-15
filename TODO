@@ -136,16 +136,24 @@ x transactions now belong to the Environment, not to the Database
         x needs unittest
     x document this!
 
-==============>
-o debug into test and make sure that a normal insert really does not
+x debug into test and make sure that a normal insert really does not
     use the log
-    o Seems that it is NOT working correctly; most pages are stored in 
-        "others"
-    o also, the monster test did not use the ham_parameter_t array
-        in ham_env_open_ex/ham_env_create_ex
-    o fix these two items above, then re-run the recovery tests and
+    x Seems that it is NOT working correctly; most pages are stored in 
+        the bucket "others"
+    x also, the monster test did not use the ham_parameter_t array
         the monster test suite
-==============>
+
+x Changeset::flush()
+    x currently everything is logged if blobs.size()>1 - revert
+    x rename flush_bucket to log_bucket
+    x run recovery-tests
+
+x Changeset::flush(lsn, bool force=false)
+    x force=true setzen wenn die hdr-page modifiziert wird (ohne freelist!)
+        -> page is stored in "index" bucket
+    x force=false setzen wenn nur die hdr-page der freelist modifiziert wurde 
+        -> page is stored in "freelist" bucket
+    x recovery-tests!
 
 o API changes for 2.0.0
     o update .net wrapper

@@ -114,7 +114,11 @@ sub extended_duplicate_test {
     }
 }
 
+print "----------------------------\nsimple_test\n";
 simple_test();
+print "----------------------------\nextended_test\n";
 extended_test();
+print "----------------------------\nduplicate_test\n";
 duplicate_test();
+print "----------------------------\nextended_duplicate_test\n";
 extended_duplicate_test();

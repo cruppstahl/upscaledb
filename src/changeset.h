@@ -44,9 +44,7 @@ class Changeset
         return (m_head==0);
     }
 
-    /**
-     * append a new page to the changeset
-     */
+    /** append a new page to the changeset */
     void add_page(ham_page_t *page);
 
     /**
@@ -55,29 +53,30 @@ class Changeset
      */
     ham_page_t *get_page(ham_offset_t pageid);
 
-    /**
-     * removes all pages from the changeset
-     */
-    void clear(void);
+    /** removes all pages from the changeset */
+    void clear();
 
     /**
      * flush all pages in the changeset - first write them to the log, then 
      * write them to the disk
      *
+     * if header_is_index is true everything will be logged if the header page
+     * is part of the changeset.
+     *
      * on success: will clear the changeset and the log 
      */
-    ham_status_t flush(ham_u64_t lsn);
+    ham_status_t flush(ham_u64_t lsn, bool header_is_index=false);
 
     /** retrieve the head of the linked list */
-    ham_page_t *get_head(void) {
+    ham_page_t *get_head() {
         return (m_head);
     }
 
   private:
     typedef std::vector<ham_page_t *> bucket;
 
-    /* flush all pages in a bucket */
-    ham_status_t flush_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) ;
+    /* write all pages in a bucket to the log file */
+    ham_status_t log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) ;
 
     /* the head of our linked list */
     ham_page_t *m_head;
