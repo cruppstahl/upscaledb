@@ -98,7 +98,7 @@ Changeset::log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count)
 }
 
 ham_status_t
-Changeset::flush(ham_u64_t lsn, bool header_is_index /* = false */)
+Changeset::flush(ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *n, *p=m_head;
@@ -120,11 +120,8 @@ Changeset::flush(ham_u64_t lsn, bool header_is_index /* = false */)
             continue;
         }
 
-        if (page_get_self(p)==0 && header_is_index) {
+        if (page_get_self(p)==0) {
             m_indices.push_back(p);
-        }
-        else if (page_get_self(p)==0 && !header_is_index) {
-            m_freelists.push_back(p);
         }
         else if (page_get_npers_flags(p)&PAGE_NPERS_NO_HEADER) {
             m_blobs.push_back(p);

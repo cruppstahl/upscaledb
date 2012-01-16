@@ -60,12 +60,9 @@ class Changeset
      * flush all pages in the changeset - first write them to the log, then 
      * write them to the disk
      *
-     * if header_is_index is true everything will be logged if the header page
-     * is part of the changeset.
-     *
      * on success: will clear the changeset and the log 
      */
-    ham_status_t flush(ham_u64_t lsn, bool header_is_index=false);
+    ham_status_t flush(ham_u64_t lsn);
 
     /** retrieve the head of the linked list */
     ham_page_t *get_head() {

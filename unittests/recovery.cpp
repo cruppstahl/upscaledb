@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -34,16 +34,19 @@ extern hook_func_t g_BTREE_INSERT_SPLIT_HOOK;
 void
 usage(void)
 {
-    printf("usage: ./recovery insert <keysize> <recsize> <i> <dupes> <inducer>\n");
-    printf("usage: ./recovery erase <keysize> <i> <dupes> <inducer>\n");
-    printf("usage: ./recovery recover\n");
-    printf("usage: ./recovery verify <keysize> <recsize> <i> <dupes> <exist>\n");
+    printf("usage: ./recovery insert <keysize> <recsize> <i> <dupes> "
+           "<use_txn> <inducer>\n");
+    printf("usage: ./recovery erase <keysize> <i> <dupes> "
+           "<use_txn> <inducer>\n");
+    printf("usage: ./recovery recover <use_txn>\n");
+    printf("usage: ./recovery verify <keysize> <recsize> <i> <dupes> "
+           "<use_txn> <exist>\n");
 }
 
 void
 insert(int argc, char **argv)
 {
-    if (argc!=7) {
+    if (argc!=8) {
         usage();
         exit(-1);
     } 
@@ -59,9 +62,10 @@ insert(int argc, char **argv)
     int recsize=(int)strtol(argv[3], 0, 0);
     int i      =(int)strtol(argv[4], 0, 0);
     int dupes  =(int)strtol(argv[5], 0, 0);
-    int inducer=(int)strtol(argv[6], 0, 0);
-    printf("insert: keysize=%d, recsize=%d, i=%d, dupes=%d, inducer=%d\n",
-            keysize, recsize, i, dupes, inducer);
+    int use_txn=(int)strtol(argv[6], 0, 0);
+    int inducer=(int)strtol(argv[7], 0, 0);
+    printf("insert: keysize=%d, recsize=%d, i=%d, dupes=%d, use_txn=%d, "
+           "inducer=%d\n", keysize, recsize, i, dupes, use_txn, inducer);
 
     ham_key_t key={0};
     key.data=malloc(keysize);
@@ -75,7 +79,7 @@ insert(int argc, char **argv)
 
     // if db does not yet exist: create it, otherwise open it
     st=ham_env_open(env, "recovery.db",
-                            HAM_ENABLE_TRANSACTIONS
+                            (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                             | HAM_ENABLE_RECOVERY);
     if (st==HAM_FILE_NOT_FOUND) {
         ham_parameter_t params[]={
@@ -85,7 +89,7 @@ insert(int argc, char **argv)
         };
         st=ham_env_create_ex(env, "recovery.db", 
                         (dupes ? HAM_ENABLE_DUPLICATES : 0)
-                            | HAM_ENABLE_TRANSACTIONS
+                            | (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                             | HAM_ENABLE_RECOVERY, 0644, 
                         &params[0]);
         if (st) {
@@ -112,8 +116,14 @@ insert(int argc, char **argv)
 
     // create a new txn and insert the new key/value pair.
     // flushing the txn will fail b/c of the error inducer
-    ham_txn_t *txn;
-    ham_txn_begin(&txn, env, 0, 0, 0);
+    ham_txn_t *txn=0;
+    if (use_txn) {
+        st=ham_txn_begin(&txn, env, 0, 0, 0);
+        if (st) {
+            printf("ham_txn_begin failed: %d\n", (int)st);
+            exit(-1);
+        }
+    }
 
     ErrorInducer *ei=new ErrorInducer();
     env_get_changeset((Environment *)env).m_inducer=ei;
@@ -129,12 +139,18 @@ insert(int argc, char **argv)
             *(int *)&p[key.size-sizeof(int)]=(i*NUM_STEPS)+j;
         st=ham_insert(db, txn, &key, &rec, dupes ? HAM_DUPLICATE : 0);
         if (st) {
+            if (st==HAM_INTERNAL_ERROR && !use_txn)
+                break;
             printf("ham_insert failed: %d (%s)\n", (int)st, ham_strerror(st));
             exit(-1);
         }
+        // only loop once if transactions are disabled
+        if (!use_txn)
+            break;
     }
 
-    st=ham_txn_commit(txn, 0);
+    if (txn)
+        st=ham_txn_commit(txn, 0);
     if (st==0)
         exit(0); // we must have skipped all induced errors
     else if (st!=HAM_INTERNAL_ERROR) {
@@ -146,12 +162,12 @@ insert(int argc, char **argv)
 void
 erase(int argc, char **argv)
 {
-    if (argc!=6) {
+    if (argc!=7) {
         usage();
         exit(-1);
     } 
 
-    ham_status_t st;
+    ham_status_t st=0;
     ham_db_t *db;
     ham_env_t *env;
 
@@ -161,9 +177,10 @@ erase(int argc, char **argv)
     int keysize=(int)strtol(argv[2], 0, 0);
     int i      =(int)strtol(argv[3], 0, 0);
     int dupes  =(int)strtol(argv[4], 0, 0);
-    int inducer=(int)strtol(argv[5], 0, 0);
-    printf("erase: keysize=%d, i=%d, dupes=%d, inducer=%d\n",
-            keysize, i, dupes, inducer);
+    int use_txn=(int)strtol(argv[5], 0, 0);
+    int inducer=(int)strtol(argv[6], 0, 0);
+    printf("erase: keysize=%d, i=%d, dupes=%d, use_txn=%d, inducer=%d\n",
+            keysize, i, dupes, use_txn, inducer);
 
     ham_key_t key={0};
     key.data=malloc(keysize);
@@ -171,7 +188,8 @@ erase(int argc, char **argv)
     memset(key.data, 0, key.size);
 
     st=ham_env_open(env, "recovery.db", 
-                    HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY);
+                    (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
+                    | HAM_ENABLE_RECOVERY);
     if (st) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
@@ -184,8 +202,14 @@ erase(int argc, char **argv)
 
     // create a new txn and erase the keys
     // flushing the txn will fail b/c of the error inducer
-    ham_txn_t *txn;
-    ham_txn_begin(&txn, env, 0, 0, 0);
+    ham_txn_t *txn=0;
+    if (use_txn) {
+        st=ham_txn_begin(&txn, env, 0, 0, 0);
+        if (st) {
+            printf("ham_txn_begin failed: %d\n", (int)st);
+            exit(-1);
+        }
+    }
 
     ErrorInducer *ei=new ErrorInducer();
     env_get_changeset((Environment *)env).m_inducer=ei;
@@ -199,6 +223,8 @@ erase(int argc, char **argv)
             *(int *)&p[key.size-sizeof(int)]=i*NUM_STEPS;
             st=ham_erase(db, txn, &key, 0);
             if (st) {
+                if (st==HAM_INTERNAL_ERROR && !use_txn)
+                    break;
                 printf("ham_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
                 exit(-1);
             }
@@ -208,13 +234,19 @@ erase(int argc, char **argv)
             *(int *)&p[key.size-sizeof(int)]=(i*NUM_STEPS)+j;
             st=ham_erase(db, txn, &key, 0);
             if (st) {
+                if (st==HAM_INTERNAL_ERROR && !use_txn)
+                    break;
                 printf("ham_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
                 exit(-1);
             }
         }
+        // only loop once if transactions are disabled
+        if (!use_txn)
+            break;
     }
 
-    st=ham_txn_commit(txn, 0);
+    if (txn)
+        st=ham_txn_commit(txn, 0);
     if (st==0)
         exit(0); // we must have skipped all induced errors
     else if (st!=HAM_INTERNAL_ERROR) {
@@ -226,12 +258,13 @@ erase(int argc, char **argv)
 void
 recover(int argc, char **argv)
 {
-    if (argc!=2) {
+    if (argc!=3) {
         usage();
         exit(-1);
     } 
 
-    printf("recover\n");
+    int use_txn=(int)strtol(argv[2], 0, 0);
+    printf("recover: use_txn=%d\n", use_txn);
 
     ham_status_t st;
     ham_env_t *env;
@@ -239,14 +272,16 @@ recover(int argc, char **argv)
     ham_env_new(&env);
 
     st=ham_env_open(env, "recovery.db", 
-                HAM_ENABLE_TRANSACTIONS|HAM_ENABLE_RECOVERY);
+                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_ENABLE_RECOVERY);
+    if (st==0)
+        exit(0);
     if (st!=HAM_NEED_RECOVERY) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
     }
 
     st=ham_env_open(env, "recovery.db",
-                HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY);
+                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_AUTO_RECOVERY);
     if (st!=0) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
@@ -265,7 +300,7 @@ recover(int argc, char **argv)
 void
 verify(int argc, char **argv)
 {
-    if (argc!=7) {
+    if (argc!=8) {
         usage();
         exit(-1);
     } 
@@ -274,9 +309,10 @@ verify(int argc, char **argv)
     int recsize=(int)strtol(argv[3], 0, 0);
     int i      =(int)strtol(argv[4], 0, 0);
     int dupes  =(int)strtol(argv[5], 0, 0);
-    int exist  =(int)strtol(argv[6], 0, 0);
-    printf("verify: keysize=%d, recsize=%d, i=%d, dupes=%d, exist=%d\n",
-            keysize, recsize, i, dupes, exist);
+    int use_txn=(int)strtol(argv[6], 0, 0);
+    int exist  =(int)strtol(argv[7], 0, 0);
+    printf("verify: keysize=%d, recsize=%d, i=%d, dupes=%d, use_txn=%d, "
+           "exist=%d\n", keysize, recsize, i, dupes, use_txn, exist);
 
     ham_status_t st;
     ham_db_t *db;
@@ -334,6 +370,9 @@ verify(int argc, char **argv)
                 exit(-1);
             }
         }
+        // only loop once if transactions are disabled
+        if (!use_txn)
+            break;
     }
 }
 

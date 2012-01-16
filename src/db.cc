@@ -625,24 +625,24 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
             /* allocate a new page structure */
             page=page_new(env);
             if (!page)
-                return HAM_OUT_OF_MEMORY;
+                return (HAM_OUT_OF_MEMORY);
             page_set_self(page, tellpos);
             /* fetch the page from disk */
             st=page_fetch(page);
             if (st) {
                 page_delete(page);
-                return st;
+                return (st);
             }
             goto done;
         }
         else if (st)
-            return st;
+            return (st);
     }
 
     if (!page) {
         page=page_new(env);
         if (!page)
-            return HAM_OUT_OF_MEMORY;
+            return (HAM_OUT_OF_MEMORY);
         allocated_by_me=HAM_TRUE;
     }
 
@@ -658,7 +658,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     ham_assert(tellpos==0, (0));
     st=page_alloc(page);
     if (st)
-        return st;
+        return (st);
 
 done:
     /* initialize the page; also set the 'dirty' flag to force logging */
@@ -722,7 +722,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     }
 
     if (flags&DB_ONLY_FROM_CACHE)
-        return HAM_SUCCESS;
+        return (HAM_SUCCESS);
 
 #if HAM_DEBUG
     ham_assert(env_get_cache(env)->get_page(address)==0, (""));
@@ -756,7 +756,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         env_get_changeset(env).add_page(page);
 
     *page_ref = page;
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -1753,6 +1753,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
         if (!(flags&HAM_OVERWRITE)) {
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
+            be->_fun_flush(be);
             env_set_dirty(env);
         }
     }
@@ -2097,6 +2098,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         if (!(flags&HAM_OVERWRITE)) {
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
+            be->_fun_flush(be);
             env_set_dirty(env);
         }
     }

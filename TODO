@@ -154,12 +154,12 @@ x Changeset::flush(lsn, bool force=false)
     x force=false setzen wenn nur die hdr-page der freelist modifiziert wurde 
         -> page is stored in "freelist" bucket
     x recovery-tests!
+    x --> revert - i.e. ham_insert WILL change the header page if the
+        btree gets a new root page
 
 o API changes for 2.0.0
     o update .net wrapper
         ==> started, but needs to be finished on windows
-
-o run test_recovery without journal (only HAM_ENABLE_RECOVERY)
 
 o test with lessfs (and add lessfs to the monster testsuite)
     o test with reboots - like those that made problems with lessfs
@@ -206,6 +206,8 @@ o mail an Tony B, Curt M., andere
     move (last) (-> 1, b)
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
+
+. remove be_set_dirty, replace with be->_fun_flush()
 
 . c++-ify the page
 
@@ -345,6 +347,9 @@ o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
 
 o extkeys: don't use txn_id for the 'age', use lsn instead
+
+o the DatabaseImplementation subclass is not neccessary; all subclasses
+    can directly derive from Database. 
 
 . allow use of transactions without a log/journal
 
