@@ -24,19 +24,22 @@ namespace Unittests
     [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.0.rc4.dll")]
     public class TransactionTest
     {
+        private Hamster.Environment env;
         private Database db;
 
         [TestInitialize()]
         public void MyTestInitialize()
         {
-            db = new Database();
-            db.Create("test.db", HamConst.HAM_ENABLE_TRANSACTIONS);
+            env = new Hamster.Environment();
+            env.Create("test.db", HamConst.HAM_ENABLE_TRANSACTIONS);
+            db = env.CreateDatabase(1);
         }
         
         [TestCleanup()]
         public void MyTestCleanup()
         {
-            db.Close(HamConst.HAM_AUTO_CLEANUP);
+            db.Close();
+            env.Close();
         }
 
         [DeploymentItem("HamsterDb-dotnet.dll")]
@@ -44,46 +47,29 @@ namespace Unittests
         [TestMethod()]
         public void AbortTest()
         {
-            Transaction t = db.Begin();
+            Transaction t = env.Begin();
             t.Abort();
         }
 
         [TestMethod()]
         public void CommitTest()
         {
-            Transaction t = db.Begin();
+            Transaction t = env.Begin();
             t.Commit();
         }
 
         [TestMethod()]
-        public void FailLimitsReachedTest()
-        {
-            Transaction t1 = db.Begin();
-            try
-            {
-                Transaction t2 = db.Begin();
-            }
-            catch (DatabaseException e)
-            {
-                Assert.AreEqual(HamConst.HAM_LIMITS_REACHED, e.ErrorCode);
-            }
-            t1.Commit();
-            Transaction t3 = db.Begin();
-            t3.Commit();
-        }
-        /*
-        [TestMethod()]
         public void InsertFindCommitTest() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=db.Begin();
+            Transaction t=env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             try {
                 db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(HamConst.HAM_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Find(k);
@@ -93,7 +79,7 @@ namespace Unittests
         public void InsertFindAbortTest() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=db.Begin();
+            Transaction t=env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             t.Abort();
@@ -109,23 +95,22 @@ namespace Unittests
         public void EraseFindCommitTest() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Transaction t=db.Begin();
+            Transaction t=env.Begin();
             db.Insert(t, k, r);
             db.Find(t, k);
             try {
                 db.Erase(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(HamConst.HAM_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Erase(k);
         }
-
-
+        
         [TestMethod()]
         public void CursorTest() {
-            Transaction t=db.Begin();
+            Transaction t=env.Begin();
             Cursor c = new Cursor(db, t);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -138,22 +123,15 @@ namespace Unittests
 
         [TestMethod()]
         public void GetKeyCountTest() {
-            Transaction t=db.Begin();
+            Transaction t=env.Begin();
 
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             Assert.AreEqual(0, db.GetKeyCount());
             db.Insert(t, k, r);
             Assert.AreEqual(1, db.GetKeyCount(t));
-            Assert.AreEqual(0, db.GetKeyCount());
-            k[0] = 1;
-            db.Insert(k, r);
-            Assert.AreEqual(2, db.GetKeyCount(t));
-            Assert.AreEqual(0, db.GetKeyCount());
             t.Commit();
-            Assert.AreEqual(2, db.GetKeyCount());
+            Assert.AreEqual(1, db.GetKeyCount());
         }
-     */
-
     }
 }

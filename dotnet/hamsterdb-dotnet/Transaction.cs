@@ -19,9 +19,9 @@ namespace Hamster
     /// </summary>
     public class Transaction : IDisposable
     {
-        internal Transaction(Database db, IntPtr handle)
+        internal Transaction(Environment env, IntPtr handle)
         {
-            this.db = db;
+            this.env = env;
             this.handle = handle;
         }
 
@@ -46,14 +46,14 @@ namespace Hamster
         public void Commit()
         {
             int st;
-            lock (db)
+            lock (env)
             {
                 st = NativeMethods.TxnCommit(handle, 0);
             }
             if (st != 0)
                 throw new DatabaseException(st);
             handle = IntPtr.Zero;
-            db = null;
+            env = null;
         }
 
         /// <summary>
@@ -69,14 +69,14 @@ namespace Hamster
         public void Abort()
         {
             int st;
-            lock (db)
+            lock (env)
             {
                 st = NativeMethods.TxnAbort(handle, 0);
             }
             if (st != 0)
                 throw new DatabaseException(st);
             handle = IntPtr.Zero;
-            db = null;
+            env = null;
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace Hamster
             }
         }
 
-        private Database db;
+        private Environment env;
         private IntPtr handle;
     }
 }

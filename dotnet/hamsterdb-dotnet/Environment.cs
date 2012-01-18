@@ -695,7 +695,7 @@ namespace Hamster
             IntPtr txnh;
             lock (this)
             {
-                st = NativeMethods.TxnBegin(out txnh, handle, null, null, flags);
+                st = NativeMethods.TxnBegin(out txnh, handle, null, IntPtr.Zero, flags);
             }
             if (st != 0)
                 throw new DatabaseException(st);

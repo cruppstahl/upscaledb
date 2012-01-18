@@ -83,7 +83,7 @@ Environment::is_private()
     Database *db=env_get_list(this);
     if (db->get_next())
         return (false);
-    return (db->get_rt_flags()&DB_ENV_IS_PRIVATE);
+	return ((db->get_rt_flags()&DB_ENV_IS_PRIVATE) ? true : false);
 }
 
 /* 
