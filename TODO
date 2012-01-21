@@ -157,15 +157,14 @@ x Changeset::flush(lsn, bool force=false)
     x --> revert - i.e. ham_insert WILL change the header page if the
         btree gets a new root page
 
-o API changes for 2.0.0
-    o update .net wrapper
-        ==> started, but needs to be finished on windows
+x API changes for 2.0.0
+    x update .net wrapper
 
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
-    also test with hammer.c and the performance test (wintermute://home/chris)
+x document how to optimize for performance
+    x with transactions: try not to use duplicates
+    x use overwrite as often as possible
 
-o android port (needs new java api) in /contrib directory
+x document migration path for the API (if there are any changes)
 
 o webpage
     x show samples of both branches (really? they did not change!) - no
@@ -181,16 +180,14 @@ o webpage
         (or simply remove them)
     o create a comparison table of the old and new version
     o make a backup of the old forum
-
-o document how to optimize for performance
-    o with transactions: try not to use duplicates
-    o use overwrite as often as possible
-
-o document migration path for the API (if there are any changes)
+    o documentation: add link to new "Performance" document
+    o documentation: add link to new "Migration" document
 
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
+
+. android port (needs new java api) in /contrib directory
 
 . change all copyright strings to 2012
 
@@ -213,10 +210,12 @@ o mail an Tony B, Curt M., andere
 
 . c++-ify the device
 
-. python API
+o python API
     o update and rewrite to use the C++ API (can we use boost::python??)
 
 . look for someone who can write a PHP or Perl or Ruby wrapper
+
+o implement support for approx. matching (-> sevencat)
 
 . implement support for partial keys?
 
@@ -355,7 +354,7 @@ o the DatabaseImplementation subclass is not neccessary; all subclasses
 
 . allow use of transactions for in-memory databases
 
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o ham_get_count: could be atomically updated with every journal entry
 
