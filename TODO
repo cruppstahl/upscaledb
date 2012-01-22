@@ -174,14 +174,12 @@ o webpage
     x store: have a big fat red "buy now" button
     x footer: change copyright to 2012
     x update license terms
-    o download page: document the differences between the two versions and
-        which one to choose
-    o "sources" page: show that the wrappers are for version 1 
+    x documentation: add link to new "Performance" document
+    x documentation: add link to new "Migration" document
+    x "sources" page: show that the wrappers are for version 1 
         (or simply remove them)
-    o create a comparison table of the old and new version
-    o make a backup of the old forum
-    o documentation: add link to new "Performance" document
-    o documentation: add link to new "Migration" document
+    x document when to upgrade and when NOT to upgrade
+    o the "slogan" on the first page doesn't sound good
 
 o update the tutorial
 

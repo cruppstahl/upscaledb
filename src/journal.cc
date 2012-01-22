@@ -536,16 +536,16 @@ static ham_status_t
 __abort_uncommitted_txns(Environment *env)
 {
     ham_status_t st;
-    ham_txn_t *older, *txn=env_get_oldest_txn(env);
+    ham_txn_t *newer, *txn=env_get_oldest_txn(env);
 
     while (txn) {
-        older=txn_get_older(txn);
+        newer=txn_get_newer(txn);
         if (!(txn_get_flags(txn)&TXN_STATE_COMMITTED)) {
             st=ham_txn_abort(txn, 0);
             if (st)
                 return (st);
         }
-        txn=older;
+        txn=newer;
     }
 
     return (0);
