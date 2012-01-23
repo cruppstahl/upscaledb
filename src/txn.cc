@@ -318,14 +318,14 @@ txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
         return (HAM_OUT_OF_MEMORY);
 
     memset(txn, 0, sizeof(*txn));
-    txn_set_id(txn, env_get_txn_id(env)+1);
+    txn_set_id(txn, env->get_txn_id()+1);
     txn_set_flags(txn, flags);
     if (name) {
         char *p=(char *)allocator_alloc(env_get_allocator(env), strlen(name)+1);
         strcpy(p, name);
         txn_set_name(txn, p);
     }
-    env_set_txn_id(env, txn_get_id(txn));
+    env->set_txn_id(txn_get_id(txn));
 
     /* link this txn with the Environment */
     env_append_txn(env, txn);

@@ -819,7 +819,7 @@ default_case:
      * we'd better copy the pagesize values from the env / device
      */
     if (env)
-        device = env_get_device(env);
+        device = env->get_device();
 
     /*
      * inherit defaults from ENV for DB
@@ -928,8 +928,8 @@ default_case:
         }
         else if (db
             && db->get_env()
-            && env_get_device(env)
-            && env_get_device(env)->is_open(env_get_device(env))) {
+            && env->get_device()
+            && env->get_device()->is_open(env->get_device())) {
             dbs = (env ? env_get_max_databases(env) : 1);
         }
         else if (set_abs_max_dbs) {
@@ -1026,14 +1026,14 @@ ham_env_delete(ham_env_t *henv)
     btree_stats_trash_globdata(env, env_get_global_perf_data(env));
 
     /* close the device if it still exists */
-    if (env_get_device(env)) {
-        ham_device_t *device = env_get_device(env);
+    if (env->get_device()) {
+        ham_device_t *device = env->get_device();
         if (device->is_open(device)) {
             (void)device->flush(device);
             (void)device->close(device);
         }
         device->destroy(device);
-        env_set_device(env, 0);
+        env->set_device(0);
     }
 
     /*
@@ -1123,11 +1123,11 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
     env_set_rt_flags(env, flags);
     env_set_pagesize(env, pagesize);
     env_set_cachesize(env, cachesize);
-    env_set_file_mode(env, mode);
+    env->set_file_mode(mode);
     env_set_pagesize(env, pagesize);
     env_set_max_databases_cached(env, maxdbs);
     if (filename)
-        env_set_filename(env,  filename);
+        env->set_filename(filename);
 
     /* initialize function pointers */
     if (__filename_is_local(filename)) {
@@ -1308,9 +1308,9 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
     env_set_pagesize(env, 0);
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
-    env_set_file_mode(env, 0644);
+    env->set_file_mode(0644);
     if (filename)
-        env_set_filename(env, filename);
+        env->set_filename(filename);
 
     /*
      * initialize function pointers
@@ -2094,7 +2094,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
         return (0);
 
-    device=env_get_device(env);
+    device=env->get_device();
 
     alloc=env_get_allocator(env);
     if (!alloc) {
@@ -3503,7 +3503,7 @@ ham_env_set_context_data(ham_env_t *henv, void *data)
 {
     Environment *env=(Environment *)henv;
     if (env)
-        env_set_context_data(env, data);
+        env->set_context_data(data);
 }
 
 void * HAM_CALLCONV
@@ -3511,7 +3511,7 @@ ham_env_get_context_data(ham_env_t *henv)
 {
     Environment *env=(Environment *)henv;
     if (env)
-        return env_get_context_data(env);
+        return (env->get_context_data());
     return (0);
 }
 
@@ -3596,12 +3596,12 @@ ham_env_set_device(ham_env_t *henv, ham_device_t *device)
         return (HAM_INV_PARAMETER);
     }
 
-    if (env_get_device(env)) {
+    if (env->get_device()) {
         ham_trace(("Environment already has a device object attached"));
         return (HAM_ALREADY_INITIALIZED);
     }
 
-    env_set_device(env, device);
+    env->set_device(device);
     return (0);
 }
 
@@ -3611,7 +3611,7 @@ ham_env_get_device(ham_env_t *henv)
     Environment *env=(Environment *)henv;
     if (!env)
         return (0);
-    return (env_get_device(env));
+    return (env->get_device());
 }
 
 ham_status_t HAM_CALLCONV

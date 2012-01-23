@@ -144,7 +144,7 @@ page_new(Environment *env)
         return (0);
     memset(page, 0, sizeof(*page));
     page_set_allocator(page, alloc);
-    page_set_device(page, env_get_device(env));
+    page_set_device(page, env->get_device());
 
     return (page);
 }

@@ -45,10 +45,11 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : _txn_id(0), _file_mode(0), _context(0), _device(0), _cache(0), _alloc(0),
+  :  _alloc(0),
     _hdrpage(0), _flushed_txn(0), _oldest_txn(0), _newest_txn(0), _log(0),
     _journal(0), _rt_flags(0), _next(0), _pagesize(0), _cachesize(0), 
-    _max_databases(0), _is_active(0), _is_legacy(0), _file_filters(0)
+    _max_databases(0), _is_active(0), _is_legacy(0), _file_filters(0),
+    m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0)
 {
 #if HAM_ENABLE_REMOTE
     _curl=0;
@@ -171,7 +172,7 @@ _local_fun_create(Environment *env, const char *filename,
     /* 
      * initialize the device if it does not yet exist
      */
-    if (!env_get_device(env)) {
+    if (!env->get_device()) {
         device=ham_device_new(env_get_allocator(env), env, 
                         ((flags&HAM_IN_MEMORY_DB) 
                             ? HAM_DEVTYPE_MEMORY 
@@ -179,7 +180,7 @@ _local_fun_create(Environment *env, const char *filename,
         if (!device)
             return (HAM_OUT_OF_MEMORY);
 
-        env_set_device(env, device);
+        env->set_device(device);
 
         device->set_flags(device, flags);
         st = device->set_pagesize(device, env_get_pagesize(env));
@@ -192,11 +193,11 @@ _local_fun_create(Environment *env, const char *filename,
                     % DB_PAGESIZE_MIN_REQD_ALIGNMENT), (0));
     }
     else {
-        device=env_get_device(env);
+        device=env->get_device();
         ham_assert(device->get_pagesize(device), (0));
         ham_assert(env_get_pagesize(env) == device->get_pagesize(device), (0));
     }
-    ham_assert(device == env_get_device(env), (0));
+    ham_assert(device == env->get_device(), (0));
     ham_assert(env_get_pagesize(env) == device->get_pagesize(device), (""));
 
     /* create the file */
@@ -264,7 +265,7 @@ _local_fun_create(Environment *env, const char *filename,
     }
 
     /* initialize the cache */
-    env_set_cache(env, new Cache(env, env_get_cachesize(env)));
+    env->set_cache(new Cache(env, env_get_cachesize(env)));
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -378,17 +379,17 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     /* 
      * initialize the device if it does not yet exist
      */
-    if (!env_get_device(env)) {
+    if (!env->get_device()) {
         device=ham_device_new(env_get_allocator(env), env,
                 ((flags&HAM_IN_MEMORY_DB) 
                     ? HAM_DEVTYPE_MEMORY 
                     : HAM_DEVTYPE_FILE));
         if (!device)
             return (HAM_OUT_OF_MEMORY);
-        env_set_device(env, device);
+        env->set_device(device);
     }
     else {
-        device=env_get_device(env);
+        device=env->get_device();
     }
 
     /* 
@@ -544,7 +545,7 @@ fail_with_fake_cleansing:
      * initialize the cache; the cache is needed during recovery, therefore
      * we have to create the cache BEFORE we attempt to recover
      */
-    env_set_cache(env, new Cache(env, env_get_cachesize(env)));
+    env->set_cache(new Cache(env, env_get_cachesize(env)));
 
     /*
      * open the logfile and check if we need recovery. first open the 
@@ -573,7 +574,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
      * make sure that the environment was either created or opened, and 
      * a valid device exists
      */
-    if (!env_get_device(env))
+    if (!env->get_device())
         return (HAM_NOT_READY);
 
     /*
@@ -745,8 +746,8 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      */
     if (env_get_header_page(env)
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && env_get_device(env)
-            && env_get_device(env)->is_open(env_get_device(env))
+            && env->get_device()
+            && env->get_device()->is_open(env->get_device())
             && (!(env_get_rt_flags(env)&HAM_READ_ONLY))) {
         st=page_flush(env_get_header_page(env));
         if (!st2) st2 = st;
@@ -761,7 +762,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             st2 = st;
     }
 
-    dev=env_get_device(env);
+    dev=env->get_device();
 
     /*
      * close the header page
@@ -783,18 +784,14 @@ _local_fun_close(Environment *env, ham_u32_t flags)
         env_set_header_page(env, 0);
     }
 
-    /* 
-     * flush all pages, get rid of the cache 
-     */
-    if (env_get_cache(env)) {
-        (void)db_flush_all(env_get_cache(env), 0);
-        delete env_get_cache(env);
-        env_set_cache(env, 0);
+    /* flush all pages, get rid of the cache */
+    if (env->get_cache()) {
+        (void)db_flush_all(env->get_cache(), 0);
+        delete env->get_cache();
+        env->set_cache(0);
     }
 
-    /* 
-     * close the device
-     */
+    /* close the device */
     if (dev) {
         if (dev->is_open(dev)) {
             if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) {
@@ -807,7 +804,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
                 st2 = st;
         }
         dev->destroy(dev);
-        env_set_device(env, 0);
+        env->set_device(0);
     }
 
     /*
@@ -854,7 +851,7 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env_get_cache(env)->get_capacity();
+                p->value=env->get_cache()->get_capacity();
                 break;
             case HAM_PARAM_PAGESIZE:
                 p->value=env_get_pagesize(env);
@@ -866,11 +863,11 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
                 p->value=env_get_rt_flags(env);
                 break;
             case HAM_PARAM_GET_FILEMODE:
-                p->value=env_get_file_mode(env);
+                p->value=env->get_file_mode();
                 break;
             case HAM_PARAM_GET_FILENAME:
-                if (env_get_filename(env).size())
-                    p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env).c_str()));
+                if (env->get_filename().size())
+                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_filename().c_str()));
                 else
                     p->value=0;
                 break;
@@ -915,7 +912,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
         return (0);
 
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
         return HAM_NOT_INITIALIZED;
 
@@ -949,7 +946,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     /*
      * flush all open pages to disk
      */
-    st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
+    st=db_flush_all(env->get_cache(), DB_FLUSH_NODELETE);
     if (st)
         return st;
 
@@ -1188,7 +1185,7 @@ _local_fun_open_db(Environment *env, Database *db,
     }
 
     ham_assert(env_get_allocator(env), (""));
-    ham_assert(env_get_device(env), (""));
+    ham_assert(env->get_device(), (""));
     ham_assert(0 != env_get_header_page(env), (0));
     ham_assert(env_get_max_databases(env) > 0, (0));
 
@@ -1387,7 +1384,7 @@ _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
      * enabled; then purge caches */
     if (st==0) {
         if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
-            ham_device_t *device=env_get_device(env);
+            ham_device_t *device=env->get_device();
             (void)env_get_log(env)->flush();
             (void)device->flush(device);
         }
@@ -1419,7 +1416,7 @@ _local_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
      * enabled; then purge caches */
     if (st==0) {
         if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
-            ham_device_t *device=env_get_device(env);
+            ham_device_t *device=env->get_device();
             (void)env_get_log(env)->flush();
             (void)device->flush(device);
         }
@@ -1674,7 +1671,7 @@ __purge_cache_max20(Environment *env)
 {
     ham_status_t st;
     ham_page_t *page;
-    Cache *cache=env_get_cache(env);
+    Cache *cache=env->get_cache();
     unsigned i, max_pages=(unsigned)cache->get_cur_elements();
 
     /* don't remove pages from the cache if it's an in-memory database */
@@ -1720,7 +1717,7 @@ ham_status_t
 env_purge_cache(Environment *env)
 {
     ham_status_t st;
-    Cache *cache=env_get_cache(env);
+    Cache *cache=env->get_cache();
 
     do {
         st=__purge_cache_max20(env);

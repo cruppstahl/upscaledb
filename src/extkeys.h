@@ -94,7 +94,7 @@ class ExtKeyCache
                 free_node(node);
                 return (true);
             }
-            if (env_get_txn_id(m_env)-node->_age>EXTKEY_MAX_AGE) {
+            if (m_env->get_txn_id()-node->_age>EXTKEY_MAX_AGE) {
                 free_node(node);
                 return (true);
             }

@@ -52,7 +52,7 @@ Journal::create(void)
 {
     int i;
     Header header;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
 
@@ -87,7 +87,7 @@ Journal::open(void)
     int i;
     Header header;
     JournalEntry entry;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
@@ -617,7 +617,7 @@ Journal::recover()
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);
-                env_set_txn_id(m_env, entry.txn_id);
+                m_env->set_txn_id(entry.txn_id);
             }
             break;
         }

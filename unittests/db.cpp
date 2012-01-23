@@ -120,7 +120,7 @@ public:
         BFC_ASSERT_EQUAL((ham_backend_t *)15, m_dbp->get_backend());
         m_dbp->set_backend(oldbe);
 
-        BFC_ASSERT_NOTNULL(env_get_cache((Environment *)m_env));
+        BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_cache());
 
         BFC_ASSERT(0!=m_dbp->get_prefix_compare_func());
         ham_prefix_compare_func_t oldfoo=m_dbp->get_prefix_compare_func();
@@ -171,13 +171,13 @@ public:
         ham_env_t *env;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        env_set_txn_id((Environment *)env, 0x12345ull);
-        env_set_file_mode((Environment *)env, 0666);
-        env_set_device((Environment *)env, (ham_device_t *)0x13);
-        env_set_cache((Environment *)env, (Cache *)0x14);
+        ((Environment *)env)->set_txn_id(0x12345ull);
+        ((Environment *)env)->set_file_mode(0666);
+        ((Environment *)env)->set_device((ham_device_t *)0x13);
+        ((Environment *)env)->set_cache((Cache *)0x14);
         env_set_rt_flags((Environment *)env, 0x18);
 
-        BFC_ASSERT_EQUAL((Cache *)0x14, env_get_cache((Environment *)env));
+        BFC_ASSERT_EQUAL((Cache *)0x14, ((Environment *)env)->get_cache());
         /* TODO test other stuff! */
 
         BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
@@ -186,8 +186,8 @@ public:
         env_set_active((Environment *)env, HAM_FALSE);
         BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
 
-        env_set_device((Environment *)env, 0);
-        env_set_cache((Environment *)env, 0);
+        ((Environment *)env)->set_device((ham_device_t *)0x00);
+        ((Environment *)env)->set_cache((Cache *)0x00);
         env_set_rt_flags((Environment *)env, 0x18);
         env_set_header_page((Environment *)env, 0);
         env_set_list((Environment *)env, 0);

@@ -1341,7 +1341,7 @@ stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst)
         mem_allocator_t *allocator;
 
         ham_assert(env, (0));
-        cache = device_get_freelist_cache(env_get_device(env));
+        cache = device_get_freelist_cache(env->get_device());
         allocator = env_get_allocator(env);
 
         if (!cache || !allocator || !freel_cache_get_entries(cache))

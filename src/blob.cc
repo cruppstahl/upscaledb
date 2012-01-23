@@ -62,7 +62,7 @@ __write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr,
     ham_size_t i;
     ham_status_t st;
     ham_offset_t pageid;
-    ham_device_t *device=env_get_device(env);
+    ham_device_t *device=env->get_device();
 	ham_size_t pagesize = env_get_pagesize(env);
 
     ham_assert(freshly_created ? allocated : 1, (0));
@@ -210,7 +210,7 @@ __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage,
         ham_offset_t addr, Database *db, ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
-    ham_device_t *device=env_get_device(env);
+    ham_device_t *device=env->get_device();
 
     while (size) {
         /*
@@ -366,7 +366,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
     ham_u8_t *chunk_data[2];
     ham_size_t alloc_size;
     ham_size_t chunk_size[2];
-    ham_device_t *device=env_get_device(env);
+    ham_device_t *device=env->get_device();
     ham_bool_t freshly_created = HAM_FALSE;
    
     *blobid=0;

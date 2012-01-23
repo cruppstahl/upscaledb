@@ -268,7 +268,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, ".test", HAM_CACHE_STRICT, 0644, &param[0]));
         ham_env_t *env=ham_get_env(db);
-        Cache *cache=env_get_cache((Environment *)env);
+        Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(cache->get_capacity(), 1024*1024*2u);
 
@@ -296,7 +296,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
-        Cache *cache=env_get_cache((Environment *)env);
+        Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -317,7 +317,7 @@ public:
         ham_env_close(env, 0);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_ex(env, ".test.db", 0, &param[0]));
-        Cache *cache=env_get_cache((Environment *)env);
+        Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -336,7 +336,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0644, &param[0]));
         ham_env_t *env=ham_get_env(db);
-        Cache *cache=env_get_cache((Environment *)env);
+        Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 
@@ -356,7 +356,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_open_ex(db, ".test.db", 0, &param[0]));
         ham_env_t *env=ham_get_env(db);
-        Cache *cache=env_get_cache((Environment *)env);
+        Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
 

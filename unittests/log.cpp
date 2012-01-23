@@ -131,10 +131,10 @@ public:
     {
         Environment *env=(Environment *)m_env;
         Log *log=new Log(env);
-        std::string oldfilename=env_get_filename(env);
-        env_set_filename(env, "/::asdf");
+        std::string oldfilename=env->get_filename();
+        env->set_filename("/::asdf");
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, log->create());
-        env_set_filename(env, oldfilename);
+        env->set_filename(oldfilename);
         delete log;
     }
 
@@ -143,8 +143,8 @@ public:
         Environment *env=(Environment *)m_env;
         Log *log=new Log(env);
         ham_fd_t fd;
-        std::string oldfilename=env_get_filename(env);
-        env_set_filename(env, "xxx$$test");
+        std::string oldfilename=env->get_filename();
+        env->set_filename("xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, log->open());
 
         /* if log->open() fails, it will call log->close() internally and 
@@ -154,10 +154,10 @@ public:
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        env_set_filename(env, "data/log-broken-magic");
+        env->set_filename("data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, log->open());
 
-        env_set_filename(env, oldfilename);
+        env->set_filename(oldfilename);
         delete log;
     }
 

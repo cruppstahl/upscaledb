@@ -118,24 +118,6 @@ class Environment
     /** default constructor initializes all members */
     Environment();
 
-    /** the current transaction ID */
-    ham_u64_t _txn_id;
-
-    /** the filename of the environment file */
-    std::string _filename;
-
-    /** the 'mode' parameter of ham_env_create_ex */
-    ham_u32_t _file_mode;
-
-	/** the user-provided context data */
-	void *_context;
-
-    /** the device (either a file or an in-memory-db) */
-    ham_device_t *_device;
-
-    /** the cache */
-    Cache *_cache;
-
     /** the memory allocator */
     mem_allocator_t *_alloc;
 
@@ -304,50 +286,94 @@ class Environment
 	 * destroy the environment object, free all memory
 	 */
 	ham_status_t (*destroy)(Environment *self);
+
+    /** get the filename */
+    std::string &get_filename() {
+        return (m_filename);
+    }
+
+    /** set the filename */
+    void set_filename(std::string filename) {
+        m_filename=filename;
+    }
+
+    /** get the unix file mode */
+    ham_u32_t get_file_mode() {
+        return (m_file_mode);
+    }
+
+    /** set the unix file mode */
+    void set_file_mode(ham_u32_t mode) {
+        m_file_mode=mode;
+    }
+
+    /** get the user-provided context pointer */
+    void *get_context_data() {
+        return (m_context);
+    }
+
+    /** set the user-provided context pointer */
+    void set_context_data(void *ctxt) {
+        m_context=ctxt;
+    }
+
+    /** get the current transaction ID */
+    ham_u64_t get_txn_id() {
+        return (m_txn_id);
+    }
+
+    /** set the current transaction ID */
+    void set_txn_id(ham_u64_t id) {
+        m_txn_id=id;
+    }
+
+    /** get the device */
+    ham_device_t *get_device() {
+        return (m_device);
+    }
+
+    /** set the device */
+    void set_device(ham_device_t *device) {
+        m_device=device;
+    }
+
+    /** get the cache pointer */
+    Cache *get_cache() {
+        return (m_cache);
+    }
+
+    /** set the cache pointer */
+    void set_cache(Cache *cache) {
+        m_cache=cache;
+    }
+
+  private:
+    /** the filename of the environment file */
+    std::string m_filename;
+
+    /** the 'mode' parameter of ham_env_create_ex */
+    ham_u32_t m_file_mode;
+
+    /** the current transaction ID */
+    ham_u64_t m_txn_id;
+
+	/** the user-provided context data */
+	void *m_context;
+
+    /** the device (either a file or an in-memory-db) */
+    ham_device_t *m_device;
+
+    /** the cache */
+    Cache *m_cache;
+
 };
 
-
-/** get the current transaction ID */
-#define env_get_txn_id(env)              (env)->_txn_id
-
-/** set the current transaction ID */
-#define env_set_txn_id(env, id)          (env)->_txn_id=(id)
-
-/** get the filename */
-#define env_get_filename(env)            (env)->_filename
-
-/** set the filename */
-#define env_set_filename(env, f)         (env)->_filename=(f)
-
-/** get the unix file mode */
-#define env_get_file_mode(env)           (env)->_file_mode
-
-/** set the unix file mode */
-#define env_set_file_mode(env, m)        (env)->_file_mode=(m)
-
-/** get the user-provided context pointer */
-#define env_get_context_data(env)        (env)->_context
-
-/** set the user-provided context pointer */
-#define env_set_context_data(env, ctxt)  (env)->_context=(ctxt)
-
-/** get the device */
-#define env_get_device(env)              (env)->_device
-
-/** set the device */
-#define env_set_device(env, d)           (env)->_device=(d)
 
 /** get the allocator */
 #define env_get_allocator(env)           (env)->_alloc
 
 /** set the allocator */
 #define env_set_allocator(env, a)        (env)->_alloc=(a)
-
-/** get the cache pointer */
-#define env_get_cache(env)               (env)->_cache
-
-/** set the cache pointer */
-#define env_set_cache(env, c)            (env)->_cache=(c)
 
 /** get the curl handle */
 #define env_get_curl(env)                (env)->_curl

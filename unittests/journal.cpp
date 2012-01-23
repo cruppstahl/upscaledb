@@ -197,10 +197,10 @@ public:
     void negativeCreateTest(void)
     {
         Journal *j=new Journal(m_env);
-        std::string oldfilename=env_get_filename(m_env);
-        env_set_filename(m_env, "/::asdf");
+        std::string oldfilename=m_env->get_filename();
+        m_env->set_filename("/::asdf");
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, j->create());
-        env_set_filename(m_env, oldfilename);
+        m_env->set_filename(oldfilename);
         delete (j);
     }
 
@@ -208,8 +208,8 @@ public:
     {
         ham_fd_t fd;
         Journal *j=new Journal(m_env);
-        std::string oldfilename=env_get_filename(m_env);
-        env_set_filename(m_env, "xxx$$test");
+        std::string oldfilename=m_env->get_filename();
+        m_env->set_filename("xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, j->open());
 
         /* if journal::open() fails, it will call journal::close() 
@@ -219,9 +219,9 @@ public:
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        env_set_filename(m_env, "data/log-broken-magic");
+        m_env->set_filename("data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, j->open());
-        env_set_filename(m_env, oldfilename);
+        m_env->set_filename(oldfilename);
         delete j;
     }
 
@@ -717,7 +717,7 @@ public:
         /* verify the lsn */
         Journal *j=env_get_journal(m_env);
         BFC_ASSERT_EQUAL(11ull, j->get_lsn());
-        BFC_ASSERT_EQUAL(5ull, env_get_txn_id(m_env));
+        BFC_ASSERT_EQUAL(5ull, m_env->get_txn_id());
 
         /* create another transaction and make sure that the transaction
          * IDs and the lsn's continue seamlessly */

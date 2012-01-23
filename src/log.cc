@@ -35,14 +35,14 @@ Log::create(void)
 {
     Log::Header header;
     ham_status_t st;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     char filename[HAM_OS_MAX_PATH];
 
     ham_assert(m_env, (0));
 
     /* create the files */
     util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
-    st=os_create(filename, 0, env_get_file_mode(m_env), &m_fd);
+    st=os_create(filename, 0, m_env->get_file_mode(), &m_fd);
     if (st)
         return (st);
 
@@ -62,7 +62,7 @@ ham_status_t
 Log::open(void)
 {
     Log::Header header;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
 
@@ -249,7 +249,7 @@ Log::recover()
 {
     ham_status_t st;
     ham_page_t *page;
-    ham_device_t *device=env_get_device(m_env);
+    ham_device_t *device=m_env->get_device();
     Log::Entry entry;
     Iterator it=0;
     ham_u8_t *data=0;

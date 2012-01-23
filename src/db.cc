@@ -186,7 +186,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 inline ham_bool_t
 __cache_needs_purge(Environment *env)
 {
-    Cache *cache=env_get_cache(env);
+    Cache *cache=env->get_cache();
     if (!cache)
         return (HAM_FALSE);
 
@@ -558,7 +558,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (st)
         return (st);
 
-    env_get_cache(env)->remove_page(page);
+    env->get_cache()->remove_page(page);
 
     /*
      * if this page has a header, and it's either a B-Tree root page or 
@@ -619,7 +619,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the cache */
-            page=env_get_cache(env)->get_page(tellpos, 0);
+            page=env->get_cache()->get_page(tellpos, 0);
             if (page)
                 goto done;
             /* allocate a new page structure */
@@ -647,7 +647,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     }
 
     /* can we allocate a new page for the cache? */
-    if (env_get_cache(env)->is_too_big()) {
+    if (env->get_cache()->is_too_big()) {
         if (env_get_rt_flags(env)&HAM_CACHE_STRICT) {
             if (allocated_by_me)
                 page_delete(page);
@@ -675,7 +675,7 @@ done:
         env_get_changeset(env).add_page(page);
 
     /* store the page in the cache */
-    env_get_cache(env)->put_page(page);
+    env->get_cache()->put_page(page);
 
     *page_ref = page;
     return (HAM_SUCCESS);
@@ -711,7 +711,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     *page_ref = 0;
 
     /* fetch the page from the cache */
-    page=env_get_cache(env)->get_page(address, Cache::NOREMOVE);
+    page=env->get_cache()->get_page(address, Cache::NOREMOVE);
     if (page) {
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
@@ -725,11 +725,11 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         return (HAM_SUCCESS);
 
 #if HAM_DEBUG
-    ham_assert(env_get_cache(env)->get_page(address)==0, (""));
+    ham_assert(env->get_cache()->get_page(address)==0, (""));
 #endif
 
     /* can we allocate a new page for the cache? */
-    if (env_get_cache(env)->is_too_big()) {
+    if (env->get_cache()->is_too_big()) {
         if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
             return (HAM_CACHE_FULL);
     }
@@ -749,7 +749,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     ham_assert(page_get_pers(page), (""));
 
     /* store the page in the cache */
-    env_get_cache(env)->put_page(page);
+    env->get_cache()->put_page(page);
 
     /* store the page in the changeset */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
@@ -787,7 +787,7 @@ db_flush_page(Environment *env, ham_page_t *page)
      * be careful - don't store the header page in the cache
      */
     if (page_get_self(page)!=0)
-        env_get_cache(env)->put_page(page);
+        env->get_cache()->put_page(page);
 
     return (0);
 }
@@ -852,7 +852,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
         st=page_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
-        env_get_cache(env)->remove_page(page);
+        env->get_cache()->remove_page(page);
         st=page_free(page);
         if (st)
             return (st);
@@ -1502,7 +1502,7 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env_get_cache(env)->get_capacity();
+                p->value=env->get_cache()->get_capacity();
                 break;
             case HAM_PARAM_PAGESIZE:
                 p->value=env_get_pagesize(env);
@@ -1517,11 +1517,11 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                 p->value=m_db->get_rt_flags();
                 break;
             case HAM_PARAM_GET_FILEMODE:
-                p->value=env_get_file_mode(m_db->get_env());
+                p->value=m_db->get_env()->get_file_mode();
                 break;
             case HAM_PARAM_GET_FILENAME:
-                if (env_get_filename(env).size())
-                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env).c_str());
+                if (env->get_filename().size())
+                    p->value=(ham_u64_t)PTR_TO_U64(env->get_filename().c_str());
                 else
                     p->value=0;
                 break;
@@ -1581,7 +1581,7 @@ DatabaseImplementationLocal::check_integrity(ham_txn_t *txn)
 
     /* check the cache integrity */
     if (!(m_db->get_rt_flags()&HAM_IN_MEMORY_DB)) {
-        st=env_get_cache(m_db->get_env())->check_integrity();
+        st=m_db->get_env()->get_cache()->check_integrity();
         if (st)
             return (st);
     }
@@ -2722,8 +2722,8 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     if (env
             && env_get_header_page(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && env_get_device(env) 
-            && env_get_device(env)->is_open(env_get_device(env)) 
+            && env->get_device() 
+            && env->get_device()->is_open(env->get_device()) 
             && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
@@ -2761,8 +2761,8 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * flush all pages of this database (but not the header page,
      * it's still required and will be flushed below)
      */
-    if (env && env_get_cache(env)) {
-        ham_page_t *n, *head=env_get_cache(env)->get_totallist();
+    if (env && env->get_cache()) {
+        ham_page_t *n, *head=env->get_cache()->get_totallist();
         while (head) {
             n=page_get_next(head, PAGE_LIST_CACHED);
             if (page_get_owner(head)==m_db && head!=env_get_header_page(env)) {

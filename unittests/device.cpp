@@ -67,7 +67,7 @@ public:
                 ham_create(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
         m_env=ham_get_env(m_db);
-        m_dev=env_get_device((Environment *)m_env);
+        m_dev=((Environment *)m_env)->get_device();
     }
     
     virtual void teardown() 

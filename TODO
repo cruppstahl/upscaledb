@@ -19,22 +19,15 @@ o update the tutorial
 
 o mail an Tony B, Curt M., andere
 
-o remove be_set_dirty, replace with be->_fun_flush()
-
-o c++-ify the Database class - get rid of the different Implementations, 
-    use plain inheritance
-
-o c++-ify the page
+o c++-ify the environment
 
 o c++-ify the device
+
+o c++-ify the page
 
 o python API - update and integrate
 
 o implement support for approx. matching (-> sevencat)
-
-o c++-ify the environment
-    . the Databases don't need to be in a linked list; they can be managed
-        in an stl-list or std::map<dbname, db>
 
 o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     when it flushes the txn, but the commit was already logged
@@ -60,6 +53,9 @@ o recovery: re-create pending transactions (if required)
     o needs a function to enumerate them
 
 . c++-ify the transaction
+
+. c++-ify the backend
+    o remove be_set_dirty, replace with be->_fun_flush()
 
 . android port (needs new java api) in /contrib directory (it's on a separate
     branch)

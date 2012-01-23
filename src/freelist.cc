@@ -3839,9 +3839,9 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment
          * would be and consequently how many chunks are in this
          * [section of the] freelist.
          */
-        dev = env_get_device(env);
+        dev = env->get_device();
         ham_assert(dev, (0));
-        st = env_get_device(env)->get_filesize(env_get_device(env), &filesize);
+        st = dev->get_filesize(dev, &filesize);
         if (st)
             return st;
 
@@ -3973,7 +3973,7 @@ freel_shutdown(Environment *env)
      * which was not fully initialized - that's ok, no need to return
      * an error
      */
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
         return (0);
 
@@ -3989,9 +3989,9 @@ freel_shutdown(Environment *env)
 
     allocator_free(env_get_allocator(env), cache);
     if (env)
-        device_set_freelist_cache(env_get_device(env), 0);
+        device_set_freelist_cache(env->get_device(), 0);
     else
-        device_set_freelist_cache(env_get_device(env), 0);
+        device_set_freelist_cache(env->get_device(), 0);
 
     return (st);
 }
@@ -4010,13 +4010,12 @@ freel_mark_free(Environment *env, Database *db, ham_offset_t address,
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
         return (HAM_INTERNAL_ERROR);
 
-    if (!device_get_freelist_cache(dev))
-    {
-        st = __freel_constructor(env_get_device(env), env, db);
+    if (!device_get_freelist_cache(dev)) {
+        st = __freel_constructor(env->get_device(), env, db);
         if (st)
             return st;
     }
@@ -4043,13 +4042,12 @@ freel_check_area_is_allocated(Environment *env, Database *db,
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
         return HAM_INTERNAL_ERROR;
 
-    if (!device_get_freelist_cache(dev))
-    {
-        st = __freel_constructor(env_get_device(env), env, db);
+    if (!device_get_freelist_cache(dev)) {
+        st = __freel_constructor(env->get_device(), env, db);
         if (st)
             return st;
     }
@@ -4087,15 +4085,13 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
         return HAM_SUCCESS;
     }
 
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
-    {
         return HAM_INTERNAL_ERROR;
-    }
 
     if (!device_get_freelist_cache(dev))
     {
-        ham_status_t st = __freel_constructor(env_get_device(env), env, db);
+        ham_status_t st = __freel_constructor(env->get_device(), env, db);
         if (st)
         {
             return st;
@@ -4105,7 +4101,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
 
     ham_assert(cache, (0));
     ham_assert(cache->_alloc_area, (0));
-    return cache->_alloc_area(addr_ref, env_get_device(env), env, db, 
+    return cache->_alloc_area(addr_ref, env->get_device(), env, db, 
                 size, aligned, lower_bound_address);
 }
 
@@ -4120,7 +4116,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
         return HAM_SUCCESS;
 
-    dev = env_get_device(env);
+    dev = env->get_device();
     if (!dev)
     {
         return HAM_INTERNAL_ERROR;
@@ -4128,7 +4124,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
 
     if (!device_get_freelist_cache(dev))
     {
-        ham_status_t st = __freel_constructor(env_get_device(env), env, db);
+        ham_status_t st = __freel_constructor(env->get_device(), env, db);
         if (st)
         {
             return st;
@@ -4138,7 +4134,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
 
     ham_assert(cache, (0));
     ham_assert(cache->_alloc_area, (0));
-    st = cache->_alloc_area(addr_ref, env_get_device(env), env, db, 
+    st = cache->_alloc_area(addr_ref, env->get_device(), env, db, 
                 env_get_pagesize(env), HAM_TRUE, 0);
     return st;
 }
