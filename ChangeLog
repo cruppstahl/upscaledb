@@ -3,6 +3,10 @@ o bugfix: when the Environment was flushed (which always happens when a
 	Transaction is committed), all unused pages were deleted. This thrashed 
 	the caches and degraded performance (thanks, Mark)
 
+Dec 05, 2011 - chris ---------------------------------------------------
+o Added the iOS port in the contrib directory. Written by Peter Liu,
+    https://github.com/yeahren, http://www.yeahren.com/ - THANKS!
+
 Nov 08, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.15
 

@@ -11,12 +11,3 @@ x a finished TODO item
 This branch is in "maintenance mode". New features are on the branch 
 "bleeding_edge" (version 2.0.0.rc1 and newer).
 
-x allow files > 2 GB (see TODO on bleeding_edge branch)
-x allow cachesize > 4 GB (currently it's a 32bit number)
-x new function ham_cursor_get_record_size()
-    - remote stub
-    - with/without dupes
-    - with/without in-memory
-
-x fix performance issues reported by Jake
-x fix ham_erase bug reported by wandi
