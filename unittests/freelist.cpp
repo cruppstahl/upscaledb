@@ -75,7 +75,7 @@ public:
 
         /* need to clear the changeset, otherwise ham_close() will complain */
         if (m_env)
-            env_get_changeset((Environment *)m_env).clear();
+            ((Environment *)m_env)->get_changeset().clear();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -87,7 +87,7 @@ public:
     {
         freelist_payload_t *f;
 
-        f=env_get_freelist((Environment *)m_env);
+        f=env_get_freelist(((Environment *)m_env));
 
         BFC_ASSERT(freel_get_allocated_bits16(f)==0);
         freel_set_allocated_bits16(f, 13);
@@ -105,7 +105,7 @@ public:
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
 
         // reopen the database, check if the values were stored correctly
-        env_set_dirty((Environment *)m_env);
+        ((Environment *)m_env)->set_dirty();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;
@@ -113,7 +113,7 @@ public:
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         BFC_ASSERT_EQUAL(0, open(0));
-        f=env_get_freelist((Environment *)m_env);
+        f=env_get_freelist(((Environment *)m_env));
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
         BFC_ASSERT(freel_get_allocated_bits16(f)==13);
@@ -123,7 +123,7 @@ public:
 
     void markAllocPageTest(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -146,13 +146,13 @@ public:
                 freel_alloc_area(&o, (Environment *)m_env, 
                             (Database *)m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)0, o);
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocAlignedTest(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -168,7 +168,7 @@ public:
 
     void markAllocHighOffsetTest(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -191,13 +191,13 @@ public:
                     freel_alloc_area(&o, (Environment *)m_env, 
                             (Database *)m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)0, o);
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocRangeTest(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_offset_t offset=ps;
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -219,7 +219,7 @@ public:
 
         ham_offset_t o;
         BFC_ASSERT_EQUAL(0, freel_alloc_area(&o, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -234,7 +234,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -252,7 +252,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -286,11 +286,11 @@ public:
         BFC_ASSERT_EQUAL(0,
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL(3*o, addr);
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         ((Database *)m_db)->set_data_access_mode( 
@@ -310,7 +310,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -353,11 +353,11 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 freel_alloc_area(&addr, (Environment *)m_env, (Database *)m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL(o, addr);
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
 
@@ -386,7 +386,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         /* need to clear the changeset, otherwise ham_close() will complain */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         /* set DAM - see above */
@@ -413,14 +413,14 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         // this code snippet crashed in an acceptance test
         BFC_ASSERT_EQUAL(0, freel_mark_free((Environment *)m_env, (Database *)m_db, 2036736, 
-                    env_get_pagesize((Environment *)m_env)-1024, HAM_FALSE));
+                    ((Environment *)m_env)->get_pagesize()-1024, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocAlignTest(void)
     {
         ham_offset_t addr;
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -438,7 +438,7 @@ public:
     void markAllocAlignMultipleTest(void)
     {
         ham_offset_t addr;
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 

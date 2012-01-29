@@ -158,15 +158,15 @@ public:
          * the teardown() code, which will try to close the db->journal 
          * all over AGAIN! 
          */
-        j=env_get_journal(env);
-        env_set_journal(env, NULL);
+        j=env->get_journal();
+        env->set_journal(NULL);
         BFC_ASSERT_EQUAL(0, j->close());
         delete j;
 
         j=new Journal(env);
         BFC_ASSERT_EQUAL(0, j->create());
         BFC_ASSERT_NOTNULL(j);
-        env_set_journal(env, j);
+        env->set_journal(j);
         return (j);
     }
 
@@ -185,13 +185,13 @@ public:
 
     void createCloseOpenCloseTest(void)
     {
-        Journal *j=env_get_journal(m_env);
+        Journal *j=m_env->get_journal();
         BFC_ASSERT_EQUAL(true, j->is_empty());
         BFC_ASSERT_EQUAL(0, j->close(true));
 
         BFC_ASSERT_EQUAL(0, j->open());
         BFC_ASSERT_EQUAL(true, j->is_empty());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
     }
 
     void negativeCreateTest(void)
@@ -325,7 +325,7 @@ public:
         BFC_ASSERT_EQUAL(0, j->close(true));
 
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         /* verify that the insert entry was written correctly */
         Journal::Iterator iter;
@@ -373,7 +373,7 @@ public:
         BFC_ASSERT_EQUAL(0, j->close(true));
 
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         /* verify that the insert entry was written correctly */
         Journal::Iterator iter;
@@ -415,7 +415,7 @@ public:
         BFC_ASSERT_EQUAL(0, j->close(true));
 
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         /* verify that the erase entry was written correctly */
         Journal::Iterator iter;
@@ -458,7 +458,7 @@ public:
         BFC_ASSERT_EQUAL(0, j->close());
         BFC_ASSERT_EQUAL(0, j->open());
         BFC_ASSERT_EQUAL((ham_u64_t)3, j->get_lsn());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
     }
 
     void iterateOverEmptyLogTest(void)
@@ -488,7 +488,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, j->open());
         BFC_ASSERT_EQUAL(2ull, j->get_lsn());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         Journal::Iterator iter;
         memset(&iter, 0, sizeof(iter));
@@ -601,7 +601,7 @@ public:
         m_env=(Environment *)ham_get_env(m_db);
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         compareJournal(j, vec, p);
 
@@ -632,7 +632,7 @@ public:
         m_env=(Environment *)ham_get_env(m_db);
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         compareJournal(j, vec, p);
 
@@ -666,7 +666,7 @@ public:
         m_env=(Environment *)ham_get_env(m_db);
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
 
         compareJournal(j, vec, p);
 
@@ -676,7 +676,7 @@ public:
     void verifyJournalIsEmpty(void)
     {
         ham_offset_t size;
-        Journal *j=env_get_journal(m_env);
+        Journal *j=m_env->get_journal();
         BFC_ASSERT_EQUAL(0, os_get_filesize(j->m_fd[0], &size));
         BFC_ASSERT_EQUAL(sizeof(Journal::Header), size);
         BFC_ASSERT_EQUAL(0, os_get_filesize(j->m_fd[1], &size));
@@ -715,7 +715,7 @@ public:
         verifyJournalIsEmpty();
 
         /* verify the lsn */
-        Journal *j=env_get_journal(m_env);
+        Journal *j=m_env->get_journal();
         BFC_ASSERT_EQUAL(11ull, j->get_lsn());
         BFC_ASSERT_EQUAL(5ull, m_env->get_txn_id());
 
@@ -760,7 +760,7 @@ public:
         delete j;
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
         compareJournal(j, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
@@ -822,7 +822,7 @@ public:
         delete j;
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
         compareJournal(j, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* by re-creating the database we make sure that it's definitely
@@ -860,7 +860,7 @@ public:
         unsigned p=0;
         ham_key_t key={0};
         ham_record_t rec={0};
-        Journal *j=env_get_journal(m_env);
+        Journal *j=m_env->get_journal();
         ham_u64_t lsn=2;
 
         /* create two transactions which insert a key, but only flush the
@@ -899,7 +899,7 @@ public:
         m_env=(Environment *)ham_get_env(m_db);
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
         compareJournal(j, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* now open and recover */
@@ -963,7 +963,7 @@ public:
         delete j;
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
         compareJournal(j, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
@@ -1034,7 +1034,7 @@ public:
         delete j;
         j=new Journal(m_env);
         BFC_ASSERT_EQUAL(0, j->open());
-        env_set_journal(m_env, j);
+        m_env->set_journal(j);
         compareJournal(j, vec, p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0, 
@@ -1055,7 +1055,7 @@ public:
 
     void lsnOverflowTest(void)
     {
-        Journal *j=env_get_journal(m_env);
+        Journal *j=m_env->get_journal();
         j->m_lsn=0xffffffffffffffffull-1;
         ham_txn_t *txn;
 

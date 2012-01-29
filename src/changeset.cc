@@ -36,7 +36,7 @@ Changeset::add_page(ham_page_t *page)
 
     ham_assert(0==page_get_next(page, PAGE_LIST_CHANGESET), (""));
     ham_assert(0==page_get_previous(page, PAGE_LIST_CHANGESET), (""));
-    ham_assert(env_get_rt_flags(device_get_env(page_get_device(page)))
+    ham_assert((device_get_env(page_get_device(page)))->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
     page_set_next(page, PAGE_LIST_CHANGESET, m_head);
@@ -51,7 +51,7 @@ Changeset::get_page(ham_offset_t pageid)
     ham_page_t *p=m_head;
 
     while (p) {
-    	ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
+        ham_assert((device_get_env(page_get_device(p)))->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
         if (page_get_self(p)==pageid)
@@ -83,7 +83,7 @@ Changeset::log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count)
         ham_assert(page_is_dirty(*it), (""));
 
         Environment *env=device_get_env(page_get_device(*it));
-        Log *log=env_get_log(env);
+        Log *log=env->get_log();
 
         induce(ErrorInducer::CHANGESET_FLUSH);
 
@@ -181,10 +181,10 @@ Changeset::flush(ham_u64_t lsn)
     p=m_head;
 
     Environment *env=device_get_env(page_get_device(p));
-    Log *log=env_get_log(env);
+    Log *log=env->get_log();
 
     ham_assert(log!=0, (""));
-    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY, (""));
 
     /* execute a post-log hook; this hook is set by the unittest framework
      * and can be used to make a backup copy of the logfile */

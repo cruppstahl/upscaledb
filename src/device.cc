@@ -299,7 +299,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     /*
      * don't modify the data in-place!
      */
-    tempdata=(ham_u8_t *)allocator_alloc(env_get_allocator(env), 
+    tempdata=(ham_u8_t *)allocator_alloc(env->get_allocator(), 
                                (ham_size_t)size);
     if (!tempdata)
         return (HAM_OUT_OF_MEMORY);
@@ -318,7 +318,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     if (!st)
         st=os_pwrite(t->fd, offset, tempdata, size);
 
-    allocator_free(env_get_allocator(env), tempdata);
+    allocator_free(env->get_allocator(), tempdata);
     return (st);
 }
 

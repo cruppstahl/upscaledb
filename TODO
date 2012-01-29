@@ -21,6 +21,16 @@ o mail an Tony B, Curt M., andere
 
 o c++-ify the environment
 
+===================>
+crasht momentan in DupeTest::endianTest
+  in btree_fun_open wird die db_indexdata_t struktur ausgewertet, aber sie
+    enthält nur müll
+  anscheinend wird sie vom falschen offset aus zurückgegeben, oder die endian-
+    konvertierung funktioniert nicht
+===================>
+
+o c++-ify the memory allocator
+
 o c++-ify the device
 
 o c++-ify the page

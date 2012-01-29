@@ -193,11 +193,11 @@ __cache_needs_purge(Environment *env)
     /* purge the cache, if necessary. if cache is unlimited, then we purge very
      * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
      * which can happen on 32bit Windows) */
-    if (cache && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+    if (cache && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_bool_t purge=cache->is_too_big();
 #if defined(WIN32) && defined(HAM_32BIT)
-        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache->get_cur_elements()*env_get_pagesize(env) 
+        if (env->get_flags()&HAM_CACHE_UNLIMITED) {
+            if (cache->get_cur_elements()*env->get_pagesize() 
                     > PURGE_THRESHOLD)
                 return (HAM_FALSE);
         }
@@ -283,6 +283,13 @@ Database::Database()
     m_remote_handle=0;
 #endif
     txn_tree_init(this, &m_optree);
+}
+
+ham_u16_t 
+Database::get_name(void)
+{
+    db_indexdata_t *idx=get_env()->get_indexdata_ptr(get_indexdata_offset());
+    return (index_get_dbname(idx));
 }
 
 Database::~Database()
@@ -454,7 +461,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
     ham_size_t temp;
     ham_record_t record;
     ham_u8_t *ptr;
-    mem_allocator_t *alloc=env_get_allocator(get_env());
+    mem_allocator_t *alloc=get_env()->get_allocator();
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
@@ -465,7 +472,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
      * advantages; it only duplicates the data and wastes memory.
      * therefore we don't use it.
      */
-    if (!(env_get_rt_flags(get_env())&HAM_IN_MEMORY_DB)) {
+    if (!(get_env()->get_flags()&HAM_IN_MEMORY_DB)) {
         if (!get_extkey_cache())
             set_extkey_cache(new ExtKeyCache(this));
     }
@@ -476,7 +483,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
     blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
-    if (!(env_get_rt_flags(get_env())&HAM_IN_MEMORY_DB)) {
+    if (!(get_env()->get_flags()&HAM_IN_MEMORY_DB)) {
         st=get_extkey_cache()->fetch(blobid, &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
@@ -584,9 +591,9 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
      * move the page to the freelist
      */
     if (flags&DB_MOVE_TO_FREELIST) {
-        if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
+        if (!(env->get_flags()&HAM_IN_MEMORY_DB))
             (void)freel_mark_free(env, 0, page_get_self(page), 
-                    env_get_pagesize(env), HAM_TRUE);
+                    env->get_pagesize(), HAM_TRUE);
     }
 
     /*
@@ -616,7 +623,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         st=freel_alloc_page(&tellpos, env, db);
         ham_assert(st ? !tellpos : 1, (0));
         if (tellpos) {
-            ham_assert(tellpos%env_get_pagesize(env)==0,
+            ham_assert(tellpos%env->get_pagesize()==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the cache */
             page=env->get_cache()->get_page(tellpos, 0);
@@ -648,7 +655,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
 
     /* can we allocate a new page for the cache? */
     if (env->get_cache()->is_too_big()) {
-        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) {
+        if (env->get_flags()&HAM_CACHE_STRICT) {
             if (allocated_by_me)
                 page_delete(page);
             return (HAM_CACHE_FULL);
@@ -668,11 +675,11 @@ done:
 
     /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO)
-        memset(page_get_pers(page), 0, env_get_pagesize(env));
+        memset(page_get_pers(page), 0, env->get_pagesize());
 
     /* an allocated page is always flushed if recovery is enabled */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        env_get_changeset(env).add_page(page);
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        env->get_changeset().add_page(page);
 
     /* store the page in the cache */
     env->get_cache()->put_page(page);
@@ -716,8 +723,8 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         *page_ref = page;
         ham_assert(page_get_pers(page), (""));
         /* store the page in the changeset if recovery is enabled */
-        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-            env_get_changeset(env).add_page(page);
+        if (env->get_flags()&HAM_ENABLE_RECOVERY)
+            env->get_changeset().add_page(page);
         return (HAM_SUCCESS);
     }
 
@@ -730,7 +737,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
 
     /* can we allocate a new page for the cache? */
     if (env->get_cache()->is_too_big()) {
-        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
+        if (env->get_flags()&HAM_CACHE_STRICT) 
             return (HAM_CACHE_FULL);
     }
 
@@ -752,8 +759,8 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
     env->get_cache()->put_page(page);
 
     /* store the page in the changeset */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        env_get_changeset(env).add_page(page);
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        env->get_changeset().add_page(page);
 
     *page_ref = page;
     return (HAM_SUCCESS);
@@ -838,7 +845,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
      */
     ham_assert(env, (0));
     if (page_is_dirty(page) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+            && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
         if (st)
             return st;
@@ -867,13 +874,13 @@ Database::resize_record_allocdata(ham_size_t size)
 {
     if (size==0) {
         if (get_record_allocdata())
-            allocator_free(env_get_allocator(get_env()), 
+            allocator_free(get_env()->get_allocator(), 
                     get_record_allocdata());
         set_record_allocdata(0);
         set_record_allocsize(0);
     }
     else if (size>get_record_allocsize()) {
-        void *newdata=allocator_realloc(env_get_allocator(get_env()), 
+        void *newdata=allocator_realloc(get_env()->get_allocator(), 
                 get_record_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
@@ -889,13 +896,13 @@ Database::resize_key_allocdata(ham_size_t size)
 {
     if (size==0) {
         if (get_key_allocdata())
-            allocator_free(env_get_allocator(get_env()), 
+            allocator_free(get_env()->get_allocator(), 
                     get_key_allocdata());
         set_key_allocdata(0);
         set_key_allocsize(0);
     }
     else if (size>get_key_allocsize()) {
-        void *newdata=allocator_realloc(env_get_allocator(get_env()), 
+        void *newdata=allocator_realloc(get_env()->get_allocator(), 
                 get_key_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
@@ -1192,7 +1199,7 @@ db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
      * checks if a key already exists, and this fills the changeset
      */
     st=db_check_insert_conflicts(db, txn, node, key, flags);
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
     if (st) {
         if (node_created)
             txn_opnode_free(env, node);
@@ -1236,9 +1243,9 @@ db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     /* append journal entry */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
-        Journal *j=env_get_journal(env);
+    if (env->get_flags()&HAM_ENABLE_RECOVERY
+            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
+        Journal *j=env->get_journal();
         st=j->append_insert(db, txn, key, record, 
                             flags&HAM_DUPLICATE ? flags : flags|HAM_OVERWRITE, 
                             txn_op_get_lsn(op));
@@ -1362,7 +1369,7 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
      * duplicate key. dupes are checked for conflicts in _local_cursor_move */
     if (!pc || (!pc->get_dupecache_index())) {
         st=db_check_erase_conflicts(db, txn, node, key, flags);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         if (st) {
             if (node_created)
                 txn_opnode_free(env, node);
@@ -1399,9 +1406,9 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     __nil_all_cursors_in_btree(db, pc, txn_opnode_get_key(node));
 
     /* append journal entry */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
-        Journal *j=env_get_journal(env);
+    if (env->get_flags()&HAM_ENABLE_RECOVERY
+            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
+        Journal *j=env->get_journal();
         st=j->append_erase(db, txn, key, 0, flags|HAM_ERASE_ALL_DUPLICATES,
                             txn_op_get_lsn(op));
     }
@@ -1505,7 +1512,7 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                 p->value=env->get_cache()->get_capacity();
                 break;
             case HAM_PARAM_PAGESIZE:
-                p->value=env_get_pagesize(env);
+                p->value=env->get_pagesize();
                 break;
             case HAM_PARAM_KEYSIZE:
                 p->value=m_db->get_backend() ? db_get_keysize(m_db) : 21;
@@ -1595,7 +1602,7 @@ DatabaseImplementationLocal::check_integrity(ham_txn_t *txn)
 
     /* call the backend function */
     st=be->_fun_check_integrity(be);
-    env_get_changeset(m_db->get_env()).clear();
+    m_db->get_env()->get_changeset().clear();
 
     return (st);
 }
@@ -1650,7 +1657,7 @@ DatabaseImplementationLocal::get_key_count(ham_txn_t *txn, ham_u32_t flags,
     }
 
 bail:
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
     return (st);
 }
 
@@ -1723,7 +1730,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
     }
 
     if (temprec.data!=record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
+        allocator_free(env->get_allocator(), temprec.data);
 
     if (st) {
         if (local_txn)
@@ -1738,7 +1745,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -1754,7 +1761,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
             be->_fun_flush(be);
-            env_set_dirty(env);
+            env->set_dirty();
         }
     }
 
@@ -1762,9 +1769,9 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -1816,7 +1823,7 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
     
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -1827,12 +1834,12 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
     ham_assert(st==0, (""));
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -1906,7 +1913,7 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -1920,18 +1927,18 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
         if (local_txn)
             (void)txn_abort(local_txn, 0);
 
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
     ham_assert(st==0, (""));
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+                && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2066,7 +2073,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         cursor->set_txn(0);
 
     if (temprec.data!=record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
+        allocator_free(env->get_allocator(), temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2080,7 +2087,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
 
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -2099,7 +2106,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
             be->_fun_flush(be);
-            env_set_dirty(env);
+            env->set_dirty();
         }
     }
 
@@ -2110,12 +2117,12 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-                && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+                && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2143,7 +2150,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     st=cursor->erase(cursor->get_txn() ? cursor->get_txn() : local_txn, flags);
 
     /* clear the changeset */
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
@@ -2159,7 +2166,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     else {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -2169,12 +2176,12 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
      * which is called by txn_cursor_erase() */
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2338,7 +2345,7 @@ bail:
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -2352,7 +2359,7 @@ bail:
         if (st) {
             if (local_txn)
                 (void)txn_abort(local_txn, 0);
-            env_get_changeset(env).clear();
+            env->get_changeset().clear();
             return (st);
         }
     }
@@ -2364,12 +2371,12 @@ bail:
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2415,7 +2422,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -2426,12 +2433,12 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2474,7 +2481,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
     if (local_txn)
         cursor->set_txn(0);
 
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
 
     if (st) {
         if (local_txn)
@@ -2489,12 +2496,12 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2544,12 +2551,12 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
         cursor->set_txn(0);
 
     if (temprec.data != record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
+        allocator_free(env->get_allocator(), temprec.data);
 
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (st);
     }
 
@@ -2558,12 +2565,12 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
     /* the journal entry is appended in db_insert_txn() */
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
-    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    else if (env->get_flags()&HAM_ENABLE_RECOVERY 
+            && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
+        return (env->get_changeset().flush(DUMMY_LSN));
     else
         return (st);
 }
@@ -2615,7 +2622,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
     if (!(m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=btree_cursor_move(cursor->get_btree_cursor(), 
                 key, record, flags);
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         if (st)
             return (st);
 
@@ -2640,7 +2647,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
     if (local_txn)
         cursor->set_txn(0);
 
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
 
     /* run the record-level filters */
     if (st==0 && record)
@@ -2665,7 +2672,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
     }
 
     if (local_txn) {
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
         return (txn_commit(local_txn, 0));
     }
     else
@@ -2694,7 +2701,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * delete all environment-members
      */
     if (env) {
-        Database *n=env_get_list(env);
+        Database *n=env->get_databases();
         while (n) {
             if (n!=m_db) {
                 has_other_db=HAM_TRUE;
@@ -2720,14 +2727,14 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * and the dirty-flag is true: flush the page-header to disk
      */
     if (env
-            && env_get_header_page(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            && env->get_header_page() 
+            && !(env->get_flags()&HAM_IN_MEMORY_DB)
             && env->get_device() 
             && env->get_device()->is_open(env->get_device()) 
             && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
-        if (env_is_dirty(env)) {
-            st=page_flush(env_get_header_page(env));
+        if (env->is_dirty()) {
+            st=page_flush(env->get_header_page());
             if (st && st2==0)
                 st2=st;
         }
@@ -2740,7 +2747,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     }
 
     /* in-memory-database: free all allocated blobs */
-    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
+    if (be && be_is_active(be) && env->get_flags()&HAM_IN_MEMORY_DB) {
         ham_txn_t *txn;
         free_cb_context_t context;
         context.db=m_db;
@@ -2755,7 +2762,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /* clear the changeset */
     if (env)
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
 
     /*
      * flush all pages of this database (but not the header page,
@@ -2765,8 +2772,8 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         ham_page_t *n, *head=env->get_cache()->get_totallist();
         while (head) {
             n=page_get_next(head, PAGE_LIST_CACHED);
-            if (page_get_owner(head)==m_db && head!=env_get_header_page(env)) {
-                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
+            if (page_get_owner(head)==m_db && head!=env->get_header_page()) {
+                if (!(env->get_flags()&HAM_IN_MEMORY_DB)) 
                     (void)db_flush_page(env, head);
                 (void)db_free_page(head, 0);
             }
@@ -2777,7 +2784,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     /* free cached memory */
     (void)m_db->resize_record_allocdata(0);
     if (m_db->get_key_allocdata()) {
-        allocator_free(env_get_allocator(env), m_db->get_key_allocdata());
+        allocator_free(env->get_allocator(), m_db->get_key_allocdata());
         m_db->set_key_allocdata(0);
         m_db->set_key_allocsize(0);
     }
@@ -2804,7 +2811,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
          * TODO
          * this free() should move into the backend destructor 
          */
-        allocator_free(env_get_allocator(env), be);
+        allocator_free(env->get_allocator(), be);
         m_db->set_backend(0);
     }
 
@@ -2814,7 +2821,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * ownership to 0
      */
     if (env) {
-        Database *head=env_get_list(env);
+        Database *head=env->get_databases();
         while (head) {
             if (head!=m_db) {
                 newowner=head;
@@ -2823,9 +2830,9 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
             head=head->get_next();
         }
     }
-    if (env && env_get_header_page(env)) {
-        ham_assert(env_get_header_page(env), (0));
-        page_set_owner(env_get_header_page(env), newowner);
+    if (env && env->get_header_page()) {
+        ham_assert(env->get_header_page(), (0));
+        page_set_owner(env->get_header_page(), newowner);
     }
 
     /* close all record-level filters */

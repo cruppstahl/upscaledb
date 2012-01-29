@@ -344,7 +344,7 @@ db_update_freelist_stats_fail(ham_device_t *dev, Environment *env, freelist_entr
 
 		// should NOT use freel_get_max_bitsXX(f) here!
 		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-		ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+		ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
 		ham_assert(device_get_freelist_cache(dev), (0));
 
 		freel_entry_statistics_set_dirty(entry);
@@ -460,7 +460,7 @@ db_update_freelist_stats(ham_device_t *dev, Environment *env, freelist_entry_t *
 
 		ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
 		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-		ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+		ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
 		ham_assert(device_get_freelist_cache(dev), (0));
 
 		freel_entry_statistics_set_dirty(entry);
@@ -580,7 +580,7 @@ db_update_freelist_stats_edit(ham_device_t *dev, Environment *env, freelist_entr
 
 		ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
 		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-		ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+		ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
 		ham_assert(device_get_freelist_cache(dev), (0));
 
 		freel_entry_statistics_set_dirty(entry);
@@ -1225,7 +1225,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_device_t *dev, Environmen
 
         /* take alignment into account as well! */
         if (dst->aligned) {
-			ham_u32_t alignment = env_get_pagesize(env) / DB_CHUNKSIZE;
+			ham_u32_t alignment = env->get_pagesize() / DB_CHUNKSIZE;
             dst->startpos += alignment - 1;
             dst->startpos -= dst->startpos % alignment;
         }
@@ -1342,7 +1342,7 @@ stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst)
 
         ham_assert(env, (0));
         cache = device_get_freelist_cache(env->get_device());
-        allocator = env_get_allocator(env);
+        allocator = env->get_allocator();
 
         if (!cache || !allocator || !freel_cache_get_entries(cache))
         {

@@ -75,60 +75,57 @@
 /**
  * the persistent database index header
  */
-typedef HAM_PACK_0 union HAM_PACK_1 
+HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 {
-    HAM_PACK_0 struct HAM_PACK_1 {
-        /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
-        ham_u16_t _dbname;
+    /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
+    ham_u16_t _dbname;
 
-        /** maximum keys in an internal page */
-        ham_u16_t _maxkeys;
+    /** maximum keys in an internal page */
+    ham_u16_t _maxkeys;
 
-        /** key size in this page */
-        ham_u16_t _keysize;
+    /** key size in this page */
+    ham_u16_t _keysize;
 
-        /* reserved */
-        ham_u16_t  _reserved1;
-    
-        /** address of this page */
-        ham_offset_t _self;
+    /* reserved */
+    ham_u16_t _reserved1;
 
-        /** flags for this database */
-        ham_u32_t _flags;
+    /** address of this page */
+    ham_offset_t _self;
 
-        /** last used record number value */
-        ham_offset_t _recno;
+    /** flags for this database */
+    ham_u32_t _flags;
 
-        /* reserved */
-        ham_u32_t _reserved2;
-    } HAM_PACK_2 b;
+    /** last used record number value */
+    ham_offset_t _recno;
 
-    ham_u8_t _space[32];
-} HAM_PACK_2 db_indexdata_t;
+    /* reserved */
+    ham_u32_t _reserved2;
+
+} HAM_PACK_2;
 
 #include "packstop.h"
 
 
-#define index_get_dbname(p)               ham_db2h16((p)->b._dbname)
-#define index_set_dbname(p, n)            (p)->b._dbname = ham_h2db16(n)
+#define index_get_dbname(p)               ham_db2h16((p)->_dbname)
+#define index_set_dbname(p, n)            (p)->_dbname=ham_h2db16(n)
 
-#define index_get_max_keys(p)             ham_db2h16((p)->b._maxkeys)
-#define index_set_max_keys(p, n)          (p)->b._maxkeys = ham_h2db16(n)
+#define index_get_max_keys(p)             ham_db2h16((p)->_maxkeys)
+#define index_set_max_keys(p, n)          (p)->_maxkeys=ham_h2db16(n)
 
-#define index_get_keysize(p)              ham_db2h16((p)->b._keysize)
-#define index_set_keysize(p, n)           (p)->b._keysize = ham_h2db16(n)
+#define index_get_keysize(p)              ham_db2h16((p)->_keysize)
+#define index_set_keysize(p, n)           (p)->_keysize=ham_h2db16(n)
 
-#define index_get_self(p)                 ham_db2h_offset((p)->b._self)
-#define index_set_self(p, n)              (p)->b._self=ham_h2db_offset(n)
+#define index_get_self(p)                 ham_db2h_offset((p)->_self)
+#define index_set_self(p, n)              (p)->_self=ham_h2db_offset(n)
 
-#define index_get_flags(p)                ham_db2h32((p)->b._flags)
-#define index_set_flags(p, n)             (p)->b._flags = ham_h2db32(n)
+#define index_get_flags(p)                ham_db2h32((p)->_flags)
+#define index_set_flags(p, n)             (p)->_flags=ham_h2db32(n)
 
-#define index_get_recno(p)                ham_db2h_offset((p)->b._recno)
-#define index_set_recno(p, n)             (p)->b._recno=ham_h2db_offset(n)
+#define index_get_recno(p)                ham_db2h_offset((p)->_recno)
+#define index_set_recno(p, n)             (p)->_recno=ham_h2db_offset(n)
 
-#define index_clear_reserved(p)           { (p)->b._reserved1 = 0;            \
-                                            (p)->b._reserved2 = 0; }
+#define index_clear_reserved(p)           { (p)->_reserved1=0;            \
+                                            (p)->_reserved2=0; }
 
 /** 
  * This helper class provides the actual implementation of the 
@@ -480,7 +477,7 @@ class Database
         if (raw)
             return (m_rt_flags);
         else
-            return (env_get_rt_flags(m_env)|m_rt_flags);
+            return (m_env->get_flags()|m_rt_flags);
     }
 
     /** set the runtime-flags - NOT setting environment flags!  */
@@ -643,11 +640,7 @@ class Database
     }
 
     /** get the database name */
-    ham_u16_t get_name(void) {
-        db_indexdata_t *idx=env_get_indexdata_ptr(get_env(), 
-            get_indexdata_offset());
-        return (index_get_dbname(idx));
-    }
+    ham_u16_t get_name(void);
 
     /**
      * function which compares two keys
@@ -747,10 +740,10 @@ class Database
             if (!(dest->flags&HAM_KEY_USER_ALLOC)) {
                 if (!dest->data || dest->size<source->size) {
                     if (dest->data)
-                        allocator_free(env_get_allocator(get_env()), 
+                        allocator_free(get_env()->get_allocator(), 
                                 dest->data);
                     dest->data=(ham_u8_t *)allocator_alloc(
-                                env_get_allocator(get_env()), source->size);
+                                get_env()->get_allocator(), source->size);
                     if (!dest->data) 
                         return (HAM_OUT_OF_MEMORY);
                 }
@@ -763,7 +756,7 @@ class Database
             /* key.size is 0 */
             if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
                 if (dest->data)
-                    allocator_free(env_get_allocator(get_env()), dest->data);
+                    allocator_free(get_env()->get_allocator(), dest->data);
                 dest->data=0;
             }
             dest->size=0;

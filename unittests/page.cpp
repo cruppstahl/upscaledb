@@ -101,7 +101,7 @@ public:
     {
         int i;
         ham_page_t *page;
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
 
         for (i=0; i<10; i++) {
             page=page_new((Environment *)m_env);
@@ -118,7 +118,7 @@ public:
     void fetchFlushTest()
     {
         ham_page_t *page, *temp;
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
 
         page=page_new((Environment *)m_env);
         temp=page_new((Environment *)m_env);

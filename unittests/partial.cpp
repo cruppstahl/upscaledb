@@ -265,19 +265,19 @@ public:
 
     void insertGapsTestPagesize(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps, ps, ps*2);
     }
 
     void insertGapsTestPagesize2(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps*2, ps*2, ps*4);
     }
 
     void insertGapsTestPagesize4(void)
     {
-        ham_size_t ps=env_get_pagesize((Environment *)m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps*4, ps*4, ps*8);
     }
 };

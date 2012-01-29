@@ -137,7 +137,7 @@ ham_page_t *
 page_new(Environment *env)
 {
     ham_page_t *page;
-    mem_allocator_t *alloc=env_get_allocator(env);
+    mem_allocator_t *alloc=env->get_allocator();
 
     page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
     if (!page)

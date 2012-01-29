@@ -82,7 +82,7 @@ class ExtKeyCache
         }
 
         void free_node(const extkey_t *node) {
-            allocator_free(env_get_allocator(m_env), node);
+            allocator_free(m_env->get_allocator(), node);
         }
 
         void set_next(extkey_t *node, extkey_t *other) {

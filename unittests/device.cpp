@@ -130,7 +130,7 @@ public:
         BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, m_dev->alloc(m_dev, 1024, &address));
-            BFC_ASSERT_EQUAL((env_get_pagesize((Environment *)m_env)*2)+1024*i, address);
+            BFC_ASSERT_EQUAL((((Environment *)m_env)->get_pagesize()*2)+1024*i, address);
         }
     }
 

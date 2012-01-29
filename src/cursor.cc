@@ -70,9 +70,9 @@ Cursor::update_dupecache(ham_u32_t what)
                 dc->append(DupeCacheLine(true, i));
             }
             if (needs_free)
-                allocator_free(env_get_allocator(env), table);
+                allocator_free(env->get_allocator(), table);
         }
-        env_get_changeset(env).clear();
+        env->get_changeset().clear();
     }
 
     /* read duplicates from the txn-cursor? */

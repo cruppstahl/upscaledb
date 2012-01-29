@@ -174,15 +174,15 @@ extern ham_status_t
 __freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 /**
- * replacement for the macro env_set_dirty; will call the macro, but also
+ * replacement for env->set_dirty(); will call the macro, but also
  * add the header page to the changeset
  */
 static void
 __env_set_dirty(Environment *env)
 {
-    env_set_dirty(env);
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        env_get_changeset(env).add_page(env_get_header_page(env));
+    env->set_dirty();
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        env->get_changeset().add_page(env->get_header_page());
 }
 
 /**
@@ -194,8 +194,8 @@ __page_set_dirty(ham_page_t *page)
 {
     Environment *env=device_get_env(page_get_device(page));
     page_set_dirty(page);
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        env_get_changeset(env).add_page(page);
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        env->get_changeset().add_page(page);
 }
 
 /**
@@ -205,7 +205,7 @@ __page_set_dirty(ham_page_t *page)
  * a little less than 
  * 
  * <pre>
- * DB_CHUNKSIZE * env_get_pagesize(env)
+ * DB_CHUNKSIZE * env->get_pagesize()
  * </pre>
  */
 static ham_size_t 
@@ -234,7 +234,7 @@ __freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cach
              "due to the scan algorithm"));
 
     ham_assert(new_count > freel_cache_get_count(cache), (0));
-    entries=(freelist_entry_t *)allocator_alloc(env_get_allocator(env), 
+    entries=(freelist_entry_t *)allocator_alloc(env->get_allocator(), 
                     sizeof(*entries)*new_count);
     if (!entries)
         return HAM_OUT_OF_MEMORY;
@@ -260,7 +260,7 @@ __freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cach
             return st;
     }
 
-    allocator_free(env_get_allocator(env), freel_cache_get_entries(cache));
+    allocator_free(env->get_allocator(), freel_cache_get_entries(cache));
     freel_cache_set_entries(cache, entries);
     freel_cache_set_count(cache, new_count);
 
@@ -994,7 +994,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
     /* determine the first aligned starting point: */
     if (hints->aligned)
     {
-        ham_u32_t chunked_pagesize = env_get_pagesize(env) / DB_CHUNKSIZE;
+        ham_u32_t chunked_pagesize = env->get_pagesize() / DB_CHUNKSIZE;
         ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / DB_CHUNKSIZE);
         offset %= chunked_pagesize;
         offset = chunked_pagesize - offset;
@@ -3184,7 +3184,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 
     db_get_global_freelist_hints(&global_hints, dev, env);
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
@@ -3411,7 +3411,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
             /*
              * now try to allocate from this payload
              */
-            ham_assert(env_is_legacy(env)
+            ham_assert(env->is_legacy()
                 ? (fp->_s._s32._zero != 0)
                 : (fp->_s._s32._zero == 0), (0));
             s = __freel_search_bits_ex(dev, env, entry, fp, 
@@ -3465,7 +3465,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     ham_assert(cache != 0, (0));
     ham_assert(!freel_cache_get_entries(cache), (0));
 
-    entry=(freelist_entry_t *)allocator_calloc(env_get_allocator(env), 
+    entry=(freelist_entry_t *)allocator_calloc(env->get_allocator(), 
                     sizeof(*entry)*1);
     if (!entry)
         return HAM_OUT_OF_MEMORY;
@@ -3473,7 +3473,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     /*
      * add the header page to the freelist
      */
-    freel_entry_set_start_address(&entry[0], env_get_pagesize(env));
+    freel_entry_set_start_address(&entry[0], env->get_pagesize());
     size = env_get_usable_pagesize(env);
     size -= SIZEOF_FULL_HEADER(env);
     size -= env_get_freelist_header_sizeXX();
@@ -3485,9 +3485,9 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     /*
      * initialize the header page, if we have read/write access
      */
-    if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) 
+    if (!(env->get_flags()&HAM_READ_ONLY)) 
     {
-        freel_set_start_address(fp, env_get_pagesize(env));
+        freel_set_start_address(fp, env->get_pagesize());
         ham_assert((size*8 % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
         freel_set_max_bitsXX(fp, (ham_uXX_t)(size*8));
     }
@@ -3552,7 +3552,7 @@ __freel_flush_stats16(ham_device_t *dev, Environment *env)
     freelist_cache_t *cache;
     freelist_entry_t *entries;
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     cache=device_get_freelist_cache(dev);
@@ -3582,7 +3582,7 @@ __freel_destructorXX(ham_device_t *dev, Environment *env)
     freelist_cache_t *cache;
     freelist_entry_t *entries;
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     cache=device_get_freelist_cache(dev);
@@ -3590,7 +3590,7 @@ __freel_destructorXX(ham_device_t *dev, Environment *env)
 
     entries = freel_cache_get_entries(cache);
     if (entries)
-        allocator_free(env_get_allocator(env), entries);
+        allocator_free(env->get_allocator(), entries);
 
     memset(cache, 0, sizeof(*cache));
 
@@ -3622,7 +3622,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
     0
     };
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
@@ -3649,7 +3649,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
          * allocate a page if necessary
          */
         if (!freel_entry_get_page_id(entry)) {
-            if (freel_entry_get_start_address(entry)==env_get_pagesize(env)) {
+            if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
                 fp=env_get_freelist(env);
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
@@ -3680,7 +3680,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
          */
 #if HAM_DEBUG
         if (db) {
-            ham_assert(env_is_legacy(env)
+            ham_assert(env->is_legacy()
                     ? (fp->_s._s32._zero != 0)
                     : (fp->_s._s32._zero == 0), (0));
         }
@@ -3719,7 +3719,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
     freelist_payload_t *fp;
     ham_size_t s;
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
@@ -3746,7 +3746,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
         * allocate a page if necessary
         */
         if (!freel_entry_get_page_id(entry)) {
-            if (freel_entry_get_start_address(entry)==env_get_pagesize(env)) {
+            if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
                 fp=env_get_freelist(env);
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
@@ -3880,11 +3880,11 @@ __freel_constructor(ham_device_t *dev, Environment *env, Database *db)
     
     ham_assert(device_get_freelist_cache(dev)==0, (0));
 
-    ham_assert(env_get_header_page(env), (0));
-    ham_assert(env_get_header(env), (0));
+    ham_assert(env->get_header_page(), (0));
+    ham_assert(env->get_header(), (0));
     //ham_assert(env_get_data_access_mode(env) == 0, (0));
 
-    if (env_is_legacy(env))
+    if (env->is_legacy())
     {
 /*
 TODO TODO TODO
@@ -3929,13 +3929,13 @@ freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev,
 
     *cache_ref = 0;
 
-    cache = (freelist_cache_t *)allocator_calloc(env_get_allocator(env), 
+    cache = (freelist_cache_t *)allocator_calloc(env->get_allocator(), 
                     sizeof(*cache));
     if (!cache)
         return HAM_OUT_OF_MEMORY;
 
-    ham_assert(env_get_header_page(env), (0));
-    ham_assert(env_get_header(env), (0));
+    ham_assert(env->get_header_page(), (0));
+    ham_assert(env->get_header(), (0));
     //ham_assert(env_get_data_access_mode(env) == 0, (0));
 
     cache->_constructor = __freel_lazy_create32;
@@ -3965,7 +3965,7 @@ freel_shutdown(Environment *env)
     ham_device_t *dev;
     ham_status_t st;
 
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
 
     /* 
@@ -3987,7 +3987,7 @@ freel_shutdown(Environment *env)
     ham_assert(cache->_destructor, (0));
     st = cache->_destructor(dev, env);
 
-    allocator_free(env_get_allocator(env), cache);
+    allocator_free(env->get_allocator(), cache);
     if (env)
         device_set_freelist_cache(env->get_device(), 0);
     else
@@ -4004,7 +4004,7 @@ freel_mark_free(Environment *env, Database *db, ham_offset_t address,
     ham_device_t *dev;
     ham_status_t st;
 
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
@@ -4036,7 +4036,7 @@ freel_check_area_is_allocated(Environment *env, Database *db,
     ham_device_t *dev;
     ham_status_t st;
 
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
         return HAM_SUCCESS;
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
@@ -4080,7 +4080,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
     ham_assert(addr_ref != 0, (0));
     *addr_ref = 0;
 
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
     {
         return HAM_SUCCESS;
     }
@@ -4113,7 +4113,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
     ham_device_t *dev;
 
     *addr_ref = 0;
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
         return HAM_SUCCESS;
 
     dev = env->get_device();
@@ -4135,7 +4135,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
     ham_assert(cache, (0));
     ham_assert(cache->_alloc_area, (0));
     st = cache->_alloc_area(addr_ref, env->get_device(), env, db, 
-                env_get_pagesize(env), HAM_TRUE, 0);
+                env->get_pagesize(), HAM_TRUE, 0);
     return st;
 }
 
@@ -4152,13 +4152,13 @@ freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev,
 
     *cache_ref = 0;
 
-    cache = (freelist_cache_t *)allocator_calloc(env_get_allocator(env), 
+    cache = (freelist_cache_t *)allocator_calloc(env->get_allocator(), 
                         sizeof(*cache));
     if (!cache)
         return HAM_OUT_OF_MEMORY;
 
-    ham_assert(env_get_header_page(env), (0));
-    ham_assert(env_get_header(env), (0));
+    ham_assert(env->get_header_page(), (0));
+    ham_assert(env->get_header(), (0));
     //ham_assert(env_get_data_access_mode(env) == 0, (0));
 
     cache->_constructor = __freel_lazy_create16;

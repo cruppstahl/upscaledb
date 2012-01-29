@@ -362,7 +362,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         if (st) {
             ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC), (0));
             if (scratchpad.key.data)
-                allocator_free(env_get_allocator(env), scratchpad.key.data);
+                allocator_free(env->get_allocator(), scratchpad.key.data);
             return (st);
         }
 
@@ -375,10 +375,10 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
          */
         btree_set_rootpage(be, page_get_self(newroot));
         be_set_dirty(be, HAM_TRUE);
-        env_set_dirty(env);
+        env->set_dirty();
         be->_fun_flush(be);
-        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-            env_get_changeset(env).add_page(env_get_header_page(env));
+        if (env->get_flags()&HAM_ENABLE_RECOVERY)
+            env->get_changeset().add_page(env->get_header_page());
         page_set_type(root, PAGE_TYPE_B_INDEX);
         page_set_dirty(root);
         page_set_dirty(newroot);
@@ -389,7 +389,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
      */
     ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC), (0));
     if (scratchpad.key.data)
-        allocator_free(env_get_allocator(env), scratchpad.key.data);
+        allocator_free(env->get_allocator(), scratchpad.key.data);
 
     return (st);
 }
@@ -973,7 +973,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
      */
     ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC), (0));
     if (scratchpad->key.data)
-        allocator_free(env_get_allocator(env), scratchpad->key.data);
+        allocator_free(env->get_allocator(), scratchpad->key.data);
     scratchpad->key=pivotkey;
     scratchpad->rid=pivotrid;
     ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC), (0));
@@ -986,7 +986,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
 fail_dramatically:
     ham_assert(!(pivotkey.flags & HAM_KEY_USER_ALLOC), (0));
     if (pivotkey.data)
-        allocator_free(env_get_allocator(env), pivotkey.data);
+        allocator_free(env->get_allocator(), pivotkey.data);
     return st;
 }
 

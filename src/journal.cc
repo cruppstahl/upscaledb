@@ -259,7 +259,7 @@ Journal::append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn)
     st=append_entry(idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
+    if (m_env->get_flags()&HAM_WRITE_THROUGH)
         return (os_flush(m_fd[idx]));
     return (0);
 }
@@ -284,7 +284,7 @@ Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
     st=append_entry(idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    if (env_get_rt_flags(m_env)&HAM_WRITE_THROUGH)
+    if (m_env->get_flags()&HAM_WRITE_THROUGH)
         return (os_flush(m_fd[idx]));
     return (0);
 }
@@ -472,9 +472,9 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
     ham_status_t st;
 
     /* first check if the Database is already open */
-    Database *db=env_get_list(env);
+    Database *db=env->get_databases();
     while (db) {
-        ham_u16_t name=index_get_dbname(env_get_indexdata_ptr(env,
+        ham_u16_t name=index_get_dbname(env->get_indexdata_ptr(
                             db->get_indexdata_offset()));
         if (dbname==name) {
             *pdb=db;
@@ -499,7 +499,7 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 static ham_status_t
 __recover_get_txn(Environment *env, ham_u32_t txn_id, ham_txn_t **ptxn)
 {
-    ham_txn_t *txn=env_get_oldest_txn(env);
+    ham_txn_t *txn=env->get_oldest_txn();
     while (txn) {
         if (txn_get_id(txn)==txn_id) {
             *ptxn=txn;
@@ -518,7 +518,7 @@ __close_all_databases(Environment *env)
     ham_status_t st;
     Database *db;
 
-    while ((db=env_get_list(env))) {
+    while ((db=env->get_databases())) {
         st=ham_close((ham_db_t *)db, 0);
         if (st) {
             ham_log(("ham_close() failed w/ error %d (%s)", st, 
@@ -536,7 +536,7 @@ static ham_status_t
 __abort_uncommitted_txns(Environment *env)
 {
     ham_status_t st;
-    ham_txn_t *newer, *txn=env_get_oldest_txn(env);
+    ham_txn_t *newer, *txn=env->get_oldest_txn();
 
     while (txn) {
         newer=txn_get_newer(txn);
@@ -555,7 +555,7 @@ ham_status_t
 Journal::recover()
 {
     ham_status_t st;
-    ham_u64_t start_lsn=env_get_log(m_env)->get_lsn();
+    ham_u64_t start_lsn=m_env->get_log()->get_lsn();
     Iterator it;
     void *aux=0;
 
@@ -583,14 +583,14 @@ Journal::recover()
 
     /* make sure that there are no pending transactions - start with 
      * a clean state! */
-    ham_assert(env_get_oldest_txn(m_env)==0, (""));
+    ham_assert(m_env->get_oldest_txn()==0, (""));
 
-    ham_assert(env_get_rt_flags(m_env)&HAM_ENABLE_TRANSACTIONS, (""));
-    ham_assert(env_get_rt_flags(m_env)&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(m_env->get_flags()&HAM_ENABLE_TRANSACTIONS, (""));
+    ham_assert(m_env->get_flags()&HAM_ENABLE_RECOVERY, (""));
 
     /* officially disable recovery - otherwise while recovering we log
      * more stuff */
-    env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
+    m_env->set_flags(m_env->get_flags()&~HAM_ENABLE_RECOVERY);
 
     do {
         JournalEntry entry;
@@ -722,7 +722,7 @@ bail:
     (void)__close_all_databases(m_env);
 
     /* restore original flags */
-    env_set_rt_flags(m_env, env_get_rt_flags(m_env)|HAM_ENABLE_RECOVERY);
+    m_env->set_flags(m_env->get_flags()|HAM_ENABLE_RECOVERY);
 
     if (st)
         return (st);

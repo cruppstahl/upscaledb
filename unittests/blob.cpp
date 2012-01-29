@@ -99,7 +99,7 @@ public:
 
         /* clear the changeset, otherwise ham_close will complain */
         if (!m_inmemory && m_env)
-            env_get_changeset((Environment *)m_env).clear();
+            ((Environment *)m_env)->get_changeset().clear();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -300,7 +300,7 @@ public:
     void replaceBiggerAndBiggerTest(void)
     {
         const int BLOCKS=32;
-        unsigned ps=env_get_pagesize((Environment *)m_env);
+        unsigned ps=((Environment *)m_env)->get_pagesize();
         ham_u8_t *buffer=(ham_u8_t *)malloc(ps*BLOCKS*2);
         ham_offset_t blobid, blobid2;
         ham_record_t record;

@@ -426,12 +426,12 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 
     env = page_get_owner(newroot)->get_env();
     ham_assert(env!=0, (""));
-    env_set_dirty(env);
+    env->set_dirty();
 
     /* add the page to the changeset to make sure that the changes are 
      * logged */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        env_get_changeset(env).add_page(env_get_header_page(env));
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        env->get_changeset().add_page(env->get_header_page());
 
     page_set_type(newroot, PAGE_TYPE_B_ROOT);
 

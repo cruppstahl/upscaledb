@@ -144,7 +144,7 @@ btree_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys,
     }
     else {
         /* prevent overflow - maxkeys only has 16 bit! */
-        *maxkeys=btree_calc_maxkeys(env_get_pagesize(db->get_env()), keysize);
+        *maxkeys=btree_calc_maxkeys(db->get_env()->get_pagesize(), keysize);
         if (*maxkeys>MAX_KEYS_PER_NODE) {
             ham_trace(("keysize/pagesize ratio too high"));
             return (HAM_INV_KEYSIZE);
@@ -174,7 +174,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     ham_page_t *root;
     ham_size_t maxkeys;
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
+    db_indexdata_t *indexdata=db->get_env()->get_indexdata_ptr(
                                 db->get_indexdata_offset());
     if (be_is_active(be)) {
         ham_trace(("backend has alread been initialized before!"));
@@ -182,7 +182,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     }
 
     /* prevent overflow - maxkeys only has 16 bit! */
-    maxkeys=btree_calc_maxkeys(env_get_pagesize(db->get_env()), keysize);
+    maxkeys=btree_calc_maxkeys(db->get_env()->get_pagesize(), keysize);
     if (maxkeys>MAX_KEYS_PER_NODE) {
         ham_trace(("keysize/pagesize ratio too high"));
         return (HAM_INV_KEYSIZE);
@@ -222,7 +222,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     index_set_recno(indexdata, 0);
     index_clear_reserved(indexdata);
 
-    env_set_dirty(db->get_env());
+    db->get_env()->set_dirty();
     be_set_active(be, HAM_TRUE);
 
     return (0);
@@ -242,8 +242,8 @@ btree_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_u16_t maxkeys;
     ham_u16_t keysize;
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
-                                    db->get_indexdata_offset());
+    db_indexdata_t *indexdata=db->get_env()->get_indexdata_ptr(
+                                db->get_indexdata_offset());
 
     /*
      * load root address and maxkeys (first two bytes are the
@@ -275,8 +275,8 @@ static ham_status_t
 btree_fun_flush(ham_btree_t *be)
 {
     Database *db=be_get_db(be);
-    db_indexdata_t *indexdata=env_get_indexdata_ptr(db->get_env(), 
-                        db->get_indexdata_offset());
+    db_indexdata_t *indexdata=db->get_env()->get_indexdata_ptr(
+                                db->get_indexdata_offset());
 
     /* nothing to do if the backend was not touched */
     if (!be_is_dirty(be))
@@ -289,7 +289,7 @@ btree_fun_flush(ham_btree_t *be)
     index_set_recno(indexdata, be_get_recno(be));
     index_clear_reserved(indexdata);
 
-    env_set_dirty(db->get_env());
+    db->get_env()->set_dirty();
     be_set_dirty(be, HAM_FALSE);
 
     return (0);
@@ -304,7 +304,7 @@ static ham_status_t
 btree_fun_close(ham_btree_t *be)
 {
     ham_status_t st;
-    mem_allocator_t *alloc=env_get_allocator(be_get_db(be)->get_env());
+    mem_allocator_t *alloc=be_get_db(be)->get_env()->get_allocator();
 
     /* only flush the backend info if it's dirty */
     st=btree_fun_flush(be);
@@ -396,7 +396,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
             bte=btree_node_get_key(db, node, i);
             if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                 blobid=key_get_extended_rid(db, bte);
-                if (env_get_rt_flags(db->get_env())&HAM_IN_MEMORY_DB) {
+                if (db->get_env()->get_flags()&HAM_IN_MEMORY_DB) {
                     /* delete the blobid to prevent that it's freed twice */
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
@@ -414,7 +414,7 @@ ham_backend_t *
 btree_create(Database *db, ham_u32_t flags)
 {
     ham_btree_t *btree=(ham_btree_t *)allocator_calloc(
-                    env_get_allocator(db->get_env()), sizeof(*btree));
+                    db->get_env()->get_allocator(), sizeof(*btree));
     if (!btree)
         return (0);
 
@@ -751,7 +751,7 @@ btree_prepare_key_for_compare(Database *db, int which,
                 btree_key_t *src, ham_key_t *dest)
 {
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
-    mem_allocator_t *alloc=env_get_allocator(db->get_env());
+    mem_allocator_t *alloc=be_get_db(be)->get_env()->get_allocator();
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -820,7 +820,7 @@ btree_compare_keys(Database *db, ham_page_t *page,
 ham_status_t
 btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=env_get_allocator(db->get_env());
+    mem_allocator_t *alloc=db->get_env()->get_allocator();
 
     /*
      * extended key: copy the whole key, not just the
@@ -1000,7 +1000,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
 ham_status_t
 btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=env_get_allocator(db->get_env());
+    mem_allocator_t *alloc=db->get_env()->get_allocator();
 
     /*
      * extended key: copy the whole key

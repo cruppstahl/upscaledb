@@ -21,13 +21,13 @@ __freel_flush_stats32(ham_device_t *dev, Environment *env)
 {
     ham_status_t st;
 
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
     ham_assert(device_get_freelist_cache(dev), (0));
 
     /*
      * do not update the statistics in a READ ONLY database!
      */
-    if (!(env_get_rt_flags(env) & HAM_READ_ONLY)) {
+    if (!(env->get_flags() & HAM_READ_ONLY)) {
         freelist_cache_t *cache;
         freelist_entry_t *entries;
 
@@ -54,7 +54,7 @@ __freel_flush_stats32(ham_device_t *dev, Environment *env)
                     if (!freel_entry_get_page_id(entry)) {
                         /* header page */
                         fp = env_get_freelist(env);
-                        env_set_dirty(env);
+                        env->set_dirty();
                     }
                     else {
                         /*
@@ -88,10 +88,10 @@ __freel_flush_stats32(ham_device_t *dev, Environment *env)
         }
     }
 
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
-        return (env_get_changeset(env).flush(DUMMY_LSN));
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        return (env->get_changeset().flush(DUMMY_LSN));
 
-    env_get_changeset(env).clear();
+    env->get_changeset().clear();
 
     return (0);
 }

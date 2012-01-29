@@ -109,6 +109,9 @@ struct ham_env_t {
     int dummy;
 };
 
+struct db_indexdata_t;
+typedef struct db_indexdata_t db_indexdata_t;
+
 /**
  * the Environment structure
  */
@@ -117,67 +120,6 @@ class Environment
   public:
     /** default constructor initializes all members */
     Environment();
-
-    /** the memory allocator */
-    mem_allocator_t *_alloc;
-
-    /** the file header page */
-    ham_page_t *_hdrpage;
-
-    /** the txn that is currently flushed; needed as long as we have a 
-     * combination of logical and phyiscal journal/log; can be removed as 
-     * soon as we moved to a 100% logical log */
-    ham_txn_t *_flushed_txn;
-
-    /* the head of the transaction list (the oldest transaction) */
-    ham_txn_t *_oldest_txn;
-
-    /* the tail of the transaction list (the youngest/newest transaction) */
-    ham_txn_t *_newest_txn;
-
-    /** the physical log */
-    Log *_log;
-
-    /** the logical journal */
-    Journal *_journal;
-
-    /** the Environment flags - a combination of the persistent flags
-     * and runtime flags */
-    ham_u32_t _rt_flags;
-
-    /** a linked list of all open databases */
-    Database *_next;
-
-    /** the changeset - a list of all pages that were modified during
-     * one database operation */
-    Changeset _changeset;
-
-    /** the pagesize which was specified when the env was created */
-    ham_size_t _pagesize;
-
-    /** the cachesize which was specified when the env was created/opened */
-    ham_u64_t _cachesize;
-
-#if HAM_ENABLE_REMOTE
-    /** libcurl remote handle */
-    void *_curl;
-#endif
-
-    /** the max. number of databases which was specified when the env 
-     * was created */
-	ham_u16_t _max_databases;
-
-	/** 
-     * true after this item has been opened/created.
-	 * Indicates whether this environment is 'active', i.e. between 
-	 * a create/open and matching close API call. 
-     */
-	bool _is_active;
-
-    /**
-     * true if this Environment is pre-1.1.0 format
-     */
-	bool _is_legacy;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -189,10 +131,6 @@ class Environment
 	 * significantly in the common freelist processing areas.
 	 */
 	ham_runtime_statistics_globdata_t _perf_data;
-
-    /** returns true if this Environment is private to a Database 
-     * (was implicitly created in ham_create/ham_open) */
-    bool is_private();
 
     /*
      * following here: function pointers which implement access to 
@@ -288,7 +226,7 @@ class Environment
 	ham_status_t (*destroy)(Environment *self);
 
     /** get the filename */
-    std::string &get_filename() {
+    const std::string &get_filename() {
         return (m_filename);
     }
 
@@ -347,6 +285,184 @@ class Environment
         m_cache=cache;
     }
 
+    /** get the allocator */
+    mem_allocator_t *get_allocator() {
+        return (m_alloc);
+    }
+
+    /** set the allocator */
+    void set_allocator(mem_allocator_t *alloc) {
+        m_alloc=alloc;
+    }
+
+    /** get the header page */
+    ham_page_t *get_header_page() {
+        return (m_hdrpage);
+    }
+
+    /** set the header page */
+    void set_header_page(ham_page_t *page) {
+        m_hdrpage=page;
+    }
+
+    /** get a pointer to the header data */
+    env_header_t *get_header() {
+        return ((env_header_t *)(page_get_payload(get_header_page())));
+    }
+
+    /** get the oldest transaction */
+    ham_txn_t *get_oldest_txn() {
+        return (m_oldest_txn);
+    }
+
+    /** set the oldest transaction */
+    void set_oldest_txn(ham_txn_t *txn) {
+        m_oldest_txn=txn;
+    }
+
+    /** get the newest transaction */
+    ham_txn_t *get_newest_txn() {
+        return (m_newest_txn);
+    }
+
+    /** set the newest transaction */
+    void set_newest_txn(ham_txn_t *txn) {
+        m_newest_txn=txn;
+    }
+
+    /** get the log object */
+    Log *get_log() {
+        return (m_log);
+    }
+
+    /** set the log object */
+    void set_log(Log *log) {
+        m_log=log;
+    }
+
+    /** get the journal */
+    Journal *get_journal() {
+        return (m_journal);
+    }
+
+    /** set the journal */
+    void set_journal(Journal *j) {
+        m_journal=j;
+    }
+
+    /** get the flags */
+    ham_u32_t get_flags() {
+        return (m_flags);
+    }
+
+    /** set the flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** get the linked list of all open databases */
+    Database *get_databases() {
+        return (m_databases);
+    }
+
+    /** set the linked list of all open databases */
+    void set_databases(Database *db) {
+        m_databases=db;
+    }
+
+    /** get the current changeset */
+    Changeset &get_changeset() {
+        return (m_changeset);
+    }
+
+    /** get the pagesize as specified in ham_env_create_ex */
+    ham_size_t get_pagesize() {
+        return (m_pagesize);
+    }
+
+    /** set the pagesize as specified in ham_env_create_ex */
+    void set_pagesize(ham_size_t ps) {
+        m_pagesize=ps;
+    }
+
+    /** get the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
+    ham_size_t get_cachesize() {
+        return (m_cachesize);
+    }
+
+    /** set the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
+    void set_cachesize(ham_size_t cs) {
+        m_cachesize=cs;
+    }
+
+#if HAM_ENABLE_REMOTE
+    /** get the curl handle */
+    void *get_curl() {
+        return (m_curl);
+    }
+
+    /** set the curl handle */
+    void set_curl(void *curl) {
+        m_curl=curl;
+    }
+#endif
+
+    /**
+     * get the maximum number of databases for this file (cached, not read
+     * from header page)
+     */
+    ham_u16_t get_max_databases_cached() {
+        return (m_max_databases_cached);
+    }
+
+    /**
+     * set the maximum number of databases for this file (cached, not written
+     * to header page)
+     */
+    void set_max_databases_cached(ham_u16_t md) {
+        m_max_databases_cached=md;
+    }
+
+    /** set the 'active' flag of this Environment */
+    void set_active(bool a) {
+        m_is_active=a;
+    }
+
+    /** check whether this environment has been opened/created.  */
+    bool is_active() {
+        return (m_is_active);
+    }
+
+    /** set the 'legacy' flag of the environment */
+    void set_legacy(bool l) {
+        m_is_legacy=l;
+    }
+
+    /** check whether this environment is a legacy file (pre 1.1.0) */
+    bool is_legacy() {
+        return (m_is_legacy);
+    }
+
+    /** returns true if this Environment is private to a Database 
+     * (was implicitly created in ham_create/ham_open) */
+    bool is_private();
+
+    /** set the dirty-flag - this is the same as db_set_dirty() */
+    void set_dirty() {
+        page_set_dirty(get_header_page());
+    }
+
+    /** get the dirty-flag */
+    bool is_dirty() {
+        return (page_is_dirty(get_header_page()));
+    }
+
+    /**
+     * Get the private data of the specified database stored at index @a i; 
+     * interpretation of the data is up to the backend.
+     */
+    db_indexdata_t *get_indexdata_ptr(int i);
+
   private:
     /** the filename of the environment file */
     std::string m_filename;
@@ -366,129 +482,57 @@ class Environment
     /** the cache */
     Cache *m_cache;
 
+    /** the memory allocator */
+    mem_allocator_t *m_alloc;
+
+    /** the file header page */
+    ham_page_t *m_hdrpage;
+
+    /** the head of the transaction list (the oldest transaction) */
+    ham_txn_t *m_oldest_txn;
+
+    /** the tail of the transaction list (the youngest/newest transaction) */
+    ham_txn_t *m_newest_txn;
+
+    /** the physical log */
+    Log *m_log;
+
+    /** the logical journal */
+    Journal *m_journal;
+
+    /** the Environment flags - a combination of the persistent flags
+     * and runtime flags */
+    ham_u32_t m_flags;
+
+    /** a linked list of all open databases */
+    Database *m_databases;
+
+    /** the changeset - a list of all pages that were modified during
+     * one database operation */
+    Changeset m_changeset;
+
+    /** the pagesize which was specified when the env was created */
+    ham_size_t m_pagesize;
+
+    /** the cachesize which was specified when the env was created/opened */
+    ham_u64_t m_cachesize;
+
+    /** the max. number of databases which was specified when the env 
+     * was created */
+	ham_u16_t m_max_databases_cached;
+
+	/** true after this object is already in use */
+	bool m_is_active;
+
+    /** true if this Environment is pre-1.1.0 format */
+	bool m_is_legacy;
+
+#if HAM_ENABLE_REMOTE
+    /** libcurl remote handle */
+    void *m_curl;
+#endif
+
 };
-
-
-/** get the allocator */
-#define env_get_allocator(env)           (env)->_alloc
-
-/** set the allocator */
-#define env_set_allocator(env, a)        (env)->_alloc=(a)
-
-/** get the curl handle */
-#define env_get_curl(env)                (env)->_curl
-
-/** set the curl handle */
-#define env_set_curl(env, c)             (env)->_curl=(c)
-
-/** get the header page */
-#define env_get_header_page(env)         (env)->_hdrpage
-
-/**
- * get a pointer to the header data
- *
- * implemented as a function - a macro would break strict aliasing rules
- */
-extern env_header_t *
-env_get_header(Environment *env);
-
-/** set the header page */
-#define env_set_header_page(env, h)      (env)->_hdrpage=(h)
-
-/** set the dirty-flag - this is the same as db_set_dirty() */
-#define env_set_dirty(env)              page_set_dirty(env_get_header_page(env))
-
-/** get the dirty-flag */
-#define env_is_dirty(env)               page_is_dirty(env_get_header_page(env))
-
-/**
- * Get a reference to the array of database-specific private data; 
- * interpretation of the data is up to the backends.
- *
- * @return a pointer to the persisted @ref db_indexdata_t data array. 
- *
- * @note Use @ref env_get_indexdata_ptr instead when you want a reference to the
- *       @ref db_indexdata_t-based private data for a particular database in 
- *       the environment.
- */
-#define env_get_indexdata_arrptr(env)                                         \
-    ((db_indexdata_t *)((ham_u8_t *)page_get_payload(                         \
-        env_get_header_page(env)) + sizeof(env_header_t)))
-
-/**
- * Get the private data of the specified database stored at index @a i; 
- * interpretation of the data is up to the backend.
- *
- * @return a pointer to the persisted @ref db_indexdata_t data for the 
- * given database.
- *
- * @note Use @ref db_get_indexdata_offset to retrieve the @a i index value 
- * for your database.
- */
-#define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
-
-/** get the transaction that is currently flushed */
-#define env_get_flushed_txn(env)         (env)->_flushed_txn
-
-/** set the transaction that is currently flushed */
-#define env_set_flushed_txn(env, t)      (env)->_flushed_txn=t
-
-/** get the newest transaction */
-#define env_get_newest_txn(env)          (env)->_newest_txn
-
-/** set the newest transaction */
-#define env_set_newest_txn(env, txn)     (env)->_newest_txn=(txn)
-
-/** get the oldest transaction */
-#define env_get_oldest_txn(env)          (env)->_oldest_txn
-
-/** set the oldest transaction */
-#define env_set_oldest_txn(env, txn)     (env)->_oldest_txn=(txn)
-
-/** get the log object */
-#define env_get_log(env)                 (env)->_log
-
-/** set the log object */
-#define env_set_log(env, log)            (env)->_log=(log)
-
-/** get the journal */
-#define env_get_journal(env)             (env)->_journal
-
-/** set the journal */
-#define env_set_journal(env, j)          (env)->_journal=(j)
-
-/** get the runtime-flags */
-#define env_get_rt_flags(env)            (env)->_rt_flags
-
-/** set the runtime-flags */
-#define env_set_rt_flags(env, f)         (env)->_rt_flags=(f)
-
-/** get the linked list of all open databases */
-#define env_get_list(env)                (env)->_next
-
-/** set the linked list of all open databases */
-#define env_set_list(env, db)            (env)->_next=(db)
-
-/** get the current changeset */
-#define env_get_changeset(env)           (env)->_changeset
-
-/** get the pagesize as specified in ham_env_create_ex */
-#define env_get_pagesize(env)            (env)->_pagesize
-
-/** set the pagesize as specified in ham_env_create_ex */
-#define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
-
-/** get the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
-#define env_get_cachesize(env)           (env)->_cachesize
-
-/** set the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
-#define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
-
-/** get the keysize */
-#define env_get_keysize(env)             (env)->_keysize
-
-/** set the keysize */
-#define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 
 /*
  * get the maximum number of databases for this file
@@ -498,46 +542,34 @@ env_get_header(Environment *env);
 extern ham_u16_t
 env_get_max_databases(Environment *env);
 
-/**
- * set the maximum number of databases for this file (cached, not written
- * to header file)
- */
-#define env_set_max_databases_cached(env, md)  (env)->_max_databases=(md)
-
-/**
- * get the maximum number of databases for this file (cached, not read
- * from header file)
- */
-#define env_get_max_databases_cached(env)       (env)->_max_databases
-
 /** set the maximum number of databases for this file */
 #define env_set_max_databases(env, md)                                      \
-    (env_get_header(env)->_max_databases=(md))
+    (env->get_header()->_max_databases=(md))
 
 /** get the page size */
 #define env_get_persistent_pagesize(env)									\
-	(ham_db2h32(env_get_header(env)->_pagesize))
+	(ham_db2h32(env->get_header()->_pagesize))
 
 /** set the page size */
 #define env_set_persistent_pagesize(env, ps)								\
-	env_get_header(env)->_pagesize=ham_h2db32(ps)
+	env->get_header()->_pagesize=ham_h2db32(ps)
 
 /** set the 'magic' field of a file header */
 #define env_set_magic(env, a,b,c,d)											\
-	{ env_get_header(env)->_magic[0]=a;										\
-      env_get_header(env)->_magic[1]=b;										\
-      env_get_header(env)->_magic[2]=c;										\
-      env_get_header(env)->_magic[3]=d; }
+	{ (env)->get_header()->_magic[0]=a;										\
+      (env)->get_header()->_magic[1]=b;										\
+      (env)->get_header()->_magic[2]=c;										\
+      (env)->get_header()->_magic[3]=d; }
 
 /** get byte @a i of the 'magic'-header */
 #define env_get_magic(hdr, i)        ((hdr)->_magic[i])
 
 /** set the version of a file header */
 #define env_set_version(env,a,b,c,d)										\
-	{ env_get_header(env)->_version[0]=a;									\
-      env_get_header(env)->_version[1]=b;									\
-      env_get_header(env)->_version[2]=c;									\
-      env_get_header(env)->_version[3]=d; }
+	{ (env)->get_header()->_version[0]=a;									\
+      (env)->get_header()->_version[1]=b;									\
+      (env)->get_header()->_version[2]=c;									\
+      (env)->get_header()->_version[3]=d; }
 
 /* get byte @a i of the 'version'-header */
 #define envheader_get_version(hdr, i)      ((hdr)->_version[i])
@@ -570,22 +602,6 @@ env_set_serialno(Environment *env, ham_u32_t n);
 	(sizeof(env_header_t)+													\
 	 env_get_max_databases(env)*sizeof(db_indexdata_t))
 
-/**
- * set the 'active' flag of the environment: a non-zero value 
- * for @a s sets the @a env to 'active', zero(0) sets the @a env 
- * to 'inactive' (closed)
- */
-#define env_set_active(env,s)       (env)->_is_active=s
-
-/** check whether this environment has been opened/created.  */
-#define env_is_active(env)          (env)->_is_active
-
-/** set the 'legacy' flag of the environment */
-#define env_set_legacy(env,l)       (env)->_is_legacy=l
-
-/** check whether this environment is a legacy file (pre 1.1.0) */
-#define env_is_legacy(env)          (env)->_is_legacy
-
 /** get the linked list of all file-level filters */
 #define env_get_file_filter(env)    (env)->_file_filters
 
@@ -601,12 +617,12 @@ env_set_serialno(Environment *env, ham_u32_t n);
 /** get the freelist object of the database */
 #define env_get_freelist(env)												\
 	((freelist_payload_t *)													\
-     (page_get_payload(env_get_header_page(env))+							\
+     (page_get_payload(env->get_header_page())+							    \
 	  SIZEOF_FULL_HEADER(env)))
 
 /** get the size of the usable persistent payload of a page */
 #define env_get_usable_pagesize(env)										\
-	(env_get_pagesize(env) - page_get_persistent_header_size())
+	((env)->get_pagesize() - page_get_persistent_header_size())
 
 /** get a reference to the DB FILE (global) statistics */
 #define env_get_global_perf_data(env)    &(env)->_perf_data

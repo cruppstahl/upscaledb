@@ -66,7 +66,7 @@ public:
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                         (m_inmemory ? HAM_IN_MEMORY_DB : 0), 0644));
@@ -90,7 +90,7 @@ public:
     void headerTest()
     {
         env_set_magic((Environment *)m_env, '1', '2', '3', '4');
-        env_header_t *hdr=env_get_header((Environment *)m_env);
+        env_header_t *hdr=((Environment *)m_env)->get_header();
         BFC_ASSERT(env_get_magic(hdr, 0)=='1');
         BFC_ASSERT(env_get_magic(hdr, 1)=='2');
         BFC_ASSERT(env_get_magic(hdr, 2)=='3');
@@ -108,7 +108,7 @@ public:
 
     void structureTest()
     {
-        BFC_ASSERT(env_get_header_page((Environment *)m_env)!=0);
+        BFC_ASSERT(((Environment *)m_env)->get_header_page()!=0);
 
         BFC_ASSERT_EQUAL(0, m_dbp->get_error());
         m_dbp->set_error(HAM_IO_ERROR);
@@ -135,10 +135,10 @@ public:
         BFC_ASSERT_EQUAL((ham_compare_func_t)19, m_dbp->get_compare_func());
         m_dbp->set_compare_func(oldfoo2);
 
-        page_set_undirty(env_get_header_page((Environment *)m_env));
-        BFC_ASSERT(!env_is_dirty((Environment *)m_env));
-        env_set_dirty((Environment *)m_env);
-        BFC_ASSERT(env_is_dirty((Environment *)m_env));
+        page_set_undirty(((Environment *)m_env)->get_header_page());
+        BFC_ASSERT(!((Environment *)m_env)->is_dirty());
+        ((Environment *)m_env)->set_dirty();
+        BFC_ASSERT(((Environment *)m_env)->is_dirty());
 
         BFC_ASSERT(0!=m_dbp->get_rt_flags());
 
@@ -175,23 +175,22 @@ public:
         ((Environment *)env)->set_file_mode(0666);
         ((Environment *)env)->set_device((ham_device_t *)0x13);
         ((Environment *)env)->set_cache((Cache *)0x14);
-        env_set_rt_flags((Environment *)env, 0x18);
+        ((Environment *)env)->set_flags(0x18);
 
         BFC_ASSERT_EQUAL((Cache *)0x14, ((Environment *)env)->get_cache());
         /* TODO test other stuff! */
 
-        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
-        env_set_active((Environment *)env, HAM_TRUE);
-        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
-        env_set_active((Environment *)env, HAM_FALSE);
-        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
+        ((Environment *)env)->set_active(true);
+        BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
+        ((Environment *)env)->set_active(false);
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         ((Environment *)env)->set_device((ham_device_t *)0x00);
         ((Environment *)env)->set_cache((Cache *)0x00);
-        env_set_rt_flags((Environment *)env, 0x18);
-        env_set_header_page((Environment *)env, 0);
-        env_set_list((Environment *)env, 0);
-        env_set_header_page((Environment *)env, (ham_page_t *)0);
+        ((Environment *)env)->set_flags(0);
+        ((Environment *)env)->set_databases(0);
+        ((Environment *)env)->set_header_page(0);
         ham_env_delete(env);
     }
 
@@ -314,8 +313,6 @@ public:
         BFC_ASSERT(compare_sizes(sizeof(btree_key_t), 12));
         BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
         BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
-        db_indexdata_t d;
-        BFC_ASSERT(compare_sizes(sizeof(d.b), 32));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
         BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 
                 16 + 13 + sizeof(freelist_page_statistics_t)));
