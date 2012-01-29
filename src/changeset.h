@@ -21,8 +21,6 @@
 #include "internal_fwd_decl.h"
 #include "errorinducer.h"
 
-#include <vector>
-
 
 /**
  * The changeset class
@@ -31,12 +29,21 @@ class Changeset
 {
   public:
     Changeset()
-    : m_head(0), m_inducer(0) {
+    : m_head(0), m_inducer(0), m_blobs(0), m_freelists(0), 
+    m_indices(0), m_others(0) {
     }
 
     ~Changeset() {
         if (m_inducer)
             delete m_inducer;
+        if (m_blobs)
+            free(m_blobs);
+        if (m_freelists)
+            free(m_freelists);
+        if (m_indices)
+            free(m_indices);
+        if (m_others)
+            free(m_others);
     }
 
     /** is the changeset empty? */
@@ -70,19 +77,34 @@ class Changeset
     }
 
   private:
-    typedef std::vector<ham_page_t *> bucket;
-
     /* write all pages in a bucket to the log file */
-    ham_status_t log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) ;
+    ham_status_t log_bucket(ham_page_t **bucket, ham_size_t bucket_size,
+                            ham_u64_t lsn, ham_size_t &page_count) ;
 
     /* the head of our linked list */
     ham_page_t *m_head;
 
-    /* cached vectors for Changeset::flush() */
-    std::vector<ham_page_t *> m_blobs;
-    std::vector<ham_page_t *> m_freelists;
-    std::vector<ham_page_t *> m_indices;
-    std::vector<ham_page_t *> m_others;
+    /* cached vectors for Changeset::flush(); using plain pointers
+     * instead of std::vector because
+     * - improved performance
+     * - workaround for an MSVC 9 bug:
+     *   http://social.msdn.microsoft.com/Forums/en-us/vcgeneral/thread/1bf2b062-150f-4f86-8081-d4d5dd0d1956
+     */
+    ham_page_t **m_blobs;
+    ham_size_t m_blobs_size;
+    ham_size_t m_blobs_capacity;
+
+    ham_page_t **m_freelists;
+    ham_size_t m_freelists_size;
+    ham_size_t m_freelists_capacity;
+
+    ham_page_t **m_indices;
+    ham_size_t m_indices_size;
+    ham_size_t m_indices_capacity;
+
+    ham_page_t **m_others;
+    ham_size_t m_others_size;
+    ham_size_t m_others_capacity;
 
   public:
     /* an error inducer */

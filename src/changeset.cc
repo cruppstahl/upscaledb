@@ -51,7 +51,7 @@ Changeset::get_page(ham_offset_t pageid)
     ham_page_t *p=m_head;
 
     while (p) {
-    	ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
+        ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
                 &HAM_ENABLE_RECOVERY, (""));
 
         if (page_get_self(p)==pageid)
@@ -77,25 +77,33 @@ Changeset::clear(void)
 }
 
 ham_status_t
-Changeset::log_bucket(bucket &b, ham_u64_t lsn, ham_size_t &page_count) 
+Changeset::log_bucket(ham_page_t **bucket, ham_size_t bucket_size, 
+                      ham_u64_t lsn, ham_size_t &page_count) 
 {
-    for (bucket::iterator it=b.begin(); it!=b.end(); ++it) {
-        ham_assert(page_is_dirty(*it), (""));
+    for (ham_size_t i=0; i<bucket_size; i++) {
+        ham_assert(page_is_dirty(bucket[i]), (""));
 
-        Environment *env=device_get_env(page_get_device(*it));
+        Environment *env=device_get_env(page_get_device(bucket[i]));
         Log *log=env_get_log(env);
 
         induce(ErrorInducer::CHANGESET_FLUSH);
 
         ham_assert(page_count>0, (""));
 
-        ham_status_t st=log->append_page(*it, lsn, --page_count);
+        ham_status_t st=log->append_page(bucket[i], lsn, --page_count);
         if (st)
             return (st);
     }
 
     return (0);
 }
+
+#define append(b, bs, bc, p)                                                 \
+  if (bs+1>=bc) {                                                            \
+    bc*=2;                                                                   \
+    b=(ham_page_t **)::realloc(b, sizeof(void *)*bc);                        \
+    b[bs++]=p;                                                               \
+  }
 
 ham_status_t
 Changeset::flush(ham_u64_t lsn)
@@ -106,10 +114,10 @@ Changeset::flush(ham_u64_t lsn)
 
     induce(ErrorInducer::CHANGESET_FLUSH);
 
-    m_blobs.clear();
-    m_freelists.clear();
-    m_indices.clear();
-    m_others.clear();
+    m_blobs_size=0;
+    m_freelists_size=0;
+    m_indices_size=0;
+    m_others_size=0;
 
     // first step: remove all pages that are not dirty and sort all others
     // into the buckets
@@ -121,26 +129,26 @@ Changeset::flush(ham_u64_t lsn)
         }
 
         if (page_get_self(p)==0) {
-            m_indices.push_back(p);
+            append(m_indices, m_indices_size, m_indices_capacity, p);
         }
         else if (page_get_npers_flags(p)&PAGE_NPERS_NO_HEADER) {
-            m_blobs.push_back(p);
+            append(m_blobs, m_blobs_size, m_blobs_capacity, p);
         }
         else {
             switch (page_get_type(p)) {
               case PAGE_TYPE_BLOB:
-                m_blobs.push_back(p);
+                append(m_blobs, m_blobs_size, m_blobs_capacity, p);
                 break;
               case PAGE_TYPE_B_ROOT:
               case PAGE_TYPE_B_INDEX:
               case PAGE_TYPE_HEADER:
-                m_indices.push_back(p);
+                append(m_indices, m_indices_size, m_indices_capacity, p);
                 break;
               case PAGE_TYPE_FREELIST:
-                m_freelists.push_back(p);
+                append(m_freelists, m_freelists_size, m_freelists_capacity, p);
                 break;
               default:
-                m_others.push_back(p);
+                append(m_others, m_others_size, m_others_capacity, p);
                 break;
             }
         }
@@ -164,14 +172,14 @@ Changeset::flush(ham_u64_t lsn)
     //
     // otherwise skip blobs and freelists because they're idempotent (albeit
     // it's possible that some data is lost, but that's no big deal)
-    if (m_others.size() || m_indices.size()>1) {
-        if ((st=log_bucket(m_blobs, lsn, page_count)))
+    if (m_others_size || m_indices_size>1) {
+        if ((st=log_bucket(m_blobs, m_blobs_size, lsn, page_count)))
             return (st);
-        if ((st=log_bucket(m_freelists, lsn, page_count)))
+        if ((st=log_bucket(m_freelists, m_freelists_size, lsn, page_count)))
             return (st);
-        if ((st=log_bucket(m_indices, lsn, page_count)))
+        if ((st=log_bucket(m_indices, m_indices_size, lsn, page_count)))
             return (st);
-        if ((st=log_bucket(m_others, lsn, page_count)))
+        if ((st=log_bucket(m_others, m_others_size, lsn, page_count)))
             return (st);
     }
 
