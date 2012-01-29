@@ -127,7 +127,7 @@ send_wrapper(ham_env_t *henv, struct mg_connection *conn,
     ham_size_t data_size;
     Environment *env=(Environment *)henv;
 
-    if (!proto_pack(wrapper, env_get_allocator(env), &data, &data_size))
+    if (!proto_pack(wrapper, env->get_allocator(), &data, &data_size))
         return;
 
     ham_trace(("type %u: sending %d bytes", 
@@ -135,7 +135,7 @@ send_wrapper(ham_env_t *henv, struct mg_connection *conn,
 	mg_printf(conn, "%s", standard_reply);
     mg_write(conn, data, data_size);
 
-    allocator_free(env_get_allocator(env), data);
+    allocator_free(env->get_allocator(), data);
 }
 
 static void
@@ -148,7 +148,7 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
     ham_assert(proto_has_connect_request(request), (""));
 
     reply=proto_init_connect_reply(HAM_SUCCESS, 
-                    env_get_rt_flags((Environment *)env)); 
+                    ((Environment *)env)->get_flags()); 
 
     send_wrapper(env, conn, reply);
     proto_delete(reply);

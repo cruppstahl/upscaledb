@@ -126,7 +126,7 @@ insert(int argc, char **argv)
     }
 
     ErrorInducer *ei=new ErrorInducer();
-    env_get_changeset((Environment *)env).m_inducer=ei;
+    ((Environment *)env)->get_changeset().m_inducer=ei;
     ei->add(ErrorInducer::CHANGESET_FLUSH, inducer);
 
     for (int j=0; j<NUM_STEPS; j++) {
@@ -212,7 +212,7 @@ erase(int argc, char **argv)
     }
 
     ErrorInducer *ei=new ErrorInducer();
-    env_get_changeset((Environment *)env).m_inducer=ei;
+    ((Environment *)env)->get_changeset().m_inducer=ei;
     ei->add(ErrorInducer::CHANGESET_FLUSH, inducer);
 
     for (int j=0; j<NUM_STEPS; j++) {

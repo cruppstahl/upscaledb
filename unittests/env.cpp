@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -99,53 +99,53 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_new(&henv));
         Environment *env=(Environment *)henv;
 
-        BFC_ASSERT(env_get_txn_id(env)==0);
-        env_set_txn_id(env, (ham_u64_t)14);
-        BFC_ASSERT(env_get_txn_id(env)==(ham_u64_t)14);
-        env_set_txn_id(env, 0);
+        BFC_ASSERT(env->get_txn_id()==0);
+        env->set_txn_id((ham_u64_t)14);
+        BFC_ASSERT(env->get_txn_id()==(ham_u64_t)14);
+        env->set_txn_id(0);
 
-        BFC_ASSERT(env_get_device(env)==0);
-        env_set_device(env, (ham_device_t *)15);
-        BFC_ASSERT(env_get_device(env)==(ham_device_t *)15);
-        env_set_device(env, 0);
+        BFC_ASSERT(env->get_device()==0);
+        env->set_device((ham_device_t *)15);
+        BFC_ASSERT(env->get_device()==(ham_device_t *)15);
+        env->set_device(0);
 
-        BFC_ASSERT_EQUAL(0u, env_get_filename(env).size());
-        env_set_filename(env, "abcdefg");
-        BFC_ASSERT_EQUAL(0, strcmp("abcdefg", env_get_filename(env).c_str()));
-        env_set_filename(env, "");
+        BFC_ASSERT_EQUAL(0u, env->get_filename().size());
+        env->set_filename("abcdefg");
+        BFC_ASSERT_EQUAL(0, strcmp("abcdefg", env->get_filename().c_str()));
+        env->set_filename("");
 
-        BFC_ASSERT(env_get_file_mode(env)==0);
-        env_set_file_mode(env, 12345);
-        BFC_ASSERT(12345==env_get_file_mode(env));
-        env_set_file_mode(env, 0);
+        BFC_ASSERT(env->get_file_mode()==0);
+        env->set_file_mode(12345);
+        BFC_ASSERT(12345==env->get_file_mode());
+        env->set_file_mode(0);
 
-        BFC_ASSERT(env_get_cache(env)==0);
-        env_set_cache(env, (Cache *)16);
-        BFC_ASSERT(env_get_cache(env)==(Cache *)16);
-        env_set_cache(env, 0);
+        BFC_ASSERT(env->get_cache()==0);
+        env->set_cache((Cache *)16);
+        BFC_ASSERT(env->get_cache()==(Cache *)16);
+        env->set_cache(0);
 
-        BFC_ASSERT(env_get_header_page(env)==0);
-        env_set_header_page(env, (ham_page_t *)18);
-        BFC_ASSERT(env_get_header_page(env)==(ham_page_t *)18);
-        env_set_header_page(env, 0);
+        BFC_ASSERT(env->get_header_page()==0);
+        env->set_header_page((ham_page_t *)18);
+        BFC_ASSERT(env->get_header_page()==(ham_page_t *)18);
+        env->set_header_page(0);
 
-        BFC_ASSERT(env_get_oldest_txn(env)==0);
-        env_set_oldest_txn(env, (ham_txn_t *)19);
-        BFC_ASSERT(env_get_oldest_txn(env)==(ham_txn_t *)19);
-        env_set_oldest_txn(env, 0);
+        BFC_ASSERT(env->get_oldest_txn()==0);
+        env->set_oldest_txn((ham_txn_t *)19);
+        BFC_ASSERT(env->get_oldest_txn()==(ham_txn_t *)19);
+        env->set_oldest_txn(0);
 
-        BFC_ASSERT(env_get_newest_txn(env)==0);
-        env_set_newest_txn(env, (ham_txn_t *)19);
-        BFC_ASSERT(env_get_newest_txn(env)==(ham_txn_t *)19);
-        env_set_newest_txn(env, 0);
+        BFC_ASSERT(env->get_newest_txn()==0);
+        env->set_newest_txn((ham_txn_t *)19);
+        BFC_ASSERT(env->get_newest_txn()==(ham_txn_t *)19);
+        env->set_newest_txn(0);
 
-        BFC_ASSERT(env_get_rt_flags(env)==0);
-        env_set_rt_flags(env, 21);
-        BFC_ASSERT(env_get_rt_flags(env)==21);
+        BFC_ASSERT(env->get_flags()==0);
+        env->set_flags(21);
+        BFC_ASSERT(env->get_flags()==21);
 
-        BFC_ASSERT(env_get_list(env)==0);
-        env_set_list(env, (Database *)22);
-        BFC_ASSERT(env_get_list(env)==(Database *)22);
+        BFC_ASSERT(env->get_databases()==0);
+        env->set_databases((Database *)22);
+        BFC_ASSERT(env->get_databases()==(Database *)22);
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(henv));
     }
@@ -166,16 +166,16 @@ protected:
         ham_env_t *env;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
-        BFC_ASSERT_EQUAL(true, env_is_active((Environment *)env));
+        BFC_ASSERT_EQUAL(true, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
+        BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -191,11 +191,11 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
+            BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
-            BFC_ASSERT_EQUAL(1u, env_is_active((Environment *)env));
+            BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-            BFC_ASSERT_EQUAL(0u, env_is_active((Environment *)env));
+            BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
         }
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));

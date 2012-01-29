@@ -62,7 +62,6 @@ class Cache
     ham_page_t *get_unused_page(void) {
         ham_page_t *page;
         ham_page_t *oldest;
-        Changeset &cs=env_get_changeset(m_env);
 
         /* get the chronologically oldest page */
         oldest=m_totallist_tail;
@@ -75,7 +74,8 @@ class Cache
         page=oldest;
         do {
             /* pick the first unused page (not in a changeset) */
-            if (!page_is_in_list(cs.get_head(), page, PAGE_LIST_CHANGESET))
+            if (!page_is_in_list(m_env->get_changeset().get_head(), 
+                        page, PAGE_LIST_CHANGESET))
                 break;
         
             page=page_get_previous(page, PAGE_LIST_CACHED);
@@ -211,7 +211,7 @@ class Cache
      * returns true if the caller should purge the cache
      */
     bool is_too_big(void) {
-        return (m_cur_elements*env_get_pagesize(m_env)>m_capacity);
+        return (m_cur_elements*m_env->get_pagesize()>m_capacity);
     }
 
     /**

@@ -35,14 +35,14 @@ Log::create(void)
 {
     Log::Header header;
     ham_status_t st;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     char filename[HAM_OS_MAX_PATH];
 
     ham_assert(m_env, (0));
 
     /* create the files */
     util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
-    st=os_create(filename, 0, env_get_file_mode(m_env), &m_fd);
+    st=os_create(filename, 0, m_env->get_file_mode(), &m_fd);
     if (st)
         return (st);
 
@@ -62,7 +62,7 @@ ham_status_t
 Log::open(void)
 {
     Log::Header header;
-    const char *dbpath=env_get_filename(m_env).c_str();
+    const char *dbpath=m_env->get_filename().c_str();
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
 
@@ -157,14 +157,14 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
         // pos += 8-1;
         pos -= (pos % 8);
 
-        *data=(ham_u8_t *)allocator_alloc(env_get_allocator(m_env), 
+        *data=(ham_u8_t *)allocator_alloc(m_env->get_allocator(), 
                         (ham_size_t)entry->data_size);
         if (!*data)
             return (HAM_OUT_OF_MEMORY);
 
         st=os_pread(m_fd, pos, *data, (ham_size_t)entry->data_size);
         if (st) {
-            allocator_free(env_get_allocator(m_env), *data);
+            allocator_free(m_env->get_allocator(), *data);
             *data=0;
             return (st);
         }
@@ -209,15 +209,15 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
     ham_status_t st=0;
     ham_file_filter_t *head=env_get_file_filter(m_env);
     ham_u8_t *p;
-    ham_size_t size=env_get_pagesize(m_env);
+    ham_size_t size=m_env->get_pagesize();
 
     /*
      * run page through page-level filters, but not for the 
      * root-page!
      */
     if (head && page_get_self(page)!=0) {
-        p=(ham_u8_t *)allocator_alloc(env_get_allocator(m_env), 
-                env_get_pagesize(m_env));
+        p=(ham_u8_t *)allocator_alloc(m_env->get_allocator(), 
+                m_env->get_pagesize());
         if (!p)
             return (HAM_OUT_OF_MEMORY);
         memcpy(p, page_get_raw_payload(page), size);
@@ -239,7 +239,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
                         page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
-        allocator_free(env_get_allocator(m_env), p);
+        allocator_free(m_env->get_allocator(), p);
 
     return (st);
 }
@@ -249,7 +249,7 @@ Log::recover()
 {
     ham_status_t st;
     ham_page_t *page;
-    ham_device_t *device=env_get_device(m_env);
+    ham_device_t *device=m_env->get_device();
     Log::Entry entry;
     Iterator it=0;
     ham_u8_t *data=0;
@@ -264,7 +264,7 @@ Log::recover()
         return (st);
 
     /* temporarily disable logging */
-    env_set_rt_flags(m_env, env_get_rt_flags(m_env)&~HAM_ENABLE_RECOVERY);
+    m_env->set_flags(m_env->get_flags()&~HAM_ENABLE_RECOVERY);
 
     /* disable file filters - the logged pages were already filtered */
     head=env_get_file_filter(m_env);
@@ -275,7 +275,7 @@ Log::recover()
     while (1) {
         /* clean up memory of the previous loop */
         if (data) {
-            allocator_free(env_get_allocator(m_env), data);
+            allocator_free(m_env->get_allocator(), data);
             data=0;
         }
 
@@ -330,7 +330,7 @@ Log::recover()
         }
 
         ham_assert(page_get_self(page)==entry.offset, (""));
-        ham_assert(env_get_pagesize(m_env)==entry.data_size, (""));
+        ham_assert(m_env->get_pagesize()==entry.data_size, (""));
 
         /* overwrite the page data */
         memcpy(page_get_pers(page), data, entry.data_size);
@@ -361,7 +361,7 @@ clear:
 
 bail:
     /* re-enable the logging */
-    env_set_rt_flags(m_env, env_get_rt_flags(m_env)|HAM_ENABLE_RECOVERY);
+    m_env->set_flags(m_env->get_flags()|HAM_ENABLE_RECOVERY);
 
     /* restore the file filters */
     if (head) 
@@ -369,7 +369,7 @@ bail:
     
     /* clean up memory */
     if (data) {
-        allocator_free(env_get_allocator(m_env), data);
+        allocator_free(m_env->get_allocator(), data);
         data=0;
     }
 

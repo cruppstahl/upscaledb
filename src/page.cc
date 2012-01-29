@@ -137,14 +137,14 @@ ham_page_t *
 page_new(Environment *env)
 {
     ham_page_t *page;
-    mem_allocator_t *alloc=env_get_allocator(env);
+    mem_allocator_t *alloc=env->get_allocator();
 
     page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
     if (!page)
         return (0);
     memset(page, 0, sizeof(*page));
     page_set_allocator(page, alloc);
-    page_set_device(page, env_get_device(env));
+    page_set_device(page, env->get_device());
 
     return (page);
 }

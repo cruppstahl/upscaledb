@@ -15,190 +15,62 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-x the env is declared as a struct, but implemented as a class. This is no
-    big deal for g++, but the msvc compiler doesn't like it
-
-x move forum to google groups; 3 mailing lists: dev, users, announcements
-
-x java API
-    x update sources
-    x merge into main repository
-        x add to configure
-        x improve build process; do not require any "make install" to start
-            the build and/or the tests
-        x add java readme, changelog, TODO
-    x make sure that "make dist" includes the java stuff
-    x integrate win32 (and automatically update the version)
-
-x move wince stuff to contrib directory
-    x try to update the visual studio files
-
-x .NET API
-    x include in main repository
-    x include a.todorov's fix (forum)
-
-x make sure the C++ API is updated
-
-x automatic version upgrade
-    x include/ham/hamsterdb.h
-    x include/ham/hamsterdb.hpp
-    x win32
-    x README
-    x hamsterdb.spec
-    x src/version.h
-    x doxygen
-    x java api (output, native dll)
-
-x "make dist" needs to include contrib and other new directories
-
-x improve journalling and get rid of the physical log as much as possible
-    --> most of the functionality can be handled in the changeset
-    --> be careful - even if the btree operations are atomic, the whole
-      insert/erase is not because it also affects the blob area and the
-      freelist (and maybe the header page, if the root page address is
-      modified)
-    --> when inserting a blob (ham_insert) we NEVER have to log the blob pages.
-      if blob_alloc fails then just return the error
-      (NEVER is not correct - we have to if it's overwriting an existing
-      blob over multiple pages, if the blob spans multiple pages or 
-      if the blob is an extended key)
-    --> when adding pages to the changeset then already sort them into
-        "buckets" (for index pages, blobs, freelist etc).
-    --> the following operations do not have to be logged:
-        1. blob operations (unless the freelist operations span multiple pages)
-        2. freelist operations (unless they span multiple pages)
-        3. index operations (unless they span multiple pages)
-      x flush: first remove all non-dirty pages
-      x sort all pages into "buckets" for blob operations, freelist, index
-            and "others"
-      x if there's a single index page (and no "others") then it's idempotent
-      x if idempotent: first flush blobs, then freelists, then the index page
-      x blobs and freelists do NEVER have to be flushed
-      x however: flush EVERYTHING if others.size() > 0
-      x check for regressions and fix unittests
-
-      x new g_POSTSPLITHOOK for ham_insert; allows counting of btree splits
-          (-> unittests can loop till a split happened)
-      x create an object "ErrorInducer" which hooks into the log and is
-        controlled from the unittests
-        class ErrorInducer {
-            add_action(int action, int loops, int error = HAM_INTERNAL_ERROR);
-            std::pair<int, int> errors[MAX_ERRORS];
-        };
-        changeset->set_inducer(ErrorInducer *inducer);
-        #define induce(action)                                                 \
-            if (m_inducer && ++m_inducer[action].count>m_inducer[action].loops)\
-                return (m_inducer[action].error)
-      x insert-tests w/ page splits, with and without duplicates, with 
-          and without extended keys, with and without overwrites
-      x use different "loop"s (number of failures till the inducer returns
-        an error)
-      x ham_find currently checks only every 10th key, but should check
-        EVERY key (including records!)
-      x crash in ./test LogInducerTest::duplicateTest 
-      x other tests are currently failing
-      x try with more values for "loop" - some should go higher than 7!
-    x also for ham_erase
-    x ./test_recovery insert keysize recsize i duplicates inducer-loop
-    x ./test_recovery erase keysize i duplicates inducer-loop
-    x ./test_recovery recover
-    x ./test_recovery verify keysize recsize i duplicates must-exist
-    x need a shell-script or python-script or perl-script
-    x add to makefile and release.sh
-    x performance tests 
-
-x API changes for 2.0.0
-    x update C++ API
-    x ham_delete should always return 0 - document this (or change interface)
-    x ham_txn_begin receives Environment handle, not Database handle
-        x need a new parameter (reserved) for parent txn
-        x need a new parameter for txn name (string)
-            x this needs a getter function
-    x c++-api: needs wrapper for ham_txn_get_name()
-    x update client/server wrapper
-        x needs unittest to check the name
-    x recovery: re-create txn name
-        x needs unittests
-    x update java wrapper
-    x need to increase libtool version!
-    x the first loop in log::recover can be merged with the 2nd one
-    x run unittests with valgrind
-
-x transactions now belong to the Environment, not to the Database
-    x ham_close: if a database is closed, but it's modified by a txn
-        that is still active -> error
-        x walk through txn-tree and check if any txn_op_t is from an active txn
-        x needs unittest
-        x needs new error code, also for wrapper APIs and documentation!
-            -> document this process: what to do if there's a new error code?
-    x ham_close: do no longer AUTO_COMMIT/AUTO_ABORT (unless DB_IS_PRIVATE)
-    x if DB_IS_PRIVATE: do not allow ham_env_create_db, ham_env_open_db
-        x needs unittest
-    x document this!
-
-x debug into test and make sure that a normal insert really does not
-    use the log
-    x Seems that it is NOT working correctly; most pages are stored in 
-        the bucket "others"
-    x also, the monster test did not use the ham_parameter_t array
-        the monster test suite
-
-x Changeset::flush()
-    x currently everything is logged if blobs.size()>1 - revert
-    x rename flush_bucket to log_bucket
-    x run recovery-tests
-
-x Changeset::flush(lsn, bool force=false)
-    x force=true setzen wenn die hdr-page modifiziert wird (ohne freelist!)
-        -> page is stored in "index" bucket
-    x force=false setzen wenn nur die hdr-page der freelist modifiziert wurde 
-        -> page is stored in "freelist" bucket
-    x recovery-tests!
-    x --> revert - i.e. ham_insert WILL change the header page if the
-        btree gets a new root page
-
-o API changes for 2.0.0
-    o update .net wrapper
-        ==> started, but needs to be finished on windows
-
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
-    also test with hammer.c and the performance test (wintermute://home/chris)
-
-o android port (needs new java api) in /contrib directory
-
-o webpage
-    x show samples of both branches (really? they did not change!) - no
-    x show documentation of both branches - no, only 2.0
-    x link cloud: replace "forum" with "support"
-    x /index/forum should forward to /index/support
-    x store: have a big fat red "buy now" button
-    x footer: change copyright to 2012
-    x update license terms
-    o download page: document the differences between the two versions and
-        which one to choose
-    o "sources" page: show that the wrappers are for version 1 
-        (or simply remove them)
-    o create a comparison table of the old and new version
-    o make a backup of the old forum
-
-o document how to optimize for performance
-    o with transactions: try not to use duplicates
-    o use overwrite as often as possible
-
-o document migration path for the API (if there are any changes)
-
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
 
-. change all copyright strings to 2012
+o c++-ify the environment
 
-. some functions need a new namespace
-    o db_free_page -> env?
-    o db_flush_page
-    o db_flush_all
-    o db_write_page_and_delete
+===================>
+crasht momentan in DupeTest::endianTest
+  in btree_fun_open wird die db_indexdata_t struktur ausgewertet, aber sie
+    enthält nur müll
+  anscheinend wird sie vom falschen offset aus zurückgegeben, oder die endian-
+    konvertierung funktioniert nicht
+===================>
+
+o c++-ify the memory allocator
+
+o c++-ify the device
+
+o c++-ify the page
+
+o python API - update and integrate
+
+o implement support for approx. matching (-> sevencat)
+
+o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
+    when it flushes the txn, but the commit was already logged
+    and a recovery would succeed -> the txn is committed although it
+    fails with an error
+    -> this problem will disappear when the txn is flushed in background,
+        but this needs to be documented
+
+o need a function to get the txn of a conflict (same as in v2)
+    ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
+    o also add to c++ API
+    o add documentation (header file)
+    o add documentation (wiki)
+
+o design redundancy
+    o identify toolkit (TBB, boost?) - should have futexes
+    o design code; who logs what?
+    o should work with and without redundancy; if redundancy is disabled
+        then there should not be ANY performance penalty!
+    o disable concurrency during compilation? not sure if this is required
+
+o recovery: re-create pending transactions (if required)
+    o needs a function to enumerate them
+
+. c++-ify the transaction
+
+. c++-ify the backend
+    o remove be_set_dirty, replace with be->_fun_flush()
+
+. android port (needs new java api) in /contrib directory (it's on a separate
+    branch)
+
+. change all copyright strings to 2012
 
 . new test case for cursors
     insert (1, a)
@@ -207,18 +79,9 @@ o mail an Tony B, Curt M., andere
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
 
-. remove be_set_dirty, replace with be->_fun_flush()
-
-. c++-ify the page
-
-. c++-ify the device
-
-. python API
-    o update and rewrite to use the C++ API (can we use boost::python??)
-
 . look for someone who can write a PHP or Perl or Ruby wrapper
 
-. implement support for partial keys?
+. implement support for partial keys
 
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly
@@ -252,10 +115,6 @@ o mail an Tony B, Curt M., andere
 
 . c++-ify the blob handling and split off the duplicates
 
-. c++-ify the environment
-    . the Databases don't need to be in a linked list; they can be managed
-        in an stl-list or std::map<dbname, db>
-
 . cleanup db.h/db.cc - move functions into Database or 
     DatabaseImplementationLocal namespace - but take care b/c these functions
     are also used by Cursor or other modules which don't necessarily have
@@ -270,29 +129,11 @@ o mail an Tony B, Curt M., andere
     o db_check_erase_conflicts
     o __increment_dupe_index
 
-. c++-ify the transaction
-
 . c++-ify everything else
 
 . device, page and os shold no longer return errors but throw exceptions
 
 XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
-    when it flushes the txn, but the commit was already logged
-    and a recovery would succeed -> the txn is committed although it
-    fails with an error
-    -> this problem will disappear when the txn is flushed in background,
-        but this needs to be documented
-
-o need a function to get the txn of a conflict (same as in v2)
-    ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
-    o also add to c++ API
-    o add documentation (header file)
-    o add documentation (wiki)
-
-o recovery: re-create pending transactions (if required)
-    o needs a function to enumerate them
 
 . new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
@@ -355,7 +196,7 @@ o the DatabaseImplementation subclass is not neccessary; all subclasses
 
 . allow use of transactions for in-memory databases
 
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc4 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o ham_get_count: could be atomically updated with every journal entry
 

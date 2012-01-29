@@ -221,7 +221,7 @@ txn_opnode_create(Database *db, ham_key_t *key)
 {
     txn_opnode_t *node=0;
     txn_optree_t *tree=db->get_optree();
-    mem_allocator_t *alloc=env_get_allocator(db->get_env());
+    mem_allocator_t *alloc=db->get_env()->get_allocator();
 
     /* make sure that a node with this key does not yet exist */
     ham_assert(txn_opnode_get(db, key, 0)==0, (""));
@@ -246,7 +246,7 @@ txn_op_t *
 txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
-    mem_allocator_t *alloc=env_get_allocator(txn_get_env(txn));
+    mem_allocator_t *alloc=txn_get_env(txn)->get_allocator();
     txn_op_t *op;
 
     /* create and initialize a new txn_op_t structure */
@@ -313,19 +313,19 @@ txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
     ham_status_t st=0;
     ham_txn_t *txn;
 
-    txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(ham_txn_t));
+    txn=(ham_txn_t *)allocator_alloc(env->get_allocator(), sizeof(ham_txn_t));
     if (!txn)
         return (HAM_OUT_OF_MEMORY);
 
     memset(txn, 0, sizeof(*txn));
-    txn_set_id(txn, env_get_txn_id(env)+1);
+    txn_set_id(txn, env->get_txn_id()+1);
     txn_set_flags(txn, flags);
     if (name) {
-        char *p=(char *)allocator_alloc(env_get_allocator(env), strlen(name)+1);
+        char *p=(char *)allocator_alloc(env->get_allocator(), strlen(name)+1);
         strcpy(p, name);
         txn_set_name(txn, p);
     }
-    env_set_txn_id(env, txn_get_id(txn));
+    env->set_txn_id(txn_get_id(txn));
 
     /* link this txn with the Environment */
     env_append_txn(env, txn);
@@ -351,7 +351,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
     /* now flush all committed Transactions to disk */
-    if (!(env_get_rt_flags(env)&DB_DISABLE_AUTO_FLUSH))
+    if (!(env->get_flags()&DB_DISABLE_AUTO_FLUSH))
         return (env_flush_committed_txns(env));
     else
         return (0);
@@ -374,16 +374,11 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
      */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_ABORTED);
 
-#if 0 /* TODO remove this!? */
-    /* decrease the reference counter of the modified databases */
-    __decrease_db_refcount(txn);
-#endif
-
     /* immediately release memory of the cached operations */
     txn_free_ops(txn);
 
     /* clean up the changeset */
-    env_get_changeset(txn_get_env(txn)).clear();
+    txn_get_env(txn)->get_changeset().clear();
 
     return (0);
 }
@@ -411,9 +406,9 @@ txn_opnode_free(Environment *env, txn_opnode_t *node)
 
     key=txn_opnode_get_key(node);
     if (key->data)
-        allocator_free(env_get_allocator(env), key->data);
+        allocator_free(env->get_allocator(), key->data);
 
-    allocator_free(env_get_allocator(env), node);
+    allocator_free(env->get_allocator(), node);
 }
 
 static void
@@ -425,7 +420,7 @@ txn_op_free(Environment *env, ham_txn_t *txn, txn_op_t *op)
 
     rec=txn_op_get_record(op);
     if (rec->data) {
-        allocator_free(env_get_allocator(env), rec->data);
+        allocator_free(env->get_allocator(), rec->data);
         rec->data=0;
     }
 
@@ -453,7 +448,7 @@ txn_op_free(Environment *env, ham_txn_t *txn, txn_op_t *op)
     if (txn_opnode_get_oldest_op(node)==0)
         txn_opnode_free(env, node);
 
-    allocator_free(env_get_allocator(env), op);
+    allocator_free(env->get_allocator(), op);
 }
 
 void
@@ -490,8 +485,8 @@ txn_free(ham_txn_t *txn)
 #endif
 
     if (txn_get_name(txn))
-        allocator_free(env_get_allocator(env), txn_get_name(txn));
+        allocator_free(env->get_allocator(), txn_get_name(txn));
 
-    allocator_free(env_get_allocator(env), txn);
+    allocator_free(env->get_allocator(), txn);
 }
 

@@ -65,7 +65,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -384,7 +384,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -421,7 +421,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -443,7 +443,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -1224,7 +1224,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
     }
 
     void moveFirstErasedInsertedInTxnTest(void)
@@ -1566,7 +1566,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        env_get_changeset((Environment *)m_env).clear();
+        ((Environment *)m_env)->get_changeset().clear();
     }
 
     void moveLastErasedInsertedInTxnTest(void)
@@ -3828,7 +3828,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -4142,7 +4142,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -6205,7 +6205,7 @@ public:
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0664));

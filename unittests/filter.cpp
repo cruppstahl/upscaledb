@@ -210,7 +210,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc2);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc2);
     }
     
     virtual void teardown() 

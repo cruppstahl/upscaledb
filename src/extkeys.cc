@@ -65,10 +65,10 @@ ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
     /* DEBUG build: make sure that the item is not inserted twice!  */
     ham_assert(m_hash.get(blobid)==0, ("")); 
 
-    e=(extkey_t *)allocator_alloc(env_get_allocator(env), SIZEOF_EXTKEY_T+size);
+    e=(extkey_t *)allocator_alloc(env->get_allocator(), SIZEOF_EXTKEY_T+size);
     extkey_set_blobid(e, blobid);
     /* TODO do not use txn id but lsn for age */
-    extkey_set_age(e, env_get_txn_id(env));
+    extkey_set_age(e, env->get_txn_id());
     extkey_set_size(e, size);
     memcpy(extkey_get_data(e), data, size);
 
@@ -82,7 +82,7 @@ ExtKeyCache::remove(ham_offset_t blobid)
     extkey_t *e=m_hash.remove(blobid);
     if (e) {
         m_usedsize-=extkey_get_size(e);
-        allocator_free(env_get_allocator(env), e);
+        allocator_free(env->get_allocator(), e);
     }
 }
 
@@ -94,7 +94,7 @@ ExtKeyCache::fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data)
         *size=extkey_get_size(e);
         *data=extkey_get_data(e);
         /* TODO do not use txn id but lsn for age */
-        extkey_set_age(e, env_get_txn_id(m_db->get_env()));
+        extkey_set_age(e, m_db->get_env()->get_txn_id());
         return (0);
     }
     else

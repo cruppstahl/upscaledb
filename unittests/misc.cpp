@@ -60,7 +60,7 @@ public:
         BFC_ASSERT_NOTNULL((m_alloc=memtracker_new()));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                     ham_env_create_ex(m_env, 0, HAM_IN_MEMORY_DB, 0644, &p[0]));
         BFC_ASSERT_EQUAL(0, 
@@ -94,7 +94,7 @@ public:
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-        allocator_free(env_get_allocator((Environment *)m_env), dest.data);
+        allocator_free(((Environment *)m_env)->get_allocator(), dest.data);
     }
 
     void copyExtendedKeyTest(void)
@@ -111,7 +111,7 @@ public:
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-        allocator_free(env_get_allocator((Environment *)m_env), dest.data);
+        allocator_free(((Environment *)m_env)->get_allocator(), dest.data);
     }
 
     void copyKeyInt2PubEmptyTest(void)
@@ -145,7 +145,7 @@ public:
         BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(1, dest.size);
         BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
-        allocator_free(env_get_allocator((Environment *)m_env), dest.data);
+        allocator_free(((Environment *)m_env)->get_allocator(), dest.data);
     }
 
     void copyKeyInt2PubSmallTest(void)
@@ -163,7 +163,7 @@ public:
         BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
-        allocator_free(env_get_allocator((Environment *)m_env), dest.data);
+        allocator_free(((Environment *)m_env)->get_allocator(), dest.data);
     }
 
     void copyKeyInt2PubFullTest(void)
@@ -182,7 +182,7 @@ public:
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
-        allocator_free(env_get_allocator((Environment *)m_env), dest.data);
+        allocator_free(((Environment *)m_env)->get_allocator(), dest.data);
     }
 
 };

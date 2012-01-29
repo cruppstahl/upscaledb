@@ -19,7 +19,7 @@ using Hamster;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.0.rc4.dll")]
+    [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.0.dll")]
     public class CursorTest
     {
         private int counter;

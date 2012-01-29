@@ -84,7 +84,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator((Environment *)m_env, (mem_allocator_t *)m_alloc);
+        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -109,7 +109,7 @@ public:
 
     void checkIfLogCreatedTest(void)
     {
-        BFC_ASSERT(env_get_log((Environment *)m_env)!=0);
+        BFC_ASSERT(((Environment *)m_env)->get_log()!=0);
         BFC_ASSERT(m_dbp->get_rt_flags()&HAM_ENABLE_RECOVERY);
     }
 
@@ -856,13 +856,13 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags((Environment *)env));
-        BFC_ASSERT(HAM_ENABLE_RECOVERY&env_get_rt_flags((Environment *)env));
+        BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&((Environment *)env)->get_flags());
+        BFC_ASSERT(HAM_ENABLE_RECOVERY&((Environment *)env)->get_flags());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags((Environment *)env)));
-        BFC_ASSERT(!(HAM_ENABLE_RECOVERY&env_get_rt_flags((Environment *)env)));
+        BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&((Environment *)env)->get_flags()));
+        BFC_ASSERT(!(HAM_ENABLE_RECOVERY&((Environment *)env)->get_flags()));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         ham_env_delete(env);

@@ -82,7 +82,7 @@ class ExtKeyCache
         }
 
         void free_node(const extkey_t *node) {
-            allocator_free(env_get_allocator(m_env), node);
+            allocator_free(m_env->get_allocator(), node);
         }
 
         void set_next(extkey_t *node, extkey_t *other) {
@@ -94,7 +94,7 @@ class ExtKeyCache
                 free_node(node);
                 return (true);
             }
-            if (env_get_txn_id(m_env)-node->_age>EXTKEY_MAX_AGE) {
+            if (m_env->get_txn_id()-node->_age>EXTKEY_MAX_AGE) {
                 free_node(node);
                 return (true);
             }

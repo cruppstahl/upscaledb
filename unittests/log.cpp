@@ -97,7 +97,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, log->create());
         delete log;
 
-        log=env_get_log(m_env);
+        log=m_env->get_log();
         BFC_ASSERT_EQUAL(0, log->close());
         BFC_ASSERT_EQUAL(0, log->create());
         BFC_ASSERT_NOTNULL(log);
@@ -131,10 +131,10 @@ public:
     {
         Environment *env=(Environment *)m_env;
         Log *log=new Log(env);
-        std::string oldfilename=env_get_filename(env);
-        env_set_filename(env, "/::asdf");
+        std::string oldfilename=env->get_filename();
+        env->set_filename("/::asdf");
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, log->create());
-        env_set_filename(env, oldfilename);
+        env->set_filename(oldfilename);
         delete log;
     }
 
@@ -143,8 +143,8 @@ public:
         Environment *env=(Environment *)m_env;
         Log *log=new Log(env);
         ham_fd_t fd;
-        std::string oldfilename=env_get_filename(env);
-        env_set_filename(env, "xxx$$test");
+        std::string oldfilename=env->get_filename();
+        env->set_filename("xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, log->open());
 
         /* if log->open() fails, it will call log->close() internally and 
@@ -154,10 +154,10 @@ public:
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        env_set_filename(env, "data/log-broken-magic");
+        env->set_filename("data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, log->open());
 
-        env_set_filename(env, oldfilename);
+        env->set_filename(oldfilename);
         delete log;
     }
 
@@ -234,7 +234,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u32_t)0, entry.flags);
 
         if (data)
-            allocator_free(env_get_allocator(m_env), data);
+            allocator_free(m_env->get_allocator(), data);
 
         BFC_ASSERT_EQUAL((ham_u64_t)1, log->get_lsn());
 
@@ -251,13 +251,13 @@ public:
         }
         else {
             BFC_ASSERT_NOTNULL(data);
-            allocator_free(env_get_allocator(m_env), data);
+            allocator_free(m_env->get_allocator(), data);
         }
     }
 
     void iterateOverLogMultipleEntryTest(void)
     {
-        Log *log=env_get_log(m_env);
+        Log *log=m_env->get_log();
 
         for (int i=0; i<5; i++) {
             ham_page_t *page;
@@ -272,10 +272,10 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         m_env=(Environment *)ham_get_env(m_db);
-        BFC_ASSERT_EQUAL((Log *)0, env_get_log(m_env));
+        BFC_ASSERT_EQUAL((Log *)0, m_env->get_log());
         log=new Log(m_env);
         BFC_ASSERT_EQUAL(0, log->open());
-        env_set_log(m_env, log);
+        m_env->set_log(log);
         BFC_ASSERT(log!=0);
 
         Log::Iterator iter=0;
@@ -285,23 +285,23 @@ public:
 
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         checkLogEntry(log, &entry, 5, data);
-        BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
+        BFC_ASSERT_EQUAL(m_env->get_pagesize(), 
                         (ham_size_t)entry.data_size);
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         checkLogEntry(log, &entry, 4, data);
-        BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
+        BFC_ASSERT_EQUAL(m_env->get_pagesize(), 
                         (ham_size_t)entry.data_size);
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         checkLogEntry(log, &entry, 3, data);
-        BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
+        BFC_ASSERT_EQUAL(m_env->get_pagesize(), 
                         (ham_size_t)entry.data_size);
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         checkLogEntry(log, &entry, 2, data);
-        BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
+        BFC_ASSERT_EQUAL(m_env->get_pagesize(), 
                         (ham_size_t)entry.data_size);
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         checkLogEntry(log, &entry, 1, data);
-        BFC_ASSERT_EQUAL(env_get_pagesize(m_env), 
+        BFC_ASSERT_EQUAL(m_env->get_pagesize(), 
                         (ham_size_t)entry.data_size);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -343,13 +343,6 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
-        /* modify header page by using the freelist */
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest);
-        /* modify header page by creating a database */
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest2);
-        /* modify header page by erasing a database */
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest3);
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
@@ -400,7 +393,7 @@ public:
 
     void createCloseTest(void)
     {
-        BFC_ASSERT_NOTNULL(env_get_log(m_env));
+        BFC_ASSERT_NOTNULL(m_env->get_log());
     }
 
     void createCloseEnvTest(void)
@@ -412,13 +405,13 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log((Environment *)env) != 0);
+        BFC_ASSERT(((Environment *)env)->get_log() != 0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)==0);
+        BFC_ASSERT(((Environment *)env)->get_log()==0);
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
@@ -428,19 +421,19 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
-        BFC_ASSERT(env_get_log(m_env)!=0);
+        BFC_ASSERT(m_env->get_log()!=0);
     }
 
     void createCloseOpenFullLogRecoverTest(void)
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
-        memset(buffer, 0, env_get_pagesize(m_env));
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_u8_t *buffer=(ham_u8_t *)malloc(m_env->get_pagesize());
+        memset(buffer, 0, m_env->get_pagesize());
+        ham_size_t ps=m_env->get_pagesize();
 
         BFC_ASSERT_EQUAL(0, 
-                    env_get_log(m_env)->append_write(2, 0, ps, buffer, ps));
+                    m_env->get_log()->append_write(2, 0, ps, buffer, ps));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -451,7 +444,7 @@ public:
         m_env=(Environment *)ham_get_env(m_db);
 
         /* make sure that the log file was deleted and that the lsn is 1 */
-        Log *log=env_get_log(m_env);
+        Log *log=m_env->get_log();
         BFC_ASSERT(log!=0);
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log->get_fd(), &filesize));
@@ -464,12 +457,12 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
-        memset(buffer, 0, env_get_pagesize(m_env));
+        ham_u8_t *buffer=(ham_u8_t *)malloc(m_env->get_pagesize());
+        memset(buffer, 0, m_env->get_pagesize());
 
         BFC_ASSERT_EQUAL(0, 
-                    env_get_log(m_env)->append_write(1, 0,
-                                0, buffer, env_get_pagesize(m_env)));
+                    m_env->get_log()->append_write(1, 0,
+                                0, buffer, m_env->get_pagesize()));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -488,17 +481,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), 
                         HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT(env_get_log((Environment *)env)==0);
+        BFC_ASSERT(((Environment *)env)->get_log()==0);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT(env_get_log((Environment *)env)!=0);
+        BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -507,12 +500,12 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
-        memset(buffer, 0, env_get_pagesize(m_env));
+        ham_u8_t *buffer=(ham_u8_t *)malloc(m_env->get_pagesize());
+        memset(buffer, 0, m_env->get_pagesize());
 
         BFC_ASSERT_EQUAL(0, 
-                    env_get_log(m_env)->append_write(1, 0,
-                                0, buffer, env_get_pagesize(m_env)));
+                    m_env->get_log()->append_write(1, 0,
+                                0, buffer, m_env->get_pagesize()));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -520,7 +513,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT(env_get_log((Environment *)env)==0);
+        BFC_ASSERT(((Environment *)env)->get_log()==0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
@@ -531,11 +524,11 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
-        memset(buffer, 0, env_get_pagesize(m_env));
+        ham_u8_t *buffer=(ham_u8_t *)malloc(m_env->get_pagesize());
+        memset(buffer, 0, m_env->get_pagesize());
 
-        BFC_ASSERT_EQUAL(0, env_get_log(m_env)->append_write(1, 0,
-                                0, buffer, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, m_env->get_log()->append_write(1, 0,
+                                0, buffer, m_env->get_pagesize()));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -545,7 +538,7 @@ public:
                 ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
 
         /* make sure that the log files are deleted and that the lsn is 1 */
-        Log *log=env_get_log((Environment *)env);
+        Log *log=((Environment *)env)->get_log();
         BFC_ASSERT(log!=0);
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log->get_fd(), &filesize));
@@ -589,7 +582,7 @@ public:
         /* for traversing the logfile we need a temp. Env handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664));
-        log=env_get_log((Environment *)env);
+        log=((Environment *)env)->get_log();
         BFC_ASSERT_EQUAL((Log *)0, log);
         log=new Log((Environment *)env);
         BFC_ASSERT_EQUAL(0, log->open());
@@ -610,13 +603,13 @@ public:
             BFC_ASSERT_EQUAL((*vit).data_size, entry.data_size);
 
             if (data)
-                allocator_free(env_get_allocator((Environment *)env), data);
+                allocator_free(((Environment *)env)->get_allocator(), data);
 
             vit++;
         }
 
         if (data)
-            allocator_free(env_get_allocator((Environment *)env), data);
+            allocator_free(((Environment *)env)->get_allocator(), data);
         BFC_ASSERT_EQUAL(vec.size(), size);
 
         BFC_ASSERT_EQUAL(0, log->close(true));
@@ -630,7 +623,7 @@ public:
 #ifndef WIN32
         Database *db=(Database *)m_db;
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=m_env->get_pagesize();
         ham_page_t *page;
 
         BFC_ASSERT_EQUAL(0, 
@@ -639,8 +632,8 @@ public:
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(1));
-        env_get_changeset(m_env).clear();
+        BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(1));
+        m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
@@ -667,9 +660,9 @@ public:
             BFC_ASSERT_EQUAL((ham_u8_t)i, page_get_payload(page)[i]);
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(1ull, env_get_log(m_env)->get_lsn());
+        BFC_ASSERT_EQUAL(1ull, m_env->get_log()->get_lsn());
 
-        env_get_changeset(m_env).clear();
+        m_env->get_changeset().clear();
 #endif
     }
 
@@ -677,7 +670,7 @@ public:
     {
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=m_env->get_pagesize();
         ham_page_t *page[10];
         Database *db=(Database *)m_db;
 
@@ -689,8 +682,8 @@ public:
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(33));
-        env_get_changeset(m_env).clear();
+        BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(33));
+        m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
@@ -722,9 +715,9 @@ public:
         }
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(33ull, env_get_log(m_env)->get_lsn());
+        BFC_ASSERT_EQUAL(33ull, m_env->get_log()->get_lsn());
 
-        env_get_changeset(m_env).clear();
+        m_env->get_changeset().clear();
 #endif
 	}
 
@@ -732,7 +725,7 @@ public:
     {
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=m_env->get_pagesize();
         ham_page_t *page;
         Database *db=(Database *)m_db;
 
@@ -742,8 +735,8 @@ public:
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(2));
-        env_get_changeset(m_env).clear();
+        BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(2));
+        m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
@@ -770,9 +763,9 @@ public:
             BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[i]);
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(2ull, env_get_log(m_env)->get_lsn());
+        BFC_ASSERT_EQUAL(2ull, m_env->get_log()->get_lsn());
 
-        env_get_changeset(m_env).clear();
+        m_env->get_changeset().clear();
 #endif
 	}
 
@@ -780,7 +773,7 @@ public:
     {
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=m_env->get_pagesize();
         ham_page_t *page[10];
         Database *db=(Database *)m_db;
 
@@ -792,8 +785,8 @@ public:
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(5));
-        env_get_changeset(m_env).clear();
+        BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(5));
+        m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
@@ -828,9 +821,9 @@ public:
         }
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(5ull, env_get_log(m_env)->get_lsn());
+        BFC_ASSERT_EQUAL(5ull, m_env->get_log()->get_lsn());
 
-        env_get_changeset(m_env).clear();
+        m_env->get_changeset().clear();
 #endif
     }
 
@@ -838,7 +831,7 @@ public:
     {
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=m_env->get_pagesize();
         ham_page_t *page[10];
         Database *db=(Database *)m_db;
 
@@ -850,8 +843,8 @@ public:
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(6));
-        env_get_changeset(m_env).clear();
+        BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(6));
+        m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
@@ -888,233 +881,9 @@ public:
         }
 
         /* verify the lsn */
-        BFC_ASSERT_EQUAL(6ull, env_get_log(m_env)->get_lsn());
+        BFC_ASSERT_EQUAL(6ull, m_env->get_log()->get_lsn());
 
-        env_get_changeset(m_env).clear();
-#endif
-    }
-
-    void recoverModifiedHeaderPageTest(void)
-    {
-#ifndef WIN32
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_size_t ps=env_get_pagesize(m_env);
-        ham_page_t *page;
-        Database *db=(Database *)m_db;
-
-        /* modify the header page by updating the freelist */
-        BFC_ASSERT_EQUAL(0, 
-                freel_mark_free(m_env, db, ps, DB_CHUNKSIZE, HAM_FALSE));
-
-        /* flush and backup the logs */
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(9));
-        env_get_changeset(m_env).clear();
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        /* now modify the file - after all we want to make sure that 
-         * the recovery overwrites the modification */
-        ham_fd_t fd;
-        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
-        BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps-20,
-                                "XXXXXXXXXXXXXXXXXXXX", 20));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
-
-        /* make sure that the log has one entry - the header file */
-        compareLog(BFC_OPATH(".test2"), LogEntry(9, 0, ps));
-
-        /* recover and make sure that the header page was restored */
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        db=(Database *)m_db;
-        m_env=(Environment *)ham_get_env(m_db);
-        page=env_get_header_page(m_env);
-        /* verify that the page does not contain the "XXX..." */
-        for (int i=0; i<20; i++)
-            BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[ps-20+i]);
-
-        /* verify the lsn */
-        BFC_ASSERT_EQUAL(9ull, env_get_log(m_env)->get_lsn());
-#endif
-    }
-
-    void recoverModifiedHeaderPageTest2(void)
-    {
-#ifndef WIN32
-        teardown(); m_env=0;
-
-        ham_env_t *env;
-        ham_db_t *db;
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-
-        /* modify the header page by creating a database; then stop
-         * creating backups of the logfile and remove the database again */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        ham_size_t ps=env_get_pagesize((Environment *)env);
-        g_CHANGESET_POST_LOG_HOOK=0;
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 333, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-        /* verify that the database does not exist */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open(env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
-                ham_env_open_db(env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        /* make sure that the log has two entries - the header file 
-         * and the root page of the new database */
-        std::vector<LogEntry> vec;
-        vec.push_back(LogEntry(1, 0, ps));
-        vec.push_back(LogEntry(1, ps, ps));
-        compareLog(BFC_OPATH(".test2"), vec);
-
-        /* now modify the file and remove the root page of the new database */
-        ham_fd_t fd;
-        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
-        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
-
-        /* open the database again and recover; the modified header
-         * page and the allocated root page must be re-created */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open_db(env, db, 333, 0, 0));
-
-        /* verify the lsn */
-        BFC_ASSERT_EQUAL(1ull, env_get_log((Environment *)env)->get_lsn());
-
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-        ham_delete(db);
-        ham_env_delete(env);
-#endif
-    }
-
-    void recoverModifiedHeaderPageTest3(void)
-    {
-#ifndef WIN32
-        teardown(); m_env=0;
-
-        ham_env_t *env;
-        ham_db_t *db;
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-
-        /* modify the header page by erasing a database; then stop
-         * creating backups of the logfile; then re-create the database */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        ham_size_t ps=env_get_pagesize((Environment *)env);
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 333, 0));
-        g_CHANGESET_POST_LOG_HOOK=0;
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-
-        /* verify that the database exists */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open(env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open_db(env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        /* make sure that the log has one entry - the header file */
-        std::vector<LogEntry> vec;
-        vec.push_back(LogEntry(2, 0, ps));
-        compareLog(BFC_OPATH(".test2"), vec);
-
-        /* open the database again and recover; the database must be
-         * erased again */
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
-                ham_env_open_db(env, db, 333, 0, 0));
-
-        /* verify the lsn */
-        BFC_ASSERT_EQUAL(2ull, env_get_log((Environment *)env)->get_lsn());
-
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-        ham_delete(db);
-        ham_env_delete(env);
-#endif
-    }
-
-    void recoverModifiedFreelistTest(void)
-    {
-#ifndef WIN32
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        ham_offset_t o=env_get_usable_pagesize(m_env)*8*DB_CHUNKSIZE;
-        ham_size_t ps=env_get_pagesize(m_env);
-        Database *db=(Database *)m_db;
-
-        BFC_ASSERT_EQUAL(0, 
-                freel_mark_free(m_env, db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
-
-        /* flush and backup the logs */
-        BFC_ASSERT_EQUAL(0, env_get_changeset(m_env).flush(19));
-        env_get_changeset(m_env).clear();
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)0;
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        /* now truncate the file - we want to make sure that the freelist
-         * pages are restored after recovery */
-        ham_fd_t fd;
-        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
-        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        /* make sure that the log has created and updated all the 
-         * freelist pages */
-        std::vector<LogEntry> vec;
-        for (int i=0; i<5; i++)
-            if (i!=1) /* 2nd page is root-page of the btree */
-                vec.push_back(LogEntry(19, ps*i, ps));
-        compareLog(BFC_OPATH(".test2"), vec);
-
-        /* recover and make sure that the freelist was restored */
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        db=(Database *)m_db;
-        m_env=(Environment *)ham_get_env(m_db);
-
-        /*
-         * The hinters must be disabled for this test to succeed; at least
-         * they need to be instructed to kick in late.
-         */
-        db->set_data_access_mode(
-                db->get_data_access_mode() & 
-                        ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE));
-
-        ham_offset_t addr;
-        BFC_ASSERT_EQUAL(0,
-                freel_alloc_area(&addr, m_env, db, DB_CHUNKSIZE));
-        BFC_ASSERT_EQUAL(3*o, addr);
-        env_get_changeset(m_env).clear();
-
-        /* verify the lsn */
-        BFC_ASSERT_EQUAL(19ull, env_get_log(m_env)->get_lsn());
+        m_env->get_changeset().clear();
 #endif
     }
 
