@@ -1,5 +1,11 @@
+Jan 29, 2012 - chris ---------------------------------------------------
+o bugfix: when the Environment was flushed (which always happens when a 
+	Transaction is committed), all unused pages were deleted. This thrashed 
+	the caches and degraded performance (thanks, Mark)
+
 Nov 08, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.15
+
 Nov 08, 2011 - chris ---------------------------------------------------
 o fixed a bug when using HAM_PARAM_CACHESIZE with values > 2GB; cachesize
 	was truncated to 32bit (thanks, Jake)

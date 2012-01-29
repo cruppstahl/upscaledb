@@ -907,9 +907,8 @@ env_flush_dirty(ham_env_t *env)
 
         /* don't touch pages which are currently in use by a transaction */
         if (page_get_refcount(head)==0) {
-            /* db_write_page_and_delete will call page_set_undirty
-             * and remove the page from the DIRTY list */
-            (void)db_write_page_and_delete(head, 0);
+            /* db_write_page_and_delete will flush the page to disk */
+            (void)db_write_page_and_delete(head, DB_FLUSH_NODELETE);
         }
 
         head=next;
