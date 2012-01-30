@@ -260,7 +260,7 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
     Environment *env = db->get_env();
 
     if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
-        ham_runtime_statistics_globdata_t *globalstats = env_get_global_perf_data(env);
+        ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_FIND);
 
 #ifdef HAM_DEBUG
@@ -282,7 +282,7 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 
     if (!(env->get_flags()&HAM_IN_MEMORY_DB))
     {
-        ham_runtime_statistics_globdata_t *globalstats = env_get_global_perf_data(env);
+        ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_INSERT);
 
 #ifdef HAM_DEBUG
@@ -304,7 +304,7 @@ db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 
     if (!(env->get_flags()&HAM_IN_MEMORY_DB))
     {
-        ham_runtime_statistics_globdata_t *globalstats = env_get_global_perf_data(env);
+        ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_ERASE);
 
 #ifdef HAM_DEBUG
@@ -1314,7 +1314,7 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
         ham_runtime_statistics_globdata_t *globalstats;
 
         ham_assert(env, (0));
-        globalstats = env_get_global_perf_data(env);
+        globalstats = env->get_global_perf_data();
         ham_assert(globalstats, (0));
 
         dst->global_stats = *globalstats;

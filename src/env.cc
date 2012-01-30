@@ -45,17 +45,17 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : _file_filters(0),
-    m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
+  : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
     m_journal(0), m_flags(0), m_databases(0), m_pagesize(0), m_cachesize(0),
-    m_max_databases_cached(0), m_is_active(false), m_is_legacy(false) 
+    m_max_databases_cached(0), m_is_active(false), m_is_legacy(false),
+    m_file_filters(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
 #endif
 
-	memset(&_perf_data, 0, sizeof(_perf_data));
+	memset(&m_perf_data, 0, sizeof(m_perf_data));
 
     _fun_create=0;
     _fun_open=0;
@@ -94,6 +94,13 @@ Environment::get_indexdata_ptr(int i)
     return (dbi+i);
 }
 
+freelist_payload_t *
+Environment::get_freelist()
+{
+    return ((freelist_payload_t *)(page_get_payload(get_header_page())+
+                        SIZEOF_FULL_HEADER(this)));
+}
+
 /* 
  * forward decl - implemented in hamsterdb.cc
  */
@@ -110,38 +117,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
  */
 extern ham_status_t
 __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
-
-ham_u16_t
-env_get_max_databases(Environment *env)
-{
-    env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(env->get_header_page()));
-    return (ham_db2h16(hdr->_max_databases));
-}
-
-ham_u8_t
-env_get_version(Environment *env, ham_size_t idx)
-{
-    env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(env->get_header_page()));
-    return (envheader_get_version(hdr, idx));
-}
-
-ham_u32_t
-env_get_serialno(Environment *env)
-{
-    env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(env->get_header_page()));
-    return (ham_db2h32(hdr->_serialno));
-}
-
-void
-env_set_serialno(Environment *env, ham_u32_t n)
-{
-    env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(env->get_header_page()));
-    hdr->_serialno=ham_h2db32(n);
-}
 
 ham_status_t
 env_fetch_page(ham_page_t **page_ref, Environment *env, 
@@ -166,7 +141,7 @@ _local_fun_create(Environment *env, const char *filename,
     ham_size_t pagesize=env->get_pagesize();
 
     /* reset all performance data */
-    btree_stats_init_globdata(env, env_get_global_perf_data(env));
+    btree_stats_init_globdata(env, env->get_global_perf_data());
 
     ham_assert(!env->get_header_page(), (0));
 
@@ -232,13 +207,12 @@ _local_fun_create(Environment *env, const char *filename,
         env->set_header_page(page);
 
         /* initialize the header */
-        env_set_magic(env, 'H', 'A', 'M', '\0');
-        env_set_version(env, HAM_VERSION_MAJ, HAM_VERSION_MIN, 
-                HAM_VERSION_REV, 0);
-        env_set_serialno(env, HAM_SERIALNO);
-        env_set_persistent_pagesize(env, pagesize);
-        env_set_max_databases(env, env->get_max_databases_cached());
-        ham_assert(env_get_max_databases(env) > 0, (0));
+        env->set_magic('H', 'A', 'M', '\0');
+        env->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
+        env->set_serialno(HAM_SERIALNO);
+        env->set_persistent_pagesize(pagesize);
+        env->set_max_databases(env->get_max_databases_cached());
+        ham_assert(env->get_max_databases() > 0, (0));
 
         page_set_dirty(page);
     }
@@ -375,7 +349,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     ham_u32_t pagesize=0;
 
     /* reset all performance data */
-    btree_stats_init_globdata(env, env_get_global_perf_data(env));
+    btree_stats_init_globdata(env, env->get_global_perf_data());
 
     /* 
      * initialize the device if it does not yet exist
@@ -448,7 +422,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         ham_assert(hdr == (env_header_t *)(hdrbuf + 
                     page_get_persistent_header_size()), (0));
 
-        pagesize = env_get_persistent_pagesize(env);
+        pagesize=env->get_persistent_pagesize();
         env->set_pagesize(pagesize);
         st = device->set_pagesize(device, pagesize);
         if (st) 
@@ -474,13 +448,8 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         device->set_flags(device, flags|HAM_DISABLE_MMAP);
 #endif
 
-        /* 
-         * check the file magic
-         */
-        if (env_get_magic(hdr, 0)!='H' ||
-                env_get_magic(hdr, 1)!='A' ||
-                env_get_magic(hdr, 2)!='M' ||
-                env_get_magic(hdr, 3)!='\0') {
+        /** check the file magic */
+        if (!env->compare_magic('H', 'A', 'M', '\0')) {
             ham_log(("invalid file type"));
             st = HAM_INV_FILE_HEADER;
             goto fail_with_fake_cleansing;
@@ -581,9 +550,9 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
      * check if a database with the new name already exists; also search 
      * for the database with the old name
      */
-    slot=env_get_max_databases(env);
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (dbi=0; dbi<env_get_max_databases(env); dbi++) {
+    slot=env->get_max_databases();
+    ham_assert(env->get_max_databases() > 0, (0));
+    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         ham_u16_t name=index_get_dbname(env->get_indexdata_ptr(dbi));
         if (name==newname)
             return (HAM_DATABASE_ALREADY_EXISTS);
@@ -591,7 +560,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
             slot=dbi;
     }
 
-    if (slot==env_get_max_databases(env))
+    if (slot==env->get_max_databases())
         return (HAM_DATABASE_NOT_FOUND);
 
     /*
@@ -713,8 +682,8 @@ _local_fun_get_database_names(Environment *env, ham_u16_t *names,
     /*
      * copy each database name in the array
      */
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (i=0; i<env_get_max_databases(env); i++) {
+    ham_assert(env->get_max_databases() > 0, (0));
+    for (i=0; i<env->get_max_databases(); i++) {
         name = index_get_dbname(env->get_indexdata_ptr(i));
         if (name==0)
             continue;
@@ -810,14 +779,14 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     /*
      * close all file-level filters
      */
-    file_head=env_get_file_filter(env);
+    file_head=env->get_file_filter();
     while (file_head) {
         ham_file_filter_t *next=file_head->_next;
         if (file_head->close_cb)
             file_head->close_cb((ham_env_t *)env, file_head);
         file_head=next;
     }
-    env_set_file_filter(env, 0);
+    env->set_file_filter(0);
 
     /*
      * close the log and the journal
@@ -857,7 +826,7 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
                 p->value=env->get_pagesize();
                 break;
             case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env_get_max_databases(env);
+                p->value=env->get_max_databases();
                 break;
             case HAM_PARAM_GET_FLAGS:
                 p->value=env->get_flags();
@@ -1016,8 +985,8 @@ _local_fun_create_db(Environment *env, Database *db,
     /*
      * check if this database name is unique
      */
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (i=0; i<env_get_max_databases(env); i++) {
+    ham_assert(env->get_max_databases() > 0, (0));
+    for (i=0; i<env->get_max_databases(); i++) {
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(i));
         if (!name)
             continue;
@@ -1031,8 +1000,8 @@ _local_fun_create_db(Environment *env, Database *db,
      * find a free slot in the indexdata array and store the 
      * database name
      */
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (dbi=0; dbi<env_get_max_databases(env); dbi++) {
+    ham_assert(env->get_max_databases() > 0, (0));
+    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(dbi));
         if (!name) {
             index_set_dbname(env->get_indexdata_ptr(dbi), dbname);
@@ -1040,7 +1009,7 @@ _local_fun_create_db(Environment *env, Database *db,
             break;
         }
     }
-    if (dbi==env_get_max_databases(env)) {
+    if (dbi==env->get_max_databases()) {
         (void)ham_close((ham_db_t *)db, 0);
         return (HAM_LIMITS_REACHED);
     }
@@ -1097,12 +1066,10 @@ _local_fun_create_db(Environment *env, Database *db,
     ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
     env->set_dirty();
 
-    /* 
-     * finally calculate and store the data access mode 
-     */
-    if (env_get_version(env, 0) == 1 &&
-        env_get_version(env, 1) == 0 &&
-        env_get_version(env, 2) <= 9) {
+    /* finally calculate and store the data access mode */
+    if (env->get_version(0) == 1 &&
+        env->get_version(1) == 0 &&
+        env->get_version(2) <= 9) {
         dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
         env->set_legacy(true);
     }
@@ -1186,7 +1153,7 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(env->get_allocator(), (""));
     ham_assert(env->get_device(), (""));
     ham_assert(0 != env->get_header_page(), (0));
-    ham_assert(env_get_max_databases(env) > 0, (0));
+    ham_assert(env->get_max_databases() > 0, (0));
 
     /* store the env pointer in the database */
     db->set_env(env);
@@ -1197,7 +1164,7 @@ _local_fun_open_db(Environment *env, Database *db,
     /*
      * search for a database with this name
      */
-    for (dbi=0; dbi<env_get_max_databases(env); dbi++) {
+    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         db_indexdata_t *idx=env->get_indexdata_ptr(dbi);
         ham_u16_t dbname = index_get_dbname(idx);
         if (!dbname)
@@ -1208,7 +1175,7 @@ _local_fun_open_db(Environment *env, Database *db,
         }
     }
 
-    if (dbi==env_get_max_databases(env)) {
+    if (dbi==env->get_max_databases()) {
         (void)ham_close((ham_db_t *)db, 0);
         return (HAM_DATABASE_NOT_FOUND);
     }
@@ -1297,12 +1264,10 @@ _local_fun_open_db(Environment *env, Database *db,
         return (HAM_INV_PARAMETER);
     }
 
-    /* 
-     * finally calculate and store the data access mode 
-     */
-    if (env_get_version(env, 0) == 1 &&
-        env_get_version(env, 1) == 0 &&
-        env_get_version(env, 2) <= 9) {
+    /* finally calculate and store the data access mode */
+    if (env->get_version(0) == 1 &&
+        env->get_version(1) == 0 &&
+        env->get_version(2) <= 9) {
         dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
         env->set_legacy(true);
     }

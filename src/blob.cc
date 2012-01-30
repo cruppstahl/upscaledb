@@ -38,7 +38,7 @@ static ham_bool_t
 __blob_from_cache(Environment *env, ham_size_t size)
 {
     if (env->get_log())
-        return (size<(env_get_usable_pagesize(env)));  
+        return (size<(env->get_usable_pagesize()));  
     return (size<(ham_size_t)(env->get_pagesize()>>3));
 }
 
@@ -310,9 +310,8 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
      * if the whole table is in a page (and not split between several
      * pages), just return a pointer directly in the page
      */
-    if (page_get_self(hdrpage)+env_get_usable_pagesize(env) >=
-            table_id+blob_get_size(&hdr)) 
-    {
+    if (page_get_self(hdrpage)+env->get_usable_pagesize() >=
+            table_id+blob_get_size(&hdr)) {
         ham_u8_t *p=page_get_raw_payload(hdrpage);
         /* yes, table is in the page */
         *page=hdrpage;

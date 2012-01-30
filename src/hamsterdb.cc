@@ -828,7 +828,7 @@ default_case:
         if (!cachesize)
             cachesize = env->get_cachesize();
         if (!dbs && env->get_header_page())
-            dbs = env_get_max_databases(env);
+            dbs=env->get_max_databases();
         if (!pagesize)
             pagesize = env->get_pagesize();
     }
@@ -924,14 +924,14 @@ default_case:
         /* override assignment when 'env' already has been configured with a 
          * non-default maxdbs value of its own */
         if (env && !db && env->get_header_page() 
-                && env_get_max_databases(env) > 0) {
-            dbs = env_get_max_databases(env);
+                && env->get_max_databases()>0) {
+            dbs = env->get_max_databases();
         }
         else if (db
             && db->get_env()
             && env->get_device()
             && env->get_device()->is_open(env->get_device())) {
-            dbs = (env ? env_get_max_databases(env) : 1);
+            dbs = (env ? env->get_max_databases() : 1);
         }
         else if (set_abs_max_dbs) {
             if (l >= HAM_DEFAULT_DATABASE_NAME)
@@ -1024,7 +1024,7 @@ ham_env_delete(ham_env_t *henv)
     Environment *env=(Environment *)henv;
 
     /* delete all performance data */
-    btree_stats_trash_globdata(env, env_get_global_perf_data(env));
+    btree_stats_trash_globdata(env, env->get_global_perf_data());
 
     /* close the device if it still exists */
     if (env->get_device()) {
@@ -1417,7 +1417,7 @@ ham_env_add_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
         return (HAM_INV_PARAMETER);
     }
 
-    head=env_get_file_filter(env);
+    head=env->get_file_filter();
 
     /*
      * clean up if there are still links from a previous
@@ -1442,7 +1442,7 @@ ham_env_add_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
      * (= ->prev) traversal is done, is by checking node->prev->next==NULL.
      */
     if (!head) {
-        env_set_file_filter(env, filter);
+        env->set_file_filter(filter);
         filter->_prev = filter;
     }
     else {
@@ -1477,22 +1477,21 @@ ham_env_remove_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
         return (HAM_NOT_IMPLEMENTED);
     }
 
-    head=env_get_file_filter(env);
+    head=env->get_file_filter();
 
     if (head == filter) {
         if (head->_next) {
             ham_assert(head->_prev != head, (0));
             head->_next->_prev = head->_prev;
         }
-        env_set_file_filter(env, head->_next);
+        env->set_file_filter(head->_next);
         return 0;
     }
     else if (head) {
         if (head->_prev == filter) {
             head->_prev = head->_prev->_prev;
         }
-        for (;;)
-        {
+        for (;;) {
             prev = head;
             head = head->_next;
             if (!head)
@@ -1663,7 +1662,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (st);
 
     /* delete all performance data */
-    btree_stats_trash_globdata(env, env_get_global_perf_data(env));
+    btree_stats_trash_globdata(env, env->get_global_perf_data());
 
     /* 
      * finally, close the memory allocator 
@@ -2106,7 +2105,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     /*
      * make sure that we don't already have AES filtering
      */
-    filter=env_get_file_filter(env);
+    filter=env->get_file_filter();
     while (filter) {
         if (filter->before_write_cb==__aes_before_write_cb)
             return (HAM_ALREADY_INITIALIZED);

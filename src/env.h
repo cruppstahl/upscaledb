@@ -99,6 +99,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 #include "packstop.h"
 
+#define envheader_get_version(hdr, i)  ((hdr))->_version[i]
+
 
 /**
  * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
@@ -112,6 +114,10 @@ struct ham_env_t {
 struct db_indexdata_t;
 typedef struct db_indexdata_t db_indexdata_t;
 
+#define SIZEOF_FULL_HEADER(env)												\
+	(sizeof(env_header_t)+													\
+	 (env)->get_max_databases()*sizeof(db_indexdata_t))
+
 /**
  * the Environment structure
  */
@@ -120,17 +126,6 @@ class Environment
   public:
     /** default constructor initializes all members */
     Environment();
-
-    /* linked list of all file-level filters */
-    ham_file_filter_t *_file_filters;
-
-	/**
-	 * some freelist algorithm specific run-time data
-	 *
-	 * This is done as a union as it will reduce code complexity
-	 * significantly in the common freelist processing areas.
-	 */
-	ham_runtime_statistics_globdata_t _perf_data;
 
     /*
      * following here: function pointers which implement access to 
@@ -380,6 +375,11 @@ class Environment
         return (m_pagesize);
     }
 
+    /** get the size of the usable persistent payload of a page */
+    ham_size_t get_usable_pagesize() {
+	    return (get_pagesize()-page_get_persistent_header_size());
+    }
+
     /** set the pagesize as specified in ham_env_create_ex */
     void set_pagesize(ham_size_t ps) {
         m_pagesize=ps;
@@ -463,6 +463,98 @@ class Environment
      */
     db_indexdata_t *get_indexdata_ptr(int i);
 
+    /** get the linked list of all file-level filters */
+    ham_file_filter_t *get_file_filter() {
+        return (m_file_filters);
+    }
+
+    /** set the linked list of all file-level filters */
+    void set_file_filter(ham_file_filter_t *f) {
+        m_file_filters=f;
+    }
+
+    /** get the maximum number of databases for this file */
+    ham_u16_t get_max_databases() {
+        env_header_t *hdr=(env_header_t*)
+                    (page_get_payload(get_header_page()));
+        return (ham_db2h16(hdr->_max_databases));
+    }
+
+    /** set the maximum number of databases for this file */
+    void set_max_databases(ham_u16_t md) {
+        get_header()->_max_databases=md;
+    }
+
+    /** get the page size from the header page */
+    // TODO can be private? 
+    ham_size_t get_persistent_pagesize() {
+	    return (ham_db2h32(get_header()->_pagesize));
+    }
+
+    /** set the page size in the header page */
+    // TODO can be private? 
+    void set_persistent_pagesize(ham_size_t ps)	{
+	    get_header()->_pagesize=ham_h2db32(ps);
+    }
+
+    /** get a reference to the DB FILE (global) statistics */
+    ham_runtime_statistics_globdata_t *get_global_perf_data() {
+        return (&m_perf_data);
+    }
+
+    /** set the 'magic' field of a file header */
+    void set_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
+	    get_header()->_magic[0]=m1;
+	    get_header()->_magic[1]=m2;
+	    get_header()->_magic[2]=m3;
+	    get_header()->_magic[3]=m4;
+    }
+
+    /** returns true if the magic matches */
+    bool compare_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
+        if (get_header()->_magic[0]!=m1)
+            return (false);
+        if (get_header()->_magic[1]!=m2)
+            return (false);
+        if (get_header()->_magic[2]!=m3)
+            return (false);
+        if (get_header()->_magic[3]!=m4)
+            return (false);
+        return (true);
+    }
+
+    /** get byte @a i of the 'version'-header */
+    ham_u8_t get_version(ham_size_t idx) {
+        env_header_t *hdr=(env_header_t *)
+                    (page_get_payload(get_header_page()));
+        return (envheader_get_version(hdr, idx));
+    }
+
+    /** set the version of a file header */
+    void set_version(ham_u8_t a, ham_u8_t b, ham_u8_t c, ham_u8_t d) {
+	    get_header()->_version[0]=a;
+	    get_header()->_version[1]=b;
+	    get_header()->_version[2]=c;
+	    get_header()->_version[3]=d;
+    }
+
+    /** get the serial number */
+    ham_u32_t get_serialno() {
+        env_header_t *hdr=(env_header_t*)
+                    (page_get_payload(get_header_page()));
+        return (ham_db2h32(hdr->_serialno));
+    }
+
+    /** set the serial number */
+    void set_serialno(ham_u32_t n) {
+        env_header_t *hdr=(env_header_t*)
+                    (page_get_payload(get_header_page()));
+        hdr->_serialno=ham_h2db32(n);
+    }
+
+    /** get the freelist object of the database */
+    freelist_payload_t *get_freelist();
+
   private:
     /** the filename of the environment file */
     std::string m_filename;
@@ -532,100 +624,13 @@ class Environment
     void *m_curl;
 #endif
 
+    /** linked list of all file-level filters */
+    ham_file_filter_t *m_file_filters;
+
+	/** some freelist algorithm specific run-time data */
+	ham_runtime_statistics_globdata_t m_perf_data;
+
 };
-
-/*
- * get the maximum number of databases for this file
- *
- * implemented as a function - a macro would break gcc aliasing rules
- */
-extern ham_u16_t
-env_get_max_databases(Environment *env);
-
-/** set the maximum number of databases for this file */
-#define env_set_max_databases(env, md)                                      \
-    (env->get_header()->_max_databases=(md))
-
-/** get the page size */
-#define env_get_persistent_pagesize(env)									\
-	(ham_db2h32(env->get_header()->_pagesize))
-
-/** set the page size */
-#define env_set_persistent_pagesize(env, ps)								\
-	env->get_header()->_pagesize=ham_h2db32(ps)
-
-/** set the 'magic' field of a file header */
-#define env_set_magic(env, a,b,c,d)											\
-	{ (env)->get_header()->_magic[0]=a;										\
-      (env)->get_header()->_magic[1]=b;										\
-      (env)->get_header()->_magic[2]=c;										\
-      (env)->get_header()->_magic[3]=d; }
-
-/** get byte @a i of the 'magic'-header */
-#define env_get_magic(hdr, i)        ((hdr)->_magic[i])
-
-/** set the version of a file header */
-#define env_set_version(env,a,b,c,d)										\
-	{ (env)->get_header()->_version[0]=a;									\
-      (env)->get_header()->_version[1]=b;									\
-      (env)->get_header()->_version[2]=c;									\
-      (env)->get_header()->_version[3]=d; }
-
-/* get byte @a i of the 'version'-header */
-#define envheader_get_version(hdr, i)      ((hdr)->_version[i])
-
-/**
- * get byte @a i of the 'version'-header
- *
- * implemented as a function - a macro would break gcc aliasing rules
- */
-extern ham_u8_t
-env_get_version(Environment *env, ham_size_t idx);
-
-/**
- * get the serial number
- *
- * implemented as a function - a macro would break gcc aliasing rules
- */
-extern ham_u32_t
-env_get_serialno(Environment *env);
-
-/*
- * set the serial number
- *
- * implemented as a function - a macro would break gcc aliasing rules
- */
-extern void
-env_set_serialno(Environment *env, ham_u32_t n);
-
-#define SIZEOF_FULL_HEADER(env)												\
-	(sizeof(env_header_t)+													\
-	 env_get_max_databases(env)*sizeof(db_indexdata_t))
-
-/** get the linked list of all file-level filters */
-#define env_get_file_filter(env)    (env)->_file_filters
-
-/** set the linked list of all file-level filters */
-#define env_set_file_filter(env, f) (env)->_file_filters=(f)
-
-/** get the freelist cache */
-#define env_get_freelist_cache(env)      (env)->_freelist_cache
-
-/** set the freelist cache */
-#define env_set_freelist_cache(env, c)   (env)->_freelist_cache=(c)
-
-/** get the freelist object of the database */
-#define env_get_freelist(env)												\
-	((freelist_payload_t *)													\
-     (page_get_payload(env->get_header_page())+							    \
-	  SIZEOF_FULL_HEADER(env)))
-
-/** get the size of the usable persistent payload of a page */
-#define env_get_usable_pagesize(env)										\
-	((env)->get_pagesize() - page_get_persistent_header_size())
-
-/** get a reference to the DB FILE (global) statistics */
-#define env_get_global_perf_data(env)    &(env)->_perf_data
 
 /**
  * fetch a page.

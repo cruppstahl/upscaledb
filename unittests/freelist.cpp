@@ -87,7 +87,7 @@ public:
     {
         freelist_payload_t *f;
 
-        f=env_get_freelist(((Environment *)m_env));
+        f=(((Environment *)m_env)->get_freelist());
 
         BFC_ASSERT(freel_get_allocated_bits16(f)==0);
         freel_set_allocated_bits16(f, 13);
@@ -113,7 +113,7 @@ public:
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         BFC_ASSERT_EQUAL(0, open(0));
-        f=env_get_freelist(((Environment *)m_env));
+        f=(((Environment *)m_env)->get_freelist());
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
         BFC_ASSERT(freel_get_allocated_bits16(f)==13);
@@ -225,7 +225,7 @@ public:
 
     void markAllocOverflowTest(void)
     {
-        ham_offset_t o=env_get_usable_pagesize((Environment *)m_env)*8*DB_CHUNKSIZE;
+        ham_offset_t o=((Environment *)m_env)->get_usable_pagesize()*8*DB_CHUNKSIZE;
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -268,7 +268,7 @@ public:
 
     void markAllocOverflow2Test(void)
     {
-        ham_offset_t o=env_get_usable_pagesize((Environment *)m_env)*8*DB_CHUNKSIZE;
+        ham_offset_t o=((Environment *)m_env)->get_usable_pagesize()*8*DB_CHUNKSIZE;
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 

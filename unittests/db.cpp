@@ -89,21 +89,18 @@ public:
 
     void headerTest()
     {
-        env_set_magic((Environment *)m_env, '1', '2', '3', '4');
-        env_header_t *hdr=((Environment *)m_env)->get_header();
-        BFC_ASSERT(env_get_magic(hdr, 0)=='1');
-        BFC_ASSERT(env_get_magic(hdr, 1)=='2');
-        BFC_ASSERT(env_get_magic(hdr, 2)=='3');
-        BFC_ASSERT(env_get_magic(hdr, 3)=='4');
+        ((Environment *)m_env)->set_magic('1', '2', '3', '4');
+        BFC_ASSERT_EQUAL(true, 
+                ((Environment *)m_env)->compare_magic('1', '2', '3', '4'));
 
-        env_set_version((Environment *)m_env, 1, 2, 3, 4);
-        BFC_ASSERT(env_get_version((Environment *)m_env, 0)==1);
-        BFC_ASSERT(env_get_version((Environment *)m_env, 1)==2);
-        BFC_ASSERT(env_get_version((Environment *)m_env, 2)==3);
-        BFC_ASSERT(env_get_version((Environment *)m_env, 3)==4);
+        ((Environment *)m_env)->set_version(1, 2, 3, 4);
+        BFC_ASSERT_EQUAL((ham_u8_t)1, ((Environment *)m_env)->get_version(0));
+        BFC_ASSERT_EQUAL((ham_u8_t)2, ((Environment *)m_env)->get_version(1));
+        BFC_ASSERT_EQUAL((ham_u8_t)3, ((Environment *)m_env)->get_version(2));
+        BFC_ASSERT_EQUAL((ham_u8_t)4, ((Environment *)m_env)->get_version(3));
 
-        env_set_serialno((Environment *)m_env, 0x1234);
-        BFC_ASSERT(env_get_serialno((Environment *)m_env)==0x1234);
+        ((Environment *)m_env)->set_serialno(0x1234);
+        BFC_ASSERT_EQUAL(0x1234u, ((Environment *)m_env)->get_serialno());
     }
 
     void structureTest()

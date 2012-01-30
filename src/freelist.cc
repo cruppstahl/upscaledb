@@ -212,7 +212,7 @@ static ham_size_t
 __freel_get_freelist_entry_maxspan(ham_device_t *dev, Environment *env, freelist_cache_t *cache)
 {
     ham_uXX_t ret;
-    ham_size_t size = env_get_usable_pagesize(env) - env_get_freelist_header_sizeXX();
+    ham_size_t size=env->get_usable_pagesize()-env_get_freelist_header_sizeXX();
     ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
     size -= size % sizeof(ham_u64_t);
 
@@ -2805,7 +2805,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, Environment *env,
              at the top of this function's body.
              */
             if (i==1) {
-                fp=env_get_freelist(env);
+                fp=env->get_freelist();
                 __env_set_dirty(env);
             }
             else {
@@ -3331,7 +3331,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                     entry = freel_cache_get_entries(cache) + i;
                     if (i == 0) {
                         page = 0;
-                        fp = env_get_freelist(env);
+                        fp = env->get_freelist();
                     }
                     else {
                         st = env_fetch_page(&page, env,
@@ -3398,7 +3398,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
              * yes, load the payload structure
              */
             if (i == 0) {
-                fp = env_get_freelist(env);
+                fp = env->get_freelist();
             }
             else {
                 st = env_fetch_page(&page, env, 
@@ -3459,7 +3459,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     ham_size_t size;
     ham_size_t entry_pos;
     freelist_entry_t *entry;
-    freelist_payload_t *fp=env_get_freelist(env);
+    freelist_payload_t *fp=env->get_freelist();
     
     ham_assert(device_get_freelist_cache(dev) == 0, (0));
     ham_assert(cache != 0, (0));
@@ -3474,7 +3474,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
      * add the header page to the freelist
      */
     freel_entry_set_start_address(&entry[0], env->get_pagesize());
-    size = env_get_usable_pagesize(env);
+    size = env->get_usable_pagesize();
     size -= SIZEOF_FULL_HEADER(env);
     size -= env_get_freelist_header_sizeXX();
     size -= size % sizeof(ham_u64_t);
@@ -3650,7 +3650,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
          */
         if (!freel_entry_get_page_id(entry)) {
             if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
-                fp=env_get_freelist(env);
+                fp=env->get_freelist();
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
@@ -3747,7 +3747,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
         */
         if (!freel_entry_get_page_id(entry)) {
             if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
-                fp=env_get_freelist(env);
+                fp=env->get_freelist();
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {

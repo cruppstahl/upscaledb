@@ -85,7 +85,7 @@ public:
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);
-        ::memset(node, 0, env_get_usable_pagesize((Environment *)m_env));
+        ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
         btree_key_t *key=btree_node_get_key(m_dbp, node, 0);
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
@@ -108,7 +108,7 @@ public:
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);
-        ::memset(node, 0, env_get_usable_pagesize((Environment *)m_env));
+        ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
         ham_offset_t blobid;
 

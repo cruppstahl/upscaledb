@@ -207,7 +207,7 @@ ham_status_t
 Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
 {
     ham_status_t st=0;
-    ham_file_filter_t *head=env_get_file_filter(m_env);
+    ham_file_filter_t *head=m_env->get_file_filter();
     ham_u8_t *p;
     ham_size_t size=m_env->get_pagesize();
 
@@ -267,9 +267,9 @@ Log::recover()
     m_env->set_flags(m_env->get_flags()&~HAM_ENABLE_RECOVERY);
 
     /* disable file filters - the logged pages were already filtered */
-    head=env_get_file_filter(m_env);
+    head=m_env->get_file_filter();
     if (head)
-        env_set_file_filter(m_env, 0);
+        m_env->set_file_filter(0);
 
     /* now start the loop once more and apply the log */
     while (1) {
@@ -365,7 +365,7 @@ bail:
 
     /* restore the file filters */
     if (head) 
-        env_set_file_filter(m_env, head);
+        m_env->set_file_filter(head);
     
     /* clean up memory */
     if (data) {

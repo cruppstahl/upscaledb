@@ -134,7 +134,7 @@ __f_read(ham_device_t *self, ham_offset_t offset,
      * we're done unless there are file filters (or if we're reading the
      * header page - the header page is not filtered)
      */
-    head=env_get_file_filter(env);
+    head=env->get_file_filter();
     if (!head || offset==0)
         return (0);
 
@@ -165,7 +165,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     ham_size_t size=self->get_pagesize(self);
     
     if (db && db->get_env())
-        head=env_get_file_filter(db->get_env());
+        head=db->get_env()->get_file_filter();
 
     /*
      * first, try to mmap the file (if mmap is available/enabled). 
@@ -292,7 +292,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
      * run page through page-level filters, but not for the 
      * root-page!
      */
-    head=env_get_file_filter(env);
+    head=env->get_file_filter();
     if (!head || offset==0)
         return (os_pwrite(t->fd, offset, buffer, size));
 

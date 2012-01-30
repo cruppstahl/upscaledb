@@ -19,7 +19,7 @@ o update the tutorial
 
 o mail an Tony B, Curt M., andere
 
-o c++-ify the environment
+x c++-ify the Environment
 
 o c++-ify the memory allocator
 
@@ -56,6 +56,9 @@ o mark/lessfs: store journal/log in a different directory to avoid
     wearout of flash disks/SSDs
 
 
+
+o continue with c++-ification of the environment - need to split into
+    local and remote (same as for Database class)
 
 o c++-ify the page
 

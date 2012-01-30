@@ -1518,7 +1518,7 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                 p->value=m_db->get_backend() ? db_get_keysize(m_db) : 21;
                 break;
             case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env_get_max_databases(env);
+                p->value=env->get_max_databases();
                 break;
             case HAM_PARAM_GET_FLAGS:
                 p->value=m_db->get_rt_flags();

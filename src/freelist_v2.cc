@@ -53,7 +53,7 @@ __freel_flush_stats32(ham_device_t *dev, Environment *env)
 
                     if (!freel_entry_get_page_id(entry)) {
                         /* header page */
-                        fp = env_get_freelist(env);
+                        fp = env->get_freelist();
                         env->set_dirty();
                     }
                     else {
