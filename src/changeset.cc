@@ -83,7 +83,7 @@ Changeset::log_bucket(ham_page_t **bucket, ham_size_t bucket_size,
     for (ham_size_t i=0; i<bucket_size; i++) {
         ham_assert(page_is_dirty(bucket[i]), (""));
 
-        Environment *env=device_get_env(page_get_device(*it));
+        Environment *env=device_get_env(page_get_device(bucket[i]));
         Log *log=env->get_log();
 
         induce(ErrorInducer::CHANGESET_FLUSH);
@@ -100,10 +100,10 @@ Changeset::log_bucket(ham_page_t **bucket, ham_size_t bucket_size,
 
 #define append(b, bs, bc, p)                                                 \
   if (bs+1>=bc) {                                                            \
-    bc*=2;                                                                   \
+    bc=bc ? bc*2 : 8;                                                        \
     b=(ham_page_t **)::realloc(b, sizeof(void *)*bc);                        \
-    b[bs++]=p;                                                               \
-  }
+  }                                                                          \
+  b[bs++]=p;
 
 ham_status_t
 Changeset::flush(ham_u64_t lsn)
@@ -129,7 +129,12 @@ Changeset::flush(ham_u64_t lsn)
         }
 
         if (page_get_self(p)==0) {
-            append(m_indices, m_indices_size, m_indices_capacity, p);
+            //append(m_indices, m_indices_size, m_indices_capacity, p);
+  if (m_indices_size+1>=m_indices_capacity) {
+    m_indices_capacity=m_indices_capacity ? m_indices_capacity*2 : 8;
+    m_indices=(ham_page_t **)::realloc(m_indices, sizeof(void *)*m_indices_capacity);
+  }
+  m_indices[m_indices_size++]=p;
         }
         else if (page_get_npers_flags(p)&PAGE_NPERS_NO_HEADER) {
             append(m_blobs, m_blobs_size, m_blobs_capacity, p);
@@ -142,7 +147,12 @@ Changeset::flush(ham_u64_t lsn)
               case PAGE_TYPE_B_ROOT:
               case PAGE_TYPE_B_INDEX:
               case PAGE_TYPE_HEADER:
-                append(m_indices, m_indices_size, m_indices_capacity, p);
+  //              append(m_indices, m_indices_size, m_indices_capacity, p);
+  if (m_indices_size+1>=m_indices_capacity) {
+    m_indices_capacity=m_indices_capacity ? m_indices_capacity*2 : 8;
+    m_indices=(ham_page_t **)::realloc(m_indices, sizeof(void *)*m_indices_capacity);
+  }
+  m_indices[m_indices_size++]=p;
                 break;
               case PAGE_TYPE_FREELIST:
                 append(m_freelists, m_freelists_size, m_freelists_capacity, p);

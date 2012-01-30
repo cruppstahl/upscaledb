@@ -18,6 +18,12 @@
 #ifndef HAM_CHANGESET_H__
 #define HAM_CHANGESET_H__
 
+#ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+#else
+#  include <stdlib.h>
+#endif
+
 #include "internal_fwd_decl.h"
 #include "errorinducer.h"
 
@@ -29,21 +35,23 @@ class Changeset
 {
   public:
     Changeset()
-    : m_head(0), m_inducer(0), m_blobs(0), m_freelists(0), 
-    m_indices(0), m_others(0) {
+    : m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
+      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0), 
+      m_indices(0), m_indices_size(0), m_indices_capacity(0), 
+      m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
     }
 
     ~Changeset() {
         if (m_inducer)
             delete m_inducer;
         if (m_blobs)
-            free(m_blobs);
+            ::free(m_blobs);
         if (m_freelists)
-            free(m_freelists);
+            ::free(m_freelists);
         if (m_indices)
-            free(m_indices);
+            ::free(m_indices);
         if (m_others)
-            free(m_others);
+            ::free(m_others);
     }
 
     /** is the changeset empty? */

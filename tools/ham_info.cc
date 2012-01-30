@@ -77,7 +77,7 @@ print_environment(ham_env_t *env)
 
     printf("environment\n");
     printf("    pagesize:                   %u\n", 
-                    env_get_pagesize((Environment *)env));
+                    ((Environment *)env)->get_pagesize());
     printf("    version:                    %u.%u.%u.%u\n", 
                     env_get_version((Environment *)env, 0),
                     env_get_version((Environment *)env, 1),
