@@ -21,23 +21,17 @@ o mail an Tony B, Curt M., andere
 
 o c++-ify the environment
 
-===================>
-crasht momentan in DupeTest::endianTest
-  in btree_fun_open wird die db_indexdata_t struktur ausgewertet, aber sie
-    enthält nur müll
-  anscheinend wird sie vom falschen offset aus zurückgegeben, oder die endian-
-    konvertierung funktioniert nicht
-===================>
-
 o c++-ify the memory allocator
 
 o c++-ify the device
 
-o c++-ify the page
-
-o python API - update and integrate
+o make sure that databases from 1.1.15 can be opened (right now they cannot)
+    o add unittest
 
 o implement support for approx. matching (-> sevencat)
+
+o when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
+    release mode) to improve performance 
 
 o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     when it flushes the txn, but the commit was already logged
@@ -46,31 +40,41 @@ o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     -> this problem will disappear when the txn is flushed in background,
         but this needs to be documented
 
+o design redundancy
+    o identify toolkit (TBB, boost?) - should have futexes
+    o design code; who locks what?
+    o should work with and without redundancy; if redundancy is disabled
+        then there should not be ANY performance penalty!
+    o disable concurrency during compilation? not sure if this is required
+    o we need a full test suite (including gathering of performance metrics 
+        etc)
+
+o python API - update and integrate
+    o also add to win32 package
+
+o mark/lessfs: store journal/log in a different directory to avoid 
+    wearout of flash disks/SSDs
+
+
+
+o c++-ify the page
+
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
     o also add to c++ API
     o add documentation (header file)
     o add documentation (wiki)
 
-o design redundancy
-    o identify toolkit (TBB, boost?) - should have futexes
-    o design code; who logs what?
-    o should work with and without redundancy; if redundancy is disabled
-        then there should not be ANY performance penalty!
-    o disable concurrency during compilation? not sure if this is required
-
 o recovery: re-create pending transactions (if required)
     o needs a function to enumerate them
-
-. c++-ify the transaction
 
 . c++-ify the backend
     o remove be_set_dirty, replace with be->_fun_flush()
 
+. c++-ify the transaction
+
 . android port (needs new java api) in /contrib directory (it's on a separate
     branch)
-
-. change all copyright strings to 2012
 
 . new test case for cursors
     insert (1, a)
