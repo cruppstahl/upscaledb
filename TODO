@@ -11,3 +11,18 @@ x a finished TODO item
 This branch is in "maintenance mode". New features are on the branch 
 "bleeding_edge" (version 2.0.0.rc1 and newer).
 
+x ham_env_flush deletes all pages that are not used - cache is not used
+    -> see mail from Mark  
+
+o decrease logging threshold; no need to have it so high
+    if it's not too much effort: get rid of the log file switching as well
+
+o add changes from Bhautik (low heap mode, embedded platform)
+
+o add to webpage (doesn't need precompiled win32 files)
+    o with comparison table of the two versions
+    o Wiki: "Which version should i choose?"
+    o add MPIC32 as a (non-supported) platform
+
+o fix big-endian conversion issue, add as unittest (also to 2.0)
+
