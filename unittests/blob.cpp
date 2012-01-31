@@ -20,7 +20,6 @@
 #include "../src/page.h"
 #include "../src/btree_key.h"
 #include "../src/freelist.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -37,7 +36,7 @@ public:
                 ham_size_t cachesize=0, ham_size_t pagesize=0, 
                 const char *name="BlobTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_alloc(0), m_inmemory(inmemory), m_use_txn(use_txn),
+        m_db(0), m_inmemory(inmemory), m_use_txn(use_txn),
         m_cachesize(cachesize), m_pagesize(pagesize)
     {
         testrunner::get_instance()->register_fixture(this);
@@ -58,7 +57,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
     ham_bool_t m_inmemory;
     ham_bool_t m_use_txn;
     ham_size_t m_cachesize;
@@ -80,7 +78,6 @@ public:
 
         os::unlink(BFC_OPATH(".test"));
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
@@ -103,7 +100,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void structureTest(void)

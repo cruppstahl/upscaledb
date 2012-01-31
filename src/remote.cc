@@ -34,7 +34,7 @@ typedef struct curl_buffer_t
     ham_u8_t *packed_data;
     ham_size_t offset;
     proto_wrapper_t *wrapper;
-    mem_allocator_t *alloc;
+    Allocator *alloc;
 } curl_buffer_t;
 
 static size_t
@@ -62,8 +62,7 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 
         /* otherwise we have to buffer the received data */
         buf->packed_size=payload_size+8;
-        buf->packed_data=(ham_u8_t *)allocator_alloc(buf->alloc, 
-                    buf->packed_size);
+        buf->packed_data=(ham_u8_t *)buf->alloc->alloc(buf->packed_size);
         if (!buf->packed_data)
             return (0);
         memcpy(buf->packed_data, &cbuf[0], size*nmemb);
@@ -80,7 +79,7 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
         buf->wrapper=proto_unpack(buf->packed_size, buf->packed_data);
         if (!buf->wrapper)
             return (0);
-        allocator_free(buf->alloc, buf->packed_data);
+        buf->alloc->free(buf->packed_data);
         if (!buf->wrapper)
             return 0;
     }
@@ -150,7 +149,7 @@ _perform_request(Environment *env, CURL *handle, proto_wrapper_t *request,
     cc=curl_easy_perform(handle);
 
     if (rbuf.packed_data)
-        allocator_free(env->get_allocator(), rbuf.packed_data);
+        env->get_allocator()->free(rbuf.packed_data);
     curl_slist_free_all(slist);
 
     if (cc) {
@@ -354,8 +353,7 @@ _remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
     }
 
     /* allocate a memory and copy the parameter names */
-    names=(ham_u32_t *)allocator_alloc(env->get_allocator(), 
-            num_names*sizeof(ham_u32_t));
+    names=(ham_u32_t *)env->get_allocator()->alloc(num_names*sizeof(ham_u32_t));
     if (!names)
         return (HAM_OUT_OF_MEMORY);
     p=param;
@@ -371,7 +369,7 @@ _remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
     st=_perform_request(env, env->get_curl(), request, &reply);
     proto_delete(request);
 
-    allocator_free(env->get_allocator(), names);
+    env->get_allocator()->free(names);
 
     if (st) {
         if (reply)
@@ -477,10 +475,8 @@ _remote_fun_create_db(Environment *env, Database *db,
     }
 
     /* allocate a memory and copy the parameter names */
-    names=(ham_u32_t *)allocator_alloc(env->get_allocator(), 
-            num_params*sizeof(ham_u32_t));
-    values=(ham_u64_t *)allocator_alloc(env->get_allocator(), 
-            num_params*sizeof(ham_u64_t));
+    names=(ham_u32_t *)env->get_allocator()->alloc(num_params*sizeof(ham_u32_t));
+    values=(ham_u64_t *)env->get_allocator()->alloc(num_params*sizeof(ham_u64_t));
     if (!names || !values)
         return (HAM_OUT_OF_MEMORY);
     p=param;
@@ -498,8 +494,8 @@ _remote_fun_create_db(Environment *env, Database *db,
     st=_perform_request(env, env->get_curl(), request, &reply);
     proto_delete(request);
 
-    allocator_free(env->get_allocator(), names);
-    allocator_free(env->get_allocator(), values);
+    env->get_allocator()->free(names);
+    env->get_allocator()->free(values);
 
     if (st) {
         if (reply)
@@ -557,10 +553,8 @@ _remote_fun_open_db(Environment *env, Database *db,
     }
 
     /* allocate a memory and copy the parameter names */
-    names=(ham_u32_t *)allocator_alloc(env->get_allocator(), 
-            num_params*sizeof(ham_u32_t));
-    values=(ham_u64_t *)allocator_alloc(env->get_allocator(), 
-            num_params*sizeof(ham_u64_t));
+    names=(ham_u32_t *)env->get_allocator()->alloc(num_params*sizeof(ham_u32_t));
+    values=(ham_u64_t *)env->get_allocator()->alloc(num_params*sizeof(ham_u64_t));
     if (!names || !values)
         return (HAM_OUT_OF_MEMORY);
     p=param;
@@ -578,8 +572,8 @@ _remote_fun_open_db(Environment *env, Database *db,
     st=_perform_request(env, env->get_curl(), request, &reply);
     proto_delete(request);
 
-    allocator_free(env->get_allocator(), names);
-    allocator_free(env->get_allocator(), values);
+    env->get_allocator()->free(names);
+    env->get_allocator()->free(values);
 
     if (st) {
         if (reply)
@@ -780,8 +774,7 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
     }
 
     /* allocate a memory and copy the parameter names */
-    names=(ham_u32_t *)allocator_alloc(env->get_allocator(), 
-            num_names*sizeof(ham_u32_t));
+    names=(ham_u32_t *)env->get_allocator()->alloc(num_names*sizeof(ham_u32_t));
     if (!names)
         return (HAM_OUT_OF_MEMORY);
     p=param;
@@ -798,7 +791,7 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
     st=_perform_request(env, env->get_curl(), request, &reply);
     proto_delete(request);
 
-    allocator_free(env->get_allocator(), names);
+    env->get_allocator()->free(names);
 
     if (st) {
         if (reply)

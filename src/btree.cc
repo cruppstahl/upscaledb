@@ -304,7 +304,7 @@ static ham_status_t
 btree_fun_close(ham_btree_t *be)
 {
     ham_status_t st;
-    mem_allocator_t *alloc=be_get_db(be)->get_env()->get_allocator();
+    Allocator *alloc=be_get_db(be)->get_env()->get_allocator();
 
     /* only flush the backend info if it's dirty */
     st=btree_fun_flush(be);
@@ -313,11 +313,11 @@ btree_fun_close(ham_btree_t *be)
     be_set_active(be, HAM_FALSE);
 
     if (btree_get_keydata1(be)) {
-        allocator_free(alloc, btree_get_keydata1(be));
+        alloc->free(btree_get_keydata1(be));
         btree_set_keydata1(be, 0);
     }
     if (btree_get_keydata2(be)) {
-        allocator_free(alloc, btree_get_keydata2(be));
+        alloc->free(btree_get_keydata2(be));
         btree_set_keydata2(be, 0);
     }
 
@@ -413,8 +413,8 @@ btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
 ham_backend_t *
 btree_create(Database *db, ham_u32_t flags)
 {
-    ham_btree_t *btree=(ham_btree_t *)allocator_calloc(
-                    db->get_env()->get_allocator(), sizeof(*btree));
+    ham_btree_t *btree=(ham_btree_t *)
+                    db->get_env()->get_allocator()->calloc(sizeof(*btree));
     if (!btree)
         return (0);
 
@@ -751,7 +751,7 @@ btree_prepare_key_for_compare(Database *db, int which,
                 btree_key_t *src, ham_key_t *dest)
 {
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
-    mem_allocator_t *alloc=be_get_db(be)->get_env()->get_allocator();
+    Allocator *alloc=be_get_db(be)->get_env()->get_allocator();
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -764,7 +764,7 @@ btree_prepare_key_for_compare(Database *db, int which,
 
     dest->size = key_get_size(src);
     p = which ? btree_get_keydata2(be) : btree_get_keydata1(be);
-    p = allocator_realloc(alloc, p, dest->size);
+    p = alloc->realloc(p, dest->size);
     if (which) 
         btree_set_keydata2(be, p); 
     else 
@@ -820,7 +820,7 @@ btree_compare_keys(Database *db, ham_page_t *page,
 ham_status_t
 btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=db->get_env()->get_allocator();
+    Allocator *alloc=db->get_env()->get_allocator();
 
     /*
      * extended key: copy the whole key, not just the
@@ -838,7 +838,7 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
                  * prevent that heap memory leak
                  */
                 if (dest->data && (db->get_key_allocdata()!=dest->data))
-                    allocator_free(alloc, dest->data);
+                    alloc->free(dest->data);
                 dest->data=0;
             }
             return st;
@@ -1000,7 +1000,7 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
 ham_status_t
 btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
 {
-    mem_allocator_t *alloc=db->get_env()->get_allocator();
+    Allocator *alloc=db->get_env()->get_allocator();
 
     /*
      * extended key: copy the whole key
@@ -1019,9 +1019,8 @@ btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
 			if (!dest->data || dest->size < key_get_size(source)) {
 				if (dest->data)
-					allocator_free(alloc, dest->data);
-				dest->data = (ham_u8_t *)allocator_alloc(alloc, 
-                            key_get_size(source));
+					alloc->free(dest->data);
+				dest->data = (ham_u8_t *)alloc->alloc(key_get_size(source));
 				if (!dest->data) 
 					return HAM_OUT_OF_MEMORY;
 			}
@@ -1034,7 +1033,7 @@ btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
         /* key.size is 0 */
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (dest->data)
-                allocator_free(alloc, dest->data);
+                alloc->free(dest->data);
             dest->data=0;
         }
         dest->size=0;

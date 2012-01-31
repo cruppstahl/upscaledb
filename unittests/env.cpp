@@ -23,7 +23,6 @@
 #include "../src/env.h"
 #include "../src/os.h"
 #include "../src/backend.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"

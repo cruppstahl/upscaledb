@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "os.hpp"
@@ -31,7 +30,7 @@ class EraseTest : public hamsterDB_fixture
 public:
     EraseTest(ham_u32_t flags=0, const char *name="EraseTest")
         : hamsterDB_fixture(name), 
-        m_db(0), m_flags(flags), m_alloc(0)
+        m_db(0), m_flags(flags)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EraseTest, collapseRootTest);
@@ -43,7 +42,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_u32_t m_flags;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -51,7 +49,6 @@ public:
 		__super::setup();
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), m_flags, 0644));
@@ -63,7 +60,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void prepare(int num_inserts)

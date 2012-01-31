@@ -137,9 +137,9 @@ ham_page_t *
 page_new(Environment *env)
 {
     ham_page_t *page;
-    mem_allocator_t *alloc=env->get_allocator();
+    Allocator *alloc=env->get_allocator();
 
-    page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
+    page=(ham_page_t *)alloc->alloc(sizeof(*page));
     if (!page)
         return (0);
     memset(page, 0, sizeof(*page));
@@ -156,7 +156,7 @@ page_delete(ham_page_t *page)
     ham_assert(page_get_pers(page)==0, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
-    allocator_free(page_get_allocator(page), page);
+    page_get_allocator(page)->free(page);
 }
 
 ham_status_t

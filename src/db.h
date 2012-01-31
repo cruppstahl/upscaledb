@@ -740,10 +740,9 @@ class Database
             if (!(dest->flags&HAM_KEY_USER_ALLOC)) {
                 if (!dest->data || dest->size<source->size) {
                     if (dest->data)
-                        allocator_free(get_env()->get_allocator(), 
-                                dest->data);
-                    dest->data=(ham_u8_t *)allocator_alloc(
-                                get_env()->get_allocator(), source->size);
+                        get_env()->get_allocator()->free(dest->data);
+                    dest->data=(ham_u8_t *)
+                                get_env()->get_allocator()->alloc(source->size);
                     if (!dest->data) 
                         return (HAM_OUT_OF_MEMORY);
                 }
@@ -756,7 +755,7 @@ class Database
             /* key.size is 0 */
             if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
                 if (dest->data)
-                    allocator_free(get_env()->get_allocator(), dest->data);
+                    get_env()->get_allocator()->free(dest->data);
                 dest->data=0;
             }
             dest->size=0;

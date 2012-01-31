@@ -27,7 +27,6 @@
 #include "../src/btree_key.h"
 #include "../src/freelist.h"
 #include "../src/cache.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -65,7 +64,6 @@ public:
 protected:
     ham_db_t *m_db;
     Environment *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -74,7 +72,6 @@ public:
 
         (void)os::unlink(BFC_OPATH(".test"));
 
-        m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
@@ -88,7 +85,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
     Log *disconnect_log_and_create_new_log(void)
@@ -234,7 +230,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u32_t)0, entry.flags);
 
         if (data)
-            allocator_free(m_env->get_allocator(), data);
+            m_env->get_allocator()->free(data);
 
         BFC_ASSERT_EQUAL((ham_u64_t)1, log->get_lsn());
 
@@ -251,7 +247,7 @@ public:
         }
         else {
             BFC_ASSERT_NOTNULL(data);
-            allocator_free(m_env->get_allocator(), data);
+            m_env->get_allocator()->free(data);
         }
     }
 
@@ -351,7 +347,6 @@ public:
 protected:
     ham_db_t *m_db;
     Environment *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -360,9 +355,7 @@ public:
 
         (void)os::unlink(BFC_OPATH(".test"));
 
-        m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS
@@ -388,7 +381,6 @@ public:
             ham_delete(m_db);
         }
         m_db=0;
-        BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
     void createCloseTest(void)
@@ -603,13 +595,13 @@ public:
             BFC_ASSERT_EQUAL((*vit).data_size, entry.data_size);
 
             if (data)
-                allocator_free(((Environment *)env)->get_allocator(), data);
+                ((Environment *)env)->get_allocator()->free(data);
 
             vit++;
         }
 
         if (data)
-            allocator_free(((Environment *)env)->get_allocator(), data);
+            ((Environment *)env)->get_allocator()->free(data);
         BFC_ASSERT_EQUAL(vec.size(), size);
 
         BFC_ASSERT_EQUAL(0, log->close(true));

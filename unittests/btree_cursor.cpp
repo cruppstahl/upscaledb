@@ -22,7 +22,6 @@
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/cursor.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -38,8 +37,7 @@ public:
     BtreeCursorTest(bool inmemory=false, ham_size_t pagesize=0, 
                     const char *name="BtreeCursorTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_inmemory(inmemory), m_alloc(0),
-        m_pagesize(pagesize)
+        m_db(0), m_inmemory(inmemory), m_pagesize(pagesize)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BtreeCursorTest, createCloseTest);
@@ -58,7 +56,6 @@ protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
     bool m_inmemory;
-    memtracker_t *m_alloc;
     ham_size_t m_pagesize;
 
 public:
@@ -77,7 +74,6 @@ public:
         os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
                     0664, params));
@@ -91,7 +87,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void createCloseTest(void)

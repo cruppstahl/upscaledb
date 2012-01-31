@@ -497,12 +497,10 @@ btree_stats_page_is_nuked(Database *db, struct ham_page_t *page,
         }
     }
 
-    if (dbdata->lower_bound_page_address == page_get_self(page))
-    {
-        if (dbdata->lower_bound.data)
-        {
+    if (dbdata->lower_bound_page_address == page_get_self(page)) {
+        if (dbdata->lower_bound.data) {
             ham_assert(env->get_allocator() != 0, (0));
-            allocator_free(env->get_allocator(), dbdata->lower_bound.data);
+            env->get_allocator()->free(dbdata->lower_bound.data);
         }
         memset(&dbdata->lower_bound, 0, sizeof(dbdata->lower_bound));
         dbdata->lower_bound_index = 0;
@@ -510,12 +508,10 @@ btree_stats_page_is_nuked(Database *db, struct ham_page_t *page,
         dbdata->lower_bound_set = HAM_FALSE;
     }
 
-	if (dbdata->upper_bound_page_address == page_get_self(page))
-    {
-        if (dbdata->upper_bound.data)
-        {
+	if (dbdata->upper_bound_page_address == page_get_self(page)) {
+        if (dbdata->upper_bound.data) {
             ham_assert(env->get_allocator() != 0, (0));
-            allocator_free(env->get_allocator(), dbdata->upper_bound.data);
+            env->get_allocator()->free(dbdata->upper_bound.data);
         }
         memset(&dbdata->upper_bound, 0, sizeof(dbdata->upper_bound));
         dbdata->upper_bound_index = 0;
@@ -540,8 +536,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
 
     ham_assert(env->get_allocator() != 0, (0));
     ham_assert(btree_node_is_leaf(node), (0));
-    if (!btree_node_get_left(node))
-    {
+    if (!btree_node_get_left(node)) {
         /* this is the leaf page which carries the lower bound key */
         ham_assert(btree_node_get_count(node) == 0 ? !btree_node_get_right(node) : 1, (0));
         if (btree_node_get_count(node) == 0)
@@ -572,9 +567,9 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
             {
                 /* only set when not done already */
                 if (dbdata->lower_bound.data)
-                    allocator_free(env->get_allocator(), dbdata->lower_bound.data);
+                    env->get_allocator()->free(dbdata->lower_bound.data);
                 if (dbdata->upper_bound.data)
-                    allocator_free(env->get_allocator(), dbdata->upper_bound.data);
+                    env->get_allocator()->free(dbdata->upper_bound.data);
                 memset(&dbdata->lower_bound, 0, sizeof(dbdata->lower_bound));
                 memset(&dbdata->upper_bound, 0, sizeof(dbdata->upper_bound));
                 dbdata->lower_bound_index = 1; /* impossible value for lower bound index */
@@ -606,7 +601,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
                 dbdata->lower_bound_page_address = page_get_self(page);
 
                 if (dbdata->lower_bound.data) {
-                    allocator_free(env->get_allocator(), dbdata->lower_bound.data);
+                    env->get_allocator()->free(dbdata->lower_bound.data);
                     dbdata->lower_bound.data=0;
                     dbdata->lower_bound.size=0;
                 }
@@ -619,7 +614,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
                     /* panic! is case of failure, just drop the lower bound 
                      * entirely. */
                     if (dbdata->lower_bound.data)
-                        allocator_free(env->get_allocator(), dbdata->lower_bound.data);
+                        env->get_allocator()->free(dbdata->lower_bound.data);
                     memset(&dbdata->lower_bound, 0, 
                             sizeof(dbdata->lower_bound));
                     dbdata->lower_bound_index = 0;
@@ -663,7 +658,7 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
                 dbdata->upper_bound_page_address = page_get_self(page);
 
                 if (dbdata->upper_bound.data) {
-                    allocator_free(env->get_allocator(), dbdata->upper_bound.data);
+                    env->get_allocator()->free(dbdata->upper_bound.data);
                     dbdata->upper_bound.data=0;
                     dbdata->upper_bound.size=0;
                 }
@@ -671,12 +666,11 @@ btree_stats_update_any_bound(int op, Database *db, struct ham_page_t *page,
                 st = btree_copy_key_int2pub(db, 
                     btree_node_get_key(db, node, dbdata->upper_bound_index),
                     &dbdata->upper_bound);
-                if (st) 
-                {
+                if (st) {
                     /* panic! is case of failure, just drop the upper bound 
                      * entirely. */
                     if (dbdata->upper_bound.data)
-                        allocator_free(env->get_allocator(), dbdata->upper_bound.data);
+                        env->get_allocator()->free(dbdata->upper_bound.data);
                     memset(&dbdata->upper_bound, 0, 
                             sizeof(dbdata->upper_bound));
                     dbdata->upper_bound_index = 0;
@@ -1282,11 +1276,11 @@ btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
     /* trash the upper/lower bound keys, when set: */
     if (dbdata->upper_bound.data) {
         ham_assert(env->get_allocator() != 0, (0));
-        allocator_free(env->get_allocator(), dbdata->upper_bound.data);
+        env->get_allocator()->free(dbdata->upper_bound.data);
     }
     if (dbdata->lower_bound.data) {
         ham_assert(env->get_allocator() != 0, (0));
-        allocator_free(env->get_allocator(), dbdata->lower_bound.data);
+        env->get_allocator()->free(dbdata->lower_bound.data);
     }
     memset(dbdata, 0, sizeof(*dbdata));
 }

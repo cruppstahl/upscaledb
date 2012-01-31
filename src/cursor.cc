@@ -70,7 +70,7 @@ Cursor::update_dupecache(ham_u32_t what)
                 dc->append(DupeCacheLine(true, i));
             }
             if (needs_free)
-                allocator_free(env->get_allocator(), table);
+                env->get_allocator()->free(table);
         }
         env->get_changeset().clear();
     }

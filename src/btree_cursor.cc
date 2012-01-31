@@ -55,7 +55,7 @@ btree_cursor_couple(btree_cursor_t *c)
     st=db->copy_key(btree_cursor_get_uncoupled_key(c), &key);
     if (st) {
         if (key.data)
-            allocator_free(env->get_allocator(), key.data);
+            env->get_allocator()->free(key.data);
         return (st);
     }
 
@@ -65,7 +65,7 @@ btree_cursor_couple(btree_cursor_t *c)
 
     /* free the cached key */
     if (key.data)
-        allocator_free(env->get_allocator(), key.data);
+        env->get_allocator()->free(key.data);
 
     return (st);
 }
@@ -376,8 +376,8 @@ btree_cursor_set_to_nil(btree_cursor_t *c)
     if (btree_cursor_is_uncoupled(c)) {
         ham_key_t *key=btree_cursor_get_uncoupled_key(c);
         if (key->data)
-            allocator_free(env->get_allocator(), key->data);
-        allocator_free(env->get_allocator(), key);
+            env->get_allocator()->free(key->data);
+        env->get_allocator()->free(key);
         btree_cursor_set_uncoupled_key(c, 0);
         btree_cursor_set_flags(c,
                 btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_UNCOUPLED));
@@ -442,14 +442,14 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /* copy the key */
-    key=(ham_key_t *)allocator_calloc(env->get_allocator(), sizeof(*key));
+    key=(ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
     if (!key)
         return (HAM_OUT_OF_MEMORY);
     st=btree_copy_key_int2pub(db, entry, key);
     if (st) {
         if (key->data)
-            allocator_free(env->get_allocator(), key->data);
-        allocator_free(env->get_allocator(), key);
+            env->get_allocator()->free(key->data);
+        env->get_allocator()->free(key);
         return (st);
     }
 
@@ -489,7 +489,7 @@ btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
     else if (btree_cursor_is_uncoupled(src)) {
         ham_key_t *key;
 
-        key=(ham_key_t *)allocator_calloc(env->get_allocator(), sizeof(*key));
+        key=(ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
         if (!key)
             return (HAM_OUT_OF_MEMORY);
 
@@ -497,8 +497,8 @@ btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
                         btree_cursor_get_uncoupled_key(src), key);
         if (st) {
             if (key->data)
-                allocator_free(env->get_allocator(), key->data);
-            allocator_free(env->get_allocator(), key);
+                env->get_allocator()->free(key->data);
+            env->get_allocator()->free(key);
             return (st);
         }
         btree_cursor_set_uncoupled_key(dest, key);
@@ -915,7 +915,7 @@ btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
     if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES)) {
         dupe_entry_t *e;
         dupe_table_t *t;
-        t=(dupe_table_t *)allocator_calloc(env->get_allocator(), sizeof(*t));
+        t=(dupe_table_t *)env->get_allocator()->calloc(sizeof(*t));
         if (!t)
             return (HAM_OUT_OF_MEMORY);
         dupe_table_set_capacity(t, 1);

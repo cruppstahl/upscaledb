@@ -21,7 +21,6 @@
 #include "../src/page.h"
 #include "../src/env.h"
 #include "os.hpp"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -53,7 +52,6 @@ protected:
     ham_db_t *m_db;
     Database *m_dbp;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -62,7 +60,6 @@ public:
 
         os::unlink(BFC_OPATH(".test"));
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
 
@@ -76,7 +73,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void structureTest(void)

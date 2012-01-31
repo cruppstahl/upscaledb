@@ -20,7 +20,6 @@
 #include "../src/page.h"
 #include "../src/btree_key.h"
 #include "../src/freelist.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -44,7 +43,6 @@ protected:
     bool m_inmemory;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -61,7 +59,6 @@ public:
             params[0].value=m_pagesize;
         }
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
@@ -75,7 +72,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size)
@@ -1162,7 +1158,6 @@ protected:
     ham_u32_t m_find_flags;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -1179,7 +1174,6 @@ public:
             params[0].value=m_pagesize;
         }
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
@@ -1193,7 +1187,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size)
@@ -1531,7 +1524,6 @@ public:
 
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
     bool m_inmemory;
     ham_u32_t m_find_flags;
 
@@ -1539,7 +1531,6 @@ public:
     { 
         __super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
@@ -1553,7 +1544,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void negativeInsertTest(void)

@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb_int.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/env.h"
 #include "os.hpp"
@@ -175,8 +174,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_u32_t m_flags;
-    memtracker_t *m_alloc;
-    memtracker_t *m_alloc2;
     ham_env_t *m_env;
 	/*
 	filters MUST 'live' for the entire lifetime of the ENV they are related to.
@@ -206,11 +203,8 @@ public:
         record_filter_closed=0;
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc2);
     }
     
     virtual void teardown() 
@@ -222,8 +216,6 @@ public:
 			BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 			BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
 		}
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc2));
     }
 
     void addRemoveFileTest()

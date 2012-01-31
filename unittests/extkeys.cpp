@@ -17,7 +17,6 @@
 #include "../src/db.h"
 #include "../src/extkeys.h"
 #include "../src/env.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -41,14 +40,12 @@ public:
 
 protected:
     ham_db_t *m_db;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
 	{ 
 		__super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
@@ -63,7 +60,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void insertFetchRemoveTest(void)

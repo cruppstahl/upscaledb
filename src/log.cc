@@ -157,14 +157,14 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
         // pos += 8-1;
         pos -= (pos % 8);
 
-        *data=(ham_u8_t *)allocator_alloc(m_env->get_allocator(), 
-                        (ham_size_t)entry->data_size);
+        *data=(ham_u8_t *)m_env->get_allocator()->alloc(
+                                (ham_size_t)entry->data_size);
         if (!*data)
             return (HAM_OUT_OF_MEMORY);
 
         st=os_pread(m_fd, pos, *data, (ham_size_t)entry->data_size);
         if (st) {
-            allocator_free(m_env->get_allocator(), *data);
+            m_env->get_allocator()->free(*data);
             *data=0;
             return (st);
         }
@@ -216,8 +216,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
      * root-page!
      */
     if (head && page_get_self(page)!=0) {
-        p=(ham_u8_t *)allocator_alloc(m_env->get_allocator(), 
-                m_env->get_pagesize());
+        p=(ham_u8_t *)m_env->get_allocator()->alloc(m_env->get_pagesize());
         if (!p)
             return (HAM_OUT_OF_MEMORY);
         memcpy(p, page_get_raw_payload(page), size);
@@ -239,7 +238,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
                         page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
-        allocator_free(m_env->get_allocator(), p);
+        m_env->get_allocator()->free(p);
 
     return (st);
 }
@@ -275,7 +274,7 @@ Log::recover()
     while (1) {
         /* clean up memory of the previous loop */
         if (data) {
-            allocator_free(m_env->get_allocator(), data);
+            m_env->get_allocator()->free(data);
             data=0;
         }
 
@@ -369,7 +368,7 @@ bail:
     
     /* clean up memory */
     if (data) {
-        allocator_free(m_env->get_allocator(), data);
+        m_env->get_allocator()->free(data);
         data=0;
     }
 

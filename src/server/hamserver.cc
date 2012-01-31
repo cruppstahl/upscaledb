@@ -135,7 +135,7 @@ send_wrapper(ham_env_t *henv, struct mg_connection *conn,
 	mg_printf(conn, "%s", standard_reply);
     mg_write(conn, data, data_size);
 
-    allocator_free(env->get_allocator(), data);
+    env->get_allocator()->free(data);
 }
 
 static void

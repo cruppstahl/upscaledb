@@ -114,7 +114,7 @@ proto_delete(proto_wrapper_t *wrapper);
  * a pointer to the buffer and the buffer size 
  */
 extern ham_bool_t
-proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc, 
+proto_pack(proto_wrapper_t *wrapper, Allocator *alloc, 
             ham_u8_t **data, ham_size_t *size);
 
 /* 

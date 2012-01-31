@@ -362,7 +362,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         if (st) {
             ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC), (0));
             if (scratchpad.key.data)
-                allocator_free(env->get_allocator(), scratchpad.key.data);
+                env->get_allocator()->free(scratchpad.key.data);
             return (st);
         }
 
@@ -389,7 +389,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
      */
     ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC), (0));
     if (scratchpad.key.data)
-        allocator_free(env->get_allocator(), scratchpad.key.data);
+        env->get_allocator()->free(scratchpad.key.data);
 
     return (st);
 }
@@ -973,7 +973,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
      */
     ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC), (0));
     if (scratchpad->key.data)
-        allocator_free(env->get_allocator(), scratchpad->key.data);
+        env->get_allocator()->free(scratchpad->key.data);
     scratchpad->key=pivotkey;
     scratchpad->rid=pivotrid;
     ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC), (0));
@@ -986,7 +986,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
 fail_dramatically:
     ham_assert(!(pivotkey.flags & HAM_KEY_USER_ALLOC), (0));
     if (pivotkey.data)
-        allocator_free(env->get_allocator(), pivotkey.data);
+        env->get_allocator()->free(pivotkey.data);
     return st;
 }
 

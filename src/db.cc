@@ -461,7 +461,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
     ham_size_t temp;
     ham_record_t record;
     ham_u8_t *ptr;
-    mem_allocator_t *alloc=get_env()->get_allocator();
+    Allocator *alloc=get_env()->get_allocator();
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
@@ -489,7 +489,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
             ham_assert(temp==key_length, ("invalid key length"));
 
             if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
-                ext_key->data=(ham_u8_t *)allocator_alloc(alloc, key_length);
+                ext_key->data=(ham_u8_t *)alloc->alloc(key_length);
                 if (!ext_key->data) 
                     return (HAM_OUT_OF_MEMORY);
             }
@@ -518,7 +518,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
      * memory space for the faked record-based blob_read() below.
      */
     if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-        ext_key->data=(ham_u8_t *)allocator_alloc(alloc, key_length);
+        ext_key->data=(ham_u8_t *)alloc->alloc(key_length);
         if (!ext_key->data)
             return (HAM_OUT_OF_MEMORY);
     }
@@ -874,13 +874,12 @@ Database::resize_record_allocdata(ham_size_t size)
 {
     if (size==0) {
         if (get_record_allocdata())
-            allocator_free(get_env()->get_allocator(), 
-                    get_record_allocdata());
+            get_env()->get_allocator()->free(get_record_allocdata());
         set_record_allocdata(0);
         set_record_allocsize(0);
     }
     else if (size>get_record_allocsize()) {
-        void *newdata=allocator_realloc(get_env()->get_allocator(), 
+        void *newdata=get_env()->get_allocator()->realloc(
                 get_record_allocdata(), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
@@ -896,14 +895,13 @@ Database::resize_key_allocdata(ham_size_t size)
 {
     if (size==0) {
         if (get_key_allocdata())
-            allocator_free(get_env()->get_allocator(), 
-                    get_key_allocdata());
+            get_env()->get_allocator()->free(get_key_allocdata());
         set_key_allocdata(0);
         set_key_allocsize(0);
     }
     else if (size>get_key_allocsize()) {
-        void *newdata=allocator_realloc(get_env()->get_allocator(), 
-                get_key_allocdata(), size);
+        void *newdata=get_env()->get_allocator()->realloc(get_key_allocdata(), 
+                                    size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
         set_key_allocdata(newdata);
@@ -1730,7 +1728,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
     }
 
     if (temprec.data!=record->data)
-        allocator_free(env->get_allocator(), temprec.data);
+        env->get_allocator()->free(temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2073,7 +2071,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         cursor->set_txn(0);
 
     if (temprec.data!=record->data)
-        allocator_free(env->get_allocator(), temprec.data);
+        env->get_allocator()->free(temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2551,7 +2549,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
         cursor->set_txn(0);
 
     if (temprec.data != record->data)
-        allocator_free(env->get_allocator(), temprec.data);
+        env->get_allocator()->free(temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2784,7 +2782,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     /* free cached memory */
     (void)m_db->resize_record_allocdata(0);
     if (m_db->get_key_allocdata()) {
-        allocator_free(env->get_allocator(), m_db->get_key_allocdata());
+        env->get_allocator()->free(m_db->get_key_allocdata());
         m_db->set_key_allocdata(0);
         m_db->set_key_allocsize(0);
     }
@@ -2811,7 +2809,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
          * TODO
          * this free() should move into the backend destructor 
          */
-        allocator_free(env->get_allocator(), be);
+        env->get_allocator()->free(be);
         m_db->set_backend(0);
     }
 

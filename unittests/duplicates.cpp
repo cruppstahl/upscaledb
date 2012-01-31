@@ -24,7 +24,6 @@
 #include "../src/cursor.h"
 #include "../src/env.h"
 #include "../src/btree_cursor.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"

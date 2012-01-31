@@ -17,7 +17,6 @@
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/btree.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"

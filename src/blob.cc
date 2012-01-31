@@ -323,7 +323,7 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
     /*
      * otherwise allocate memory for the table
      */
-    table=(dupe_table_t *)allocator_alloc(env->get_allocator(), 
+    table=(dupe_table_t *)env->get_allocator()->alloc( 
                 (ham_size_t)blob_get_size(&hdr));
     if (!table)
         return (HAM_OUT_OF_MEMORY);
@@ -386,7 +386,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
      */
     if (env->get_flags()&HAM_IN_MEMORY_DB) {
         blob_t *hdr;
-        ham_u8_t *p=(ham_u8_t *)allocator_alloc(env->get_allocator(), 
+        ham_u8_t *p=(ham_u8_t *)env->get_allocator()->alloc( 
                                     record->size+sizeof(blob_t));
         if (!p) {
             return HAM_OUT_OF_MEMORY;
@@ -504,7 +504,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
         ham_u8_t *ptr;
         ham_size_t gapsize=record->partial_offset;
 
-        ptr=(ham_u8_t *)allocator_calloc(env->get_allocator(), 
+        ptr=(ham_u8_t *)env->get_allocator()->calloc( 
                                     gapsize > env->get_pagesize()
                                         ? env->get_pagesize()
                                         : gapsize);
@@ -549,7 +549,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
             addr+=gapsize;
         }
 
-        allocator_free(env->get_allocator(), ptr);
+        env->get_allocator()->free(ptr);
 
         /* now write the "real" data */
         chunk_data[0]=(ham_u8_t *)record->data;
@@ -605,7 +605,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
              * memory buffer, thus saving some allocations
              */
             while (gapsize>env->get_pagesize()) {
-                ham_u8_t *ptr=(ham_u8_t *)allocator_calloc(env->get_allocator(), 
+                ham_u8_t *ptr=(ham_u8_t *)env->get_allocator()->calloc( 
                                             env->get_pagesize());
                 if (!ptr)
                     return (HAM_OUT_OF_MEMORY);
@@ -619,7 +619,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
                     gapsize-=env->get_pagesize();
                     addr+=env->get_pagesize();
                 }
-                allocator_free(env->get_allocator(), ptr);
+                env->get_allocator()->free(ptr);
                 if (st)
                     return (st);
             }
@@ -628,13 +628,13 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
             ham_assert(gapsize<env->get_pagesize(), (""));
 
             chunk_size[0]=gapsize;
-            ptr=chunk_data[0]=(ham_u8_t *)allocator_calloc(env->get_allocator(), gapsize);
+            ptr=chunk_data[0]=(ham_u8_t *)env->get_allocator()->calloc(gapsize);
             if (!ptr)
                 return (HAM_OUT_OF_MEMORY);
 
             st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
                         chunk_data, chunk_size, 1);
-            allocator_free(env->get_allocator(), ptr);
+            env->get_allocator()->free(ptr);
             if (st)
                 return (st);
         }
@@ -861,7 +861,7 @@ blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
             nhdr=(blob_t *)U64_TO_PTR(*new_blobid);
             blob_set_flags(nhdr, blob_get_flags(phdr));
 
-            allocator_free(env->get_allocator(), phdr);
+            env->get_allocator()->free(phdr);
         }
 
         return (HAM_SUCCESS);
@@ -1000,7 +1000,7 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags)
      * buffer, in which the blob is stored
      */
     if (env->get_flags()&HAM_IN_MEMORY_DB) {
-        allocator_free(env->get_allocator(), (void *)U64_TO_PTR(blobid));
+        env->get_allocator()->free((void *)U64_TO_PTR(blobid));
         return (0);
     }
 
@@ -1146,7 +1146,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
     if (!table_id) {
         ham_assert(num_entries==2, (""));
         /* allocates space for 8 (!) entries */
-        table=(dupe_table_t *)allocator_calloc(env->get_allocator(), 
+        table=(dupe_table_t *)env->get_allocator()->calloc( 
                         sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
         if (!table)
             return HAM_OUT_OF_MEMORY;
@@ -1188,7 +1188,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
         else
             new_cap += new_cap/3;
 
-        table=(dupe_table_t *)allocator_calloc(env->get_allocator(), 
+        table=(dupe_table_t *)env->get_allocator()->calloc( 
                     sizeof(dupe_table_t)+(new_cap-1)*sizeof(dupe_entry_t));
         if (!table)
             return (HAM_OUT_OF_MEMORY);
@@ -1197,7 +1197,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
         memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),
                        dupe_table_get_count(old)*sizeof(dupe_entry_t));
         if (alloc_table)
-            allocator_free(env->get_allocator(), old);
+            env->get_allocator()->free(old);
 
         alloc_table=1;
         resize=1;
@@ -1277,7 +1277,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
 	}
 
     if (alloc_table)
-        allocator_free(env->get_allocator(), table);
+        env->get_allocator()->free(table);
 
     if (new_position)
         *new_position=position;
@@ -1330,7 +1330,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
                                         |KEY_BLOB_SIZE_EMPTY))) {
                 st=blob_free(env, db, dupe_entry_get_rid(e), 0);
                 if (st) {
-                    allocator_free(env->get_allocator(), table);
+                    env->get_allocator()->free(table);
                     return (st);
                 }
             }
@@ -1338,7 +1338,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
         st=blob_free(env, db, table_id, 0); /* [i_a] isn't this superfluous (& 
                                         * dangerous), thanks to the 
                                         * free_all_dupes loop above??? */
-        allocator_free(env->get_allocator(), table);
+        env->get_allocator()->free(table);
         if (st)
             return (st);
 
@@ -1355,7 +1355,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
                                     |KEY_BLOB_SIZE_EMPTY))) {
             st=blob_free(env, db, dupe_entry_get_rid(e), 0);
             if (st) {
-                allocator_free(env->get_allocator(), table);
+                env->get_allocator()->free(table);
                 return (st);
             }
         }
@@ -1368,7 +1368,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
         st=blob_overwrite(env, db, table_id, &rec, 0, &rid);
         if (st) {
-            allocator_free(env->get_allocator(), table);
+            env->get_allocator()->free(table);
             return (st);
         }
         if (new_table_id)
@@ -1382,7 +1382,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
         if (new_table_id)
             *new_table_id=0;
 
-    allocator_free(env->get_allocator(), table);
+    env->get_allocator()->free(table);
     return (0);
 }
 
@@ -1406,7 +1406,7 @@ blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
 
     if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
         if (!page)
-            allocator_free(env->get_allocator(), table);
+            env->get_allocator()->free(table);
 	}
     return (0);
 }
@@ -1429,15 +1429,14 @@ blob_duplicate_get(Environment *env, ham_offset_t table_id,
 	{
         if (!(env->get_flags()&HAM_IN_MEMORY_DB))
             if (!page)
-                allocator_free(env->get_allocator(), table);
+                env->get_allocator()->free(table);
         return HAM_KEY_NOT_FOUND;
     }
     memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
 
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB))
-	{
+    if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
         if (!page)
-            allocator_free(env->get_allocator(), table);
+            env->get_allocator()->free(table);
 	}
     return (0);
 }

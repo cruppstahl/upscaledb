@@ -26,7 +26,6 @@
 #include "../src/btree_key.h"
 #include "../src/freelist.h"
 #include "../src/cache.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -116,7 +115,6 @@ public:
 protected:
     ham_db_t *m_db;
     Environment *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -125,7 +123,6 @@ public:
 
         (void)os::unlink(BFC_OPATH(".test"));
 
-        m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_DUPLICATES
@@ -141,7 +138,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
     Journal *disconnect_and_create_new_journal(void)
@@ -517,7 +513,7 @@ public:
         }
         else {
             BFC_ASSERT_NOTNULL(data);
-            allocator_free((mem_allocator_t *)m_alloc, data);
+            ::free(data); // TODO use allocator
         }
         BFC_ASSERT_EQUAL(type, entry->type);
     }

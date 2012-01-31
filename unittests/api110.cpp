@@ -16,7 +16,6 @@
 #include <time.h>
 
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/version.h"
@@ -37,7 +36,7 @@ class APIv110Test : public hamsterDB_fixture
 
 public:
     APIv110Test()
-    :   hamsterDB_fixture("APIv110Test"), m_db(NULL), m_alloc(NULL)
+    :   hamsterDB_fixture("APIv110Test"), m_db(NULL)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(APIv110Test, transactionTest);
@@ -52,7 +51,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup()
@@ -60,9 +58,7 @@ public:
         __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
@@ -76,7 +72,6 @@ public:
         ham_delete(m_db);
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void transactionTest(void)
@@ -90,7 +85,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 

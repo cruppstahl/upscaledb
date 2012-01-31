@@ -15,13 +15,13 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
+x c++-ify the Environment
+
+x c++-ify the memory allocator
+
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
-
-x c++-ify the Environment
-
-o c++-ify the memory allocator
 
 o c++-ify the device
 

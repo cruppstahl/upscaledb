@@ -143,7 +143,7 @@ struct ham_device_t {
     void (*destroy)(ham_device_t *self);
 
     /** the memory allocator */
-    mem_allocator_t *_malloc;
+    Allocator *_malloc;
 
     /** the environment which employs this device */
     Environment *_env;
@@ -201,7 +201,7 @@ struct ham_device_t {
  * create a new device structure; either for in-memory or file-based
  */
 extern ham_device_t *
-ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype);
+ham_device_new(Allocator *alloc, Environment *env, int devtype);
 
 /**
  * Devices: device type IDs

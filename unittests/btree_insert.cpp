@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/page.h"
@@ -34,7 +33,7 @@ class BtreeInsertTest : public hamsterDB_fixture
 public:
     BtreeInsertTest(ham_u32_t flags=0, const char *name="BtreeInsertTest")
         : hamsterDB_fixture(name), 
-        m_db(0), m_flags(flags), m_alloc(0)
+        m_db(0), m_flags(flags)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BtreeInsertTest, defaultPivotTest);
@@ -46,7 +45,6 @@ protected:
     ham_db_t *m_db;
     Environment *m_env;
     ham_u32_t m_flags;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -60,7 +58,6 @@ public:
         };
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 
@@ -74,7 +71,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void defaultPivotTest() 
@@ -182,7 +178,6 @@ public:
             { HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_SEQUENTIAL_INSERT },
             { 0, 0 }
         };
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 

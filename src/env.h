@@ -281,12 +281,12 @@ class Environment
     }
 
     /** get the allocator */
-    mem_allocator_t *get_allocator() {
+    Allocator *get_allocator() {
         return (m_alloc);
     }
 
     /** set the allocator */
-    void set_allocator(mem_allocator_t *alloc) {
+    void set_allocator(Allocator *alloc) {
         m_alloc=alloc;
     }
 
@@ -575,7 +575,7 @@ class Environment
     Cache *m_cache;
 
     /** the memory allocator */
-    mem_allocator_t *m_alloc;
+    Allocator *m_alloc;
 
     /** the file header page */
     ham_page_t *m_hdrpage;

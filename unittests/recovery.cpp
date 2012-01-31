@@ -19,7 +19,6 @@
 #include "../src/internal_fwd_decl.h"
 #include "../src/log.h"
 #include "../src/env.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 /* this function pointer is defined in changeset.c */

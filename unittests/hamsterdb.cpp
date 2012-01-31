@@ -15,7 +15,6 @@
 #include <cstring>
 #include <time.h>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/serial.h"
@@ -138,7 +137,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -146,7 +144,6 @@ public:
         __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
@@ -159,7 +156,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void versionTest(void)
@@ -1744,13 +1740,13 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void callocTest() {
         Environment *env=(Environment *)m_env;
-        char *p=(char *)allocator_calloc(env->get_allocator(), 20);
+        char *p=(char *)env->get_allocator()->calloc(20);
 
         for (int i=0; i<20; i++) {
             BFC_ASSERT_EQUAL('\0', p[i]);
         }
 
-        allocator_free(env->get_allocator(), p);
+        env->get_allocator()->free(p);
     }
 
     void strerrorTest() {

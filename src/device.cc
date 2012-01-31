@@ -189,8 +189,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     else {
 fallback_rw:
 		if (page_get_pers(page)==0) {
-            buffer=(ham_u8_t *)allocator_alloc(device_get_allocator(self), 
-                                size);
+            buffer=(ham_u8_t *)device_get_allocator(self)->alloc(size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
             page_set_pers(page, (ham_perm_page_union_t *)buffer);
@@ -299,8 +298,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     /*
      * don't modify the data in-place!
      */
-    tempdata=(ham_u8_t *)allocator_alloc(env->get_allocator(), 
-                               (ham_size_t)size);
+    tempdata=(ham_u8_t *)env->get_allocator()->alloc((ham_size_t)size);
     if (!tempdata)
         return (HAM_OUT_OF_MEMORY);
     memcpy(tempdata, buffer, size);
@@ -318,7 +316,7 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     if (!st)
         st=os_pwrite(t->fd, offset, tempdata, size);
 
-    allocator_free(env->get_allocator(), tempdata);
+    env->get_allocator()->free(tempdata);
     return (st);
 }
 
@@ -336,7 +334,7 @@ __f_free_page(ham_device_t *self, ham_page_t *page)
 
     if (page_get_pers(page)) {
         if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
-            allocator_free(device_get_allocator(self), page_get_pers(page));
+            device_get_allocator(self)->free(page_get_pers(page));
             page_set_npers_flags(page, 
                 page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
         }
@@ -357,8 +355,8 @@ __f_destroy(ham_device_t *self)
 {
     ham_assert(!__f_is_open(self), ("destroying a device which is open"));
 
-    allocator_free(device_get_allocator(self), device_get_private(self));
-    allocator_free(device_get_allocator(self), self);
+    device_get_allocator(self)->free(device_get_private(self));
+    device_get_allocator(self)->free(self);
 }
 
 static ham_status_t 
@@ -456,7 +454,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page)
 
     ham_assert(page_get_pers(page)==0, (0));
 
-    buffer=(ham_u8_t *)allocator_alloc(device_get_allocator(self), size);
+    buffer=(ham_u8_t *)device_get_allocator(self)->alloc(size);
     if (!buffer)
         return (HAM_OUT_OF_MEMORY);
     page_set_pers(page, (ham_perm_page_union_t *)buffer);
@@ -525,7 +523,7 @@ __m_free_page(ham_device_t *self, ham_page_t *page)
     ham_assert(page_get_pers(page)!=0, (0));
     ham_assert(page_get_npers_flags(page)|PAGE_NPERS_MALLOC, (0));
 
-    allocator_free(device_get_allocator(self), page_get_pers(page));
+    device_get_allocator(self)->free(page_get_pers(page));
     page_set_pers(page, 0);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
@@ -538,8 +536,8 @@ __m_destroy(ham_device_t *self)
 {
     ham_assert(!__m_is_open(self), ("destroying a device which is open"));
 
-    allocator_free(device_get_allocator(self), device_get_private(self));
-    allocator_free(device_get_allocator(self), self);
+    device_get_allocator(self)->free(device_get_private(self));
+    device_get_allocator(self)->free(self);
 }
 
 static void 
@@ -555,9 +553,9 @@ __get_flags(ham_device_t *self)
 }
 
 ham_device_t *
-ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype)
+ham_device_new(Allocator *alloc, Environment *env, int devtype)
 {
-    ham_device_t *dev=(ham_device_t *)allocator_alloc(alloc, sizeof(*dev));
+    ham_device_t *dev=(ham_device_t *)alloc->alloc(sizeof(*dev));
     if (!dev)
         return (0);
 
@@ -566,7 +564,7 @@ ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype)
     device_set_env(dev, env);
 
 	if (devtype==HAM_DEVTYPE_MEMORY) {
-        dev_inmem_t *t=(dev_inmem_t *)allocator_alloc(alloc, sizeof(*t));
+        dev_inmem_t *t=(dev_inmem_t *)alloc->alloc(sizeof(*t));
         if (!t)
             return (0);
         t->is_open=0;
@@ -595,7 +593,7 @@ ham_device_new(mem_allocator_t *alloc, Environment *env, int devtype)
         dev->destroy      = __m_destroy;
     }
     else if (devtype==HAM_DEVTYPE_FILE) {
-        dev_file_t *t=(dev_file_t *)allocator_alloc(alloc, sizeof(*t));
+        dev_file_t *t=(dev_file_t *)alloc->alloc(sizeof(*t));
         if (!t)
             return (0);
         t->fd=HAM_INVALID_FD;

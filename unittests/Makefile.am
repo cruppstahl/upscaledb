@@ -30,15 +30,12 @@ test_SOURCES    = log.cpp \
                   freelist.cpp \
                   db.cpp \
                   main.cpp \
-                  mem.cpp \
                   endian.cpp \
                   page.cpp \
                   changeset.cpp \
                   txn.cpp \
                   txn_cursor.cpp \
                   cursor.cpp \
-                  memtracker.cpp \
-                  memtracker.h \
                   empty_sample.cpp \
                   bfc-testsuite.cpp \
                   bfc-testsuite.hpp \

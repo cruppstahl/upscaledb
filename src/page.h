@@ -118,8 +118,8 @@ struct ham_page_t {
         /** address of this page */
         ham_offset_t _self;
 
-        /** the allocator */
-        struct mem_allocator_t *_alloc;
+        /** the memory allocator */
+        Allocator *_alloc;
 
         /** reference to the database object */
         Database *_owner;

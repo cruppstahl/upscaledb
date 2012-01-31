@@ -22,7 +22,6 @@
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/freelist.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -37,7 +36,7 @@ class DbTest : public hamsterDB_fixture
 public:
     DbTest(bool inmemory=false, const char *name="DbTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory), m_alloc(0)
+        m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DbTest, checkStructurePackingTest);
@@ -56,17 +55,14 @@ protected:
     Database *m_dbp;
     ham_env_t *m_env;
     ham_bool_t m_inmemory;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
     { 
         __super::setup();
 
-        m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                         (m_inmemory ? HAM_IN_MEMORY_DB : 0), 0644));
@@ -84,7 +80,6 @@ public:
         ham_close(m_db, 0);
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void headerTest()

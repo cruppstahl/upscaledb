@@ -234,7 +234,7 @@ __freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cach
              "due to the scan algorithm"));
 
     ham_assert(new_count > freel_cache_get_count(cache), (0));
-    entries=(freelist_entry_t *)allocator_alloc(env->get_allocator(), 
+    entries=(freelist_entry_t *)env->get_allocator()->alloc( 
                     sizeof(*entries)*new_count);
     if (!entries)
         return HAM_OUT_OF_MEMORY;
@@ -260,7 +260,7 @@ __freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cach
             return st;
     }
 
-    allocator_free(env->get_allocator(), freel_cache_get_entries(cache));
+    env->get_allocator()->free(freel_cache_get_entries(cache));
     freel_cache_set_entries(cache, entries);
     freel_cache_set_count(cache, new_count);
 
@@ -3465,8 +3465,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     ham_assert(cache != 0, (0));
     ham_assert(!freel_cache_get_entries(cache), (0));
 
-    entry=(freelist_entry_t *)allocator_calloc(env->get_allocator(), 
-                    sizeof(*entry)*1);
+    entry=(freelist_entry_t *)env->get_allocator()->calloc(sizeof(*entry)*1);
     if (!entry)
         return HAM_OUT_OF_MEMORY;
 
@@ -3590,7 +3589,7 @@ __freel_destructorXX(ham_device_t *dev, Environment *env)
 
     entries = freel_cache_get_entries(cache);
     if (entries)
-        allocator_free(env->get_allocator(), entries);
+        env->get_allocator()->free(entries);
 
     memset(cache, 0, sizeof(*cache));
 
@@ -3929,10 +3928,9 @@ freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev,
 
     *cache_ref = 0;
 
-    cache = (freelist_cache_t *)allocator_calloc(env->get_allocator(), 
-                    sizeof(*cache));
+    cache = (freelist_cache_t *)env->get_allocator()->calloc(sizeof(*cache));
     if (!cache)
-        return HAM_OUT_OF_MEMORY;
+        return (HAM_OUT_OF_MEMORY);
 
     ham_assert(env->get_header_page(), (0));
     ham_assert(env->get_header(), (0));
@@ -3987,7 +3985,7 @@ freel_shutdown(Environment *env)
     ham_assert(cache->_destructor, (0));
     st = cache->_destructor(dev, env);
 
-    allocator_free(env->get_allocator(), cache);
+    env->get_allocator()->free(cache);
     if (env)
         device_set_freelist_cache(env->get_device(), 0);
     else
@@ -4152,8 +4150,7 @@ freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev,
 
     *cache_ref = 0;
 
-    cache = (freelist_cache_t *)allocator_calloc(env->get_allocator(), 
-                        sizeof(*cache));
+    cache = (freelist_cache_t *)env->get_allocator()->calloc(sizeof(*cache));
     if (!cache)
         return HAM_OUT_OF_MEMORY;
 

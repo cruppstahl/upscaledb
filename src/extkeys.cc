@@ -65,7 +65,7 @@ ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
     /* DEBUG build: make sure that the item is not inserted twice!  */
     ham_assert(m_hash.get(blobid)==0, ("")); 
 
-    e=(extkey_t *)allocator_alloc(env->get_allocator(), SIZEOF_EXTKEY_T+size);
+    e=(extkey_t *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T+size);
     extkey_set_blobid(e, blobid);
     /* TODO do not use txn id but lsn for age */
     extkey_set_age(e, env->get_txn_id());
@@ -82,7 +82,7 @@ ExtKeyCache::remove(ham_offset_t blobid)
     extkey_t *e=m_hash.remove(blobid);
     if (e) {
         m_usedsize-=extkey_get_size(e);
-        allocator_free(env->get_allocator(), e);
+        env->get_allocator()->free(e);
     }
 }
 

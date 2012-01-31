@@ -20,7 +20,6 @@
 #include "../src/cursor.h"
 #include "../src/btree_cursor.h"
 #include "../src/backend.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -48,7 +47,6 @@ protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
     ham_txn_t *m_txn;
-    memtracker_t *m_alloc;
 
 public:
     virtual ham_status_t createCursor(ham_cursor_t **p) 
@@ -60,12 +58,8 @@ public:
     { 
         __super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -89,7 +83,6 @@ public:
                     ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void getDuplicateRecordSizeTest()
@@ -379,12 +372,8 @@ public:
 
     virtual void setup() 
     { 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -416,12 +405,8 @@ public:
 
     virtual void setup() 
     { 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -438,12 +423,8 @@ class LongTxnCursorTest : public BaseCursorTest
 public:
     virtual void setup() 
     { 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -3804,7 +3785,6 @@ protected:
     ham_cursor_t *m_cursor;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     DupeCacheTest()
@@ -3823,12 +3803,8 @@ public:
 
     virtual void setup() 
     { 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -3845,7 +3821,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void createEmptyCloseTest(void)
@@ -4034,7 +4009,6 @@ protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
     ham_txn_t *m_txn;
-    memtracker_t *m_alloc;
 
 public:
     DupeCursorTest()
@@ -4137,12 +4111,8 @@ public:
 
     virtual void setup() 
     { 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -4163,7 +4133,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     ham_status_t insertBtree(const char *key, const char *rec, 
@@ -6202,10 +6171,8 @@ public:
     {
         teardown();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        ((Environment *)m_env)->set_allocator((mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0664));

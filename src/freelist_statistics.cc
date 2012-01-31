@@ -1302,16 +1302,15 @@ the first place, i.e. our freelist stats array.
 */
 static void my_cleanup_ham_statistics_t(ham_statistics_t *dst)
 {
-    mem_allocator_t *a;
+    Allocator *a;
 
     ham_assert(dst, (0));
-    a = (mem_allocator_t *)dst->_free_func_internal_arg;
+    a = (Allocator *)dst->_free_func_internal_arg;
     ham_assert(a, (0));
 
     /* cleanup is simple: when it was allocated, free the freelist stats array */
-    if (dst->freelist_stats)
-    {
-        allocator_free(a, dst->freelist_stats);
+    if (dst->freelist_stats) {
+        a->free(dst->freelist_stats);
         dst->freelist_stats = NULL;
     }
     dst->freelist_stats_maxalloc = 0;
@@ -1338,7 +1337,7 @@ stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst)
     if (collect_freelistdata)
     {
         freelist_cache_t *cache;
-        mem_allocator_t *allocator;
+        Allocator *allocator;
 
         ham_assert(env, (0));
         cache = device_get_freelist_cache(env->get_device());
@@ -1367,8 +1366,8 @@ stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst)
                 dst->_free_func_internal_arg = (void *)allocator;
 
                 d = dst->freelist_stats = (ham_freelist_page_statistics_t *)
-                            allocator_alloc(allocator, 
-                                    count * sizeof(dst->freelist_stats[0]));
+                            allocator->alloc(count 
+                                    * sizeof(dst->freelist_stats[0]));
                 if (!d)
                     return (HAM_OUT_OF_MEMORY);
                 memset(d, 0, count * sizeof(dst->freelist_stats[0]));

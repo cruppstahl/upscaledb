@@ -44,13 +44,13 @@ proto_delete(proto_wrapper_t *wrapper)
 }
 
 ham_bool_t
-proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc,
+proto_pack(proto_wrapper_t *wrapper, Allocator *alloc,
             ham_u8_t **data, ham_size_t *size)
 {
     Wrapper *w=(Wrapper *)wrapper;
     ham_size_t packed_size=w->ByteSize();
     /* we need 8 more bytes for magic and size */
-    ham_u8_t *p=(ham_u8_t *)allocator_alloc(alloc, packed_size+8);
+    ham_u8_t *p=(ham_u8_t *)alloc->alloc(packed_size+8);
     if (!p)
         return (HAM_FALSE);
 
@@ -60,7 +60,7 @@ proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc,
 
     /* now write the packed structure */
     if (!w->SerializeToArray(&p[8], packed_size)) {
-        allocator_free(alloc, p);
+        alloc->free(p);
         return (HAM_FALSE);
     }
     

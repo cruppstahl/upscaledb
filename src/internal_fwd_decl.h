@@ -35,6 +35,7 @@
 
 #include "config.h"
 
+class Allocator;
 
 class Cursor;
 

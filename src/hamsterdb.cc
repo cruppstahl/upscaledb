@@ -1041,7 +1041,7 @@ ham_env_delete(ham_env_t *henv)
      * close the allocator
      */
     if (env->get_allocator()) {
-        env->get_allocator()->close(env->get_allocator());
+        delete env->get_allocator();
         env->set_allocator(0);
     }
 
@@ -1668,7 +1668,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
      * finally, close the memory allocator 
      */
     if (env->get_allocator()) {
-        env->get_allocator()->close(env->get_allocator());
+        delete env->get_allocator();
         env->set_allocator(0);
     }
 
@@ -2047,7 +2047,7 @@ static void
 __aes_close_cb(ham_env_t *henv, ham_file_filter_t *filter)
 {
     Environment *env=(Environment *)henv;
-    mem_allocator_t *alloc=env->get_allocator();
+    Allocator *alloc=env->get_allocator();
 
     ham_assert(alloc, (0));
 
@@ -2058,9 +2058,9 @@ __aes_close_cb(ham_env_t *henv, ham_file_filter_t *filter)
              * so NIL the key space first! 
              */
             memset(filter->userdata, 0, sizeof(ham_u8_t)*16);
-            allocator_free(alloc, filter->userdata);
+            alloc->free(filter->userdata);
         }
-        allocator_free(alloc, filter);
+        alloc->free(filter);
     }
 }
 #endif /* !HAM_DISABLE_ENCRYPTION */
@@ -2071,7 +2071,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
 #ifndef HAM_DISABLE_ENCRYPTION
     Environment *env=(Environment *)henv;
     ham_file_filter_t *filter;
-    mem_allocator_t *alloc;
+    Allocator *alloc;
     ham_u8_t buffer[128];
     ham_device_t *device;
     ham_status_t st;
@@ -2112,14 +2112,14 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
         filter=filter->_next;
     }
 
-    filter=(ham_file_filter_t *)allocator_alloc(alloc, sizeof(*filter));
+    filter=(ham_file_filter_t *)alloc->alloc(sizeof(*filter));
     if (!filter)
         return (HAM_OUT_OF_MEMORY);
     memset(filter, 0, sizeof(*filter));
 
-    filter->userdata=allocator_alloc(alloc, 256);
+    filter->userdata=alloc->alloc(256);
     if (!filter->userdata) {
-        allocator_free(alloc, filter);
+        alloc->free(filter);
         return (HAM_OUT_OF_MEMORY);
     }
 
@@ -2210,7 +2210,7 @@ __zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
         else
             newsize+=newsize/4;
 
-        dest=(ham_u8_t *)allocator_alloc(env->get_allocator(), newsize);
+        dest=(ham_u8_t *)env->get_allocator()->alloc(newsize);
         if (!dest)
             return (db->set_error(HAM_OUT_OF_MEMORY));
 
@@ -2223,12 +2223,12 @@ __zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     *(ham_u32_t *)dest=ham_h2db32(record->size);
 
     if (zret==Z_MEM_ERROR) {
-        allocator_free(env->get_allocator(), dest);
+        env->get_allocator()->free(dest);
         return (db->set_error(HAM_OUT_OF_MEMORY));
     }
 
     if (zret!=Z_OK) {
-        allocator_free(env->get_allocator(), dest);
+        env->get_allocator()->free(dest);
         return (db->set_error(HAM_INTERNAL_ERROR));
     }
 
@@ -2263,7 +2263,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    src=(ham_u8_t *)allocator_alloc(env->get_allocator(), newsize);
+    src=(ham_u8_t *)env->get_allocator()->alloc(newsize);
     if (!src)
         return (db->set_error(HAM_OUT_OF_MEMORY));
 
@@ -2271,7 +2271,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
 
     st=db->resize_record_allocdata(origsize);
     if (st) {
-        allocator_free(env->get_allocator(), src);
+        env->get_allocator()->free(src);
         return (db->set_error(st));
     }
     record->data=db->get_record_allocdata();
@@ -2292,7 +2292,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (!st)
         record->size=(ham_size_t)newsize;
 
-    allocator_free(env->get_allocator(), src);
+    env->get_allocator()->free(src);
     return (db->set_error(st));
 }
 
@@ -2304,8 +2304,8 @@ __zlib_close_cb(ham_db_t *hdb, ham_record_filter_t *filter)
 
     if (filter) {
         if (filter->userdata)
-            allocator_free(env->get_allocator(), filter->userdata);
-        allocator_free(env->get_allocator(), filter);
+            env->get_allocator()->free(filter->userdata);
+        env->get_allocator()->free(filter);
     }
 }
 #endif /* !HAM_DISABLE_COMPRESSION */
@@ -2342,14 +2342,13 @@ ham_enable_compression(ham_db_t *hdb, ham_u32_t level, ham_u32_t flags)
 
     db->set_error(0);
 
-    filter=(ham_record_filter_t *)allocator_calloc(env->get_allocator(), 
-            sizeof(*filter));
+    filter=(ham_record_filter_t *)env->get_allocator()->calloc(sizeof(*filter));
     if (!filter)
         return (db->set_error(HAM_OUT_OF_MEMORY));
 
-    filter->userdata=allocator_calloc(env->get_allocator(), sizeof(level));
+    filter->userdata=env->get_allocator()->calloc(sizeof(level));
     if (!filter->userdata) {
-        allocator_free(env->get_allocator(), filter);
+        env->get_allocator()->free(filter);
         return (db->set_error(HAM_OUT_OF_MEMORY));
     }
 
@@ -3615,11 +3614,11 @@ ham_env_get_device(ham_env_t *henv)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_set_allocator(ham_env_t *henv, struct mem_allocator_t *alloc)
+ham_env_set_allocator(ham_env_t *henv, void *alloc)
 {
     Environment *env=(Environment *)henv;
     if (!env || !alloc)
         return (HAM_INV_PARAMETER);
-    env->set_allocator(alloc);
+    env->set_allocator((Allocator *)alloc);
     return (0);
 }

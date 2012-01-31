@@ -17,7 +17,6 @@
 #include "../src/db.h"
 #include "../src/device.h"
 #include "../src/env.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -32,7 +31,7 @@ class DeviceTest : public hamsterDB_fixture
 public:
     DeviceTest(bool inmemory=false, const char *name="DeviceTest")
     : hamsterDB_fixture(name), 
-        m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
+        m_db(0), m_inmemory(inmemory), m_dev(0)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DeviceTest, newDeleteTest);
@@ -52,7 +51,6 @@ protected:
     ham_env_t *m_env;
     ham_bool_t m_inmemory;
     ham_device_t *m_dev;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -61,7 +59,6 @@ public:
 
         (void)os::unlink(BFC_OPATH(".test"));
 
-        m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
@@ -76,7 +73,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void newDeleteTest()

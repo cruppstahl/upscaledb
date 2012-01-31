@@ -383,19 +383,16 @@ ham_cursor_get_database(ham_cursor_t *cursor);
 /**
  * Set a custom memory allocator
  *
- * The memory allocator's structures are declared in mem.h.
+ * The memory allocator is an abstract C++ class declared in src/mem.h.
  *
  * @param env A valid Environment handle
- * @param allocator A valid mem_allocator_t pointer
+ * @param allocator A valid Allocator pointer
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if one of the pointers is NULL
  */
-struct mem_allocator_t;
-typedef struct mem_allocator_t mem_allocator_t;
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_set_allocator(ham_env_t *env, mem_allocator_t *alloc);
-
+ham_env_set_allocator(ham_env_t *env, void *alloc);
 
 /**
  * @}

@@ -749,7 +749,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             if (!st2) 
                 st2 = st;
         }
-        allocator_free(env->get_allocator(), page);
+        env->get_allocator()->free(page);
         env->set_header_page(0);
     }
 

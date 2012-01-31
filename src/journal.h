@@ -173,12 +173,12 @@ class Journal
 
     /** helper function for the allocator */
     void *allocate(ham_size_t size) {
-        return (allocator_alloc(m_env->get_allocator(), size));
+        return (m_env->get_allocator()->alloc(size));
     }
 
     /** helper function for the allocator */
     void alloc_free(void *ptr) {
-        return (allocator_free(m_env->get_allocator(), ptr));
+        return (m_env->get_allocator()->free(ptr));
     }
 
 	/** references the Environment this journal file is for */
