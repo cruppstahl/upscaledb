@@ -1701,6 +1701,13 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
         recno=ham_h2db64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
+
+        /* we're appending this key sequentially */
+        flags|=HAM_HINT_APPEND;
+
+        /* transactions are faster if HAM_OVERWRITE is specified */
+        if (txn)
+            flags|=HAM_OVERWRITE;
     }
 
     /*
@@ -1995,6 +2002,10 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
 
         /* we're appending this key sequentially */
         flags|=HAM_HINT_APPEND;
+
+        /* transactions are faster if HAM_OVERWRITE is specified */
+        if (cursor->get_txn())
+            flags|=HAM_OVERWRITE;
     }
 
     /* purge cache if necessary */
