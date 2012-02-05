@@ -248,7 +248,7 @@ Log::recover()
 {
     ham_status_t st;
     ham_page_t *page;
-    ham_device_t *device=m_env->get_device();
+    Device *device=m_env->get_device();
     Log::Entry entry;
     Iterator it=0;
     ham_u8_t *data=0;
@@ -258,7 +258,7 @@ Log::recover()
 
     /* get the file size of the database; otherwise we do not know if we
      * modify an existing page or if one of the pages has to be allocated */
-    st=device->get_filesize(device, &filesize);
+    st=device->get_filesize(&filesize);
     if (st)
         return (st);
 

@@ -125,7 +125,7 @@ struct ham_page_t {
         Database *_owner;
 
         /** the device of this page */
-        struct ham_device_t *_device;
+        Device *_device;
 
         /** non-persistent flags */
         ham_u32_t _flags;

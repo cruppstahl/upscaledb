@@ -137,7 +137,7 @@ _local_fun_create(Environment *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st=0;
-    ham_device_t *device=0;
+    Device *device=0;
     ham_size_t pagesize=env->get_pagesize();
 
     /* reset all performance data */
@@ -145,23 +145,15 @@ _local_fun_create(Environment *env, const char *filename,
 
     ham_assert(!env->get_header_page(), (0));
 
-    /* 
-     * initialize the device if it does not yet exist
-     */
+    /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
-        device=ham_device_new(env->get_allocator(), env, 
-                        ((flags&HAM_IN_MEMORY_DB) 
-                            ? HAM_DEVTYPE_MEMORY 
-                            : HAM_DEVTYPE_FILE));
-        if (!device)
-            return (HAM_OUT_OF_MEMORY);
+        if (flags&HAM_IN_MEMORY_DB)
+            device=new InMemoryDevice(env, flags);
+        else
+            device=new FileDevice(env, flags);
 
+        device->set_pagesize(env->get_pagesize());
         env->set_device(device);
-
-        device->set_flags(device, flags);
-        st = device->set_pagesize(device, env->get_pagesize());
-        if (st)
-            return st;
 
         /* now make sure the pagesize is a multiple of 
          * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
@@ -170,22 +162,20 @@ _local_fun_create(Environment *env, const char *filename,
     }
     else {
         device=env->get_device();
-        ham_assert(device->get_pagesize(device), (0));
-        ham_assert(env->get_pagesize() == device->get_pagesize(device), (0));
+        ham_assert(device->get_pagesize(), (0));
+        ham_assert(env->get_pagesize() == device->get_pagesize(), (0));
     }
     ham_assert(device == env->get_device(), (0));
-    ham_assert(env->get_pagesize() == device->get_pagesize(device), (""));
+    ham_assert(env->get_pagesize() == device->get_pagesize(), (""));
 
     /* create the file */
-    st=device->create(device, filename, flags, mode);
+    st=device->create(filename, flags, mode);
     if (st) {
         (void)ham_env_close((ham_env_t *)env, 0);
         return (st);
     }
 
-    /* 
-     * allocate the header page
-     */
+    /* allocate the header page */
     {
         ham_page_t *page;
 
@@ -345,32 +335,27 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         const ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_device_t *device=0;
+    Device *device=0;
     ham_u32_t pagesize=0;
 
     /* reset all performance data */
     btree_stats_init_globdata(env, env->get_global_perf_data());
 
-    /* 
-     * initialize the device if it does not yet exist
-     */
+    /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
-        device=ham_device_new(env->get_allocator(), env,
-                ((flags&HAM_IN_MEMORY_DB) 
-                    ? HAM_DEVTYPE_MEMORY 
-                    : HAM_DEVTYPE_FILE));
-        if (!device)
-            return (HAM_OUT_OF_MEMORY);
+        if (flags&HAM_IN_MEMORY_DB)
+            device=new InMemoryDevice(env, flags);
+        else
+            device=new FileDevice(env, flags);
+
         env->set_device(device);
     }
     else {
         device=env->get_device();
     }
 
-    /* 
-     * open the file 
-     */
-    st=device->open(device, filename, flags);
+    /* open the file */
+    st=device->open(filename, flags);
     if (st) {
         (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
         return (st);
@@ -414,19 +399,15 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
          * format support here this was getting hairier and hairier. 
          * So we now fake it all the way instead.
          */
-        st=device->read(device, 0, hdrbuf, sizeof(hdrbuf));
+        st=device->read(0, hdrbuf, sizeof(hdrbuf));
         if (st) 
             goto fail_with_fake_cleansing;
 
         hdr=env->get_header();
-        ham_assert(hdr == (env_header_t *)(hdrbuf + 
-                    page_get_persistent_header_size()), (0));
 
         pagesize=env->get_persistent_pagesize();
         env->set_pagesize(pagesize);
-        st = device->set_pagesize(device, pagesize);
-        if (st) 
-            goto fail_with_fake_cleansing;
+        device->set_pagesize(pagesize);
 
         /*
          * can we use mmap?
@@ -438,14 +419,14 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
             if (pagesize % os_get_granularity()==0)
                 flags|=DB_USE_MMAP;
             else
-                device->set_flags(device, flags|HAM_DISABLE_MMAP);
+                device->set_flags(flags|HAM_DISABLE_MMAP);
         }
         else {
-            device->set_flags(device, flags|HAM_DISABLE_MMAP);
+            device->set_flags(flags|HAM_DISABLE_MMAP);
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #else
-        device->set_flags(device, flags|HAM_DISABLE_MMAP);
+        device->set_flags(flags|HAM_DISABLE_MMAP);
 #endif
 
         /** check the file magic */
@@ -705,8 +686,8 @@ static ham_status_t
 _local_fun_close(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_status_t st2 = HAM_SUCCESS;
-    ham_device_t *dev;
+    ham_status_t st2=HAM_SUCCESS;
+    Device *device;
     ham_file_filter_t *file_head;
 
     /*
@@ -716,7 +697,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     if (env->get_header_page()
             && !(env->get_flags()&HAM_IN_MEMORY_DB)
             && env->get_device()
-            && env->get_device()->is_open(env->get_device())
+            && env->get_device()->is_open()
             && (!(env->get_flags()&HAM_READ_ONLY))) {
         st=page_flush(env->get_header_page());
         if (!st2) st2 = st;
@@ -731,7 +712,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             st2 = st;
     }
 
-    dev=env->get_device();
+    device=env->get_device();
 
     /*
      * close the header page
@@ -743,11 +724,11 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      */
     if (env->get_header_page()) {
         ham_page_t *page=env->get_header_page();
-        ham_assert(dev, (0));
+        ham_assert(device, (0));
         if (page_get_pers(page)) {
-            st = dev->free_page(dev, page);
+            st=device->free_page(page);
             if (!st2) 
-                st2 = st;
+                st2=st;
         }
         env->get_allocator()->free(page);
         env->set_header_page(0);
@@ -761,24 +742,22 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     }
 
     /* close the device */
-    if (dev) {
-        if (dev->is_open(dev)) {
+    if (device) {
+        if (device->is_open()) {
             if (!(env->get_flags()&HAM_READ_ONLY)) {
-                st = dev->flush(dev);
+                st=device->flush();
                 if (!st2) 
-                    st2 = st;
+                    st2=st;
             }
-            st = dev->close(dev);
+            st=device->close();
             if (!st2) 
-                st2 = st;
+                st2=st;
         }
-        dev->destroy(dev);
+        delete device;
         env->set_device(0);
     }
 
-    /*
-     * close all file-level filters
-     */
+    /* close all file-level filters */
     file_head=env->get_file_filter();
     while (file_head) {
         ham_file_filter_t *next=file_head->_next;
@@ -788,9 +767,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     }
     env->set_file_filter(0);
 
-    /*
-     * close the log and the journal
-     */
+    /* close the log and the journal */
     if (env->get_log()) {
         Log *log=env->get_log();
         st=log->close(flags&HAM_DONT_CLEAR_LOG);
@@ -871,19 +848,13 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
     Database *db;
-    ham_device_t *dev;
+    Device *device=env->get_device();
 
     (void)flags;
 
-    /*
-     * never flush an in-memory-database
-     */
+    /* never flush an in-memory-database */
     if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
-
-    dev = env->get_device();
-    if (!dev)
-        return HAM_NOT_INITIALIZED;
 
     /*
      * flush the open backends
@@ -912,17 +883,13 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
             return st;
     }
 
-    /*
-     * flush all open pages to disk
-     */
+    /* flush all open pages to disk */
     st=db_flush_all(env->get_cache(), DB_FLUSH_NODELETE);
     if (st)
         return st;
 
-    /*
-     * flush the device - this usually causes a fsync()
-     */
-    st=dev->flush(dev);
+    /* flush the device - this usually causes a fsync() */
+    st=device->flush();
     if (st)
         return st;
 
@@ -1348,9 +1315,9 @@ _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
      * enabled; then purge caches */
     if (st==0) {
         if (env->get_flags()&HAM_WRITE_THROUGH) {
-            ham_device_t *device=env->get_device();
+            Device *device=env->get_device();
             (void)env->get_log()->flush();
-            (void)device->flush(device);
+            (void)device->flush();
         }
     }
 
@@ -1380,9 +1347,9 @@ _local_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
      * enabled; then purge caches */
     if (st==0) {
         if (env->get_flags()&HAM_WRITE_THROUGH) {
-            ham_device_t *device=env->get_device();
+            Device *device=env->get_device();
             (void)env->get_log()->flush();
-            (void)device->flush(device);
+            (void)device->flush();
         }
     }
 

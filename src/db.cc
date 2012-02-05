@@ -20,6 +20,7 @@
 #include "btree.h"
 #include "cache.h"
 #include "cursor.h"
+#include "device.h"
 #include "btree_cursor.h"
 #include "db.h"
 #include "device.h"
@@ -552,13 +553,8 @@ ham_status_t
 db_free_page(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-    Environment *env=device_get_env(page_get_device(page));
+    Environment *env=page_get_device(page)->get_env();
     
-    ham_assert(page_get_owner(page) 
-                ? device_get_env(page_get_device(page)) 
-                        == page_get_owner(page)->get_env() 
-                : 1, (0));
-
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
     st=page_uncouple_all_cursors(page, 0);
@@ -835,7 +831,7 @@ ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-    Environment *env=device_get_env(page_get_device(page));
+    Environment *env=page_get_device(page)->get_env();
     
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
@@ -2728,7 +2724,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
             && env->get_header_page() 
             && !(env->get_flags()&HAM_IN_MEMORY_DB)
             && env->get_device() 
-            && env->get_device()->is_open(env->get_device()) 
+            && env->get_device()->is_open() 
             && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (env->is_dirty()) {

@@ -165,7 +165,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         ((Environment *)env)->set_txn_id(0x12345ull);
         ((Environment *)env)->set_file_mode(0666);
-        ((Environment *)env)->set_device((ham_device_t *)0x13);
+        ((Environment *)env)->set_device((Device *)0x13);
         ((Environment *)env)->set_cache((Cache *)0x14);
         ((Environment *)env)->set_flags(0x18);
 
@@ -178,7 +178,7 @@ public:
         ((Environment *)env)->set_active(false);
         BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
-        ((Environment *)env)->set_device((ham_device_t *)0x00);
+        ((Environment *)env)->set_device((Device *)0x00);
         ((Environment *)env)->set_cache((Cache *)0x00);
         ((Environment *)env)->set_flags(0);
         ((Environment *)env)->set_databases(0);

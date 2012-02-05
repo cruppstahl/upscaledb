@@ -41,6 +41,8 @@ class Cursor;
 
 class Database;
 
+class Device;
+
 class Environment;
 
 struct ham_page_t;

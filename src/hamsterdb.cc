@@ -484,8 +484,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     ham_u16_t dam=0;
     ham_u32_t flags = 0;
     ham_bool_t set_abs_max_dbs = HAM_FALSE;
-    ham_device_t *device = NULL;
     ham_status_t st = 0;
+    Device *device = NULL;
 
     if (!env && db)
         env = db->get_env();
@@ -834,7 +834,7 @@ default_case:
     }
 
     if (!pagesize && device)
-        pagesize = device->get_pagesize(device);
+        pagesize = device->get_pagesize();
 
     /*
      * in-memory-db? use a default pagesize of 16kb
@@ -930,7 +930,7 @@ default_case:
         else if (db
             && db->get_env()
             && env->get_device()
-            && env->get_device()->is_open(env->get_device())) {
+            && env->get_device()->is_open()) {
             dbs = (env ? env->get_max_databases() : 1);
         }
         else if (set_abs_max_dbs) {
@@ -1028,12 +1028,12 @@ ham_env_delete(ham_env_t *henv)
 
     /* close the device if it still exists */
     if (env->get_device()) {
-        ham_device_t *device = env->get_device();
-        if (device->is_open(device)) {
-            (void)device->flush(device);
-            (void)device->close(device);
+        Device *device = env->get_device();
+        if (device->is_open()) {
+            (void)device->flush();
+            (void)device->close();
         }
-        device->destroy(device);
+        delete device;
         env->set_device(0);
     }
 
@@ -2073,7 +2073,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     ham_file_filter_t *filter;
     Allocator *alloc;
     ham_u8_t buffer[128];
-    ham_device_t *device;
+    Device *device;
     ham_status_t st;
     ham_db_t *db=0;
 
@@ -2148,8 +2148,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     if (db) {
         struct page_union_header_t *uh;
 
-        st=device->read(device, env->get_pagesize(),
-                buffer, sizeof(buffer));
+        st=device->read(env->get_pagesize(), buffer, sizeof(buffer));
         if (st==0) {
             st=__aes_after_read_cb((ham_env_t *)env, filter, 
                                 buffer, sizeof(buffer));
@@ -3583,14 +3582,14 @@ ham_clean_statistics_datarec(ham_statistics_t *s)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_set_device(ham_env_t *henv, ham_device_t *device)
+ham_env_set_device(ham_env_t *henv, ham_device_t *hdevice)
 {
     Environment *env=(Environment *)henv;
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!device) {
+    if (!hdevice) {
         ham_trace(("parameter 'device' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
@@ -3600,7 +3599,7 @@ ham_env_set_device(ham_env_t *henv, ham_device_t *device)
         return (HAM_ALREADY_INITIALIZED);
     }
 
-    env->set_device(device);
+    env->set_device((Device *)hdevice);
     return (0);
 }
 
@@ -3610,7 +3609,7 @@ ham_env_get_device(ham_env_t *henv)
     Environment *env=(Environment *)henv;
     if (!env)
         return (0);
-    return (env->get_device());
+    return ((ham_device_t *)env->get_device());
 }
 
 ham_status_t HAM_CALLCONV

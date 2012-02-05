@@ -144,34 +144,34 @@ typedef ham_u32_t                            ham_uXX_t;
 #endif
 
 extern ham_status_t
-__freel_lazy_create16(freelist_cache_t *cache, ham_device_t *dev, Environment *env);
+__freel_lazy_create16(freelist_cache_t *cache, Device *dev, Environment *env);
 extern ham_status_t
-__freel_destructor16(ham_device_t *dev, Environment *env);
+__freel_destructor16(Device *dev, Environment *env);
 extern ham_status_t
-__freel_flush_stats16(ham_device_t *dev, Environment *env);
+__freel_flush_stats16(Device *dev, Environment *env);
 extern ham_status_t
-__freel_mark_free16(ham_device_t *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free16(Device *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
-__freel_check_area_is_allocated16(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size);
+__freel_check_area_is_allocated16(Device *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area16(ham_offset_t *addr_ref, ham_device_t *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area16(ham_offset_t *addr_ref, Device *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
-__freel_init_perf_data16(freelist_cache_t *cache, ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
+__freel_init_perf_data16(freelist_cache_t *cache, Device *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 extern ham_status_t
-__freel_lazy_create32(freelist_cache_t *cache, ham_device_t *dev, Environment *env);
+__freel_lazy_create32(freelist_cache_t *cache, Device *dev, Environment *env);
 extern ham_status_t
-__freel_destructor32(ham_device_t *dev, Environment *env);
+__freel_destructor32(Device *dev, Environment *env);
 extern ham_status_t
-__freel_flush_stats32(ham_device_t *dev, Environment *env);
+__freel_flush_stats32(Device *dev, Environment *env);
 extern ham_status_t
-__freel_mark_free32(ham_device_t *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
+__freel_mark_free32(Device *dev, Environment *env, Database *db, ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 extern ham_status_t
-__freel_check_area_is_allocated32(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size);
+__freel_check_area_is_allocated32(Device *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
-__freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
+__freel_alloc_area32(ham_offset_t *addr_ref, Device *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
 extern ham_status_t                                                        
-__freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
+__freel_init_perf_data32(freelist_cache_t *cache, Device *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 /**
  * replacement for env->set_dirty(); will call the macro, but also
@@ -192,7 +192,7 @@ __env_set_dirty(Environment *env)
 static void
 __page_set_dirty(ham_page_t *page)
 {
-    Environment *env=device_get_env(page_get_device(page));
+    Environment *env=page_get_device(page)->get_env();
     page_set_dirty(page);
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
         env->get_changeset().add_page(page);
@@ -209,7 +209,7 @@ __page_set_dirty(ham_page_t *page)
  * </pre>
  */
 static ham_size_t 
-__freel_get_freelist_entry_maxspan(ham_device_t *dev, Environment *env, freelist_cache_t *cache)
+__freel_get_freelist_entry_maxspan(Device *device, Environment *env, freelist_cache_t *cache)
 {
     ham_uXX_t ret;
     ham_size_t size=env->get_usable_pagesize()-env_get_freelist_header_sizeXX();
@@ -223,12 +223,12 @@ __freel_get_freelist_entry_maxspan(ham_device_t *dev, Environment *env, freelist
 
 
 static ham_status_t
-__freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
+__freel_cache_resize(Device *device, Environment *env, freelist_cache_t *cache, 
         ham_size_t new_count)
 {
     ham_size_t i;
     freelist_entry_t *entries;
-    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(dev, env, cache);
+    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
     ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0, 
             ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
              "due to the scan algorithm"));
@@ -255,7 +255,7 @@ __freel_cache_resize(ham_device_t *dev, Environment *env, freelist_cache_t *cach
         freel_entry_set_max_bits(entry, (ham_uXX_t)(size_bits));
 
         ham_assert(cache->_init_perf_data, (0));
-        st = cache->_init_perf_data(cache, dev, env, entry, NULL);
+        st = cache->_init_perf_data(cache, device, env, entry, NULL);
         if (st)
             return st;
     }
@@ -302,7 +302,7 @@ specified @a address.
 
 */
 static ham_status_t 
-__freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
+__freel_cache_get_entry(freelist_entry_t **entry_ref, Device *device, Environment *env, freelist_cache_t *cache, 
         ham_offset_t address)
 {
     ham_size_t i=0;
@@ -343,7 +343,7 @@ __freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, Environ
         add += DB_CHUNKSIZE - 1;
         add /= DB_CHUNKSIZE;
 
-        single_size_bits = __freel_get_freelist_entry_maxspan(dev, env, cache);
+        single_size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
         ham_assert(((single_size_bits/8) % sizeof(ham_u64_t)) == 0, 
                 ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
                  "due to the scan algorithm"));
@@ -351,7 +351,7 @@ __freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, Environ
         add += single_size_bits - 1;
         add /= single_size_bits;
         ham_assert(add >= 1, (0));
-        st=__freel_cache_resize(dev, env, cache, i + add);
+        st=__freel_cache_resize(device, env, cache, i + add);
         if (st) {
             *entry_ref = 0;
             return st;
@@ -361,7 +361,7 @@ __freel_cache_get_entry(freelist_entry_t **entry_ref, ham_device_t *dev, Environ
 }
 
 static ham_size_t
-__freel_set_bits(ham_device_t *dev, Environment *env, freelist_entry_t *entry, 
+__freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry, 
         freelist_payload_t *fp, ham_bool_t overwrite, 
         ham_size_t start_bit, 
         ham_size_t size_bits, 
@@ -384,7 +384,7 @@ __freel_set_bits(ham_device_t *dev, Environment *env, freelist_entry_t *entry,
 
     qw_end = (start_bit + size_bits) >> 6;    /* one past the last full QWORD */
 
-    db_update_freelist_stats_edit(dev, env, entry, fp, start_bit, size_bits, set, hints);
+    db_update_freelist_stats_edit(device, env, entry, fp, start_bit, size_bits, set, hints);
 
     if (set) {
         /*
@@ -926,7 +926,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 
 
 static ham_s32_t
-__freel_search_bits_ex(ham_device_t *dev, Environment *env, 
+__freel_search_bits_ex(Device *device, Environment *env, 
                 freelist_entry_t *entry, freelist_payload_t *f, 
                 ham_size_t size_bits, freelist_hints_t *hints)
 {
@@ -987,7 +987,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
      * anyway.
      */
     if (start + size_bits > end) {
-        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+        db_update_freelist_stats_fail(device, env, entry, f, hints);
         return (-1);
     }
 
@@ -1067,7 +1067,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
          */
         if (start + size_bits > end)
         {
-            db_update_freelist_stats_fail(dev, env, entry, f, hints);
+            db_update_freelist_stats_fail(device, env, entry, f, hints);
             return (-1);
         }
     }
@@ -1135,7 +1135,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
             /* report our failure to find a free slot */
             if (bm_l >= bm_r) {
-                db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                db_update_freelist_stats_fail(device, env, entry, f, hints);
                 return (-1);
             }
 
@@ -1216,7 +1216,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (r == l)
                         {
                             /* a perfect hit: report this one as a match! */
-                            db_update_freelist_stats(dev, env, entry, f, bm_l * 64, hints);
+                            db_update_freelist_stats(device, env, entry, f, bm_l * 64, hints);
                             return bm_l * 64;
                         }
                     }
@@ -1243,7 +1243,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (r == l)
                     {
                         /* a perfect hit: report this one as a match! */
-                        db_update_freelist_stats(dev, env, entry, f, bm_l * 64, hints);
+                        db_update_freelist_stats(device, env, entry, f, bm_l * 64, hints);
                         return bm_l * 64;
                     }
                 }
@@ -1286,7 +1286,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
             }
@@ -1332,7 +1332,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                db_update_freelist_stats_fail(device, env, entry, f, hints);
                 return (-1);
             }
 
@@ -1413,7 +1413,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (r == l)
                         {
                             /* a perfect hit: report this one as a match! */
-                            db_update_freelist_stats(dev, env, entry, f, bm_l * 8, hints);
+                            db_update_freelist_stats(device, env, entry, f, bm_l * 8, hints);
                             return bm_l * 8;
                         }
                     }
@@ -1440,7 +1440,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (r == l)
                     {
                         /* a perfect hit: report this one as a match! */
-                        db_update_freelist_stats(dev, env, entry, f, bm_l * 8, hints);
+                        db_update_freelist_stats(device, env, entry, f, bm_l * 8, hints);
                         return bm_l * 8;
                     }
                 }
@@ -1483,7 +1483,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
             }
@@ -1540,7 +1540,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                db_update_freelist_stats_fail(device, env, entry, f, hints);
                 return (-1);
             }
 
@@ -1703,7 +1703,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (size_bits <= (bm_l - 1) * 64 - lpos)
                     {
                         /* yeah! */
-                        db_update_freelist_stats(dev, env, entry, f, lpos, hints);
+                        db_update_freelist_stats(device, env, entry, f, lpos, hints);
                         return lpos;
                     }
 
@@ -1719,7 +1719,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                     else /* if (size_bits <= bm_l * 64 - lpos) */
@@ -1745,7 +1745,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (size_bits <= rpos - lpos)
                         {
                             /* yeah! */
-                            db_update_freelist_stats(dev, env, entry, f, lpos, hints);
+                            db_update_freelist_stats(device, env, entry, f, lpos, hints);
                             return lpos;
                         }
                     }
@@ -1756,7 +1756,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (size_bits <= (bm_l - l) * 64)
                     {
                         /* yeah! */
-                        db_update_freelist_stats(dev, env, entry, f, l * 64, hints);
+                        db_update_freelist_stats(device, env, entry, f, l * 64, hints);
                         return l * 64;
                     }
 
@@ -1772,7 +1772,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                     else /* if (size_bits <= (bm_l - l) * 64) */
@@ -1800,7 +1800,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (size_bits <= rpos - l * 64)
                         {
                             /* yeah! */
-                            db_update_freelist_stats(dev, env, entry, f, l * 64, hints);
+                            db_update_freelist_stats(device, env, entry, f, l * 64, hints);
                             return l * 64;
                         }
                     }
@@ -1831,7 +1831,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
             }
@@ -1874,7 +1874,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                db_update_freelist_stats_fail(device, env, entry, f, hints);
                 return (-1);
             }
 
@@ -2035,7 +2035,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (size_bits <= (bm_l - 1) * 8 - lpos)
                     {
                         /* yeah! */
-                        db_update_freelist_stats(dev, env, entry, f, lpos, hints);
+                        db_update_freelist_stats(device, env, entry, f, lpos, hints);
                         return lpos;
                     }
 
@@ -2051,7 +2051,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                     else /* if (size_bits <= bm_l * 8 - lpos) */
@@ -2077,7 +2077,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (size_bits <= rpos - lpos)
                         {
                             /* yeah! */
-                            db_update_freelist_stats(dev, env, entry, f, lpos, hints);
+                            db_update_freelist_stats(device, env, entry, f, lpos, hints);
                             return lpos;
                         }
                     }
@@ -2088,7 +2088,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (size_bits <= (bm_l - l) * 8)
                     {
                         /* yeah! */
-                        db_update_freelist_stats(dev, env, entry, f, l * 8, hints);
+                        db_update_freelist_stats(device, env, entry, f, l * 8, hints);
                         return l * 8;
                     }
 
@@ -2104,7 +2104,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                     else /* if (size_bits <= (bm_l - l) * 8) */
@@ -2130,7 +2130,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (size_bits <= rpos - l * 8)
                         {
                             /* yeah! */
-                            db_update_freelist_stats(dev, env, entry, f, l * 8, hints);
+                            db_update_freelist_stats(device, env, entry, f, l * 8, hints);
                             return l * 8;
                         }
                     }
@@ -2161,7 +2161,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
             }
@@ -2236,7 +2236,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* report our failure to find a free slot */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                     continue;
@@ -2258,7 +2258,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                     if (bm_l >= bm_r)
                     {
                         /* report our failure to find a free slot */
-                        db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
                         return (-1);
                     }
                 }
@@ -2398,7 +2398,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                 if (size_bits <= (bm_l - l))
                 {
                     /* yeah! */
-                    db_update_freelist_stats(dev, env, entry, f, l, hints);
+                    db_update_freelist_stats(device, env, entry, f, l, hints);
                     return l;
                 }
 
@@ -2410,7 +2410,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                 if (bm_l >= bm_r)
                 {
                     /* upper bound hit: we won't be able to report a match. */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
 
@@ -2461,7 +2461,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (bm_l >= bm_r)
                         {
                             /* report our failure to find a free slot */
-                            db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                            db_update_freelist_stats_fail(device, env, entry, f, hints);
                             return (-1);
                         }
                         continue;
@@ -2482,7 +2482,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                         if (bm_l >= bm_r)
                         {
                             /* report our failure to find a free slot */
-                            db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                            db_update_freelist_stats_fail(device, env, entry, f, hints);
                             return (-1);
                         }
                     }
@@ -2623,7 +2623,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                 {
                     /* we struck end of loop without a hit! 
                     report our failure to find a free slot */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
 
@@ -2648,7 +2648,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                 ham_assert(bm_l <= l, (0));
                 ham_assert(size_bits == 1, (0));
                 /* found a slot! */
-                db_update_freelist_stats(dev, env, entry, f, l, hints);
+                db_update_freelist_stats(device, env, entry, f, l, hints);
                 return l;
             }
             else
@@ -2680,7 +2680,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                      *
                      * report our failure to find a free slot
                      */
-                    db_update_freelist_stats_fail(dev, env, entry, f, hints);
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
                     return (-1);
                 }
 
@@ -2705,7 +2705,7 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
                 ham_assert(bm_l <= l, (0));
                 ham_assert(size_bits == 1, (0));
                 /* found a slot! */
-                db_update_freelist_stats(dev, env, entry, f, l, hints);
+                db_update_freelist_stats(device, env, entry, f, l, hints);
                 return l;
             }
             // should never get here 
@@ -2714,14 +2714,14 @@ __freel_search_bits_ex(ham_device_t *dev, Environment *env,
 }
 
 static ham_status_t
-__freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
+__freel_alloc_pageXX(ham_page_t **page_ref, Device *device, Environment *env, freelist_cache_t *cache, 
         freelist_entry_t *entry)
 {
     ham_size_t i;
     freelist_entry_t *entries=freel_cache_get_entries(cache);
     ham_page_t *page=0;
     freelist_payload_t *fp;
-    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(dev, env, cache);
+    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
 
     ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0, 
             ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
@@ -2840,7 +2840,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, Environment *env,
             freel_entry_set_page_id(&entries[i], page_get_self(page));
 
             ham_assert(cache->_init_perf_data, (0));
-            st = cache->_init_perf_data(cache, dev, env, &entries[i], fp);
+            st = cache->_init_perf_data(cache, device, env, &entries[i], fp);
             if (st) {
                 return st;
             }
@@ -2874,7 +2874,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, Environment *env,
 static ham_s32_t
 __freel_locate_sufficient_free_space(freelist_hints_t *dst,
         freelist_global_hints_t *hints,
-        ham_device_t *dev, Environment *env, freelist_cache_t *cache, 
+        Device *device, Environment *env, freelist_cache_t *cache, 
         ham_s32_t start_index)
 {
     freelist_entry_t *entry;
@@ -3116,7 +3116,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
             dst->aligned = HAM_TRUE;
         }
         else {
-            db_get_freelist_entry_hints(dst, dev, env, entry);
+            db_get_freelist_entry_hints(dst, device, env, entry);
 
             if (dst->startpos + dst->size_bits > dst->endpos) {
                 /* forget it: not enough space in there anyway! */
@@ -3152,7 +3152,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
 
 ham_status_t
-__freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev, 
+__freel_alloc_areaXX(ham_offset_t *addr_ref, Device *device, 
                 Environment *env, Database *db, ham_size_t size, 
                 ham_bool_t aligned, ham_offset_t lower_bound_address)
 {
@@ -3160,7 +3160,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
     ham_s32_t i;
     freelist_entry_t *entry = NULL;
     freelist_payload_t *fp = NULL;
-    freelist_cache_t *cache=device_get_freelist_cache(dev);
+    freelist_cache_t *cache=device->get_freelist_cache();
     ham_page_t *page=0;
     ham_s32_t s=-1;
     ham_u16_t mgt_mode = db ? db->get_data_access_mode() : 0;
@@ -3175,17 +3175,17 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
         aligned, 
         lower_bound_address,
         size/DB_CHUNKSIZE,
-        __freel_get_freelist_entry_maxspan(dev, env, cache)
+        __freel_get_freelist_entry_maxspan(device, env, cache)
     };
     freelist_hints_t hints = {0};
 
     ham_assert(addr_ref != 0, (0));
     *addr_ref = 0;
 
-    db_get_global_freelist_hints(&global_hints, dev, env);
+    db_get_global_freelist_hints(&global_hints, device, env);
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
+    ham_assert(device->get_freelist_cache(), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
 
@@ -3199,7 +3199,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
      */
     for (i = -1;
         0 <= (i = __freel_locate_sufficient_free_space(&hints, 
-                            &global_hints, dev, env, cache, i));
+                            &global_hints, device, env, cache, i));
         )
     {
         ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
@@ -3312,7 +3312,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 
             if (available < hints.size_bits) {
                 /* register the NO HIT */
-                db_update_freelist_globalhints_no_hit(dev, env, entry, &hints);
+                db_update_freelist_globalhints_no_hit(device, env, entry, &hints);
             }
             else {
                 ham_size_t len;
@@ -3356,7 +3356,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                     else {
                         fl = len;
                     }
-                    __freel_set_bits(dev, env, entry, fp, 
+                    __freel_set_bits(device, env, entry, fp, 
                               HAM_FALSE, 0, fl, HAM_FALSE, &hints);
                     freel_set_allocated_bitsXX(fp, 
                               (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - fl));
@@ -3414,11 +3414,11 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
             ham_assert(env->is_legacy()
                 ? (fp->_s._s32._zero != 0)
                 : (fp->_s._s32._zero == 0), (0));
-            s = __freel_search_bits_ex(dev, env, entry, fp, 
+            s = __freel_search_bits_ex(device, env, entry, fp, 
                             size/DB_CHUNKSIZE, &hints);
             if (s != -1)
             {
-                __freel_set_bits(dev, env, entry, fp, HAM_FALSE, 
+                __freel_set_bits(device, env, entry, fp, HAM_FALSE, 
                             s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
                 if (page)
                     __page_set_dirty(page);
@@ -3429,7 +3429,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
             else
             {
                 /* register the NO HIT */
-                db_update_freelist_globalhints_no_hit(dev, env, entry, &hints);
+                db_update_freelist_globalhints_no_hit(device, env, entry, &hints);
             }
         }
     }
@@ -3452,7 +3452,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 }
 
 ham_status_t
-__freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev, 
+__freel_lazy_createXX(freelist_cache_t *cache, Device *device, 
                 Environment *env)
 {
     ham_status_t st;
@@ -3461,7 +3461,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     freelist_entry_t *entry;
     freelist_payload_t *fp=env->get_freelist();
     
-    ham_assert(device_get_freelist_cache(dev) == 0, (0));
+    ham_assert(device->get_freelist_cache() == 0, (0));
     ham_assert(cache != 0, (0));
     ham_assert(!freel_cache_get_entries(cache), (0));
 
@@ -3492,7 +3492,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     }
 
     ham_assert(cache->_init_perf_data, (0));
-    st = cache->_init_perf_data(cache, dev, env, entry, fp);
+    st = cache->_init_perf_data(cache, device, env, entry, fp);
     if (st) {
         return st;
     }
@@ -3500,9 +3500,9 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
     freel_cache_set_count(cache, 1);
     freel_cache_set_entries(cache, entry);
        
-    ham_assert(dev, (0));
-    device_set_freelist_cache(dev, cache);
-    ham_assert(device_get_freelist_cache(dev) != 0, (0));
+    ham_assert(device, (0));
+    device->set_freelist_cache(cache);
+    ham_assert(device->get_freelist_cache() != 0, (0));
 
     /*
      * now load all other freelist pages
@@ -3513,7 +3513,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
         if (!freel_get_overflow(fp))
             break;
 
-        st=__freel_cache_resize(dev, env, cache, freel_cache_get_count(cache)+1);
+        st=__freel_cache_resize(device, env, cache, freel_cache_get_count(cache)+1);
         if (st)
             return st;
 
@@ -3529,7 +3529,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
         freel_entry_set_page_id(entry, page_get_self(page));
 
         ham_assert(cache->_init_perf_data, (0));
-        st = cache->_init_perf_data(cache, dev, env, entry, fp);
+        st = cache->_init_perf_data(cache, device, env, entry, fp);
         if (st) {
             return st;
         }
@@ -3546,15 +3546,15 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
  * nothing to persist, really.
  */
 ham_status_t
-__freel_flush_stats16(ham_device_t *dev, Environment *env)
+__freel_flush_stats16(Device *device, Environment *env)
 {
     freelist_cache_t *cache;
     freelist_entry_t *entries;
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
+    ham_assert(device->get_freelist_cache(), (0));
 
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
     ham_assert(cache, (0));
 
     entries = freel_cache_get_entries(cache);
@@ -3576,15 +3576,15 @@ __freel_flush_stats16(ham_device_t *dev, Environment *env)
 
 
 ham_status_t
-__freel_destructorXX(ham_device_t *dev, Environment *env)
+__freel_destructorXX(Device *device, Environment *env)
 {
     freelist_cache_t *cache;
     freelist_entry_t *entries;
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
+    ham_assert(device->get_freelist_cache(), (0));
 
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
     ham_assert(cache, (0));
 
     entries = freel_cache_get_entries(cache);
@@ -3598,7 +3598,7 @@ __freel_destructorXX(ham_device_t *dev, Environment *env)
 
 
 ham_status_t
-__freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db, 
+__freel_mark_freeXX(Device *device, Environment *env, Database *db, 
                 ham_offset_t address, ham_size_t size, ham_bool_t overwrite)
 {
     ham_status_t st;
@@ -3622,12 +3622,12 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
     };
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
+    ham_assert(device->get_freelist_cache(), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    cache = device_get_freelist_cache(dev);
+    cache = device->get_freelist_cache();
     ham_assert(cache, (0));
 
     /*
@@ -3638,7 +3638,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
         /*
          * get the cache entry of this address
          */
-        st=__freel_cache_get_entry(&entry, dev, env, cache, address); 
+        st=__freel_cache_get_entry(&entry, device, env, cache, address); 
         /* [i_a] old code had a subtle out-of-mem crash failure which would not be caught as the error was not checked before 'entry' was used */
         ham_assert(st ? entry == NULL : entry != NULL, (0));
         if (st)
@@ -3653,7 +3653,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
-                st=__freel_alloc_pageXX(&page, dev, env, cache, entry);
+                st=__freel_alloc_pageXX(&page, device, env, cache, entry);
                 if (!page)
                     return st ? st : HAM_INTERNAL_ERROR;
                 fp=page_get_freelist(page);
@@ -3684,7 +3684,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
                     : (fp->_s._s32._zero == 0), (0));
         }
 #endif
-        s = __freel_set_bits(dev, env, entry, fp, overwrite,
+        s = __freel_set_bits(device, env, entry, fp, overwrite,
                 (ham_size_t)(address-freel_get_start_address(fp))
                         / DB_CHUNKSIZE, 
                 size/DB_CHUNKSIZE, 
@@ -3709,7 +3709,7 @@ __freel_mark_freeXX(ham_device_t *dev, Environment *env, Database *db,
 
 
 ham_status_t
-__freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offset_t address, ham_size_t size)
+__freel_check_area_is_allocatedXX(Device *device, Environment *env, ham_offset_t address, ham_size_t size)
 {
     ham_status_t st;
     ham_page_t *page=0;
@@ -3719,12 +3719,11 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
     ham_size_t s;
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    cache = device_get_freelist_cache(dev);
+    cache = device->get_freelist_cache();
     ham_assert(cache, (0));
 
     /*
@@ -3735,7 +3734,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
         /*
         * get the cache entry of this address
         */
-        st=__freel_cache_get_entry(&entry, dev, env, cache, address);
+        st=__freel_cache_get_entry(&entry, device, env, cache, address);
         /* [i_a] old code had a subtle out-of-mem crash failure which would not be caught as the error was not checked before 'entry' was used */
         ham_assert(st ? entry == NULL : entry != NULL, (0));
         if (st)
@@ -3750,7 +3749,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
-                st=__freel_alloc_pageXX(&page, dev, env, cache, entry);
+                st=__freel_alloc_pageXX(&page, device, env, cache, entry);
                 if (!page) 
                 {
                     ham_assert(st != 0, (0));
@@ -3781,7 +3780,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
         */
         s=size;
         
-        //__freel_set_bits(dev, env, entry, fp, overwrite,
+        //__freel_set_bits(device, env, entry, fp, overwrite,
         //    (ham_size_t)(address-freel_get_start_address(fp))
         //    / DB_CHUNKSIZE, 
         //    size/DB_CHUNKSIZE, 
@@ -3806,7 +3805,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, Environment *env, ham_offse
  * freelist algorithm persists this data to disc.
  */
 ham_status_t                                                        
-__freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment *env, 
+__freel_init_perf_dataXX(freelist_cache_t *cache, Device *device, Environment *env, 
         freelist_entry_t *entry, freelist_payload_t *fp)
 {
     freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
@@ -3818,7 +3817,7 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment
     {
         ham_status_t st;
         ham_offset_t filesize;
-        ham_device_t *dev;
+        Device *device;
 
         /* we don't have this page's freelist registered yet */
 #if 0
@@ -3838,9 +3837,9 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment
          * would be and consequently how many chunks are in this
          * [section of the] freelist.
          */
-        dev = env->get_device();
-        ham_assert(dev, (0));
-        st = dev->get_filesize(dev, &filesize);
+        device = env->get_device();
+        ham_assert(device, (0));
+        st = device->get_filesize(&filesize);
         if (st)
             return st;
 
@@ -3872,12 +3871,12 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_device_t *dev, Environment
 #if defined(IMPLEMENT_MODERN_FREELIST32)
 
 static ham_status_t
-__freel_constructor(ham_device_t *dev, Environment *env, Database *db)
+__freel_constructor(Device *device, Environment *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;
     
-    ham_assert(device_get_freelist_cache(dev)==0, (0));
+    ham_assert(device->get_freelist_cache()==0, (0));
 
     ham_assert(env->get_header_page(), (0));
     ham_assert(env->get_header(), (0));
@@ -3893,38 +3892,38 @@ it's possible that 'db' is NULL - so how do i know which constructor to
 call?? alternatively, we just call the constructor when opening/creating 
 the environment, but that wouldn't be nice...
 */
-        st = freel_constructor_prepare16(&cache, dev, env);
+        st = freel_constructor_prepare16(&cache, device, env);
     }
     else
     {
-        st = freel_constructor_prepare32(&cache, dev, env);
+        st = freel_constructor_prepare32(&cache, device, env);
     }
     ham_assert(cache ? !st : 1, (0));
     ham_assert(cache ? 1 : st, (0));
 
     if (cache)
     {
-        //cache = device_get_freelist_cache(dev);
+        //cache = device_get_freelist_cache(device);
         ham_assert(cache, (0));
         ham_assert(cache->_constructor != 0, (0));
-        st = cache->_constructor(cache, dev, env);
+        st = cache->_constructor(cache, device, env);
     }
 
-    ham_assert(st ? 1 : device_get_freelist_cache(dev)!=0, (0));
-    ham_assert(st ? 1 : device_get_freelist_cache(dev)->_alloc_area != 0, (0));
+    ham_assert(st ? 1 : device->get_freelist_cache()!=0, (0));
+    ham_assert(st ? 1 : device->get_freelist_cache()->_alloc_area != 0, (0));
 
     return (st);
 }
 
 
 ham_status_t 
-freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
+freel_constructor_prepare32(freelist_cache_t **cache_ref, Device *device, 
                 Environment *env)
 {
     //ham_status_t st;
     freelist_cache_t *cache;
     
-    ham_assert(device_get_freelist_cache(dev)==0, (0));
+    ham_assert(device->get_freelist_cache()==0, (0));
 
     *cache_ref = 0;
 
@@ -3944,10 +3943,10 @@ freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev,
     cache->_check_area_is_allocated = __freel_check_area_is_allocated32;
     cache->_init_perf_data = __freel_init_perf_data32;
 
-    //st = cache->_constructor(cache, dev, env, env_get_data_access_mode(env));
+    //st = cache->_constructor(cache, device, env, env_get_data_access_mode(env));
     //
-    //ham_assert(st ? 1 : device_get_freelist_cache(dev)!=0, (0));
-    //ham_assert(st ? 1 : device_get_freelist_cache(dev)->_alloc_area != 0, (0));
+    //ham_assert(st ? 1 : device->get_freelist_cache()!=0, (0));
+    //ham_assert(st ? 1 : device->get_freelist_cache()->_alloc_area != 0, (0));
     //
     //return (st);
 
@@ -3960,7 +3959,7 @@ ham_status_t
 freel_shutdown(Environment *env)
 {
     freelist_cache_t *cache;
-    ham_device_t *dev;
+    Device *device;
     ham_status_t st;
 
     if (env->get_flags()&HAM_IN_MEMORY_DB)
@@ -3971,25 +3970,25 @@ freel_shutdown(Environment *env)
      * which was not fully initialized - that's ok, no need to return
      * an error
      */
-    dev = env->get_device();
-    if (!dev)
+    device=env->get_device();
+    if (!device)
         return (0);
 
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
     if (!cache)
         return (0);
 
     ham_assert(cache->_flush_stats, (0));
-    st = cache->_flush_stats(dev, env);
+    st = cache->_flush_stats(device, env);
 
     ham_assert(cache->_destructor, (0));
-    st = cache->_destructor(dev, env);
+    st = cache->_destructor(device, env);
 
     env->get_allocator()->free(cache);
     if (env)
-        device_set_freelist_cache(env->get_device(), 0);
+        device->set_freelist_cache(0);
     else
-        device_set_freelist_cache(env->get_device(), 0);
+        device->set_freelist_cache(0);
 
     return (st);
 }
@@ -3999,7 +3998,7 @@ freel_mark_free(Environment *env, Database *db, ham_offset_t address,
                 ham_size_t size, ham_bool_t overwrite)
 {
     freelist_cache_t *cache;
-    ham_device_t *dev;
+    Device *device;
     ham_status_t st;
 
     if (env->get_flags()&HAM_IN_MEMORY_DB)
@@ -4008,20 +4007,20 @@ freel_mark_free(Environment *env, Database *db, ham_offset_t address,
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    dev = env->get_device();
-    if (!dev)
+    device = env->get_device();
+    if (!device)
         return (HAM_INTERNAL_ERROR);
 
-    if (!device_get_freelist_cache(dev)) {
+    if (!device->get_freelist_cache()) {
         st = __freel_constructor(env->get_device(), env, db);
         if (st)
             return st;
     }
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
 
     ham_assert(cache, (0));
     ham_assert(cache->_mark_free, (0));
-    st = cache->_mark_free(dev, env, db, address, size, overwrite);
+    st = cache->_mark_free(device, env, db, address, size, overwrite);
 
     return (st);
 }
@@ -4031,7 +4030,7 @@ freel_check_area_is_allocated(Environment *env, Database *db,
                 ham_offset_t address, ham_size_t size)
 {
     freelist_cache_t *cache;
-    ham_device_t *dev;
+    Device *device;
     ham_status_t st;
 
     if (env->get_flags()&HAM_IN_MEMORY_DB)
@@ -4040,20 +4039,20 @@ freel_check_area_is_allocated(Environment *env, Database *db,
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-    dev = env->get_device();
-    if (!dev)
+    device=env->get_device();
+    if (!device)
         return HAM_INTERNAL_ERROR;
 
-    if (!device_get_freelist_cache(dev)) {
+    if (!device->get_freelist_cache()) {
         st = __freel_constructor(env->get_device(), env, db);
         if (st)
             return st;
     }
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
 
     ham_assert(cache, (0));
     ham_assert(cache->_check_area_is_allocated, (0));
-    st = cache->_check_area_is_allocated(dev, env, address, size);
+    st = cache->_check_area_is_allocated(device, env, address, size);
 
     return st;
 }
@@ -4073,7 +4072,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
                 ham_offset_t lower_bound_address)
 {
     freelist_cache_t *cache;
-    ham_device_t *dev;
+    Device *device;
 
     ham_assert(addr_ref != 0, (0));
     *addr_ref = 0;
@@ -4083,11 +4082,11 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
         return HAM_SUCCESS;
     }
 
-    dev = env->get_device();
-    if (!dev)
+    device=env->get_device();
+    if (!device)
         return HAM_INTERNAL_ERROR;
 
-    if (!device_get_freelist_cache(dev))
+    if (!device->get_freelist_cache())
     {
         ham_status_t st = __freel_constructor(env->get_device(), env, db);
         if (st)
@@ -4095,7 +4094,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
             return st;
         }
     }
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
 
     ham_assert(cache, (0));
     ham_assert(cache->_alloc_area, (0));
@@ -4108,19 +4107,19 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
 {
     ham_status_t st;
     freelist_cache_t *cache;
-    ham_device_t *dev;
+    Device *device;
 
     *addr_ref = 0;
     if (env->get_flags()&HAM_IN_MEMORY_DB)
         return HAM_SUCCESS;
 
-    dev = env->get_device();
-    if (!dev)
+    device=env->get_device();
+    if (!device)
     {
         return HAM_INTERNAL_ERROR;
     }
 
-    if (!device_get_freelist_cache(dev))
+    if (!device->get_freelist_cache())
     {
         ham_status_t st = __freel_constructor(env->get_device(), env, db);
         if (st)
@@ -4128,7 +4127,7 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
             return st;
         }
     }
-    cache=device_get_freelist_cache(dev);
+    cache=device->get_freelist_cache();
 
     ham_assert(cache, (0));
     ham_assert(cache->_alloc_area, (0));
@@ -4141,12 +4140,12 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
 #else
 
 ham_status_t
-freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
+freel_constructor_prepare16(freelist_cache_t **cache_ref, Device *device, 
                 Environment *env)
 {
     freelist_cache_t *cache;
     
-    ham_assert(device_get_freelist_cache(dev)==0, (0));
+    ham_assert(device->get_freelist_cache()==0, (0));
 
     *cache_ref = 0;
 

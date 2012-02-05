@@ -17,12 +17,12 @@
 #define DUMMY_LSN  1
 
 ham_status_t
-__freel_flush_stats32(ham_device_t *dev, Environment *env)
+__freel_flush_stats32(Device *device, Environment *env)
 {
     ham_status_t st;
 
     ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device_get_freelist_cache(dev), (0));
+    ham_assert(device->get_freelist_cache(), (0));
 
     /*
      * do not update the statistics in a READ ONLY database!
@@ -31,7 +31,7 @@ __freel_flush_stats32(ham_device_t *dev, Environment *env)
         freelist_cache_t *cache;
         freelist_entry_t *entries;
 
-        cache=device_get_freelist_cache(dev);
+        cache=device->get_freelist_cache();
         ham_assert(cache, (0));
 
         entries = freel_cache_get_entries(cache);

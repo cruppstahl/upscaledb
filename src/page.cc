@@ -162,33 +162,33 @@ page_delete(ham_page_t *page)
 ham_status_t
 page_alloc(ham_page_t *page)
 {
-    ham_device_t *dev=page_get_device(page);
+    Device *dev=page_get_device(page);
 
     ham_assert(dev, (0));
-    return (dev->alloc_page(dev, page));
+    return (dev->alloc_page(page));
 }
 
 ham_status_t
 page_fetch(ham_page_t *page)
 {
-    ham_device_t *dev=page_get_device(page);
+    Device *dev=page_get_device(page);
 
     ham_assert(dev, (0));
-    return (dev->read_page(dev, page));
+    return (dev->read_page(page));
 }
 
 ham_status_t
 page_flush(ham_page_t *page)
 {
     ham_status_t st;
-    ham_device_t *dev=page_get_device(page);
+    Device *dev=page_get_device(page);
 
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
     ham_assert(dev, (0));
 
-    st=dev->write_page(dev, page);
+    st=dev->write_page(page);
     if (st)
         return (st);
 
@@ -199,12 +199,12 @@ page_flush(ham_page_t *page)
 ham_status_t
 page_free(ham_page_t *page)
 {
-    ham_device_t *dev=page_get_device(page);
+    Device *dev=page_get_device(page);
 
     ham_assert(dev, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
-    return (dev->free_page(dev, page));
+    return (dev->free_page(page));
 }
 
 ham_status_t
@@ -213,13 +213,12 @@ page_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
     Cursor *c = page_get_cursors(page);
 
     if (c) {
-        Database *db = c->get_db();
+        Database *db=c->get_db();
         if (db) {
-            ham_backend_t *be = db->get_backend();
+            ham_backend_t *be=db->get_backend();
             
-            if (be) {
+            if (be)
                 return (*be->_fun_uncouple_all_cursors)(be, page, start);
-            }
         }
     }
 

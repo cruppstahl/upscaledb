@@ -261,12 +261,12 @@ class Environment
     }
 
     /** get the device */
-    ham_device_t *get_device() {
+    Device *get_device() {
         return (m_device);
     }
 
     /** set the device */
-    void set_device(ham_device_t *device) {
+    void set_device(Device *device) {
         m_device=device;
     }
 
@@ -569,7 +569,7 @@ class Environment
 	void *m_context;
 
     /** the device (either a file or an in-memory-db) */
-    ham_device_t *m_device;
+    Device *m_device;
 
     /** the cache */
     Cache *m_cache;

@@ -105,19 +105,19 @@ struct freelist_entry_t
      * create and initialize a new class instance                       \
      */                                                                 \
     ham_status_t                                                        \
-	(*_constructor)(clss *be, ham_device_t *dev, Environment *env);     \
+	(*_constructor)(clss *be, Device *dev, Environment *env);           \
                                                                         \
 	/**                                                                 \
 	 * release all freelist pages (and their statistics)                \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_destructor)(ham_device_t *dev, Environment *env);                \
+	(*_destructor)(Device *dev, Environment *env);                \
                                                                         \
 	/**                                                                 \
 	 * flush all freelist page statistics                               \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_flush_stats)(ham_device_t *dev, Environment *env);               \
+	(*_flush_stats)(Device *dev, Environment *env);               \
                                                                         \
 	/**                                                                 \
 	 * mark an area in the file as "free"                               \
@@ -129,7 +129,7 @@ struct freelist_entry_t
 	 * will assert that address and size are DB_CHUNKSIZE-aligned!      \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_mark_free)(ham_device_t *dev, Environment *env, Database *db,    \
+	(*_mark_free)(Device *dev, Environment *env, Database *db,    \
             ham_offset_t address, ham_size_t size,                      \
 			ham_bool_t overwrite);                                      \
                                                                         \
@@ -151,7 +151,7 @@ struct freelist_entry_t
 	 * on a DB_CHUNKSIZE boundary level anyhow.							\
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_alloc_area)(ham_offset_t *addr_ref, ham_device_t *dev,			\
+	(*_alloc_area)(ham_offset_t *addr_ref, Device *dev,			\
 			   Environment *env, Database *db, ham_size_t size,         \
                ham_bool_t aligned, ham_offset_t lower_bound_address);   \
                                                                         \
@@ -164,7 +164,7 @@ struct freelist_entry_t
 			 freelist.													\
 	*/																	\
 	ham_status_t                                                        \
-	(*_check_area_is_allocated)(ham_device_t *dev, Environment *env,    \
+	(*_check_area_is_allocated)(Device *dev, Environment *env,    \
 								ham_offset_t address, ham_size_t size);	\
                                                                         \
 	/**																	\
@@ -176,7 +176,7 @@ struct freelist_entry_t
 	 * freelist algorithm persists this data to disc.					\
 	 */																	\
 	ham_status_t														\
-	(*_init_perf_data)(clss *be, ham_device_t *dev, Environment *env,   \
+	(*_init_perf_data)(clss *be, Device *dev, Environment *env,   \
 						freelist_entry_t *entry,						\
 						freelist_payload_t *payload)
 
@@ -399,14 +399,14 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
  * Initialize a v1.1.0+ compatible freelist management object
  */
 extern ham_status_t
-freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
+freel_constructor_prepare32(freelist_cache_t **cache_ref, Device *dev, 
                 Environment *env);
 
 /**
  * Initialize a v1.0.x compatible freelist management object
  */
 extern ham_status_t
-freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
+freel_constructor_prepare16(freelist_cache_t **cache_ref, Device *dev, 
                 Environment *env);
 
 /**

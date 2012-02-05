@@ -36,7 +36,7 @@ Changeset::add_page(ham_page_t *page)
 
     ham_assert(0==page_get_next(page, PAGE_LIST_CHANGESET), (""));
     ham_assert(0==page_get_previous(page, PAGE_LIST_CHANGESET), (""));
-    ham_assert((device_get_env(page_get_device(page)))->get_flags()
+    ham_assert(page_get_device(page)->get_env()->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
     page_set_next(page, PAGE_LIST_CHANGESET, m_head);
@@ -48,15 +48,15 @@ Changeset::add_page(ham_page_t *page)
 ham_page_t *
 Changeset::get_page(ham_offset_t pageid)
 {
-    ham_page_t *p=m_head;
+    ham_page_t *page=m_head;
 
-    while (p) {
-        ham_assert((device_get_env(page_get_device(p)))->get_flags()
+    while (page) {
+        ham_assert(page_get_device(page)->get_env()->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
-        if (page_get_self(p)==pageid)
-            return (p);
-        p=page_get_next(p, PAGE_LIST_CHANGESET);
+        if (page_get_self(page)==pageid)
+            return (page);
+        page=page_get_next(page, PAGE_LIST_CHANGESET);
     }
 
     return (0);
@@ -83,7 +83,7 @@ Changeset::log_bucket(ham_page_t **bucket, ham_size_t bucket_size,
     for (ham_size_t i=0; i<bucket_size; i++) {
         ham_assert(page_is_dirty(bucket[i]), (""));
 
-        Environment *env=device_get_env(page_get_device(bucket[i]));
+        Environment *env=page_get_device(bucket[i])->get_env();
         Log *log=env->get_log();
 
         induce(ErrorInducer::CHANGESET_FLUSH);
@@ -198,7 +198,7 @@ Changeset::flush(ham_u64_t lsn)
     // now flush all modified pages to disk
     p=m_head;
 
-    Environment *env=device_get_env(page_get_device(p));
+    Environment *env=page_get_device(p)->get_env();
     Log *log=env->get_log();
 
     ham_assert(log!=0, (""));

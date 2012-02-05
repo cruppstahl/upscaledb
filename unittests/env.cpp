@@ -104,8 +104,8 @@ protected:
         env->set_txn_id(0);
 
         BFC_ASSERT(env->get_device()==0);
-        env->set_device((ham_device_t *)15);
-        BFC_ASSERT(env->get_device()==(ham_device_t *)15);
+        env->set_device((Device *)15);
+        BFC_ASSERT(env->get_device()==(Device *)15);
         env->set_device(0);
 
         BFC_ASSERT_EQUAL(0u, env->get_filename().size());

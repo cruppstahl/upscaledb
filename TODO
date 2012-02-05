@@ -19,11 +19,13 @@ x c++-ify the Environment
 
 x c++-ify the memory allocator
 
+x c++-ify the device
+    x create and implement the class(es)
+    x most Device methods can be inlined
+
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
-
-o c++-ify the device
 
 o make sure that databases from 1.1.15 can be opened (right now they cannot)
     o add unittest
@@ -32,6 +34,10 @@ o implement support for approx. matching (-> sevencat)
 
 o when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
     release mode) to improve performance 
+
+o Andy: sent patch for pread/pwrite on Windows
+
+o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
 
 o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     when it flushes the txn, but the commit was already logged
