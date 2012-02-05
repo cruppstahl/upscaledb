@@ -26,16 +26,18 @@ x c++-ify the device
 x make sure that databases from 1.1.15 can be opened (right now they cannot)
     x add unittest
 
+x when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
+    release mode) to improve performance 
+
+x Andy: sent patch for pread/pwrite on Windows
+
+o Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
+
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
 
 o implement support for approx. matching (-> sevencat)
-
-o when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
-    release mode) to improve performance 
-
-o Andy: sent patch for pread/pwrite on Windows
 
 o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
 

@@ -2121,8 +2121,8 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
-/** Parameter name for @ref ham_open_ex, @ref ham_create_ex; sets the cache
- * size */
+/** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex, 
+ * @ref ham_open_ex, @ref ham_create_ex; sets the cache size */
 #define HAM_PARAM_CACHESIZE          0x00000100
 
 /** Parameter name for @ref ham_env_create_ex, @ref ham_create_ex; sets the page
