@@ -23,12 +23,12 @@ x c++-ify the device
     x create and implement the class(es)
     x most Device methods can be inlined
 
+x make sure that databases from 1.1.15 can be opened (right now they cannot)
+    x add unittest
+
 o update the tutorial
 
 o mail an Tony B, Curt M., andere
-
-o make sure that databases from 1.1.15 can be opened (right now they cannot)
-    o add unittest
 
 o implement support for approx. matching (-> sevencat)
 

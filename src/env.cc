@@ -443,23 +443,20 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
          * TODO this is done again some lines below; remove this and
          * replace it with a function __is_supported_version()
          */
-        if (envheader_get_version(hdr, 0)!=HAM_VERSION_MAJ ||
-                envheader_get_version(hdr, 1)!=HAM_VERSION_MIN) {
-            /* before we yak about a bad DB, see if this feller is 
-             * a 'backwards compatible' one (1.0.x - 1.0.9) */
-            if (envheader_get_version(hdr, 0) == 1 &&
-                envheader_get_version(hdr, 1) == 0 &&
-                envheader_get_version(hdr, 2) <= 9) {
-                env->set_legacy(true);
-            }
-            else {
-                ham_log(("invalid file version"));
-                st = HAM_INV_FILE_VERSION;
-                goto fail_with_fake_cleansing;
-            }
+        if (envheader_get_version(hdr, 0)>HAM_VERSION_MAJ ||
+                (envheader_get_version(hdr, 0)==HAM_VERSION_MAJ 
+                    && envheader_get_version(hdr, 1)>HAM_VERSION_MIN)) {
+            ham_log(("invalid file version"));
+            st = HAM_INV_FILE_VERSION;
+            goto fail_with_fake_cleansing;
+        }
+        else if (envheader_get_version(hdr, 0) == 1 &&
+            envheader_get_version(hdr, 1) == 0 &&
+            envheader_get_version(hdr, 2) <= 9) {
+            env->set_legacy(true);
         }
 
-        st = 0;
+        st=0;
 
 fail_with_fake_cleansing:
 

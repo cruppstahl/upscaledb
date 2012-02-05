@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -132,6 +132,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
+        BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
     }
 
 protected:
@@ -2255,6 +2256,18 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         ham_delete(db);
         ham_env_delete(env);
+    }
+
+    void openVersion1x(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_open(db, BFC_OPATH("data/sample-db1-1.x.hdb"), 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
     }
 };
 
