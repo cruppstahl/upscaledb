@@ -155,6 +155,9 @@ class Journal
         return (m_lsn++);
     }
 
+    /** returns the path of the journal file */
+    std::string get_path(int i);
+
   private:
     /** appends an entry to the journal */
     ham_status_t append_entry(int fdidx,

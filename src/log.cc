@@ -35,14 +35,10 @@ Log::create(void)
 {
     Log::Header header;
     ham_status_t st;
-    const char *dbpath=m_env->get_filename().c_str();
-    char filename[HAM_OS_MAX_PATH];
-
-    ham_assert(m_env, (0));
+    std::string path=get_path();
 
     /* create the files */
-    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
-    st=os_create(filename, 0, m_env->get_file_mode(), &m_fd);
+    st=os_create(path.c_str(), 0, 0644, &m_fd);
     if (st)
         return (st);
 
@@ -62,13 +58,11 @@ ham_status_t
 Log::open(void)
 {
     Log::Header header;
-    const char *dbpath=m_env->get_filename().c_str();
+    std::string path=get_path();
     ham_status_t st;
-    char filename[HAM_OS_MAX_PATH];
 
     /* open the file */
-    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
-    st=os_open(filename, 0, &m_fd);
+    st=os_open(path.c_str(), 0, &m_fd);
     if (st) {
         close();
         return (st);
@@ -397,5 +391,26 @@ Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_offset_t offset,
     entry.data_size=size;
 
     return (os_writev(m_fd, data, size, &entry, sizeof(entry)));
+}
+
+std::string
+Log::get_path()
+{
+    std::string path;
+
+    if (m_env->get_log_directory().empty()) {
+        path=m_env->get_filename();
+    }
+    else {
+        path=m_env->get_log_directory();
+#ifdef HAM_OS_WIN32
+        path+="\\";
+#else
+        path+="/";
+#endif
+        path+=::basename(m_env->get_filename().c_str());
+    }
+    path+=".log0";
+    return (path);
 }
 

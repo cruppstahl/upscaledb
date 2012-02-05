@@ -109,7 +109,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, ham_bool_t create);
+        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, 
+        std::string &logdir, bool create);
 
 /*
  * callback function for freeing blobs of an in-memory-database, implemented 
@@ -814,6 +815,12 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
                 else
                     p->value=0;
                 break;
+            case HAM_PARAM_LOG_DIRECTORY:
+                if (env->get_log_directory().size())
+                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_log_directory().c_str()));
+                else
+                    p->value=0;
+                break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {
                     ham_trace(("the value for parameter "
@@ -905,12 +912,13 @@ _local_fun_create_db(Environment *env, Database *db,
     ham_size_t i;
     ham_backend_t *be;
     ham_u32_t pflags;
+    std::string logdir;
 
     db->set_rt_flags(0);
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param, 
-            0, &keysize, &cachesize, &dbname, 0, &dam, HAM_TRUE);
+            0, &keysize, &cachesize, &dbname, 0, &dam, logdir, true);
     if (st)
         return (st);
 
@@ -1086,6 +1094,7 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_u64_t cachesize = 0;
     ham_backend_t *be = 0;
     ham_u16_t dbi;
+    std::string logdir;
 
     /*
      * make sure that this database is not yet open/created
@@ -1099,7 +1108,7 @@ _local_fun_open_db(Environment *env, Database *db,
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param, 
-            0, 0, &cachesize, &name, 0, &dam, HAM_FALSE);
+            0, 0, &cachesize, &name, 0, &dam, logdir, false);
     if (st)
         return (st);
 

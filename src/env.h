@@ -555,6 +555,16 @@ class Environment
     /** get the freelist object of the database */
     freelist_payload_t *get_freelist();
 
+    /** set the logfile directory */
+    void set_log_directory(const std::string &dir) {
+        m_log_directory=dir;
+    }
+
+    /** get the logfile directory */
+    const std::string &get_log_directory() {
+        return (m_log_directory);
+    }
+
   private:
     /** the filename of the environment file */
     std::string m_filename;
@@ -630,6 +640,8 @@ class Environment
 	/** some freelist algorithm specific run-time data */
 	ham_runtime_statistics_globdata_t m_perf_data;
 
+    /** the directory of the log file and journal files */
+    std::string m_log_directory;
 };
 
 /**

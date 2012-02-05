@@ -160,6 +160,9 @@ class Log
     ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags, 
                     ham_offset_t offset, ham_u8_t *data, ham_size_t size);
 
+    /** returns the path of the log file */
+    std::string get_path();
+
   private:
     /** writes a byte buffer to the logfile */
     ham_status_t append_entry(Log::Entry *entry, ham_size_t size);

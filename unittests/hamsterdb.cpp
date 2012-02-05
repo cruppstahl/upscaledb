@@ -133,6 +133,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
         BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
+        BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
     }
 
 protected:
@@ -2265,6 +2266,45 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                     ham_open(db, BFC_OPATH("data/sample-db1-1.x.hdb"), 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
+    }
+
+    void overwriteLogDirectoryTest()
+    {
+        ham_db_t *db;
+        ham_parameter_t ps[]={
+            {HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data"}, 
+            {0, 0}
+        };
+
+        os::unlink("data/test.db.log0");
+        os::unlink("data/test.db.jrn0");
+        os::unlink("data/test.db.jrn1");
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.log0"));
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.jrn0"));
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.jrn1"));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, "test.db",
+                        HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.log0"));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn0"));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn1"));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_open_ex(db, "test.db",
+                        HAM_ENABLE_TRANSACTIONS, &ps[0]));
+
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(ham_get_env(db), &ps[0]));
+        BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
+        ps[0].value=0;
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &ps[0]));
+        BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
+
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);

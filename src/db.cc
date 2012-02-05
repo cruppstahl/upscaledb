@@ -1526,6 +1526,12 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                 else
                     p->value=0;
                 break;
+            case HAM_PARAM_LOG_DIRECTORY:
+                if (env->get_log_directory().size())
+                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_log_directory().c_str()));
+                else
+                    p->value=0;
+                break;
             case HAM_PARAM_GET_DATABASE_NAME:
                 p->value=(ham_offset_t)m_db->get_name();
                 break;

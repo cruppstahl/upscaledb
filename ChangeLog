@@ -4,6 +4,8 @@ o the device structure (ham_device_t) was C++-ified; if you use
 o fixed wrong version check when loading databases from 1.1.x 
 o now using the native Win32 API for os_pwrite and os_pread (thanks,
     Andy Thalmann (http://www.softdev.ch))
+o added new parameter HAM_PARAM_LOG_DIRECTORY to specify the directory
+    where the log file and the journal files are stored
 
 Jan 19, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.0

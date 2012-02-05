@@ -31,6 +31,20 @@ x when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
 
 x Andy: sent patch for pread/pwrite on Windows
 
+x Mark: store journal/log in a different directory to avoid 
+    wearout of flash disks/SSDs
+    x implement
+    x add unittest
+    x can be queried via ham_env_get_parameters
+        x implement
+        x unittest
+    x can be queried via ham_get_parameters
+        x implement
+        x unittest
+    x add to documentation
+
+o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
+
 o Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
 
 o update the tutorial
@@ -38,11 +52,9 @@ o update the tutorial
 o mail an Tony B, Curt M., andere
 
 o implement support for approx. matching (-> sevencat)
-
-o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
-
-o Mark: store journal/log in a different directory to avoid 
-    wearout of flash disks/SSDs
+    o identify test cases
+    o write test-driven
+    o update documentation
 
 o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     when it flushes the txn, but the commit was already logged

@@ -52,9 +52,7 @@ Journal::create(void)
 {
     int i;
     Header header;
-    const char *dbpath=m_env->get_filename().c_str();
     ham_status_t st;
-    char filename[HAM_OS_MAX_PATH];
 
     /* initialize the magic */
     memset(&header, 0, sizeof(header));
@@ -63,8 +61,8 @@ Journal::create(void)
 
     /* create the two files */
     for (i=0; i<2; i++) {
-        util_snprintf(filename, sizeof(filename), "%s.jrn%d", dbpath, i);
-        st=os_create(filename, 0, 0644, &m_fd[i]);
+        std::string path=get_path(i);
+        st=os_create(path.c_str(), 0, 0644, &m_fd[i]);
         if (st) {
             (void)close();
             return (st);
@@ -87,10 +85,8 @@ Journal::open(void)
     int i;
     Header header;
     JournalEntry entry;
-    const char *dbpath=m_env->get_filename().c_str();
     ham_u64_t lsn[2];
     ham_status_t st;
-    char filename[HAM_OS_MAX_PATH];
 
     memset(&header, 0, sizeof(header));
     m_lsn=0;
@@ -98,8 +94,8 @@ Journal::open(void)
 
     /* open the two files */
     for (i=0; i<2; i++) {
-        util_snprintf(filename, sizeof(filename), "%s.jrn%d", dbpath, i);
-        st=os_open(filename, 0, &m_fd[i]);
+        std::string path=get_path(i);
+        st=os_open(path.c_str(), 0, &m_fd[i]);
         if (st) {
             (void)close();
             return (st);
@@ -761,3 +757,28 @@ Journal::clear_file(int idx)
     return (0);
 }
 
+std::string
+Journal::get_path(int i)
+{
+    std::string path;
+
+    if (m_env->get_log_directory().empty()) {
+        path=m_env->get_filename();
+    }
+    else {
+        path=m_env->get_log_directory();
+#ifdef HAM_OS_WIN32
+        path+="\\";
+#else
+        path+="/";
+#endif
+        path+=::basename(m_env->get_filename().c_str());
+    }
+    if (i==0)
+        path+=".jrn0";
+    else if (i==1)
+        path+=".jrn1";
+    else
+        ham_assert(!"invalid index", (""));
+    return (path);
+}

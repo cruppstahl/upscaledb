@@ -194,6 +194,9 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_KEYSIZE:
         return "HAM_PARAM_KEYSIZE";
 
+    case HAM_PARAM_LOG_DIRECTORY:
+        return "HAM_PARAM_LOG_DIRECTORY";
+
     case HAM_PARAM_MAX_ENV_DATABASES:
         return "HAM_PARAM_MAX_ENV_DATABASES";
 
@@ -473,7 +476,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_u32_t *pflags, const ham_parameter_t *param, 
         ham_size_t *ppagesize, ham_u16_t *pkeysize, 
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, ham_bool_t create)
+        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, 
+        std::string &logdir, bool create)
 {
     ham_size_t pagesize=0;
     ham_u16_t keysize=0;
@@ -611,6 +615,10 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
             case HAM_PARAM_CACHESIZE:
                 if (pcachesize)
                     cachesize=param->value;
+                break;
+
+            case HAM_PARAM_LOG_DIRECTORY:
+                logdir=(const char *)param->value;
                 break;
 
             case HAM_PARAM_KEYSIZE:
@@ -1085,6 +1093,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
     ham_u16_t keysize = 0;
     ham_u64_t cachesize = 0;
     ham_u16_t maxdbs = 0;
+    std::string logdir;
     Environment *env=(Environment *)henv;
 
     if (!env) {
@@ -1104,12 +1113,14 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     /* check (and modify) the parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param, 
-            &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, HAM_TRUE);
+            &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, logdir, true);
     if (st)
         return (st);
 
     if (!cachesize)
         cachesize=HAM_DEFAULT_CACHESIZE;
+    if (logdir.size())
+        env->set_log_directory(logdir);
 
     /* 
      * if we do not yet have an allocator: create a new one 
@@ -1261,6 +1272,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 {
     ham_status_t st;
     ham_u64_t cachesize=0;
+    std::string logdir;
     Environment *env=(Environment *)henv;
 
     if (!env) {
@@ -1289,9 +1301,12 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 
     /* parse parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param, 
-            0, 0, &cachesize, 0, 0, 0, HAM_FALSE);
+            0, 0, &cachesize, 0, 0, 0, logdir, false);
     if (st)
         return (st);
+
+    if (logdir.size())
+        env->set_log_directory(logdir);
 
     /* 
      * if we do not yet have an allocator: create a new one 
@@ -1534,9 +1549,7 @@ ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_size_t *count)
         return (HAM_NOT_INITIALIZED);
     }
 
-    /*
-     * get all database names
-     */
+    /* get all database names */
     return (env->_fun_get_database_names(env, names, count));
 }
 
@@ -1546,20 +1559,18 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
     Environment *env=(Environment *)henv;
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
-        return HAM_INV_PARAMETER;
+        return (HAM_INV_PARAMETER);
     }
     if (!param) {
         ham_trace(("parameter 'param' must not be NULL"));
-        return HAM_INV_PARAMETER;
+        return (HAM_INV_PARAMETER);
     }
     if (!env->_fun_get_parameters) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
 
-    /*
-     * get the parameters
-     */
+    /* get the parameters */
     return (env->_fun_get_parameters(env, param));
 }
 
@@ -1720,6 +1731,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     ham_u16_t dam = 0;
     ham_env_t *env;
     ham_u32_t env_flags;
+    std::string logdir;
     ham_parameter_t env_param[8]={{0, 0}};
     ham_parameter_t db_param[8]={{0, 0}};
     Database *db=(Database *)hdb;
@@ -1739,7 +1751,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
 
     /* parse parameters */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param, 
-            0, 0, &cachesize, &dbname, 0, &dam, HAM_FALSE);
+            0, 0, &cachesize, &dbname, 0, &dam, logdir, false);
     if (st)
         return (st);
 
@@ -1751,7 +1763,10 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
      */
     env_param[0].name=HAM_PARAM_CACHESIZE;
     env_param[0].value=cachesize;
-    env_param[1].name=0;
+    if (logdir.size()) {
+        env_param[1].name=HAM_PARAM_LOG_DIRECTORY;
+        env_param[1].value=(ham_u64_t)logdir.c_str();
+    }
     env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
 
     st=ham_env_new(&env);
@@ -1835,6 +1850,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     ham_u64_t cachesize = 0;
     ham_env_t *env=0;
     ham_u32_t env_flags;
+    std::string logdir;
     ham_parameter_t env_param[8]={{0, 0}};
     ham_parameter_t db_param[5]={{0, 0}};
 
@@ -1855,7 +1871,8 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
      * check (and modify) the parameters
      */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param, 
-            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, &dam, HAM_TRUE);
+            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, &dam, 
+            logdir, true);
     if (st)
         return (db->set_error(st));
 
@@ -1871,7 +1888,10 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     env_param[1].value=pagesize;
     env_param[2].name=HAM_PARAM_MAX_ENV_DATABASES;
     env_param[2].value=maxdbs;
-    env_param[3].name=0;
+    if (logdir.size()) {
+        env_param[3].name=HAM_PARAM_LOG_DIRECTORY;
+        env_param[3].value=(ham_u64_t)logdir.c_str();
+    }
     env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
 
     /*
