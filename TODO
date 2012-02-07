@@ -43,11 +43,11 @@ x Mark: store journal/log in a different directory to avoid
         x unittest
     x add to documentation
 
+x update the tutorial
+
 o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
 
 o Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
-
-o update the tutorial
 
 o mail an Tony B, Curt M., andere
 

@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <vector>
+#include <string>
 #include <algorithm>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
@@ -67,6 +68,7 @@ public:
         BFC_REGISTER_TEST(DupeTest, insertTest);
         BFC_REGISTER_TEST(DupeTest, insertSkipDuplicatesTest);
         BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest);
+        BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest2);
         BFC_REGISTER_TEST(DupeTest, coupleUncoupleTest);
         BFC_REGISTER_TEST(DupeTest, moveToLastDuplicateTest);
 
@@ -691,6 +693,38 @@ public:
         checkData(c, HAM_CURSOR_FIRST,    0, "aaaaaaaaaa");
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 
                         HAM_KEY_NOT_FOUND, 0);
+
+        ham_cursor_close(c);
+    }
+
+    void insertOnlyDuplicatesTest2(void)
+    {
+        ham_cursor_t *c;
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData("1", "1");
+        insertData("1", "2");
+        insertData("1", "3");
+        insertData("1", "4");
+
+        const char *exp[] = { "1", "2", "3", "4" };
+
+        ham_key_t key={0};
+        key.data=(void *)"1";
+        key.size=2;
+        ham_record_t rec={0};
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
+            BFC_ASSERT_EQUAL(0, strcmp(exp[i], (char *)rec.data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                            HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+        }
+
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, HAM_KEY_NOT_FOUND, 0);
 
         ham_cursor_close(c);
     }
