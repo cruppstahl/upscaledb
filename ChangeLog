@@ -1,3 +1,7 @@
+Feb 06, 2012 - chris ---------------------------------------------------
+o added a public macro HAM_API_REVISION to allow users to programmatically
+    distinguish between new and old interface of ham_txn_begin
+
 Feb 05, 2012 - chris ---------------------------------------------------
 o the device structure (ham_device_t) was C++-ified; if you use 
     ham_env_set_device then you will have to change your code

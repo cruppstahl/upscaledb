@@ -112,6 +112,13 @@ extern "C" {
 #endif
 
 /**
+ * The interface revision
+ *  undefined: hamsterdb 1.x
+ *          1: hamsterdb 2.0 - ham_txn_begin() was changed
+ */
+#define HAM_API_REVISION                1
+
+/**
  * The hamsterdb Database structure
  *
  * This structure is allocated with @ref ham_new and deleted with
