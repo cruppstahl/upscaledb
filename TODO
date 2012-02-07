@@ -45,9 +45,9 @@ x Mark: store journal/log in a different directory to avoid
 
 x update the tutorial
 
-o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
+x Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
 
-o Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
+o Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
 
 o mail an Tony B, Curt M., andere
 

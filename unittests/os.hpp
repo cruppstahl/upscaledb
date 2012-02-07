@@ -17,11 +17,11 @@
 #else
 #   include <unistd.h>
 #   include <stdlib.h>
-#   include <sys/types.h>
-#   include <sys/stat.h>
 #endif
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ham/types.h>
 #include <../src/error.h>
@@ -126,8 +126,8 @@ public:
      * check if a file exists
      */
     static bool file_exists(const char *path) {
-        struct stat buf={0};
-        if (stat(path, &buf)<0)
+        struct _stat buf={0};
+		if (::_stat(path, &buf)<0)
             return (false);
         return (true);
     }
