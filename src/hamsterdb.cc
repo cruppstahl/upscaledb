@@ -2379,6 +2379,7 @@ ham_enable_compression(ham_db_t *hdb, ham_u32_t level, ham_u32_t flags)
     return (ham_add_record_filter((ham_db_t *)db, filter));
 #else /* !HAM_DISABLE_COMPRESSION */
     ham_trace(("hamsterdb was compiled without support for zlib compression"));
+    Database *db=(Database *)hdb;
     if (db)
         return (db->set_error(HAM_NOT_IMPLEMENTED));
 #endif /* ifndef HAM_DISABLE_COMPRESSION */

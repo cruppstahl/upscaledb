@@ -405,10 +405,15 @@ Log::get_path()
         path=m_env->get_log_directory();
 #ifdef HAM_OS_WIN32
         path+="\\";
+        char fname[_MAX_FNAME];
+        char ext[_MAX_EXT];
+        _splitpath(m_env->get_filename().c_str(), 0, 0, fname, ext);
+		path+=fname;
+		path+=ext;
 #else
         path+="/";
+		path+=::basename(m_env->get_filename().c_str());
 #endif
-        path+=::basename(m_env->get_filename().c_str());
     }
     path+=".log0";
     return (path);

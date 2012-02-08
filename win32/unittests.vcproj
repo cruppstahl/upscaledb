@@ -452,18 +452,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\unittests\mem.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\unittests\memtracker.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\unittests\memtracker.h"
-			>
-		</File>
-		<File
 			RelativePath="..\unittests\misc.cpp"
 			>
 		</File>
