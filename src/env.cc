@@ -1303,6 +1303,13 @@ _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
 
+    /* are cursors attached to this txn? if yes, fail */
+    if (txn_get_cursor_refcount(txn)) {
+        ham_trace(("Transaction cannot be committed till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
+    }
+
     /* append journal entry */
     if (env->get_flags()&HAM_ENABLE_RECOVERY
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {

@@ -51,19 +51,16 @@ x Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
 
 x Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
 
+x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
+    when it flushes the txn, but the commit was already logged
+    and a recovery would succeed -> the txn is committed although it
+    fails with an error
+    -> this problem will disappear when the txn is flushed in background
+
 o implement support for approx. matching (-> sevencat)
     o identify test cases
     o write test-driven
     o update documentation
-
-o mail an Tony B, Curt M., andere
-
-o ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
-    when it flushes the txn, but the commit was already logged
-    and a recovery would succeed -> the txn is committed although it
-    fails with an error
-    -> this problem will disappear when the txn is flushed in background,
-        but this needs to be documented
 
 o design redundancy
     o identify toolkit (TBB, boost?) - should have futexes
@@ -71,11 +68,13 @@ o design redundancy
     o should work with and without redundancy; if redundancy is disabled
         then there should not be ANY performance penalty!
     o disable concurrency during compilation? not sure if this is required
-    o we need a full test suite (including gathering of performance metrics 
+    o implement a full test suite (including gathering of performance metrics 
         etc)
 
 o python API - update and integrate
     o also add to win32 package
+
+o mail an Tony B, Curt M., andere
 
 
 

@@ -341,11 +341,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     Environment *env=txn_get_env(txn);
 
     /* are cursors attached to this txn? if yes, fail */
-    if (txn_get_cursor_refcount(txn)) {
-        ham_trace(("Transaction cannot be committed till all attached "
-                    "Cursors are closed"));
-        return (HAM_CURSOR_STILL_OPEN);
-    }
+    ham_assert(txn_get_cursor_refcount(txn)==0, (""));
 
     /* this transaction is now committed!  */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
