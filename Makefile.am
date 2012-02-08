@@ -30,6 +30,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              unittests/*.cpp                            \
              unittests/Makefile.in                      \
              unittests/Makefile.am                      \
+             unittests/recovery.pl                      \
              unittests/data/*                           \
              win32                                      \
              win32/README.TXT                           \
