@@ -503,6 +503,8 @@ Cursor::move_next_key(ham_u32_t flags)
         st=move_next_dupe();
         if (st!=HAM_LIMITS_REACHED)
             return (st);
+        else if (st==HAM_LIMITS_REACHED && (flags&HAM_ONLY_DUPLICATES))
+            return (HAM_KEY_NOT_FOUND);
     }
 
     clear_dupecache();
@@ -670,6 +672,8 @@ Cursor::move_previous_key(ham_u32_t flags)
         st=move_previous_dupe();
         if (st!=HAM_LIMITS_REACHED)
             return (st);
+        else if (st==HAM_LIMITS_REACHED && (flags&HAM_ONLY_DUPLICATES))
+            return (HAM_KEY_NOT_FOUND);
     }
 
     clear_dupecache();

@@ -1,3 +1,7 @@
+Feb 07, 2012 - chris ---------------------------------------------------
+o fixed bug where HAM_ONLY_DUPLICATES was ignored when used in a
+	Transaction (thanks, Mark Ruijter from lessfs)
+
 Feb 06, 2012 - chris ---------------------------------------------------
 o added a public macro HAM_API_REVISION to allow users to programmatically
     distinguish between new and old interface of ham_txn_begin

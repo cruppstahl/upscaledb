@@ -126,9 +126,15 @@ public:
      * check if a file exists
      */
     static bool file_exists(const char *path) {
+#ifdef WIN32
         struct _stat buf={0};
 		if (::_stat(path, &buf)<0)
             return (false);
+#else
+        struct stat buf={0};
+		if (::stat(path, &buf)<0)
+            return (false);
+#endif
         return (true);
     }
 };
