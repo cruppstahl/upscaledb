@@ -58,31 +58,17 @@ x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     -> this problem will disappear when the txn is flushed in background
 
 o implement support for approx. matching (-> sevencat)
-    o identify test cases
-LT
-    btree < txn
-    txn < btree
-    btree < btree
-    txn < txn
-    txn = btree
-LEQ
-    (wie LT)
-    = btree
-    = txn
-    txn = btree
-EQ  -
-GEQ
-    (wie GT)
-    = btree
-    = txn
-    txn = btree
-GT
-    btree > txn
-    txn > btree
-    btree > btree
-    txn > txn
-    txn = btree
+    x identify test cases and create unittests
+    x add to win32 project
     o write test-driven
+        1. fetch from txn
+        2. if EQ: use txn value
+        3. fetch from btree
+        4. if EQ: use btree value
+        5. pick the one which is gt/lt (depending on flags)
+    o also for ham_cursor_find
+    o also use the existing tests and move them to approx.cpp, enable them
+        for transactions
     o update documentation
 
 o design redundancy
