@@ -59,6 +59,29 @@ x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
 
 o implement support for approx. matching (-> sevencat)
     o identify test cases
+LT
+    btree < txn
+    txn < btree
+    btree < btree
+    txn < txn
+    txn = btree
+LEQ
+    (wie LT)
+    = btree
+    = txn
+    txn = btree
+EQ  -
+GEQ
+    (wie GT)
+    = btree
+    = txn
+    txn = btree
+GT
+    btree > txn
+    txn > btree
+    btree > btree
+    txn > txn
+    txn = btree
     o write test-driven
     o update documentation
 

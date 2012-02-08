@@ -593,7 +593,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
- *          parameter for creat(2). Ignored on Microsoft Windows.
+ *          parameter for creat(2). Ignored on Microsoft Windows. Default
+ *          is 0644.
  * @param param An array of ham_parameter_t structures. The following
  *          parameters are available:
  *        <ul>

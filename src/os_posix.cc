@@ -388,6 +388,9 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 #endif
     (void)flags;
 
+    if (!mode)
+        mode=0644;
+
     *fd=open(filename, osflags, mode);
     if (*fd<0) {
         ham_log(("creating file %s failed with status %u (%s)", filename,
