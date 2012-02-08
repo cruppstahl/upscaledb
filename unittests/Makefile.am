@@ -7,6 +7,7 @@ AM_CPPFLAGS     = -I$(top_builddir)/include
 
 test_SOURCES    = log.cpp \
                   journal.cpp \
+                  approx.cpp \
                   api110.cpp \
                   btree_erase.cpp \
                   btree_insert.cpp \

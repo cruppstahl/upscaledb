@@ -336,6 +336,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\approx.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\bfc-signal.c"
 			>
 		</File>
