@@ -72,11 +72,17 @@ o implement support for approx. matching (-> sevencat)
     o update documentation
 
 o design redundancy
-    o identify toolkit (TBB, boost?) - should have futexes
+    x identify toolkit (TBB, boost?) - go for boost, but we can use both later
+        x both have fast mutex implementations, esp on Win32
+        x tbb seems to have better memory allocators, but uses native API
+            more often (i.e. for TLS), and in these cases boost might be faster
+        x boost is more likely already installed
     o design code; who locks what?
-    o should work with and without redundancy; if redundancy is disabled
-        then there should not be ANY performance penalty!
-    o disable concurrency during compilation? not sure if this is required
+      o should work with and without redundancy; if redundancy is disabled
+          then there should not be ANY performance penalty!
+      o disable concurrency during compilation? not sure if this is required
+    o needs module for thread local storage
+    o split into smaller tasks
     o implement a full test suite (including gathering of performance metrics 
         etc)
 
@@ -94,6 +100,7 @@ o c++-ify the page
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
+        oder: txn-id zurückgeben?
     o also add to c++ API
     o add documentation (header file)
     o add documentation (wiki)
