@@ -101,7 +101,7 @@ class Log
     bool is_empty(void);
 
     /** adds an AFTER-image of a page */
-    ham_status_t append_page(ham_page_t *page, ham_u64_t lsn, 
+    ham_status_t append_page(Page *page, ham_u64_t lsn, 
                 ham_size_t page_count);
 
     /** retrieves the current lsn */

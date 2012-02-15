@@ -64,25 +64,25 @@ public:
     void addPagesTest()
     {
         Changeset ch;
-        ham_page_t *page[3];
+        Page *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new((Environment *)m_env);
-            page_set_self(page[i], 1024*i);
+            page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
             ch.add_page(page[i]);
         BFC_ASSERT_EQUAL(page[1],
-                    page_get_next(page[2], PAGE_LIST_CHANGESET));
+                    page_get_next(page[2], Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[0],
-                    page_get_next(page[1], PAGE_LIST_CHANGESET));
-        BFC_ASSERT_EQUAL((ham_page_t *)NULL,
-                    page_get_next(page[0], PAGE_LIST_CHANGESET));
+                    page_get_next(page[1], Page::LIST_CHANGESET));
+        BFC_ASSERT_EQUAL((Page *)NULL,
+                    page_get_next(page[0], Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[1],
-                    page_get_previous(page[0], PAGE_LIST_CHANGESET));
+                    page_get_previous(page[0], Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[2],
-                    page_get_previous(page[1], PAGE_LIST_CHANGESET));
-        BFC_ASSERT_EQUAL((ham_page_t *)NULL,
-                    page_get_previous(page[2], PAGE_LIST_CHANGESET));
+                    page_get_previous(page[1], Page::LIST_CHANGESET));
+        BFC_ASSERT_EQUAL((Page *)NULL,
+                    page_get_previous(page[2], Page::LIST_CHANGESET));
         for (int i=0; i<3; i++)
             page_delete(page[i]);
     }
@@ -90,17 +90,17 @@ public:
     void getPagesTest()
     {
         Changeset ch;
-        ham_page_t *page[3];
+        Page *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new((Environment *)m_env);
-            page_set_self(page[i], 1024*i);
+            page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
             ch.add_page(page[i]);
 
         for (int i=0; i<3; i++)
-            BFC_ASSERT_EQUAL(page[i], ch.get_page(page_get_self(page[i])));
-        BFC_ASSERT_EQUAL((ham_page_t *)NULL, ch.get_page(999));
+            BFC_ASSERT_EQUAL(page[i], ch.get_page(page[i]->get_self()));
+        BFC_ASSERT_EQUAL((Page *)NULL, ch.get_page(999));
 
         for (int i=0; i<3; i++)
             page_delete(page[i]);
@@ -109,22 +109,22 @@ public:
     void clearTest()
     {
         Changeset ch;
-        ham_page_t *page[3];
+        Page *page[3];
         for (int i=0; i<3; i++) {
             page[i]=page_new((Environment *)m_env);
-            page_set_self(page[i], 1024*i);
+            page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
             ch.add_page(page[i]);
 
         BFC_ASSERT_EQUAL(false, ch.is_empty());
         ch.clear();
-        BFC_ASSERT_EQUAL((ham_page_t *)NULL, ch.get_head());
+        BFC_ASSERT_EQUAL((Page *)NULL, ch.get_head());
         BFC_ASSERT_EQUAL(true, ch.is_empty());
 
         for (int i=0; i<3; i++)
-            BFC_ASSERT_EQUAL((ham_page_t *)NULL,
-                    ch.get_page(page_get_self(page[i])));
+            BFC_ASSERT_EQUAL((Page *)NULL,
+                    ch.get_page(page[i]->get_self()));
 
         for (int i=0; i<3; i++)
             page_delete(page[i]);

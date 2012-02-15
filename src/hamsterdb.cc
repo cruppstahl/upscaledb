@@ -2166,7 +2166,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
      * it; if it's garbage, the key is wrong and we return an error
      */
     if (db) {
-        struct page_union_header_t *uh;
+        page_header_t *ph;
 
         st=device->read(env->get_pagesize(), buffer, sizeof(buffer));
         if (st==0) {
@@ -2174,8 +2174,8 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
                                 buffer, sizeof(buffer));
             if (st)
                 goto bail;
-            uh=(struct page_union_header_t *)buffer;
-            if (uh->_reserved1 || uh->_reserved2) {
+            ph=(page_header_t *)buffer;
+            if (ph->_reserved1 || ph->_reserved2) {
                 st=HAM_ACCESS_DENIED;
                 goto bail;
             }

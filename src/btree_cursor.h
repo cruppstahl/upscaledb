@@ -21,7 +21,7 @@
  * The cursor implementation is very fast. Most of the operations (i.e.
  * move previous/next) will not cause any disk access but are O(1) and 
  * in-memory only. That's because a cursor is directly "coupled" to a 
- * btree page (ham_page_t) that resides in memory. If the page is removed
+ * btree page (Page) that resides in memory. If the page is removed
  * from memory (i.e. because the cache decides that it needs to purge the
  * cache, or if there's a page split) then the page is "uncoupled", and a 
  * copy of the current key is stored in the cursor. On first access, the 
@@ -60,7 +60,7 @@ typedef struct btree_cursor_t
 
     /**
      * "coupled" or "uncoupled" states; coupled means that the
-     * cursor points into a ham_page_t object, which is in
+     * cursor points into a Page object, which is in
      * memory. "uncoupled" means that the cursor has a copy
      * of the key on which it points (i.e. because the coupled page was 
      * flushed to disk and removed from the cache)
@@ -68,7 +68,7 @@ typedef struct btree_cursor_t
     union btree_cursor_union_t {
         struct btree_cursor_coupled_t {
             /* the page we're pointing to */
-            ham_page_t *_page;
+            Page *_page;
 
             /* the offset of the key in the page */
             ham_size_t _index;
@@ -209,7 +209,7 @@ btree_cursor_points_to_key(btree_cursor_t *cursor, ham_key_t *key);
  * @remark this is called whenever the page is deleted or becoming invalid
  */
 extern ham_status_t
-btree_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
+btree_uncouple_all_cursors(Page *page, ham_size_t start);
 
 /**
  * Inserts a key/record pair with a cursor

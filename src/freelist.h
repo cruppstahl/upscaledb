@@ -215,7 +215,7 @@ struct freelist_cache_t
 #include "packstart.h"
 
 /**
- * a freelist-payload; it spans the persistent part of a ham_page_t
+ * a freelist-payload; it spans the persistent part of a Page
  */
 HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 {
@@ -376,9 +376,9 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #define freel_set_overflow(fl, o)         (fl)->_overflow=ham_h2db_offset(o)
 
 /**
- * get a freelist_payload_t from a ham_page_t
+ * get a freelist_payload_t from a Page
  */
-#define page_get_freelist(p)     ((freelist_payload_t *)p->_pers->_s._payload)
+#define page_get_freelist(p)     ((freelist_payload_t *)p->m_pers->_s._payload)
 
 /**
  * get the bitmap of the freelist

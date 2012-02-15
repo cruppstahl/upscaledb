@@ -80,10 +80,10 @@ class Device {
                 ham_offset_t size) = 0;
 
     /** reads a page from the device; this function CAN use mmap */
-    virtual ham_status_t read_page(ham_page_t *page) = 0;
+    virtual ham_status_t read_page(Page *page) = 0;
 
     /** writes a page to the device */
-    virtual ham_status_t write_page(ham_page_t *page) = 0;
+    virtual ham_status_t write_page(Page *page) = 0;
 
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
@@ -97,10 +97,10 @@ class Device {
      * The caller is responsible for flushing the page; the @ref free_page 
      * function will assert that the page is not dirty.
      */
-    virtual ham_status_t alloc_page(ham_page_t *page) = 0;
+    virtual ham_status_t alloc_page(Page *page) = 0;
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
-    virtual ham_status_t free_page(ham_page_t *page) = 0;
+    virtual ham_status_t free_page(Page *page) = 0;
 
     /** get the Environment */
     Environment *get_env() {
@@ -232,12 +232,11 @@ class FileDevice : public Device {
                 ham_offset_t size);
 
     /** reads a page from the device; this function CAN use mmap */
-    virtual ham_status_t read_page(ham_page_t *page);
+    virtual ham_status_t read_page(Page *page);
 
     /** writes a page to the device */
-    virtual ham_status_t write_page(ham_page_t *page) {
-        return (write(page_get_self(page), 
-                    page_get_pers(page), get_pagesize()));
+    virtual ham_status_t write_page(Page *page) {
+        return (write(page->get_self(), page_get_pers(page), get_pagesize()));
     }
 
     /** allocate storage from this device; this function 
@@ -257,7 +256,7 @@ class FileDevice : public Device {
      * The caller is responsible for flushing the page; the @ref free_page 
      * function will assert that the page is not dirty.
      */
-    virtual ham_status_t alloc_page(ham_page_t *page) {
+    virtual ham_status_t alloc_page(Page *page) {
         ham_status_t st;
         ham_offset_t pos;
         ham_size_t size=get_pagesize();
@@ -270,13 +269,13 @@ class FileDevice : public Device {
         if (st)
             return (st);
 
-        page_set_self(page, pos);
+        page->set_self(pos);
         return (FileDevice::read_page(page));
     }
 
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
-    virtual ham_status_t free_page(ham_page_t *page);
+    virtual ham_status_t free_page(Page *page);
 
   private:
     ham_fd_t m_fd;
@@ -364,13 +363,13 @@ class InMemoryDevice : public Device {
     }
 
     /** reads a page from the device; this function CAN use mmap */
-    virtual ham_status_t read_page(ham_page_t *page) {
+    virtual ham_status_t read_page(Page *page) {
         ham_assert(!"operation is not possible for in-memory-databases", (0));
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes a page to the device */
-    virtual ham_status_t write_page(ham_page_t *page) {
+    virtual ham_status_t write_page(Page *page) {
         ham_assert(!"operation is not possible for in-memory-databases", (0));
         return (HAM_NOT_IMPLEMENTED);
     }
@@ -390,7 +389,7 @@ class InMemoryDevice : public Device {
      * The caller is responsible for flushing the page; the @ref free_page 
      * function will assert that the page is not dirty.
      */
-    virtual ham_status_t alloc_page(ham_page_t *page) {
+    virtual ham_status_t alloc_page(Page *page) {
         ham_u8_t *buffer;
         ham_size_t size=get_pagesize();
 
@@ -399,17 +398,17 @@ class InMemoryDevice : public Device {
         buffer=(ham_u8_t *)m_env->get_allocator()->alloc(size);
         if (!buffer)
             return (HAM_OUT_OF_MEMORY);
-        page_set_pers(page, (ham_perm_page_union_t *)buffer);
+        page_set_pers(page, (page_data_t *)buffer);
         page_set_npers_flags(page, 
             page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
-        page_set_self(page, (ham_offset_t)PTR_TO_U64(buffer));
+        page->set_self((ham_offset_t)PTR_TO_U64(buffer));
 
         return (HAM_SUCCESS);
     }
 
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
-    virtual ham_status_t free_page(ham_page_t *page) {
+    virtual ham_status_t free_page(Page *page) {
         ham_assert(page_get_pers(page)!=0, (0));
         ham_assert(page_get_npers_flags(page)|PAGE_NPERS_MALLOC, (0));
 

@@ -120,14 +120,14 @@ extern ham_status_t
 __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_status_t
-env_fetch_page(ham_page_t **page_ref, Environment *env, 
+env_fetch_page(Page **page_ref, Environment *env, 
         ham_offset_t address, ham_u32_t flags)
 {
     return (db_fetch_page_impl(page_ref, env, 0, address, flags));
 }
 
 ham_status_t
-env_alloc_page(ham_page_t **page_ref, Environment *env,
+env_alloc_page(Page **page_ref, Environment *env,
                 ham_u32_t type, ham_u32_t flags)
 {
     return (db_alloc_page_impl(page_ref, env, 0, type, flags));
@@ -178,7 +178,7 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* allocate the header page */
     {
-        ham_page_t *page;
+        Page *page;
 
         page=page_new(env);
         if (!page) {
@@ -374,10 +374,10 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
      * the real page. (but i really don't like this)
      */
     {
-        ham_page_t *page=0;
+        Page *page=0;
         env_header_t *hdr;
         ham_u8_t hdrbuf[512];
-        ham_page_t fakepage = {{0}};
+        Page fakepage;
         ham_bool_t hdrpage_faked = HAM_FALSE;
 
         /*
@@ -386,7 +386,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
          * at the end of this section or we'll be in BIG trouble!
          */
         hdrpage_faked = HAM_TRUE;
-        fakepage._pers = (ham_perm_page_union_t *)hdrbuf;
+        fakepage.m_pers = (page_data_t *)hdrbuf;
         env->set_header_page(&fakepage);
 
         /*
@@ -721,7 +721,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      * etc. We have to use the device-routines.
      */
     if (env->get_header_page()) {
-        ham_page_t *page=env->get_header_page();
+        Page *page=env->get_header_page();
         ham_assert(device, (0));
         if (page_get_pers(page)) {
             st=device->free_page(page);
@@ -1607,7 +1607,7 @@ static ham_status_t
 __purge_cache_max20(Environment *env)
 {
     ham_status_t st;
-    ham_page_t *page;
+    Page *page;
     Cache *cache=env->get_cache();
     unsigned i, max_pages=(unsigned)cache->get_cur_elements();
 

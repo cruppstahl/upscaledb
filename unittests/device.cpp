@@ -132,7 +132,7 @@ public:
 
     void allocFreeTest()
     {
-        ham_page_t page;
+        Page page;
         memset(&page, 0, sizeof(page));
         page_set_owner(&page, (Database *)m_db);
 
@@ -152,16 +152,16 @@ public:
     void mmapUnmapTest()
     {
         int i;
-        ham_page_t pages[10];
+        Page pages[10];
         ham_size_t ps=m_dev->get_pagesize();
         ham_u8_t *temp=(ham_u8_t *)malloc(ps);
 
         BFC_ASSERT_EQUAL(1, m_dev->is_open());
         BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*10));
         for (i=0; i<10; i++) {
-            memset(&pages[i], 0, sizeof(ham_page_t));
+            memset(&pages[i], 0, sizeof(Page));
             page_set_owner(&pages[i], (Database *)m_db);
-            page_set_self(&pages[i], i*ps);
+            pages[i].set_self(i*ps);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
         }
         for (i=0; i<10; i++)
@@ -219,7 +219,7 @@ public:
     void readWritePageTest()
     {
         int i;
-        ham_page_t *pages[2];
+        Page *pages[2];
         ham_size_t ps=m_dev->get_pagesize();
 
         m_dev->set_flags(HAM_DISABLE_MMAP);
@@ -228,7 +228,7 @@ public:
         BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*2));
         for (i=0; i<2; i++) {
             BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
-            page_set_self(pages[i], ps*i);
+            pages[i]->set_self(ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
         }
         for (i=0; i<2; i++) {
@@ -243,7 +243,7 @@ public:
             char temp[1024];
             memset(temp, i+1, sizeof(temp));
             BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
-            page_set_self(pages[i], ps*i);
+            pages[i]->set_self(ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
             BFC_ASSERT_EQUAL(0, 
                     memcmp(page_get_pers(pages[i]), temp, sizeof(temp)));

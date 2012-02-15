@@ -59,9 +59,9 @@ class Cache
      *
      * @remark the page is removed from the cache
      */
-    ham_page_t *get_unused_page(void) {
-        ham_page_t *page;
-        ham_page_t *oldest;
+    Page *get_unused_page(void) {
+        Page *page;
+        Page *oldest;
 
         /* get the chronologically oldest page */
         oldest=m_totallist_tail;
@@ -75,10 +75,10 @@ class Cache
         do {
             /* pick the first unused page (not in a changeset) */
             if (!page_is_in_list(m_env->get_changeset().get_head(), 
-                        page, PAGE_LIST_CHANGESET))
+                        page, Page::LIST_CHANGESET))
                 break;
         
-            page=page_get_previous(page, PAGE_LIST_CACHED);
+            page=page_get_previous(page, Page::LIST_CACHED);
             ham_assert(page!=oldest, (0));
         } while (page && page!=oldest);
     
@@ -98,15 +98,15 @@ class Cache
      *
      * @return 0 if the page was not cached
      */
-    ham_page_t *get_page(ham_offset_t address, ham_u32_t flags=0) {
-        ham_page_t *page;
+    Page *get_page(ham_offset_t address, ham_u32_t flags=0) {
+        Page *page;
         ham_u64_t hash=calc_hash(address);
 
         page=m_buckets[hash];
         while (page) {
-            if (page_get_self(page)==address)
+            if (page->get_self()==address)
                 break;
-            page=page_get_next(page, PAGE_LIST_BUCKET);
+            page=page_get_next(page, Page::LIST_BUCKET);
         }
 
         /* not found? then return */
@@ -131,8 +131,8 @@ class Cache
     /**
      * store a page in the cache
      */
-    void put_page(ham_page_t *page) {
-        ham_u64_t hash=calc_hash(page_get_self(page));
+    void put_page(Page *page) {
+        ham_u64_t hash=calc_hash(page->get_self());
 
         ham_assert(page_get_pers(page), (""));
 
@@ -142,13 +142,13 @@ class Cache
          * cache->_totallist_tail pointer is updated and that the page
          * is inserted at the HEAD of the list
          */
-        if (page_is_in_list(m_totallist, page, PAGE_LIST_CACHED))
+        if (page_is_in_list(m_totallist, page, Page::LIST_CACHED))
             remove_page(page);
 
         /* now (re-)insert into the list of all cached pages, and increment
          * the counter */
-        ham_assert(!page_is_in_list(m_totallist, page, PAGE_LIST_CACHED), (0));
-        m_totallist=page_list_insert(m_totallist, PAGE_LIST_CACHED, page);
+        ham_assert(!page_is_in_list(m_totallist, page, Page::LIST_CACHED), (0));
+        m_totallist=page_list_insert(m_totallist, Page::LIST_CACHED, page);
 
         m_cur_elements++;
 
@@ -158,13 +158,13 @@ class Cache
          * to avoid inserting the page twice, we first remove it from the 
          * bucket
          */
-        if (page_is_in_list(m_buckets[hash], page, PAGE_LIST_BUCKET))
+        if (page_is_in_list(m_buckets[hash], page, Page::LIST_BUCKET))
             m_buckets[hash]=page_list_remove(m_buckets[hash], 
-                            PAGE_LIST_BUCKET, page);
+                            Page::LIST_BUCKET, page);
         ham_assert(!page_is_in_list(m_buckets[hash], page, 
-                    PAGE_LIST_BUCKET), (0));
+                    Page::LIST_BUCKET), (0));
         m_buckets[hash]=page_list_insert(m_buckets[hash], 
-                    PAGE_LIST_BUCKET, page);
+                    Page::LIST_BUCKET, page);
 
         /* is this the chronologically oldest page? then set the pointer */
         if (!m_totallist_tail)
@@ -176,27 +176,27 @@ class Cache
     /**
      * remove a page from the cache
      */
-    void remove_page(ham_page_t *page) {
+    void remove_page(Page *page) {
         ham_bool_t removed = HAM_FALSE;
 
         /* are we removing the chronologically oldest page? then 
          * update the pointer with the next oldest page */
         if (m_totallist_tail==page)
-            m_totallist_tail=page_get_previous(page, PAGE_LIST_CACHED);
+            m_totallist_tail=page_get_previous(page, Page::LIST_CACHED);
 
         /* remove the page from the cache buckets */
-        if (page_get_self(page)) {
-            ham_u64_t hash=calc_hash(page_get_self(page));
+        if (page->get_self()) {
+            ham_u64_t hash=calc_hash(page->get_self());
             if (page_is_in_list(m_buckets[hash], page, 
-                    PAGE_LIST_BUCKET)) {
+                    Page::LIST_BUCKET)) {
                 m_buckets[hash]=page_list_remove(m_buckets[hash], 
-                        PAGE_LIST_BUCKET, page);
+                        Page::LIST_BUCKET, page);
             }
         }
 
         /* remove it from the list of all cached pages */
-        if (page_is_in_list(m_totallist, page, PAGE_LIST_CACHED)) {
-            m_totallist=page_list_remove(m_totallist, PAGE_LIST_CACHED, page);
+        if (page_is_in_list(m_totallist, page, Page::LIST_CACHED)) {
+            m_totallist=page_list_remove(m_totallist, Page::LIST_CACHED, page);
             removed = HAM_TRUE;
         }
 
@@ -224,14 +224,14 @@ class Cache
     /**
      * set the HEAD of the global page list
      */
-    void set_totallist(ham_page_t *l) { 
+    void set_totallist(Page *l) { 
         m_totallist=l; 
     }
 
     /**
      * retrieve the HEAD of the global page list
      */
-    ham_page_t * get_totallist(void) { 
+    Page * get_totallist(void) { 
         return (m_totallist); 
     }
 
@@ -270,14 +270,14 @@ class Cache
     ham_u64_t m_cur_elements;
 
     /** linked list of ALL cached pages */
-    ham_page_t *m_totallist;
+    Page *m_totallist;
 
     /** the tail of the linked "totallist" - this is the oldest element,
      * and therefore the highest candidate for a flush */
-    ham_page_t *m_totallist_tail;
+    Page *m_totallist_tail;
 
-    /** the buckets - a linked list of ham_page_t pointers */
-    std::vector<ham_page_t *> m_buckets;
+    /** the buckets - a linked list of Page pointers */
+    std::vector<Page *> m_buckets;
 };
 
 #endif /* HAM_CACHE_H__ */

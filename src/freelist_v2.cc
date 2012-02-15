@@ -61,7 +61,7 @@ __freel_flush_stats32(Device *device, Environment *env)
                          * otherwise just fetch the page from the cache or the 
                          * disk
                          */
-                        ham_page_t *page;
+                        Page *page;
                         
                         st = env_fetch_page(&page, env,
                                 freel_entry_get_page_id(entry), 0);

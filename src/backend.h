@@ -166,14 +166,14 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
      * becoming invalid                                                 \
      */                                                                 \
     ham_status_t (*_fun_uncouple_all_cursors)(clss *be,                 \
-                ham_page_t *page, ham_size_t start);                    \
+                Page *page, ham_size_t start);                    \
                                                                         \
     /**                                                                 \
      * Remove all extended keys for the given @a page from the          \
      * extended key cache.                                              \
      */                                                                 \
     ham_status_t (*_fun_free_page_extkeys)(clss *be,                    \
-                ham_page_t *page, ham_u32_t flags);                     \
+                Page *page, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
      * pointer to the database object                                   \

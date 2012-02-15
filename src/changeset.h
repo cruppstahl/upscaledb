@@ -60,13 +60,13 @@ class Changeset
     }
 
     /** append a new page to the changeset */
-    void add_page(ham_page_t *page);
+    void add_page(Page *page);
 
     /**
      * get a page from the changeset
      * returns NULL if the page is not part of the changeset
      */
-    ham_page_t *get_page(ham_offset_t pageid);
+    Page *get_page(ham_offset_t pageid);
 
     /** removes all pages from the changeset */
     void clear();
@@ -80,17 +80,17 @@ class Changeset
     ham_status_t flush(ham_u64_t lsn);
 
     /** retrieve the head of the linked list */
-    ham_page_t *get_head() {
+    Page *get_head() {
         return (m_head);
     }
 
   private:
     /* write all pages in a bucket to the log file */
-    ham_status_t log_bucket(ham_page_t **bucket, ham_size_t bucket_size,
+    ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,
                             ham_u64_t lsn, ham_size_t &page_count) ;
 
     /* the head of our linked list */
-    ham_page_t *m_head;
+    Page *m_head;
 
     /* cached vectors for Changeset::flush(); using plain pointers
      * instead of std::vector because
@@ -98,19 +98,19 @@ class Changeset
      * - workaround for an MSVC 9 bug:
      *   http://social.msdn.microsoft.com/Forums/en-us/vcgeneral/thread/1bf2b062-150f-4f86-8081-d4d5dd0d1956
      */
-    ham_page_t **m_blobs;
+    Page **m_blobs;
     ham_size_t m_blobs_size;
     ham_size_t m_blobs_capacity;
 
-    ham_page_t **m_freelists;
+    Page **m_freelists;
     ham_size_t m_freelists_size;
     ham_size_t m_freelists_capacity;
 
-    ham_page_t **m_indices;
+    Page **m_indices;
     ham_size_t m_indices_size;
     ham_size_t m_indices_capacity;
 
-    ham_page_t **m_others;
+    Page **m_others;
     ham_size_t m_others_size;
     ham_size_t m_others_capacity;
 

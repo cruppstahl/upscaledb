@@ -739,7 +739,7 @@ public:
         }
 
         ham_btree_t *be=(ham_btree_t *)((Database *)m_db)->get_backend();
-        ham_page_t *page;
+        Page *page;
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, (Database *)m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);

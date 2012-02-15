@@ -256,7 +256,7 @@ public:
         Log *log=m_env->get_log();
 
         for (int i=0; i<5; i++) {
-            ham_page_t *page;
+            Page *page;
             page=page_new(m_env);
             BFC_ASSERT_EQUAL(0, page_alloc(page));
             BFC_ASSERT_EQUAL(0, log->append_page(page, 1+i, 5-i));
@@ -616,12 +616,12 @@ public:
         Database *db=(Database *)m_db;
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=m_env->get_pagesize();
-        ham_page_t *page;
+        Page *page;
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
         page_set_dirty(page);
-        BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
+        BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(1));
@@ -663,14 +663,14 @@ public:
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=m_env->get_pagesize();
-        ham_page_t *page[10];
+        Page *page[10];
         Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
-            BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
+            BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
@@ -718,13 +718,13 @@ public:
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=m_env->get_pagesize();
-        ham_page_t *page;
+        Page *page;
         Database *db=(Database *)m_db;
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
         page_set_dirty(page);
-        BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
+        BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(2));
@@ -766,14 +766,14 @@ public:
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=m_env->get_pagesize();
-        ham_page_t *page[10];
+        Page *page[10];
         Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
-            BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
+            BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
@@ -824,14 +824,14 @@ public:
 #ifndef WIN32
         g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         ham_size_t ps=m_env->get_pagesize();
-        ham_page_t *page[10];
+        Page *page[10];
         Database *db=(Database *)m_db;
 
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
             page_set_dirty(page[i]);
-            BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
+            BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }

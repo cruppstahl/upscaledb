@@ -50,14 +50,14 @@ typedef struct
  * the linked list of all the siblings
  */
 static ham_status_t 
-__verify_level(ham_page_t *parent, ham_page_t *page, 
+__verify_level(Page *parent, Page *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad);
 
 /**
  * verify a single page
  */
 static ham_status_t
-__verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
+__verify_page(Page *parent, Page *leftsib, Page *page, 
         ham_u32_t level, ham_u32_t count, check_scratchpad_t *scratchpad);
     
 /**                                                                 
@@ -71,7 +71,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 ham_status_t 
 btree_check_integrity(ham_btree_t *be)
 {
-    ham_page_t *page, *parent=0; 
+    Page *page, *parent=0; 
     ham_u32_t level=0;
     btree_node_t *node;
     ham_status_t st=0;
@@ -122,7 +122,7 @@ btree_check_integrity(ham_btree_t *be)
 }
 
 static int
-__key_compare_int_to_int(Database *db, ham_page_t *page, 
+__key_compare_int_to_int(Database *db, Page *page, 
         ham_u16_t lhs_int, ham_u16_t rhs_int)
 {
     btree_key_t *l;
@@ -150,12 +150,12 @@ __key_compare_int_to_int(Database *db, ham_page_t *page,
 }
 
 static ham_status_t 
-__verify_level(ham_page_t *parent, ham_page_t *page, 
+__verify_level(Page *parent, Page *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad)
 {
     int cmp;
     ham_u32_t count=0;
-    ham_page_t *child, *leftsib=0;
+    Page *child, *leftsib=0;
     ham_status_t st=0;
     btree_node_t *node=page_get_btree_node(page);
     Database *db=page_get_owner(page);
@@ -173,7 +173,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
             return (ham_status_t)cmp;
         if (cmp<0) {
             ham_log(("integrity check failed in page 0x%llx: parent item #0 "
-                    "< item #%d\n", page_get_self(page), 
+                    "< item #%d\n", page->get_self(), 
                     btree_node_get_count(cnode)-1));
             return (HAM_INTEGRITY_VIOLATED);
         }
@@ -210,7 +210,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
 }
 
 static ham_status_t
-__verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
+__verify_page(Page *parent, Page *leftsib, Page *page, 
         ham_u32_t level, ham_u32_t sibcount, check_scratchpad_t *scratchpad)
 {
     int cmp;
@@ -228,11 +228,11 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
          * rootpage.
          */
         ham_btree_t *be=(ham_btree_t *)db->get_backend();
-        if (page_get_self(page)==btree_get_rootpage(be))
+        if (page->get_self()==btree_get_rootpage(be))
             return (0);
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
-                page_get_self(page)));
+                page->get_self()));
         return (HAM_INTEGRITY_VIOLATED);
     }
 
@@ -259,7 +259,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         {
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
-                    page_get_self(page), i));
+                    page->get_self(), i));
             return (HAM_INTEGRITY_VIOLATED);
         }
         else {
@@ -283,7 +283,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
         if (cmp >= 0) {
             ham_log(("integrity check failed in page 0x%llx: item #0 "
-                    "< left sibling item #%d\n", page_get_self(page), 
+                    "< left sibling item #%d\n", page->get_self(), 
                     btree_node_get_count(sibnode)-1));
             return (HAM_INTEGRITY_VIOLATED);
         }
@@ -302,7 +302,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             if (!blobid) {
                 ham_log(("integrity check failed in page 0x%llx: item #%d "
                         "is extended, but has no blob", 
-                        page_get_self(page), i));
+                        page->get_self(), i));
                 return (HAM_INTEGRITY_VIOLATED);
             }
         }
@@ -313,7 +313,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             return (ham_status_t)cmp;
         if (cmp>=0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d", page_get_self(page), i, i+1));
+                    "< item #%d", page->get_self(), i, i+1));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }

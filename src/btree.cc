@@ -35,7 +35,7 @@
  * key
  */
 ham_status_t 
-btree_get_slot(Database *db, ham_page_t *page, 
+btree_get_slot(Database *db, Page *page, 
                 ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
     int cmp = -1;
@@ -171,7 +171,7 @@ static ham_status_t
 btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_page_t *root;
+    Page *root;
     ham_size_t maxkeys;
     Database *db=be_get_db(be);
     db_indexdata_t *indexdata=db->get_env()->get_indexdata_ptr(
@@ -200,7 +200,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
         return (st ? st : HAM_INTERNAL_ERROR);
 
     memset(page_get_raw_payload(root), 0, 
-            sizeof(btree_node_t)+sizeof(ham_perm_page_union_t));
+            sizeof(btree_node_t)+sizeof(page_data_t));
     page_set_type(root, PAGE_TYPE_B_ROOT);
 
     /*
@@ -212,12 +212,12 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     be_set_keysize(be, keysize);
     be_set_flags(be, flags);
 
-    btree_set_rootpage(be, page_get_self(root));
+    btree_set_rootpage(be, root->get_self());
 
     index_clear_reserved(indexdata);
     index_set_max_keys(indexdata, (ham_u16_t)maxkeys);
     index_set_keysize(indexdata, keysize);
-    index_set_self(indexdata, page_get_self(root));
+    index_set_self(indexdata, root->get_self());
     index_set_flags(indexdata, flags);
     index_set_recno(indexdata, 0);
     index_clear_reserved(indexdata);
@@ -343,7 +343,7 @@ btree_fun_delete(ham_btree_t *be)
  * becoming invalid                                                    
  */                                                                    
 static ham_status_t
-btree_fun_uncouple_all_cursors(ham_btree_t *be, ham_page_t *page, 
+btree_fun_uncouple_all_cursors(ham_btree_t *be, Page *page, 
                     ham_size_t start)
 {
     return (btree_uncouple_all_cursors(page, start));
@@ -365,7 +365,7 @@ btree_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
  * extended key cache.                                                
  */                                                                    
 static ham_status_t
-btree_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
+btree_fun_free_page_extkeys(ham_btree_t *be, Page *page, ham_u32_t flags)
 {
     Database *db=be_get_db(be);
     
@@ -439,8 +439,8 @@ btree_create(Database *db, ham_u32_t flags)
 }
 
 ham_status_t
-btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr, 
-                    Database *db, ham_page_t *page, ham_key_t *key)
+btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr, 
+                    Database *db, Page *page, ham_key_t *key)
 {
     ham_status_t st;
     ham_s32_t slot;
@@ -474,7 +474,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
 }
 
 ham_s32_t 
-btree_node_search_by_key(Database *db, ham_page_t *page, ham_key_t *key, 
+btree_node_search_by_key(Database *db, Page *page, ham_key_t *key, 
                     ham_u32_t flags)
 {
     int cmp;
@@ -784,7 +784,7 @@ btree_prepare_key_for_compare(Database *db, int which,
 }
 
 int
-btree_compare_keys(Database *db, ham_page_t *page, 
+btree_compare_keys(Database *db, Page *page, 
         ham_key_t *lhs, ham_u16_t rhs_int)
 {
     btree_key_t *r;

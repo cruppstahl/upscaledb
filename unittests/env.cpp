@@ -124,8 +124,8 @@ protected:
         env->set_cache(0);
 
         BFC_ASSERT(env->get_header_page()==0);
-        env->set_header_page((ham_page_t *)18);
-        BFC_ASSERT(env->get_header_page()==(ham_page_t *)18);
+        env->set_header_page((Page *)18);
+        BFC_ASSERT(env->get_header_page()==(Page *)18);
         env->set_header_page(0);
 
         BFC_ASSERT(env->get_oldest_txn()==0);

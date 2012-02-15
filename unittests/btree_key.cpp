@@ -77,7 +77,7 @@ public:
 
     void structureTest(void)
     {
-        ham_page_t *page=page_new((Environment *)m_env);
+        Page *page=page_new((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);
@@ -100,7 +100,7 @@ public:
 
     void extendedRidTest(void)
     {
-        ham_page_t *page=page_new((Environment *)m_env);
+        Page *page=page_new((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=page_get_btree_node(page);

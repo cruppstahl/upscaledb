@@ -94,7 +94,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
 #include "packstart.h"
 
 /**
- * A btree-node; it spans the persistent part of a ham_page_t:
+ * A btree-node; it spans the persistent part of a Page:
  *
  * <pre>
  * btree_node_t *btp=(btree_node_t *)page->_u._pers.payload;
@@ -161,8 +161,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
 /** set the ptr_left of a btree-node */
 #define btree_node_set_ptr_left(btp, r)      btp->_ptr_left=ham_h2db_offset(r)
 
-/** get a btree_node_t from a ham_page_t */
-#define page_get_btree_node(p)          ((btree_node_t *)p->_pers->_s._payload)
+/** get a btree_node_t from a Page */
+#define page_get_btree_node(p)          ((btree_node_t *)p->m_pers->_s._payload)
 
 /**
  * "constructor" - initializes a new ham_btree_t object
@@ -256,8 +256,8 @@ btree_check_integrity(ham_btree_t *be);
  *      of the loaded page
  */
 extern ham_status_t
-btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr, 
-					Database *db, ham_page_t *page, ham_key_t *key);
+btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr, 
+					Database *db, Page *page, ham_key_t *key);
 
 /**
  * search a leaf node for a key
@@ -270,7 +270,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
  *         unexpected error occurred.
  */
 extern ham_s32_t 
-btree_node_search_by_key(Database *db, ham_page_t *page, ham_key_t *key, 
+btree_node_search_by_key(Database *db, Page *page, ham_key_t *key, 
                 ham_u32_t flags);
 
 /**
@@ -281,11 +281,11 @@ btree_node_search_by_key(Database *db, ham_page_t *page, ham_key_t *key,
             [(db_get_keysize(db)+db_get_int_key_header_size())*(i)])
 
 /**
- * get offset of entry @a i - add this to page_get_self(page) for
+ * get offset of entry @a i - add this to page->get_self() for
  * the absolute offset of the key in the file
  */
 #define btree_node_get_key_offset(page, i)                          \
-     (page_get_self(page)+page_get_persistent_header_size()+        \
+     ((page)->get_self()+page_get_persistent_header_size()+        \
      OFFSETOF(btree_node_t, _entries)                               \
      /* ^^^ sizeof(btree_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
@@ -296,7 +296,7 @@ btree_node_search_by_key(Database *db, ham_page_t *page, ham_key_t *key,
  * equal
  */
 extern ham_status_t 
-btree_get_slot(Database *db, ham_page_t *page, 
+btree_get_slot(Database *db, Page *page, 
         ham_key_t *key, ham_s32_t *slot, int *cmp);
 
 /**
@@ -326,7 +326,7 @@ btree_close_cursors(Database *db, ham_u32_t flags);
  * @sa ham_status_codes 
  */
 extern int
-btree_compare_keys(Database *db, ham_page_t *page, 
+btree_compare_keys(Database *db, Page *page, 
                 ham_key_t *lhs, ham_u16_t rhs);
 
 /**

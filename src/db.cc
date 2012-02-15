@@ -550,7 +550,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
 }
 
 ham_status_t
-db_free_page(ham_page_t *page, ham_u32_t flags)
+db_free_page(Page *page, ham_u32_t flags)
 {
     ham_status_t st;
     Environment *env=page_get_device(page)->get_env();
@@ -588,7 +588,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
      */
     if (flags&DB_MOVE_TO_FREELIST) {
         if (!(env->get_flags()&HAM_IN_MEMORY_DB))
-            (void)freel_mark_free(env, 0, page_get_self(page), 
+            (void)freel_mark_free(env, 0, page->get_self(), 
                     env->get_pagesize(), HAM_TRUE);
     }
 
@@ -603,12 +603,12 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
+db_alloc_page_impl(Page **page_ref, Environment *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
     ham_offset_t tellpos=0;
-    ham_page_t *page=NULL;
+    Page *page=NULL;
     ham_bool_t allocated_by_me=HAM_FALSE;
 
     *page_ref = 0;
@@ -629,7 +629,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
             page=page_new(env);
             if (!page)
                 return (HAM_OUT_OF_MEMORY);
-            page_set_self(page, tellpos);
+            page->set_self(tellpos);
             /* fetch the page from disk */
             st=page_fetch(page);
             if (st) {
@@ -685,7 +685,7 @@ done:
 }
 
 ham_status_t
-db_alloc_page(ham_page_t **page_ref, Database *db, 
+db_alloc_page(Page **page_ref, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
@@ -696,17 +696,17 @@ db_alloc_page(ham_page_t **page_ref, Database *db,
     /* hack: prior to 2.0, the type of btree root pages was not set
      * correctly */
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
-    if (page_get_self(*page_ref)==btree_get_rootpage(be) 
+    if ((*page_ref)->get_self()==btree_get_rootpage(be) 
             && !(db->get_rt_flags()&HAM_READ_ONLY))
         page_set_type(*page_ref, PAGE_TYPE_B_ROOT);
     return (0);
 }
 
 ham_status_t
-db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
+db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
-    ham_page_t *page=0;
+    Page *page=0;
     ham_status_t st;
 
     ham_assert(0 == (flags & ~(HAM_HINTS_MASK|DB_ONLY_FROM_CACHE)), (0));
@@ -742,7 +742,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
         return (HAM_OUT_OF_MEMORY);
 
     page_set_owner(page, db);
-    page_set_self(page, address);
+    page->set_self(address);
     st=page_fetch(page);
     if (st) {
         (void)page_delete(page);
@@ -763,14 +763,14 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
 }
 
 ham_status_t
-db_fetch_page(ham_page_t **page_ref, Database *db,
+db_fetch_page(Page **page_ref, Database *db,
                 ham_offset_t address, ham_u32_t flags)
 {
     return (db_fetch_page_impl(page_ref, db->get_env(), db, address, flags));
 }
 
 ham_status_t
-db_flush_page(Environment *env, ham_page_t *page)
+db_flush_page(Environment *env, Page *page)
 {
     ham_status_t st;
 
@@ -789,7 +789,7 @@ db_flush_page(Environment *env, ham_page_t *page)
      * TODO why "put it back"? it's already in the cache
      * be careful - don't store the header page in the cache
      */
-    if (page_get_self(page)!=0)
+    if (!page->is_header())
         env->get_cache()->put_page(page);
 
     return (0);
@@ -798,7 +798,7 @@ db_flush_page(Environment *env, ham_page_t *page)
 ham_status_t
 db_flush_all(Cache *cache, ham_u32_t flags)
 {
-    ham_page_t *head;
+    Page *head;
 
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
@@ -807,7 +807,7 @@ db_flush_all(Cache *cache, ham_u32_t flags)
 
     head=cache->get_totallist();
     while (head) {
-        ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
+        Page *next=page_get_next(head, Page::LIST_CACHED);
 
         /*
          * don't remove the page from the cache, if flag NODELETE
@@ -815,7 +815,7 @@ db_flush_all(Cache *cache, ham_u32_t flags)
          */
         if (!(flags&DB_FLUSH_NODELETE)) {
             cache->set_totallist(page_list_remove(cache->get_totallist(), 
-                    PAGE_LIST_CACHED, head));
+                    Page::LIST_CACHED, head));
             cache->dec_cur_elements();
         }
 
@@ -828,7 +828,7 @@ db_flush_all(Cache *cache, ham_u32_t flags)
 }
 
 ham_status_t
-db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
+db_write_page_and_delete(Page *page, ham_u32_t flags)
 {
     ham_status_t st;
     Environment *env=page_get_device(page)->get_env();
@@ -2902,9 +2902,9 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * it's still required and will be flushed below)
      */
     if (env && env->get_cache()) {
-        ham_page_t *n, *head=env->get_cache()->get_totallist();
+        Page *n, *head=env->get_cache()->get_totallist();
         while (head) {
-            n=page_get_next(head, PAGE_LIST_CACHED);
+            n=page_get_next(head, Page::LIST_CACHED);
             if (page_get_owner(head)==m_db && head!=env->get_header_page()) {
                 if (!(env->get_flags()&HAM_IN_MEMORY_DB)) 
                     (void)db_flush_page(env, head);

@@ -233,7 +233,7 @@ public:
 
     void allocPageTest(void)
     {
-        ham_page_t *page;
+        Page *page;
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(m_dbp, page_get_owner(page));
@@ -242,19 +242,19 @@ public:
 
     void fetchPageTest(void)
     {
-        ham_page_t *p1, *p2;
+        Page *p1, *p2;
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&p1, m_dbp, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(m_dbp, page_get_owner(p1));
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&p2, m_dbp, page_get_self(p1), 0));
-        BFC_ASSERT_EQUAL(page_get_self(p2), page_get_self(p1));
+                db_fetch_page(&p2, m_dbp, p1->get_self(), 0));
+        BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
         BFC_ASSERT_EQUAL(0, db_free_page(p1, 0));
     }
 
     void flushPageTest(void)
     {
-        ham_page_t *page;
+        Page *page;
         ham_offset_t address;
         ham_u8_t *p;
 
@@ -266,13 +266,13 @@ public:
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
         page_set_dirty(page);
-        address=page_get_self(page);
+        address=page->get_self();
         BFC_ASSERT_EQUAL(0, db_flush_page((Environment *)m_env, page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
 
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_dbp, address, 0));
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(address, page_get_self(page));
+        BFC_ASSERT_EQUAL(address, page->get_self());
         p=page_get_raw_payload(page);
         /* TODO see comment in db.c - db_free_page()
         for (int i=0; i<16; i++)
@@ -324,17 +324,17 @@ public:
         BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
         BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));
         BFC_ASSERT(compare_sizes(sizeof(Log::Entry), 32));
-        BFC_ASSERT(compare_sizes(sizeof(ham_perm_page_union_t), 13));
-        ham_perm_page_union_t p;
+        BFC_ASSERT(compare_sizes(sizeof(page_data_t), 13));
+        page_data_t p;
         BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
         BFC_ASSERT(compare_sizes(page_get_persistent_header_size(), 12));
 
         BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
-        ham_page_t page = {{0}};
+        Page page;
         Database db;
         ham_backend_t be = {0};
 
-        page_set_self(&page, 1000);
+        page.set_self(1000);
         page_set_owner(&page, &db);
         db.set_backend(&be);
         be_set_keysize(&be, 666);
@@ -348,17 +348,17 @@ public:
         // header page, then hack it...
         struct
         {
-            ham_perm_page_union_t drit;
+            page_data_t drit;
             env_header_t drat;
         } hdrpage_pers = {{{0}}};
-        ham_page_t hdrpage = {{0}};
-        hdrpage._pers = (ham_perm_page_union_t *)&hdrpage_pers;
-        ham_page_t *hp = &hdrpage;
+        Page hdrpage;
+        hdrpage.m_pers = (page_data_t *)&hdrpage_pers;
+        Page *hp = &hdrpage;
         ham_u8_t *pl1 = page_get_payload(hp);
         BFC_ASSERT(pl1);
-        BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage._pers, 12));
+        BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage.m_pers, 12));
         env_header_t *hdrptr = (env_header_t *)(page_get_payload(&hdrpage));
-        BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage._pers, 12));
+        BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage.m_pers, 12));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
     }
 

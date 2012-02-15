@@ -13,9 +13,9 @@
  * @brief provides forward declarations of internally used types
  *
  * This header file provides these forward declarations to prevent several 
- * cyclic dependencies; in particular, the @ref ham_page_t is a type used 
- * throughout, but a @ref ham_page_t contains several other types, which 
- * again reference @ref ham_page_t pointers either directly or indirectly.
+ * cyclic dependencies; in particular, the @ref Page is a type used 
+ * throughout, but a @ref Page contains several other types, which 
+ * again reference @ref Page pointers either directly or indirectly.
  *
  * To solve this self-referential issue once and for all, all major hamster 
  * internal types are forward declared here; when the code requires the actual 
@@ -45,8 +45,8 @@ class Device;
 
 class Environment;
 
-struct ham_page_t;
-typedef struct ham_page_t ham_page_t;
+struct Page;
+typedef struct Page Page;
 
 struct ham_backend_t;
 typedef struct ham_backend_t ham_backend_t;

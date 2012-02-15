@@ -60,7 +60,7 @@ typedef struct erase_scratchpad_t
     /*
      * a page which needs rebalancing
      */
-    ham_page_t *mergepage;
+    Page *mergepage;
 
     /*
      * a coupled cursor (can be NULL)
@@ -82,31 +82,31 @@ typedef struct erase_scratchpad_t
  * returns the page which is deleted, if available
  */
 static ham_status_t
-my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, 
+my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left, 
                 ham_offset_t right, ham_offset_t lanchor, ham_offset_t ranchor,
-                ham_page_t *parent, erase_scratchpad_t *scratchpad, 
+                Page *parent, erase_scratchpad_t *scratchpad, 
                 erase_hints_t *hints);
 
 /*
  * collapse the root node
  */
 static ham_status_t
-__collapse_root(ham_page_t *root, erase_scratchpad_t *scratchpad);
+__collapse_root(Page *root, erase_scratchpad_t *scratchpad);
 
 /**
  * rebalance a page - either shifts elements to a sibling, or merges 
  * the page with a sibling
  */
 static ham_status_t 
-my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_offset_t right, 
-             ham_offset_t lanchor, ham_offset_t ranchor, ham_page_t *parent,
+my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t right, 
+             ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
              erase_scratchpad_t *scratchpad, erase_hints_t *hints);
 
 /*
  * merge two pages
  */
 static ham_status_t
-my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibling, ham_offset_t anchor,
+my_merge_pages(Page **newpage_ref, Page *page, Page *sibling, ham_offset_t anchor,
         erase_scratchpad_t *scratchpad, erase_hints_t *hints);
 
 /*
@@ -120,7 +120,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibling, 
  *      themselves.
  */
 static ham_status_t 
-my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
+my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t anchor,
         erase_scratchpad_t *scratchpad, erase_hints_t *hints);
 
 /*
@@ -133,14 +133,14 @@ my_copy_key(Database *db, btree_key_t *lhs, btree_key_t *rhs);
  * replace two keys in a page 
  */
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_s32_t slot, 
+my_replace_key(Page *page, ham_s32_t slot, 
         btree_key_t *newentry, ham_u32_t flags, erase_hints_t *hints);
 
 /*
  * remove an item from a page 
  */
 static ham_status_t
-my_remove_entry(ham_page_t *page, ham_s32_t slot, 
+my_remove_entry(Page *page, ham_s32_t slot, 
         erase_scratchpad_t *scratchpad, erase_hints_t *hints);
 
 /*
@@ -154,8 +154,8 @@ btree_erase_impl(ham_btree_t *be, ham_key_t *key,
         btree_cursor_t *cursor, ham_u32_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_page_t *root;
-    ham_page_t *p;
+    Page *root;
+    Page *p;
     ham_offset_t rootaddr;
     Database *db=be_get_db(be);
     erase_scratchpad_t scratchpad;
@@ -247,16 +247,16 @@ btree_erase_impl(ham_btree_t *be, ham_key_t *key,
 }
 
 static ham_status_t
-my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, ham_offset_t right, 
-        ham_offset_t lanchor, ham_offset_t ranchor, ham_page_t *parent,
+my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left, ham_offset_t right, 
+        ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
         erase_scratchpad_t *scratchpad, erase_hints_t *hints)
 {
     ham_s32_t slot;
     ham_bool_t isfew;
     ham_status_t st;
-    ham_page_t *newme;
-    ham_page_t *child;
-    ham_page_t *tempp=0;
+    Page *newme;
+    Page *child;
+    Page *tempp=0;
     Database *db=page_get_owner(page);
     btree_node_t *node=page_get_btree_node(page);
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
@@ -273,7 +273,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
     /*
      * mark the nodes which may need rebalancing
      */
-    if (btree_get_rootpage(scratchpad->be)==page_get_self(page))
+    if (btree_get_rootpage(scratchpad->be)==page->get_self())
         isfew=(btree_node_get_count(node)<=1);
     else
         isfew=(btree_node_get_count(node)<btree_get_minkeys(maxkeys)); 
@@ -336,7 +336,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
                 bte=btree_node_get_key(db, node, slot-1);
                 next_left=key_get_ptr(bte);
             }
-            next_lanchor=page_get_self(page);
+            next_lanchor=page->get_self();
         }
 
         if (slot==btree_node_get_count(node)-1) {
@@ -359,7 +359,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
             btree_key_t *bte; 
             bte=btree_node_get_key(db, node, slot+1);
             next_right=key_get_ptr(bte);
-            next_ranchor=page_get_self(page);
+            next_ranchor=page->get_self();
         }
 
         st=my_erase_recursive(&newme, child, next_left, next_right, next_lanchor, 
@@ -415,11 +415,11 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
 }
 
 static ham_status_t
-__collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
+__collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
 {
     Environment *env;
 
-    btree_set_rootpage(scratchpad->be, page_get_self(newroot));
+    btree_set_rootpage(scratchpad->be, newroot->get_self());
     be_set_dirty(scratchpad->be, HAM_TRUE);
     scratchpad->be->_fun_flush(scratchpad->be);
     ham_assert(page_get_owner(newroot), (0));
@@ -439,14 +439,14 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 }
 
 static ham_status_t 
-my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_offset_t right, 
-        ham_offset_t lanchor, ham_offset_t ranchor, ham_page_t *parent,
+my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t right, 
+        ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
         erase_scratchpad_t *scratchpad, erase_hints_t *hints)
 {
     ham_status_t st;
     btree_node_t *node=page_get_btree_node(page);
-    ham_page_t *leftpage=0;
-    ham_page_t *rightpage=0;
+    Page *leftpage=0;
+    Page *rightpage=0;
     btree_node_t *leftnode=0;
     btree_node_t *rightnode=0;
     ham_bool_t fewleft=HAM_FALSE;
@@ -505,7 +505,7 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * too empty, we have to merge them
      */
     if ((!leftpage || fewleft) && (!rightpage || fewright)) {
-        if (parent && lanchor!=page_get_self(parent)) {
+        if (parent && lanchor!=parent->get_self()) {
             return (my_merge_pages(newpage_ref, page, rightpage, ranchor, 
                         scratchpad, hints));
         }
@@ -519,8 +519,8 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * otherwise choose the better of a merge or a shift
      */
     if (leftpage && fewleft && rightpage && !fewright) {
-        if (parent && (!(ranchor==page_get_self(parent)) && 
-                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
+        if (parent && (!(ranchor==parent->get_self()) && 
+                (page->get_self()==scratchpad->mergepage->get_self()))) {
             return (my_merge_pages(newpage_ref, leftpage, page, lanchor, 
                         scratchpad, hints));
         }
@@ -534,8 +534,8 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * ... still choose the better of a merge or a shift...
      */
     if (leftpage && !fewleft && rightpage && fewright) {
-        if (parent && (!(lanchor==page_get_self(parent)) &&
-                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
+        if (parent && (!(lanchor==parent->get_self()) &&
+                (page->get_self()==scratchpad->mergepage->get_self()))) {
             return (my_merge_pages(newpage_ref, page, rightpage, ranchor, 
                         scratchpad, hints));
         }
@@ -564,7 +564,7 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
     /*
      * choose the shift with more local effect
      */
-    if (parent && lanchor==page_get_self(parent)) {
+    if (parent && lanchor==parent->get_self()) {
         return (my_shift_pages(newpage_ref, leftpage, page, lanchor, 
                         scratchpad, hints));
     }
@@ -575,7 +575,7 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
 }
 
 static ham_status_t
-my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
+my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
             ham_offset_t anchor, erase_scratchpad_t *scratchpad, 
             erase_hints_t *hints)
 {
@@ -583,7 +583,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     ham_s32_t slot;
     ham_size_t c, keysize;
     Database *db=page_get_owner(page);
-    ham_page_t *ancpage;
+    Page *ancpage;
     btree_node_t *node, *sibnode, *ancnode;
     btree_key_t *bte_lhs, *bte_rhs;
 
@@ -682,9 +682,9 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     /*
      * update the linked list of pages
      */
-    if (btree_node_get_left(node)==page_get_self(sibpage)) {
+    if (btree_node_get_left(node)==sibpage->get_self()) {
         if (btree_node_get_left(sibnode)) {
-            ham_page_t *p;
+            Page *p;
             btree_node_t *n;
 
             st=db_fetch_page(&p, page_get_owner(page),
@@ -699,9 +699,9 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
         else
             btree_node_set_left(node, 0);
     }
-    else if (btree_node_get_right(node)==page_get_self(sibpage)) {
+    else if (btree_node_get_right(node)==sibpage->get_self()) {
         if (btree_node_get_right(sibnode)) {
-            ham_page_t *p;
+            Page *p;
             btree_node_t *n;
             
             st=db_fetch_page(&p, page_get_owner(page),
@@ -722,8 +722,8 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
      * return this page for deletion
      */
     if (scratchpad->mergepage && 
-           (page_get_self(scratchpad->mergepage)==page_get_self(page) ||
-            page_get_self(scratchpad->mergepage)==page_get_self(sibpage))) 
+           (scratchpad->mergepage->get_self()==page->get_self() ||
+            scratchpad->mergepage->get_self()==sibpage->get_self())) 
         scratchpad->mergepage=0;
 
     btree_stats_page_is_nuked(db, sibpage, HAM_FALSE);
@@ -739,7 +739,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
 }
 
 static ham_status_t
-my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
+my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t anchor,
         erase_scratchpad_t *scratchpad, erase_hints_t *hints)
 {
     ham_s32_t slot=0;
@@ -749,7 +749,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     ham_size_t c;
     ham_size_t keysize;
     Database *db=page_get_owner(page);
-    ham_page_t *ancpage;
+    Page *ancpage;
     btree_node_t *node, *sibnode, *ancnode;
     btree_key_t *bte_lhs, *bte_rhs;
 
@@ -1201,7 +1201,7 @@ my_copy_key(Database *db, btree_key_t *lhs, btree_key_t *rhs)
 }
 
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_s32_t slot, 
+my_replace_key(Page *page, ham_s32_t slot, 
         btree_key_t *rhs, ham_u32_t flags, erase_hints_t *hints)
 {
     btree_key_t *lhs;
@@ -1277,7 +1277,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
 }
 
 static ham_status_t
-my_remove_entry(ham_page_t *page, ham_s32_t slot, 
+my_remove_entry(Page *page, ham_s32_t slot, 
         erase_scratchpad_t *scratchpad, erase_hints_t *hints)
 {
     ham_status_t st;

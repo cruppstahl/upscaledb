@@ -35,7 +35,7 @@ btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor,
            ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
 	ham_status_t st;
-    ham_page_t *page = NULL;
+    Page *page = NULL;
     btree_node_t *node = NULL;
     btree_key_t *entry;
     ham_s32_t idx = -1;

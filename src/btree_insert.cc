@@ -94,7 +94,7 @@ typedef struct insert_scratchpad_t
  * and performing necessary SMOs. it works recursive.
  */
 static ham_status_t
-__insert_recursive(ham_page_t *page, ham_key_t *key, 
+__insert_recursive(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints);
 
@@ -102,7 +102,7 @@ __insert_recursive(ham_page_t *page, ham_key_t *key,
  * this function inserts a key in a page
  */
 static ham_status_t
-__insert_in_page(ham_page_t *page, ham_key_t *key, 
+__insert_in_page(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints);
 
@@ -110,7 +110,7 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
  * insert a key in a page; the page MUST have free slots
  */
 static ham_status_t
-__insert_nosplit(ham_page_t *page, ham_key_t *key, 
+__insert_nosplit(Page *page, ham_key_t *key, 
                 ham_offset_t rid, ham_record_t *record, 
                 btree_cursor_t *cursor, insert_hints_t *hints);
 
@@ -118,7 +118,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
  * split a page and insert the new element
  */
 static ham_status_t
-__insert_split(ham_page_t *page, ham_key_t *key, 
+__insert_split(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints);
 
@@ -132,7 +132,7 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                 btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st=0;
-    ham_page_t *page;
+    Page *page;
     btree_node_t *node;
     Database *db;
 
@@ -297,7 +297,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                 btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st;
-    ham_page_t *root;
+    Page *root;
     Database *db=be_get_db(be);
     Environment *env = db->get_env();
     insert_scratchpad_t scratchpad;
@@ -332,7 +332,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
      * root page.
      */
     if (st==SPLIT) {
-        ham_page_t *newroot;
+        Page *newroot;
         btree_node_t *node;
 
         /*
@@ -373,7 +373,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
          * do NOT delete the old root page - it's still in use! also add the
          * root page to the changeset to make sure that the changes are logged
          */
-        btree_set_rootpage(be, page_get_self(newroot));
+        btree_set_rootpage(be, newroot->get_self());
         be_set_dirty(be, HAM_TRUE);
         env->set_dirty();
         be->_fun_flush(be);
@@ -451,12 +451,12 @@ btree_insert(ham_btree_t *be, ham_key_t *key,
 }
 
 static ham_status_t
-__insert_recursive(ham_page_t *page, ham_key_t *key, 
+__insert_recursive(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints)
 {
     ham_status_t st;
-    ham_page_t *child;
+    Page *child;
     Database *db=page_get_owner(page);
     btree_node_t *node=page_get_btree_node(page);
 
@@ -513,7 +513,7 @@ __insert_recursive(ham_page_t *page, ham_key_t *key,
 }
 
 static ham_status_t
-__insert_in_page(ham_page_t *page, ham_key_t *key, 
+__insert_in_page(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints)
 {
@@ -570,7 +570,7 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
 }
 
 static ham_status_t
-__insert_nosplit(ham_page_t *page, ham_key_t *key, 
+__insert_nosplit(Page *page, ham_key_t *key, 
                 ham_offset_t rid, ham_record_t *record, 
                 btree_cursor_t *cursor, insert_hints_t *hints)
 {
@@ -775,13 +775,13 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
 }
 
 static ham_status_t
-__insert_split(ham_page_t *page, ham_key_t *key, 
+__insert_split(Page *page, ham_key_t *key, 
                 ham_offset_t rid, insert_scratchpad_t *scratchpad, 
                 insert_hints_t *hints)
 {
     int cmp;
     ham_status_t st;
-    ham_page_t *newpage, *oldsib;
+    Page *newpage, *oldsib;
     btree_key_t *nbte, *obte;
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
@@ -894,7 +894,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
         (void)db_free_page(newpage, DB_MOVE_TO_FREELIST);
         goto fail_dramatically;
     }
-    pivotrid=page_get_self(newpage);
+    pivotrid=newpage->get_self();
 
     /*
      * adjust the page count
@@ -957,12 +957,12 @@ __insert_split(ham_page_t *page, ham_key_t *key,
         oldsib=0;
     }
 
-    btree_node_set_left (nbtp, page_get_self(page));
+    btree_node_set_left (nbtp, page->get_self());
     btree_node_set_right(nbtp, btree_node_get_right(obtp));
-    btree_node_set_right(obtp, page_get_self(newpage));
+    btree_node_set_right(obtp, newpage->get_self());
     if (oldsib) {
         sbtp=page_get_btree_node(oldsib);
-        btree_node_set_left(sbtp, page_get_self(newpage));
+        btree_node_set_left(sbtp, newpage->get_self());
         page_set_dirty(oldsib);
     }
     page_set_dirty(newpage);

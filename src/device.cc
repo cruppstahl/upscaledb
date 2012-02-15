@@ -58,7 +58,7 @@ FileDevice::read(ham_offset_t offset, void *buffer, ham_offset_t size)
 }
 
 ham_status_t
-FileDevice::read_page(ham_page_t *page)
+FileDevice::read_page(Page *page)
 {
     ham_u8_t *buffer;
     ham_status_t st;
@@ -77,7 +77,7 @@ FileDevice::read_page(ham_page_t *page)
      */
     if (!(m_flags&HAM_DISABLE_MMAP)) {
         st=os_mmap(m_fd, page_get_mmap_handle_ptr(page), 
-                page_get_self(page), size, m_flags&HAM_READ_ONLY, &buffer);
+                page->get_self(), size, m_flags&HAM_READ_ONLY, &buffer);
         if (st && st!=HAM_LIMITS_REACHED)
             return (st);
         if (st==HAM_LIMITS_REACHED) {
@@ -91,14 +91,14 @@ fallback_rw:
             buffer=(ham_u8_t *)m_env->get_allocator()->alloc(size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
-            page_set_pers(page, (ham_perm_page_union_t *)buffer);
+            page_set_pers(page, (page_data_t *)buffer);
             page_set_npers_flags(page, 
                 page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
         }
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        st=FileDevice::read(page_get_self(page), page_get_pers(page), size);
+        st=FileDevice::read(page->get_self(), page_get_pers(page), size);
         if (st)
             return (st);
     }
@@ -107,8 +107,8 @@ fallback_rw:
      * we're done unless there are file filters (or if we're reading the
      * header page - the header page is not filtered)
      */
-    if (!head || page_get_self(page)==0) {
-        page_set_pers(page, (ham_perm_page_union_t *)buffer);
+    if (!head || page->is_header()) {
+        page_set_pers(page, (page_data_t *)buffer);
         return (0);
     }
 
@@ -122,7 +122,7 @@ fallback_rw:
         head=head->_next;
     }
 
-    page_set_pers(page, (ham_perm_page_union_t *)buffer);
+    page_set_pers(page, (page_data_t *)buffer);
     return (0);
 }
 
@@ -165,7 +165,7 @@ FileDevice::write(ham_offset_t offset, void *buffer, ham_offset_t size)
 }
 
 ham_status_t 
-FileDevice::free_page(ham_page_t *page)
+FileDevice::free_page(Page *page)
 {
     ham_status_t st;
 

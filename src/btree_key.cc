@@ -26,7 +26,7 @@
 
 
 ham_status_t
-key_insert_extended(ham_offset_t *rid_ref, Database *db, ham_page_t *page, 
+key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page, 
         ham_key_t *key)
 {
     ham_offset_t blobid;

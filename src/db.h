@@ -931,7 +931,7 @@ db_default_dupe_compare(ham_db_t *db,
  * fetch a page.
  *
  * @param page_ref call-by-reference variable which will be set to 
- *      point to the retrieved @ref ham_page_t instance.
+ *      point to the retrieved @ref Page instance.
  * @param db the database handle - if it's not available then please
  *      use env_fetch_page()
  * @param address the storage address (a.k.a. 'RID') where the page is 
@@ -947,7 +947,7 @@ db_default_dupe_compare(ham_db_t *db,
  * @return one of the @ref ham_status_codes error codes as an error occurred.
  */
 extern ham_status_t
-db_fetch_page(ham_page_t **page_ref, Database *db, 
+db_fetch_page(Page **page_ref, Database *db, 
                     ham_offset_t address, ham_u32_t flags);
 
 /*
@@ -955,7 +955,7 @@ db_fetch_page(ham_page_t **page_ref, Database *db,
  * doing.
  */
 extern ham_status_t
-db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
+db_fetch_page_impl(Page **page_ref, Environment *env, Database *db, 
                     ham_offset_t address, ham_u32_t flags);
 
 /**
@@ -969,7 +969,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
  */
 
 /**
- * Force @ref db_fetch_page to only return a valid @ref ham_page_t instance 
+ * Force @ref db_fetch_page to only return a valid @ref Page instance 
  * reference when it is still stored in the cache, otherwise a NULL pointer 
  * will be returned instead (and no error code)!
  */
@@ -984,7 +984,7 @@ db_fetch_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
  * flush a page
  */
 extern ham_status_t
-db_flush_page(Environment *env, ham_page_t *page);
+db_flush_page(Environment *env, Page *page);
 
 /**
  * Flush all pages, and clear the cache.
@@ -1001,7 +1001,7 @@ db_flush_all(Cache *cache, ham_u32_t flags);
 /**
  * Allocate a new page.
  *
- * @param page_ref call-by-reference result: will store the @ref ham_page_t 
+ * @param page_ref call-by-reference result: will store the @ref Page 
  *        instance reference.
  * @param db the database; if the database handle is not available, you
  *        can use env_alloc_page
@@ -1016,7 +1016,7 @@ db_flush_all(Cache *cache, ham_u32_t flags);
  * space (due to the alignment) is added to the freelist.
  */
 extern ham_status_t
-db_alloc_page(ham_page_t **page_ref, Database *db, 
+db_alloc_page(Page **page_ref, Database *db, 
                 ham_u32_t type, ham_u32_t flags);
 
 /*
@@ -1024,7 +1024,7 @@ db_alloc_page(ham_page_t **page_ref, Database *db,
  * doing.
  */
 extern ham_status_t
-db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db, 
+db_alloc_page_impl(Page **page_ref, Environment *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags);
 
 #define PAGE_IGNORE_FREELIST          8
@@ -1040,7 +1040,7 @@ db_alloc_page_impl(ham_page_t **page_ref, Environment *env, Database *db,
  * in the freelist. Ignored in in-memory databases.
  */
 extern ham_status_t
-db_free_page(ham_page_t *page, ham_u32_t flags);
+db_free_page(Page *page, ham_u32_t flags);
 
 #define DB_MOVE_TO_FREELIST         1
 
@@ -1051,7 +1051,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags);
  * anywhere else.
  */
 extern ham_status_t
-db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
+db_write_page_and_delete(Page *page, ham_u32_t flags);
 
 /**
 * @defgroup ham_database_flags 

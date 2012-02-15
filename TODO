@@ -57,7 +57,7 @@ x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
     fails with an error
     -> this problem will disappear when the txn is flushed in background
 
-o implement support for approx. matching (-> sevencat)
+x implement support for approx. matching (-> sevencat)
     x identify test cases and create unittests
     x add to win32 project
     x write test-driven
@@ -67,7 +67,7 @@ o implement support for approx. matching (-> sevencat)
     x don't implement for ham_cursor_find
     x select a btree item which was erased
     x select a btree item which was overwritten
-    o update documentation, README
+    x update documentation, README
 
 o design redundancy
     x identify toolkit (TBB, boost?) - go for boost, but we can use both later
@@ -95,6 +95,7 @@ o continue with c++-ification of the environment - need to split into
     local and remote (same as for Database class)
 
 o c++-ify the page
+    x page->is_header() instead of page_get_self()==0
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);

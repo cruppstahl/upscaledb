@@ -54,7 +54,7 @@ __blob_from_cache(Environment *env, ham_size_t size)
  * on a per-page basis.
  */
 static ham_status_t
-__write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr, 
+__write_chunks(Environment *env, Page *page, ham_offset_t addr, 
         ham_bool_t allocated, ham_bool_t freshly_created, 
         ham_u8_t **chunk_data, ham_size_t *chunk_size, 
         ham_size_t chunks)
@@ -80,7 +80,7 @@ __write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr,
             /*
              * is this the current page?
              */
-            if (page && page_get_self(page)!=pageid)
+            if (page && page->get_self()!=pageid)
                 page=0;
 
             /*
@@ -171,7 +171,7 @@ __write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr,
              */
             if (page) {
                 ham_size_t writestart=
-                        (ham_size_t)(addr-page_get_self(page));
+                        (ham_size_t)(addr-page->get_self());
                 ham_size_t writesize =
                         (ham_size_t)(pagesize - writestart);
                 if (writesize>chunk_size[i])
@@ -203,7 +203,7 @@ __write_chunks(Environment *env, ham_page_t *page, ham_offset_t addr,
 }
 
 static ham_status_t
-__read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage, 
+__read_chunk(Environment *env, Page *page, Page **fpage, 
         ham_offset_t addr, Database *db, ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
@@ -217,7 +217,7 @@ __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage,
 		pageid = addr - (addr % env->get_pagesize());
 
         if (page) {
-            if (page_get_self(page)!=pageid)
+            if (page->get_self()!=pageid)
                 page=0;
         }
 
@@ -248,7 +248,7 @@ __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage,
          */
         if (page) {
             ham_size_t readstart=
-                    (ham_size_t)(addr-page_get_self(page));
+                    (ham_size_t)(addr-page->get_self());
             ham_size_t readsize =
                     (ham_size_t)(env->get_pagesize()-readstart);
             if (readsize>size)
@@ -281,12 +281,12 @@ __read_chunk(Environment *env, ham_page_t *page, ham_page_t **fpage,
 }
 
 static ham_status_t
-__get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, 
+__get_duplicate_table(dupe_table_t **table_ref, Page **page, 
                     Environment *env, ham_u64_t table_id)
 {
     ham_status_t st;
     blob_t hdr;
-    ham_page_t *hdrpage=0;
+    Page *hdrpage=0;
     dupe_table_t *table;
 
 	*page = 0;
@@ -310,13 +310,13 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page,
      * if the whole table is in a page (and not split between several
      * pages), just return a pointer directly in the page
      */
-    if (page_get_self(hdrpage)+env->get_usable_pagesize() >=
+    if (hdrpage->get_self()+env->get_usable_pagesize() >=
             table_id+blob_get_size(&hdr)) {
         ham_u8_t *p=page_get_raw_payload(hdrpage);
         /* yes, table is in the page */
         *page=hdrpage;
         *table_ref = (dupe_table_t *)
-                &p[table_id-page_get_self(hdrpage)+sizeof(hdr)];
+                &p[table_id-hdrpage->get_self()+sizeof(hdr)];
 		return HAM_SUCCESS;
     }
 
@@ -356,7 +356,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid)
 {
     ham_status_t st;
-    ham_page_t *page=0;
+    Page *page=0;
     ham_offset_t addr;
     blob_t hdr;
     ham_u8_t *chunk_data[2];
@@ -450,7 +450,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
             /* blob pages don't have a page header */
             page_set_npers_flags(page, 
                     page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
-            addr=page_get_self(page);
+            addr=page->get_self();
             /* move the remaining space to the freelist */
             (void)freel_mark_free(env, db, addr+alloc_size,
                     env->get_pagesize()-alloc_size, HAM_FALSE);
@@ -648,7 +648,7 @@ blob_read(Database *db, ham_offset_t blobid,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_page_t *page;
+    Page *page;
     blob_t hdr;
     ham_size_t blobsize=0;
 
@@ -783,7 +783,7 @@ ham_status_t
 blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
 {
     ham_status_t st;
-    ham_page_t *page;
+    Page *page;
     blob_t hdr;
 
     /*
@@ -819,7 +819,7 @@ blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
     ham_size_t alloc_size;
     blob_t old_hdr;
     blob_t new_hdr;
-    ham_page_t *page;
+    Page *page;
 
     /*
      * PARTIAL WRITE
@@ -1136,7 +1136,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
     dupe_table_t *table=0;
     ham_bool_t alloc_table=0;
 	ham_bool_t resize=0;
-    ham_page_t *page=0;
+    Page *page=0;
     Environment *env=db->get_env();
 
     /*
@@ -1392,7 +1392,7 @@ blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
 {
 	ham_status_t st;
     dupe_table_t *table;
-    ham_page_t *page=0;
+    Page *page=0;
 
     st=__get_duplicate_table(&table, &page, env, table_id);
 	ham_assert(st ? table == NULL : 1, (0));
@@ -1417,7 +1417,7 @@ blob_duplicate_get(Environment *env, ham_offset_t table_id,
 {
 	ham_status_t st;
     dupe_table_t *table;
-    ham_page_t *page=0;
+    Page *page=0;
 
     st = __get_duplicate_table(&table, &page, env, table_id);
 	ham_assert(st ? table == NULL : 1, (0));
@@ -1446,7 +1446,7 @@ blob_duplicate_get_table(Environment *env, ham_offset_t table_id,
                     dupe_table_t **ptable, ham_bool_t *needs_free)
 {
     ham_status_t st;
-    ham_page_t *page=0;
+    Page *page=0;
 
     st=__get_duplicate_table(ptable, &page, env, table_id);
     if (st)

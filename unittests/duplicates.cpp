@@ -732,7 +732,7 @@ public:
     void coupleUncoupleTest(void)
     {
         ham_cursor_t *c;
-        ham_page_t *page;
+        Page *page;
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 

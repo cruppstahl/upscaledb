@@ -198,7 +198,7 @@ Log::close(ham_bool_t noclear)
 }
 
 ham_status_t
-Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
+Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 {
     ham_status_t st=0;
     ham_file_filter_t *head=m_env->get_file_filter();
@@ -209,7 +209,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
      * run page through page-level filters, but not for the 
      * root-page!
      */
-    if (head && page_get_self(page)!=0) {
+    if (head && !page->is_header()) {
         p=(ham_u8_t *)m_env->get_allocator()->alloc(m_env->get_pagesize());
         if (!p)
             return (HAM_OUT_OF_MEMORY);
@@ -229,7 +229,7 @@ Log::append_page(ham_page_t *page, ham_u64_t lsn, ham_size_t page_count)
 
     if (st==0)
         st=append_write(lsn, page_count==0 ? CHANGESET_IS_COMPLETE : 0, 
-                        page_get_self(page), p, size);
+                        page->get_self(), p, size);
 
     if (p!=page_get_raw_payload(page))
         m_env->get_allocator()->free(p);
@@ -241,7 +241,7 @@ ham_status_t
 Log::recover()
 {
     ham_status_t st;
-    ham_page_t *page;
+    Page *page;
     Device *device=m_env->get_device();
     Log::Entry entry;
     Iterator it=0;
@@ -316,13 +316,13 @@ Log::recover()
             page=page_new(m_env);
             if (st)
                 goto bail;
-            page_set_self(page, entry.offset);
+            page->set_self(entry.offset);
             st=page_fetch(page);
             if (st)
                 goto bail;
         }
 
-        ham_assert(page_get_self(page)==entry.offset, (""));
+        ham_assert(page->get_self()==entry.offset, (""));
         ham_assert(m_env->get_pagesize()==entry.data_size, (""));
 
         /* overwrite the page data */

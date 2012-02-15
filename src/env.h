@@ -291,12 +291,12 @@ class Environment
     }
 
     /** get the header page */
-    ham_page_t *get_header_page() {
+    Page *get_header_page() {
         return (m_hdrpage);
     }
 
     /** set the header page */
-    void set_header_page(ham_page_t *page) {
+    void set_header_page(Page *page) {
         m_hdrpage=page;
     }
 
@@ -588,7 +588,7 @@ class Environment
     Allocator *m_alloc;
 
     /** the file header page */
-    ham_page_t *m_hdrpage;
+    Page *m_hdrpage;
 
     /** the head of the transaction list (the oldest transaction) */
     ham_txn_t *m_oldest_txn;
@@ -651,7 +651,7 @@ class Environment
  * no Database handle
  */
 extern ham_status_t
-env_fetch_page(ham_page_t **page_ref, Environment *env, 
+env_fetch_page(Page **page_ref, Environment *env, 
         ham_offset_t address, ham_u32_t flags);
 
 /**
@@ -661,7 +661,7 @@ env_fetch_page(ham_page_t **page_ref, Environment *env,
  * no Database handle
  */
 extern ham_status_t
-env_alloc_page(ham_page_t **page_ref, Environment *env,
+env_alloc_page(Page **page_ref, Environment *env,
                 ham_u32_t type, ham_u32_t flags);
 
 /*

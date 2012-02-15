@@ -32,14 +32,14 @@
  * the linked list of all the siblings
  */
 static ham_status_t 
-_enumerate_level(ham_btree_t *be, ham_page_t *page, ham_u32_t level, 
+_enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, ham_bool_t recursive, void *context);
 
 /**
  * enumerate a single page
  */
 static ham_status_t
-_enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level, 
+_enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level, 
         ham_u32_t count, ham_enumerate_cb_t cb, void *context);
 
 /**                                                                 
@@ -50,7 +50,7 @@ _enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
 ham_status_t
 btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
 {
-    ham_page_t *page;
+    Page *page;
     ham_u32_t level=0;
     ham_offset_t ptr_left;
     btree_node_t *node;
@@ -123,7 +123,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
 }
 
 static ham_status_t 
-_enumerate_level(ham_btree_t *be, ham_page_t *page, ham_u32_t level, 
+_enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, ham_bool_t recursive, void *context)
 {
     ham_status_t st;
@@ -162,7 +162,7 @@ _enumerate_level(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
 }
 
 ham_status_t
-_enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level, 
+_enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level, 
         ham_u32_t sibcount, ham_enumerate_cb_t cb, void *context)
 {
     ham_size_t i;

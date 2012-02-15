@@ -29,28 +29,28 @@
 #ifdef HAM_DEBUG
 /*
 static ham_bool_t
-__is_in_list(ham_page_t *p, int which)
+__is_in_list(Page *p, int which)
 {
-    return (p->_npers._next[which] || p->_npers._prev[which]);
+    return (p->m_next[which] || p->m_prev[which]);
 }
 */
 
 static void
-__validate_page(ham_page_t *p)
+__validate_page(Page *p)
 {
     /* not allowed: in changeset but not in cache */
     /* disabled - freelist pages can be in a changeset, but are never
      * in a cache bucket; TODO rewrite this check only for non-freelist 
      * pages!
-    if (__is_in_list(p, PAGE_LIST_CHANGESET))
-        ham_assert(__is_in_list(p, PAGE_LIST_BUCKET),
+    if (__is_in_list(p, Page::LIST_CHANGESET))
+        ham_assert(__is_in_list(p, Page::LIST_BUCKET),
             ("in changeset but not in cache")); */
 }
 
-ham_page_t *
-page_get_next(ham_page_t *page, int which)
+Page *
+page_get_next(Page *page, int which)
 {
-    ham_page_t *p=page->_npers._next[which];
+    Page *p=page->m_next[which];
     __validate_page(page);
     if (p)
         __validate_page(p);
@@ -58,18 +58,18 @@ page_get_next(ham_page_t *page, int which)
 }
 
 void
-page_set_next(ham_page_t *page, int which, ham_page_t *other)
+page_set_next(Page *page, int which, Page *other)
 {
-    page->_npers._next[which]=other;
+    page->m_next[which]=other;
     __validate_page(page);
     if (other)
         __validate_page(other);
 }
 
-ham_page_t *
-page_get_previous(ham_page_t *page, int which)
+Page *
+page_get_previous(Page *page, int which)
 {
-    ham_page_t *p=page->_npers._prev[which];
+    Page *p=page->m_prev[which];
     __validate_page(page);
     if (p)
         __validate_page(p);
@@ -77,16 +77,16 @@ page_get_previous(ham_page_t *page, int which)
 }
 
 void
-page_set_previous(ham_page_t *page, int which, ham_page_t *other)
+page_set_previous(Page *page, int which, Page *other)
 {
-    page->_npers._prev[which]=other;
+    page->m_prev[which]=other;
     __validate_page(page);
     if (other)
         __validate_page(other);
 }
 
 ham_bool_t 
-page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
+page_is_in_list(Page *head, Page *page, int which)
 {
     if (page_get_next(page, which))
         return (HAM_TRUE);
@@ -99,7 +99,7 @@ page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
 #endif /* HAM_DEBUG */
 
 void
-page_add_cursor(ham_page_t *page, Cursor *cursor)
+page_add_cursor(Page *page, Cursor *cursor)
 {
     if (page_get_cursors(page)) {
         cursor->set_next_in_page(page_get_cursors(page));
@@ -110,7 +110,7 @@ page_add_cursor(ham_page_t *page, Cursor *cursor)
 }
 
 void
-page_remove_cursor(ham_page_t *page, Cursor *cursor)
+page_remove_cursor(Page *page, Cursor *cursor)
 {
     Cursor *n, *p;
 
@@ -133,13 +133,13 @@ page_remove_cursor(ham_page_t *page, Cursor *cursor)
     cursor->set_previous_in_page(0);
 }
 
-ham_page_t *
+Page *
 page_new(Environment *env)
 {
-    ham_page_t *page;
+    Page *page;
     Allocator *alloc=env->get_allocator();
 
-    page=(ham_page_t *)alloc->alloc(sizeof(*page));
+    page=(Page *)alloc->alloc(sizeof(*page));
     if (!page)
         return (0);
     memset(page, 0, sizeof(*page));
@@ -150,7 +150,7 @@ page_new(Environment *env)
 }
 
 void
-page_delete(ham_page_t *page)
+page_delete(Page *page)
 {
     ham_assert(page!=0, (0));
     ham_assert(page_get_pers(page)==0, (0));
@@ -160,7 +160,7 @@ page_delete(ham_page_t *page)
 }
 
 ham_status_t
-page_alloc(ham_page_t *page)
+page_alloc(Page *page)
 {
     Device *dev=page_get_device(page);
 
@@ -169,7 +169,7 @@ page_alloc(ham_page_t *page)
 }
 
 ham_status_t
-page_fetch(ham_page_t *page)
+page_fetch(Page *page)
 {
     Device *dev=page_get_device(page);
 
@@ -178,7 +178,7 @@ page_fetch(ham_page_t *page)
 }
 
 ham_status_t
-page_flush(ham_page_t *page)
+page_flush(Page *page)
 {
     ham_status_t st;
     Device *dev=page_get_device(page);
@@ -197,7 +197,7 @@ page_flush(ham_page_t *page)
 }
 
 ham_status_t
-page_free(ham_page_t *page)
+page_free(Page *page)
 {
     Device *dev=page_get_device(page);
 
@@ -208,7 +208,7 @@ page_free(ham_page_t *page)
 }
 
 ham_status_t
-page_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
+page_uncouple_all_cursors(Page *page, ham_size_t start)
 {
     Cursor *c = page_get_cursors(page);
 

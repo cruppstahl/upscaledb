@@ -94,7 +94,7 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 
@@ -139,7 +139,7 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 
@@ -198,7 +198,7 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 

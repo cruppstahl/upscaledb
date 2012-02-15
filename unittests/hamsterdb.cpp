@@ -1821,7 +1821,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void btreeMacroTest(void)
     {
-        ham_page_t *page;
+        Page *page;
         BFC_ASSERT_EQUAL(0, db_alloc_page(&page, (Database *)m_db, 0, 0));
         BFC_ASSERT(page!=0);
 
@@ -1832,11 +1832,11 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         l = db_get_int_key_header_size();
         l += db_get_keysize(page_get_owner(page));
 
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28, off);
         off=(int)btree_node_get_key_offset(page, 1);
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28+32, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+32, off);
         off=(int)btree_node_get_key_offset(page, 2);
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28+64, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+64, off);
 
         db_free_page(page, 0);
     }
