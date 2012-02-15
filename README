@@ -20,7 +20,6 @@ bugs and improved performance. Also, the ham_txn_begin API was changed.
 Compared to 1.x, a few functions were disabled *only if Transactions are 
 enabled*:
 - sorting duplicate keys (HAM_SORT_DUPLICATES)
-- approximate matching
 - direct access (HAM_DIRECT_ACCESS)
 - partial read/write (HAM_PARTIAL)
 

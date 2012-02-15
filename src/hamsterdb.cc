@@ -2437,12 +2437,6 @@ ham_find(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
                     "transactions"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_FIND_NEAR_MATCH) 
-            && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        ham_trace(("approx. matching is not allowed if Transactions "
-                   "are enabled"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
 
     /* record number: make sure that we have a valid key structure */
     if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
@@ -3081,16 +3075,16 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
                    "are not allowed"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_FIND_NEAR_MATCH) 
-            && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        ham_trace(("approx. matching is not allowed if Transactions "
-                   "are enabled"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
     if ((flags&HAM_DIRECT_ACCESS) 
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
+        return (db->set_error(HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_FIND_NEAR_MATCH) 
+            && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("approx. matching is not allowed if Transactions "
+                   "are enabled"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
     if ((flags&HAM_DIRECT_ACCESS) 

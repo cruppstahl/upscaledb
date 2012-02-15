@@ -178,9 +178,9 @@ __copy_key_data(Allocator *alloc, ham_key_t *key)
 txn_opnode_t *
 txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 {
-    int cmp;
     txn_opnode_t *node=0, tmp;
     txn_optree_t *tree=db->get_optree();
+    int match=0;
 
     if (!tree)
         return (0);
@@ -191,10 +191,32 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
     txn_opnode_set_db(&tmp, db);
 
     /* search if node already exists - if yes, return it */
-    if (flags&HAM_FIND_GT_MATCH)
+    if ((flags&HAM_FIND_GEQ_MATCH)==HAM_FIND_GEQ_MATCH) {
         node=rbt_nsearch(tree, &tmp);
-    else if (flags&HAM_FIND_LT_MATCH)
+        if (node)
+            match=__cmpfoo(&tmp, node);
+    }
+    else if ((flags&HAM_FIND_LEQ_MATCH)==HAM_FIND_LEQ_MATCH) {
         node=rbt_psearch(tree, &tmp);
+        if (node)
+            match=__cmpfoo(&tmp, node);
+    }
+    else if (flags&HAM_FIND_GT_MATCH) {
+        node=rbt_search(tree, &tmp);
+        if (node)
+            node=txn_opnode_get_next_sibling(node);
+        else
+            node=rbt_nsearch(tree, &tmp);
+        match=1;
+    }
+    else if (flags&HAM_FIND_LT_MATCH) {
+        node=rbt_search(tree, &tmp);
+        if (node)
+            node=txn_opnode_get_previous_sibling(node);
+        else
+            node=rbt_psearch(tree, &tmp);
+        match=-1;
+    }
     else 
         return (rbt_search(tree, &tmp));
 
@@ -203,13 +225,10 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
         return (0);
 
     /* approx. matching: set the key flag */
-    /* TODO this compare is not necessary; instead, change rbt_*search to 
-     * return a flag if it's a direct hit or not */
-    cmp=__cmpfoo(&tmp, node);
-    if (cmp<0)
+    if (match<0)
         ham_key_set_intflags(key, (ham_key_get_intflags(key) 
                         & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
-    else if (cmp>0)
+    else if (match>0)
         ham_key_set_intflags(key, (ham_key_get_intflags(key) 
                         & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
 

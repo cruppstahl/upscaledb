@@ -60,16 +60,14 @@ x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
 o implement support for approx. matching (-> sevencat)
     x identify test cases and create unittests
     x add to win32 project
-    o write test-driven
-        1. fetch from txn
-        2. if EQ: use txn value
-        3. fetch from btree
-        4. if EQ: use btree value
-        5. pick the one which is gt/lt (depending on flags)
-    o also for ham_cursor_find
-    o also use the existing tests and move them to approx.cpp, enable them
-        for transactions
-    o update documentation
+    x write test-driven
+    x if the current txn-node does not have any valid keys: move back or forth
+        depending on flags
+    x also check approximate-flag of the key
+    x don't implement for ham_cursor_find
+    x select a btree item which was erased
+    x select a btree item which was overwritten
+    o update documentation, README
 
 o design redundancy
     x identify toolkit (TBB, boost?) - go for boost, but we can use both later

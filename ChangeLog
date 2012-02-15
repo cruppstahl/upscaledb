@@ -1,3 +1,6 @@
+Feb 15, 2012 - chris ---------------------------------------------------
+o ham_find() now supports approximate matching w/ transactions enabled
+
 Feb 07, 2012 - chris ---------------------------------------------------
 o fixed bug where HAM_ONLY_DUPLICATES was ignored when used in a
 	Transaction (thanks, Mark Ruijter from lessfs)

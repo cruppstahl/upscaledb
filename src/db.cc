@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1411,6 +1411,22 @@ db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
 }
 
 static ham_status_t
+copy_record(Database *db, txn_op_t *op, ham_record_t *record)
+{
+    ham_status_t st;
+    if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+        st=db->resize_record_allocdata(txn_op_get_record(op)->size);
+        if (st)
+            return (st);
+        record->data=db->get_record_allocdata();
+    }
+    memcpy(record->data, txn_op_get_record(op)->data,
+                txn_op_get_record(op)->size);
+    record->size=txn_op_get_record(op)->size;
+    return (0);
+}
+
+static ham_status_t
 db_find_txn(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
@@ -1419,16 +1435,21 @@ db_find_txn(Database *db, ham_txn_t *txn,
     txn_opnode_t *node=0;
     txn_op_t *op=0;
     ham_backend_t *be=db->get_backend();
+    bool first_loop=true;
+    bool exact_is_erased=false;
 
     /* get the txn-tree for this database; if there's no tree then
      * there's no need to create a new one - we'll just skip the whole
      * tree-related code */
     tree=db->get_optree();
 
+    ham_key_set_intflags(key,
+        (ham_key_get_intflags(key)&(~KEY_IS_APPROXIMATE)));
+
     /* get the node for this key (but don't create a new one if it does
      * not yet exist) */
     if (tree)
-        node=txn_opnode_get(db, key, 0);
+        node=txn_opnode_get(db, key, flags);
 
     /*
      * pick the tree_node of this key, and walk through each operation 
@@ -1441,6 +1462,7 @@ db_find_txn(Database *db, ham_txn_t *txn,
      * - if a committed txn has erased the item then there's no need
      *      to continue checking older, committed txns
      */
+retry:
     if (tree && node)
         op=txn_opnode_get_newest_op(node);
     while (op) {
@@ -1450,9 +1472,30 @@ db_find_txn(Database *db, ham_txn_t *txn,
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
             /* if key was erased then it doesn't exist and we can return
-             * immediately */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+             * immediately 
+             *
+             * if an approximate match is requested then move to the next
+             * or previous node
+             */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                if (first_loop 
+                        && !(ham_key_get_intflags(key)&KEY_IS_APPROXIMATE))
+                    exact_is_erased=true;
+                first_loop=false;
+                if (flags&HAM_FIND_LT_MATCH) {
+                    node=txn_opnode_get_previous_sibling(node);
+                    ham_key_set_intflags(key,
+                        (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+                    goto retry;
+                }
+                else if (flags&HAM_FIND_GT_MATCH) {
+                    node=txn_opnode_get_next_sibling(node);
+                    ham_key_set_intflags(key,
+                        (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+                    goto retry;
+                }
                 return (HAM_KEY_NOT_FOUND);
+            }
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
             /* if the key already exists then return its record; do not
@@ -1461,16 +1504,12 @@ db_find_txn(Database *db, ham_txn_t *txn,
             else if ((txn_op_get_flags(op)&TXN_OP_INSERT)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
-                if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                    st=db->resize_record_allocdata(txn_op_get_record(op)->size);
-                    if (st)
-                        return (st);
-                    record->data=db->get_record_allocdata();
-                }
-                memcpy(record->data, txn_op_get_record(op)->data,
-                            txn_op_get_record(op)->size);
-                record->size=txn_op_get_record(op)->size;
-                return (0);
+                // approx match? leave the loop and continue
+                // with the btree
+                if (ham_key_get_intflags(key)&KEY_IS_APPROXIMATE)
+                    break;
+                // otherwise copy the record and return
+                return (copy_record(db, op, record));
             }
             else {
                 ham_assert(!"shouldn't be here", (""));
@@ -1485,9 +1524,92 @@ db_find_txn(Database *db, ham_txn_t *txn,
         op=txn_op_get_previous_in_node(op);
     }
 
+    /* 
+     * if there was an approximate match: check if the btree provides
+     * a better match
+     */
+    if (op && ham_key_get_intflags(key)&KEY_IS_APPROXIMATE) {
+        ham_key_t txnkey={0};
+        ham_key_t *k=txn_opnode_get_key(txn_op_get_node(op));
+        txnkey.size=k->size;
+        txnkey._flags=KEY_IS_APPROXIMATE;
+        txnkey.data=db->get_env()->get_allocator()->alloc(txnkey.size);
+        memcpy(txnkey.data, k->data, txnkey.size);
+
+        ham_key_set_intflags(key, 0);
+        
+        // the "exact match" key was erased? then don't fetch it again
+        if (exact_is_erased)
+            flags=flags&(~HAM_FIND_EXACT_MATCH);
+
+        // now lookup in the btree
+        st=be->_fun_find(be, key, record, flags);
+        if (st==HAM_KEY_NOT_FOUND) {
+            if (txnkey.data)
+                db->get_env()->get_allocator()->free(txnkey.data);
+            ham_key_set_intflags(key,
+                (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+            return (copy_record(db, op, record));
+        }
+        else if (st)
+            return (st);
+        // the btree key is a direct match? then return it
+        if ((!(ham_key_get_intflags(key)&KEY_IS_APPROXIMATE))
+                && (flags&HAM_FIND_EXACT_MATCH)) {
+            if (txnkey.data)
+                db->get_env()->get_allocator()->free(txnkey.data);
+            return (0);
+        }
+        // if there's an approx match in the btree: compare both keys and 
+        // use the one that is closer. if the btree is closer: make sure
+        // that it was not erased or overwritten in a transaction
+        int cmp=db->compare_keys(key, &txnkey);
+        bool use_btree=false;
+        if (flags&HAM_FIND_GT_MATCH) {
+            if (cmp<0)
+                use_btree=true;
+        }
+        else if (flags&HAM_FIND_LT_MATCH) {
+            if (cmp>0)
+                use_btree=true;
+        }
+        else
+            ham_assert(!"shouldn't be here", (""));
+
+        if (use_btree) {
+            if (txnkey.data)
+                db->get_env()->get_allocator()->free(txnkey.data);
+            // lookup again, with the same flags and the btree key.
+            // this will check if the key was erased or overwritten
+            // in a transaction
+            st=db_find_txn(db, txn, key, record, 
+                            flags|HAM_FIND_EXACT_MATCH);
+            if (st==0)
+                ham_key_set_intflags(key,
+                    (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+            return (st);
+        }
+        else { // use txn
+            if (!key->flags&HAM_KEY_USER_ALLOC && txnkey.data) {
+                db->resize_key_allocdata(txnkey.size);
+                key->data=db->get_key_allocdata();
+            }
+            if (txnkey.data) {
+                memcpy(key->data, txnkey.data, txnkey.size);
+                db->get_env()->get_allocator()->free(txnkey.data);
+            }
+            key->size=txnkey.size;
+            key->_flags=txnkey._flags;
+
+            return (copy_record(db, op, record));
+        }
+    }
+
     /*
+     * no approximate match:
+     *
      * we've successfully checked all un-flushed transactions and there
-     * were no conflicts, and we have not found the key. Now try to 
+     * were no conflicts, and we have not found the key: now try to
      * lookup the key in the btree.
      */
     return (be->_fun_find(be, key, record, flags));

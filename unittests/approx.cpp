@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -38,7 +38,7 @@ class ApproxTest : public hamsterDB_fixture
 
 public:
     ApproxTest(const char *name="ApproxTest")
-    :   hamsterDB_fixture(name)
+    :  hamsterDB_fixture(name)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(ApproxTest, lessThanTest);
@@ -87,7 +87,7 @@ public:
         return (be->_fun_insert(be, &k, &r, 0));
     }
 
-    ham_status_t insertTxn(const char *s) {
+    ham_status_t insertTxn(const char *s, ham_u32_t flags=0) {
         ham_key_t k={0};
         k.data=(void *)s;
         k.size=strlen(s)+1;
@@ -95,7 +95,15 @@ public:
         r.data=k.data;
         r.size=k.size;
 
-        return (ham_insert(m_db, m_txn, &k, &r, 0));
+        return (ham_insert(m_db, m_txn, &k, &r, flags));
+    }
+
+    ham_status_t eraseTxn(const char *s) {
+        ham_key_t k={0};
+        k.data=(void *)s;
+        k.size=strlen(s)+1;
+
+        return (ham_erase(m_db, m_txn, &k, 0));
     }
 
     ham_status_t find(ham_u32_t flags, const char *search,
@@ -104,9 +112,12 @@ public:
         k.data=(void *)search;
         k.size=strlen(search)+1;
         ham_record_t r={0};
+
         ham_status_t st=ham_find(m_db, m_txn, &k, &r, flags);
         if (st)
             return (st);
+        if (strcmp(expected, (const char *)k.data))
+            BFC_ASSERT(ham_key_get_intflags(&k)&KEY_IS_APPROXIMATE);
         return (strcmp(expected, (const char *)r.data));
     }
     
@@ -139,6 +150,42 @@ public:
         BFC_ASSERT_EQUAL(0, insertTxn("40"));
         BFC_ASSERT_EQUAL(0, insertTxn("41"));
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "41", "40"));
+
+        // txn < txn w/ empty node
+        BFC_ASSERT_EQUAL(0, insertTxn("50"));
+        BFC_ASSERT_EQUAL(0, insertTxn("51"));
+        BFC_ASSERT_EQUAL(0, insertTxn("52"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("51"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "52", "50"));
+
+        // txn < txn w/ empty node
+        BFC_ASSERT_EQUAL(0, insertTxn("60"));
+        BFC_ASSERT_EQUAL(0, insertTxn("61"));
+        BFC_ASSERT_EQUAL(0, insertTxn("62"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("61"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "62", "60"));
+
+        // skip erased btree
+        BFC_ASSERT_EQUAL(0, insertBtree("71"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("71"));
+        BFC_ASSERT_EQUAL(0, insertTxn("70"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "71", "70"));
+
+        // skip 2 erased btree keys
+        BFC_ASSERT_EQUAL(0, insertBtree("80"));
+        BFC_ASSERT_EQUAL(0, insertBtree("81"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("81"));
+        BFC_ASSERT_EQUAL(0, insertBtree("82"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("82"));
+        BFC_ASSERT_EQUAL(0, insertTxn("83"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "83", "80"));
+
+        // overwrite btree
+        BFC_ASSERT_EQUAL(0, insertBtree("92"));
+        BFC_ASSERT_EQUAL(0, insertTxn("92", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertBtree("93"));
+        BFC_ASSERT_EQUAL(0, insertTxn("93", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LT_MATCH, "93", "92"));
     }
 
     void lessOrEqualTest(void)
@@ -162,22 +209,25 @@ public:
         // btree < txn
         BFC_ASSERT_EQUAL(0, insertBtree("10"));
         BFC_ASSERT_EQUAL(0, insertTxn("11"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "11", "10"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "11", "11"));
 
         // txn < btree
         BFC_ASSERT_EQUAL(0, insertTxn("20"));
         BFC_ASSERT_EQUAL(0, insertBtree("21"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "21", "20"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "21", "21"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "22", "21"));
 
         // btree < btree
         BFC_ASSERT_EQUAL(0, insertBtree("30"));
         BFC_ASSERT_EQUAL(0, insertBtree("31"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "31", "30"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "31", "31"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "32", "31"));
 
         // txn < txn
         BFC_ASSERT_EQUAL(0, insertTxn("40"));
         BFC_ASSERT_EQUAL(0, insertTxn("41"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "41", "30"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "41", "41"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "42", "41"));
 
         // txn =
         BFC_ASSERT_EQUAL(0, insertBtree("50"));
@@ -188,6 +238,29 @@ public:
         BFC_ASSERT_EQUAL(0, insertTxn("60"));
         BFC_ASSERT_EQUAL(0, insertBtree("61"));
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "61", "61"));
+
+        // txn < txn w/ empty node
+        BFC_ASSERT_EQUAL(0, insertTxn("70"));
+        BFC_ASSERT_EQUAL(0, insertTxn("71"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("71"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "71", "70"));
+
+        // skip 3 erased btree keys
+        BFC_ASSERT_EQUAL(0, insertBtree("80"));
+        BFC_ASSERT_EQUAL(0, insertBtree("81"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("81"));
+        BFC_ASSERT_EQUAL(0, insertBtree("82"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("82"));
+        BFC_ASSERT_EQUAL(0, insertTxn("83"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("83"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "83", "80"));
+
+        // overwrite btree
+        BFC_ASSERT_EQUAL(0, insertBtree("92"));
+        BFC_ASSERT_EQUAL(0, insertTxn("92", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertBtree("93"));
+        BFC_ASSERT_EQUAL(0, insertTxn("93", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_LEQ_MATCH, "93", "93"));
     }
 
     void greaterThanTest(void)
@@ -197,8 +270,8 @@ public:
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "1", "2"));
 
         // txn > nil
-        BFC_ASSERT_EQUAL(0, insertTxn("2"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "1", "2"));
+        BFC_ASSERT_EQUAL(0, insertTxn("4"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "3", "4"));
 
         // btree > txn
         BFC_ASSERT_EQUAL(0, insertTxn("10"));
@@ -219,6 +292,21 @@ public:
         BFC_ASSERT_EQUAL(0, insertTxn("40"));
         BFC_ASSERT_EQUAL(0, insertTxn("41"));
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "40", "41"));
+
+        // txn > txn w/ empty node
+        BFC_ASSERT_EQUAL(0, insertTxn("50"));
+        BFC_ASSERT_EQUAL(0, insertTxn("51"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("51"));
+        BFC_ASSERT_EQUAL(0, insertTxn("52"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "50", "52"));
+
+        // skip 2 erased btree keys
+        BFC_ASSERT_EQUAL(0, insertBtree("81"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("81"));
+        BFC_ASSERT_EQUAL(0, insertBtree("82"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("82"));
+        BFC_ASSERT_EQUAL(0, insertTxn("83"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GT_MATCH, "80", "83"));
     }
 
     void greaterOrEqualTest(void)
@@ -240,24 +328,26 @@ public:
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "7", "7"));
 
         // btree > txn
-        BFC_ASSERT_EQUAL(0, insertTxn("10"));
-        BFC_ASSERT_EQUAL(0, insertBtree("11"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11"));
+        BFC_ASSERT_EQUAL(0, insertBtree("12"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "11", "11"));
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "10", "11"));
 
         // txn > btree
         BFC_ASSERT_EQUAL(0, insertBtree("20"));
         BFC_ASSERT_EQUAL(0, insertTxn("21"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "20", "21"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "19", "20"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "20", "20"));
 
         // btree > btree
         BFC_ASSERT_EQUAL(0, insertBtree("30"));
         BFC_ASSERT_EQUAL(0, insertBtree("31"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "30", "31"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "31", "31"));
 
         // txn > txn
         BFC_ASSERT_EQUAL(0, insertTxn("40"));
         BFC_ASSERT_EQUAL(0, insertTxn("41"));
-        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "40", "41"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "41", "41"));
 
         // txn =
         BFC_ASSERT_EQUAL(0, insertBtree("50"));
@@ -268,6 +358,20 @@ public:
         BFC_ASSERT_EQUAL(0, insertTxn("60"));
         BFC_ASSERT_EQUAL(0, insertBtree("61"));
         BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "61", "61"));
+
+        // txn > txn w/ empty node
+        BFC_ASSERT_EQUAL(0, insertTxn("71"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("71"));
+        BFC_ASSERT_EQUAL(0, insertTxn("72"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "71", "72"));
+
+        // skip erased btree keys
+        BFC_ASSERT_EQUAL(0, insertBtree("81"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("81"));
+        BFC_ASSERT_EQUAL(0, insertBtree("82"));
+        BFC_ASSERT_EQUAL(0, eraseTxn("82"));
+        BFC_ASSERT_EQUAL(0, insertTxn("83"));
+        BFC_ASSERT_EQUAL(0, find(HAM_FIND_GEQ_MATCH, "81", "83"));
     }
 };
 
