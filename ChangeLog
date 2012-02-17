@@ -1,3 +1,6 @@
+Feb 18, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.1
+
 Feb 15, 2012 - chris ---------------------------------------------------
 o ham_find() now supports approximate matching w/ transactions enabled
 

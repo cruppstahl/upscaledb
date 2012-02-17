@@ -231,7 +231,7 @@ class Cache
     /**
      * retrieve the HEAD of the global page list
      */
-    Page * get_totallist(void) { 
+    Page *get_totallist(void) { 
         return (m_totallist); 
     }
 

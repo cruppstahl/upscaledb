@@ -159,7 +159,7 @@ stats_update_fail(int op, Database *db, ham_size_t cost,
 #define btree_stats_update_erase_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_ERASE, db, (hints)->cost, (hints)->try_fast_track)
 
 extern void 
-stats_update(int op, Database *db, struct Page *page, 
+stats_update(int op, Database *db, Page *page, 
                     ham_size_t cost, ham_bool_t try_fast_track);
 
 #define btree_stats_update_find(db, page, hints)    stats_update(HAM_OPERATION_STATS_FIND, db, page, (hints)->cost, (hints)->try_fast_track)
@@ -169,11 +169,11 @@ stats_update(int op, Database *db, struct Page *page,
 #define btree_stats_update_erase(db, page, hints)    stats_update(HAM_OPERATION_STATS_ERASE, db, page, (hints)->cost, (hints)->try_fast_track)
 
 extern void 
-btree_stats_page_is_nuked(Database *db, struct Page *page, 
+btree_stats_page_is_nuked(Database *db, Page *page, 
                     ham_bool_t split);
 
 extern void 
-btree_stats_update_any_bound(int op, Database *db, struct Page *page, 
+btree_stats_update_any_bound(int op, Database *db, Page *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot);
 
 extern void 

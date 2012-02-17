@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.0               Sat Jan 21 21:00:20 CET 2012
+hamsterdb Embedded Storage 2.0.1               Sat Jan 21 21:00:20 CET 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -14,7 +14,7 @@ fast Cursors and variable length keys and can create In-Memory Databases.
 
 The .NET and Java APIs are now integrated in the package. Both were updated.
 
-This is the first stable release of the 2.0.0 branch. It fixed several minor 
+This is the first stable release of the 2.0.1 branch. It fixed several minor 
 bugs and improved performance. Also, the ham_txn_begin API was changed.
 
 Compared to 1.x, a few functions were disabled *only if Transactions are 

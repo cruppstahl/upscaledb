@@ -79,7 +79,8 @@ class DefaultAllocator : public Allocator
             return ((char *)p+sizeof(ham_u32_t));
 
 #if defined(_CRTDBG_MAP_ALLOC)
-        p=::_malloc_dbg(size+sizeof(ham_u32_t), _NORMAL_BLOCK, file, line);
+        p=::_malloc_dbg(size+sizeof(ham_u32_t), _NORMAL_BLOCK, 
+			          __FILE__, __LINE__);
 #else
         p=::malloc(size+sizeof(ham_u32_t));
 #endif
@@ -120,7 +121,7 @@ class DefaultAllocator : public Allocator
 
 #if defined(_CRTDBG_MAP_ALLOC)
         ptr=::_realloc_dbg((void *)p, size+sizeof(ham_u32_t), 
-                    _NORMAL_BLOCK, file, line);
+                    _NORMAL_BLOCK, __FILE__, __LINE__);
 #else
         ptr=::realloc((void *)p, size+sizeof(ham_u32_t));
 #endif

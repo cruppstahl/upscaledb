@@ -386,12 +386,12 @@ class Environment
     }
 
     /** get the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
-    ham_size_t get_cachesize() {
+    ham_u64_t get_cachesize() {
         return (m_cachesize);
     }
 
     /** set the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
-    void set_cachesize(ham_size_t cs) {
+    void set_cachesize(ham_u64_t cs) {
         m_cachesize=cs;
     }
 
