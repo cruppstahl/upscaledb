@@ -553,7 +553,7 @@ ham_status_t
 db_free_page(Page *page, ham_u32_t flags)
 {
     ham_status_t st;
-    Environment *env=page_get_device(page)->get_env();
+    Environment *env=page->get_device()->get_env();
     
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
@@ -569,13 +569,13 @@ db_free_page(Page *page, ham_u32_t flags)
      * and/or free their blobs
      */
     if (page_get_pers(page) && 
-        (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
-         (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
+        (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&
+         (page->get_type()==PAGE_TYPE_B_ROOT ||
+          page->get_type()==PAGE_TYPE_B_INDEX)) {
         ham_backend_t *be;
         
-        ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
-        be = page_get_owner(page)->get_backend();
+        ham_assert(page->get_db(), ("Must be set as page owner when this is a Btree page"));
+        be = page->get_db()->get_backend();
         ham_assert(be, (0));
         
         st = be->_fun_free_page_extkeys(be, page, flags);
@@ -592,10 +592,8 @@ db_free_page(Page *page, ham_u32_t flags)
                     env->get_pagesize(), HAM_TRUE);
     }
 
-    /*
-     * free the page; since it's deleted, we don't need to flush it
-     */
-    page_set_undirty(page);
+    /* free the page; since it's deleted, we don't need to flush it */
+    page->set_dirty(false);
     (void)page_free(page);
     (void)page_delete(page);
 
@@ -665,9 +663,9 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
 
 done:
     /* initialize the page; also set the 'dirty' flag to force logging */
-    page_set_type(page, type);
-    page_set_owner(page, db);
-    page_set_dirty(page);
+    page->set_type(type);
+    page->set_db(db);
+    page->set_dirty(true);
 
     /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO)
@@ -698,7 +696,7 @@ db_alloc_page(Page **page_ref, Database *db,
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
     if ((*page_ref)->get_self()==btree_get_rootpage(be) 
             && !(db->get_rt_flags()&HAM_READ_ONLY))
-        page_set_type(*page_ref, PAGE_TYPE_B_ROOT);
+        (*page_ref)->set_type(PAGE_TYPE_B_ROOT);
     return (0);
 }
 
@@ -741,7 +739,7 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
     if (!page)
         return (HAM_OUT_OF_MEMORY);
 
-    page_set_owner(page, db);
+    page->set_db(db);
     page->set_self(address);
     st=page_fetch(page);
     if (st) {
@@ -775,7 +773,7 @@ db_flush_page(Environment *env, Page *page)
     ham_status_t st;
 
     /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
-    if (page_is_dirty(page)) {
+    if (page->is_dirty()) {
         st=page_flush(page);
         if (st)
             return (st);
@@ -807,7 +805,7 @@ db_flush_all(Cache *cache, ham_u32_t flags)
 
     head=cache->get_totallist();
     while (head) {
-        Page *next=page_get_next(head, Page::LIST_CACHED);
+        Page *next=head->get_next(Page::LIST_CACHED);
 
         /*
          * don't remove the page from the cache, if flag NODELETE
@@ -831,7 +829,7 @@ ham_status_t
 db_write_page_and_delete(Page *page, ham_u32_t flags)
 {
     ham_status_t st;
-    Environment *env=page_get_device(page)->get_env();
+    Environment *env=page->get_device()->get_env();
     
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
@@ -840,8 +838,7 @@ db_write_page_and_delete(Page *page, ham_u32_t flags)
      * an IN-MEMORY DB)
      */
     ham_assert(env, (0));
-    if (page_is_dirty(page) 
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (page->is_dirty() && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
         if (st)
             return st;
@@ -1890,7 +1887,7 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
             be->_fun_flush(be);
-            env->set_dirty();
+            env->set_dirty(true);
         }
     }
 
@@ -2239,7 +2236,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
             be_set_recno(be, recno);
             be_set_dirty(be, HAM_TRUE);
             be->_fun_flush(be);
-            env->set_dirty();
+            env->set_dirty(true);
         }
     }
 
@@ -2904,8 +2901,8 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     if (env && env->get_cache()) {
         Page *n, *head=env->get_cache()->get_totallist();
         while (head) {
-            n=page_get_next(head, Page::LIST_CACHED);
-            if (page_get_owner(head)==m_db && head!=env->get_header_page()) {
+            n=head->get_next(Page::LIST_CACHED);
+            if (head->get_db()==m_db && head!=env->get_header_page()) {
                 if (!(env->get_flags()&HAM_IN_MEMORY_DB)) 
                     (void)db_flush_page(env, head);
                 (void)db_free_page(head, 0);
@@ -2965,7 +2962,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     }
     if (env && env->get_header_page()) {
         ham_assert(env->get_header_page(), (0));
-        page_set_owner(env->get_header_page(), newowner);
+        env->get_header_page()->set_db(newowner);
     }
 
     /* close all record-level filters */

@@ -132,8 +132,8 @@ __key_compare_int_to_int(Database *db, Page *page,
 	ham_key_t rhs;
 	ham_status_t st;
 
-    l=btree_node_get_key(page_get_owner(page), node, lhs_int);
-    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
+    l=btree_node_get_key(page->get_db(), node, lhs_int);
+    r=btree_node_get_key(page->get_db(), node, rhs_int);
 
 	st=btree_prepare_key_for_compare(db, 0, l, &lhs);
 	if (st) {
@@ -146,7 +146,7 @@ __key_compare_int_to_int(Database *db, Page *page,
 		return (st);
 	}
 
-	return (page_get_owner(page)->compare_keys(&lhs, &rhs));
+	return (page->get_db()->compare_keys(&lhs, &rhs));
 }
 
 static ham_status_t 
@@ -158,7 +158,7 @@ __verify_level(Page *parent, Page *page,
     Page *child, *leftsib=0;
     ham_status_t st=0;
     btree_node_t *node=page_get_btree_node(page);
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
 
     /* 
      * assert that the parent page's smallest item (item 0) is bigger
@@ -216,7 +216,7 @@ __verify_page(Page *parent, Page *leftsib, Page *page,
     int cmp;
     ham_size_t i=0;
     ham_size_t count;
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
     btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
 

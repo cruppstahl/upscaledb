@@ -76,7 +76,7 @@ FileDevice::read_page(Page *page)
      * and we force a fallback to read/write.
      */
     if (!(m_flags&HAM_DISABLE_MMAP)) {
-        st=os_mmap(m_fd, page_get_mmap_handle_ptr(page), 
+        st=os_mmap(m_fd, page->get_mmap_handle_ptr(), 
                 page->get_self(), size, m_flags&HAM_READ_ONLY, &buffer);
         if (st && st!=HAM_LIMITS_REACHED)
             return (st);
@@ -92,11 +92,10 @@ fallback_rw:
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
             page_set_pers(page, (page_data_t *)buffer);
-            page_set_npers_flags(page, 
-                page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+            page->set_flags(page->get_flags()|Page::NPERS_MALLOC);
         }
         else
-            ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
+            ham_assert(!(page->get_flags()&Page::NPERS_MALLOC), (0));
 
         st=FileDevice::read(page->get_self(), page_get_pers(page), size);
         if (st)
@@ -170,13 +169,12 @@ FileDevice::free_page(Page *page)
     ham_status_t st;
 
     if (page_get_pers(page)) {
-        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
+        if (page->get_flags()&Page::NPERS_MALLOC) {
             m_env->get_allocator()->free(page_get_pers(page));
-            page_set_npers_flags(page, 
-                page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
+            page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
         }
         else {
-            st=os_munmap(page_get_mmap_handle_ptr(page), 
+            st=os_munmap(page->get_mmap_handle_ptr(), 
                     page_get_pers(page), get_pagesize());
             if (st)
                 return (st);

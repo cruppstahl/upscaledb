@@ -101,7 +101,7 @@ public:
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
 
         // reopen the database, check if the values were stored correctly
-        ((Environment *)m_env)->set_dirty();
+        ((Environment *)m_env)->set_dirty(true);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;

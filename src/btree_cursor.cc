@@ -319,7 +319,7 @@ __move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         return (st);
     /* hack: prior to 2.0, the type of btree root pages was not set
      * correctly */
-    page_set_type(page, PAGE_TYPE_B_ROOT);
+    page->set_type(PAGE_TYPE_B_ROOT);
 
     /*
      * while we've not reached the leaf: pick the largest element
@@ -547,7 +547,7 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record, ham_u32_t flags)
     if (st)
         return (st);
 
-    page_set_dirty(page);
+    page->set_dirty(true);
 
     return (0);
 }
@@ -843,7 +843,7 @@ btree_uncouple_all_cursors(Page *page, ham_size_t start)
     ham_status_t st;
     ham_bool_t skipped=HAM_FALSE;
     Cursor *n;
-    Cursor *c=page_get_cursors(page);
+    Cursor *c=page->get_cursors();
 
     while (c) {
         btree_cursor_t *btc=c->get_btree_cursor();
@@ -873,7 +873,7 @@ btree_uncouple_all_cursors(Page *page, ham_size_t start)
     }
 
     if (!skipped)
-        page_set_cursors(page, 0);
+        page->set_cursors(0);
 
     return (0);
 }

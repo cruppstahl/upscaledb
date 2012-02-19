@@ -288,7 +288,7 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
      ((page)->get_self()+page_get_persistent_header_size()+        \
      OFFSETOF(btree_node_t, _entries)                               \
      /* ^^^ sizeof(btree_key_t) WITHOUT THE -1 !!! */ +               \
-     (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
+     (db_get_int_key_header_size()+db_get_keysize((page)->get_db()))*(i))
 
 /**
  * get the slot of an element in the page

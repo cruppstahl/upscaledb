@@ -72,17 +72,17 @@ public:
         for (int i=0; i<3; i++)
             ch.add_page(page[i]);
         BFC_ASSERT_EQUAL(page[1],
-                    page_get_next(page[2], Page::LIST_CHANGESET));
+                    page[2]->get_next(Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[0],
-                    page_get_next(page[1], Page::LIST_CHANGESET));
+                    page[1]->get_next(Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL((Page *)NULL,
-                    page_get_next(page[0], Page::LIST_CHANGESET));
+                    page[0]->get_next(Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[1],
-                    page_get_previous(page[0], Page::LIST_CHANGESET));
+                    page[0]->get_previous(Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[2],
-                    page_get_previous(page[1], Page::LIST_CHANGESET));
+                    page[1]->get_previous(Page::LIST_CHANGESET));
         BFC_ASSERT_EQUAL((Page *)NULL,
-                    page_get_previous(page[2], Page::LIST_CHANGESET));
+                    page[2]->get_previous(Page::LIST_CHANGESET));
         for (int i=0; i<3; i++)
             page_delete(page[i]);
     }

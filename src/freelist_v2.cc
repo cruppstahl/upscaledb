@@ -54,7 +54,7 @@ __freel_flush_stats32(Device *device, Environment *env)
                     if (!freel_entry_get_page_id(entry)) {
                         /* header page */
                         fp = env->get_freelist();
-                        env->set_dirty();
+                        env->set_dirty(true);
                     }
                     else {
                         /*
@@ -69,7 +69,7 @@ __freel_flush_stats32(Device *device, Environment *env)
                             return st ? st : HAM_INTERNAL_ERROR;
                         fp = page_get_freelist(page);
                         ham_assert(freel_get_start_address(fp) != 0, (0));
-                        page_set_dirty(page);
+                        page->set_dirty(true);
                     }
 
                     ham_assert(fp->_s._s32._zero == 0, (0));

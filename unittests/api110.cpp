@@ -384,7 +384,6 @@ public:
     {
         ham_db_t *db;
         ham_key_t key={0};
-        ham_record_t rec={0};
         ham_cursor_t *cursor;
 
         ham_new(&db);

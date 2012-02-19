@@ -1830,7 +1830,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         l += OFFSETOF(btree_node_t, _entries); // 40-12
      
         l = db_get_int_key_header_size();
-        l += db_get_keysize(page_get_owner(page));
+        l += db_get_keysize(page->get_db());
 
         BFC_ASSERT_EQUAL((int)page->get_self()+12+28, off);
         off=(int)btree_node_get_key_offset(page, 1);

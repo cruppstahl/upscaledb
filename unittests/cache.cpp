@@ -96,7 +96,7 @@ public:
         page=page_new((Environment *)m_env);
         page->set_self(0x123ull);
         page_set_pers(page, &pers);
-        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
+        page->set_flags(Page::NPERS_NO_HEADER);
         cache->put_page(page);
         cache->get_page(0x123ull, 0);
         delete cache;
@@ -112,7 +112,7 @@ public:
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
         page=page_new((Environment *)m_env);
-        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
+        page->set_flags(Page::NPERS_NO_HEADER);
         page->set_self(0x123ull);
         page_set_pers(page, &pers);
         cache->put_page(page);
@@ -136,11 +136,11 @@ public:
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
         page1=page_new((Environment *)m_env);
-        page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
+        page1->set_flags(Page::NPERS_NO_HEADER);
         page1->set_self(0x123ull);
         page_set_pers(page1, &pers1);
         page2=page_new((Environment *)m_env);
-        page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
+        page2->set_flags(Page::NPERS_NO_HEADER);
         page2->set_self(0x456ull);
         page_set_pers(page2, &pers2);
         cache->put_page(page1);
@@ -169,7 +169,7 @@ public:
         for (int i=0; i<20; i++) {
             page[i]=page_new((Environment *)m_env);
             memset(&pers[i], 0, sizeof(pers[i]));
-            page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
+            page[i]->set_flags(Page::NPERS_NO_HEADER);
             page[i]->set_self((i+1)*1024);
             page_set_pers(page[i], &pers[i]);
             cache->put_page(page[i]);
@@ -206,7 +206,7 @@ public:
 
         for (unsigned int i=0; i<15; i++) {
             Page *p=page_new((Environment *)m_env);
-            page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
+            p->set_flags(Page::NPERS_NO_HEADER);
             p->set_self((i+1)*1024);
             page_set_pers(p, &pers);
             v.push_back(p);
@@ -216,7 +216,7 @@ public:
 
         for (unsigned int i=0; i<5; i++) {
             Page *p=page_new((Environment *)m_env);
-            page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
+            p->set_flags(Page::NPERS_NO_HEADER);
             p->set_self((i+1)*1024);
             page_set_pers(p, &pers);
             v.push_back(p);

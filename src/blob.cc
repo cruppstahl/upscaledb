@@ -156,13 +156,10 @@ __write_chunks(Environment *env, Page *page, ham_offset_t addr,
                         at_blob_edge ? 0 : 0/*DB_NEW_PAGE_DOES_THRASH_CACHE*/);
 				ham_assert(st ? !page : 1, (0));
                 /* blob pages don't have a page header */
-                if (page) {
-                    page_set_npers_flags(page, 
-                        page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
-                }
-                else if (st) {
+                if (page)
+                    page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
+                else if (st)
                     return st;
-                }
             }
 
             /*
@@ -178,7 +175,7 @@ __write_chunks(Environment *env, Page *page, ham_offset_t addr,
                     writesize=chunk_size[i];
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
-                page_set_dirty(page);
+                page->set_dirty(true);
                 addr+=writesize;
                 chunk_data[i]+=writesize;
                 chunk_size[i]-=writesize;
@@ -236,8 +233,7 @@ __read_chunk(Environment *env, Page *page, Page **fpage,
 			ham_assert(st ? !page : 1, (0));
             /* blob pages don't have a page header */
             if (page)
-                page_set_npers_flags(page, 
-                    page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
+                page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
 			else if (st)
 				return st;
         }
@@ -448,8 +444,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
             if (st)
                 return st;
             /* blob pages don't have a page header */
-            page_set_npers_flags(page, 
-                    page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
+            page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
             addr=page->get_self();
             /* move the remaining space to the freelist */
             (void)freel_mark_free(env, db, addr+alloc_size,
@@ -1270,7 +1265,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
         st=blob_allocate(env, db, &rec, 0, rid);
     }
     else if (table_id && page) {
-        page_set_dirty(page);
+        page->set_dirty(true);
     }
     else {
         ham_assert(!"shouldn't be here", (0));

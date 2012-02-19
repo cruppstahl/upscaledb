@@ -186,7 +186,7 @@ _local_fun_create(Environment *env, const char *filename,
             return (HAM_OUT_OF_MEMORY);
         }
         /* manually set the device pointer */
-        page_set_device(page, device);
+        page->set_device(device);
         st=page_alloc(page);
         if (st) {
             page_delete(page);
@@ -194,7 +194,7 @@ _local_fun_create(Environment *env, const char *filename,
             return (st);
         }
         memset(page_get_pers(page), 0, pagesize);
-        page_set_type(page, PAGE_TYPE_HEADER);
+        page->set_type(PAGE_TYPE_HEADER);
         env->set_header_page(page);
 
         /* initialize the header */
@@ -205,7 +205,7 @@ _local_fun_create(Environment *env, const char *filename,
         env->set_max_databases(env->get_max_databases_cached());
         ham_assert(env->get_max_databases() > 0, (0));
 
-        page_set_dirty(page);
+        page->set_dirty(true);
     }
 
     /*
@@ -377,7 +377,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         Page *page=0;
         env_header_t *hdr;
         ham_u8_t hdrbuf[512];
-        Page fakepage;
+        Page fakepage(env);
         ham_bool_t hdrpage_faked = HAM_FALSE;
 
         /*
@@ -479,7 +479,7 @@ fail_with_fake_cleansing:
             (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (HAM_OUT_OF_MEMORY);
         }
-        page_set_device(page, device);
+        page->set_device(device);
         st=page_fetch(page);
         if (st) {
             page_delete(page);
@@ -542,12 +542,10 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
     if (slot==env->get_max_databases())
         return (HAM_DATABASE_NOT_FOUND);
 
-    /*
-     * replace the database name with the new name
-     */
+    /* replace the database name with the new name */
     index_set_dbname(env->get_indexdata_ptr(slot), newname);
 
-    env->set_dirty();
+    env->set_dirty(true);
 
     /* flush the header page if logging is enabled */
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
@@ -628,7 +626,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     /* set database name to 0 and set the header page to dirty */
     index_set_dbname(env->get_indexdata_ptr(
                         db->get_indexdata_offset()), 0);
-    page_set_dirty(env->get_header_page());
+    env->get_header_page()->set_dirty(true);
 
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
@@ -728,7 +726,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             if (!st2) 
                 st2=st;
         }
-        env->get_allocator()->free(page);
+        delete page;
         env->set_header_page(0);
     }
 
@@ -951,7 +949,7 @@ _local_fun_create_db(Environment *env, Database *db,
     /*
      * transfer the ownership of the header page to this Database
      */
-    page_set_owner(env->get_header_page(), db);
+    env->get_header_page()->set_db(db);
     ham_assert(env->get_header_page(), (0));
 
     /*
@@ -1036,7 +1034,7 @@ _local_fun_create_db(Environment *env, Database *db,
         ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
     }
     ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
-    env->set_dirty();
+    env->set_dirty(true);
 
     /* finally calculate and store the data access mode */
     if (env->get_version(0) == 1 &&

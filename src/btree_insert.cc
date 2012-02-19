@@ -342,7 +342,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         ham_assert(st ? newroot == NULL : 1, (0));
         if (st)
             return (st);
-        ham_assert(page_get_owner(newroot), (""));
+        ham_assert(newroot->get_db(), (""));
         /* clear the node header */
         memset(page_get_payload(newroot), 0, sizeof(btree_node_t));
 
@@ -375,13 +375,13 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
          */
         btree_set_rootpage(be, newroot->get_self());
         be_set_dirty(be, HAM_TRUE);
-        env->set_dirty();
+        env->set_dirty(true);
         be->_fun_flush(be);
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(env->get_header_page());
-        page_set_type(root, PAGE_TYPE_B_INDEX);
-        page_set_dirty(root);
-        page_set_dirty(newroot);
+        root->set_type(PAGE_TYPE_B_INDEX);
+        root->set_dirty(true);
+        newroot->set_dirty(true);
     }
 
     /*
@@ -457,7 +457,7 @@ __insert_recursive(Page *page, ham_key_t *key,
 {
     ham_status_t st;
     Page *child;
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
     btree_node_t *node=page_get_btree_node(page);
 
     /*
@@ -546,7 +546,7 @@ __insert_in_page(Page *page, ham_key_t *key,
         ham_s32_t idx;
 
         hints->cost++;
-        idx = btree_node_search_by_key(page_get_owner(page), page, key, 
+        idx = btree_node_search_by_key(page->get_db(), page, key, 
                             HAM_FIND_EXACT_MATCH);
         /* key exists! */
         if (idx>=0) {
@@ -580,11 +580,11 @@ __insert_nosplit(Page *page, ham_key_t *key,
     ham_size_t new_dupe_id = 0;
     btree_key_t *bte = 0;
     btree_node_t *node;
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
     ham_bool_t exists = HAM_FALSE;
     ham_s32_t slot;
 
-    ham_assert(page_get_owner(page), (0));
+    ham_assert(page->get_db(), (0));
 
     node=page_get_btree_node(page);
     count=btree_node_get_count(node);
@@ -705,7 +705,7 @@ __insert_nosplit(Page *page, ham_key_t *key,
         key_set_ptr(bte, rid);
     }
 
-    page_set_dirty(page);
+    page->set_dirty(true);
     key_set_size(bte, key->size);
 
     /*
@@ -785,14 +785,14 @@ __insert_split(Page *page, ham_key_t *key,
     btree_key_t *nbte, *obte;
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
     Environment *env = db->get_env();
     ham_key_t pivotkey, oldkey;
     ham_offset_t pivotrid;
     ham_u16_t pivot;
     ham_bool_t pivot_at_end=HAM_FALSE;
 
-    ham_assert(page_get_owner(page), (0));
+    ham_assert(page->get_db(), (0));
 
     ham_assert(hints->force_append == HAM_FALSE, (0));
 
@@ -807,7 +807,7 @@ __insert_split(Page *page, ham_key_t *key,
     ham_assert(!st ? page  != NULL : 1, (0));
     if (st)
         return st; 
-    ham_assert(page_get_owner(newpage), (""));
+    ham_assert(newpage->get_db(), (""));
     /* clear the node header */
     memset(page_get_payload(newpage), 0, sizeof(btree_node_t));
 
@@ -963,10 +963,10 @@ __insert_split(Page *page, ham_key_t *key,
     if (oldsib) {
         sbtp=page_get_btree_node(oldsib);
         btree_node_set_left(sbtp, newpage->get_self());
-        page_set_dirty(oldsib);
+        oldsib->set_dirty(true);
     }
-    page_set_dirty(newpage);
-    page_set_dirty(page);
+    newpage->set_dirty(true);
+    page->set_dirty(true);
 
     /* 
      * propagate the pivot key to the parent page

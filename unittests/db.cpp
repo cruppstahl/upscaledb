@@ -127,9 +127,9 @@ public:
         BFC_ASSERT_EQUAL((ham_compare_func_t)19, m_dbp->get_compare_func());
         m_dbp->set_compare_func(oldfoo2);
 
-        page_set_undirty(((Environment *)m_env)->get_header_page());
+        ((Environment *)m_env)->get_header_page()->set_dirty(false);
         BFC_ASSERT(!((Environment *)m_env)->is_dirty());
-        ((Environment *)m_env)->set_dirty();
+        ((Environment *)m_env)->set_dirty(true);
         BFC_ASSERT(((Environment *)m_env)->is_dirty());
 
         BFC_ASSERT(0!=m_dbp->get_rt_flags());
@@ -236,7 +236,7 @@ public:
         Page *page;
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
-        BFC_ASSERT_EQUAL(m_dbp, page_get_owner(page));
+        BFC_ASSERT_EQUAL(m_dbp, page->get_db());
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
     }
 
@@ -245,7 +245,7 @@ public:
         Page *p1, *p2;
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&p1, m_dbp, 0, PAGE_IGNORE_FREELIST));
-        BFC_ASSERT_EQUAL(m_dbp, page_get_owner(p1));
+        BFC_ASSERT_EQUAL(m_dbp, p1->get_db());
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&p2, m_dbp, p1->get_self(), 0));
         BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
@@ -261,11 +261,11 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
 
-        BFC_ASSERT(page_get_owner(page)==m_dbp);
+        BFC_ASSERT(page->get_db()==m_dbp);
         p=page_get_raw_payload(page);
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
-        page_set_dirty(page);
+        page->set_dirty(true);
         address=page->get_self();
         BFC_ASSERT_EQUAL(0, db_flush_page((Environment *)m_env, page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
@@ -335,7 +335,7 @@ public:
         ham_backend_t be = {0};
 
         page.set_self(1000);
-        page_set_owner(&page, &db);
+        page.set_db(&db);
         db.set_backend(&be);
         be_set_keysize(&be, 666);
         for (i = 0; i < 5; i++) {

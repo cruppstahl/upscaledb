@@ -399,8 +399,7 @@ class InMemoryDevice : public Device {
         if (!buffer)
             return (HAM_OUT_OF_MEMORY);
         page_set_pers(page, (page_data_t *)buffer);
-        page_set_npers_flags(page, 
-            page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+        page->set_flags(page->get_flags()|Page::NPERS_MALLOC);
         page->set_self((ham_offset_t)PTR_TO_U64(buffer));
 
         return (HAM_SUCCESS);
@@ -410,12 +409,11 @@ class InMemoryDevice : public Device {
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
     virtual ham_status_t free_page(Page *page) {
         ham_assert(page_get_pers(page)!=0, (0));
-        ham_assert(page_get_npers_flags(page)|PAGE_NPERS_MALLOC, (0));
+        ham_assert(page->get_flags()|Page::NPERS_MALLOC, (0));
 
         m_env->get_allocator()->free(page_get_pers(page));
         page_set_pers(page, 0);
-        page_set_npers_flags(page, 
-            page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
+        page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
 
         return (HAM_SUCCESS);
     }

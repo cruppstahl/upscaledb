@@ -167,7 +167,7 @@ _enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level,
 {
     ham_size_t i;
     ham_size_t count;
-    Database *db=page_get_owner(page);
+    Database *db=page->get_db();
     btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
     ham_bool_t is_leaf;

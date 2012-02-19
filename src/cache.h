@@ -78,7 +78,7 @@ class Cache
                         page, Page::LIST_CHANGESET))
                 break;
         
-            page=page_get_previous(page, Page::LIST_CACHED);
+            page=page->get_previous(Page::LIST_CACHED);
             ham_assert(page!=oldest, (0));
         } while (page && page!=oldest);
     
@@ -106,7 +106,7 @@ class Cache
         while (page) {
             if (page->get_self()==address)
                 break;
-            page=page_get_next(page, Page::LIST_BUCKET);
+            page=page->get_next(Page::LIST_BUCKET);
         }
 
         /* not found? then return */
@@ -182,7 +182,7 @@ class Cache
         /* are we removing the chronologically oldest page? then 
          * update the pointer with the next oldest page */
         if (m_totallist_tail==page)
-            m_totallist_tail=page_get_previous(page, Page::LIST_CACHED);
+            m_totallist_tail=page->get_previous(Page::LIST_CACHED);
 
         /* remove the page from the cache buckets */
         if (page->get_self()) {
