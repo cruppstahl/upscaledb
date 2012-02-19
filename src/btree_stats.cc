@@ -475,7 +475,7 @@ stats_update(int op, Database *db, Page *page, ham_size_t cost,
  * INVALID btree node later on!
  */
 void 
-btree_stats_page_is_nuked(Database *db, struct Page *page, 
+btree_stats_page_is_nuked(Database *db, Page *page, 
                     ham_bool_t split)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
@@ -521,7 +521,7 @@ btree_stats_page_is_nuked(Database *db, struct Page *page,
 }
 
 void 
-btree_stats_update_any_bound(int op, Database *db, struct Page *page, 
+btree_stats_update_any_bound(int op, Database *db, Page *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;

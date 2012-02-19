@@ -19,6 +19,14 @@
 
 #include <string.h>
 
+#if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
+#  undef alloc
+#  undef free
+#  undef realloc
+#  undef calloc
+#endif
+
+
 /**
  * a memory allocator
  */
@@ -56,5 +64,6 @@ class Allocator
  * and free)
  */
 Allocator *ham_default_allocator_new();
+
 
 #endif /* HAM_MEM_H__ */

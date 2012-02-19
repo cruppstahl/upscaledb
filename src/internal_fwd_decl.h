@@ -45,8 +45,7 @@ class Device;
 
 class Environment;
 
-struct Page;
-typedef struct Page Page;
+class Page;
 
 struct ham_backend_t;
 typedef struct ham_backend_t ham_backend_t;
