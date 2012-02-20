@@ -183,7 +183,7 @@ public class Const {
 	public final static int HAM_AUTO_RECOVERY       			=  0x10000;
 
 	/** Flag for Database.create, Database.open(), ... */
-	public final static int HAM_ENABLE_TRANSACTIONS 			=  0x2.0.1;
+	public final static int HAM_ENABLE_TRANSACTIONS 			=  0x20000;
 
 	/** Flag for Database.create, Database.open(), ... */
 	public final static int HAM_CACHE_UNLIMITED     			=  0x40000;

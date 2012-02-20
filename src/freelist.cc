@@ -180,20 +180,20 @@ __freel_init_perf_data32(freelist_cache_t *cache, Device *dev, Environment *env,
 static void
 __env_set_dirty(Environment *env)
 {
-    env->set_dirty();
+    env->set_dirty(true);
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
         env->get_changeset().add_page(env->get_header_page());
 }
 
 /**
- * replacement for the macro page_set_dirty; will call the macro, but also
+ * replacement for the macro page->set_dirty(); will call the macro, but also
  * add the page to the changeset
  */
 static void
 __page_set_dirty(Page *page)
 {
-    Environment *env=page_get_device(page)->get_env();
-    page_set_dirty(page);
+    Environment *env=page->get_device()->get_env();
+    page->set_dirty(true);
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
         env->get_changeset().add_page(page);
 }

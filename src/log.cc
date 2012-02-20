@@ -329,7 +329,7 @@ Log::recover()
         memcpy(page_get_pers(page), data, entry.data_size);
 
         /* flush the modified page to disk */
-        page_set_dirty(page);
+        page->set_dirty(true);
         st=page_flush(page);
         if (st)
             goto bail;

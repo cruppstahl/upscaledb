@@ -448,13 +448,13 @@ class Environment
     bool is_private();
 
     /** set the dirty-flag - this is the same as db_set_dirty() */
-    void set_dirty() {
-        page_set_dirty(get_header_page());
+    void set_dirty(bool dirty) {
+        get_header_page()->set_dirty(dirty);
     }
 
     /** get the dirty-flag */
     bool is_dirty() {
-        return (page_is_dirty(get_header_page()));
+        return (get_header_page()->is_dirty());
     }
 
     /**

@@ -111,15 +111,17 @@ class Page {
         MAX_LISTS       = 3
     };
 
-    Page() 
-    : m_alloc(0), m_owner(0), m_device(0), m_flags(0), 
-      m_dirty(false), m_cursors(0), m_pers(0), m_self(0) {
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-        m_win32mmap=0;
-#endif
-        memset(&m_prev[0], 0, sizeof(m_prev));
-        memset(&m_next[0], 0, sizeof(m_next));
-    }
+    enum {
+        /** page->m_pers was allocated with malloc, not mmap */
+        NPERS_MALLOC            = 1,
+        /** page will be deleted when committed */
+        NPERS_DELETE_PENDING    = 2,
+        /** page has no header */
+        NPERS_NO_HEADER         = 4
+    };
+
+    /** default constructor */
+    Page(Environment *env=0);
 
     /** is this the header page? */
     bool is_header() {
@@ -136,11 +138,106 @@ class Page {
         m_self=address;
     }
 
-    /** the memory allocator */
-    Allocator *m_alloc;
+    /** the database object which 0wnz this page */
+    Database *get_db() {
+        return (m_db);
+    }
+
+    /** set the database object which 0wnz this page */
+    void set_db(Database *db) {
+        m_db=db;
+    }
+
+    /** get the device of this page */
+    Device *get_device() {
+        return (m_device);
+    }
+
+    /** set the device of this page */
+    void set_device(Device *device) {
+        m_device=device;
+    }
+
+    /** get non-persistent page flags */
+    ham_u32_t get_flags() {
+        return (m_flags);
+    }
+
+    /** set non-persistent page flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** is this page dirty? */
+    bool is_dirty() {
+        return (m_dirty);
+    }
+
+    /** mark this page dirty/not dirty */
+    void set_dirty(bool dirty) {
+        m_dirty=dirty;
+    }
+
+    /** win32: get a pointer to the mmap handle */
+#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
+    HANDLE get_mmap_handle_ptr() {
+        return (m_win32mmap);
+    }
+#else
+    ham_fd_t *get_mmap_handle_ptr() {
+        return (0);
+    }
+#endif
+
+    /** get linked list of cursors */
+    Cursor *get_cursors() {
+        return (m_cursors);
+    }
+
+    /** set linked list of cursors */
+    void set_cursors(Cursor *cursor) {
+        m_cursors=cursor;
+    }
+
+    /** get the previous page of a linked list */
+    Page *get_previous(int which) {
+        return (m_prev[which]);
+    }
+
+    /** set the previous page of a linked list */
+    void set_previous(int which, Page *other) {
+        m_prev[which]=other;
+    }
+
+    /** get the next page of a linked list */
+    Page *get_next(int which) {
+        return (m_next[which]);
+    }
+
+    /** set the next page of a linked list */
+    void set_next(int which, Page *other) {
+        m_next[which]=other;
+    }
+
+    /** set the page-type */
+    void set_type(ham_u32_t type) {
+        m_pers->_s._flags=ham_h2db32(type);
+    }
+
+    /** get the page-type */
+    ham_u32_t get_type() {
+        return (ham_db2h32(m_pers->_s._flags));
+    }
+
+    /** from here on everything will be written to disk */
+    page_data_t *m_pers;
+
+  private:
+    /** address of this page */
+    ham_offset_t m_self;
 
     /** reference to the database object; can be NULL */
-    Database *m_owner;
+    Database *m_db;
 
     /** the device of this page */
     Device *m_device;
@@ -162,113 +259,7 @@ class Page {
     /** linked lists of pages - see comments above */
     Page *m_prev[Page::MAX_LISTS]; 
     Page *m_next[Page::MAX_LISTS];
-
-    /** from here on everything will be written to disk */
-    page_data_t *m_pers;
-
-  private:
-    /** address of this page */
-    ham_offset_t m_self;
 };
-
-/** * the database object which 0wnz this page */
-#define page_get_owner(page)         ((page)->m_owner)
-
-/** set the database object which 0wnz this page */
-#define page_set_owner(page, db)     (page)->m_owner=(db)
-
-/** get the previous page of a linked list */
-#ifdef HAM_DEBUG
-extern Page *
-page_get_previous(Page *page, int which);
-#else
-#   define page_get_previous(page, which)    ((page)->m_prev[(which)])
-#endif /* HAM_DEBUG */
-
-/** set the previous page of a linked list */
-#ifdef HAM_DEBUG
-extern void
-page_set_previous(Page *page, int which, Page *other);
-#else
-#   define page_set_previous(page, which, p) (page)->m_prev[(which)]=(p)
-#endif /* HAM_DEBUG */
-
-/** get the next page of a linked list */
-#ifdef HAM_DEBUG
-extern Page *
-page_get_next(Page *page, int which);
-#else
-#   define page_get_next(page, which)        ((page)->m_next[(which)])
-#endif /* HAM_DEBUG */
-
-/** set the next page of a linked list */
-#ifdef HAM_DEBUG
-extern void
-page_set_next(Page *page, int which, Page *other);
-#else
-#   define page_set_next(page, which, p)     (page)->m_next[(which)]=(p)
-#endif /* HAM_DEBUG */
-
-/** get memory allocator */
-#define page_get_allocator(page)             (page)->m_alloc
-
-/** set memory allocator */
-#define page_set_allocator(page, a)          (page)->m_alloc=a
-
-/** get the device of this page */
-#define page_get_device(page)                (page)->m_device
-
-/** set the device of this page */
-#define page_set_device(page, d)             (page)->m_device=d
-
-/** get linked list of cursors */
-#define page_get_cursors(page)           (page)->m_cursors
-
-/** set linked list of cursors */
-#define page_set_cursors(page, c)        (page)->m_cursors=(c)
-
-/** get persistent page flags */
-#define page_get_pers_flags(page)        (ham_db2h32((page)->m_pers->_s._flags))
-
-/** set persistent page flags */
-#define page_set_pers_flags(page, f)     (page)->m_pers->_s._flags=ham_h2db32(f)
-
-/** get non-persistent page flags */
-#define page_get_npers_flags(page)       (page)->m_flags
-
-/** set non-persistent page flags */
-#define page_set_npers_flags(page, f)    (page)->m_flags=(f)
-
-/** page->m_pers was allocated with malloc, not mmap */
-#define PAGE_NPERS_MALLOC               1
-
-/** page will be deleted when committed */
-#define PAGE_NPERS_DELETE_PENDING       2
-
-/** page has no header */
-#define PAGE_NPERS_NO_HEADER            4
-
-/** is this page dirty? */
-#define page_is_dirty(page)             ((page)->m_dirty)
-
-/** mark this page dirty */
-#define page_set_dirty(page)            (page)->m_dirty=true
-
-/** page is no longer dirty */
-#define page_set_undirty(page)          (page)->m_dirty=false
-
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-/** win32: get a pointer to the mmap handle */
-#   define page_get_mmap_handle_ptr(p)  &((p)->m_win32mmap)
-#else
-#   define page_get_mmap_handle_ptr(p)  0
-#endif
-
-/** set the page-type */
-#define page_set_type(page, t)          page_set_pers_flags(page, t)
-
-/** get the page-type */
-#define page_get_type(page)             (page_get_pers_flags(page))
 
 /**
  * @defgroup page_type_codes valid page types
@@ -327,9 +318,9 @@ extern ham_bool_t
 page_is_in_list(Page *head, Page *page, int which);
 #else
 #define page_is_in_list(head, page, which)                                     \
-     (page_get_next(page, which)                                               \
+     (page->get_next(which)                                                    \
          ? HAM_TRUE                                                            \
-         : (page_get_previous(page, which))                                    \
+         : (page->get_previous(which))                                         \
              ? HAM_TRUE                                                        \
              : (head==page)                                                    \
                  ? HAM_TRUE                                                    \
@@ -344,14 +335,14 @@ page_is_in_list(Page *head, Page *page, int which);
 inline Page *
 page_list_insert(Page *head, int which, Page *page)
 {
-    page_set_next(page, which, 0);
-    page_set_previous(page, which, 0);
+    page->set_next(which, 0);
+    page->set_previous(which, 0);
 
     if (!head)
         return (page);
 
-    page_set_next(page, which, head);
-    page_set_previous(head, which, page);
+    page->set_next(which, head);
+    head->set_previous(which, page);
     return (page);
 }
 
@@ -366,22 +357,22 @@ page_list_remove(Page *head, int which, Page *page)
     Page *n, *p;
 
     if (page==head) {
-        n=page_get_next(page, which);
+        n=page->get_next(which);
         if (n)
-            page_set_previous(n, which, 0);
-        page_set_next(page, which, 0);
-        page_set_previous(page, which, 0);
+            n->set_previous(which, 0);
+        page->set_next(which, 0);
+        page->set_previous(which, 0);
         return (n);
     }
 
-    n=page_get_next(page, which);
-    p=page_get_previous(page, which);
+    n=page->get_next(which);
+    p=page->get_previous(which);
     if (p)
-        page_set_next(p, which, n);
+        p->set_next(which, n);
     if (n)
-        page_set_previous(n, which, p);
-    page_set_next(page, which, 0);
-    page_set_previous(page, which, 0);
+        n->set_previous(which, p);
+    page->set_next(which, 0);
+    page->set_previous(which, 0);
     return (head);
 }
 

@@ -15,59 +15,8 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-x c++-ify the Environment
-
-x c++-ify the memory allocator
-
-x c++-ify the device
-    x create and implement the class(es)
-    x most Device methods can be inlined
-
-x make sure that databases from 1.1.15 can be opened (right now they cannot)
-    x add unittest
-
-x when inserting RECORD_NUMBER: always specify HAM_OVERWRITE (at least in
-    release mode) to improve performance 
-
-x Andy: sent patch for pread/pwrite on Windows
-
-x Mark: store journal/log in a different directory to avoid 
-    wearout of flash disks/SSDs
-    x implement
-    x add unittest
-    x can be queried via ham_env_get_parameters
-        x implement
-        x unittest
-    x can be queried via ham_get_parameters
-        x implement
-        x unittest
-    x add to documentation
-
-x Mark: need macro in header file whether new or old interface is supported
-
-x update the tutorial
-
-x Andy: build issue if HAM_DISABLE_COMPRESSION is defined (win32)
-
-x Mark: reported bug with transactions and HAM_ONLY_DUPLICATES (see mail)
-
-x ham_txn_commit can return errors (i.e. caused by I/O or the inducer)
-    when it flushes the txn, but the commit was already logged
-    and a recovery would succeed -> the txn is committed although it
-    fails with an error
-    -> this problem will disappear when the txn is flushed in background
-
-x implement support for approx. matching (-> sevencat)
-    x identify test cases and create unittests
-    x add to win32 project
-    x write test-driven
-    x if the current txn-node does not have any valid keys: move back or forth
-        depending on flags
-    x also check approximate-flag of the key
-    x don't implement for ham_cursor_find
-    x select a btree item which was erased
-    x select a btree item which was overwritten
-    x update documentation, README
+o c++-ify the page
+    x page->is_header() instead of page_get_self()==0
 
 o design redundancy
     x identify toolkit (TBB, boost?) - go for boost, but we can use both later
@@ -93,9 +42,6 @@ o mail an Tony B, Curt M., andere
 
 o continue with c++-ification of the environment - need to split into
     local and remote (same as for Database class)
-
-o c++-ify the page
-    x page->is_header() instead of page_get_self()==0
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);

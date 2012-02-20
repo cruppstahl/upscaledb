@@ -620,7 +620,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
-        page_set_dirty(page);
+        page->set_dirty(true);
         BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
@@ -669,7 +669,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
-            page_set_dirty(page[i]);
+            page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
@@ -723,7 +723,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
-        page_set_dirty(page);
+        page->set_dirty(true);
         BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
@@ -772,7 +772,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
-            page_set_dirty(page[i]);
+            page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
@@ -830,7 +830,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
-            page_set_dirty(page[i]);
+            page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);

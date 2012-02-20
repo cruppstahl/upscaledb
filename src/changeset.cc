@@ -34,14 +34,14 @@ Changeset::add_page(Page *page)
     if (page_is_in_list(m_head, page, Page::LIST_CHANGESET))
         return;
 
-    ham_assert(0==page_get_next(page, Page::LIST_CHANGESET), (""));
-    ham_assert(0==page_get_previous(page, Page::LIST_CHANGESET), (""));
-    ham_assert(page_get_device(page)->get_env()->get_flags()
+    ham_assert(0==page->get_next(Page::LIST_CHANGESET), (""));
+    ham_assert(0==page->get_previous(Page::LIST_CHANGESET), (""));
+    ham_assert(page->get_device()->get_env()->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
-    page_set_next(page, Page::LIST_CHANGESET, m_head);
+    page->set_next(Page::LIST_CHANGESET, m_head);
     if (m_head)
-        page_set_previous(m_head, Page::LIST_CHANGESET, page);
+        m_head->set_previous(Page::LIST_CHANGESET, page);
     m_head=page;
 }
 
@@ -51,12 +51,12 @@ Changeset::get_page(ham_offset_t pageid)
     Page *page=m_head;
 
     while (page) {
-        ham_assert(page_get_device(page)->get_env()->get_flags()
+        ham_assert(page->get_device()->get_env()->get_flags()
                 &HAM_ENABLE_RECOVERY, (""));
 
         if (page->get_self()==pageid)
             return (page);
-        page=page_get_next(page, Page::LIST_CHANGESET);
+        page=page->get_next(Page::LIST_CHANGESET);
     }
 
     return (0);
@@ -67,10 +67,9 @@ Changeset::clear(void)
 {
     Page *n, *p=m_head;
     while (p) {
-        n=page_get_next(p, Page::LIST_CHANGESET);
-
-        page_set_next(p, Page::LIST_CHANGESET, 0);
-        page_set_previous(p, Page::LIST_CHANGESET, 0);
+        n=p->get_next(Page::LIST_CHANGESET);
+        p->set_next(Page::LIST_CHANGESET, 0);
+        p->set_previous(Page::LIST_CHANGESET, 0);
         p=n;
     }
     m_head=0;
@@ -81,9 +80,9 @@ Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
                       ham_u64_t lsn, ham_size_t &page_count) 
 {
     for (ham_size_t i=0; i<bucket_size; i++) {
-        ham_assert(page_is_dirty(bucket[i]), (""));
+        ham_assert(bucket[i]->is_dirty(), (""));
 
-        Environment *env=page_get_device(bucket[i])->get_env();
+        Environment *env=bucket[i]->get_device()->get_env();
         Log *log=env->get_log();
 
         induce(ErrorInducer::CHANGESET_FLUSH);
@@ -122,8 +121,8 @@ Changeset::flush(ham_u64_t lsn)
     // first step: remove all pages that are not dirty and sort all others
     // into the buckets
     while (p) {
-        n=page_get_next(p, Page::LIST_CHANGESET);
-        if (!page_is_dirty(p)) {
+        n=p->get_next(Page::LIST_CHANGESET);
+        if (!p->is_dirty()) {
             p=n;
             continue;
         }
@@ -131,23 +130,18 @@ Changeset::flush(ham_u64_t lsn)
         if (p->is_header()) {
             append(m_indices, m_indices_size, m_indices_capacity, p);
         }
-        else if (page_get_npers_flags(p)&PAGE_NPERS_NO_HEADER) {
+        else if (p->get_flags()&Page::NPERS_NO_HEADER) {
             append(m_blobs, m_blobs_size, m_blobs_capacity, p);
         }
         else {
-            switch (page_get_type(p)) {
+            switch (p->get_type()) {
               case PAGE_TYPE_BLOB:
                 append(m_blobs, m_blobs_size, m_blobs_capacity, p);
                 break;
               case PAGE_TYPE_B_ROOT:
               case PAGE_TYPE_B_INDEX:
               case PAGE_TYPE_HEADER:
-  //              append(m_indices, m_indices_size, m_indices_capacity, p);
-  if (m_indices_size+1>=m_indices_capacity) {
-    m_indices_capacity=m_indices_capacity ? m_indices_capacity*2 : 8;
-    m_indices=(Page **)::realloc(m_indices, sizeof(void *)*m_indices_capacity);
-  }
-  m_indices[m_indices_size++]=p;
+                append(m_indices, m_indices_size, m_indices_capacity, p);
                 break;
               case PAGE_TYPE_FREELIST:
                 append(m_freelists, m_freelists_size, m_freelists_capacity, p);
@@ -193,7 +187,7 @@ Changeset::flush(ham_u64_t lsn)
     // now flush all modified pages to disk
     p=m_head;
 
-    Environment *env=page_get_device(p)->get_env();
+    Environment *env=p->get_device()->get_env();
     Log *log=env->get_log();
 
     ham_assert(log!=0, (""));
@@ -207,12 +201,12 @@ Changeset::flush(ham_u64_t lsn)
     /* now write all the pages to the file; if any of these writes fail, 
      * we can still recover from the log */
     while (p) {
-        if (page_is_dirty(p)) {
+        if (p->is_dirty()) {
             st=db_flush_page(env, p);
             if (st)
                 return (st);
         }
-        p=page_get_next(p, Page::LIST_CHANGESET);
+        p=p->get_next(Page::LIST_CHANGESET);
 
         induce(ErrorInducer::CHANGESET_FLUSH);
     }

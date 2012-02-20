@@ -132,9 +132,8 @@ public:
 
     void allocFreeTest()
     {
-        Page page;
-        memset(&page, 0, sizeof(page));
-        page_set_owner(&page, (Database *)m_db);
+        Page page((Environment *)m_env);
+        page.set_db((Database *)m_db);
 
         BFC_ASSERT_EQUAL(1, m_dev->is_open());
         BFC_ASSERT_EQUAL(0, m_dev->alloc_page(&page));
@@ -160,7 +159,7 @@ public:
         BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*10));
         for (i=0; i<10; i++) {
             memset(&pages[i], 0, sizeof(Page));
-            page_set_owner(&pages[i], (Database *)m_db);
+            pages[i].set_db((Database *)m_db);
             pages[i].set_self(i*ps);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
         }
@@ -232,7 +231,7 @@ public:
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
         }
         for (i=0; i<2; i++) {
-            BFC_ASSERT(page_get_npers_flags(pages[i])&PAGE_NPERS_MALLOC);
+            BFC_ASSERT(pages[i]->get_flags()&Page::NPERS_MALLOC);
             memset(page_get_pers(pages[i]), i+1, ps);
             BFC_ASSERT_EQUAL(0, m_dev->write_page(pages[i]));
             BFC_ASSERT_EQUAL(0, page_free(pages[i]));

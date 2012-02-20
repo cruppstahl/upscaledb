@@ -201,7 +201,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 
     memset(page_get_raw_payload(root), 0, 
             sizeof(btree_node_t)+sizeof(page_data_t));
-    page_set_type(root, PAGE_TYPE_B_ROOT);
+    root->set_type(PAGE_TYPE_B_ROOT);
 
     /*
      * calculate the maximum number of keys for this page, 
@@ -222,7 +222,7 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     index_set_recno(indexdata, 0);
     index_clear_reserved(indexdata);
 
-    db->get_env()->set_dirty();
+    db->get_env()->set_dirty(true);
     be_set_active(be, HAM_TRUE);
 
     return (0);
@@ -289,7 +289,7 @@ btree_fun_flush(ham_btree_t *be)
     index_set_recno(indexdata, be_get_recno(be));
     index_clear_reserved(indexdata);
 
-    db->get_env()->set_dirty();
+    db->get_env()->set_dirty(true);
     be_set_dirty(be, HAM_FALSE);
 
     return (0);
@@ -369,7 +369,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, Page *page, ham_u32_t flags)
 {
     Database *db=be_get_db(be);
     
-    ham_assert(page_get_owner(page) == db, (0));
+    ham_assert(page->get_db() == db, (0));
     
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
@@ -379,9 +379,9 @@ btree_fun_free_page_extkeys(ham_btree_t *be, Page *page, ham_u32_t flags)
      * and/or free their blobs
      */
     if (page_get_pers(page) 
-            && (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER))
-            && (page_get_type(page)==PAGE_TYPE_B_ROOT 
-                || page_get_type(page)==PAGE_TYPE_B_INDEX)) {
+            && (!(page->get_flags()&Page::NPERS_NO_HEADER))
+            && (page->get_type()==PAGE_TYPE_B_ROOT 
+                || page->get_type()==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
         btree_key_t *bte;
@@ -389,7 +389,7 @@ btree_fun_free_page_extkeys(ham_btree_t *be, Page *page, ham_u32_t flags)
         ExtKeyCache *c;
 
         ham_assert(db, ("Must be set as page owner when this is a Btree page"));
-        ham_assert(db=page_get_owner(page), (""));
+        ham_assert(db==page->get_db(), (""));
         c=db->get_extkey_cache();
 
         for (i=0; i<btree_node_get_count(node); i++) {
@@ -792,7 +792,7 @@ btree_compare_keys(Database *db, Page *page,
     ham_key_t rhs={0};
     ham_status_t st;
 
-	ham_assert(db == page_get_owner(page), (0));
+	ham_assert(db==page->get_db(), (0));
 
     r=btree_node_get_key(db, node, rhs_int);
 
