@@ -662,6 +662,7 @@ stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, ham_key_t 
                     || dbdata->upper_bound_page_address != page_get_self(page)
                     || slot == btree_node_get_count(node) - 1) 
             {
+                int_key_t *k;
                 page_add_ref(page);
 
                 /* only set when not done already */
@@ -669,26 +670,36 @@ stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, ham_key_t 
                 dbdata->upper_bound_index = btree_node_get_count(node) - 1;
                 dbdata->upper_bound_page_address = page_get_self(page);
 
-                if (dbdata->upper_bound.data) {
-                    allocator_free(env_get_allocator(env), dbdata->upper_bound.data);
-                    dbdata->upper_bound.data=0;
-                    dbdata->upper_bound.size=0;
-                }
+                k = btree_node_get_key(db, node, dbdata->upper_bound_index);
 
-                st = util_copy_key_int2pub(db, 
-                    btree_node_get_key(db, node, dbdata->upper_bound_index),
-                    &dbdata->upper_bound);
-                if (st) 
-                {
-                    /* panic! is case of failure, just drop the upper bound 
-                     * entirely. */
-                    if (dbdata->upper_bound.data)
-                        allocator_free(env_get_allocator(env), dbdata->upper_bound.data);
-                    memset(&dbdata->upper_bound, 0, 
-                            sizeof(dbdata->upper_bound));
-                    dbdata->upper_bound_index = 0;
-                    dbdata->upper_bound_page_address = 0;
-                    dbdata->upper_bound_set = HAM_FALSE;
+                if (dbdata->upper_bound.size==key_get_size(k)
+                        && !(key_get_flags(k)&KEY_IS_EXTENDED)) {
+                    memcpy(dbdata->upper_bound.data, key_get_key(k), 
+                            key_get_size(k));
+                }
+                else {
+                    if (dbdata->upper_bound.data) {
+                        allocator_free(env_get_allocator(env), 
+                                dbdata->upper_bound.data);
+                        dbdata->upper_bound.data=0;
+                        dbdata->upper_bound.size=0;
+                    }
+
+                    st = util_copy_key_int2pub(db, 
+                        btree_node_get_key(db, node, dbdata->upper_bound_index),
+                        &dbdata->upper_bound);
+                    if (st) {
+                        /* panic! is case of failure, just drop the upper bound 
+                        * entirely. */
+                        if (dbdata->upper_bound.data)
+                            allocator_free(env_get_allocator(env), 
+                                        dbdata->upper_bound.data);
+                        memset(&dbdata->upper_bound, 0, 
+                                sizeof(dbdata->upper_bound));
+                        dbdata->upper_bound_index = 0;
+                        dbdata->upper_bound_page_address = 0;
+                        dbdata->upper_bound_set = HAM_FALSE;
+                    }
                 }
                 page_release_ref(page);
                 if (op==HAM_OPERATION_STATS_INSERT)

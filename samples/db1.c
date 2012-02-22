@@ -11,7 +11,7 @@
 #define DBNAME_DATESHIFT  2
 #define DBNAME_MEMBER  3
 
-#define MONTH			12
+#define MONTH			 4
 #define DAYS			30
 #define SHIFT			2
 #define CUSTOMERS		500
@@ -177,6 +177,7 @@ int main(void)
   // insert a few customers in the first database
 	for(i=0;i<MONTH;i++)
 	{
+printf("month %d\n", i);
 		DS.DateShiftId=0;
 
 	    st=ham_env_new(&env);
