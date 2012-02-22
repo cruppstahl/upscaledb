@@ -79,6 +79,8 @@ __purge_cache_max20(ham_env_t *env)
      */
     if (!(env_get_rt_flags(env)&HAM_CACHE_STRICT)) {
         max_pages/=10;
+        if (max_pages==0)
+            max_pages=1;
         /* but still we set an upper limit to avoid IO spikes */
         if (max_pages>20)
             max_pages=20;

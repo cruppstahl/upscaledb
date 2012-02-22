@@ -26,7 +26,7 @@ extern "C" {
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
-#define CACHE_BUCKET_SIZE    10317
+#define CACHE_BUCKET_SIZE    7
 
 
 /**
@@ -219,7 +219,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
  */
 #define cache_too_big(c)                                                      \
     ((cache_get_cur_elements(c)*env_get_pagesize(cache_get_env(c))            \
-            >cache_get_capacity(cache)) ? HAM_TRUE : HAM_FALSE) 
+            >(cache_get_capacity(cache)/2)) ? HAM_TRUE : HAM_FALSE) 
 
 /**
  * check the cache integrity

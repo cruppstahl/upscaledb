@@ -24,59 +24,59 @@
 #include "error.h"
 #include "mem.h"
 
+ham_u32_t total_allocs;
+ham_u32_t max_allocs;
+ham_u32_t current_alloc;
 
 void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
-    (void)self;
-    (void)file;
-    (void)line;
-
-#if defined(_CRTDBG_MAP_ALLOC)
-    return (_malloc_dbg(size, _NORMAL_BLOCK, file, line));
-#else
-    return (malloc(size));
-#endif
+    void *p=malloc(size+sizeof(ham_u32_t));
+    total_allocs+=size;
+    if (total_allocs>max_allocs)
+        max_allocs=total_allocs;
+    current_alloc=size;
+    *(ham_u32_t *)p=size;
+/*printf("current %8u, peak %8u, size: +%4u\n", total_allocs, max_allocs, 
+        current_alloc);*/
+    return ((char *)p)+sizeof(ham_u32_t);
 }
 
 void 
 free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
 {
-    (void)self;
-    (void)file;
-    (void)line;
-
-    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line));
-#if defined(_CRTDBG_MAP_ALLOC)
-    _free_dbg((void *)ptr, _NORMAL_BLOCK);
-#else
-    free((void *)ptr);
-#endif
+    char *p=(char *)ptr;
+    p-=sizeof(ham_u32_t);
+    total_allocs-=*(ham_u32_t *)p;
+/*printf("current %8u, peak %8u, size: -%4u\n", total_allocs, max_allocs, 
+        *(ham_u32_t *)p);*/
+    free((void *)p);
 }
 
 void *
 realloc_impl(mem_allocator_t *self, const char *file, int line, 
         const void *ptr, ham_size_t size)
 {
-    (void)self;
-    (void)file;
-    (void)line;
+    char *p=(char *)ptr;
+    if (!ptr)
+        return (alloc_impl(self, file, line, size));
+    p-=sizeof(ham_u32_t);
+    total_allocs-=*(ham_u32_t *)p;
+    total_allocs+=size;
+    if (total_allocs>max_allocs)
+        max_allocs=total_allocs;
+/*printf("current %8u, peak %8u, size: -%4u\n", total_allocs, max_allocs,
+        *(ham_u32_t *)p);
+printf("current %8u, peak %8u, size: +%4u\n", total_allocs, max_allocs,
+        size);*/
 
-#if defined(_CRTDBG_MAP_ALLOC)
-    return (_realloc_dbg((void *)ptr, size, _NORMAL_BLOCK, file, line));
-#else
-    return (realloc((void *)ptr, size));
-#endif
+    return (realloc((void *)p, size));
 }
 
 void 
 close_impl(mem_allocator_t *self)
 {
-#if defined(_CRTDBG_MAP_ALLOC)
-    _free_dbg(self, _NORMAL_BLOCK);
-#else
     free(self);
-#endif
 }
 
 mem_allocator_t *
