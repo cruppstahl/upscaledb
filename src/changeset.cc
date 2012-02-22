@@ -135,15 +135,15 @@ Changeset::flush(ham_u64_t lsn)
         }
         else {
             switch (p->get_type()) {
-              case PAGE_TYPE_BLOB:
+              case Page::TYPE_BLOB:
                 append(m_blobs, m_blobs_size, m_blobs_capacity, p);
                 break;
-              case PAGE_TYPE_B_ROOT:
-              case PAGE_TYPE_B_INDEX:
-              case PAGE_TYPE_HEADER:
+              case Page::TYPE_B_ROOT:
+              case Page::TYPE_B_INDEX:
+              case Page::TYPE_HEADER:
                 append(m_indices, m_indices_size, m_indices_capacity, p);
                 break;
-              case PAGE_TYPE_FREELIST:
+              case Page::TYPE_FREELIST:
                 append(m_freelists, m_freelists_size, m_freelists_capacity, p);
                 break;
               default:

@@ -48,9 +48,9 @@ page_is_in_list(Page *head, Page *page, int which)
 }
 #endif /* HAM_DEBUG */
 
-Page::Page(Environment *env)
-  : m_pers(0), m_self(0), m_db(0), m_device(0), m_flags(0), m_dirty(false),
-    m_cursors(0)
+Page::Page(Environment *env, Database *db)
+  : m_self(0), m_db(db), m_device(0), m_flags(0), m_dirty(false),
+    m_cursors(0), m_pers(0)
 {
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
     m_win32mmap=0;
@@ -60,6 +60,40 @@ Page::Page(Environment *env)
     memset(&m_prev[0], 0, sizeof(m_prev));
     memset(&m_next[0], 0, sizeof(m_next));
 }
+
+Page::~Page()
+{
+    ham_assert(get_pers()==0, (0));
+    ham_assert(get_cursors()==0, (0));
+}
+
+ham_status_t
+Page::allocate()
+{
+    return (get_device()->alloc_page(this));
+}
+
+ham_status_t
+Page::fetch(ham_offset_t address)
+{
+    set_self(address);
+    return (get_device()->read_page(this));
+}
+
+ham_status_t
+Page::flush()
+{
+    if (!is_dirty())
+        return (HAM_SUCCESS);
+
+    ham_status_t st=get_device()->write_page(this);
+    if (st)
+        return (st);
+
+    set_dirty(false);
+    return (HAM_SUCCESS);
+}
+
 
 void
 page_add_cursor(Page *page, Cursor *cursor)
@@ -94,59 +128,6 @@ page_remove_cursor(Page *page, Cursor *cursor)
 
     cursor->set_next_in_page(0);
     cursor->set_previous_in_page(0);
-}
-
-Page *
-page_new(Environment *env)
-{
-    return (new Page(env));
-}
-
-void
-page_delete(Page *page)
-{
-    ham_assert(page!=0, (0));
-    ham_assert(page_get_pers(page)==0, (0));
-    ham_assert(page->get_cursors()==0, (0));
-
-    delete page;
-}
-
-ham_status_t
-page_alloc(Page *page)
-{
-    Device *dev=page->get_device();
-
-    ham_assert(dev, (0));
-    return (dev->alloc_page(page));
-}
-
-ham_status_t
-page_fetch(Page *page)
-{
-    Device *dev=page->get_device();
-
-    ham_assert(dev, (0));
-    return (dev->read_page(page));
-}
-
-ham_status_t
-page_flush(Page *page)
-{
-    ham_status_t st;
-    Device *dev=page->get_device();
-
-    if (!page->is_dirty())
-        return (HAM_SUCCESS);
-
-    ham_assert(dev, (0));
-
-    st=dev->write_page(page);
-    if (st)
-        return (st);
-
-    page->set_dirty(false);
-    return (HAM_SUCCESS);
 }
 
 ham_status_t

@@ -213,7 +213,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
         p=(ham_u8_t *)m_env->get_allocator()->alloc(m_env->get_pagesize());
         if (!p)
             return (HAM_OUT_OF_MEMORY);
-        memcpy(p, page_get_raw_payload(page), size);
+        memcpy(p, page->get_raw_payload(), size);
 
         while (head) {
             if (head->before_write_cb) {
@@ -225,13 +225,13 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
         }
     }
     else
-        p=(ham_u8_t *)page_get_raw_payload(page);
+        p=(ham_u8_t *)page->get_raw_payload();
 
     if (st==0)
         st=append_write(lsn, page_count==0 ? CHANGESET_IS_COMPLETE : 0, 
                         page->get_self(), p, size);
 
-    if (p!=page_get_raw_payload(page))
+    if (p!=page->get_raw_payload())
         m_env->get_allocator()->free(p);
 
     return (st);
@@ -304,20 +304,15 @@ Log::recover()
             /* appended... */
             filesize+=entry.data_size;
 
-            page=page_new(m_env);
-            if (st)
-                goto bail;
-            st=page_alloc(page);
+            page=new Page(m_env);
+            st=page->allocate();
             if (st)
                 goto bail;
         }
         else {
             /* overwritten... */
-            page=page_new(m_env);
-            if (st)
-                goto bail;
-            page->set_self(entry.offset);
-            st=page_fetch(page);
+            page=new Page(m_env);
+            st=page->fetch(entry.offset);
             if (st)
                 goto bail;
         }
@@ -326,17 +321,17 @@ Log::recover()
         ham_assert(m_env->get_pagesize()==entry.data_size, (""));
 
         /* overwrite the page data */
-        memcpy(page_get_pers(page), data, entry.data_size);
+        memcpy(page->get_pers(), data, entry.data_size);
 
         /* flush the modified page to disk */
         page->set_dirty(true);
-        st=page_flush(page);
+        st=page->flush();
         if (st)
             goto bail;
         st=page_free(page);
         if (st)
             goto bail;
-        page_delete(page);
+        delete page;
 
         /* store the lsn in the log - will be needed later when recovering
          * the journal */

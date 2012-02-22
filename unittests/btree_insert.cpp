@@ -99,21 +99,21 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }
@@ -144,21 +144,21 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }
@@ -203,21 +203,21 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
                 db_fetch_page(&page, (Database *)m_db, 
                     m_env->get_pagesize()*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page->get_type());
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }

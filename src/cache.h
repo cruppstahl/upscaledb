@@ -134,7 +134,7 @@ class Cache
     void put_page(Page *page) {
         ham_u64_t hash=calc_hash(page->get_self());
 
-        ham_assert(page_get_pers(page), (""));
+        ham_assert(page->get_pers(), (""));
 
         /* first remove the page from the cache, if it's already cached
          *

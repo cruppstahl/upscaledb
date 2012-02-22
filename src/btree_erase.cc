@@ -433,7 +433,7 @@ __collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
         env->get_changeset().add_page(env->get_header_page());
 
-    newroot->set_type(PAGE_TYPE_B_ROOT);
+    newroot->set_type(Page::TYPE_B_ROOT);
 
     return (0);
 }

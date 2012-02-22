@@ -338,13 +338,13 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         /*
          * allocate a new root page
          */
-        st=db_alloc_page(&newroot, db, PAGE_TYPE_B_ROOT, 0); 
+        st=db_alloc_page(&newroot, db, Page::TYPE_B_ROOT, 0); 
         ham_assert(st ? newroot == NULL : 1, (0));
         if (st)
             return (st);
         ham_assert(newroot->get_db(), (""));
         /* clear the node header */
-        memset(page_get_payload(newroot), 0, sizeof(btree_node_t));
+        memset(newroot->get_payload(), 0, sizeof(btree_node_t));
 
         btree_stats_page_is_nuked(db, root, HAM_TRUE);
 
@@ -379,7 +379,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         be->_fun_flush(be);
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(env->get_header_page());
-        root->set_type(PAGE_TYPE_B_INDEX);
+        root->set_type(Page::TYPE_B_INDEX);
         root->set_dirty(true);
         newroot->set_dirty(true);
     }
@@ -802,14 +802,14 @@ __insert_split(Page *page, ham_key_t *key,
      * allocate a new page
      */
     hints->cost++;
-    st=db_alloc_page(&newpage, db, PAGE_TYPE_B_INDEX, 0); 
+    st=db_alloc_page(&newpage, db, Page::TYPE_B_INDEX, 0); 
     ham_assert(st ? page == NULL : 1, (0));
     ham_assert(!st ? page  != NULL : 1, (0));
     if (st)
         return st; 
     ham_assert(newpage->get_db(), (""));
     /* clear the node header */
-    memset(page_get_payload(newpage), 0, sizeof(btree_node_t));
+    memset(newpage->get_payload(), 0, sizeof(btree_node_t));
 
     btree_stats_page_is_nuked(db, page, HAM_TRUE);
 

@@ -302,7 +302,7 @@ class Environment
 
     /** get a pointer to the header data */
     env_header_t *get_header() {
-        return ((env_header_t *)(page_get_payload(get_header_page())));
+        return ((env_header_t *)(get_header_page()->get_payload()));
     }
 
     /** get the oldest transaction */
@@ -476,7 +476,7 @@ class Environment
     /** get the maximum number of databases for this file */
     ham_u16_t get_max_databases() {
         env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(get_header_page()));
+                    (get_header_page()->get_payload());
         return (ham_db2h16(hdr->_max_databases));
     }
 
@@ -526,7 +526,7 @@ class Environment
     /** get byte @a i of the 'version'-header */
     ham_u8_t get_version(ham_size_t idx) {
         env_header_t *hdr=(env_header_t *)
-                    (page_get_payload(get_header_page()));
+                    (get_header_page()->get_payload());
         return (envheader_get_version(hdr, idx));
     }
 
@@ -541,14 +541,14 @@ class Environment
     /** get the serial number */
     ham_u32_t get_serialno() {
         env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(get_header_page()));
+                    (get_header_page()->get_payload());
         return (ham_db2h32(hdr->_serialno));
     }
 
     /** set the serial number */
     void set_serialno(ham_u32_t n) {
         env_header_t *hdr=(env_header_t*)
-                    (page_get_payload(get_header_page()));
+                    (get_header_page()->get_payload());
         hdr->_serialno=ham_h2db32(n);
     }
 

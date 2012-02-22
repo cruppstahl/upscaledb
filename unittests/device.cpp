@@ -137,7 +137,7 @@ public:
 
         BFC_ASSERT_EQUAL(1, m_dev->is_open());
         BFC_ASSERT_EQUAL(0, m_dev->alloc_page(&page));
-        BFC_ASSERT(page_get_pers(&page)!=0);
+        BFC_ASSERT(page.get_pers()!=0);
         BFC_ASSERT_EQUAL(0, m_dev->free_page(&page));
     }
 
@@ -164,7 +164,7 @@ public:
             BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
         }
         for (i=0; i<10; i++)
-            memset(page_get_pers(&pages[i]), i, ps);
+            memset(pages[i].get_pers(), i, ps);
         for (i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, m_dev->write_page(&pages[i]));
         }
@@ -174,7 +174,7 @@ public:
             BFC_ASSERT_EQUAL(0, m_dev->free_page(&pages[i]));
 
             BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
-            buffer=(ham_u8_t *)page_get_pers(&pages[i]);
+            buffer=(ham_u8_t *)pages[i].get_pers();
             BFC_ASSERT_EQUAL(0, memcmp(buffer, temp, ps));
         }
         for (i=0; i<10; i++) {
@@ -226,28 +226,28 @@ public:
         BFC_ASSERT_EQUAL(1, m_dev->is_open());
         BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*2));
         for (i=0; i<2; i++) {
-            BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
+            BFC_ASSERT((pages[i]=new Page((Environment *)m_env)));
             pages[i]->set_self(ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
         }
         for (i=0; i<2; i++) {
             BFC_ASSERT(pages[i]->get_flags()&Page::NPERS_MALLOC);
-            memset(page_get_pers(pages[i]), i+1, ps);
+            memset(pages[i]->get_pers(), i+1, ps);
             BFC_ASSERT_EQUAL(0, m_dev->write_page(pages[i]));
             BFC_ASSERT_EQUAL(0, page_free(pages[i]));
-            page_delete(pages[i]);
+            delete pages[i];
         }
 
         for (i=0; i<2; i++) {
             char temp[1024];
             memset(temp, i+1, sizeof(temp));
-            BFC_ASSERT((pages[i]=page_new((Environment *)m_env)));
+            BFC_ASSERT((pages[i]=new Page((Environment *)m_env)));
             pages[i]->set_self(ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
             BFC_ASSERT_EQUAL(0, 
-                    memcmp(page_get_pers(pages[i]), temp, sizeof(temp)));
+                    memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
             BFC_ASSERT_EQUAL(0, page_free(pages[i]));
-            page_delete(pages[i]);
+            delete pages[i];
         }
     }
 

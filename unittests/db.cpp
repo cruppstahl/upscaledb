@@ -262,7 +262,7 @@ public:
                 db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
 
         BFC_ASSERT(page->get_db()==m_dbp);
-        p=page_get_raw_payload(page);
+        p=page->get_raw_payload();
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
         page->set_dirty(true);
@@ -273,7 +273,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_dbp, address, 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(address, page->get_self());
-        p=page_get_raw_payload(page);
+        p=page->get_raw_payload();
         /* TODO see comment in db.c - db_free_page()
         for (int i=0; i<16; i++)
             BFC_ASSERT(p[i]==(ham_u8_t)i);
@@ -352,14 +352,15 @@ public:
             env_header_t drat;
         } hdrpage_pers = {{{0}}};
         Page hdrpage;
-        hdrpage.m_pers = (page_data_t *)&hdrpage_pers;
+        hdrpage.set_pers((page_data_t *)&hdrpage_pers);
         Page *hp = &hdrpage;
-        ham_u8_t *pl1 = page_get_payload(hp);
+        ham_u8_t *pl1 = hp->get_payload();
         BFC_ASSERT(pl1);
-        BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage.m_pers, 12));
-        env_header_t *hdrptr = (env_header_t *)(page_get_payload(&hdrpage));
-        BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage.m_pers, 12));
+        BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_pers(), 12));
+        env_header_t *hdrptr = (env_header_t *)(hdrpage.get_payload());
+        BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage.get_pers(), 12));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
+        hdrpage.set_pers(0);
     }
 
 };

@@ -173,7 +173,7 @@ __write_chunks(Environment *env, Page *page, ham_offset_t addr,
                         (ham_size_t)(pagesize - writestart);
                 if (writesize>chunk_size[i])
                     writesize=chunk_size[i];
-                memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
+                memcpy(&page->get_raw_payload()[writestart], chunk_data[i],
                             writesize);
                 page->set_dirty(true);
                 addr+=writesize;
@@ -249,7 +249,7 @@ __read_chunk(Environment *env, Page *page, Page **fpage,
                     (ham_size_t)(env->get_pagesize()-readstart);
             if (readsize>size)
                 readsize=size;
-            memcpy(data, &page_get_raw_payload(page)[readstart], readsize);
+            memcpy(data, &page->get_raw_payload()[readstart], readsize);
             addr+=readsize;
             data+=readsize;
             size-=readsize;
@@ -308,7 +308,7 @@ __get_duplicate_table(dupe_table_t **table_ref, Page **page,
      */
     if (hdrpage->get_self()+env->get_usable_pagesize() >=
             table_id+blob_get_size(&hdr)) {
-        ham_u8_t *p=page_get_raw_payload(hdrpage);
+        ham_u8_t *p=hdrpage->get_raw_payload();
         /* yes, table is in the page */
         *page=hdrpage;
         *table_ref = (dupe_table_t *)
@@ -437,7 +437,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
          * through the cache
          */
         if (__blob_from_cache(env, alloc_size)) {
-            st = db_alloc_page(&page, db, PAGE_TYPE_BLOB, 
+            st = db_alloc_page(&page, db, Page::TYPE_BLOB, 
                         PAGE_IGNORE_FREELIST);
 			ham_assert(st ? page == NULL : 1, (0));
 			ham_assert(!st ? page  != NULL : 1, (0));

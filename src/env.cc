@@ -90,14 +90,14 @@ struct db_indexdata_t *
 Environment::get_indexdata_ptr(int i) 
 {
     db_indexdata_t *dbi=(db_indexdata_t *)
-            (page_get_payload(get_header_page())+sizeof(env_header_t));
+            (get_header_page()->get_payload()+sizeof(env_header_t));
     return (dbi+i);
 }
 
 freelist_payload_t *
 Environment::get_freelist()
 {
-    return ((freelist_payload_t *)(page_get_payload(get_header_page())+
+    return ((freelist_payload_t *)(get_header_page()->get_payload()+
                         SIZEOF_FULL_HEADER(this)));
 }
 
@@ -178,23 +178,17 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* allocate the header page */
     {
-        Page *page;
-
-        page=page_new(env);
-        if (!page) {
-            (void)ham_env_close((ham_env_t *)env, 0);
-            return (HAM_OUT_OF_MEMORY);
-        }
+        Page *page=new Page(env);
         /* manually set the device pointer */
         page->set_device(device);
-        st=page_alloc(page);
+        st=page->allocate();
         if (st) {
-            page_delete(page);
+            delete page;
             (void)ham_env_close((ham_env_t *)env, 0);
             return (st);
         }
-        memset(page_get_pers(page), 0, pagesize);
-        page->set_type(PAGE_TYPE_HEADER);
+        memset(page->get_pers(), 0, pagesize);
+        page->set_type(Page::TYPE_HEADER);
         env->set_header_page(page);
 
         /* initialize the header */
@@ -236,7 +230,7 @@ _local_fun_create(Environment *env, const char *filename,
     /* flush the header page - this will write through disk if logging is
      * enabled */
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
-    	return (page_flush(env->get_header_page()));
+    	return (env->get_header_page()->flush());
 
     return (0);
 }
@@ -386,7 +380,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
          * at the end of this section or we'll be in BIG trouble!
          */
         hdrpage_faked = HAM_TRUE;
-        fakepage.m_pers = (page_data_t *)hdrbuf;
+        fakepage.set_pers((page_data_t *)hdrbuf);
         env->set_header_page(&fakepage);
 
         /*
@@ -463,6 +457,7 @@ fail_with_fake_cleansing:
 
         /* undo the headerpage fake first! */
         if (hdrpage_faked)
+            fakepage.set_pers(0);
             env->set_header_page(0);
 
         /* exit when an error was signaled */
@@ -471,18 +466,12 @@ fail_with_fake_cleansing:
             return (st);
         }
 
-        /*
-         * now read the "real" header page and store it in the Environment
-         */
-        page=page_new(env);
-        if (!page) {
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
-            return (HAM_OUT_OF_MEMORY);
-        }
+        /* now read the "real" header page and store it in the Environment */
+        page=new Page(env);
         page->set_device(device);
-        st=page_fetch(page);
+        st=page->fetch(0);
         if (st) {
-            page_delete(page);
+            delete page;
             (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
             return (st);
         }
@@ -549,7 +538,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
 
     /* flush the header page if logging is enabled */
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
-        return (page_flush(env->get_header_page()));
+        return (env->get_header_page()->flush());
     
     return (0);
 }
@@ -695,7 +684,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             && env->get_device()
             && env->get_device()->is_open()
             && (!(env->get_flags()&HAM_READ_ONLY))) {
-        st=page_flush(env->get_header_page());
+        st=env->get_header_page()->flush();
         if (!st2) st2 = st;
     }
 
@@ -715,13 +704,13 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      *
      * !!
      * the last database, which was closed, has set the owner of the 
-     * page to 0, which means that we can't call page_free, page_delete
+     * page to 0, which means that we can't call page_free
      * etc. We have to use the device-routines.
      */
     if (env->get_header_page()) {
         Page *page=env->get_header_page();
         ham_assert(device, (0));
-        if (page_get_pers(page)) {
+        if (page->get_pers()) {
             st=device->free_page(page);
             if (!st2) 
                 st2=st;
@@ -880,7 +869,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
      * update the header page, if necessary
      */
     if (env->is_dirty()) {
-        st=page_flush(env->get_header_page());
+        st=env->get_header_page()->flush();
         if (st)
             return st;
     }

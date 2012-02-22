@@ -193,15 +193,15 @@ btree_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     }
 
     /* allocate a new root page */
-    st=db_alloc_page(&root, db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+    st=db_alloc_page(&root, db, Page::TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
     ham_assert(st ? root == NULL : 1, (0));
     ham_assert(!st ? root != NULL : 1, (0));
     if (!root)
         return (st ? st : HAM_INTERNAL_ERROR);
 
-    memset(page_get_raw_payload(root), 0, 
+    memset(root->get_raw_payload(), 0, 
             sizeof(btree_node_t)+sizeof(page_data_t));
-    root->set_type(PAGE_TYPE_B_ROOT);
+    root->set_type(Page::TYPE_B_ROOT);
 
     /*
      * calculate the maximum number of keys for this page, 
@@ -378,10 +378,10 @@ btree_fun_free_page_extkeys(ham_btree_t *be, Page *page, ham_u32_t flags)
      * a B-Tree index page: remove all extended keys from the cache, 
      * and/or free their blobs
      */
-    if (page_get_pers(page) 
+    if (page->get_pers() 
             && (!(page->get_flags()&Page::NPERS_NO_HEADER))
-            && (page->get_type()==PAGE_TYPE_B_ROOT 
-                || page->get_type()==PAGE_TYPE_B_INDEX)) {
+            && (page->get_type()==Page::TYPE_B_ROOT 
+                || page->get_type()==Page::TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
         btree_key_t *bte;

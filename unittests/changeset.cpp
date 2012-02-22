@@ -66,7 +66,7 @@ public:
         Changeset ch;
         Page *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new((Environment *)m_env);
+            page[i]=new Page((Environment *)m_env);
             page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
@@ -84,7 +84,7 @@ public:
         BFC_ASSERT_EQUAL((Page *)NULL,
                     page[2]->get_previous(Page::LIST_CHANGESET));
         for (int i=0; i<3; i++)
-            page_delete(page[i]);
+            delete page[i];
     }
 
     void getPagesTest()
@@ -92,7 +92,7 @@ public:
         Changeset ch;
         Page *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new((Environment *)m_env);
+            page[i]=new Page((Environment *)m_env);
             page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
@@ -103,7 +103,7 @@ public:
         BFC_ASSERT_EQUAL((Page *)NULL, ch.get_page(999));
 
         for (int i=0; i<3; i++)
-            page_delete(page[i]);
+            delete page[i];
     }
 
     void clearTest()
@@ -111,7 +111,7 @@ public:
         Changeset ch;
         Page *page[3];
         for (int i=0; i<3; i++) {
-            page[i]=page_new((Environment *)m_env);
+            page[i]=new Page((Environment *)m_env);
             page[i]->set_self(1024*i);
         }
         for (int i=0; i<3; i++)
@@ -127,7 +127,7 @@ public:
                     ch.get_page(page[i]->get_self()));
 
         for (int i=0; i<3; i++)
-            page_delete(page[i]);
+            delete page[i];
     }
 };
 

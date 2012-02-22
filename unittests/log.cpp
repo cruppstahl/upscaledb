@@ -257,11 +257,11 @@ public:
 
         for (int i=0; i<5; i++) {
             Page *page;
-            page=page_new(m_env);
-            BFC_ASSERT_EQUAL(0, page_alloc(page));
+            page=new Page(m_env);
+            BFC_ASSERT_EQUAL(0, page->allocate());
             BFC_ASSERT_EQUAL(0, log->append_page(page, 1+i, 5-i));
             BFC_ASSERT_EQUAL(0, page_free(page));
-            page_delete(page);
+            delete page;
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -623,7 +623,7 @@ public:
         page->set_dirty(true);
         BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
-            page_get_payload(page)[i]=(ham_u8_t)i;
+            page->get_payload()[i]=(ham_u8_t)i;
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(1));
         m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -649,7 +649,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page contains the marker */
         for (int i=0; i<200; i++)
-            BFC_ASSERT_EQUAL((ham_u8_t)i, page_get_payload(page)[i]);
+            BFC_ASSERT_EQUAL((ham_u8_t)i, page->get_payload()[i]);
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(1ull, m_env->get_log()->get_lsn());
@@ -672,7 +672,7 @@ public:
             page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
-                page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
+                page[i]->get_payload()[j]=(ham_u8_t)(i+j);
         }
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(33));
         m_env->get_changeset().clear();
@@ -703,7 +703,7 @@ public:
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             /* verify that the pages contain the markers */
             for (int j=0; j<200; j++)
-                BFC_ASSERT_EQUAL((ham_u8_t)(i+j), page_get_payload(page[i])[j]);
+                BFC_ASSERT_EQUAL((ham_u8_t)(i+j), page[i]->get_payload()[j]);
         }
 
         /* verify the lsn */
@@ -726,7 +726,7 @@ public:
         page->set_dirty(true);
         BFC_ASSERT_EQUAL(ps*2, page->get_self());
         for (int i=0; i<200; i++)
-            page_get_payload(page)[i]=(ham_u8_t)i;
+            page->get_payload()[i]=(ham_u8_t)i;
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(2));
         m_env->get_changeset().clear();
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -752,7 +752,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps*2, 0));
         /* verify that the page does not contain the "XXX..." */
         for (int i=0; i<20; i++)
-            BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[i]);
+            BFC_ASSERT_NOTEQUAL('X', page->get_raw_payload()[i]);
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(2ull, m_env->get_log()->get_lsn());
@@ -775,7 +775,7 @@ public:
             page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
-                page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
+                page[i]->get_payload()[j]=(ham_u8_t)(i+j);
         }
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(5));
         m_env->get_changeset().clear();
@@ -809,7 +809,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             for (int j=0; j<20; j++)
-                BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page[i])[i]);
+                BFC_ASSERT_NOTEQUAL('X', page[i]->get_raw_payload()[i]);
         }
 
         /* verify the lsn */
@@ -833,7 +833,7 @@ public:
             page[i]->set_dirty(true);
             BFC_ASSERT_EQUAL(ps*(2+i), page[i]->get_self());
             for (int j=0; j<200; j++)
-                page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
+                page[i]->get_payload()[j]=(ham_u8_t)(i+j);
         }
         BFC_ASSERT_EQUAL(0, m_env->get_changeset().flush(6));
         m_env->get_changeset().clear();
@@ -869,7 +869,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
             for (int j=0; j<20; j++)
-                BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page[i])[i]);
+                BFC_ASSERT_NOTEQUAL('X', page[i]->get_raw_payload()[i]);
         }
 
         /* verify the lsn */

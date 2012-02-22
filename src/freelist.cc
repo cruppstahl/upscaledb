@@ -2820,7 +2820,7 @@ __freel_alloc_pageXX(Page **page_ref, Device *device, Environment *env, freelist
             /*
              * allocate a new page, fixed the linked list
              */
-            st=env_alloc_page(&page, env, PAGE_TYPE_FREELIST, 
+            st=env_alloc_page(&page, env, Page::TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
             if (!page)
             {

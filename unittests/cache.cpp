@@ -93,15 +93,15 @@ public:
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new((Environment *)m_env);
+        page=new Page((Environment *)m_env);
         page->set_self(0x123ull);
-        page_set_pers(page, &pers);
+        page->set_pers(&pers);
         page->set_flags(Page::NPERS_NO_HEADER);
         cache->put_page(page);
         cache->get_page(0x123ull, 0);
         delete cache;
-        page_set_pers(page, 0);
-        page_delete(page);
+        page->set_pers(0);
+        delete page;
     }
 
     void putGetRemoveGetTest(void)
@@ -111,10 +111,10 @@ public:
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new((Environment *)m_env);
+        page=new Page((Environment *)m_env);
         page->set_flags(Page::NPERS_NO_HEADER);
         page->set_self(0x123ull);
-        page_set_pers(page, &pers);
+        page->set_pers(&pers);
         cache->put_page(page);
         BFC_ASSERT(cache->get_cur_elements()==1);
         BFC_ASSERT(cache->get_page(0x123ull, 0)==page);
@@ -123,8 +123,8 @@ public:
         BFC_ASSERT(cache->get_cur_elements()==0);
         BFC_ASSERT(cache->get_page(0x123ull, 0)==0);
         delete cache;
-        page_set_pers(page, 0);
-        page_delete(page);
+        page->set_pers(0);
+        delete page;
     }
     
     void putGetReplaceTest(void)
@@ -135,14 +135,14 @@ public:
         memset(&pers2, 0, sizeof(pers2));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
-        page1=page_new((Environment *)m_env);
+        page1=new Page((Environment *)m_env);
         page1->set_flags(Page::NPERS_NO_HEADER);
         page1->set_self(0x123ull);
-        page_set_pers(page1, &pers1);
-        page2=page_new((Environment *)m_env);
+        page1->set_pers(&pers1);
+        page2=new Page((Environment *)m_env);
         page2->set_flags(Page::NPERS_NO_HEADER);
         page2->set_self(0x456ull);
-        page_set_pers(page2, &pers2);
+        page2->set_pers(&pers2);
         cache->put_page(page1);
         BFC_ASSERT(cache->get_cur_elements()==1);
         cache->remove_page(page1);
@@ -154,10 +154,10 @@ public:
         BFC_ASSERT(cache->get_page(0x456ull, 0)==page2);
         BFC_ASSERT(cache->get_cur_elements()==0);
         delete cache;
-        page_set_pers(page1, 0);
-        page_delete(page1);
-        page_set_pers(page2, 0);
-        page_delete(page2);
+        page1->set_pers(0);
+        delete page1;
+        page2->set_pers(0);
+        delete page2;
     }
     
     void multiplePutTest(void)
@@ -167,11 +167,11 @@ public:
         Cache *cache=new Cache((Environment *)m_env, 15);
 
         for (int i=0; i<20; i++) {
-            page[i]=page_new((Environment *)m_env);
+            page[i]=new Page((Environment *)m_env);
             memset(&pers[i], 0, sizeof(pers[i]));
             page[i]->set_flags(Page::NPERS_NO_HEADER);
             page[i]->set_self((i+1)*1024);
-            page_set_pers(page[i], &pers[i]);
+            page[i]->set_pers(&pers[i]);
             cache->put_page(page[i]);
         }
         for (int i=0; i<20; i++) {
@@ -182,8 +182,8 @@ public:
         }
         for (int i=0; i<20; i++) {
             BFC_ASSERT(cache->get_page((i+1)*1024, 0)==0);
-            page_set_pers(page[i], 0);
-            page_delete(page[i]);
+            page[i]->set_pers(0);
+            delete page[i];
         }
         delete cache;
     }
@@ -205,20 +205,20 @@ public:
         std::vector<Page *> v;
 
         for (unsigned int i=0; i<15; i++) {
-            Page *p=page_new((Environment *)m_env);
+            Page *p=new Page((Environment *)m_env);
             p->set_flags(Page::NPERS_NO_HEADER);
             p->set_self((i+1)*1024);
-            page_set_pers(p, &pers);
+            p->set_pers(&pers);
             v.push_back(p);
             cache->put_page(p);
             BFC_ASSERT(!cache->is_too_big());
         }
 
         for (unsigned int i=0; i<5; i++) {
-            Page *p=page_new((Environment *)m_env);
+            Page *p=new Page((Environment *)m_env);
             p->set_flags(Page::NPERS_NO_HEADER);
             p->set_self((i+1)*1024);
-            page_set_pers(p, &pers);
+            p->set_pers(&pers);
             v.push_back(p);
             cache->put_page(p);
             BFC_ASSERT(cache->is_too_big());
@@ -230,8 +230,8 @@ public:
             p=v.back();
             v.pop_back();
             cache->remove_page(p);
-            page_set_pers(p, 0);
-            page_delete(p);
+            p->set_pers(0);
+            delete p;
         }
 
         for (unsigned int i=0; i<15; i++) {
@@ -240,8 +240,8 @@ public:
             v.pop_back();
             cache->remove_page(p);
             BFC_ASSERT(!cache->is_too_big());
-            page_set_pers(p, 0);
-            page_delete(p);
+            p->set_pers(0);
+            delete p;
         }
 
         BFC_ASSERT(!cache->is_too_big());

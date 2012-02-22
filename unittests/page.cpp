@@ -79,18 +79,18 @@ public:
     void newDeleteTest()
     {
         Page *page;
-        page=page_new((Environment *)m_env);
+        page=new Page((Environment *)m_env);
         BFC_ASSERT(page!=0);
-        page_delete(page);
+        delete page;
     }
 
     void allocFreeTest()
     {
         Page *page;
-        page=page_new((Environment *)m_env);
-        BFC_ASSERT_EQUAL(0, page_alloc(page));
+        page=new Page((Environment *)m_env);
+        BFC_ASSERT_EQUAL(0, page->allocate());
         BFC_ASSERT_EQUAL(0, page_free(page));
-        page_delete(page);
+        delete page;
     }
 
     void multipleAllocFreeTest()
@@ -100,14 +100,14 @@ public:
         ham_size_t ps=((Environment *)m_env)->get_pagesize();
 
         for (i=0; i<10; i++) {
-            page=page_new((Environment *)m_env);
-            BFC_ASSERT_EQUAL(0, page_alloc(page));
+            page=new Page((Environment *)m_env);
+            BFC_ASSERT_EQUAL(0, page->allocate());
             /* i+2 since we need 1 page for the header page and one page
              * for the root page */
             if (!m_inmemory)
                 BFC_ASSERT_EQUAL((i+2)*ps, page->get_self());
             BFC_ASSERT_EQUAL(0, page_free(page));
-            page_delete(page);
+            delete page;
         }
     }
 
@@ -116,28 +116,27 @@ public:
         Page *page, *temp;
         ham_size_t ps=((Environment *)m_env)->get_pagesize();
 
-        page=page_new((Environment *)m_env);
-        temp=page_new((Environment *)m_env);
-        BFC_ASSERT_EQUAL(0, page_alloc(page));
+        page=new Page((Environment *)m_env);
+        temp=new Page((Environment *)m_env);
+        BFC_ASSERT_EQUAL(0, page->allocate());
         BFC_ASSERT_EQUAL(ps*2, page->get_self());
         BFC_ASSERT_EQUAL(0, page_free(page));
         
-        BFC_ASSERT_EQUAL(0, page_fetch(page));
-        memset(page_get_pers(page), 0x13, ps);
+        BFC_ASSERT_EQUAL(0, page->fetch(page->get_self()));
+        memset(page->get_pers(), 0x13, ps);
         page->set_dirty(true);
-        BFC_ASSERT_EQUAL(0, page_flush(page));
+        BFC_ASSERT_EQUAL(0, page->flush());
 
         BFC_ASSERT_EQUAL(false, page->is_dirty());
-        temp->set_self(ps*2);
-        BFC_ASSERT_EQUAL(0, page_fetch(temp));
+        BFC_ASSERT_EQUAL(0, temp->fetch(ps*2));
         BFC_ASSERT_EQUAL(0, 
-                memcmp(page_get_pers(page), page_get_pers(temp), ps));
+                memcmp(page->get_pers(), temp->get_pers(), ps));
 
         BFC_ASSERT_EQUAL(0, page_free(page));
         BFC_ASSERT_EQUAL(0, page_free(temp));
 
-        page_delete(temp);
-        page_delete(page);
+        delete temp;
+        delete page;
     }
 
 };

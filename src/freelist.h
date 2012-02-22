@@ -378,7 +378,7 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get a freelist_payload_t from a Page
  */
-#define page_get_freelist(p)     ((freelist_payload_t *)p->m_pers->_s._payload)
+#define page_get_freelist(p)     ((freelist_payload_t *)p->get_payload())
 
 /**
  * get the bitmap of the freelist

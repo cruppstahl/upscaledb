@@ -87,17 +87,17 @@ FileDevice::read_page(Page *page)
     }
     else {
 fallback_rw:
-		if (page_get_pers(page)==0) {
+		if (page->get_pers()==0) {
             buffer=(ham_u8_t *)m_env->get_allocator()->alloc(size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
-            page_set_pers(page, (page_data_t *)buffer);
+            page->set_pers((page_data_t *)buffer);
             page->set_flags(page->get_flags()|Page::NPERS_MALLOC);
         }
         else
             ham_assert(!(page->get_flags()&Page::NPERS_MALLOC), (0));
 
-        st=FileDevice::read(page->get_self(), page_get_pers(page), size);
+        st=FileDevice::read(page->get_self(), page->get_pers(), size);
         if (st)
             return (st);
     }
@@ -107,7 +107,7 @@ fallback_rw:
      * header page - the header page is not filtered)
      */
     if (!head || page->is_header()) {
-        page_set_pers(page, (page_data_t *)buffer);
+        page->set_pers((page_data_t *)buffer);
         return (0);
     }
 
@@ -121,7 +121,7 @@ fallback_rw:
         head=head->_next;
     }
 
-    page_set_pers(page, (page_data_t *)buffer);
+    page->set_pers((page_data_t *)buffer);
     return (0);
 }
 
@@ -168,20 +168,20 @@ FileDevice::free_page(Page *page)
 {
     ham_status_t st;
 
-    if (page_get_pers(page)) {
+    if (page->get_pers()) {
         if (page->get_flags()&Page::NPERS_MALLOC) {
-            m_env->get_allocator()->free(page_get_pers(page));
+            m_env->get_allocator()->free(page->get_pers());
             page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
         }
         else {
             st=os_munmap(page->get_mmap_handle_ptr(), 
-                    page_get_pers(page), get_pagesize());
+                    page->get_pers(), get_pagesize());
             if (st)
                 return (st);
         }
     }
 
-    page_set_pers(page, 0);
+    page->set_pers(0);
     return (0);
 }
 

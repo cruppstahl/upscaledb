@@ -319,7 +319,7 @@ __move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         return (st);
     /* hack: prior to 2.0, the type of btree root pages was not set
      * correctly */
-    page->set_type(PAGE_TYPE_B_ROOT);
+    page->set_type(Page::TYPE_B_ROOT);
 
     /*
      * while we've not reached the leaf: pick the largest element

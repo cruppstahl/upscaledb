@@ -568,10 +568,10 @@ db_free_page(Page *page, ham_u32_t flags)
      * a B-Tree index page: remove all extended keys from the cache, 
      * and/or free their blobs
      */
-    if (page_get_pers(page) && 
+    if (page->get_pers() && 
         (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&
-         (page->get_type()==PAGE_TYPE_B_ROOT ||
-          page->get_type()==PAGE_TYPE_B_INDEX)) {
+            (page->get_type()==Page::TYPE_B_ROOT ||
+                page->get_type()==Page::TYPE_B_INDEX)) {
         ham_backend_t *be;
         
         ham_assert(page->get_db(), ("Must be set as page owner when this is a Btree page"));
@@ -595,7 +595,7 @@ db_free_page(Page *page, ham_u32_t flags)
     /* free the page; since it's deleted, we don't need to flush it */
     page->set_dirty(false);
     (void)page_free(page);
-    (void)page_delete(page);
+    delete page;
 
     return (HAM_SUCCESS);
 }
@@ -623,15 +623,11 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
             page=env->get_cache()->get_page(tellpos, 0);
             if (page)
                 goto done;
-            /* allocate a new page structure */
-            page=page_new(env);
-            if (!page)
-                return (HAM_OUT_OF_MEMORY);
-            page->set_self(tellpos);
-            /* fetch the page from disk */
-            st=page_fetch(page);
+            /* allocate a new page structure and read the page from disk */
+            page=new Page(env, db);
+            st=page->fetch(tellpos);
             if (st) {
-                page_delete(page);
+                delete page;
                 return (st);
             }
             goto done;
@@ -641,9 +637,7 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
     }
 
     if (!page) {
-        page=page_new(env);
-        if (!page)
-            return (HAM_OUT_OF_MEMORY);
+        page=new Page(env, db);
         allocated_by_me=HAM_TRUE;
     }
 
@@ -651,25 +645,24 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
     if (env->get_cache()->is_too_big()) {
         if (env->get_flags()&HAM_CACHE_STRICT) {
             if (allocated_by_me)
-                page_delete(page);
+                delete page;
             return (HAM_CACHE_FULL);
         }
     }
 
     ham_assert(tellpos==0, (0));
-    st=page_alloc(page);
+    st=page->allocate();
     if (st)
         return (st);
 
 done:
     /* initialize the page; also set the 'dirty' flag to force logging */
     page->set_type(type);
-    page->set_db(db);
     page->set_dirty(true);
 
     /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO)
-        memset(page_get_pers(page), 0, env->get_pagesize());
+        memset(page->get_pers(), 0, env->get_pagesize());
 
     /* an allocated page is always flushed if recovery is enabled */
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
@@ -696,7 +689,7 @@ db_alloc_page(Page **page_ref, Database *db,
     ham_btree_t *be=(ham_btree_t *)db->get_backend();
     if ((*page_ref)->get_self()==btree_get_rootpage(be) 
             && !(db->get_rt_flags()&HAM_READ_ONLY))
-        (*page_ref)->set_type(PAGE_TYPE_B_ROOT);
+        (*page_ref)->set_type(Page::TYPE_B_ROOT);
     return (0);
 }
 
@@ -715,7 +708,7 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
     page=env->get_cache()->get_page(address, Cache::NOREMOVE);
     if (page) {
         *page_ref = page;
-        ham_assert(page_get_pers(page), (""));
+        ham_assert(page->get_pers(), (""));
         /* store the page in the changeset if recovery is enabled */
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(page);
@@ -735,19 +728,14 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
             return (HAM_CACHE_FULL);
     }
 
-    page=page_new(env);
-    if (!page)
-        return (HAM_OUT_OF_MEMORY);
-
-    page->set_db(db);
-    page->set_self(address);
-    st=page_fetch(page);
+    page=new Page(env, db);
+    st=page->fetch(address);
     if (st) {
-        (void)page_delete(page);
+        delete page;
         return (st);
     }
 
-    ham_assert(page_get_pers(page), (""));
+    ham_assert(page->get_pers(), (""));
 
     /* store the page in the cache */
     env->get_cache()->put_page(page);
@@ -774,7 +762,7 @@ db_flush_page(Environment *env, Page *page)
 
     /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
     if (page->is_dirty()) {
-        st=page_flush(page);
+        st=page->flush();
         if (st)
             return (st);
     }
@@ -839,7 +827,7 @@ db_write_page_and_delete(Page *page, ham_u32_t flags)
      */
     ham_assert(env, (0));
     if (page->is_dirty() && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
-        st=page_flush(page);
+        st=page->flush();
         if (st)
             return st;
     }
@@ -856,7 +844,7 @@ db_write_page_and_delete(Page *page, ham_u32_t flags)
         st=page_free(page);
         if (st)
             return (st);
-        page_delete(page);
+        delete page;
     }
 
     return (HAM_SUCCESS);
@@ -2864,7 +2852,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
             && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (env->is_dirty()) {
-            st=page_flush(env->get_header_page());
+            st=env->get_header_page()->flush();
             if (st && st2==0)
                 st2=st;
         }

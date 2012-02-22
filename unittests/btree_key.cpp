@@ -77,9 +77,9 @@ public:
 
     void structureTest(void)
     {
-        Page *page=page_new((Environment *)m_env);
+        Page *page=new Page((Environment *)m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page));
+        BFC_ASSERT_EQUAL(0, page->allocate());
         btree_node_t *node=page_get_btree_node(page);
         ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
@@ -95,14 +95,14 @@ public:
         BFC_ASSERT_EQUAL((ham_u8_t)0x13, key_get_flags(key));
 
         BFC_ASSERT_EQUAL(0, page_free(page));
-        page_delete(page);
+        delete page;
     }
 
     void extendedRidTest(void)
     {
-        Page *page=page_new((Environment *)m_env);
+        Page *page=new Page((Environment *)m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page));
+        BFC_ASSERT_EQUAL(0, page->allocate());
         btree_node_t *node=page_get_btree_node(page);
         ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
@@ -117,7 +117,7 @@ public:
         BFC_ASSERT_EQUAL((ham_offset_t)0xbaadbeef, blobid);
 
         BFC_ASSERT_EQUAL(0, page_free(page));
-        page_delete(page);
+        delete page;
     }
     
     void endianTest(void)

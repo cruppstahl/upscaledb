@@ -120,8 +120,34 @@ class Page {
         NPERS_NO_HEADER         = 4
     };
 
+    /**
+     * Page types
+     *
+     * @note When large BLOBs span multiple pages, only their initial page 
+     * will have a valid type code; subsequent pages of this blog will store 
+     * the data as-is, so as to provide one continuous storage space
+     */
+    enum {
+        /** unidentified db page type */
+        TYPE_UNKNOWN            =  0x00000000,
+        /** the db header page: this is the first page in the environment */
+        TYPE_HEADER             =  0x10000000,
+        /** the db B+tree root page */
+        TYPE_B_ROOT             =  0x20000000,
+        /** a B+tree node page */
+        TYPE_B_INDEX            =  0x30000000,
+        /** a freelist management page */
+        TYPE_FREELIST           =  0x40000000,
+        /** a page which stores (the front part of) a BLOB. */
+        TYPE_BLOB               =  0x50000000     
+    };
+
+
     /** default constructor */
-    Page(Environment *env=0);
+    Page(Environment *env=0, Database *db=0);
+
+    /** destructor - asserts that m_pers is NULL! */
+    ~Page();
 
     /** is this the header page? */
     bool is_header() {
@@ -229,8 +255,35 @@ class Page {
         return (ham_db2h32(m_pers->_s._flags));
     }
 
-    /** from here on everything will be written to disk */
-    page_data_t *m_pers;
+    /** get pointer to persistent payload (after the header!) */
+    ham_u8_t *get_payload() {
+        return (m_pers->_s._payload);
+    }
+
+    /** get pointer to persistent payload (including the header!) */
+    ham_u8_t *get_raw_payload() {
+        return (m_pers->_p);
+    }
+
+    /** set pointer to persistent data */
+    void set_pers(page_data_t *data) {
+        m_pers=data;
+    }
+
+    /** get pointer to persistent data */
+    page_data_t *get_pers() {
+        return (m_pers);
+    }
+
+    /** allocate a new page from the device */
+    ham_status_t allocate();
+
+    /** read a page from the device */
+    ham_status_t fetch(ham_offset_t address);
+
+    /** write a page to the device */
+    ham_status_t flush();
+
 
   private:
     /** address of this page */
@@ -259,73 +312,16 @@ class Page {
     /** linked lists of pages - see comments above */
     Page *m_prev[Page::MAX_LISTS]; 
     Page *m_next[Page::MAX_LISTS];
+
+    /** from here on everything will be written to disk */
+    page_data_t *m_pers;
 };
 
 /**
- * @defgroup page_type_codes valid page types
- * @{
- *
- * Each database page is tagged with a type code; these are all 
- * known/supported page type codes.
- * 
- * @note When ELBLOBs (Extremely Large BLOBs) are stored in the database, 
- * that is BLOBs which span multiple pages apiece, only their initial page 
- * will have a valid type code; subsequent pages of the ELBLOB will store 
- * the data as-is, so as to provide one continuous storage space per ELBLOB.
- * 
- * @sa page_data_t::page_header_t::_flags
+ * returns true if a page is in a linked list
  */
-
-/** unidentified db page type */
-#define PAGE_TYPE_UNKNOWN               0x00000000     
-
-/** the db header page: this is the first page in the database/environment */
-#define PAGE_TYPE_HEADER                0x10000000     
-
-/** the db B+tree root page */
-#define PAGE_TYPE_B_ROOT                0x20000000     
-
-/** a B+tree node page, i.e. a page which is part of the database index */
-#define PAGE_TYPE_B_INDEX               0x30000000     
-
-/** a freelist management page */
-#define PAGE_TYPE_FREELIST              0x40000000     
-
-/** a page which stores (the front part of) a BLOB. */
-#define PAGE_TYPE_BLOB                  0x50000000     
-
-/**
- * @}
- */
-
-/** get pointer to persistent payload (after the header!) */
-#define page_get_payload(page)          (page)->m_pers->_s._payload
-
-/** get pointer to persistent payload (including the header!) */
-#define page_get_raw_payload(page)      (page)->m_pers->_p
-
-/** set pointer to persistent data */
-#define page_set_pers(page, p)          (page)->m_pers=(p)
-
-/** get pointer to persistent data */
-#define page_get_pers(page)             (page)->m_pers
-
-#ifdef HAM_DEBUG
-/**
- * check if a page is in a linked list
- */
-extern ham_bool_t 
+ham_bool_t 
 page_is_in_list(Page *head, Page *page, int which);
-#else
-#define page_is_in_list(head, page, which)                                     \
-     (page->get_next(which)                                                    \
-         ? HAM_TRUE                                                            \
-         : (page->get_previous(which))                                         \
-             ? HAM_TRUE                                                        \
-             : (head==page)                                                    \
-                 ? HAM_TRUE                                                    \
-                 : HAM_FALSE)
-#endif
 
 /**
  * linked list functions: insert the page at the beginning of a list
@@ -387,40 +383,6 @@ page_add_cursor(Page *page, Cursor *cursor);
  */
 extern void
 page_remove_cursor(Page *page, Cursor *cursor);
-
-/**
- * create a new page structure
- *
- * @return a pointer to a new @ref Page instance.
- *
- * @return NULL if out of memory
- */
-extern Page *
-page_new(Environment *env);
-
-/**
- * delete a page structure
- */
-extern void
-page_delete(Page *page);
-
-/**
- * allocate a new page from the device
- */
-extern ham_status_t
-page_alloc(Page *page);
-
-/**
- * fetch a page from the device
- */
-extern ham_status_t
-page_fetch(Page *page);
-
-/**
- * write a page to the device
- */
-extern ham_status_t
-page_flush(Page *page);
 
 /**
  * free a page
