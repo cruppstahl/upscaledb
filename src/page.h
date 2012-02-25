@@ -76,17 +76,6 @@ typedef HAM_PACK_0 union HAM_PACK_1 page_data_t
 
 #include "packstop.h"
 
-/**
- * get the size of the persistent header of a page
- *
- * equals the size of struct page_data_t, without the payload byte
- *
- * @note
- * this is not equal to sizeof(struct page_data_t)-1, because of
- * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
- */
-#define page_get_persistent_header_size()   (OFFSETOF(page_data_t, _s._payload))
-
 
 /**
  * The Page class
@@ -100,6 +89,17 @@ typedef HAM_PACK_0 union HAM_PACK_1 page_data_t
  */
 class Page {
   public:   
+    /** 
+     * get the size of the persistent header of a page
+     *
+     * equals the size of struct page_data_t, without the payload byte
+     *
+     * @note
+     * this is not equal to sizeof(struct page_data_t)-1, because of
+     * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
+     */
+    static int sizeof_persistent_header;
+
     enum {
         /** a bucket in the hash table of the cache manager */
         LIST_BUCKET     = 0,
@@ -284,6 +284,69 @@ class Page {
     /** write a page to the device */
     ham_status_t flush();
 
+    /** frees a page - deletes the persistent part and moves the page to 
+     * the freelist (if a freelist is available) */
+    ham_status_t free();
+
+    /** returns true if this page is in a linked list */
+    bool is_in_list(Page *list_head, int which) {
+        if (get_next(which))
+            return (true);
+        if (get_previous(which))
+            return (true);
+        if (list_head==this)
+            return (true);
+        return (false);
+    }
+
+    /** inserts this page at the beginning of a list and returns the 
+     * new head of the list 
+     */
+    Page *list_insert(Page *list_head, int which) {
+        set_next(which, 0);
+        set_previous(which, 0);
+
+        if (!list_head)
+            return (this);
+
+        set_next(which, list_head);
+        list_head->set_previous(which, this);
+        return (this);
+    }
+
+    /** removes this page from a list and returns the new head of the list */
+    Page *list_remove(Page *list_head, int which) {
+        Page *n, *p;
+
+        if (this==list_head) {
+            n=get_next(which);
+            if (n)
+                n->set_previous(which, 0);
+            set_next(which, 0);
+            set_previous(which, 0);
+            return (n);
+        }
+
+        n=get_next(which);
+        p=get_previous(which);
+        if (p)
+            p->set_next(which, n);
+        if (n)
+            n->set_previous(which, p);
+        set_next(which, 0);
+        set_previous(which, 0);
+        return (list_head);
+    }
+
+    /** adds a cursor to this page */
+    void add_cursor(Cursor *cursor);
+
+    /** removes a cursor from this page */
+    void remove_cursor(Cursor *cursor);
+
+    /** uncouples all cursors from this page if the cursor is coupled
+     * to a key >= start */
+    ham_status_t uncouple_all_cursors(ham_size_t start=0);
 
   private:
     /** address of this page */
@@ -316,87 +379,6 @@ class Page {
     /** from here on everything will be written to disk */
     page_data_t *m_pers;
 };
-
-/**
- * returns true if a page is in a linked list
- */
-ham_bool_t 
-page_is_in_list(Page *head, Page *page, int which);
-
-/**
- * linked list functions: insert the page at the beginning of a list
- *
- * @remark returns the new head of the list
- */
-inline Page *
-page_list_insert(Page *head, int which, Page *page)
-{
-    page->set_next(which, 0);
-    page->set_previous(which, 0);
-
-    if (!head)
-        return (page);
-
-    page->set_next(which, head);
-    head->set_previous(which, page);
-    return (page);
-}
-
-/**
- * linked list functions: remove the page from a list
- *
- * @remark returns the new head of the list
- */
-inline Page *
-page_list_remove(Page *head, int which, Page *page)
-{
-    Page *n, *p;
-
-    if (page==head) {
-        n=page->get_next(which);
-        if (n)
-            n->set_previous(which, 0);
-        page->set_next(which, 0);
-        page->set_previous(which, 0);
-        return (n);
-    }
-
-    n=page->get_next(which);
-    p=page->get_previous(which);
-    if (p)
-        p->set_next(which, n);
-    if (n)
-        n->set_previous(which, p);
-    page->set_next(which, 0);
-    page->set_previous(which, 0);
-    return (head);
-}
-
-/**
- * add a cursor to this page
- */
-extern void
-page_add_cursor(Page *page, Cursor *cursor);
-
-/**
- * remove a cursor from this page
- */
-extern void
-page_remove_cursor(Page *page, Cursor *cursor);
-
-/**
- * free a page
- */
-extern ham_status_t
-page_free(Page *page);
-
-/**
- * uncouple all cursors from a page
- *
- * @remark this is called whenever the page is deleted or becoming invalid
- */
-extern ham_status_t
-page_uncouple_all_cursors(Page *page, ham_size_t start);
 
 
 #endif /* HAM_PAGE_H__ */

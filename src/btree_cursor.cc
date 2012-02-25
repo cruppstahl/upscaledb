@@ -107,7 +107,7 @@ __move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     }
 
     /* couple this cursor to the smallest key in this page */
-    page_add_cursor(page, btree_cursor_get_parent(c));
+    page->add_cursor(btree_cursor_get_parent(c));
     btree_cursor_set_coupled_page(c, page);
     btree_cursor_set_coupled_index(c, 0);
     btree_cursor_set_flags(c,
@@ -180,7 +180,7 @@ __move_next(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     if (!btree_node_get_right(node))
         return (HAM_KEY_NOT_FOUND);
 
-    page_remove_cursor(page, btree_cursor_get_parent(c));
+    page->remove_cursor(btree_cursor_get_parent(c));
     btree_cursor_set_flags(c, 
                     btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
 
@@ -189,7 +189,7 @@ __move_next(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         return (st);
 
     /* couple this cursor to the smallest key in this page */
-    page_add_cursor(page, btree_cursor_get_parent(c));
+    page->add_cursor(btree_cursor_get_parent(c));
     btree_cursor_set_coupled_page(c, page);
     btree_cursor_set_coupled_index(c, 0);
     btree_cursor_set_flags(c,
@@ -262,7 +262,7 @@ __move_previous(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         if (!btree_node_get_left(node))
             return (HAM_KEY_NOT_FOUND);
 
-        page_remove_cursor(page, btree_cursor_get_parent(c));
+        page->remove_cursor(btree_cursor_get_parent(c));
         btree_cursor_set_flags(c, 
                 btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
 
@@ -272,7 +272,7 @@ __move_previous(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         node=page_get_btree_node(page);
 
         /* couple this cursor to the highest key in this page */
-        page_add_cursor(page, btree_cursor_get_parent(c));
+        page->add_cursor(btree_cursor_get_parent(c));
         btree_cursor_set_coupled_page(c, page);
         btree_cursor_set_coupled_index(c, btree_node_get_count(node)-1);
         btree_cursor_set_flags(c,
@@ -344,7 +344,7 @@ __move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     }
 
     /* couple this cursor to the largest key in this page */
-    page_add_cursor(page, btree_cursor_get_parent(c));
+    page->add_cursor(btree_cursor_get_parent(c));
     btree_cursor_set_coupled_page(c, page);
     btree_cursor_set_coupled_index(c, btree_node_get_count(node)-1);
     btree_cursor_set_flags(c,
@@ -384,8 +384,7 @@ btree_cursor_set_to_nil(btree_cursor_t *c)
     }
     /* coupled cursor: uncouple, remove from page */
     else if (btree_cursor_is_coupled(c)) {
-        page_remove_cursor(btree_cursor_get_coupled_page(c),
-                btree_cursor_get_parent(c));
+        btree_cursor_get_coupled_page(c)->remove_cursor(btree_cursor_get_parent(c));
         btree_cursor_set_flags(c,
                 btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
     }
@@ -455,8 +454,7 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
 
     /* uncouple the page */
     if (!(flags&BTREE_CURSOR_UNCOUPLE_NO_REMOVE))
-        page_remove_cursor(btree_cursor_get_coupled_page(c),
-                btree_cursor_get_parent(c));
+        btree_cursor_get_coupled_page(c)->remove_cursor(btree_cursor_get_parent(c));
 
     /* set the flags and the uncoupled key */
     btree_cursor_set_flags(c, 
@@ -482,7 +480,7 @@ btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
     /* if the old cursor is coupled: couple the new cursor, too */
     if (btree_cursor_is_coupled(src)) {
          Page *page=btree_cursor_get_coupled_page(src);
-         page_add_cursor(page, btree_cursor_get_parent(dest));
+         page->add_cursor(btree_cursor_get_parent(dest));
          btree_cursor_set_coupled_page(dest, page);
     }
     /* otherwise, if the src cursor is uncoupled: copy the key */

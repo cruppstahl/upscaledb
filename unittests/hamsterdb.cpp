@@ -1826,7 +1826,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT(page!=0);
 
         int off=(int)btree_node_get_key_offset(page, 0);
-        int l = page_get_persistent_header_size(); // 12
+        int l = Page::sizeof_persistent_header; // 12
         l += OFFSETOF(btree_node_t, _entries); // 40-12
      
         l = db_get_int_key_header_size();

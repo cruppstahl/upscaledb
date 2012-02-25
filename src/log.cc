@@ -328,7 +328,7 @@ Log::recover()
         st=page->flush();
         if (st)
             goto bail;
-        st=page_free(page);
+        st=page->free();
         if (st)
             goto bail;
         delete page;

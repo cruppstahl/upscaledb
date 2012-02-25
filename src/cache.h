@@ -74,8 +74,8 @@ class Cache
         page=oldest;
         do {
             /* pick the first unused page (not in a changeset) */
-            if (!page_is_in_list(m_env->get_changeset().get_head(), 
-                        page, Page::LIST_CHANGESET))
+            if (!page->is_in_list(m_env->get_changeset().get_head(), 
+                        Page::LIST_CHANGESET))
                 break;
         
             page=page->get_previous(Page::LIST_CACHED);
@@ -142,13 +142,13 @@ class Cache
          * cache->_totallist_tail pointer is updated and that the page
          * is inserted at the HEAD of the list
          */
-        if (page_is_in_list(m_totallist, page, Page::LIST_CACHED))
+        if (page->is_in_list(m_totallist, Page::LIST_CACHED))
             remove_page(page);
 
         /* now (re-)insert into the list of all cached pages, and increment
          * the counter */
-        ham_assert(!page_is_in_list(m_totallist, page, Page::LIST_CACHED), (0));
-        m_totallist=page_list_insert(m_totallist, Page::LIST_CACHED, page);
+        ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED), (0));
+        m_totallist=page->list_insert(m_totallist, Page::LIST_CACHED);
 
         m_cur_elements++;
 
@@ -158,13 +158,11 @@ class Cache
          * to avoid inserting the page twice, we first remove it from the 
          * bucket
          */
-        if (page_is_in_list(m_buckets[hash], page, Page::LIST_BUCKET))
-            m_buckets[hash]=page_list_remove(m_buckets[hash], 
-                            Page::LIST_BUCKET, page);
-        ham_assert(!page_is_in_list(m_buckets[hash], page, 
-                    Page::LIST_BUCKET), (0));
-        m_buckets[hash]=page_list_insert(m_buckets[hash], 
-                    Page::LIST_BUCKET, page);
+        if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
+            m_buckets[hash]=page->list_remove(m_buckets[hash], 
+                            Page::LIST_BUCKET);
+        ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET), (0));
+        m_buckets[hash]=page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
 
         /* is this the chronologically oldest page? then set the pointer */
         if (!m_totallist_tail)
@@ -187,16 +185,15 @@ class Cache
         /* remove the page from the cache buckets */
         if (page->get_self()) {
             ham_u64_t hash=calc_hash(page->get_self());
-            if (page_is_in_list(m_buckets[hash], page, 
-                    Page::LIST_BUCKET)) {
-                m_buckets[hash]=page_list_remove(m_buckets[hash], 
-                        Page::LIST_BUCKET, page);
+            if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET)) {
+                m_buckets[hash]=page->list_remove(m_buckets[hash], 
+                        Page::LIST_BUCKET);
             }
         }
 
         /* remove it from the list of all cached pages */
-        if (page_is_in_list(m_totallist, page, Page::LIST_CACHED)) {
-            m_totallist=page_list_remove(m_totallist, Page::LIST_CACHED, page);
+        if (page->is_in_list(m_totallist, Page::LIST_CACHED)) {
+            m_totallist=page->list_remove(m_totallist, Page::LIST_CACHED);
             removed = HAM_TRUE;
         }
 

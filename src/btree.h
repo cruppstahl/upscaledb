@@ -285,7 +285,7 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
  * the absolute offset of the key in the file
  */
 #define btree_node_get_key_offset(page, i)                          \
-     ((page)->get_self()+page_get_persistent_header_size()+        \
+     ((page)->get_self()+Page::sizeof_persistent_header+            \
      OFFSETOF(btree_node_t, _entries)                               \
      /* ^^^ sizeof(btree_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize((page)->get_db()))*(i))

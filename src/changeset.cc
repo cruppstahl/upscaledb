@@ -31,7 +31,7 @@ void (*g_CHANGESET_POST_LOG_HOOK)(void);
 void
 Changeset::add_page(Page *page)
 {
-    if (page_is_in_list(m_head, page, Page::LIST_CHANGESET))
+    if (page->is_in_list(m_head, Page::LIST_CHANGESET))
         return;
 
     ham_assert(0==page->get_next(Page::LIST_CHANGESET), (""));

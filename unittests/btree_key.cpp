@@ -94,7 +94,7 @@ public:
         key_set_flags(key, (ham_u8_t)0x13);
         BFC_ASSERT_EQUAL((ham_u8_t)0x13, key_get_flags(key));
 
-        BFC_ASSERT_EQUAL(0, page_free(page));
+        BFC_ASSERT_EQUAL(0, page->free());
         delete page;
     }
 
@@ -116,7 +116,7 @@ public:
         blobid=key_get_extended_rid(m_dbp, key);
         BFC_ASSERT_EQUAL((ham_offset_t)0xbaadbeef, blobid);
 
-        BFC_ASSERT_EQUAL(0, page_free(page));
+        BFC_ASSERT_EQUAL(0, page->free());
         delete page;
     }
     

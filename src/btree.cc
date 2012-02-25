@@ -117,7 +117,7 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
     p-=OFFSETOF(btree_node_t, _entries);
 
     /* every page has a header where we can't store entries */
-    p-=page_get_persistent_header_size();
+    p-=Page::sizeof_persistent_header;
 
     /* compute the size of a key, k.  */
     k=keysize+db_get_int_key_header_size();

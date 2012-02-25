@@ -28,8 +28,6 @@
 #include "page.h"
 #include "changeset.h"
 
-#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
-
 /**
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
  * to this size. 
@@ -377,7 +375,7 @@ class Environment
 
     /** get the size of the usable persistent payload of a page */
     ham_size_t get_usable_pagesize() {
-	    return (get_pagesize()-page_get_persistent_header_size());
+	    return (get_pagesize()-Page::sizeof_persistent_header);
     }
 
     /** set the pagesize as specified in ham_env_create_ex */

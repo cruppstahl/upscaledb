@@ -35,6 +35,8 @@
 
 #include "config.h"
 
+#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
+
 class Allocator;
 
 class Cursor;

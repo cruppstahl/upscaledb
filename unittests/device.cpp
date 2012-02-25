@@ -234,7 +234,7 @@ public:
             BFC_ASSERT(pages[i]->get_flags()&Page::NPERS_MALLOC);
             memset(pages[i]->get_pers(), i+1, ps);
             BFC_ASSERT_EQUAL(0, m_dev->write_page(pages[i]));
-            BFC_ASSERT_EQUAL(0, page_free(pages[i]));
+            BFC_ASSERT_EQUAL(0, pages[i]->free());
             delete pages[i];
         }
 
@@ -246,7 +246,7 @@ public:
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
             BFC_ASSERT_EQUAL(0, 
                     memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
-            BFC_ASSERT_EQUAL(0, page_free(pages[i]));
+            BFC_ASSERT_EQUAL(0, pages[i]->free());
             delete pages[i];
         }
     }

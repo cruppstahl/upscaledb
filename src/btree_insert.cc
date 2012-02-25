@@ -733,7 +733,7 @@ __insert_nosplit(Page *page, ham_key_t *key,
         btree_cursor_set_coupled_index(cursor, slot);
         btree_cursor_set_dupe_id(cursor, new_dupe_id);
         memset(btree_cursor_get_dupe_cache(cursor), 0, sizeof(dupe_entry_t));
-        page_add_cursor(page, btree_cursor_get_parent(cursor));
+        page->add_cursor(btree_cursor_get_parent(cursor));
     }
 
     /*

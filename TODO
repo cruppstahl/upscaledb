@@ -11,11 +11,11 @@ This Branch Is About Integrating The hamsterdb2 Functionality!!!!!
 -----------------------------------------------------------------------------
 The big headline is:
 As a user i want to run many Transactions in parallel with high performance.
-I'm not interested in multiple threads (yet), although i may use several 
-threads (but then i'll use synchronization in my own code).
+I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
+to scale with the number of cores.
 ==============================================================================
 
-o c++-ify the page
+x c++-ify the page
     x page->is_header() instead of page_get_self()==0
 
 o design redundancy
@@ -30,8 +30,23 @@ o design redundancy
       o disable concurrency during compilation? not sure if this is required
     o needs module for thread local storage
     o split into smaller tasks
+
+    o need TLS and db->key_data should be stored in TLS
+    o from each public handle: need a way to lock the Env
+        x Env
+        o Db
+        o Cursor
+        o Txn
+        o what else?
     o implement a full test suite (including gathering of performance metrics 
         etc)
+    o need a way to graphically display performance metrics
+    o need a "load-generator" which runs for a defined duration 
+        - max number of keys, max bytes to insert
+        - key distribution: random, ascending, descending, zipfian, ...
+        - duplicates yes/no
+        - ...
+        - OR: read from file (this is the same as we have now)
 
 o python API - update and integrate
     o also add to win32 package

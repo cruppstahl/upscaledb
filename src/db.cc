@@ -557,7 +557,7 @@ db_free_page(Page *page, ham_u32_t flags)
     
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
-    st=page_uncouple_all_cursors(page, 0);
+    st=page->uncouple_all_cursors();
     if (st)
         return (st);
 
@@ -594,7 +594,7 @@ db_free_page(Page *page, ham_u32_t flags)
 
     /* free the page; since it's deleted, we don't need to flush it */
     page->set_dirty(false);
-    (void)page_free(page);
+    (void)page->free();
     delete page;
 
     return (HAM_SUCCESS);
@@ -800,8 +800,8 @@ db_flush_all(Cache *cache, ham_u32_t flags)
          * is set (this flag is used i.e. in ham_flush())
          */
         if (!(flags&DB_FLUSH_NODELETE)) {
-            cache->set_totallist(page_list_remove(cache->get_totallist(), 
-                    Page::LIST_CACHED, head));
+            cache->set_totallist(head->list_remove(cache->get_totallist(), 
+                    Page::LIST_CACHED));
             cache->dec_cur_elements();
         }
 
@@ -837,11 +837,11 @@ db_write_page_and_delete(Page *page, ham_u32_t flags)
      * free the memory of the page
      */
     if (!(flags&DB_FLUSH_NODELETE)) {
-        st=page_uncouple_all_cursors(page, 0);
+        st=page->uncouple_all_cursors();
         if (st)
             return (st);
         env->get_cache()->remove_page(page);
-        st=page_free(page);
+        st=page->free();
         if (st)
             return (st);
         delete page;

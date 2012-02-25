@@ -327,7 +327,7 @@ public:
         BFC_ASSERT(compare_sizes(sizeof(page_data_t), 13));
         page_data_t p;
         BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
-        BFC_ASSERT(compare_sizes(page_get_persistent_header_size(), 12));
+        BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
 
         BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
         Page page;
@@ -343,7 +343,7 @@ public:
                 (ham_size_t)btree_node_get_key_offset(&page, i), 
                 (ham_size_t)1000+12+28+(i*(11+666))), i);
         }
-        BFC_ASSERT(compare_sizes(page_get_persistent_header_size(), 12));
+        BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
         // make sure the 'header page' is at least as large as your usual 
         // header page, then hack it...
         struct

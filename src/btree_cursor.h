@@ -187,7 +187,7 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 
 /**
  * flag for @ref btree_cursor_uncouple: uncouple from the page, but do not
- * call @ref page_remove_cursor()
+ * call @ref Page::remove_cursor()
  */
 #define BTREE_CURSOR_UNCOUPLE_NO_REMOVE        1
 

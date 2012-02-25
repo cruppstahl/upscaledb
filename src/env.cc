@@ -704,7 +704,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      *
      * !!
      * the last database, which was closed, has set the owner of the 
-     * page to 0, which means that we can't call page_free
+     * page to 0, which means that we can't call Page::free
      * etc. We have to use the device-routines.
      */
     if (env->get_header_page()) {

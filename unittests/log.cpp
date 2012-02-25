@@ -260,7 +260,7 @@ public:
             page=new Page(m_env);
             BFC_ASSERT_EQUAL(0, page->allocate());
             BFC_ASSERT_EQUAL(0, log->append_page(page, 1+i, 5-i));
-            BFC_ASSERT_EQUAL(0, page_free(page));
+            BFC_ASSERT_EQUAL(0, page->free());
             delete page;
         }
 

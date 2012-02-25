@@ -26,27 +26,8 @@
 #include "os.h"
 #include "page.h"
 
-#ifdef HAM_DEBUG
-/*
-static ham_bool_t
-__is_in_list(Page *p, int which)
-{
-    return (p->m_next[which] || p->m_prev[which]);
-}
-*/
 
-ham_bool_t 
-page_is_in_list(Page *head, Page *page, int which)
-{
-    if (page->get_next(which))
-        return (HAM_TRUE);
-    if (page->get_previous(which))
-        return (HAM_TRUE);
-    if (head==page)
-        return (HAM_TRUE);
-    return (HAM_FALSE);
-}
-#endif /* HAM_DEBUG */
+int Page::sizeof_persistent_header=(OFFSETOF(page_data_t, _s._payload));
 
 Page::Page(Environment *env, Database *db)
   : m_self(0), m_db(db), m_device(0), m_flags(0), m_dirty(false),
@@ -94,28 +75,35 @@ Page::flush()
     return (HAM_SUCCESS);
 }
 
-
-void
-page_add_cursor(Page *page, Cursor *cursor)
+ham_status_t
+Page::free()
 {
-    if (page->get_cursors()) {
-        cursor->set_next_in_page(page->get_cursors());
-        cursor->set_previous_in_page(0);
-        page->get_cursors()->set_previous_in_page(cursor);
-    }
-    page->set_cursors(cursor);
+    ham_assert(get_cursors()==0, (0));
+
+    return (get_device()->free_page(this));
 }
 
 void
-page_remove_cursor(Page *page, Cursor *cursor)
+Page::add_cursor(Cursor *cursor)
+{
+    if (get_cursors()) {
+        cursor->set_next_in_page(get_cursors());
+        cursor->set_previous_in_page(0);
+        get_cursors()->set_previous_in_page(cursor);
+    }
+    set_cursors(cursor);
+}
+
+void
+Page::remove_cursor(Cursor *cursor)
 {
     Cursor *n, *p;
 
-    if (cursor==page->get_cursors()) {
+    if (cursor==get_cursors()) {
         n=cursor->get_next_in_page();
         if (n)
             n->set_previous_in_page(0);
-        page->set_cursors(n);
+        set_cursors(n);
     }
     else {
         n=cursor->get_next_in_page();
@@ -131,20 +119,9 @@ page_remove_cursor(Page *page, Cursor *cursor)
 }
 
 ham_status_t
-page_free(Page *page)
+Page::uncouple_all_cursors(ham_size_t start)
 {
-    Device *dev=page->get_device();
-
-    ham_assert(dev, (0));
-    ham_assert(page->get_cursors()==0, (0));
-
-    return (dev->free_page(page));
-}
-
-ham_status_t
-page_uncouple_all_cursors(Page *page, ham_size_t start)
-{
-    Cursor *c=page->get_cursors();
+    Cursor *c=get_cursors();
 
     if (c) {
         Database *db=c->get_db();
@@ -152,7 +129,7 @@ page_uncouple_all_cursors(Page *page, ham_size_t start)
             ham_backend_t *be=db->get_backend();
             
             if (be)
-                return (*be->_fun_uncouple_all_cursors)(be, page, start);
+                return (*be->_fun_uncouple_all_cursors)(be, this, start);
         }
     }
 
