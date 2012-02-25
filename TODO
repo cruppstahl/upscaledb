@@ -28,9 +28,41 @@ o design redundancy
       o should work with and without redundancy; if redundancy is disabled
           then there should not be ANY performance penalty!
       o disable concurrency during compilation? not sure if this is required
-    o needs module for thread local storage
-    o split into smaller tasks
 
+o implement a full test suite (including gathering of performance metrics etc)
+    o refactor monster test and include multi-threading
+        o needs new option --num-threads
+        o threads run same test in parallel, in different database
+        o threads run each line round-robin and synchronize in fullcheck
+    o need a way to graphically display performance metrics
+        o output in a text file
+            version/configuration/test-id
+            each test is run in multiple threads
+                performance-metrics based on time(), not real duration
+                memory-metrics
+                disk size
+                same for berkeleydb
+        o skript that generates a static html page from this file, 
+            w/ graphs over the different versions
+    o need a "load-generator" which runs for a defined duration 
+        - max number of keys, max bytes to insert
+        - key distribution: random, ascending, descending, zipfian, ...
+        - duplicates yes/no
+        - ...
+        - before execution: dump into a (temp.) file, and if the test fails:
+            copy the file to a reserved directory
+        - read from file (this is the same as we have now)
+    o integrate valgrind/hellgrind
+    o integrate ThreadSanitizer
+    o integrate clang
+
+o implement basic concurrency
+    o ./configure: add dependency to boost
+    o abstract boost stuff using typedefs:
+        thread
+        mutex
+        scopedlock
+        condition
     o need TLS and db->key_data should be stored in TLS
     o from each public handle: need a way to lock the Env
         x Env
@@ -38,15 +70,6 @@ o design redundancy
         o Cursor
         o Txn
         o what else?
-    o implement a full test suite (including gathering of performance metrics 
-        etc)
-    o need a way to graphically display performance metrics
-    o need a "load-generator" which runs for a defined duration 
-        - max number of keys, max bytes to insert
-        - key distribution: random, ascending, descending, zipfian, ...
-        - duplicates yes/no
-        - ...
-        - OR: read from file (this is the same as we have now)
 
 o python API - update and integrate
     o also add to win32 package
