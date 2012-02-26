@@ -18,22 +18,52 @@ to scale with the number of cores.
 x c++-ify the page
     x page->is_header() instead of page_get_self()==0
 
-o design redundancy
+x design redundancy
     x identify toolkit (TBB, boost?) - go for boost, but we can use both later
         x both have fast mutex implementations, esp on Win32
         x tbb seems to have better memory allocators, but uses native API
             more often (i.e. for TLS), and in these cases boost might be faster
         x boost is more likely already installed
-    o design code; who locks what?
-      o should work with and without redundancy; if redundancy is disabled
-          then there should not be ANY performance penalty!
-      o disable concurrency during compilation? not sure if this is required
+    x design code; who locks what?
+      x disable concurrency during compilation? -- no, not required
 
 o implement a full test suite (including gathering of performance metrics etc)
     o refactor monster test and include multi-threading
+        x single point for collecting metrics
+        x also collect file sizes
+        o --profile should be enabled by default; to disable: --quiet
+=============>
+current problems:
+    bdb shows memory metrics of hamsterdb
+    Metrics does not really collect all metrics, but it should!
+        besides, it should collect all of both backends
+            std::vector<std::map<string, unsigned long> > metrics;
+                vector[0]: backend 0
+                vector[1]: backend 1
+            etc
+        and then have a proper print function
+=============>
+        o collect performance information based on time(2), not duration
+        o use boost instead of handcrafted code
+        o can run ham2 vs ham1 or vs bdb or alone
         o needs new option --num-threads
         o threads run same test in parallel, in different database
         o threads run each line round-robin and synchronize in fullcheck
+            o in ham_find: all threads of a database handler synchronize
+            o in fullcheck: all threads of ALL database handlers synchronize
+
+    o has a wrapper script (http://search.cpan.org/~garu/App-Rad-1.04/)
+        that calls and manages the file, gathers the metrics, generates
+        tests, create graphs etc
+        o needs a config file which describes input/output paths etc
+        o monster.pl run-suite 1
+        o monster.pl run-test ../../testsuite/1/1.tst --options...
+            o integrate valgrind/hellgrind
+            o integrate ThreadSanitizer
+            o integrate clang
+        o monster.pl create-graphs
+        o monster.pl create-test --options...
+
     o need a way to graphically display performance metrics
         o output in a text file
             version/configuration/test-id
@@ -44,6 +74,7 @@ o implement a full test suite (including gathering of performance metrics etc)
                 same for berkeleydb
         o skript that generates a static html page from this file, 
             w/ graphs over the different versions
+
     o need a "load-generator" which runs for a defined duration 
         - max number of keys, max bytes to insert
         - key distribution: random, ascending, descending, zipfian, ...
@@ -52,9 +83,6 @@ o implement a full test suite (including gathering of performance metrics etc)
         - before execution: dump into a (temp.) file, and if the test fails:
             copy the file to a reserved directory
         - read from file (this is the same as we have now)
-    o integrate valgrind/hellgrind
-    o integrate ThreadSanitizer
-    o integrate clang
 
 o implement basic concurrency
     o ./configure: add dependency to boost
@@ -70,6 +98,8 @@ o implement basic concurrency
         o Cursor
         o Txn
         o what else?
+    o should work with and without redundancy; if redundancy is disabled
+        then there should not be ANY performance penalty!
 
 o python API - update and integrate
     o also add to win32 package
