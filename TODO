@@ -31,21 +31,12 @@ o implement a full test suite (including gathering of performance metrics etc)
     o refactor monster test and include multi-threading
         x single point for collecting metrics
         x also collect file sizes
-        o --profile should be enabled by default; to disable: --quiet
-=============>
-current problems:
-    bdb shows memory metrics of hamsterdb
-    Metrics does not really collect all metrics, but it should!
-        besides, it should collect all of both backends
-            std::vector<std::map<string, unsigned long> > metrics;
-                vector[0]: backend 0
-                vector[1]: backend 1
-            etc
-        and then have a proper print function
-=============>
-        o collect performance information based on time(2), not duration
-        o use boost instead of handcrafted code
-        o can run ham2 vs ham1 or vs bdb or alone
+        x --profile should be enabled by default; to disable: --quiet
+        x collect performance information based on times(2), not duration
+            http://www.delorie.com/gnu/docs/glibc/libc_430.html
+            -- no, does not work! times are just too short
+        x can run ham2 vs bdb or alone, default is ham2 vs bdb
+            x single backend: skip fullcheck
         o needs new option --num-threads
         o threads run same test in parallel, in different database
         o threads run each line round-robin and synchronize in fullcheck
@@ -54,7 +45,7 @@ current problems:
 
     o has a wrapper script (http://search.cpan.org/~garu/App-Rad-1.04/)
         that calls and manages the file, gathers the metrics, generates
-        tests, create graphs etc
+        tests, create graphs, builds and links the binaries etc
         o needs a config file which describes input/output paths etc
         o monster.pl run-suite 1
         o monster.pl run-test ../../testsuite/1/1.tst --options...
