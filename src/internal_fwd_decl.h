@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -102,6 +102,28 @@ struct btree_key_t;
 typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
+
+#include <boost/version.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/tss.hpp>
+#include <boost/thread/condition.hpp>
+
+typedef boost::mutex::scoped_lock ScopedLock;
+typedef boost::thread Thread;
+typedef boost::thread_specific_ptr<class T> ThreadLocalStorage;
+typedef boost::condition Condition;
+
+class Mutex : public boost::mutex {
+public:
+#if BOOST_VERSION < 103500
+  typedef boost::detail::thread::lock_ops<boost::mutex> Ops;
+
+  void lock() { Ops::lock(*this); }
+
+  void unlock() { Ops::unlock(*this); }
+#endif
+};
 
 
 #endif

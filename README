@@ -109,10 +109,12 @@ you want to include remote functionality, then you have to download the
 dependencies from here:
     http://code.google.com/p/protobuf/
     http://curl.haxx.se/libcurl/
+    http://www.boost.org
 On Ubuntu, you can install the following packages:
     protobuf-compiler
     libprotobuf-dev
     libcurl-dev
+    libboost-dev
 
 For Windows, precompiled libcurl/protobuf libraries are available on 
 hamsterdb.com.

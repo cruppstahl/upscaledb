@@ -140,7 +140,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 
 #ifndef HAVE_PREAD
 static ham_status_t
-my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
+__os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
 {
     int r;
     ham_size_t total=0;
@@ -185,7 +185,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
         return (st);
-    st=my_os_read(fd, buffer, bufferlen);
+    st=__os_read(fd, (ham_u8_t *)buffer, bufferlen);
     return (st);
 #endif
 }

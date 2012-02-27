@@ -6,7 +6,8 @@ SUBDIRS += server
 endif # ENABLE_SERVER
 endif # ENABLE_REMOTE
 
-AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
+AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes $(BOOST_CPPFLAGS)
+AM_LDFLAGS = $(BOOST_THREAD_LDFLAGS)
 
 lib_LTLIBRARIES = libhamsterdb.la
 
@@ -64,4 +65,5 @@ libhamsterdb_la_LDFLAGS += $(top_builddir)/src/protocol/libprotocol.la
 CFLAGS += -DHAM_ENABLE_REMOTE
 CXXFLAGS += -DHAM_ENABLE_REMOTE
 endif
+LIBS = $(BOOST_THREAD_LIBS)
 

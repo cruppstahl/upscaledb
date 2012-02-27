@@ -34,6 +34,7 @@ AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
+BOOST_REQUIRE()
 
 # ARM emulators w/ qemu: disable pread/pwrite; the functions exist, but
 # seem to be buggy
