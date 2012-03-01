@@ -484,7 +484,8 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
     if (st)
         return (st);
 
-    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname, 0, 0);
+    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname, 
+                    HAM_DONT_LOCK, 0);
     if (st)
         return (st);
 
@@ -515,14 +516,14 @@ __close_all_databases(Environment *env)
     Database *db;
 
     while ((db=env->get_databases())) {
-        st=ham_close((ham_db_t *)db, 0);
+        st=ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         if (st) {
             ham_log(("ham_close() failed w/ error %d (%s)", st, 
                     ham_strerror(st)));
             return (st);
         }
 
-        ham_delete((ham_db_t *)db);
+        delete db;
     }
 
     return (0);
@@ -537,7 +538,7 @@ __abort_uncommitted_txns(Environment *env)
     while (txn) {
         newer=txn_get_newer(txn);
         if (!(txn_get_flags(txn)&TXN_STATE_COMMITTED)) {
-            st=ham_txn_abort(txn, 0);
+            st=ham_txn_abort(txn, HAM_DONT_LOCK);
             if (st)
                 return (st);
         }
@@ -609,7 +610,8 @@ Journal::recover()
         switch (entry.type) {
         case ENTRY_TYPE_TXN_BEGIN: {
             ham_txn_t *txn;
-            st=ham_txn_begin(&txn, (ham_env_t *)m_env, (const char *)aux, 0, 0);
+            st=ham_txn_begin(&txn, (ham_env_t *)m_env, (const char *)aux, 
+                            0, HAM_DONT_LOCK);
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);
@@ -622,7 +624,7 @@ Journal::recover()
             st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=ham_txn_abort(txn, 0);
+            st=ham_txn_abort(txn, HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_TXN_COMMIT: {
@@ -630,7 +632,7 @@ Journal::recover()
             st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=ham_txn_commit(txn, 0);
+            st=ham_txn_commit(txn, HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_INSERT: {
@@ -661,7 +663,7 @@ Journal::recover()
             if (st)
                 break;
             st=ham_insert((ham_db_t *)db, txn, 
-                    &key, &record, ins->insert_flags);
+                    &key, &record, ins->insert_flags|HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_ERASE: {
@@ -686,7 +688,8 @@ Journal::recover()
                 break;
             key.data=e->get_key_data();
             key.size=e->key_size;
-            st=ham_erase((ham_db_t *)db, txn, &key, e->erase_flags);
+            st=ham_erase((ham_db_t *)db, txn, &key, 
+                            e->erase_flags|HAM_DONT_LOCK);
             // key might have already been erased when the changeset
             // was flushed
             if (st==HAM_KEY_NOT_FOUND)

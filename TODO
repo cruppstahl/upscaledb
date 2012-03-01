@@ -42,6 +42,7 @@ o implement basic concurrency
         o Cursor
         o Txn
         o what else?
+    o hamsterdb.cc:1064 releases curl - make sure this is threadsafe
     o should work with and without redundancy; if redundancy is disabled
         then there should not be ANY performance penalty!
 
@@ -96,6 +97,14 @@ o implement a full test suite (including gathering of performance metrics etc)
         - before execution: dump into a (temp.) file, and if the test fails:
             copy the file to a reserved directory
         - read from file (this is the same as we have now)
+
+o clean up the "close" functions
+    o ham_close - move all functionality to Database::close
+    o ham_env_close - move all functionality to Environment::close
+    o ~Database: call close(), then simplify all code
+    o ~Environment: call close(), then simplify all code
+    o Cursor::close: currently (nearly) empty; merge with ~Cursor and
+        Database::close_cursor()
 
 o python API - update and integrate
     o also add to win32 package

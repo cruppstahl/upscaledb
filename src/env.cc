@@ -73,6 +73,29 @@ Environment::Environment()
 	destroy=0;
 }
 
+Environment::~Environment()
+{
+    /* delete all performance data */
+    btree_stats_trash_globdata(this, get_global_perf_data());
+
+    /* close the device if it still exists */
+    if (get_device()) {
+        Device *device=get_device();
+        if (device->is_open()) {
+            (void)device->flush();
+            (void)device->close();
+        }
+        delete device;
+        set_device(0);
+    }
+
+    /* close the allocator */
+    if (get_allocator()) {
+        delete get_allocator();
+        set_allocator(0);
+    }
+}
+
 bool 
 Environment::is_private() 
 {
@@ -172,7 +195,7 @@ _local_fun_create(Environment *env, const char *filename,
     /* create the file */
     st=device->create(filename, flags, mode);
     if (st) {
-        (void)ham_env_close((ham_env_t *)env, 0);
+        (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -184,7 +207,7 @@ _local_fun_create(Environment *env, const char *filename,
         st=page->allocate();
         if (st) {
             delete page;
-            (void)ham_env_close((ham_env_t *)env, 0);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
             return (st);
         }
         memset(page->get_pers(), 0, pagesize);
@@ -210,7 +233,7 @@ _local_fun_create(Environment *env, const char *filename,
         st=log->create();
         if (st) { 
             delete log;
-            (void)ham_env_close((ham_env_t *)env, 0);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
             return (st);
         }
         env->set_log(log);
@@ -218,7 +241,7 @@ _local_fun_create(Environment *env, const char *filename,
         Journal *journal=new Journal(env);
         st=journal->create();
         if (st) { 
-            (void)ham_env_close((ham_env_t *)env, 0);
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
             return (st);
         }
         env->set_journal(journal);
@@ -352,7 +375,8 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     /* open the file */
     st=device->open(filename, flags);
     if (st) {
-        (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
+        (void)ham_env_close((ham_env_t *)env, 
+                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
         return (st);
     }
 
@@ -462,7 +486,8 @@ fail_with_fake_cleansing:
 
         /* exit when an error was signaled */
         if (st) {
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, 
+                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
             return (st);
         }
 
@@ -472,7 +497,8 @@ fail_with_fake_cleansing:
         st=page->fetch(0);
         if (st) {
             delete page;
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, 
+                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
             return (st);
         }
         env->set_header_page(page);
@@ -492,7 +518,8 @@ fail_with_fake_cleansing:
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
         st=__recover(env, flags);
         if (st) {
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG);
+            (void)ham_env_close((ham_env_t *)env, 
+                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
             return (st);
         }
     }
@@ -576,9 +603,10 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     st=ham_new((ham_db_t **)&db);
     if (st)
         return (st);
-    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, name, 0, 0);
+    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, name, 
+                HAM_DONT_LOCK, 0);
     if (st) {
-        (void)ham_delete((ham_db_t *)db);
+        delete db;
         return (st);
     }
 
@@ -607,8 +635,8 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 
     st=be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
     if (st) {
-        (void)ham_close((ham_db_t *)db, 0);
-        (void)ham_delete((ham_db_t *)db);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        delete db;
         return (st);
     }
 
@@ -627,8 +655,8 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     }
 
     /* clean up and return */
-    (void)ham_close((ham_db_t *)db, 0);
-    (void)ham_delete((ham_db_t *)db);
+    (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    delete db;
 
     return (0);
 }
@@ -950,7 +978,7 @@ _local_fun_create_db(Environment *env, Database *db,
         if (!name)
             continue;
         if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME) {
-            (void)ham_close((ham_db_t *)db, 0);
+            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             return (HAM_DATABASE_ALREADY_EXISTS);
         }
     }
@@ -969,7 +997,7 @@ _local_fun_create_db(Environment *env, Database *db,
         }
     }
     if (dbi==env->get_max_databases()) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (HAM_LIMITS_REACHED);
     }
 
@@ -987,7 +1015,7 @@ _local_fun_create_db(Environment *env, Database *db,
         be=btree_create(db, flags);
         if (!be) {
             st=HAM_OUT_OF_MEMORY;
-            (void)ham_close((ham_db_t *)db, 0);
+            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             goto bail;
         }
         /* store the backend in the database */
@@ -997,7 +1025,7 @@ _local_fun_create_db(Environment *env, Database *db,
     /* initialize the backend */
     st=be->_fun_create(be, keysize, pflags);
     if (st) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         goto bail;
     }
 
@@ -1008,7 +1036,7 @@ _local_fun_create_db(Environment *env, Database *db,
      */
     st=db->initialize_local();
     if (st) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         goto bail;
     }
 
@@ -1016,13 +1044,13 @@ _local_fun_create_db(Environment *env, Database *db,
      * set the default key compare functions
      */
     if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
+        db->set_compare_func(db_default_recno_compare);
     }
     else {
-        ham_set_compare_func((ham_db_t *)db, db_default_compare);
-        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
+        db->set_compare_func(db_default_compare);
+        db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
+    db->set_duplicate_compare_func(db_default_compare);
     env->set_dirty(true);
 
     /* finally calculate and store the data access mode */
@@ -1043,13 +1071,13 @@ _local_fun_create_db(Environment *env, Database *db,
      * set the key compare function
      */
     if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
+        db->set_compare_func(db_default_recno_compare);
     }
     else {
-        ham_set_compare_func((ham_db_t *)db, db_default_compare);
-        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
+        db->set_compare_func(db_default_compare);
+        db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
+    db->set_duplicate_compare_func(db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1136,7 +1164,7 @@ _local_fun_open_db(Environment *env, Database *db,
     }
 
     if (dbi==env->get_max_databases()) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (HAM_DATABASE_NOT_FOUND);
     }
 
@@ -1145,7 +1173,7 @@ _local_fun_open_db(Environment *env, Database *db,
     if (be==NULL) {
         be=btree_create(db, flags);
         if (!be) {
-            (void)ham_close((ham_db_t *)db, 0);
+            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             return (HAM_OUT_OF_MEMORY);
         }
         /* store the backend in the database */
@@ -1155,7 +1183,7 @@ _local_fun_open_db(Environment *env, Database *db,
     /* initialize the backend */
     st=be->_fun_open(be, flags);
     if (st) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -1166,7 +1194,7 @@ _local_fun_open_db(Environment *env, Database *db,
      */
     st=db->initialize_local();
     if (st) {
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -1220,7 +1248,7 @@ _local_fun_open_db(Environment *env, Database *db,
             && !(db->get_rt_flags()&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
                    "enabled for this Database"));
-        (void)ham_close((ham_db_t *)db, 0);
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (HAM_INV_PARAMETER);
     }
 
@@ -1242,13 +1270,13 @@ _local_fun_open_db(Environment *env, Database *db,
      * set the key compare function
      */
     if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        ham_set_compare_func((ham_db_t *)db, db_default_recno_compare);
+        db->set_compare_func(db_default_recno_compare);
     }
     else {
-        ham_set_compare_func((ham_db_t *)db, db_default_compare);
-        ham_set_prefix_compare_func((ham_db_t *)db, db_default_prefix_compare);
+        db->set_compare_func(db_default_compare);
+        db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    ham_set_duplicate_compare_func((ham_db_t *)db, db_default_compare);
+    db->set_duplicate_compare_func(db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of

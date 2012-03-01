@@ -125,6 +125,9 @@ class Environment
     /** default constructor initializes all members */
     Environment();
 
+    /** destructor */
+    ~Environment();
+
     /*
      * following here: function pointers which implement access to 
      * local or remote databases. they are initialized in ham_env_create_ex
@@ -563,7 +566,15 @@ class Environment
         return (m_log_directory);
     }
 
+    /** get the mutex */
+    Mutex &get_mutex() {
+        return (m_mutex);
+    }
+
   private:
+    /** a mutex for this Environment */
+    Mutex m_mutex;
+
     /** the filename of the environment file */
     std::string m_filename;
 

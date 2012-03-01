@@ -850,6 +850,60 @@ db_write_page_and_delete(Page *page, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
+void
+Database::clone_cursor(Cursor *src, Cursor **dest)
+{
+    *dest=m_impl->cursor_clone(src);
+
+    /* fix the linked list of cursors */
+    (*dest)->set_previous(0);
+    (*dest)->set_next(get_cursors());
+    ham_assert(get_cursors()!=0, (0));
+    get_cursors()->set_previous(*dest);
+    set_cursors(*dest);
+
+    /* initialize the remaining fields */
+    (*dest)->set_txn(src->get_txn());
+
+    if (src->get_txn())
+        txn_set_cursor_refcount(src->get_txn(), 
+                txn_get_cursor_refcount(src->get_txn())+1);
+}
+
+void 
+Database::close_cursor(Cursor *cursor)
+{
+    Cursor *p, *n;
+
+    /* decrease the transaction refcount; the refcount specifies how many
+     * cursors are attached to the transaction */
+    if (cursor->get_txn()) {
+        ham_assert(txn_get_cursor_refcount(cursor->get_txn())>0, (""));
+        txn_set_cursor_refcount(cursor->get_txn(), 
+                txn_get_cursor_refcount(cursor->get_txn())-1);
+    }
+
+    /* now finally close the cursor */
+    m_impl->cursor_close(cursor);
+
+    /* fix the linked list of cursors */
+    p=cursor->get_previous();
+    n=cursor->get_next();
+
+    if (p)
+        p->set_next(n);
+    else
+        set_cursors(n);
+
+    if (n)
+        n->set_previous(p);
+
+    cursor->set_next(0);
+    cursor->set_previous(0);
+
+    delete cursor;
+}
+
 ham_status_t
 Database::resize_record_allocdata(ham_size_t size)
 {
@@ -1987,11 +2041,13 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
      * only available in ham_cursor_find */
     if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
-        st=ham_cursor_create((ham_db_t *)m_db, txn, 0, (ham_cursor_t **)&c);
+        st=ham_cursor_create((ham_db_t *)m_db, txn, HAM_DONT_LOCK, 
+                            (ham_cursor_t **)&c);
         if (st)
             return (st);
-        st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, flags);
-        ham_cursor_close((ham_cursor_t *)c);
+        st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, 
+                            flags|HAM_DONT_LOCK);
+        m_db->close_cursor(c);
         return (st);
     }
 

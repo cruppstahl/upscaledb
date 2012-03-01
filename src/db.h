@@ -604,6 +604,12 @@ class Database
         m_key_allocdata=p;
     }
 
+    /** closes a cursor */
+    void close_cursor(Cursor *c);
+
+    /** clones a cursor into *dest */
+    void clone_cursor(Cursor *src, Cursor **dest);
+
     /**
      * Resize the record data buffer. This buffer is an internal storage for 
      * record buffers. When a ham_record_t structure is returned to the user,

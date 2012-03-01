@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -272,6 +272,10 @@ ham_txn_begin(ham_txn_t **txn, ham_env_t *henv, const char *name,
 
     Environment *env=(Environment *)henv;
 
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     if (!(env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
         return (HAM_INV_PARAMETER);
@@ -290,6 +294,7 @@ ham_txn_get_name(ham_txn_t *txn)
 {
     if (!txn)
         return (0);
+    ScopedLock lock(txn_get_env(txn)->get_mutex());
     return (txn_get_name(txn));
 }
 
@@ -306,6 +311,10 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
 
     /* mark this transaction as committed; will also call
      * env_flush_committed_txns() to write committed transactions
@@ -326,6 +335,10 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
 
     return (env->_fun_txn_abort(env, txn, flags));
 }
@@ -570,6 +583,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 |HAM_DISABLE_MMAP 
                                 |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
+                                |HAM_DONT_LOCK
                                 |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
                                 |DB_DISABLE_AUTO_FLUSH
@@ -577,6 +591,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT
                         |HAM_USE_BTREE
+                        |HAM_DONT_LOCK
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
                         |HAM_SORT_DUPLICATES
@@ -1005,11 +1020,6 @@ ham_env_new(ham_env_t **env)
         return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * allocate memory for the ham_db_t-structure;
-     * we can't use our allocator because it's not yet created! 
-     * Also reset the whole structure.
-     */
     *env=(ham_env_t *)new Environment();
     if (!(*env))
         return (HAM_OUT_OF_MEMORY);
@@ -1031,27 +1041,9 @@ ham_env_delete(ham_env_t *henv)
 
     Environment *env=(Environment *)henv;
 
-    /* delete all performance data */
-    btree_stats_trash_globdata(env, env->get_global_perf_data());
-
-    /* close the device if it still exists */
-    if (env->get_device()) {
-        Device *device = env->get_device();
-        if (device->is_open()) {
-            (void)device->flush();
-            (void)device->close();
-        }
-        delete device;
-        env->set_device(0);
-    }
-
-    /*
-     * close the allocator
-     */
-    if (env->get_allocator()) {
-        delete env->get_allocator();
-        env->set_allocator(0);
-    }
+    // TODO lock will assert in ~Environment since a locked mutex
+    // will go out of scope
+    // ScopedLock lock(env->get_mutex());
 
     delete env;
 
@@ -1100,6 +1092,8 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
 
     /*
      * make sure that this environment is not yet open/created
@@ -1159,7 +1153,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     /* flush the environment to make sure that the header page is written 
      * to disk */
-    return (ham_env_flush((ham_env_t *)env, 0));
+    return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1178,6 +1172,9 @@ ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'env' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (env->is_private()) {
         ham_trace(("Environment was not properly created with ham_env_create, "
                    "ham_env_open"));
@@ -1205,7 +1202,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
 
     /* flush the environment to make sure that the header page is written 
      * to disk */
-    return (ham_env_flush((ham_env_t *)env, 0));
+    return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1224,6 +1221,11 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'env' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     if (env->is_private()) {
         ham_trace(("Environment was not properly created with ham_env_create, "
                    "ham_env_open"));
@@ -1280,9 +1282,9 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * make sure that this environment is not yet open/created
-     */
+    ScopedLock lock(env->get_mutex());
+
+    /* make sure that this environment is not yet open/created */
     if (env->is_active()) {
         ham_trace(("parameter 'env' is already initialized"));
         return (HAM_ENVIRONMENT_ALREADY_OPEN);
@@ -1360,6 +1362,9 @@ ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname,
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!oldname) {
         ham_trace(("parameter 'oldname' must not be 0"));
         return (HAM_INV_PARAMETER);
@@ -1397,6 +1402,9 @@ ham_env_erase_db(ham_env_t *henv, ham_u16_t name, ham_u32_t flags)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!name) {
         ham_trace(("parameter 'name' must not be 0"));
         return (HAM_INV_PARAMETER);
@@ -1422,6 +1430,9 @@ ham_env_add_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (env->get_flags()&DB_IS_REMOTE) {
         ham_trace(("ham_env_add_file_filter is not supported by remote "
                 "servers"));
@@ -1482,6 +1493,9 @@ ham_env_remove_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!filter) {
         ham_trace(("parameter 'filter' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1536,6 +1550,9 @@ ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_size_t *count)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!names) {
         ham_trace(("parameter 'names' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1561,6 +1578,9 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!param) {
         ham_trace(("parameter 'param' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1582,6 +1602,11 @@ ham_env_flush(ham_env_t *henv, ham_u32_t flags)
         ham_trace(("parameter 'env' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     if (!env->_fun_flush) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
@@ -1602,6 +1627,10 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     /* it's ok to close an uninitialized Environment */
     if (!env->_fun_close)
         return (0);
@@ -1619,11 +1648,11 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
-                    if ((st=ham_txn_commit(t, 0)))
+                    if ((st=ham_txn_commit(t, HAM_DONT_LOCK)))
                         return (st);
                 }
                 else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-                    if ((st=ham_txn_abort(t, 0)))
+                    if ((st=ham_txn_abort(t, HAM_DONT_LOCK)))
                         return (st);
                 }
             }
@@ -1638,7 +1667,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         Database *db=env->get_databases();
         while (db) {
             Database *next=db->get_next();
-            st=ham_close((ham_db_t *)db, flags);
+            st=ham_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
             if (st)
                 return (st);
             db=next;
@@ -1820,7 +1849,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            (void)ham_env_delete(env);
+            delete env;
         }
     }
 
@@ -1952,7 +1981,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            ham_env_delete(env);
+            delete env;
         }
     }
 
@@ -1967,6 +1996,9 @@ ham_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
         ham_trace(("parameter 'db' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (!param) {
         ham_trace(("parameter 'param' must not be NULL"));
         return HAM_INV_PARAMETER;
@@ -1985,6 +2017,8 @@ ham_get_error(ham_db_t *hdb)
         return (0);
     }
 
+    ScopedLock lock(db->get_env()->get_mutex());
+
     return (db->get_error());
 }
 
@@ -1996,6 +2030,8 @@ ham_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
 
     db->set_error(0);
     db->set_prefix_compare_func(foo);
@@ -2011,6 +2047,8 @@ ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
         return (HAM_INV_PARAMETER);
     }
 
+    ScopedLock lock(db->get_env()->get_mutex());
+
     db->set_error(0);
     db->set_compare_func(foo ? foo : db_default_compare);
     return (db->set_error(HAM_SUCCESS));
@@ -2024,6 +2062,8 @@ ham_set_duplicate_compare_func(ham_db_t *hdb, ham_duplicate_compare_func_t foo)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
 
     db->set_error(0);
     db->set_duplicate_compare_func(foo ? foo : db_default_compare);
@@ -2101,6 +2141,10 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    {
+    ScopedLock lock(env->get_mutex());
+
     if (env->get_databases()) {
         ham_trace(("cannot enable encryption if databases are already open"));
         return (HAM_DATABASE_ALREADY_OPEN);
@@ -2149,9 +2193,10 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     st=ham_new(&db);
     if (st)
         return (st);
-    st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME, 0, 0);
+    st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME, 
+                        HAM_DONT_LOCK, 0);
     if (st) {
-        ham_delete(db);
+        delete db;
         db=0;
     }
 
@@ -2185,15 +2230,18 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
         st=0;
 
 bail:
+    if (st)
+        __aes_close_cb((ham_env_t *)env, filter);
+
+    } // ScopedLock
+
     if (db) {
         ham_close(db, 0);
-        ham_delete(db);
+        delete db;
     }
 
-    if (st) {
-        __aes_close_cb((ham_env_t *)env, filter);
+    if (st)
         return (st);
-    }
 
     return (ham_env_add_file_filter((ham_env_t *)env, filter));
 #else /* !HAM_DISABLE_ENCRYPTION */
@@ -2347,6 +2395,10 @@ ham_enable_compression(ham_db_t *hdb, ham_u32_t level, ham_u32_t flags)
                    "explicit) environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    {
+    ScopedLock lock(env->get_mutex());
+
     if (env->get_flags()&DB_IS_REMOTE) {
         ham_trace(("ham_enable_compression is not supported by remote "
                 "servers"));
@@ -2376,6 +2428,8 @@ ham_enable_compression(ham_db_t *hdb, ham_u32_t level, ham_u32_t flags)
     filter->after_read_cb=__zlib_after_read_cb;
     filter->close_cb=__zlib_close_cb;
 
+    } // ScopedLock
+
     return (ham_add_record_filter((ham_db_t *)db, filter));
 #else /* !HAM_DISABLE_COMPRESSION */
     ham_trace(("hamsterdb was compiled without support for zlib compression"));
@@ -2402,6 +2456,9 @@ ham_find(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
                    "or explicit) environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock(env->get_mutex());
+
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -2480,6 +2537,11 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
                    "explicit) environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -2596,8 +2658,6 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
         }
     }
 
-    db->set_error(0);
-
     return (db->set_error((*db)()->insert(txn, key, record, flags)));
 }
 
@@ -2611,12 +2671,17 @@ ham_erase(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    env = db->get_env();
+    env=db->get_env();
     if (!env) {
         ham_trace(("parameter 'db' must be linked to a valid (implicit "
                    "or explicit) environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
+
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -2635,8 +2700,6 @@ ham_erase(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (!__prepare_key(key))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    db->set_error(0);
-
     return (db->set_error((*db)()->erase(txn, key, flags)));
 }
 
@@ -2650,7 +2713,7 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *txn)
         return (HAM_INV_PARAMETER);
     }
 
-    db->set_error(0);
+    ScopedLock lock(db->get_env()->get_mutex());
 
     return (db->set_error((*db)()->check_integrity(txn)));
 }
@@ -2674,6 +2737,9 @@ ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
         ham_trace(("Database was not initialized"));
         return (db->set_error(HAM_NOT_INITIALIZED));
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (db->get_env()->get_flags()&DB_IS_REMOTE) {
         ham_trace(("ham_calc_maxkeys_per_page is not supported by remote "
                 "servers"));
@@ -2744,9 +2810,16 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
+    env=db->get_env();
+
     /* it's ok to close an uninitialized Database */
-    if (!(*db)())
+    if (!env || !(*db)())
         return (0);
+
+    /* don't lock the env if it's private */
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK) && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE))
+        lock=ScopedLock(env->get_mutex());
 
     /* check if this database is modified by an active transaction */
     txn_optree_t *tree=db->get_optree();
@@ -2766,8 +2839,6 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             node=txn_opnode_get_next_sibling(node);
         }
     }
-
-    env=db->get_env();
 
     /*
      * check if there are Database Cursors - they will be closed
@@ -2830,8 +2901,9 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             head=head->get_next();
         }
         if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
-            (void)ham_env_close((ham_env_t *)db->get_env(), flags);
-            ham_env_delete((ham_env_t *)db->get_env());
+            (void)ham_env_close((ham_env_t *)db->get_env(), 
+                            flags|HAM_DONT_LOCK);
+            delete db->get_env();
         }
         db->set_env(0);
     }
@@ -2860,12 +2932,16 @@ ham_cursor_create(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
 
     cursor=(Cursor **)hcursor;
 
-    env = db->get_env();
+    env=db->get_env();
     if (!env) {
         ham_trace(("parameter 'db' must be linked to a valid (implicit or "
                    "explicit) environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
 
     if (!(*db)()) {
         ham_trace(("Database was not initialized"));
@@ -2913,21 +2989,9 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
         return HAM_INV_PARAMETER;
     }
 
-    *dest=(*db)()->cursor_clone(src);
+    ScopedLock lock(db->get_env()->get_mutex());
 
-    /* fix the linked list of cursors */
-    (*dest)->set_previous(0);
-    (*dest)->set_next(db->get_cursors());
-    ham_assert(db->get_cursors()!=0, (0));
-    db->get_cursors()->set_previous(*dest);
-    db->set_cursors(*dest);
-
-    /* initialize the remaining fields */
-    (*dest)->set_txn(src->get_txn());
-
-    if (src->get_txn())
-        txn_set_cursor_refcount(src->get_txn(), 
-                txn_get_cursor_refcount(src->get_txn())+1);
+    db->clone_cursor(src, dest);
 
     return (db->set_error(0));
 }
@@ -2951,6 +3015,9 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (flags) {
         ham_trace(("function does not support a non-zero flags value; "
                     "see ham_cursor_insert for an alternative then"));
@@ -2996,6 +3063,9 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if ((flags&HAM_ONLY_DUPLICATES) && (flags&HAM_SKIP_DUPLICATES)) {
         ham_trace(("combination of HAM_ONLY_DUPLICATES and "
                     "HAM_SKIP_DUPLICATES not allowed"));
@@ -3060,14 +3130,18 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
-    env = db->get_env();
+
+    env=db->get_env();
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
 
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    if (flags & ~(HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
+    if (flags & ~(HAM_DONT_LOCK | HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
                 HAM_FIND_EXACT_MATCH | HAM_DIRECT_ACCESS)) {
         ham_trace(("flag values besides any combination of "
                    "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH, "
@@ -3131,6 +3205,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
     Cursor *cursor=(Cursor *)hcursor;
 
     db=cursor->get_db();
+    ScopedLock lock(db->get_env()->get_mutex());
 
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
@@ -3273,6 +3348,8 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
         return HAM_INV_PARAMETER;
     }
 
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (db->set_error(HAM_DB_READ_ONLY));
@@ -3309,6 +3386,9 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (!count) {
         ham_trace(("parameter 'count' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -3337,6 +3417,9 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_offset_t *size)
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
+
     if (!size) {
         ham_trace(("parameter 'size' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -3352,7 +3435,6 @@ ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *hcursor)
 {
     Database *db;
-    Cursor *p, *n;
 
     if (!hcursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3367,34 +3449,10 @@ ham_cursor_close(ham_cursor_t *hcursor)
         return HAM_INV_PARAMETER;
     }
 
-    /* decrease the transaction refcount; the refcount specifies how many
-     * cursors are attached to the transaction */
-    if (cursor->get_txn()) {
-        ham_assert(txn_get_cursor_refcount(cursor->get_txn())>0, (""));
-        txn_set_cursor_refcount(cursor->get_txn(), 
-                txn_get_cursor_refcount(cursor->get_txn())-1);
-    }
+    ScopedLock lock(db->get_env()->get_mutex());
 
-    /* now finally close the cursor */
-    (*db)()->cursor_close(cursor);
+    db->close_cursor(cursor);
 
-    /* fix the linked list of cursors */
-    p=cursor->get_previous();
-    n=cursor->get_next();
-
-    if (p)
-        p->set_next(n);
-    else
-        db->set_cursors(n);
-
-    if (n)
-        n->set_previous(p);
-
-    cursor->set_next(0);
-    cursor->set_previous(0);
-
-    delete cursor;
-    
     return (0);
 }
 
@@ -3408,6 +3466,8 @@ ham_add_record_filter(ham_db_t *hdb, ham_record_filter_t *filter)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
 
     db->set_error(0);
 
@@ -3427,8 +3487,7 @@ ham_add_record_filter(ham_db_t *hdb, ham_record_filter_t *filter)
         db->set_record_filter(filter);
         filter->_prev = filter;
     }
-    else 
-    {
+    else {
         head->_prev = filter;
 
         while (head->_next)
@@ -3451,6 +3510,8 @@ ham_remove_record_filter(ham_db_t *hdb, ham_record_filter_t *filter)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    ScopedLock lock(db->get_env()->get_mutex());
 
     db->set_error(0);
 
@@ -3498,34 +3559,45 @@ void HAM_CALLCONV
 ham_set_context_data(ham_db_t *hdb, void *data)
 {
     Database *db=(Database *)hdb;
-    if (db)
-        db->set_context_data(data);
+
+    if (!db)
+        return;
+
+    ScopedLock lock(db->get_env()->get_mutex());
+    db->set_context_data(data);
 }
 
 void * HAM_CALLCONV
 ham_get_context_data(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
-    if (db)
-        return (db->get_context_data());
-    return (0);
+    if (!db)
+        return (0);
+
+    ScopedLock lock(db->get_env()->get_mutex());
+    return (db->get_context_data());
 }
 
 void HAM_CALLCONV
 ham_env_set_context_data(ham_env_t *henv, void *data)
 {
     Environment *env=(Environment *)henv;
-    if (env)
-        env->set_context_data(data);
+    if (!env)
+        return;
+
+    ScopedLock lock(env->get_mutex());
+    env->set_context_data(data);
 }
 
 void * HAM_CALLCONV
 ham_env_get_context_data(ham_env_t *henv)
 {
     Environment *env=(Environment *)henv;
-    if (env)
-        return (env->get_context_data());
-    return (0);
+    if (!env)
+        return (0);
+
+    ScopedLock lock(env->get_mutex());
+    return (env->get_context_data());
 }
 
 
@@ -3544,18 +3616,20 @@ ham_u32_t
 ham_get_flags(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
-    if (db)
-        return (db->get_rt_flags());
-    else
+    if (!db)
         return (0);
+
+    ScopedLock lock(db->get_env()->get_mutex());
+    return (db->get_rt_flags());
 }
 
 ham_env_t *
 ham_get_env(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
-    if (!db || !db->is_active())
+    if (!db)
         return (0);
+
     return ((ham_env_t *)db->get_env());
 }
 
@@ -3575,6 +3649,8 @@ ham_get_key_count(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
         return (db->set_error(HAM_INV_PARAMETER));
     }
     *keycount = 0;
+
+    ScopedLock lock(db->get_env()->get_mutex());
 
     return (db->set_error((*db)()->get_key_count(txn, flags, keycount)));
 }
@@ -3609,6 +3685,8 @@ ham_env_set_device(ham_env_t *henv, ham_device_t *hdevice)
         return (HAM_INV_PARAMETER);
     }
 
+    ScopedLock lock(env->get_mutex());
+
     if (env->get_device()) {
         ham_trace(("Environment already has a device object attached"));
         return (HAM_ALREADY_INITIALIZED);
@@ -3624,6 +3702,8 @@ ham_env_get_device(ham_env_t *henv)
     Environment *env=(Environment *)henv;
     if (!env)
         return (0);
+
+    ScopedLock lock(env->get_mutex());
     return ((ham_device_t *)env->get_device());
 }
 
@@ -3633,6 +3713,8 @@ ham_env_set_allocator(ham_env_t *henv, void *alloc)
     Environment *env=(Environment *)henv;
     if (!env || !alloc)
         return (HAM_INV_PARAMETER);
+
+    ScopedLock lock(env->get_mutex());
     env->set_allocator((Allocator *)alloc);
     return (0);
 }

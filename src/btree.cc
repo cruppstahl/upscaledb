@@ -731,7 +731,7 @@ btree_close_cursors(Database *db, ham_u32_t flags)
         while (c) {
             Cursor *next=c->get_next();
             if (flags&HAM_AUTO_CLEANUP)
-                st=ham_cursor_close((ham_cursor_t *)c);
+                db->close_cursor(c);
             else
                 c->close();
             if (st) {

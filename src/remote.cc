@@ -1419,7 +1419,7 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
     if (flags&HAM_AUTO_CLEANUP) {
         Cursor *cursor=m_db->get_cursors();
         while ((cursor=m_db->get_cursors())) {
-            (void)ham_cursor_close((ham_cursor_t *)cursor);
+            m_db->close_cursor(cursor);
         }
     }
     else if (m_db->get_cursors()) {

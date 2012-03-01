@@ -771,19 +771,16 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
 
         bool ret=false;
         Cursor *clone=0;
-        ham_status_t st=ham_cursor_clone((ham_cursor_t *)c, 
-                                (ham_cursor_t **)&clone);
-        if (st)
-            return (false);
-        st=btree_cursor_uncouple(clone->get_btree_cursor(), 0);
+        db->clone_cursor(c, &clone);
+        ham_status_t st=btree_cursor_uncouple(clone->get_btree_cursor(), 0);
         if (st) {
-            ham_cursor_close((ham_cursor_t *)clone);
+            db->close_cursor(clone);
             return (false);
         }
         if (0==db->compare_keys(key, 
                btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
             ret=true;
-        ham_cursor_close((ham_cursor_t *)clone);
+        db->close_cursor(clone);
         return (ret);
     }
 

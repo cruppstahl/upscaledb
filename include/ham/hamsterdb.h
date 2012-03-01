@@ -989,6 +989,9 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_flush(ham_env_t *env, ham_u32_t flags);
 
+/* internal use only - don't lock mutex */
+#define HAM_DONT_LOCK                0xf0000000
+
 /**
  * Enables AES encryption
  *
