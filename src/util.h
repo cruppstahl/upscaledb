@@ -21,10 +21,6 @@
 #include <stdio.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * vsnprintf replacement/wrapper
  * 
@@ -43,10 +39,5 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #else
 #define util_snprintf snprintf
 #endif
-
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_UTIL_H__ */

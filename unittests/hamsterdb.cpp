@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,13 +15,13 @@
 #include <cstring>
 #include <time.h>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/serial.h"
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/page.h"
+#include "../src/cursor.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -132,12 +132,13 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
+        BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
+        BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
     }
 
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -145,11 +146,10 @@ public:
         __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -158,7 +158,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void versionTest(void)
@@ -317,17 +316,17 @@ public:
 
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
 
         ps[0].value=1024;
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
-        BFC_ASSERT_EQUAL(1u, db_is_active(db));
+        BFC_ASSERT_EQUAL(1u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
 
         ham_delete(db);
     }
@@ -338,15 +337,15 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(0, ham_create(db, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(1u, db_is_active(db));
+        BFC_ASSERT_EQUAL(1u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(0, ham_open(db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(1u, db_is_active(db));
+        BFC_ASSERT_EQUAL(1u, ((Database *)db)->is_active());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
 
         ham_delete(db);
     }
@@ -463,7 +462,8 @@ public:
                 ham_open(db, 
                     BFC_IPATH("data/recno-endian-test-open-database-be.hdb"),
                         0));
-        BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT&db_get_data_access_mode(db));
+        BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT
+                & ((Database *)db)->get_data_access_mode());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
@@ -483,12 +483,14 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, BFC_OPATH(".test"), HAM_RECORD_NUMBER, 0664));
-        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT&db_get_data_access_mode(db));
+        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT
+                & ((Database *)db)->get_data_access_mode());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_open(db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT&db_get_data_access_mode(db));
+        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT
+                & ((Database *)db)->get_data_access_mode());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
@@ -1469,13 +1471,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void closeTest(void)
     {
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_close(0, 0));
-
-        ham_db_t db;
-        memset(&db, 0, sizeof(db));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_close(&db, HAM_TXN_AUTO_ABORT|HAM_TXN_AUTO_COMMIT));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_close(0, 0));
     }
 
     void closeWithCursorsTest(void)
@@ -1506,11 +1502,11 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ham_compare_func_t f=my_compare_func;
 
         BFC_ASSERT_EQUAL(0, ham_set_compare_func(m_db, f));
-        BFC_ASSERT_EQUAL(f, db_get_compare_func(m_db));
+        BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_compare_func());
 
         f=db_default_compare;
         BFC_ASSERT_EQUAL(0, ham_set_compare_func(m_db, 0));
-        BFC_ASSERT(f==db_get_compare_func(m_db));
+        BFC_ASSERT(f==((Database *)m_db)->get_compare_func());
     }
 
     void prefixCompareTest(void)
@@ -1519,10 +1515,10 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, 
                 ham_set_prefix_compare_func(m_db, f));
-        BFC_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
+        BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_prefix_compare_func());
 
         BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(m_db, 0));
-        BFC_ASSERT(0==db_get_prefix_compare_func(m_db));
+        BFC_ASSERT(0==((Database *)m_db)->get_prefix_compare_func());
     }
 
     void cursorCreateTest(void)
@@ -1745,13 +1741,14 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     }
 
     void callocTest() {
-        char *p=(char *)allocator_calloc(env_get_allocator(m_env), 20);
+        Environment *env=(Environment *)m_env;
+        char *p=(char *)env->get_allocator()->calloc(20);
 
         for (int i=0; i<20; i++) {
             BFC_ASSERT_EQUAL('\0', p[i]);
         }
 
-        allocator_free(env_get_allocator(m_env), p);
+        env->get_allocator()->free(p);
     }
 
     void strerrorTest() {
@@ -1824,22 +1821,22 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void btreeMacroTest(void)
     {
-        ham_page_t *page;
-        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, m_db, 0, 0));
+        Page *page;
+        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, (Database *)m_db, 0, 0));
         BFC_ASSERT(page!=0);
 
         int off=(int)btree_node_get_key_offset(page, 0);
-        int l = page_get_persistent_header_size(); // 12
+        int l = Page::sizeof_persistent_header; // 12
         l += OFFSETOF(btree_node_t, _entries); // 40-12
      
         l = db_get_int_key_header_size();
-        l += db_get_keysize(page_get_owner(page));
+        l += db_get_keysize(page->get_db());
 
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28, off);
         off=(int)btree_node_get_key_offset(page, 1);
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28+32, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+32, off);
         off=(int)btree_node_get_key_offset(page, 2);
-        BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28+64, off);
+        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+64, off);
 
         db_free_page(page, 0);
     }
@@ -2260,6 +2257,57 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         ham_delete(db);
         ham_env_delete(env);
+    }
+
+    void openVersion1x(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_open(db, BFC_OPATH("data/sample-db1-1.x.hdb"), 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
+    }
+
+    void overwriteLogDirectoryTest()
+    {
+        ham_db_t *db;
+        ham_parameter_t ps[]={
+            {HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data"}, 
+            {0, 0}
+        };
+
+        os::unlink("data/test.db.log0");
+        os::unlink("data/test.db.jrn0");
+        os::unlink("data/test.db.jrn1");
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.log0"));
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.jrn0"));
+        BFC_ASSERT_EQUAL(false, os::file_exists("data/test.db.jrn1"));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, "test.db",
+                        HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.log0"));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn0"));
+        BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn1"));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_open_ex(db, "test.db",
+                        HAM_ENABLE_TRANSACTIONS, &ps[0]));
+
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(ham_get_env(db), &ps[0]));
+        BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
+        ps[0].value=0;
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &ps[0]));
+        BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
     }
 };
 

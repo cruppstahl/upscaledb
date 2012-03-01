@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,9 +13,9 @@
  * @brief provides forward declarations of internally used types
  *
  * This header file provides these forward declarations to prevent several 
- * cyclic dependencies; in particular, the @ref ham_page_t is a type used 
- * throughout, but a @ref ham_page_t contains several other types, which 
- * again reference @ref ham_page_t pointers either directly or indirectly.
+ * cyclic dependencies; in particular, the @ref Page is a type used 
+ * throughout, but a @ref Page contains several other types, which 
+ * again reference @ref Page pointers either directly or indirectly.
  *
  * To solve this self-referential issue once and for all, all major hamster 
  * internal types are forward declared here; when the code requires the actual 
@@ -35,31 +35,33 @@
 
 #include "config.h"
 
+#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+class Allocator;
 
-struct ham_page_t;
-typedef struct ham_page_t ham_page_t;
+class Cursor;
+
+class Database;
+
+class Device;
+
+class Environment;
+
+class Page;
 
 struct ham_backend_t;
 typedef struct ham_backend_t ham_backend_t;
 
-struct ham_cache_t;
-typedef struct ham_cache_t ham_cache_t;
+class Cache;
 
-struct ham_log_t;
-typedef struct ham_log_t ham_log_t;
+class Log;
 
-struct journal_t;
-typedef struct journal_t journal_t;
+class Journal;
 
 struct extkey_t;
 typedef struct extkey_t extkey_t;
 
-struct extkey_cache_t;
-typedef struct extkey_cache_t extkey_cache_t;
+class ExtKeyCache;
 
 struct freelist_entry_t;
 typedef struct freelist_entry_t freelist_entry_t;
@@ -101,9 +103,27 @@ typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
 
+#include <boost/version.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/tss.hpp>
+#include <boost/thread/condition.hpp>
 
-#ifdef __cplusplus
-} // extern "C"
-#endif 
+typedef boost::mutex::scoped_lock ScopedLock;
+typedef boost::thread Thread;
+typedef boost::thread_specific_ptr<class T> ThreadLocalStorage;
+typedef boost::condition Condition;
+
+class Mutex : public boost::mutex {
+public:
+#if BOOST_VERSION < 103500
+  typedef boost::detail::thread::lock_ops<boost::mutex> Ops;
+
+  void lock() { Ops::lock(*this); }
+
+  void unlock() { Ops::unlock(*this); }
+#endif
+};
+
 
 #endif

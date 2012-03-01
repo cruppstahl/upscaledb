@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,406 +17,368 @@
 #ifndef HAM_PAGE_H__
 #define HAM_PAGE_H__
 
+#include <string.h>
+
 #include "internal_fwd_decl.h"
 
 #include "endianswap.h"
 #include "error.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "packstart.h"
 
 /*
- * indices for page lists
+ * This header is only available if the (non-persistent) flag
+ * NPERS_NO_HEADER is not set! 
  *
- * Each ham_page_t structure is a node in several linked lists.
- * In order to avoid multiple memory allocations, the previous/next pointers 
- * are part of the ham_page_t structure (_npers._prev and _npers._next).
- * Both fields are arrays of pointers and can be used i.e.
- * with _npers._prev[PAGE_LIST_BUCKET] etc. (or with the macros 
- * defined below).
+ * all blob-areas in the file do not have such a header, if they
+ * span page-boundaries
+ *
+ * !!
+ * if this structure is changed, db_get_usable_pagesize has 
+ * to be changed as well!
  */
+HAM_PACK_0 struct HAM_PACK_1 page_header_t {
+    /**
+     * flags of this page - currently only used for the page type
+     * @sa page_type_codes
+     */
+    ham_u32_t _flags;
 
-/* a bucket in the hash table of the cache manager */
-#define PAGE_LIST_BUCKET           0
-/* garbage collected pages */
-#define PAGE_LIST_GARBAGE          1
-/* list of all cached pages */
-#define PAGE_LIST_CACHED           2
-/* list of all pages in a changeset */
-#define PAGE_LIST_CHANGESET        3
-/* array limit */
-#define MAX_PAGE_LISTS             4
+    /** some reserved bytes */
+    ham_u32_t _reserved1;
+    ham_u32_t _reserved2;
 
-#include "packstart.h"
+    /**
+     * this is just a blob - the backend (hashdb, btree etc) 
+     * will use it appropriately
+     */
+    ham_u8_t _payload[1];
+
+} HAM_PACK_2;
 
 /**
  * The page header which is persisted on disc
  *
- * This structure definition is present outside of @ref ham_page_t scope 
+ * This structure definition is present outside of @ref Page scope 
  * to allow compile-time OFFSETOF macros to correctly judge the size, depending 
  * on platform and compiler settings.
  */
-typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
+typedef HAM_PACK_0 union HAM_PACK_1 page_data_t
 {
-    /*
-     * this header is only available if the (non-persistent) flag
-     * NPERS_NO_HEADER is not set! 
-     *
-     * all blob-areas in the file do not have such a header, if they
-     * span page-boundaries
-     *
-     * !!
-     * if this structure is changed, db_get_usable_pagesize has 
-     * to be changed as well!
-     */
-    HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
-        /**
-         * flags of this page - currently only used for the page type
-         * @sa page_type_codes
-         */
-        ham_u32_t _flags;
+    /** the persistent header */
+    struct page_header_t _s;
 
-        /** some reserved bytes */
-        ham_u32_t _reserved1;
-        ham_u32_t _reserved2;
-
-        /**
-         * this is just a blob - the backend (hashdb, btree etc) 
-         * will use it appropriately
-         */
-        ham_u8_t _payload[1];
-    } HAM_PACK_2 _s;
-
-    /* a char pointer to the allocated storage on disk */
+    /** a char pointer to the allocated storage on disk */
     ham_u8_t _p[1];
 
-} HAM_PACK_2 ham_perm_page_union_t;
+} HAM_PACK_2 page_data_t;
 
 #include "packstop.h"
 
-/**
- * get the size of the persistent header of a page
- *
- * equals the size of struct ham_perm_page_union_t, without the payload byte
- *
- * @note
- * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
- * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
- */
-#define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ /* 12 */ )
-
 
 /**
- * the page structure
+ * The Page class
+ *
+ * Each Page instance is a node in several linked lists.
+ * In order to avoid multiple memory allocations, the previous/next pointers 
+ * are part of the Page class (m_prev and m_next).
+ * Both fields are arrays of pointers and can be used i.e.
+ * with m_prev[Page::LIST_BUCKET] etc. (or with the methods 
+ * defined below).
  */
-struct ham_page_t {
-    /**
-     * the header is non-persistent and NOT written to disk. 
-     * it's caching some run-time values which
-     * we don't want to recalculate whenever we need them.
+class Page {
+  public:   
+    /** 
+     * get the size of the persistent header of a page
+     *
+     * equals the size of struct page_data_t, without the payload byte
+     *
+     * @note
+     * this is not equal to sizeof(struct page_data_t)-1, because of
+     * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
      */
-    struct {
-        /** address of this page */
-        ham_offset_t _self;
+    static int sizeof_persistent_header;
 
-        /** the allocator */
-        struct mem_allocator_t *_alloc;
+    enum {
+        /** a bucket in the hash table of the cache manager */
+        LIST_BUCKET     = 0,
+        /** list of all cached pages */
+        LIST_CACHED     = 1,
+        /** list of all pages in a changeset */
+        LIST_CHANGESET  = 2,
+        /** array limit */
+        MAX_LISTS       = 3
+    };
 
-        /** reference to the database object */
-        ham_db_t *_owner;
+    enum {
+        /** page->m_pers was allocated with malloc, not mmap */
+        NPERS_MALLOC            = 1,
+        /** page will be deleted when committed */
+        NPERS_DELETE_PENDING    = 2,
+        /** page has no header */
+        NPERS_NO_HEADER         = 4
+    };
 
-        /** the device of this page */
-        struct ham_device_t *_device;
+    /**
+     * Page types
+     *
+     * @note When large BLOBs span multiple pages, only their initial page 
+     * will have a valid type code; subsequent pages of this blog will store 
+     * the data as-is, so as to provide one continuous storage space
+     */
+    enum {
+        /** unidentified db page type */
+        TYPE_UNKNOWN            =  0x00000000,
+        /** the db header page: this is the first page in the environment */
+        TYPE_HEADER             =  0x10000000,
+        /** the db B+tree root page */
+        TYPE_B_ROOT             =  0x20000000,
+        /** a B+tree node page */
+        TYPE_B_INDEX            =  0x30000000,
+        /** a freelist management page */
+        TYPE_FREELIST           =  0x40000000,
+        /** a page which stores (the front part of) a BLOB. */
+        TYPE_BLOB               =  0x50000000     
+    };
 
-        /** non-persistent flags */
-        ham_u32_t _flags;
 
-        /** cache counter - used by the cache module
-         *
-         * The higher the counter, the more 'important' this page is
-         * believed to be; when searching for pages to re-use, the empty
-         * page with the lowest counter value is re-purposed. Each valid
-         * page use bumps up the page counter by a certain amount, up to
-         * a page-type specific upper bound.
-         *
-         * See also @ref cache_put_page()
-         * and its invocations in the code. @ref page_new() initialized
-         * the counter for each new page.
-         */
-        ham_u32_t _cache_cntr;
+    /** default constructor */
+    Page(Environment *env=0, Database *db=0);
 
-        /** is this page dirty and needs to be flushed to disk? */
-        ham_u32_t _dirty;
+    /** destructor - asserts that m_pers is NULL! */
+    ~Page();
 
+    /** is this the header page? */
+    bool is_header() {
+        return (m_self==0);
+    }
+
+    /** get the address of this page */
+    ham_offset_t get_self() {
+        return (m_self);
+    }
+
+    /** set the address of this page */
+    void set_self(ham_offset_t address) {
+        m_self=address;
+    }
+
+    /** the database object which 0wnz this page */
+    Database *get_db() {
+        return (m_db);
+    }
+
+    /** set the database object which 0wnz this page */
+    void set_db(Database *db) {
+        m_db=db;
+    }
+
+    /** get the device of this page */
+    Device *get_device() {
+        return (m_device);
+    }
+
+    /** set the device of this page */
+    void set_device(Device *device) {
+        m_device=device;
+    }
+
+    /** get non-persistent page flags */
+    ham_u32_t get_flags() {
+        return (m_flags);
+    }
+
+    /** set non-persistent page flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** is this page dirty? */
+    bool is_dirty() {
+        return (m_dirty);
+    }
+
+    /** mark this page dirty/not dirty */
+    void set_dirty(bool dirty) {
+        m_dirty=dirty;
+    }
+
+    /** win32: get a pointer to the mmap handle */
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-        /** handle for win32 mmap */
-        HANDLE _win32mmap;
+    HANDLE get_mmap_handle_ptr() {
+        return (m_win32mmap);
+    }
+#else
+    ham_fd_t *get_mmap_handle_ptr() {
+        return (0);
+    }
 #endif
 
-        /** linked lists of pages - see comments above */
-        ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
+    /** get linked list of cursors */
+    Cursor *get_cursors() {
+        return (m_cursors);
+    }
 
-        /** linked list of all cursors which point to that page */
-        ham_cursor_t *_cursors;
+    /** set linked list of cursors */
+    void set_cursors(Cursor *cursor) {
+        m_cursors=cursor;
+    }
 
-    } _npers; 
+    /** get the previous page of a linked list */
+    Page *get_previous(int which) {
+        return (m_prev[which]);
+    }
 
-    /**
-     * from here on everything will be written to disk 
+    /** set the previous page of a linked list */
+    void set_previous(int which, Page *other) {
+        m_prev[which]=other;
+    }
+
+    /** get the next page of a linked list */
+    Page *get_next(int which) {
+        return (m_next[which]);
+    }
+
+    /** set the next page of a linked list */
+    void set_next(int which, Page *other) {
+        m_next[which]=other;
+    }
+
+    /** set the page-type */
+    void set_type(ham_u32_t type) {
+        m_pers->_s._flags=ham_h2db32(type);
+    }
+
+    /** get the page-type */
+    ham_u32_t get_type() {
+        return (ham_db2h32(m_pers->_s._flags));
+    }
+
+    /** get pointer to persistent payload (after the header!) */
+    ham_u8_t *get_payload() {
+        return (m_pers->_s._payload);
+    }
+
+    /** get pointer to persistent payload (including the header!) */
+    ham_u8_t *get_raw_payload() {
+        return (m_pers->_p);
+    }
+
+    /** set pointer to persistent data */
+    void set_pers(page_data_t *data) {
+        m_pers=data;
+    }
+
+    /** get pointer to persistent data */
+    page_data_t *get_pers() {
+        return (m_pers);
+    }
+
+    /** allocate a new page from the device */
+    ham_status_t allocate();
+
+    /** read a page from the device */
+    ham_status_t fetch(ham_offset_t address);
+
+    /** write a page to the device */
+    ham_status_t flush();
+
+    /** frees a page - deletes the persistent part and moves the page to 
+     * the freelist (if a freelist is available) */
+    ham_status_t free();
+
+    /** returns true if this page is in a linked list */
+    bool is_in_list(Page *list_head, int which) {
+        if (get_next(which))
+            return (true);
+        if (get_previous(which))
+            return (true);
+        if (list_head==this)
+            return (true);
+        return (false);
+    }
+
+    /** inserts this page at the beginning of a list and returns the 
+     * new head of the list 
      */
-    ham_perm_page_union_t *_pers;
+    Page *list_insert(Page *list_head, int which) {
+        set_next(which, 0);
+        set_previous(which, 0);
+
+        if (!list_head)
+            return (this);
+
+        set_next(which, list_head);
+        list_head->set_previous(which, this);
+        return (this);
+    }
+
+    /** removes this page from a list and returns the new head of the list */
+    Page *list_remove(Page *list_head, int which) {
+        Page *n, *p;
+
+        if (this==list_head) {
+            n=get_next(which);
+            if (n)
+                n->set_previous(which, 0);
+            set_next(which, 0);
+            set_previous(which, 0);
+            return (n);
+        }
+
+        n=get_next(which);
+        p=get_previous(which);
+        if (p)
+            p->set_next(which, n);
+        if (n)
+            n->set_previous(which, p);
+        set_next(which, 0);
+        set_previous(which, 0);
+        return (list_head);
+    }
+
+    /** adds a cursor to this page */
+    void add_cursor(Cursor *cursor);
+
+    /** removes a cursor from this page */
+    void remove_cursor(Cursor *cursor);
+
+    /** uncouples all cursors from this page if the cursor is coupled
+     * to a key >= start */
+    ham_status_t uncouple_all_cursors(ham_size_t start=0);
+
+  private:
+    /** address of this page */
+    ham_offset_t m_self;
+
+    /** reference to the database object; can be NULL */
+    Database *m_db;
+
+    /** the device of this page */
+    Device *m_device;
+
+    /** non-persistent flags */
+    ham_u32_t m_flags;
+
+    /** is this page dirty and needs to be flushed to disk? */
+    bool m_dirty;
+
+#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
+    /** handle for win32 mmap */
+    HANDLE m_win32mmap;
+#endif
+
+    /** linked list of all cursors which point to that page */
+    Cursor *m_cursors;
+
+    /** linked lists of pages - see comments above */
+    Page *m_prev[Page::MAX_LISTS]; 
+    Page *m_next[Page::MAX_LISTS];
+
+    /** from here on everything will be written to disk */
+    page_data_t *m_pers;
 };
 
-/** get the address of this page */
-#define page_get_self(page)          ((page)->_npers._self)
-
-/** set the address of this page */
-#define page_set_self(page, a)       (page)->_npers._self=(a)
-
-/** * the database object which 0wnz this page */
-#define page_get_owner(page)         ((page)->_npers._owner)
-
-/** set the database object which 0wnz this page */
-#define page_set_owner(page, db)     (page)->_npers._owner=(db)
-
-/** get the previous page of a linked list */
-#ifdef HAM_DEBUG
-extern ham_page_t *
-page_get_previous(ham_page_t *page, int which);
-#else
-#   define page_get_previous(page, which)    ((page)->_npers._prev[(which)])
-#endif /* HAM_DEBUG */
-
-/** set the previous page of a linked list */
-#ifdef HAM_DEBUG
-extern void
-page_set_previous(ham_page_t *page, int which, ham_page_t *other);
-#else
-#   define page_set_previous(page, which, p) (page)->_npers._prev[(which)]=(p)
-#endif /* HAM_DEBUG */
-
-/** get the next page of a linked list */
-#ifdef HAM_DEBUG
-extern ham_page_t *
-page_get_next(ham_page_t *page, int which);
-#else
-#   define page_get_next(page, which)        ((page)->_npers._next[(which)])
-#endif /* HAM_DEBUG */
-
-/** set the next page of a linked list */
-#ifdef HAM_DEBUG
-extern void
-page_set_next(ham_page_t *page, int which, ham_page_t *other);
-#else
-#   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
-#endif /* HAM_DEBUG */
-
-/** get memory allocator */
-#define page_get_allocator(page)             (page)->_npers._alloc
-
-/** set memory allocator */
-#define page_set_allocator(page, a)          (page)->_npers._alloc=a
-
-/** get the device of this page */
-#define page_get_device(page)                (page)->_npers._device
-
-/** set the device of this page */
-#define page_set_device(page, d)             (page)->_npers._device=d
-
-/** get linked list of cursors */
-#define page_get_cursors(page)           (page)->_npers._cursors
-
-/** set linked list of cursors */
-#define page_set_cursors(page, c)        (page)->_npers._cursors=(c)
-
-/** get persistent page flags */
-#define page_get_pers_flags(page)        (ham_db2h32((page)->_pers->_s._flags))
-
-/** set persistent page flags */
-#define page_set_pers_flags(page, f)     (page)->_pers->_s._flags=ham_h2db32(f)
-
-/** get non-persistent page flags */
-#define page_get_npers_flags(page)       (page)->_npers._flags
-
-/** set non-persistent page flags */
-#define page_set_npers_flags(page, f)    (page)->_npers._flags=(f)
-
-/** get the cache counter */
-#define page_get_cache_cntr(page)        (page)->_npers._cache_cntr
-
-/** set the cache counter */
-#define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
-
-/** page->_pers was allocated with malloc, not mmap */
-#define PAGE_NPERS_MALLOC               1
-
-/** page will be deleted when committed */
-#define PAGE_NPERS_DELETE_PENDING       2
-
-/** page has no header */
-#define PAGE_NPERS_NO_HEADER            4
-
-/** is this page dirty? */
-#define page_is_dirty(page)             ((page)->_npers._dirty)
-
-/** mark this page dirty */
-#define page_set_dirty(page)            (page)->_npers._dirty=1
-
-/** page is no longer dirty */
-#define page_set_undirty(page)          (page)->_npers._dirty=0
-
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-/** win32: get a pointer to the mmap handle */
-#   define page_get_mmap_handle_ptr(p)  &((p)->_npers._win32mmap)
-#else
-#   define page_get_mmap_handle_ptr(p)  0
-#endif
-
-/** set the page-type */
-#define page_set_type(page, t)          page_set_pers_flags(page, t)
-
-/** get the page-type */
-#define page_get_type(page)             (page_get_pers_flags(page))
-
-/**
- * @defgroup page_type_codes valid page types
- * @{
- *
- * Each database page is tagged with a type code; these are all 
- * known/supported page type codes.
- * 
- * @note When ELBLOBs (Extremely Large BLOBs) are stored in the database, 
- * that is BLOBs which span multiple pages apiece, only their initial page 
- * will have a valid type code; subsequent pages of the ELBLOB will store 
- * the data as-is, so as to provide one continuous storage space per ELBLOB.
- * 
- * @sa ham_perm_page_union_t::page_union_header_t::_flags
- */
-
-/** unidentified db page type */
-#define PAGE_TYPE_UNKNOWN               0x00000000     
-
-/** the db header page: this is the first page in the database/environment */
-#define PAGE_TYPE_HEADER                0x10000000     
-
-/** the db B+tree root page */
-#define PAGE_TYPE_B_ROOT                0x20000000     
-
-/** a B+tree node page, i.e. a page which is part of the database index */
-#define PAGE_TYPE_B_INDEX               0x30000000     
-
-/** a freelist management page */
-#define PAGE_TYPE_FREELIST              0x40000000     
-
-/** a page which stores (the front part of) a BLOB. */
-#define PAGE_TYPE_BLOB                  0x50000000     
-
-/**
- * @}
- */
-
-/** get pointer to persistent payload (after the header!) */
-#define page_get_payload(page)          (page)->_pers->_s._payload
-
-/** get pointer to persistent payload (including the header!) */
-#define page_get_raw_payload(page)      (page)->_pers->_p
-
-/** set pointer to persistent data */
-#define page_set_pers(page, p)          (page)->_pers=(p)
-
-/** get pointer to persistent data */
-#define page_get_pers(page)             (page)->_pers
-
-#ifdef HAM_DEBUG
-/**
- * check if a page is in a linked list
- */
-extern ham_bool_t 
-page_is_in_list(ham_page_t *head, ham_page_t *page, int which);
-#else
-#define page_is_in_list(head, page, which)                                     \
-     (page_get_next(page, which)                                               \
-         ? HAM_TRUE                                                            \
-         : (page_get_previous(page, which))                                    \
-             ? HAM_TRUE                                                        \
-             : (head==page)                                                    \
-                 ? HAM_TRUE                                                    \
-                 : HAM_FALSE)
-#endif
-
-/**
- * linked list functions: insert the page at the beginning of a list
- *
- * @remark returns the new head of the list
- */
-extern ham_page_t *
-page_list_insert(ham_page_t *head, int which, ham_page_t *page);
-
-/**
- * linked list functions: remove the page from a list
- *
- * @remark returns the new head of the list
- */
-extern ham_page_t *
-page_list_remove(ham_page_t *head, int which, ham_page_t *page);
-
-/**
- * add a cursor to this page
- */
-extern void
-page_add_cursor(ham_page_t *page, ham_cursor_t *cursor);
-
-/**
- * remove a cursor from this page
- */
-extern void
-page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
-
-/**
- * create a new page structure
- *
- * @return a pointer to a new @ref ham_page_t instance.
- *
- * @return NULL if out of memory
- */
-extern ham_page_t *
-page_new(ham_env_t *env);
-
-/**
- * delete a page structure
- */
-extern void
-page_delete(ham_page_t *page);
-
-/**
- * allocate a new page from the device
- */
-extern ham_status_t
-page_alloc(ham_page_t *page);
-
-/**
- * fetch a page from the device
- */
-extern ham_status_t
-page_fetch(ham_page_t *page);
-
-/**
- * write a page to the device
- */
-extern ham_status_t
-page_flush(ham_page_t *page);
-
-/**
- * free a page
- */
-extern ham_status_t
-page_free(ham_page_t *page);
-
-
-#ifdef __cplusplus
-} // extern "C" {
-#endif
 
 #endif /* HAM_PAGE_H__ */

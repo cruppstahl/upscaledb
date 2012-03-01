@@ -340,7 +340,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\tools\ham_info.c"
+			RelativePath="..\tools\ham_info.cc"
 			>
 		</File>
 	</Files>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,269 +31,156 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-
 #include "packstart.h"
-
-/**
- * the header structure of a log file
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 log_header_t
-{
-    /* the magic */
-    ham_u32_t _magic;
-
-    /* a reserved field */
-    ham_u32_t _reserved;
-
-    /* the last used lsn */
-    ham_u64_t _lsn;
-
-} HAM_PACK_2 log_header_t;
-
-#include "packstop.h"
-
-#define HAM_LOG_HEADER_MAGIC                  (('h'<<24)|('l'<<16)|('o'<<8)|'g')
-
-/* get the log header magic */
-#define log_header_get_magic(l)                 (l)->_magic
-
-/* set the log header magic */
-#define log_header_set_magic(l, m)              (l)->_magic=m
-
-/* get the last used lsn */
-#define log_header_get_lsn(l)                   (l)->_lsn
-
-/* set the last used lsn */
-#define log_header_set_lsn(l, lsn)              (l)->_lsn=lsn
-
-#include "packstart.h"
-
-/**
- * a log file entry
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
-{
-    /** the lsn of this entry */
-    ham_u64_t _lsn;
-
-    /** the transaction id */
-    ham_u64_t _txn_id;
-
-    /** the flags of this entry; the lowest 8 bits are the 
-     * type of this entry, see below */
-    ham_u32_t _flags;
-
-    /** a reserved value */
-    ham_u32_t _reserved;
-
-    /** the offset of this operation */
-    ham_u64_t _offset;
-
-    /** the size of the data */
-    ham_u64_t _data_size;
-
-} HAM_PACK_2 log_entry_t;
-
-#include "packstop.h"
-
-/** 
-* @defgroup log_entry_type_set the different types of log entries
-* @{
-*/
-
-/** Write ahead the contents of a page */
-#define LOG_ENTRY_TYPE_WRITE                    1
-
-/**
- * @}
- */
-
-/* get the lsn */
-#define log_entry_get_lsn(l)                    (l)->_lsn
-
-/* set the lsn */
-#define log_entry_set_lsn(l, lsn)               (l)->_lsn=lsn
-
-/* get the transaction ID */
-#define log_entry_get_txn_id(l)                 (l)->_txn_id
-
-/* set the transaction ID */
-#define log_entry_set_txn_id(l, id)             (l)->_txn_id=id
-
-/* get the offset of this entry */
-#define log_entry_get_offset(l)                 (l)->_offset
-
-/* set the offset of this entry */
-#define log_entry_set_offset(l, o)              (l)->_offset=o
-
-/* get the size of this entry */
-#define log_entry_get_data_size(l)              (l)->_data_size
-
-/* set the size of this entry */
-#define log_entry_set_data_size(l, s)           (l)->_data_size=s
-
-/* get the flags of this entry */
-#define log_entry_get_flags(l)                  (l)->_flags
-
-/* set the flags of this entry */
-#define log_entry_set_flags(l, f)               (l)->_flags=f
-
-/* get the type of this entry */
-#define log_entry_get_type(l)                   ((l)->_flags&0xf)
-
-/* set the type of this entry */
-#define log_entry_set_type(l, t)                (l)->_flags|=(t)
-
 
 /**
  * a Log object
  */
-struct ham_log_t 
+class Log 
 {
-    /** the lsn of this entry */
-    ham_u64_t _lsn;
+  public:
+    /** the magic of the header */
+    static const ham_u32_t HEADER_MAGIC=(('h'<<24)|('l'<<16)|('o'<<8)|'g');
 
-    /** the allocator object */
-    mem_allocator_t *_alloc;
+    /**
+     * the header structure of a log file
+     */
+    HAM_PACK_0 struct HAM_PACK_1 Header
+    {
+        Header() : magic(0), _reserved(0), lsn(0) { };
+    
+        /* the magic */
+        ham_u32_t magic;
 
-    /** references the Environment this log file is for */
-    ham_env_t *_env;
+        /* a reserved field */
+        ham_u32_t _reserved;
 
-    /** the log flags - unused so far */
-    ham_u32_t _flags;
+        /* the last used lsn */
+        ham_u64_t lsn;
+    } HAM_PACK_2;
 
-    /** the file descriptor of the log file */
-    ham_fd_t _fd;
+    /**
+     * a log file entry
+     */
+    HAM_PACK_0 struct HAM_PACK_1 Entry
+    {
+        Entry() : lsn(0), flags(0), _reserved(0), offset(0), data_size(0) { };
 
-};
+        /** the lsn of this entry */
+        ham_u64_t lsn;
+    
+        /** the flags of this entry, see below */
+        ham_u32_t flags;
+    
+        /** a reserved value */
+        ham_u32_t _reserved;
 
-/* get the lsn */
-#define log_get_lsn(l)                          (l)->_lsn
+        /** the offset of this operation */
+        ham_u64_t offset;
 
-/* set the lsn */
-#define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
+        /** the size of the data */
+        ham_u64_t data_size;
+    } HAM_PACK_2;
 
-/** get the allocator */
-#define log_get_allocator(l)                    (l)->_alloc
+    /** flags for Entry::flags */
+    static const ham_u32_t CHANGESET_IS_COMPLETE = 1;
 
-/** set the allocator */
-#define log_set_allocator(l, a)                 (l)->_alloc=(a)
+    /** an "iterator" structure for traversing the log files */
+    typedef ham_offset_t Iterator;
 
-/** get the environment */
-#define log_get_env(l)                          (l)->_env
+    /** constructor */
+    Log(Environment *env, ham_u32_t flags=0);
 
-/** set the environment */
-#define log_set_env(l, a)                       (l)->_env=(a)
+    /** create a new log */
+    ham_status_t create(void);
 
-/** get the log flags */
-#define log_get_flags(l)                        (l)->_flags
+    /** open an existing log */
+    ham_status_t open(void);
 
-/** set the log flags */
-#define log_set_flags(l, f)                     (l)->_flags=(f)
+    /** checks if the log is empty */
+    bool is_empty(void);
 
-/** get the file descriptor */
-#define log_get_fd(l)                           (l)->_fd
+    /** adds an AFTER-image of a page */
+    ham_status_t append_page(Page *page, ham_u64_t lsn, 
+                ham_size_t page_count);
 
-/** set the file descriptor */
-#define log_set_fd(l, fd)                       (l)->_fd=fd
+    /** retrieves the current lsn */
+    ham_u64_t get_lsn(void) {
+        return (m_lsn);
+    }
 
-/**
- * this function creates a new ham_log_t object
- */
-extern ham_status_t
-log_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, ham_log_t **log);
+    /** retrieves the file handle (for unittests) */
+    ham_fd_t get_fd(void) {
+        return (m_fd);
+    }
 
-/**
- * this function opens an existing log
- */
-extern ham_status_t
-log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **log);
-
-/**
- * returns true if the log is empty
- */
-extern ham_status_t
-log_is_empty(ham_log_t *log, ham_bool_t *isempty);
-
-/**
- * appends an entry to the log
- */
-extern ham_status_t
-log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size);
-
-/**
- * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
- *
- * @note invoked by @ref log_append_page() to save the new 
- * content of the specified page.
- *
- * @sa log_append_page
- */
-extern ham_status_t
-log_append_write(ham_log_t *log, ham_txn_t *txn, ham_u64_t lsn,
-        ham_offset_t offset, ham_u8_t *data, ham_size_t size);
-
-/**
- * clears the logfile to zero, removes all entries
- */
-extern ham_status_t
-log_clear(ham_log_t *log);
-
-/**
- * an "iterator" structure for traversing the log files
- */
-typedef struct log_iterator_t 
-{
-    /** the offset in the file of the NEXT entry */
-    ham_offset_t _offset;
-
-} log_iterator_t;
-
-/**
- * returns the next log entry
- *
- * iter must be initialized with zeroes for the first call
- *
- * 'data' returns the data of the entry, or NULL if there is no data. 
- * The memory has to be freed by the caller.
- *
- * returns SUCCESS and an empty entry (lsn is zero) after the last element.
- */
-extern ham_status_t
-log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
+    /**
+     * returns the next log entry
+     *
+     * iter must be initialized with zeroes for the first call
+     *
+     * 'data' returns the data of the entry, or NULL if there is no data. 
+     * The memory has to be freed by the caller.
+     *
+     * returns SUCCESS and an empty entry (lsn is zero) after the last element.
+     */
+    ham_status_t get_entry(Log::Iterator *iter, Log::Entry *entry,
                 ham_u8_t **data);
 
-/**
- * closes the log, frees all allocated resources
- */
-extern ham_status_t
-log_close(ham_log_t *log, ham_bool_t noclear);
+    /** 
+     * clears the logfile 
+     *
+     * invoked after every checkpoint (which is immediately after each 
+     * txn_commit or txn_abort) 
+     */
+    ham_status_t clear(void);
 
-/**
- * adds an AFTER-image of a page
- */
-extern ham_status_t
-log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn);
+    /** 
+     * closes the log, frees all allocated resources. 
+     *
+     * if @a noclear is true then the log will not be clear()ed. This is 
+     * useful for debugging.
+     */
+    ham_status_t close(ham_bool_t noclear=false);
 
-/**
- * do the recovery
- */
-extern ham_status_t
-log_recover(ham_log_t *log);
+    /** do the recovery */
+    ham_status_t recover();
 
-/**
- * flush the logfile to disk
- */
-extern ham_status_t
-log_flush(ham_log_t *log);
+    /** flush the logfile to disk */
+    ham_status_t flush();
 
+    /**
+     * append a log entry for a page modification
+     *
+     * @note invoked by @ref Log::append_page() to save the new 
+     * content of the specified page.
+     *
+     * @sa Log::append_page
+     */
+    ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags, 
+                    ham_offset_t offset, ham_u8_t *data, ham_size_t size);
 
-#ifdef __cplusplus
-} // extern "C"
-#endif 
+    /** returns the path of the log file */
+    std::string get_path();
+
+  private:
+    /** writes a byte buffer to the logfile */
+    ham_status_t append_entry(Log::Entry *entry, ham_size_t size);
+
+    /** references the Environment this log file is for */
+    Environment *m_env;
+
+    /** the log flags - unused so far */
+    ham_u32_t m_flags;
+
+    /** the current lsn */
+    ham_u64_t m_lsn;
+
+    /** the file descriptor of the log file */
+    ham_fd_t m_fd;
+};
+
+#include "packstop.h"
+
 
 #endif /* HAM_LOG_H__ */

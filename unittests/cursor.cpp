@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,12 +20,17 @@
 #include "../src/cursor.h"
 #include "../src/btree_cursor.h"
 #include "../src/backend.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+
+static bool
+cursor_is_nil(Cursor *c, int what) 
+{
+    return (c->is_nil(what));
+}
 
 class BaseCursorTest : public hamsterDB_fixture
 {
@@ -33,7 +38,7 @@ class BaseCursorTest : public hamsterDB_fixture
 
 public:
     BaseCursorTest(const char *name="BaseCursorTest")
-    : hamsterDB_fixture(name)
+    : hamsterDB_fixture(name), m_txn(0)
     {
     }
 
@@ -41,7 +46,7 @@ protected:
     ham_cursor_t *m_cursor;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
+    ham_txn_t *m_txn;
 
 public:
     virtual ham_status_t createCursor(ham_cursor_t **p) 
@@ -53,12 +58,8 @@ public:
     { 
         __super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -79,12 +80,78 @@ public:
             m_cursor=0;
         }
         BFC_ASSERT_EQUAL(0, 
-                    ham_close(m_db, HAM_TXN_AUTO_COMMIT|HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, 
                     ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void getDuplicateRecordSizeTest()
+    {
+        const int MAX=20;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_cursor_t *c;
+        char data[16];
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+
+        for (int i=0; i<MAX; i++) {
+            rec.data=data;
+            rec.size=i;
+            ::memset(&data, i+0x15, sizeof(data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+        }
+
+        for (int i=0; i<MAX; i++) {
+            ham_offset_t size=0;
+
+            ::memset(&key, 0, sizeof(key));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                        i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_get_record_size(c, &size));
+            BFC_ASSERT_EQUAL(size, rec.size);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void getRecordSizeTest()
+    {
+        const int MAX=20;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_cursor_t *c;
+        char data[16];
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+
+        for (int i=0; i<MAX; i++) {
+            key.data=data;
+            key.size=sizeof(data);
+            rec.data=data;
+            rec.size=i;
+            ::memset(&data, i+0x15, sizeof(data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(c, &key, &rec, HAM_DUPLICATE));
+        }
+
+        for (int i=0; i<MAX; i++) {
+            ham_offset_t size=0;
+
+            key.data=data;
+            key.size=sizeof(data);
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                        i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_get_record_size(c, &size));
+            BFC_ASSERT_EQUAL(size, rec.size);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void insertFindTest(void)
@@ -104,6 +171,8 @@ public:
                     ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(1u, 
+                    ((Cursor *)m_cursor)->get_dupecache_count());
     }
 
     void insertFindMultipleCursorsTest(void)
@@ -143,11 +212,8 @@ public:
     void findInEmptyDatabaseTest(void)
     {
         ham_key_t key={0};
-        ham_record_t rec={0};
         key.data=(void *)"12345";
         key.size=6;
-        rec.data=(void *)"abcde";
-        rec.size=6;
 
         /* this looks up a key in an empty database */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -174,12 +240,8 @@ public:
         ham_cursor_t *clone;
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
-        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil((ham_bt_cursor_t *)clone));
-        BFC_ASSERT_EQUAL(true, 
-                txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                txn_cursor_is_nil(cursor_get_txn_cursor(clone)));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)clone, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 };
@@ -219,7 +281,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil((ham_bt_cursor_t *)clone));
+        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, 
+                        Cursor::CURSOR_BTREE));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 
@@ -232,18 +295,23 @@ public:
         rec.data=(void *)"abcde";
         rec.size=6;
 
+        Cursor *c=(Cursor *)m_cursor;
+
         ham_cursor_t *clone;
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
-                    bt_cursor_uncouple((ham_bt_cursor_t *)m_cursor, 0));
+                  btree_cursor_uncouple(c->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil((ham_bt_cursor_t *)clone));
-        ham_key_t *k1=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)m_cursor);
-        ham_key_t *k2=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
+        BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone, 
+                        Cursor::CURSOR_BTREE));
+        ham_key_t *k1=btree_cursor_get_uncoupled_key(
+                    c->get_btree_cursor());
+        ham_key_t *k2=btree_cursor_get_uncoupled_key(
+                    ((Cursor *)clone)->get_btree_cursor());
         BFC_ASSERT_EQUAL(0, strcmp((char *)k1->data, (char *)k2->data));
         BFC_ASSERT_EQUAL(k1->size, k2->size);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
@@ -258,10 +326,12 @@ public:
         rec.data=(void *)"abcde";
         rec.size=6;
 
+        Cursor *c=(Cursor *)m_cursor;
+
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
-                    bt_cursor_uncouple((ham_bt_cursor_t *)m_cursor, 0));
+                  btree_cursor_uncouple(c->get_btree_cursor(), 0));
 
         /* will close in teardown() */
     }
@@ -296,18 +366,14 @@ public:
         BFC_REGISTER_TEST(NoTxnCursorTest, findInEmptyDatabaseTest);
         BFC_REGISTER_TEST(NoTxnCursorTest, nilCursorTest);
         BFC_REGISTER_TEST(NoTxnCursorTest, moveFirstInEmptyDatabaseTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, getRecordSizeTest);
     }
 
     virtual void setup() 
     { 
-        __super::setup();
-
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -324,22 +390,41 @@ public:
     }
 };
 
+class InMemoryCursorTest : public BaseCursorTest
+{
+    define_super(hamsterDB_fixture);
+
+public:
+    InMemoryCursorTest()
+    : BaseCursorTest("InMemoryCursorTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(InMemoryCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(InMemoryCursorTest, getRecordSizeTest);
+    }
+
+    virtual void setup() 
+    { 
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                        HAM_IN_MEMORY_DB|HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+    }
+};
+
 class LongTxnCursorTest : public BaseCursorTest
 {
     define_super(hamsterDB_fixture);
 
-    ham_txn_t *m_txn;
 public:
     virtual void setup() 
     { 
-        __super::setup();
-
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -348,7 +433,7 @@ public:
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }
 
@@ -361,6 +446,8 @@ public:
     : BaseCursorTest("LongTxnCursorTest")
     {
         testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(LongTxnCursorTest, getDuplicateRecordSizeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, getRecordSizeTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyDatabaseTest);
@@ -557,6 +644,11 @@ public:
                     eraseKeyWithoutCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyAndFlushTransactionsTest);
+
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastThenInsertNewLastTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstThenInsertNewFirstTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -569,7 +661,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
@@ -591,7 +683,7 @@ public:
         rec2.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* overwrite it in the Transaction */
@@ -641,7 +733,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* couple the cursor to this key */
@@ -653,7 +745,8 @@ public:
                     ham_cursor_erase(m_cursor, 0));
 
         /* key is now nil */
-        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 
+                        Cursor::CURSOR_BTREE));
 
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -753,7 +846,7 @@ public:
         rec2.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
@@ -808,11 +901,15 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_clone(m_cursor, &clone));
 
-        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil((ham_bt_cursor_t *)clone));
+        Cursor *c=(Cursor *)m_cursor;
+        Cursor *cl=(Cursor *)clone;
+
+        BFC_ASSERT_EQUAL(false, 
+                btree_cursor_is_nil((((Cursor *)clone)->get_btree_cursor())));
         BFC_ASSERT_EQUAL(2u, txn_get_cursor_refcount(m_txn));
         BFC_ASSERT_EQUAL(
-                txn_cursor_get_coupled_op(cursor_get_txn_cursor(m_cursor)), 
-                txn_cursor_get_coupled_op(cursor_get_txn_cursor(clone)));
+                txn_cursor_get_coupled_op(c->get_txn_cursor()), 
+                txn_cursor_get_coupled_op(cl->get_txn_cursor()));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
         BFC_ASSERT_EQUAL(1u, txn_get_cursor_refcount(m_txn));
                 
@@ -844,7 +941,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -865,7 +962,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -926,7 +1023,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
@@ -940,7 +1037,8 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
 
         /* make sure that the cursor is coupled to the txn-op */
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        Cursor *c=(Cursor *)m_cursor;
+        BFC_ASSERT(c->is_coupled_to_txnop());
     }
 
     void moveFirstSmallerInTransactionTest(void)
@@ -951,7 +1049,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -979,7 +1077,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1005,7 +1103,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1033,7 +1131,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1059,7 +1157,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1086,7 +1184,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1107,7 +1205,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        changeset_clear(env_get_changeset(m_env));
+        ((Environment *)m_env)->get_changeset().clear();
     }
 
     void moveFirstErasedInsertedInTxnTest(void)
@@ -1118,7 +1216,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1149,7 +1247,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1172,6 +1270,8 @@ public:
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     }
 
     void moveLastInEmptyTransactionTest(void)
@@ -1184,7 +1284,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
@@ -1205,7 +1305,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
@@ -1266,7 +1366,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
@@ -1280,7 +1380,7 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
 
         /* make sure that the cursor is coupled to the txn-op */
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
     }
 
     void moveLastSmallerInTransactionTest(void)
@@ -1291,7 +1391,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1319,7 +1419,7 @@ public:
         rec.size=6;
 
         /* insert a large key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1345,7 +1445,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1373,7 +1473,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1399,7 +1499,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1426,7 +1526,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1447,7 +1547,7 @@ public:
          * fail. The changeset was filled in be->_fun_insert, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
-        changeset_clear(env_get_changeset(m_env));
+        ((Environment *)m_env)->get_changeset().clear();
     }
 
     void moveLastErasedInsertedInTxnTest(void)
@@ -1458,7 +1558,7 @@ public:
         rec.size=6;
 
         /* insert a key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1490,7 +1590,7 @@ public:
         rec.size=6;
 
         /* insert a small key into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1523,7 +1623,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1601,10 +1701,10 @@ public:
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        /* and a "large" one in the btree */
+        /* and a "greater" one in the btree */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -1630,7 +1730,7 @@ public:
         /* insert a "small" key into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
@@ -1671,7 +1771,7 @@ public:
         rec.data=(void *)"ccccc";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -1720,7 +1820,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1781,7 +1881,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1818,7 +1918,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -1845,17 +1945,17 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -1869,7 +1969,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
@@ -1900,22 +2000,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -1932,7 +2032,7 @@ public:
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -1960,22 +2060,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -1989,7 +2089,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2003,7 +2103,7 @@ public:
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
-        /* skip the first key, and overwrite all others in the transaction */
+        /* overwrite all keys but the last */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
         BFC_ASSERT_EQUAL(0,
@@ -2020,22 +2120,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2049,7 +2149,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2081,22 +2181,22 @@ public:
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2113,7 +2213,7 @@ public:
         r.data=(void *)rec;
         r.size=rec ? strlen(rec)+1 : 0;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         return (be->_fun_insert(be, &k, &r, flags));
     }
 
@@ -2158,11 +2258,11 @@ public:
         if (strcmp(rec, (char *)r.data))
             return (HAM_INTERNAL_ERROR);
         if (where==BTREE) {
-            if (cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN)
+            if (((Cursor *)m_cursor)->is_coupled_to_txnop())
                 return (HAM_INTERNAL_ERROR);
         }
         else {
-            if (!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN))
+            if (((Cursor *)m_cursor)->is_coupled_to_btree())
                 return (HAM_INTERNAL_ERROR);
         }
         return (0);
@@ -2182,11 +2282,11 @@ public:
         if (strcmp(rec, (char *)r.data))
             return (HAM_INTERNAL_ERROR);
         if (where==BTREE) {
-            if (cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN)
+            if (((Cursor *)m_cursor)->is_coupled_to_txnop())
                 return (HAM_INTERNAL_ERROR);
         }
         else {
-            if (!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN))
+            if (((Cursor *)m_cursor)->is_coupled_to_btree())
                 return (HAM_INTERNAL_ERROR);
         }
         return (0);
@@ -2298,20 +2398,15 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11112"));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, ((Cursor *)m_cursor)->is_first_use());
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11114"));
         BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaae", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaaf", TXN));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11116"));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
     }
 
     void movePreviousInEmptyTransactionTest(void)
@@ -2322,7 +2417,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2403,7 +2498,7 @@ public:
         /* and a "large" one in the btree */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
@@ -2429,7 +2524,7 @@ public:
         /* insert a "small" key into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
@@ -2470,7 +2565,7 @@ public:
         rec.data=(void *)"ccccc";
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -2519,7 +2614,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2580,7 +2675,7 @@ public:
         rec.size=6;
 
         /* insert a few "small" keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2617,7 +2712,7 @@ public:
         rec.size=6;
 
         /* insert a few keys into the btree */
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
@@ -2644,19 +2739,19 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
     }
@@ -2668,7 +2763,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
@@ -2699,22 +2794,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2731,7 +2826,7 @@ public:
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2759,22 +2854,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("00000", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2788,7 +2883,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2819,22 +2914,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN));
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_btree());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -2848,7 +2943,7 @@ public:
         key.size=6;
         rec.size=6;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
@@ -2880,22 +2975,22 @@ public:
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("99999", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_PREVIOUS));
-        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT(((Cursor *)m_cursor)->is_coupled_to_txnop());
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -3157,6 +3252,7 @@ public:
         BFC_ASSERT_EQUAL(0, comparePrev("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, comparePrev("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, BTREE));
+        ((Cursor *)m_cursor)->set_to_nil(0);
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaae", TXN));
@@ -3170,6 +3266,7 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11121", "aaaao", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11122", "aaaap", TXN));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, BTREE));
+        ((Cursor *)m_cursor)->set_to_nil(0);
         BFC_ASSERT_EQUAL(0, comparePrev("11122", "aaaap", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11121", "aaaao", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11120", "aaaan", TXN));
@@ -3491,14 +3588,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3523,14 +3614,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3559,18 +3644,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_erase(m_db, m_txn, &key, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor3)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor3));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor3, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor3));
@@ -3595,14 +3671,8 @@ public:
                     ham_erase(m_db, 0, &key, 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_erase(m_db, m_txn, &key, 0));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
@@ -3614,7 +3684,7 @@ public:
         /* create a second txn, insert and commit, but do not flush the 
          * first one */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_cursor_t *cursor2;
         BFC_ASSERT_EQUAL(0, 
@@ -3643,10 +3713,66 @@ public:
                     ham_erase(m_db, m_txn, &key, 0));
 
         /* cursor must be nil */
-        BFC_ASSERT_EQUAL(true, 
-                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
-        BFC_ASSERT_EQUAL(true, 
-                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
+    }
+
+    ham_status_t move(const char *key, const char *rec, ham_u32_t flags,
+                ham_cursor_t *cursor=0)
+    {
+        ham_key_t k={0};
+        ham_record_t r={0};
+        ham_status_t st;
+
+        if (!cursor)
+            cursor=m_cursor;
+
+        st=ham_cursor_move(cursor, &k, &r, flags);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (rec)
+            if (strcmp(rec, (char *)r.data))
+                return (HAM_INTERNAL_ERROR);
+
+        // now verify again, but with flags=0
+        if (flags==0)
+            return (0);
+        st=ham_cursor_move(cursor, &k, &r, 0);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (rec)
+            if (strcmp(rec, (char *)r.data))
+                return (HAM_INTERNAL_ERROR);
+        return (0);
+    }
+
+    void moveLastThenInsertNewLastTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn("11111", "bbbbb"));
+        BFC_ASSERT_EQUAL(0, insertTxn("22222", "ccccc"));
+
+        BFC_ASSERT_EQUAL(0, move("22222", "ccccc", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move("11111", "bbbbb", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, insertTxn("00000", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, move("00000", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void moveFirstThenInsertNewFirstTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn("22222", "bbbbb"));
+
+        BFC_ASSERT_EQUAL(0, move("11111", "aaaaa", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move("22222", "bbbbb", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, insertTxn("33333", "ccccc"));
+        BFC_ASSERT_EQUAL(0, move("33333", "ccccc", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
     }
 
 };
@@ -3659,7 +3785,6 @@ protected:
     ham_cursor_t *m_cursor;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     DupeCacheTest()
@@ -3667,7 +3792,6 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DupeCacheTest, createEmptyCloseTest);
-        BFC_REGISTER_TEST(DupeCacheTest, createCapacityCloseTest);
         BFC_REGISTER_TEST(DupeCacheTest, appendTest);
         BFC_REGISTER_TEST(DupeCacheTest, insertAtBeginningTest);
         BFC_REGISTER_TEST(DupeCacheTest, insertAtEndTest);
@@ -3679,14 +3803,8 @@ public:
 
     virtual void setup() 
     { 
-        __super::setup();
-
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
@@ -3698,233 +3816,187 @@ public:
 
     virtual void teardown() 
     { 
-        __super::teardown();
-
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void createEmptyCloseTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 0));
-        BFC_ASSERT_EQUAL(8u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
-        dupecache_clear(&c);
-    }
-
-    void createCapacityCloseTest(void)
-    {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 20));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
-        dupecache_clear(&c);
+        DupeCache c;
+        BFC_ASSERT_EQUAL(0u, c.get_count());
     }
 
     void appendTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
-
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCache c;
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.append(entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
-        for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, 
-                    dupecache_line_get_btree_dupe_idx(&e[i]));
-
-        dupecache_clear(&c);
+        DupeCacheLine *e=c.get_first_element();
+        for (int i=0; i<20; i++) {
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e->get_btree_dupe_idx());
+            e++;
+        }
     }
 
     void insertAtBeginningTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_insert(&c, 0, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.insert(0, entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
-        for (int i=19, j=0; i>=0; i--, j++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, 
-                    dupecache_line_get_btree_dupe_idx(&e[j]));
-
-        dupecache_clear(&c);
+        DupeCacheLine *e=c.get_first_element();
+        for (int i=19, j=0; i>=0; i--, j++) {
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e->get_btree_dupe_idx());
+            e++;
+        }
     }
 
     void insertAtEndTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_insert(&c, i, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.insert(i, entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
-        for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, 
-                    dupecache_line_get_btree_dupe_idx(&e[i]));
-
-        dupecache_clear(&c);
+        DupeCacheLine *e=c.get_first_element();
+        for (int i=0; i<20; i++) {
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e->get_btree_dupe_idx());
+            e++;
+        }
     }
 
     void insertMixedTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         int p=0;
         for (int j=0; j<5; j++) {
             for (int i=0; i<4; i++) {
-                BFC_ASSERT_EQUAL(0, dupecache_insert(&c, j, &entries[p++]));
+                c.insert(j, entries[p++]);
             }
         }
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
-        BFC_ASSERT_EQUAL((ham_u64_t)3,  e[ 0]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)7,  e[ 1]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)11, e[ 2]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)15, e[ 3]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)19, e[ 4]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)18, e[ 5]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)17, e[ 6]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)16, e[ 7]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)14, e[ 8]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)13, e[ 9]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)12, e[10]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)10, e[11]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)9,  e[12]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)8,  e[13]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)6,  e[14]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)5,  e[15]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)4,  e[16]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)2,  e[17]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)1,  e[18]._u._btree_dupeidx);
-        BFC_ASSERT_EQUAL((ham_u64_t)0,  e[19]._u._btree_dupeidx);
-
-        dupecache_clear(&c);
+        DupeCacheLine *e=c.get_first_element();
+        BFC_ASSERT_EQUAL((ham_u64_t)3,  e[ 0].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)7,  e[ 1].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)11, e[ 2].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)15, e[ 3].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)19, e[ 4].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)18, e[ 5].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)17, e[ 6].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)16, e[ 7].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)14, e[ 8].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)13, e[ 9].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)12, e[10].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)10, e[11].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)9,  e[12].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)8,  e[13].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)6,  e[14].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)5,  e[15].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)4,  e[16].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)2,  e[17].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)1,  e[18].get_btree_dupe_idx());
+        BFC_ASSERT_EQUAL((ham_u64_t)0,  e[19].get_btree_dupe_idx());
     }
 
     void eraseAtBeginningTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.append(entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
         int s=1;
         for (int i=19; i>=0; i--) {
-            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, 0));
-            BFC_ASSERT_EQUAL((unsigned)i, dupecache_get_count(&c));
-            for (int j=0; j<i; j++)
-                BFC_ASSERT_EQUAL((ham_u64_t)s+j, 
-                        dupecache_line_get_btree_dupe_idx(&e[j]));
+            DupeCacheLine *e=c.get_first_element();
+            c.erase(0);
+            BFC_ASSERT_EQUAL((unsigned)i, c.get_count());
+            for (int j=0; j<i; j++) {
+                BFC_ASSERT_EQUAL((ham_u64_t)s+j, e->get_btree_dupe_idx());
+                e++;
+            }
             s++;
         }
 
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
-        dupecache_clear(&c);
+        BFC_ASSERT_EQUAL(0u, c.get_count());
     }
 
     void eraseAtEndTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.append(entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=0; i<20; i++) {
-            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, dupecache_get_count(&c)-1));
-            for (int j=0; j<20-i; j++)
-                BFC_ASSERT_EQUAL((ham_u64_t)j,
-                        dupecache_line_get_btree_dupe_idx(&e[j]));
+            DupeCacheLine *e=c.get_first_element();
+            c.erase(c.get_count()-1);
+            for (int j=0; j<20-i; j++) {
+                BFC_ASSERT_EQUAL((ham_u64_t)j, e->get_btree_dupe_idx());
+                e++;
+            }
         }
 
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
-        dupecache_clear(&c);
+        BFC_ASSERT_EQUAL(0u, c.get_count());
     }
 
     void eraseMixedTest(void)
     {
-        dupecache_t c;
-        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+        DupeCache c;
 
-        dupecache_line_t entries[20];
-        memset(&entries[0], 0, sizeof(entries));
+        DupeCacheLine entries[20];
         for (int i=0; i<20; i++)
-            dupecache_line_set_btree_dupe_idx(&entries[i], i);
+            entries[i].set_btree_dupe_idx(i);
 
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+            c.append(entries[i]);
+        BFC_ASSERT_EQUAL(20u, c.get_count());
 
         for (int i=0; i<10; i++)
-            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, i));
+            c.erase(i);
 
-        dupecache_line_t *e=dupecache_get_elements(&c);
+        DupeCacheLine *e=c.get_first_element();
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL((unsigned)i*2+1,
-                    dupecache_line_get_btree_dupe_idx(&e[i]));
+            BFC_ASSERT_EQUAL((unsigned)i*2+1, e->get_btree_dupe_idx());
+            e++;
         }
 
-        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
-        BFC_ASSERT_EQUAL(10u, dupecache_get_count(&c));
-        dupecache_clear(&c);
+        BFC_ASSERT_EQUAL(10u, c.get_count());
     }
 };
 
@@ -3937,7 +4009,6 @@ protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
     ham_txn_t *m_txn;
-    memtracker_t *m_alloc;
 
 public:
     DupeCursorTest()
@@ -4040,36 +4111,28 @@ public:
 
     virtual void setup() 
     { 
-        __super::setup();
-
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
     }
 
     virtual void teardown() 
     { 
-        __super::teardown();
-
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+        m_cursor=0;
         if (m_txn)
             BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     ham_status_t insertBtree(const char *key, const char *rec, 
@@ -4082,7 +4145,7 @@ public:
         r.data=(void *)rec;
         r.size=rec ? strlen(rec)+1 : 0;
 
-        ham_backend_t *be=db_get_backend(m_db);
+        ham_backend_t *be=((Database *)m_db)->get_backend();
         return (be->_fun_insert(be, &k, &r, flags));
     }
 
@@ -4169,6 +4232,8 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(4u, 
+                    ((Cursor *)m_cursor)->get_dupecache_count());
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
@@ -4575,8 +4640,8 @@ public:
         ham_cursor_t *c;
 
         /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_cursor_find(c, &key, 0));
@@ -4598,8 +4663,8 @@ public:
         ham_cursor_t *c;
 
         /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
@@ -4693,7 +4758,7 @@ public:
 
     void insertFirstTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4736,7 +4801,7 @@ public:
 
     void insertLastTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4780,7 +4845,7 @@ public:
 
     void insertAfterTest(void)
     {
-        static int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4965,17 +5030,9 @@ public:
             BFC_ASSERT_EQUAL(0, insertTxn  ("k1", buf, HAM_DUPLICATE));
         }
 
-        ham_key_t key={0};
-        key.size=3;
-        key.data=(void *)"k1";
-
-        ham_record_t rec={0};
-
         for (i=0; i<MAX; i++) {
             char buf[20];
             sprintf(buf, "%d", i);
-            rec.data=(void *)&buf[0];
-            rec.size=strlen(buf)+1;
             BFC_ASSERT_EQUAL(0, move("k1", buf, 
                     i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
         }
@@ -5762,7 +5819,7 @@ public:
 
     void eraseFirstTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5803,7 +5860,7 @@ public:
 
     void eraseLastTest(void)
     {
-        static int C=2;
+        static const int C=2;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5844,7 +5901,7 @@ public:
 
     void eraseAfterTest(void)
     {
-        static int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -5899,7 +5956,7 @@ public:
 
     void eraseBeforeTest(void)
     {
-        const int C=4;
+        static const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -6114,16 +6171,14 @@ public:
     {
         teardown();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
 
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
@@ -6209,7 +6264,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k1", "1", HAM_CURSOR_FIRST, c));
@@ -6226,7 +6281,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, move(0, 0, HAM_CURSOR_FIRST, c));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -6240,7 +6295,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k1", "1", HAM_CURSOR_LAST, c));
@@ -6258,7 +6313,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
                     move("k3", "1", HAM_CURSOR_LAST, c));
@@ -6277,7 +6332,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_FIRST, c));
         BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_NEXT, c));
@@ -6298,7 +6353,7 @@ public:
 
         ham_txn_t *txn;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
         BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_LAST, c));
         BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_PREVIOUS, c));
@@ -6314,7 +6369,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -6332,7 +6387,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         key.size=6;
@@ -6349,7 +6404,7 @@ public:
 
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
 
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -6368,7 +6423,7 @@ public:
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
 
         ham_key_t key={0};
@@ -6389,7 +6444,7 @@ public:
         /* create a second txn, insert a duplicate -> conflict */
         ham_txn_t *txn2;
         ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
 
         ham_key_t key={0};
@@ -6417,7 +6472,7 @@ public:
         /* flush the transaction to disk */
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
 
         /* verify that the duplicate was erased */
@@ -6427,6 +6482,7 @@ public:
     }
 };
 
+BFC_REGISTER_FIXTURE(InMemoryCursorTest);
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);
 BFC_REGISTER_FIXTURE(LongTxnCursorTest);
 BFC_REGISTER_FIXTURE(NoTxnCursorTest);

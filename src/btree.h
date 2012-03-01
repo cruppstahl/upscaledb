@@ -24,11 +24,8 @@
 #include "backend.h"
 #include "btree_cursor.h"
 #include "btree_key.h"
+#include "db.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 /**
  * the backend structure for a b+tree 
@@ -97,7 +94,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
 #include "packstart.h"
 
 /**
- * A btree-node; it spans the persistent part of a ham_page_t:
+ * A btree-node; it spans the persistent part of a Page:
  *
  * <pre>
  * btree_node_t *btp=(btree_node_t *)page->_u._pers.payload;
@@ -164,19 +161,18 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
 /** set the ptr_left of a btree-node */
 #define btree_node_set_ptr_left(btp, r)      btp->_ptr_left=ham_h2db_offset(r)
 
-/** get a btree_node_t from a ham_page_t */
-#define page_get_btree_node(p)          ((btree_node_t *)p->_pers->_s._payload)
+/** get a btree_node_t from a Page */
+#define page_get_btree_node(p)          ((btree_node_t *)p->get_payload())
 
 /**
  * "constructor" - initializes a new ham_btree_t object
  *
  * @return a pointer to a new created B+-tree backend 
- *         instance in @a backend_ref
  *
  * @remark flags are from @ref ham_env_open_db() or @ref ham_env_create_db()
  */
-extern ham_status_t
-btree_create(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags);
+extern ham_backend_t *
+btree_create(Database *db, ham_u32_t flags);
 
 /**
  * search the btree structures for a record
@@ -195,7 +191,7 @@ btree_find(ham_btree_t *be, ham_key_t *key,
  * same as above, but sets the cursor to the position
  */
 extern ham_status_t 
-btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
+btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -210,7 +206,7 @@ btree_insert(ham_btree_t *be, ham_key_t *key,
  */
 extern ham_status_t
 btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags);
+        ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * erase a key from the tree
@@ -222,8 +218,15 @@ btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags);
  * same as above, but with a coupled cursor
  */
 extern ham_status_t
-btree_erase_cursor(ham_btree_t *be, ham_key_t *key, ham_bt_cursor_t *cursor, 
+btree_erase_cursor(ham_btree_t *be, ham_key_t *key, btree_cursor_t *cursor, 
         ham_u32_t flags);
+
+/**
+ * same as above, but assumes that the cursor is coupled to a leaf page 
+ * and the key can be removed without rebalancing the tree
+ */
+extern ham_status_t
+btree_cursor_erase_fasttrack(ham_btree_t *be, btree_cursor_t *cursor);
 
 /**
  * same as above, but only erases a single duplicate
@@ -249,13 +252,12 @@ btree_check_integrity(ham_btree_t *be);
  * find the child page for a key
  *
  * @return returns the child page in @a page_ref
- *
- * @remark if @a idxptr is a valid pointer, it will store the anchor index of the 
- *      loaded page
+ * @remark if @a idxptr is a valid pointer, it will store the anchor index 
+ *      of the loaded page
  */
 extern ham_status_t
-btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr, 
-					ham_db_t *db, ham_page_t *page, ham_key_t *key);
+btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr, 
+					Database *db, Page *page, ham_key_t *key);
 
 /**
  * search a leaf node for a key
@@ -268,7 +270,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
  *         unexpected error occurred.
  */
 extern ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key, 
+btree_node_search_by_key(Database *db, Page *page, ham_key_t *key, 
                 ham_u32_t flags);
 
 /**
@@ -279,20 +281,22 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
             [(db_get_keysize(db)+db_get_int_key_header_size())*(i)])
 
 /**
- * get offset of entry @a i - add this to page_get_self(page) for
+ * get offset of entry @a i - add this to page->get_self() for
  * the absolute offset of the key in the file
  */
 #define btree_node_get_key_offset(page, i)                          \
-     (page_get_self(page)+page_get_persistent_header_size()+        \
+     ((page)->get_self()+Page::sizeof_persistent_header+            \
      OFFSETOF(btree_node_t, _entries)                               \
      /* ^^^ sizeof(btree_key_t) WITHOUT THE -1 !!! */ +               \
-     (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
+     (db_get_int_key_header_size()+db_get_keysize((page)->get_db()))*(i))
 
 /**
  * get the slot of an element in the page
+ * also returns the comparison value in cmp; if *cmp == 0 then the keys are
+ * equal
  */
 extern ham_status_t 
-btree_get_slot(ham_db_t *db, ham_page_t *page, 
+btree_get_slot(Database *db, Page *page, 
         ham_key_t *key, ham_s32_t *slot, int *cmp);
 
 /**
@@ -305,7 +309,7 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
  * close all cursors in this Database
  */
 extern ham_status_t 
-btree_close_cursors(ham_db_t *db, ham_u32_t flags);
+btree_close_cursors(Database *db, ham_u32_t flags);
 
 /**
  * compare a public key (ham_key_t, LHS) to an internal key indexed in a
@@ -322,13 +326,13 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags);
  * @sa ham_status_codes 
  */
 extern int
-btree_compare_keys(ham_db_t *db, ham_page_t *page, 
+btree_compare_keys(Database *db, Page *page, 
                 ham_key_t *lhs, ham_u16_t rhs);
 
 /**
  * create a preliminary copy of an @ref btree_key_t key to a @ref ham_key_t
- * in such a way that @ref db_compare_keys can use the data and optionally
- * call @ref db_get_extended_key on this key to obtain all key data, when this
+ * in such a way that @ref db->compare_keys can use the data and optionally
+ * call @ref db->get_extended_key on this key to obtain all key data, when this
  * is an extended key.
  *
  * @param which specifies whether keydata1 (which = 0) or keydata2 is used
@@ -338,7 +342,7 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
  * Used in conjunction with @ref btree_release_key_after_compare
  */
 extern ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, int which, btree_key_t *src, 
+btree_prepare_key_for_compare(Database *db, int which, btree_key_t *src, 
                 ham_key_t *dest);
 
 /**
@@ -355,7 +359,7 @@ btree_prepare_key_for_compare(ham_db_t *db, int which, btree_key_t *src,
  * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
  */
 extern ham_status_t
-btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest);
+btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest);
 
 /**
  * read a record 
@@ -367,7 +371,7 @@ btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest);
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *rid,
+btree_read_record(Database *db, ham_record_t *record, ham_u64_t *rid,
                 ham_u32_t flags);
 
 /** 
@@ -392,12 +396,8 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *rid,
  * HAM_KEY_USER_ALLOC was not set).
  */
 extern ham_status_t
-btree_copy_key_int2pub(ham_db_t *db, const btree_key_t *source, 
+btree_copy_key_int2pub(Database *db, const btree_key_t *source, 
                 ham_key_t *dest);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BTREE_H__ */

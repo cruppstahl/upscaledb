@@ -17,7 +17,6 @@
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/btree.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -89,7 +88,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), m_flags));
-        BFC_ASSERT(db_get_rt_flags(m_db)&HAM_RECORD_NUMBER);
+        BFC_ASSERT(((Database *)m_db)->get_rt_flags()&HAM_RECORD_NUMBER);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
@@ -739,12 +738,12 @@ public:
             BFC_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        ham_page_t *page;
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db,
+        ham_btree_t *be=(ham_btree_t *)((Database *)m_db)->get_backend();
+        Page *page;
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, (Database *)m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 

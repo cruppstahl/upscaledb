@@ -9,960 +9,201 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 This Branch Is About Integrating The hamsterdb2 Functionality!!!!!
 -----------------------------------------------------------------------------
-
+The big headline is:
 As a user i want to run many Transactions in parallel with high performance.
-I'm not interested in multiple threads (yet), although i may use several 
-threads (but then i'll use synchronization in my own code).
+I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
+to scale with the number of cores.
 ==============================================================================
 
-x new code is only active if HAM_ENABLE_TRANSACTIONS is specified; 
-    otherwise everything stays as is
-    x allow more than one txn in parallel
-    x don't need DO_NOT_NUKE_PAGE_STATS as flag for txn_abort/commit
-    x env_flush_committed_txns() - must clear txn from list
-    x rewrite auto-abort/auto-commit
-
-x manage all transactions
-    x integrate existing rb-tree code from hamsterdb2
-        x rb.h
-        x txns are linked lists (chronological) 
-        x this tree stores operations for each key
-            x create txn_op structure
-            x create insert(update) and erase operations
-            x each op is stored chronologically in the txn AND in the rb-node
-        x each database has such a tree
-    x remove the whole transaction handling from the low-level page
-        i/o routines
-        x also remove refcounts in the pages, replace with
-            page_lock
-            page_unlock
-            page_is_locked
-        x remove PAGE_LIST_TXN
-    x remove env_get_txn, env_get_txn_id
-        distinguish: on high level, we have multiple txns
-        on low level, we use the lsn for file-io routines
-            x extkeys.c - extkey_set_txn_id: replace with lsn
-            x keys.c: move page_get_btree_node functions to btree.c; can we
-                move everything else into util.c?
-            x make sure that page_get_btree_node() is only called in
-                btree_*.c 
-                key_compare_pub_to_int
-                key_compare_int_to_int
-            x btree_close_cursors - actually in use? - yes
-            x db.h - cleanup high level i/o interface
-            x util.h - cleanup 
-            x blob.h - cleanup interface if possible
-            x page.h - cleanup 
-            x rename int_key_t to btree_key_t
-            x rename statistics.c to btree_stats.c (and rename the functions)
-
-    x rewrite ham_insert
-        x need functions to create trees/nodes/ops
-                tree=txn_tree_get_or_create(db)
-                node=txn_node_get_or_create(tree, key)
-                op=txn_op_create(node, flags, record) -> store the full record!
-                    -> all ops are in two linked lists!
-        x if transactions are disabled: immediately write to disk, no
-            temp transactions are needed
-        x each modified database gets its own txn tree when its modified
-            in a transaction
-        x for now do not write the blob to disk but keep it in memory
-        x otherwise insert into transaction tree
-        x need a new error code HAM_TXN_CONFLICT
-        x check for transaction conflicts (similar to ham2)
-
-    x txn_free: discard the tree and everything that's allocated
-
-    x implement env_flush_committed_txns()
-
-    x add unittests for all the stuff I did so far
-        x structure test: txn
-        x structure test: txn_tree
-        x structure test: txn_node
-        x structure test: txn_op
-        x allow multiple txn's in parallel and make sure that they
-            are linked correctly
-        x create a txn-tree for a txn/db twice and make sure that it's
-            only created once
-        x create multiple trees and make sure that they 
-            are linked correctly
-        x create a txn-node for a txn/db/key twice and make sure that it's
-            only created once
-        x create multiple nodes and make sure that they 
-            are linked correctly
-        x create an op for a txn-node
-        x create multiple ops and make sure that they 
-            are linked correctly in the node
-        x test all potential conflict scenarios
-
-    x tree is property of db, not of env (-> O(1))
-        optree->_next really needed? - no
-    x when op is deleted: update the node structure (op_next_in_node)
-    x when op is deleted and node is empty: remove node from tree
-    x when node is removed and tree is empty: remove tree from db
-        or better: remove tree when db is closed
-    x fix all unittests/memleaks
-    x some structural changes -> need unittests
-        txn_op_t previous_in_txn
-        txn_op_t previous_in_node
-        txn_op_t node
-        txn_optree_node_t tree
-    x who allocs/frees the key in the node? - streamline
-
-    x rename txn_optree_node_t to txn_opnode_t (consistent with txn_optree_t)
-
-    x rewrite ham_find
-        x if transactions are disabled: immediately read from disk
-        x otherwise go through transaction trees
-        x add unittests
-
-    x do not conflict if the same transaction already modified the key!
-
-    x rewrite ham_erase
-        x each modified database gets its own txn tree when its modified
-            in a transaction
-        x if transactions are disabled: immediately write to disk, no
-            temp transactions are needed
-        x otherwise go through transaction trees
-        x add unittests
-
-    x add new unittests
-
-    x review page.h - anything that we do not need? (i.e. dirty_txn?) - no
-
-    x ham_find: when retrieving a record, do not copy the original 
-        record-pointer; we need a deep copy instead because this record
-        pointer may be flushed and become invalid.
-        -> db.c:1953
-
-    x more pending cleanups
-        x rename env_get_txn to env_get_flushed_txn, and set the 
-            pointer in env.c(flush_txn)
-
-    x txn.cpp 1171 - why does ham_insert succeed? it's inserting a duplicate!
-        -> currently, HighLevelTxnTest::getKeyCountTest() crashes
-        seems that the problem is in the rb enumeration (txn_tree_enumerate)
-        where tree and tree->root are ok, but the first/next functions
-        return bogus pointers
-
-    x rewrite enumeration code
-        x some just need to enumerate over btree
-            x _fun_enumerate(free_inmemory_blobs_cb)
-        x but others need to enumerate over txns as well
-            x _fun_enumerate(my_calc_keys_cb)
-                x implement db.c:db_get_key_count_txn(); needs to iterate
-                    over all nodes in the tree!
-                x need unittest: without txn's
-                x need unittest: with txn's (aborted)
-                x need unittest: with txn's (committed)
-                x need unittest: with txn's (erased key)
-                x need unittest: with txn's (dupes, with/without DUPE flag)
-                x need unittest: with txn's (overwritten keys)
-
-x db.c: all functions which begin a local_txn should be reviewed;
-    a local_txn should only be started if transactions are enabled!
-
-    x db.c:_local_fun_get_key_count: is local_txn really needed?
-    x db.c:_local_fun_check_integrity: is local_txn really needed?
-    x db.c:_get_incremented_lsn: fix TODO
-
-x ham_get_key_count does not return correct results if there are duplicate
-   keys (or overwritten keys) in a txn AND in the btree. In these cases, bite
-   the sour apple and check if the keys also exist in the btree. Incorrect
-   results have to be avoided!
-    x when overwriting keys - 1 key in btree, the other in txn
-        x add unittest
-        x fix them
-    x with duplicate keys - 1 key in btree, the other in txn
-        x add unittest w/ duplicate counting
-        x add unittest w/o duplicate counting
-        x fix them
-
-x make sure all unittests are running (with exception of logging)
-
-x rewrite cache purging/page locking
-    x do we still need to distinguish between env_fetch_page 
-        and db_fetch_page? - not really, but it looks nicer
-    x purge: move function to cache.h/.c, remove from db.c
-    x whenever a function allocates/fetches: purge cache before backend
-        function is called
-    x unittest HamsterdbTest should run fine now
-    x remove page locking - not required anymore
-    x CacheTest::strictTest fails
-
-x merge bugfixes of 1.1.8
-
-x logging: currently, logging for txn_begin and txn_commit/abort 
-    is not implemented
-    -> we have to distinguish between txn logging (the WAL journal which
-    records everything transactional) and the physical logging of the modified
-    database pages (when flushing a txn). both can not be mixed; the latter
-    we want to remove as soon as possible.
-    -> how to continue? Use the journal from v2, and reduce the physical log
-    for the single operations. we only have to store the last single operation,
-    and we do not need undo information.
-    
-    x disable all broken tests in log.cpp
-    x introduce a logical journal (based on same routines as before)
-        with log-file switching
-        x implement in journal.h/journal.c
-        x unittest for switching back/forth and everything else
-    x env: create journal
-        x unittest
-    x env: close journal
-        x unittest
-    x logical journal: add txn begin/commit/abort/insert/erase
-        x remove the -prewrite logging, since we do not need undo information
-            (be careful with allocated pages - they need special treatment
-            when they're "redone")
-        x write the functions in journal.c
-        x need unittests for each operation
-            x txn_begin
-            x txn_commit
-            x txn_abort
-            x insert
-            x erase
-            x erase for cursors (different duplicate behavior!)
-    x db.c/env.c: (logical) log begin/commit/abort/insert/erase
-        x use the functions from journal.c
-            x ham_txn_begin
-            x ham_txn_commit
-            x ham_txn_abort
-            x ham_insert
-            x ham_cursor_insert
-            x ham_erase (delete ALL duplicates!)
-            x ham_cursor_erase (duplicate handling!)
-        x need unittests
-            x ham_txn_begin
-            x ham_txn_commit
-            x ham_txn_abort
-            x ham_insert
-            x ham_cursor_insert
-            x ham_erase (delete ALL duplicates!)
-            x ham_cursor_erase (duplicate handling!)
-
-    x new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
-        x replace old BLOB_FREE_ALL_DUPES
-        x unittest!
-
-    x refactor log.h, rename ham_log_t to log_t (and others as well)
-        x open/create functions similar to journal.h
-        x log_flush needed externally? fileops are flushed automatically
-        x disable log-file switching for physical log
-        x remove all unrequired functions - txn_abort, commit, checkpoint etc
-        x do not need undo information and undo functions
-            x remove log_add_page_before
-            x remove log_append_flush_page
-            x rename log_add_page_after to log_append_page
-        x ham_log_get_entry() currently reads from back to front, but we 
-            need it vice versa! - no, it's fine
-    x decrease default journal threshhold (16?)
-    x remove page_set_before_img_lsn()?
-
-    x os_close: assert that fd>=3 (on linux)
-
-    x we have to flush pages after they're modified (search for db_fetch_page
-        and db_alloc_page); however, what if multiple pages are modified (i.e.
-        during an SMO)? - we have to first physlog all modified pages, and then
-        flush them all together; this way we minimize chances for corruption.
-        same regarding SMOs - first wait till all modifications are done (in
-        the cache), then flush the pages (or discard them if the operation
-        failed for whatever reason)
-        x re-introduce a structure similar to the old transaction list
-            ("changeset"); don't forget to update my_verify_page()!
-            x need unittests
-        x add a changeset to the environment
-        x when fetching a page, first check this list
-        x when fetching or allocating, insert page in this list
-        x when purging cache - do not delete this page (but i think this 
-            anyway cannot happen since we never purge while an operation is
-            in progress - true)
-        x make sure that the changeset is empty when closing the Env
-        x before each create/update/erase op:
-                1. assert that the list is empty
-                2. assert that the log is empty
-                3. proceed with the operation
-                4. on success: flush the list -> txn_commit
-                5. always clear the list -> txn_commit, txn_abort
-                6. clear the logfile -> txn_commit, txn_abort (?)
-            x insert
-            x erase
-            x cursor_insert
-            x cursor_erase
-            x cursor_overwrite
-            x env_create_db 
-            x changeset_flush: what happens if writing data to the log fails?
-                in that case the log is incomplete, and recovering from it
-                would break everything -> on failure, clear the log
-            x env_create -- same as above
-            x every other function which modifies the header page MUST
-                flush it afterwards!
-            x if logging is enabled: also set HAM_WRITE_THROUGH
-        x do we need a changeset if recovery/logging is disabled? - no, not
-            required; add assert in changeset_add_page that it's not used
-            if logging is disabled
-        x what about the freelist - is it also part of the changeset? - yes,
-            definitely! - but currently i do not see it in the debugger
-
-        x do not use changeset if logging is disabled!!
-
-        x disable logfile switching in log.c
-            x update unittests
-
-        x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
-
-    x who manages the lsn? currently, the journal and env.h manage both their
-        own lsn; and it's not propagated down to the physlog
-    x if recovery is enabled: store the lsn in the header of the journal and
-        also of the log file
-        x journal header stores the lsn
-            x need unittests
-        x when the journal is cleared: write the highest lsn to file 0
-            (write lsn 0 to file 1)
-            x need unittests
-        x when opening the journal: read the lsn from the header (or from the
-            newest entry)
-            x need unittests
-
-        x the log has its own lsn 
-            x need unittests
-        x when the log is cleared: write the lsn to the header
-            x need unittests
-        x when opening the log: read the lsn from the header
-            x need unittests
-
-    x journal and log: flush file after it's written (at least in log AND
-        in journal after abort/commit)
-
-    x when creating a db (env_create_db) all pages are written to the log
-        with lsn 0; is this correct? yes, but make sure that recovery works
-        in all possible scenarios; or should we assign a lsn != 0? Yes, 
-        otherwise we don't know where to continue in the journal 
-        -> assign a lsn and increment it afterwards
-
-    x review ham_insert - is it idempotent on a low level, even with very
-        large blobs? -> ok (in worst case, a blob is lost but that's no drama)
-    x review ham_erase - is it idempotent on a low level, even with very
-        large blobs? -> ok, fully idempotent (the freelist is modified)
-    x review ham_cursor_overwrite - is it idempotent on a low level, even 
-        with very large blobs? -> ok
-
-    x implement the recovery
-        x if the log is not empty: re-apply it (it is idempotent), then
-            clear it (but get the lsn from its header)
-            x implement
-            x need unittests
-                x test logfile with one allocated page - file must grow
-                x test logfile with multiple allocated pages - file must grow
-                x test logfile with one modified page
-                x test logfile with multiple modified pages
-                x test logfile with a mix of allocated and modified pages
-                x test logfile with the freelist (header page)
-                x test logfile with the freelist (header page + more pages)
-                    same as above
-                x test logfile with a modified header page (env_create_db)
-                x test logfile with a modified header page (env_erase_db)
-                x always test lsn after recovering from the logfile
-        x we need a way to reliably test the journal; create a new undocumented
-            flag which disables log file flushing
-        x JournalHighLevelTests work like this:
-            1. just write the operations as usual
-            2. close with DONT_CLOSE_LOG
-            3. iterate over journal and compare with real values
-            4. re-create the db/env and recover with journal
-            5. verify that the file is correct
-            x need unittests
-        x then re-apply the journal, continuing from the entry with this lsn
-            x make sure that the txn Id is persisted in the log and
-                then re-assigned to the new transaction
-                x implement
-                x unittest
-            x make sure that the txn Id is incremented correctly after the
-                journal was applied (i.e. the first ham_txn_begin AFTER the 
-                recovery is done)
-                x implement
-                x unittest
-            x make sure that the new operations are not written to the journal
-                x implement
-                x unittest
-            x re-apply all committed (but not fully flushed) transactions
-                x implement
-                x need unittests
-            x auto-aborts all non-committed transactions (same behavior 
-                    as now)
-                x implement
-                x need unittests
-            x skip all journal entries that were already flushed
-                x implement
-                x need unittests
-        x then clear the journal
-            x implement
-            x need unittests
-
-    x if lsn overflows: return error HAM_LIMITS_REACHED (this will require a 
-        reorg)
-        x needs unittest
-
-    x unittests
-        x ham_txn_begin
-        x ham_txn_commit
-        x ham_txn_abort
-        x ham_insert
-        x ham_erase (delete ALL duplicates!)
-        x recovery w/ empty log, full journal
-        x recovery w/ full log, full journal
-        x recovery w/ full log, full journal (and skip journal entries
-            at the beginning)
-        x recovery w/ ham_env_create_db
-        x check journal for EVERY operation that is logged
-        x recovery with several aborted operations
-        x recovery with several committed operations
-
-x implement partial reads through transaction tree - will have to 
-    consolidate them
-    x check if partial r/w works if the record size is <= 8; if not, then
-        disable them
-        x unittests
-        x add to documentation
-        x add to changelog!
-        x add to wiki
-    x implement for reading; has to be deferred to the btree lookup!
-        x implement
-        x unittest
-    x disable partial read/write if transactions are enabled (and fix all
-        tests which are now broken)
-        x unittest
-    x add to changelog
-
-x implement direct access - how, if the transaction tree is flushed??
-    (but in-memory access w/ transactions is anyway not yet supported -
-    write unittest to assert that it doesn't work)
-    later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN
-    postpone this to the next release
-
-x implement approx. matching through transaction tree - will have to 
-    consolidate rb-tree and btree to look for the "closest" key
-    postpone this to the next release
-
-x merge bugfixes of 1.1.9 - 6aed8c1ae7f9a6ea2f19
-
-x support cursors!!!
-    x need a transaction cursor which can operate on txn trees
-        x create new structure
-            x unittest
-        x needs linked list for other coupled cursors on same op
-            x unittest
-        x op needs to manage the cursors (or is it the node?? - no, it's the op)
-            x unittest
-        x retrieve the key
-            x implement
-            x unittest w/ coupled cursor
-            x unittest w/ coupled cursor and user_alloc
-            x unittest w/ coupled cursor and empty key
-            x unittest w/ uncoupled cursor
-            x unittest w/ nil-cursor
-        x retrieve the record
-            x implement
-            x unittest w/ coupled cursor
-            x unittest w/ coupled cursor and user_alloc
-            x unittest w/ coupled cursor and empty record
-            x unittest w/ uncoupled cursor
-            x unittest w/ nil-cursor
-        x find cursor
-            x implement (first set cursor to nil!)
-            x unittests w/ inserts
-            x unittests w/ erase/insert -> not found
-            x unittests w/ erase/insert w/ overwrites
-        x move to first
-            x first set cursor to nil
-            x then move to first node in the txn tree, and the newest/first 
-                insert-op of this node
-            x couple cursor if it's uncoupled
-            x unittest w/ coupled cursor
-            x unittest w/ nil-cursor
-            x unittest w/ empty tree
-        x move to next
-            - if key is nil: move to first, then done
-            - otherwise move to next op which inserts duplicate
-            - OR move to next node and the newest/first insert-op of this node
-            x unittest w/ nil-cursor -> HAM_CURSOR_IS_NIL
-            x move next w/ coupled cursor
-            x move next at end of tree
-            x move next and skip erased key in same node
-            x move next and skip erased key in different node
-        x move to last
-            - first set cursor to nil
-            - then move to last node in the txn tree, and the newest/first 
-                insert-op of this node
-            x unittest
-        x move to previous
-            analoguous to the above algorithm
-            x unittest
-        x insert a key
-            x insert a few keys
-            x insert and fail w/ DUPLICATE_KEY
-            x insert and overwrite 
-            x insert and create a conflict 
-        x erase a key
-        x overwrite a key
-            x overwrite a nil-cursor -> error
-            x overwrite a key that is in the txn tree
-        x in __couple_cursor: if cursor is already coupled, it must be
-            UNCOUPLED from this cursor (or set to nil)
-        x uncouple ALL attached cursors if an op is flushed - or set the
-            cursors to NIL? in that case we have to make sure that NIL
-            is correctly handled in all functions
-            x review handling of nil cursors
-            x remove the whole UNCOUPLED stuff (the macro, the union etc)
-            x set to nil when op is flushed
-                x unittests
-
-    x separate cursor logic into btree and txn; in db.c, consolidate the
-        two cursors (or move the functions to cursor.c?) - no, it's fine
-        as it is
-        x added txn cursor to the normal cursor
-    x insert: if TXNs are enabled, only call txn_cursor_insert(); otherwise
-        call btree function
-        x create temp. txn if needed
-        x unittests w/ txn
-        x unittests w/ temp txn
-        x unittests w/ btree
-    x document that temp. txn's for a cursor only have the lifetime of
-        the operation, and not of the cursor
-        x in the header file
-    x insert:
-        x if it succeeds w/ txn: set flag CURSOR_COUPLED_TO_TXN
-        x if it succeeds w/o txn: unset flag CURSOR_COUPLED_TO_TXN
-    x move without parameters (retrieve key/record)
-        x create temp. txn if needed
-        x cursor is nil -> error
-        x cursor is bound to txn -> retrieve from txn
-        x cursor is bound to btree -> retrieve from btree
-        x cursor is bound to temp. txn -> was flushed, get from btree
-            x unittest with one cursor
-            x unittest with multiple cursors
-            x reorganize cursor.cpp
-    x find
-        x create temp. txn if needed
-        x find w/ empty everything
-        x find w/ empty txn tree
-        x find w/ btree and key is overwritten in txn-tree
-        x find w/ txn and key is overwritten in txn-tree
-    x erase: if TXNs are enabled, only call txn_cursor_erase(); 
-        otherwise call btree function
-        x create temp. txn if needed
-        x erase w/ item in txn
-        x erase w/ item in btree, overwritten in txn
-        x erase w/ item in btree, overwritten in txn, find item, erase it
-        x erase w/ item in btree (-> if cursor is coupled to btree,
-            then it needs to be coupled in the txn_cursor, too)
-            -> LongTxnCursorTest::eraseInTxnKeyFromBtreeTest
-        x negative erase (nil cursor)
-    x overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
-        otherwise call btree function
-        x create temp. txn if needed
-        x negative overwrite (nil cursor)
-        x overwrite btree item
-        x overwrite item in txn
-    x clone - be careful; we cannot just copy the txn_cursor structure.
-        instead, the cursor must be inserted into the coupled op-linked list
-        x unittest w/ nil-cursor
-        x unittest w/ coupled cursor (coupled to txn)
-        x unittest w/ coupled cursor (coupled to btree)
-        x unittest w/ uncoupled cursor (uncoupled from btree)
-    x close
-        when two cursors point to the same transaction then the transaction
-        cannot be closed till both cursors are closed
-        x also see hamsterdb.c:3481 - is this behavior different from the 
-            btree? no, stays as is
-        x need to uncouple/set to nil before closing
-        x unittest w/ nil cursor
-        x unittest w/ cursor coupled to btree
-        x unittest w/ cursor uncoupled from btree
-        x unittest w/ cursor coupled to txn
-    x move first: use the cursor which is smaller; when deciding on a btree,
-        first check if it wasn't erased by a txn
-        x btree_cursor.c:663 - move one level up (db.c)
-        x unittest w/ empty database
-        x unittest w/ empty txn-tree
-        x unittest w/ empty btree-tree
-        x unittest w/ smaller item in txntree
-        x unittest w/ smaller item in btree
-        x unittest w/ smaller item in btree which is erased in txn
-        x unittest w/ smaller item in btree which is erased, then written in txn
-        x unittest w/ identical items - use txn (it's chronologically newer
-            and could be an INSERT_OW)
-        x repeat all unittests w/ extended keys
-    x move last: use the cursor which is greater (similar to above)
-        x unittests (same as above)
-    x move next: only use the btree cursor for traversing.
-        while (txn.key<=btree.key):
-            return txn.key++;
-        return btree.key++;
-        this should also work when switching directions (but test it!))
-        x unittest w/ empty txn-tree (reach eof in txn)
-        x unittest w/ empty btree-tree (reach eof in btree)
-        x unittest w/ smaller item in txntree
-        x unittest w/ smaller item in btree
-        x unittest w/ multiple smaller items in txntree
-        x unittest w/ multiple smaller items in btree
-        x unittest w/ smaller item in btree which is erased in txn
-        x unittest w/ identical items - use txn (it's chronologically newer
-            and could be an INSERT_OW)
-        x unittest w/ identical items - first key is unique in btree, then
-            duplicates start
-        x unittest w/ identical items - first key is unique in txn-tree, then
-            duplicates start
-        x unittest w/ identical items - keys are identical, but trailing 
-            keys are unique in btree
-        x unittest w/ identical items - keys are identical, but trailing 
-            keys are unique in txn-tree
-        x unittest w/ identical items - sequences where btree keys are 
-            selected, then txn items, then btree items, then txn items
-        x unittests where keys are inserted while the cursor moves
-        x move first: unittest w/ smaller item in btree which is erased in txn
-            LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
-    x move prev: use the cursor which is closer to the current one
-        (similar to above)
-        x unittests (similar to above)
-
-    x ham_cursor_move w/ switching directions
-        x switchDirectionsMixedTest start with txn
-        x switchDirectionsMixedTest start with btree
-        x switchDirectionsMixedTest with sequences of overwritten items
-
-    x ham_cursor_find, then moving cursor
-        ham_cursor_find a txn-key in the middle of the database; now the 
-        txn-cursor is coupled, but the btree-cursor is nil. -> moving 
-        next/prev won't work 
-        x findThenMoveTest fails
-            x split in two tests: one for moving next, one for moving prev
-                and rename to findTxnThenMoveNext/PrevTest
-        x another test like this:
-            TX 1     4     7
-            BT   2 3   5 6
-            find 4, then move next/prev
-        x add more tests like this:
-            TX 1 2 3 4 5
-            BT     3 
-            find 3, then move next/prev
-            TX     3
-            BT 1 2 3 4 5
-            find 3, then move next/prev
-        x "invert" the existing tests and find a btree key instead of a 
-            txn key (need approx. matching for the txn)
-        x same tests with using ham_cursor_insert instead of ham_cursor_find
-
-    x ham_cursor_move w/ cursor on aborted key
-        couple a cursor to an item, then abort the transaction. abort must
-        fail!
-        x add a unittest; it should work out of the box
-
-    x ham_cursor_move w/ cursor on flushed key
-        not allowed while cursors are active
-        x add a unittest; it should work out of the box
-
-    x when erasing items with a cursor: all items coupled to the btree
-        AND to the op have to be uncoupled! 
-        -> cursors in the current transaction have to be nil'led
-        -> when the txn is flushed, ALL cursors that are attached to
-            the op must be nil'led
-        -> when a btree key is flushed, all attached cursors will be nil'led
-            (also their txn part)
-        x verify with unittests
-            x two cursors in the same txn point to the same key (node); one 
-                cursor erases the key -> both cursors must be nil
-            x rename __uncouple_cursors_in_node to __nil_cursors_in_node
-            x couple cursor, then overwrite w/ other cursor and delete
-                the other cursor - first one must be nil'led, too
-            x place two cursors, then call ham_erase instead of ham_cursor_erase
-            x commit the txn, but do not flush it (i.e. because an older txn
-                is not yet committed). couple another cursor to this op, then
-                flush the txn. both cursors must become nil.
-        x unittest w/ smaller item in btree which is erased, then written in txn
-        x unittest w/ smaller item in btree which is erased in txn
-            LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
-        x check if other unittests can be re-enabled
-        x LongTxnCursorTest::moveNextWhileErasingTest - check for nil
-
-    x implement support for duplicates
-        the problem with duplicates is that their position can depend on
-        other factors, i.e. the (volatile) position of the neighbor
-        element (when using DUPLICATE_AFTER) or the sort position. therefore
-        we have to consolidate ALL duplicates whenever we traverse or
-        modify them (but not if they're flushed).
-
-        we need to store a "virtual" duplicate table whenever it is required.
-        the duplicate-id of the cursor is the index in this table.
-        This requires some refactoring in the cursor. 
-
-        The duplicate list is cached in the cursor. It can't be stored in
-        the node since the list depends on the transaction isolation level
-        and the transaction itself.
-
-        The functions ham_cursor_erase and ham_cursor_overwrite are always
-        referring to an existing duplicate. We will identify this duplicate
-        by its ID (which is the position in the duplicate table). On erase and
-        insert these positions have to be adjusted.
-
-        The following operations have to build up such a duplicate list:
-        - ham_cursor_insert
-        - ham_cursor_move (unless duplicates are skipped)
-        - ham_erase - clears the whole list
-        - ham_cursor_erase - 
-        - ham_find and ham_cursor_find for a key that has duplicates 
-            (could be optimized by returning the oldest btree dupe; if btree
-            does not have dupes then return the oldest txn-dupe)
-        
-        x create functions to manage dynamic lists of duplicates
-            x create
-                x implement
-                x add unittest
-            x append to the list
-                x implement
-                x add unittest
-            x insert at a given position
-                x implement
-                x add unittest
-                    x insert always at position 0 
-                    x insert at end positions
-                    x insert at mixed positions
-            x erase from a given position
-                x implement
-                x add unittest
-                    x erase always at position 0 
-                    x erase at end positions
-                    x erase at mixed positions
-            x invalidate/clear the list
-                x implement
-                x add unittest
-        x couple cursor to a duplicate in the btree- already exists
-        x couple cursor to a duplicate in the txn-tree
-
-        x implement test-driven
-            x insert duplicates in btree (and move through them)
-            x insert duplicates w/ LAST (default)
-            x insert duplicates w/ FIRST
-            x insert duplicates for several keys (only in btree)
-            x insert duplicates for several keys (only in txn)
-
-            x txn_cursor_move: do NOT update dupe cache! 
-            x txn_cursor_move: when moving through btree, always SKIP dupes
-            x immediately AFTER do_local_cursor_move: check if key (either
-                btree or txn) is a duplicate. if yes then build the duplicate
-                list (and continue to traverse it)
-            x cursor_update_dupecache: bekommt flags ob nur txn, nur btree
-                oder beides ausgelesen werden soll
-                cursor_update_dupecache(cursor, flags)
-                die flags sind das ergebnis von do_cursor_local_move
-            x make sure we have no regressions
-
-            x get key (move without direction)
-            x get record (move without direction)
-
-            x move cursor...
-                x first
-                x last
-                x next w/ dupes
-                x previous w/ dupes
-                x only btree dupes
-                x only txn dupes
-                x with mixed dupes
-                x next w/ skip
-                x previous w/ skip
-
-            x find cursor - make sure that conflicts are checked - unittest
-            x find - make sure that conflicts are checked - unittest
-
-            x erase all duplicates (ham_erase)
-                x test basic functionality
-                x what about conflicts? check EVERY duplicate in
-                    the txn if it conflicts
-
-            x clone cursor: make sure that the new cursor is coupled to the
-                same duplicate
-                x unittest
-
-            x ham_cursor_insert: couple cursor to the dupe
-
-            x ham_find: must return same result as btree-ham_find (first dupe)
-                x DupeCursorTest::findInDuplicatesTest fails
-                x DupeCursorTest::cursorFindInDuplicatesTest fails
-
-            x insert duplicates w/ FIRST 
-            x insert duplicates w/ AFTER and mixed btree/txn keys
-            x insert duplicates w/ LAST
-            x insert duplicates w/ BEFORE and mixed btree/txn keys
-
-            x a simple test with > 8 duplicates to make sure that the 
-                dupecache is correctly extended
-                
-            x overwrite duplicates - need to store the referenced dupe-id
-                in the op, and then consolidate in cursor_update_dupecache
-                x in txn-tree
-                x in btree-tree
-                x if the transaction conflicts: return error!
-                    -> implemented, but not testable because it's not possible
-                    to position a cursor from a different txn on a duplicate
-                    from a conflicting txn
-
-            x erase duplicates (ham_cursor_erase)
-                x erase first of 3 duplicates
-                x erase second of 3 duplicates
-                x erase third of 3 duplicates
-                x erase all of 3 duplicates
-                x erase all of 3 duplicates, but have a second key
-                x erase all of 3 duplicates, but have a first key (reverse)
-                x same as above, but with ham_cursor_find
-                x all (!!!) tests with btree-tree
-                x all (!!!) tests with mixed btree/txn-tree
-
-            x analoguous to insertFirstTest (and others), but erase keys
-                x eraseFirstTest
-                x eraseLastTest
-                x eraseAfterTest
-                x eraseBeforeTest
-
-            x sorting duplicates
-                ==> postpone to next release
-                x unittest
-                x document in changelog and header file
-
-            x get_duplicate_count
-                x create a temp. transaction if there's no transaction
-                x w/ non-existing key
-                x w/ 1 txn-key
-                x w/ 1 btree-key
-                x w/ mixed txn/btree keys
-                x w/ overwriting txn/btree keys
-                x w/ erasing txn/btree keys 
-                        (DupeCursorTest::countMixedErasedTest)
-                x w/o HAM_ENABLE_DUPLICATES and a transaction
-
-            x test with tiny, small, null records
-                x review use of dupe_entry_get_rid in cursor.c
-                    -> not used, and btree_flags are also not used - removed
-                x add unittests
-
-            x if ANY duplicate key is conflicting, then ALL duplicate keys
-                are conflicting!
-                x document this behavior in the header file
-                x what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
-                    -> return an error
-                x implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
-                    -> completely skip
-                x identify all functions which are affected and cover with
-                    unittests
-                    x ham_cursor_move
-                        x first
-                        x last
-                        x next
-                        x previous
-                    x ham_insert
-                    x ham_erase
-                    x ham_find
-                    x ham_cursor_insert
-                    x ham_cursor_find
-                    x ham_cursor_erase -- can't happen
-                    x ham_cursor_overwrite -- can't happen
-
-            x when inserting w/ a cursor, the duplicate index is currently
-                not set correctly -> can be verified with a sequence of
-                insert_dupe/erase -> will erase the wrong duplicate
-                x fails in RemoteTest::cursorGetDuplicateCountTest
-                x create separate tests
-                x also test w/ overwrite
-
-    x review all loops that are like...
-        op=txn_node_get_newest();
-        while (op) { 
-            ...
-            op=txn_op_get_next_in_node(op);
-        }
-        -> cursor.c uses a different loop because this one was not working!
-        -> yes, all loops were broken (but it had no consequences, since the
-            loop was never really executed)
-
-x some unittests are still failing, i.e. PartialInsert/SortedDupes, since 
-    these are no longer allowed in combination with Transactions
-
-x add hamsterdb.spec file from 1.1.8
-    https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
-    x make sure that the version information is automatically updated!
-
-x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
-    (also on master branch)
-
-x currently, two log sub-systems are used. one for logical journal and the 
-    other for the physical one. in a later version we will only use the journal
-    (or at least try to get rid of the physical log as much as possible). but
-    the architecture needs to be prepared already now
-    x how will recovery work, if the lsn is older than the journal?
-        if the latest entry in the log is i.e. lsn 15, and the journal 
-        continues with 20, in which problems can we run into?
-        -> when recovering, we ALWAYS follow the journal, as the journal
-           contains ALL operations, and the log only a few. If journal.lsn
-           == log.lsn then the log is applied and the journal is skipped. 
-           if journal.lsn > log.lsn then the log is discarded.
-    x if there's any SMO and the physical log is re-applied - are all 
-        operations idempotent? -- yes, because the log only writes full pages.
-
-x check all TODOs in the sources
-
-x the doxygen documentation is horrible. When opening the start page I have
-    *NO* idea what to look for. The start page needs an introduction and 
-    some links!
-    x also do this for the master branch
-
-x obsolete HAM_ENABLE_INTERNAL and --enable-internal
-    x also remove from README.TXT
-    x add to Changelog
-
-x version on this branch is 2.0.0 rc.1 UNSTABLE
-
-x monster tests currently don't test with transactions (only with recovery)
-    x cleanup (i.e. remove matrix) and move to github
-    x new mode -txn/--transactions
-        x add config values/getopt stuff
-        x mode 1: create temporary transactions
-        x mode 2: group N (i.e. 5) operations in a single transaction
-        x mode 3: the whole test in a single transaction
-        x add the new parameters to monster testsuite
-    x the cmdline parameters are not intuitive and consistent - clean up
-        x getopts: remove the single parameters - they're not required
-        x getopts: if a file starts with a '/' then it's not found
-    x some are failing (AES?) 
-        x --use-recovery --reopen        ../../testfiles/1/ext_021.tst
-        x --use-recovery --reopen        ../../testfiles/3/ext_022.tst
-        x all w/ --use-compression --reopen
-        x check again all tests w/ recovery - something got stuck 
-                (endless loop?)
-    . AES is currently disabled in main.cpp - why??
-    x if a duplicate is erased, then it's erased correctly from the txn-tree.
-        but it's not erased as a single duplicate from the btree. instead,
-        ALL btree dupes are erased. (env.c:1581).
-        --use-transactions=tmp --use-cursors --duplicate ../../testfiles/1/100.tst 
-        (and others)
-        x i think i fixed it in the code
-            x needs unittests
-            x check monster tests
-
-x add other pending patches from master
-    x cache and db.c:__purge_cache
-    x recovery issues
-
-x port to Win32
-
-x add other pending patches from master
-    x cache and db.c:__purge_cache
-    x recovery issues
-    x HAM_WRITE_THROUGH fixes of 1.1.11 - implemented in journal, but also 
-        verify that all other file handles are flushed! (if HAM_WRITE_THROUGH
-        is set)
-
-x test with lessfs
-
-o don't forget to test with valgrind!
+x c++-ify the page
+    x page->is_header() instead of page_get_self()==0
+
+x design redundancy
+    x identify toolkit (TBB, boost?) - go for boost, but we can use both later
+        x both have fast mutex implementations, esp on Win32
+        x tbb seems to have better memory allocators, but uses native API
+            more often (i.e. for TLS), and in these cases boost might be faster
+        x boost is more likely already installed
+    x design code; who locks what?
+      x disable concurrency during compilation? -- no, not required
+
+o implement basic concurrency
+    x ./configure: add dependency to boost
+    x abstract boost stuff using typedefs:
+        x thread
+        x mutex
+        x scopedlock
+        x condition
+        x tls
+    o from each public handle: need a way to lock the Env
+        x Env
+        o Db
+            o store key data in TLS
+        o Cursor
+        o Txn
+        o what else?
+    o hamsterdb.cc:1064 releases curl - make sure this is threadsafe
+    o should work with and without redundancy; if redundancy is disabled
+        then there should not be ANY performance penalty!
+
+o implementation of hamsterdb should move into a namespace; otherwise
+    there are conflicts if users have a C++ class called Database or
+    Environment etc
+
+o implement a full test suite (including gathering of performance metrics etc)
+    o refactor monster test and include multi-threading
+        x single point for collecting metrics
+        x also collect file sizes
+        x --profile should be enabled by default; to disable: --quiet
+        x collect performance information based on times(2), not duration
+            http://www.delorie.com/gnu/docs/glibc/libc_430.html
+            -- no, does not work! times are just too short
+        x can run ham2 vs bdb or alone, default is ham2 vs bdb
+            x single backend: skip fullcheck
+        o needs new option --num-threads
+        o threads run same test in parallel, in different database
+        o threads run each line round-robin and synchronize in fullcheck
+            o in ham_find: all threads of a database handler synchronize
+            o in fullcheck: all threads of ALL database handlers synchronize
+
+    o has a wrapper script (http://search.cpan.org/~garu/App-Rad-1.04/)
+        that calls and manages the file, gathers the metrics, generates
+        tests, create graphs, builds and links the binaries etc
+        o needs a config file which describes input/output paths etc
+        o monster.pl run-suite 1
+        o monster.pl run-test ../../testsuite/1/1.tst --options...
+            o integrate valgrind/hellgrind
+            o integrate ThreadSanitizer
+            o integrate clang
+        o monster.pl create-graphs
+        o monster.pl create-test --options...
+
+    o need a way to graphically display performance metrics
+        o output in a text file
+            version/configuration/test-id
+            each test is run in multiple threads
+                performance-metrics based on time(), not real duration
+                memory-metrics
+                disk size
+                same for berkeleydb
+        o skript that generates a static html page from this file, 
+            w/ graphs over the different versions
+
+    o need a "load-generator" which runs for a defined duration 
+        - max number of keys, max bytes to insert
+        - key distribution: random, ascending, descending, zipfian, ...
+        - duplicates yes/no
+        - ...
+        - before execution: dump into a (temp.) file, and if the test fails:
+            copy the file to a reserved directory
+        - read from file (this is the same as we have now)
+
+o clean up the "close" functions
+    o ham_close - move all functionality to Database::close
+    o ham_env_close - move all functionality to Environment::close
+    o ~Database: call close(), then simplify all code
+    o ~Environment: call close(), then simplify all code
+    o Cursor::close: currently (nearly) empty; merge with ~Cursor and
+        Database::close_cursor()
+
+o python API - update and integrate
+    o also add to win32 package
+
+o mail an Tony B, Curt M., andere
+
+
+
+o continue with c++-ification of the environment - need to split into
+    local and remote (same as for Database class)
+
+o need a function to get the txn of a conflict (same as in v2)
+    ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
+        oder: txn-id zurückgeben?
+    o also add to c++ API
+    o add documentation (header file)
+    o add documentation (wiki)
+
+o recovery: re-create pending transactions (if required)
+    o needs a function to enumerate them
+
+. c++-ify the backend
+    o remove be_set_dirty, replace with be->_fun_flush()
+
+. c++-ify the transaction
+
+. android port (needs new java api) in /contrib directory (it's on a separate
+    branch)
+
+. new test case for cursors
+    insert (1, a)
+    insert (1, b) (duplicate of 1)
+    move (last) (-> 1, b)
+    insert (1, c)
+    move (last) (-> 1, c)? is the dupecache updated correctly?
+
+. look for someone who can write a PHP or Perl or Ruby wrapper
+
+. implement support for partial keys
+
+. test with tcmalloc; if it works then also use it in the master branch, but
+    make sure that memory consumption does not increase significantly
+
+. there are a couple of areas where a btree cursor is uncoupled, just to 
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
+    functor or class w/ operator() instead
+. changeset: use a generic hash table for fast lookup (but leave list in place
+    for everything else)
+. cache: use a generic hash table
+
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
+
+. the whole c++ protocol should be c++-ified
+
+. move the whole configuration (key sizes, parameters, page size, etc) into a 
+    separate class which is instantiated by the env
+
+. c++-ify the btree node representation; 
+    o include duplicates as well! disentangle duplicates from blob-handling
+
+. c++-ify the blob handling and split off the duplicates
+
+. cleanup db.h/db.cc - move functions into Database or 
+    DatabaseImplementationLocal namespace - but take care b/c these functions
+    are also used by Cursor or other modules which don't necessarily have
+    access to the Local stuff
+    o db_get_key_count
+    o db_alloc_page
+    o db_fetch_page
+    o db_insert_txn
+    o db_erase_txn
+    o db_find_txn
+    o db_check_insert_conflicts
+    o db_check_erase_conflicts
+    o __increment_dupe_index
+
+. c++-ify everything else
+
+. device, page and os shold no longer return errors but throw exceptions
+
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+. new flag for transactions: HAM_TXN_WILL_COMMIT
+    if this flag is set, then write all records directly to the blob, not
+    to the log. the log will only contain the rid.
+    o document this (and also the drawback - that an abort will lose the 
+        blobs and they cannot be reused
+    -> this affects all temporary ham_insert-transactions 
+    (not sure if this should get high priority)
 
 o hamsterdb.com
     x add twitter feed
@@ -971,25 +212,6 @@ o hamsterdb.com
     o crupp.de: do a backup of the database
     . google +1 button
     . can we use something like Aller.font?
-
-o release 2.0.0rc1 UNSTABLE
-    x merge changelogs
-    o new item on download section (webpage)
-    . test performance against 1.1.11 (as part of monster-testsuite)
-
-x fix monster tests
-    x monster-txn is still failing 
-    	x ./test --use-transactions=20 --duplicate --use-cursors 
-			../../testfiles/2/40.tst
-			../../testfiles/2/44.tst
-			../../testfiles/2/48.tst
-			../../testfiles/2/49.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors 
-			../../testfiles/1/220.tst
-			../../testfiles/1/46.tst
-    	x ./test --use-transactions=20 --duplicate --use-cursors 
-			../../testfiles/1/202.tst
-    x unittests are failing
 
 o update documentation
     x in header file
@@ -1005,6 +227,7 @@ o update documentation
         o cache
         o I/O
         o unittests
+        o cursor(s)
         o monstertests - how to use them?
 
 o fully (!) automize the whole release process for unix; the result (on
@@ -1016,138 +239,32 @@ o fully (!) automize the whole release process for unix; the result (on
     o the release notes (a template)
     o the output (xml) of the monster tests
 
-XXXXXXXXXXXXXXXXXX release as version 2.0.0 rc.1 UNSTABLE XXXXXXXXXXXXXXXXXXXX
-
 . port to WinCE
 
-o db_compare_keys can return errors - do we really need this??
-
-o cleanups: the backend structure does not need the function pointers. 
-    simplify the whole interface!
-
-o cursor_has_duplicates: move to cursor.c; often is used in boolean form, but
-    should be: true if >1, false if <=1
-
-o cleanups: the cursor does not need the function pointers. 
-    simplify the whole interface!
-
-o monster-test
-    o track memory consumption
-    o add/finalize xml output
-
-o be_set_dirty is not really required, is it? the flushes are always explicit
-
-o cleanup the cache - the garbagelist is not needed, and the age of the pages
-    is also not needed (unless it turns out to improve the performance)
-    o the cache should give preference to index pages
-
-. need a function to get the txn of a conflict (same as in v2)
-
-o test with lessfs (and add lessfs to the monster testsuite)
-    o test with reboots - like those that made problems with lessfs
-
 o how can we extend the monster-tests to have reliable tests for transactions?
-
-o refactor cursor; separate backend-cursor and txn-cursor; make the 
-    "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
-    have to couple, and check if it was erased in the meantime!
-    or: - cursor tracks state if it's coupled to txn or btree
-        - when coupling, caller can select whether to couple to btree or txn
-            cursor_couple(TXN || BTREE)
-        o the btree_cursor.* files need some rework/reformatting/renaming
-        o also, txn_cursor.c is not isolated well enough; it sometimes 
-            accesses the btree_cursor. 
-
-        o extend/reorganize the cursor code. add a dynamic list of 
-            duplicates for the cache (and in debug-mode also track the key
-            that is coupled).
-            high level cursor can manage
-                - its state (nil; coupled to txn; coupled to btree)
-                - implements the local functions
-                - the duplicate cache (optional, only if txn's are used)
-                - parent of the txn-cursor
-                - parent of the btree-cursor
-    o use a single dupecache for btree and txn-tree (currently, the btree
-        cursor has it's own)
-    o completely rewrite _local_cursor_move
-
-o add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
-
-o improve journalling and get rid of the physical log as much as possible
-    o recovery: recreate all pending transactions (if requested)
-    o unittests
-    o merge log and journal. There's no need to have two different files. 
-        For all 'simple' operations (insert, erase w/o SMO) a journal entry is 
-        sufficient. For all other operations we can just append the log
-        entries to the journal file. in such cases, the journal entry of an
-        insert or erase (w/ SMO) contains the modified pages as well.
-        ??? really? does that simplify things?
-    o api function to get a list of pending transactions after recovery
-    o be careful - even if the btree operations are atomic, the whole
-        insert/erase is not because it also affects the blob area and the
-        freelist (and maybe the header page, if the root page address is
-        modified)
-        -> this is where we might have to rewrite the btree insert algorithm
-
-o if recovery is enabled: before flushing the changeset, patch the lsn in
-    the page header (it fits in 8 free bytes). in the previous release we 
-    stored the lsn in the log file header. this can be removed; use the 
-    lsn in the page header for recovery.
-    --> why?? i think the current solution is good enough
 
 . if memory consumption in the txn-tree is too high: flush records to disk
     (not sure if this should get high priority)
 
-o new flag for transactions: HAM_TXN_WILL_COMMIT
-    if this flag is set, then write all records directly to the blob, not
-    to the log. the log will only contain the rid.
-    o document this (and also the drawback - that an abort will lose the 
-        blobs and they cannot be reused
-    -> this affects all temporary ham_insert-transactions 
-    (not sure if this should get high priority)
-
-o ham_txn_begin receives Environment handle, not Database handle
-    o need a new parameter (reserved) for parent txn
-    o need a new parameter for txn name (string)
-        o this needs a getter function
-    o update unittests/add new tests
-    o update C++ API
-    o rewrite auto-abort/auto-commit -> move to env
-    o what happens if a database is closed, but it's modified by a txn
-        that is still active? -> error (verify this!)
-
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
 
-. extkeys: don't use txn_id for the 'age', use lsn instead
+o extkeys: don't use txn_id for the 'age', use lsn instead
+
+o the DatabaseImplementation subclass is not neccessary; all subclasses
+    can directly derive from Database. 
 
 . allow use of transactions without a log/journal
 
 . allow use of transactions for in-memory databases
 
-. opnode: use key instead of key* (pointer) - this saves one allocation 
-    per node
+XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-. cache-garbagelist no longer used - remove it?
-
-. journal->_lsn - no longer needed?
-
-. log_entry_t: txn_id still needed?
-
-. log_t: allocator _alloc still needed? we have the Env pointer
-
-. should the changeset become part of the log? it would make sense
-
-. do some profiling - i am afraid that changeset_get_page() is not efficient
-    enough; maybe a hash table is better?
-
-. many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 rc2 UNSTABLE XXXXXXXXXXXXXXXXXXXXXXXXXXX
+o ham_get_count: could be atomically updated with every journal entry
 
 o when flushing a changeset: sort by offset, use writev()
+
+o add concurrency (on a high level)
 
 o flush transactions in background
 
@@ -1155,5 +272,4 @@ o flush transactions in background
     async.)
 
 o continue as described in integrate-ham2.txt...
-
 

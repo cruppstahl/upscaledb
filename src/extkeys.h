@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,164 +17,152 @@
 #ifndef HAM_EXTKEYS_H__
 #define HAM_EXTKEYS_H__
 
+#include <vector>
+
 #include "internal_fwd_decl.h"
+#include "hash-table.h"
+#include "mem.h"
+#include "env.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-/**
- * an extended key
- */
-struct extkey_t
-{
-    /** the blobid of this key */
-    ham_offset_t _blobid;
-
-    /** the age of this extkey */
-    ham_u64_t _age;
-
-    /** pointer to the next key in the linked list */
-    extkey_t *_next;
-
-    /** the size of the extended key */
-    ham_size_t _size;
-
-    /** the key data */
-    ham_u8_t _data[1];
-
-};
-
-/** the size of an extkey_t, without the single data byte */
-#define SIZEOF_EXTKEY_T                     (sizeof(extkey_t)-1)
-
-/** get the blobid */
-#define extkey_get_blobid(e)                (e)->_blobid
-
-/** set the blobid */
-#define extkey_set_blobid(e, id)            (e)->_blobid=(id)
-
-/** get the age of this extkey */
-#define extkey_get_age(e)                   (e)->_age
-
-/** set the age of this extkey */
-#define extkey_set_age(e, age)              (e)->_age=(age)
-
-/** get the next-pointer */
-#define extkey_get_next(e)                  (e)->_next
-
-/** set the next-pointer */
-#define extkey_set_next(e, next)            (e)->_next=(next)
-
-/** get the size */
-#define extkey_get_size(e)                  (e)->_size
-
-/** set the size */
-#define extkey_set_size(e, size)            (e)->_size=(size)
-
-/** get the data pointer */
-#define extkey_get_data(e)                  (e)->_data
+#define EXTKEY_MAX_AGE  25
 
 /**
  * a cache for extended keys
  */
-struct extkey_cache_t
+class ExtKeyCache
 {
+    struct extkey_t
+    {
+        /** the blobid of this key */
+        ham_offset_t _blobid;
+
+        /** the age of this extkey */
+        ham_u64_t _age;
+
+        /** pointer to the next key in the linked list */
+        extkey_t *_next;
+
+        /** the size of the extended key */
+        ham_size_t _size;
+
+        /** the key data */
+        ham_u8_t _data[1];
+    };
+
+    class ExtKeyHelper
+    {
+      public:
+        ExtKeyHelper(Environment *env) : m_env(env) { }
+
+        ham_offset_t key(const extkey_t *extkey) {
+            return (extkey->_blobid);
+        }
+
+        unsigned hash(const extkey_t *extkey) {
+            return ((unsigned)extkey->_blobid);
+        }
+
+        unsigned hash(const ham_offset_t &rid) {
+            return ((unsigned)rid);
+        }
+
+        bool matches(const extkey_t *lhs, const extkey_t *rhs) {
+            return (lhs->_blobid==rhs->_blobid);
+        }
+
+        bool matches(const extkey_t *lhs, ham_offset_t key) {
+            return (lhs->_blobid==key);
+        }
+
+        extkey_t *next(const extkey_t *node) {
+            return (node->_next);
+        }
+
+        void visit(const extkey_t *node) {
+        }
+
+        void free_node(const extkey_t *node) {
+            m_env->get_allocator()->free(node);
+        }
+
+        void set_next(extkey_t *node, extkey_t *other) {
+            node->_next=other;
+        }
+
+        bool remove_if(const extkey_t *node) {
+            if (m_removeall) {
+                free_node(node);
+                return (true);
+            }
+            if (m_env->get_txn_id()-node->_age>EXTKEY_MAX_AGE) {
+                free_node(node);
+                return (true);
+            }
+            return (false);
+        }
+
+        /* if true then remove_if() will remove ALL keys; otherwise only
+         * those that are old enough */
+        bool m_removeall;
+
+      private:
+        Environment *m_env;
+    };
+
+  public:
+    /** the default constructor */
+    ExtKeyCache(Database *db);
+
+    /** the destructor */
+    ~ExtKeyCache();
+
+    /**
+     * insert a new extended key in the cache
+     * will assert that there's no duplicate key! 
+     */
+    void insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data);
+
+    /**
+     * remove an extended key from the cache
+     * returns HAM_KEY_NOT_FOUND if the extkey was not found
+     */
+    void remove(ham_offset_t blobid);
+
+    /**
+     * fetches an extended key from the cache
+     * returns HAM_KEY_NOT_FOUND if the extkey was not found
+     */
+    ham_status_t fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data);
+    
+    /**
+     * removes all OLD keys from the cache
+     */
+    void purge(void);
+    
+    /**
+     * removes ALL keys from the cache
+     */
+    void purge_all(void);
+
+  private:
     /** the owner of the cache */
-    ham_db_t *_db;
+    Database *m_db;
 
     /** the used size, in byte */
-    ham_size_t _usedsize;
+    ham_size_t m_usedsize;
 
-    /** the number of buckets */
-    ham_size_t _bucketsize;
+    /** helper object for the cache */
+    ExtKeyHelper *m_extkeyhelper;
 
-    /** the buckets - a linked list of extkey_t pointers */
-    extkey_t *_buckets[1];
-
+    /** the buckets - a list of extkey_t pointers */
+    hash_table<extkey_t, ham_offset_t, ExtKeyHelper> m_hash;
 };
-
-/** get the owner of the cache */
-#define extkey_cache_get_db(c)          (c)->_db
-
-/** set the owner of the cache */
-#define extkey_cache_set_db(c, db)       (c)->_db=(db)
-
-/** get the used size of the cache */
-#define extkey_cache_get_usedsize(c)     (c)->_usedsize
-
-/** set the used size of the cache */
-#define extkey_cache_set_usedsize(c, s)  (c)->_usedsize=(s)
-
-/** get the number of buckets */
-#define extkey_cache_get_bucketsize(c)     (c)->_bucketsize
-
-/** set the number of buckets */
-#define extkey_cache_set_bucketsize(c, s)  (c)->_bucketsize=(s)
-
-/** get a bucket */
-#define extkey_cache_get_bucket(c, i)      (c)->_buckets[i]
-
-/** set a bucket */
-#define extkey_cache_set_bucket(c, i, p)   (c)->_buckets[i]=(p)
-
-/**
- * create a new extended key-cache
- */
-extern extkey_cache_t *
-extkey_cache_new(ham_db_t *db);
-
-/**
- * destroy the cache; does NOT delete the cache buckets!
- */
-extern void
-extkey_cache_destroy(extkey_cache_t *cache);
-
-/**
- * insert a new extended key in the cache
- * will assert that there's no duplicate key! 
- */
-extern ham_status_t
-extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid, 
-            ham_size_t size, const ham_u8_t *data);
-
-/**
- * remove an extended key from the cache
- * returns HAM_KEY_NOT_FOUND if the extkey was not found
- */
-extern ham_status_t
-extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid);
-
-/**
- * fetches an extended key from the cache
- * returns HAM_KEY_NOT_FOUND if the extkey was not found
- */
-extern ham_status_t
-extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid, 
-            ham_size_t *size, ham_u8_t **data);
-
-/**
- * removes all OLD keys from the cache
- */
-extern ham_status_t
-extkey_cache_purge(extkey_cache_t *cache);
-
-/**
- * removes ALL keys from the cache
- */
-extern ham_status_t
-extkey_cache_purge_all(extkey_cache_t *cache);
 
 /**
  * a combination of extkey_cache_remove and blob_free
  */
-extern ham_status_t
-extkey_remove(ham_db_t *db, ham_offset_t blobid);
+extern ham_status_t 
+extkey_remove(Database *db, ham_offset_t blobid);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_EXTKEYS_H__ */

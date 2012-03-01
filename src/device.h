@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,206 +19,410 @@
 #define HAM_DEVICE_H__
 
 #include "internal_fwd_decl.h"
+#include "os.h"
+#include "mem.h"
+#include "db.h"
 
+class Page;
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+class Device {
+  public:
+    /** constructor */
+    Device(Environment *env, ham_u32_t flags) 
+      : m_env(env), m_flags(flags), m_freelist_cache(0) { 
+        /*
+         * initialize the pagesize with a default value - this will be
+         * overwritten i.e. by ham_open, ham_create when the pagesize 
+         * of the file is known
+         */
+        set_pagesize(get_pagesize());
+    }
 
-/**
- * the device structure
- */
-struct ham_device_t {
-    /**
-     * create a new device 
-     */
-    ham_status_t (*create)(ham_device_t *self, const char *fname, 
-            ham_u32_t flags, ham_u32_t mode);
+    /** virtual destructor */
+    virtual ~Device() { 
+    }
 
-    /**
-     * open an existing device
-     */
-    ham_status_t (*open)(ham_device_t *self, const char *fname, 
-            ham_u32_t flags);
+    /** Create a new device */
+    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+                ham_u32_t mode) = 0;
 
-    /**
-     * close the device
-     */
-    ham_status_t (*close)(ham_device_t *self);
+    /** opens an existing device */
+    virtual ham_status_t open(const char *filename, ham_u32_t flags) = 0;
 
-    /**
-     * flushes the device
-     */
-    ham_status_t (*flush)(ham_device_t *self);
+    /** closes the device */
+    virtual ham_status_t close() = 0;
 
-    /**
-     * truncate/resize the device
-     */
-    ham_status_t (*truncate)(ham_device_t *self, ham_offset_t newsize);
+    /** flushes the device */
+    virtual ham_status_t flush() = 0;
 
-    /**
-     * returns true if the device is open
-     */
-    ham_bool_t (*is_open)(ham_device_t *self);
+    /** truncate/resize the device */
+    virtual ham_status_t truncate(ham_offset_t newsize) = 0;
 
-    /**
-     * get the current file/storage size
-     */
-    ham_status_t (*get_filesize)(ham_device_t *self, ham_offset_t *length);
+    /** returns true if the device is open */
+    virtual bool is_open() = 0;
 
-    /**
-     * seek position in a file
-     */
-    ham_status_t (*seek)(ham_device_t *self, ham_offset_t offset, int whence);
+    /** get the current file/storage size */
+    virtual ham_status_t get_filesize(ham_offset_t *length) = 0;
 
-    /**
-     * tell the position in a file
-     */
-    ham_status_t (*tell)(ham_device_t *self, ham_offset_t *offset);
+    /** seek position in a file */
+    virtual ham_status_t seek(ham_offset_t offset, int whence) = 0;
 
-    /**
-     * reads from the device; this function does not use mmap
-     */
-    ham_status_t (*read)(ham_device_t *self, 
-            ham_offset_t offset, void *buffer, ham_offset_t size);
+    /** tell the position in a file */
+    virtual ham_status_t tell(ham_offset_t *offset) = 0;
 
-    /**
-     * writes to the device; this function does not use mmap,
-     * the data is run through the file filters
-     */
-    ham_status_t (*write)(ham_device_t *self, 
-            ham_offset_t offset, void *buffer, ham_offset_t size);
+    /** reads from the device; this function does not use mmap */
+    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+                ham_offset_t size) = 0;
 
-    /**
-     * reads a page from the device; this function CAN use mmap
-     */
-    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page);
+    /** writes to the device; this function does not use mmap,
+     * and is responsible for writing the data is run through the file 
+     * filters */
+    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+                ham_offset_t size) = 0;
 
-    /**
-     * writes a page to the device
-     */
-    ham_status_t (*write_page)(ham_device_t *self, ham_page_t *page);
+    /** reads a page from the device; this function CAN use mmap */
+    virtual ham_status_t read_page(Page *page) = 0;
 
-    /**
-     * get the pagesize for this device
-     */
-    ham_size_t (*get_pagesize)(ham_device_t *self);
+    /** writes a page to the device */
+    virtual ham_status_t write_page(Page *page) = 0;
 
-    /**
-     * set the pagesize for this device
-     */
-    ham_status_t (*set_pagesize)(ham_device_t *self, ham_size_t pagesize);
-
-    /**
-     * set the device flags
-     */
-    void (*set_flags)(ham_device_t *self, ham_u32_t flags);
-
-    /**
-     * get the device flags
-     */
-    ham_u32_t (*get_flags)(ham_device_t *self);
-
-    /**
-     * allocate storage from this device; this function 
-     * will *NOT* use mmap.
-     */
-    ham_status_t (*alloc)(ham_device_t *self, ham_size_t size, 
-            ham_offset_t *address);
+    /** allocate storage from this device; this function 
+     * will *NOT* use mmap.  */
+    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) = 0;
 
     /**
      * allocate storage for a page from this device; this function 
-     * @e can use mmap.
+     * can use mmap if available
      *
      * @note
      * The caller is responsible for flushing the page; the @ref free_page 
      * function will assert that the page is not dirty.
      */
-    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page);
+    virtual ham_status_t alloc_page(Page *page) = 0;
 
-    /**
-     * frees a page on the device; plays counterpoint to @ref alloc_page.
-     */
-    ham_status_t (*free_page)(ham_device_t *self, ham_page_t *page);
+    /** frees a page on the device; plays counterpoint to @ref alloc_page */
+    virtual ham_status_t free_page(Page *page) = 0;
 
-    /**
-     * destroy the device object, free all memory
-     */
-    ham_status_t (*destroy)(ham_device_t *self);
+    /** get the Environment */
+    Environment *get_env() {
+        return (m_env);
+    }
 
-    /** the memory allocator */
-    mem_allocator_t *_malloc;
+    /** get the pagesize for this device */
+    ham_size_t get_pagesize() {
+        return (m_pagesize);
+    }
 
+    /** set the pagesize for this device */
+    void set_pagesize(ham_size_t pagesize) {
+        m_pagesize=pagesize;
+    }
+
+    /** set the device flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** get the device flags */
+    ham_u32_t get_flags() {
+        return (m_flags);
+    }
+
+    /** set the freelist cache */
+    void set_freelist_cache(freelist_cache_t *cache) {
+        m_freelist_cache=cache;
+    }
+
+    /** get the freelist cache */
+    freelist_cache_t *get_freelist_cache() {
+        return (m_freelist_cache);
+    }
+
+  protected:
     /** the environment which employs this device */
-    ham_env_t *_env;
+    Environment *m_env;
 
     /** Flags of this device
      *
-     * Currently, these flags are used (at leas):
+     * Currently, these flags are used (at least):
      * - @ref HAM_DISABLE_MMAP do not use mmap but pread/pwrite
      * - @ref DB_USE_MMAP use memory mapped I/O (this bit is 
      *		not observed through here, though)
      * - @ref HAM_READ_ONLY this is a read-only device
      */
-    ham_u32_t _flags;
-
-    /** some private data for this device */
-    void *_private;
+    ham_u32_t m_flags;
 
     /** the pagesize */
-    ham_size_t _pagesize;
+    ham_size_t m_pagesize;
 
-    /**
-     * The freelist cache: the freelist is managed by the device so it can 
-     * be parallelized */
-    freelist_cache_t *_freelist_cache;
+    /** the freelist cache is managed by the device */
+    freelist_cache_t *m_freelist_cache;
 };
 
-/* get the allocator of this device */
-#define device_get_allocator(dev)          (dev)->_malloc
-
-/* set the allocator of this device */
-#define device_set_allocator(dev, a)       (dev)->_malloc = (a)
-
-/* get the environment of this device */
-#define device_get_env(dev)          (dev)->_env
-
-/* set the environment of this device */
-#define device_set_env(dev, e)          (dev)->_env = (e)
-
-/* get the flags of this device */
-#define device_get_flags(dev)              (dev)->_flags
-
-/* set the flags of this device */
-#define device_set_flags(dev, f)           (dev)->_flags=(f)
-
-/* get the private data of this device */
-#define device_get_private(dev)            (dev)->_private
-
-/* set the private data of this device */
-#define device_set_private(dev, p)         (dev)->_private=(p)
-
-#define device_set_freelist_cache(dev, cache) (dev)->_freelist_cache=(cache)
-
-#define device_get_freelist_cache(dev)       (dev)->_freelist_cache
-
-
-/*
- * create a new device structure; either for in-memory or file-based
+/**
+ * a File-based device
  */
-extern ham_device_t *
-ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype);
+class FileDevice : public Device {
+  public:
+    /** constructor */
+    FileDevice(Environment *env, ham_u32_t flags) 
+      : Device(env, flags), m_fd(HAM_INVALID_FD) {
+        m_pagesize=os_get_pagesize();
+    }
+
+    /** Create a new device */
+    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+                ham_u32_t mode) {
+	    set_flags(flags);
+        return (os_create(filename, flags, mode, &m_fd));
+    }
+
+    /** opens an existing device */
+    virtual ham_status_t open(const char *filename, ham_u32_t flags) {
+	    set_flags(flags);
+        return (os_open(filename, flags, &m_fd));
+    }
+
+    /** closes the device */
+    virtual ham_status_t close() {
+        ham_status_t st=os_close(m_fd, get_flags());
+        if (st==HAM_SUCCESS)
+            m_fd=HAM_INVALID_FD;
+        return (st);
+    }
+
+    /** flushes the device */
+    virtual ham_status_t flush() {
+        return (os_flush(m_fd));
+    }
+
+    /** truncate/resize the device */
+    virtual ham_status_t truncate(ham_offset_t newsize) {
+        return (os_truncate(m_fd, newsize));
+    }
+
+    /** returns true if the device is open */
+    virtual bool is_open() {
+        return (HAM_INVALID_FD!=m_fd);
+    }
+
+    /** get the current file/storage size */
+    virtual ham_status_t get_filesize(ham_offset_t *length) {
+        *length=0;
+        return (os_get_filesize(m_fd, length));
+    }
+
+    /** seek position in a file */
+    virtual ham_status_t seek(ham_offset_t offset, int whence) {
+	    return (os_seek(m_fd, offset, whence));
+    }
+
+    /** tell the position in a file */
+    virtual ham_status_t tell(ham_offset_t *offset) {
+	    return (os_tell(m_fd, offset));
+    }
+
+    /** reads from the device; this function does not use mmap */
+    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+                ham_offset_t size);
+
+    /** writes to the device; this function does not use mmap,
+     * and is responsible for writing the data is run through the file 
+     * filters */
+    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+                ham_offset_t size);
+
+    /** reads a page from the device; this function CAN use mmap */
+    virtual ham_status_t read_page(Page *page);
+
+    /** writes a page to the device */
+    virtual ham_status_t write_page(Page *page) {
+        return (write(page->get_self(), page->get_pers(), get_pagesize()));
+    }
+
+    /** allocate storage from this device; this function 
+     * will *NOT* use mmap.  */
+    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
+        ham_status_t st=os_get_filesize(m_fd, address);
+        if (st)
+            return (st);
+        return (os_truncate(m_fd, (*address)+size));
+    }
+
+    /**
+     * allocate storage for a page from this device; this function 
+     * can use mmap if available
+     *
+     * @note
+     * The caller is responsible for flushing the page; the @ref free_page 
+     * function will assert that the page is not dirty.
+     */
+    virtual ham_status_t alloc_page(Page *page) {
+        ham_status_t st;
+        ham_offset_t pos;
+        ham_size_t size=get_pagesize();
+
+        st=os_get_filesize(m_fd, &pos);
+        if (st)
+            return (st);
+
+	    st=os_truncate(m_fd, pos+size);
+        if (st)
+            return (st);
+
+        page->set_self(pos);
+        return (FileDevice::read_page(page));
+    }
+
+
+    /** frees a page on the device; plays counterpoint to @ref alloc_page */
+    virtual ham_status_t free_page(Page *page);
+
+  private:
+    ham_fd_t m_fd;
+};
 
 /**
- * Devices: device type IDs
+ * an In-Memory device
  */
-#define HAM_DEVTYPE_FILE     0
-#define HAM_DEVTYPE_MEMORY   1
-#define HAM_DEVTYPE_CUSTOM   2
+class InMemoryDevice : public Device {
+  public:
+    /** constructor */
+    InMemoryDevice(Environment *env, ham_u32_t flags) 
+      : Device(env, flags), m_is_open(false) {
+        m_pagesize=1024*4;
+    }
+
+    /** Create a new device */
+    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+                ham_u32_t mode) {
+        m_is_open=true;
+        return (0);
+    }
+
+    /** opens an existing device */
+    virtual ham_status_t open(const char *filename, ham_u32_t flags) {
+        ham_assert(!"can't open an in-memory-device", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** closes the device */
+    virtual ham_status_t close() {
+        ham_assert(m_is_open, (0));
+        m_is_open=false;
+        return (HAM_SUCCESS);
+    }
+
+    /** flushes the device */
+    virtual ham_status_t flush() {
+        return (HAM_SUCCESS);
+    }
+
+    /** truncate/resize the device */
+    virtual ham_status_t truncate(ham_offset_t newsize) {
+        return (HAM_SUCCESS);
+    }
+
+    /** returns true if the device is open */
+    virtual bool is_open() {
+        return (m_is_open);
+    }
+
+    /** get the current file/storage size */
+    virtual ham_status_t get_filesize(ham_offset_t *length) {
+        ham_assert(!"this operation is not possible for in-memory-databases", 
+                    (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** seek position in a file */
+    virtual ham_status_t seek(ham_offset_t offset, int whence) {
+        ham_assert(!"can't seek in an in-memory-device", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** tell the position in a file */
+    virtual ham_status_t tell(ham_offset_t *offset) {
+        ham_assert(!"can't tell in an in-memory-device", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** reads from the device; this function does not use mmap */
+    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+                ham_offset_t size) {
+        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** writes to the device; this function does not use mmap,
+     * and is responsible for writing the data is run through the file 
+     * filters */
+    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+                ham_offset_t size) {
+        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** reads a page from the device; this function CAN use mmap */
+    virtual ham_status_t read_page(Page *page) {
+        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** writes a page to the device */
+    virtual ham_status_t write_page(Page *page) {
+        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /** allocate storage from this device; this function 
+     * will *NOT* use mmap.  */
+    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
+        ham_assert(!"can't alloc from an in-memory-device", (0));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
+    /**
+     * allocate storage for a page from this device; this function 
+     * can use mmap if available
+     *
+     * @note
+     * The caller is responsible for flushing the page; the @ref free_page 
+     * function will assert that the page is not dirty.
+     */
+    virtual ham_status_t alloc_page(Page *page) {
+        ham_u8_t *buffer;
+        ham_size_t size=get_pagesize();
+
+        ham_assert(page->get_pers()==0, (0));
+
+        buffer=(ham_u8_t *)m_env->get_allocator()->alloc(size);
+        if (!buffer)
+            return (HAM_OUT_OF_MEMORY);
+        page->set_pers((page_data_t *)buffer);
+        page->set_flags(page->get_flags()|Page::NPERS_MALLOC);
+        page->set_self((ham_offset_t)PTR_TO_U64(buffer));
+
+        return (HAM_SUCCESS);
+    }
 
 
-#ifdef __cplusplus
-} // extern "C"
-#endif 
+    /** frees a page on the device; plays counterpoint to @ref alloc_page */
+    virtual ham_status_t free_page(Page *page) {
+        ham_assert(page->get_pers()!=0, (0));
+        ham_assert(page->get_flags()|Page::NPERS_MALLOC, (0));
+
+        m_env->get_allocator()->free(page->get_pers());
+        page->set_pers(0);
+        page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
+
+        return (HAM_SUCCESS);
+    }
+
+
+  private:
+    bool m_is_open;
+};
+
 
 #endif /* HAM_DEVICE_H__ */

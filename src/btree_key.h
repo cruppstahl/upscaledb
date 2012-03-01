@@ -20,10 +20,6 @@
 #include "internal_fwd_decl.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include "packstart.h"
 
 /**
@@ -93,13 +89,13 @@ HAM_PACK_0 struct HAM_PACK_1 btree_key_t
  * get the record-ID of an extended key
  */
 extern ham_offset_t
-key_get_extended_rid(ham_db_t *db, btree_key_t *key);
+key_get_extended_rid(Database *db, btree_key_t *key);
 
 /**
  * set the record-ID of an extended key
  */
 extern void
-key_set_extended_rid(ham_db_t *db, btree_key_t *key, ham_offset_t rid);
+key_set_extended_rid(Database *db, btree_key_t *key, ham_offset_t rid);
 
 /** get the (persisted) flags of a key */
 #define key_get_flags(bte)         (bte)->_flags8
@@ -151,8 +147,8 @@ key_set_extended_rid(ham_db_t *db, btree_key_t *key, ham_offset_t rid);
  * @return the blob-id of this key in @a rid_ref
  */
 extern ham_status_t
-key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, 
-                ham_page_t *page, ham_key_t *key);
+key_insert_extended(ham_offset_t *rid_ref, Database *db, 
+                Page *page, ham_key_t *key);
 
 /**
  * inserts and sets a record
@@ -168,7 +164,7 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db,
  * a previously existing blob will be deleted if necessary
  */
 extern ham_status_t
-key_set_record(ham_db_t *db, btree_key_t *key, ham_record_t *record, 
+key_set_record(Database *db, btree_key_t *key, ham_record_t *record, 
                 ham_size_t position, ham_u32_t flags,
                 ham_size_t *new_position);
 
@@ -178,12 +174,8 @@ key_set_record(ham_db_t *db, btree_key_t *key, ham_record_t *record,
  * flag can be HAM_ERASE_ALL_DUPLICATES
  */
 extern ham_status_t
-key_erase_record(ham_db_t *db, btree_key_t *key, 
+key_erase_record(Database *db, btree_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_KEY_H__ */

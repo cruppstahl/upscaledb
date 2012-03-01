@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,10 +17,6 @@
 #ifndef HAM_JOURNAL_ENTRIES_H__
 #define HAM_JOURNAL_ENTRIES_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 
 #include "packstart.h"
 
@@ -30,68 +26,33 @@ extern "C" {
  * This structure can be followed by one of the structures below
  * (journal_entry_insert_t or journal_entry_erase_t); the field 'followup_size'
  * is the structure size of this follow-up structure.
- * 
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
+HAM_PACK_0 struct HAM_PACK_1 JournalEntry
 {
+    /** constructor - sets all fields to 0 */
+    JournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0), 
+                dbname(0), _reserved(0) { }
+
     /** the lsn of this entry */
-    ham_u64_t _lsn;
+    ham_u64_t lsn;
 
     /** the size of the follow-up entry in bytes (may be padded) */
-    ham_u64_t _followup_size;
+    ham_u64_t followup_size;
 
     /** the transaction id */
-    ham_u64_t _txn_id;
+    ham_u64_t txn_id;
 
-    /** the flags of this entry; the lowest 8 bits are the
-     * type of this entry, see below */
-    ham_u32_t _flags;
+    /** the type of this entry */
+    ham_u32_t type;
 
     /** the name of the database which is modified by this entry */
-    ham_u16_t _dbname;
+    ham_u16_t dbname;
 
     /** a reserved value */
     ham_u16_t _reserved;
-
-} HAM_PACK_2 journal_entry_t;
+} HAM_PACK_2;
 
 #include "packstop.h"
-
-/* get the lsn */
-#define journal_entry_get_lsn(j)                    (j)->_lsn
-
-/* set the lsn */
-#define journal_entry_set_lsn(j, lsn)               (j)->_lsn=lsn
-
-/* get the transaction ID */
-#define journal_entry_get_txn_id(j)                 (j)->_txn_id
-
-/* set the transaction ID */
-#define journal_entry_set_txn_id(j, id)             (j)->_txn_id=id
-
-/* get the flags of this entry */
-#define journal_entry_get_flags(j)                  (j)->_flags
-
-/* set the flags of this entry */
-#define journal_entry_set_flags(j, f)               (j)->_flags=f
-
-/* get the type of this entry */
-#define journal_entry_get_type(j)                   ((j)->_flags&0xf)
-
-/* set the type of this entry */
-#define journal_entry_set_type(j, t)                (j)->_flags|=(t)
-
-/* get the database name of this entry */
-#define journal_entry_get_dbname(j)                 (j)->_dbname
-
-/* set the database name of this entry */
-#define journal_entry_set_dbname(j, n)              (j)->_dbname=n
-
-/* get the follow-up size */
-#define journal_entry_get_followup_size(j)          (j)->_followup_size
-
-/* set the follow-up size */
-#define journal_entry_set_followup_size(j, s)       (j)->_followup_size=s
 
 
 #include "packstart.h"
@@ -99,70 +60,43 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
 /**
  * a journal entry for insert 
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_insert_t
+HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
 {
+    /** constructor - sets all fields to 0 */
+    JournalEntryInsert() : key_size(0), record_size(0), record_partial_size(0),
+        record_partial_offset(0), insert_flags(0) { data[0]=0; }
+
     /** key size */
-    ham_u16_t _key_size;
+    ham_u16_t key_size;
 
     /** record size */
-    ham_u32_t _record_size;
+    ham_u32_t record_size;
 
     /** record partial size */
-    ham_u32_t _record_partial_size;
+    ham_u32_t record_partial_size;
 
     /** record partial offset */
-    ham_u32_t _record_partial_offset;
+    ham_u32_t record_partial_offset;
 
     /** flags of ham_insert(), ham_cursor_insert() */
-    ham_u32_t _insert_flags;
+    ham_u32_t insert_flags;
 
     /** data follows here - first 'key_size' bytes for the key, then 
      * 'record_size' bytes for the record (and maybe some padding) */
-    ham_u8_t _data[1];
+    ham_u8_t data[1];
 
-} HAM_PACK_2 journal_entry_insert_t;
+    /** get a pointer to the key data */
+    ham_u8_t *get_key_data(void) {
+        return (&data[0]);
+    }
+
+    /** get a pointer to the record data */
+    ham_u8_t *get_record_data(void) {
+        return (&data[key_size]);
+    }
+} HAM_PACK_2;
 
 #include "packstop.h"
-
-/* insert: get the key size */
-#define journal_entry_insert_get_key_size(j)        (j)->_key_size
-
-/* insert: set the key size */
-#define journal_entry_insert_set_key_size(j, s)     (j)->_key_size=(s)
-
-/* insert: get the record size */
-#define journal_entry_insert_get_record_size(j)     (j)->_record_size
-
-/* insert: set the record size */
-#define journal_entry_insert_set_record_size(j, s)  (j)->_record_size=(s)
-
-/* insert: get the record partial size */
-#define journal_entry_insert_get_record_partial_size(j)                     \
-                                (j)->_record_partial_size
-
-/* insert: set the record partial size */
-#define journal_entry_insert_set_record_partial_size(j, s)                  \
-                                (j)->_record_partial_size=(s)
-
-/* insert: get the record partial offset */
-#define journal_entry_insert_get_record_partial_offset(j)                   \
-                                (j)->_record_partial_offset
-
-/* insert: set the record partial offset */
-#define journal_entry_insert_set_record_partial_offset(j, o)                \
-                                (j)->_record_partial_offset=(o)
-
-/* insert: get the flags */
-#define journal_entry_insert_get_flags(j)           (j)->_insert_flags
-
-/* insert: set the flags */
-#define journal_entry_insert_set_flags(j, f)        (j)->_insert_flags=(f)
-
-/* insert: get a pointer to the key data */
-#define journal_entry_insert_get_key_data(j)        (&((j)->_data[0]))
-
-/* insert: get a pointer to the record data */
-#define journal_entry_insert_get_record_data(j)    (&(j)->_data[(j)->_key_size])
 
 
 #include "packstart.h"
@@ -170,48 +104,31 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_insert_t
 /**
  * a journal entry for erase 
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_erase_t
+HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
 {
+    /** constructor - sets all fields to 0 */
+    JournalEntryErase() : key_size(0), erase_flags(0), duplicate(0) 
+        { data[0]=0; }
+
     /** key size */
-    ham_u16_t _key_size;
+    ham_u16_t key_size;
 
     /** flags of ham_erase(), ham_cursor_erase() */
-    ham_u32_t _erase_flags;
+    ham_u32_t erase_flags;
 
     /** which duplicate to erase */
-    ham_u32_t _duplicate;
+    ham_u32_t duplicate;
 
     /** the key data */
-    ham_u8_t _data[1];
+    ham_u8_t data[1];
 
-} HAM_PACK_2 journal_entry_erase_t;
+    /** get a pointer to the key data */
+    ham_u8_t *get_key_data(void) {
+        return (&data[0]);
+    }
+} HAM_PACK_2;
 
 #include "packstop.h"
 
-/* erase: get the key size */
-#define journal_entry_erase_get_key_size(j)        (j)->_key_size
-
-/* erase: set the key size */
-#define journal_entry_erase_set_key_size(j, s)     (j)->_key_size=(s)
-
-/* erase: get the flags */
-#define journal_entry_erase_get_flags(j)           (j)->_erase_flags
-
-/* erase: set the flags */
-#define journal_entry_erase_set_flags(j, f)        (j)->_erase_flags=(f)
-
-/* erase: get the dupe index */
-#define journal_entry_erase_get_dupe(j)            (j)->_duplicate
-
-/* erase: set the dupe index */
-#define journal_entry_erase_set_dupe(j, d)         (j)->_duplicate=(d)
-
-/* erase: get a pointer to the key data */
-#define journal_entry_erase_get_key_data(j)        (&(j)->_data[0])
-
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_JOURNAL_ENTRIES_H__ */

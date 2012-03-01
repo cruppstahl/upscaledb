@@ -13,7 +13,6 @@
 #include <cstring>
 #include <cassert>
 #include <ham/hamsterdb_int.h>
-#include "memtracker.h"
 #include "../src/error.h"
 
 #include "bfc-testsuite.hpp"

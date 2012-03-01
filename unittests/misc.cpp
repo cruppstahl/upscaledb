@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,7 +20,6 @@
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/btree_key.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -48,7 +47,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -57,12 +55,12 @@ public:
 
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        BFC_ASSERT(ham_create_ex(m_db, 0, HAM_IN_MEMORY_DB, 0644, 
-                        &p[0])==HAM_SUCCESS);
-
-        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create_ex(m_env, 0, HAM_IN_MEMORY_DB, 0644, &p[0]));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create_db(m_env, m_db, 1, 0, 0));
     }
     
     virtual void teardown() 
@@ -70,9 +68,11 @@ public:
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         ham_delete(m_db);
+        ham_env_delete(m_env);
         m_db=0;
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+        m_env=0;
     }
 
     void copyKeyTest(void)
@@ -85,11 +85,11 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, ((Database *)m_db)->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-        allocator_free(env_get_allocator(m_env), dest.data);
+        ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
 
     void copyExtendedKeyTest(void)
@@ -102,11 +102,11 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, ((Database *)m_db)->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-        allocator_free(env_get_allocator(m_env), dest.data);
+        ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
 
     void copyKeyInt2PubEmptyTest(void)
@@ -119,9 +119,8 @@ public:
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 0);
         key_set_flags(&src, 0);
-        src._key[0]=0;
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
         BFC_ASSERT_EQUAL((void *)0, dest.data);
     }
@@ -138,10 +137,10 @@ public:
         key_set_flags(&src, 0);
         src._key[0]='a';
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
         BFC_ASSERT_EQUAL(1, dest.size);
         BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
-        allocator_free(env_get_allocator(m_env), dest.data);
+        ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
 
     void copyKeyInt2PubSmallTest(void)
@@ -154,12 +153,12 @@ public:
         key_set_ptr(src, 0x12345);
         key_set_size(src, 8);
         key_set_flags(src, 0);
-        ::strcpy((char *)src->_key, "1234567\0");
+        ::memcpy((char *)src->_key, "1234567\0", 8);
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
-        allocator_free(env_get_allocator(m_env), dest.data);
+        ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
 
     void copyKeyInt2PubFullTest(void)
@@ -172,13 +171,13 @@ public:
         key_set_ptr(src, 0x12345);
         key_set_size(src, 16);
         key_set_flags(src, 0);
-        ::strcpy((char *)src->_key, "123456781234567\0");
+        ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
-        allocator_free(env_get_allocator(m_env), dest.data);
+        ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
 
 };

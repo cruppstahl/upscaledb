@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,9 +19,13 @@
 #   include <stdlib.h>
 #endif
 #include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ham/types.h>
 #include <../src/error.h>
+#include <../src/util.h>
 
 class os
 {
@@ -116,6 +120,22 @@ public:
                         src, dest, dest);
         return (0==system(buffer));
 #endif
+    }
+
+    /* 
+     * check if a file exists
+     */
+    static bool file_exists(const char *path) {
+#ifdef WIN32
+        struct _stat buf={0};
+		if (::_stat(path, &buf)<0)
+            return (false);
+#else
+        struct stat buf={0};
+		if (::stat(path, &buf)<0)
+            return (false);
+#endif
+        return (true);
     }
 };
 

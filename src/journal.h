@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,284 +22,197 @@
 #define HAM_JOURNAL_H__
 
 #include "internal_fwd_decl.h"
+#include "mem.h"
+#include "env.h"
+#include "os.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
+#include "journal_entries.h"
 
 #include "packstart.h"
 
 /**
- * the header structure of a journal file
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 journal_header_t
-{
-    /* the magic */
-    ham_u32_t _magic;
-
-    /* a reserved field */
-    ham_u32_t _reserved;
-
-    /** the last used lsn */
-    ham_u64_t _lsn;
-
-} HAM_PACK_2 journal_header_t;
-
-#include "packstop.h"
-
-#define HAM_JOURNAL_HEADER_MAGIC              (('h'<<24)|('j'<<16)|('o'<<8)|'1')
-
-/* get the journal header magic */
-#define journal_header_get_magic(j)                 (j)->_magic
-
-/* set the journal header magic */
-#define journal_header_set_magic(j, m)              (j)->_magic=m
-
-/* get the last used lsn */
-#define journal_header_get_lsn(j)                   (j)->_lsn
-
-/* set the last used lsn */
-#define journal_header_set_lsn(j, l)                (j)->_lsn=l
-
-#include "journal_entries.h"
-
-/** 
-* @defgroup journal_entry_type_set the different types of journal entries
-* @{
-*/
-
-/** mark the start of a new transaction */
-#define JOURNAL_ENTRY_TYPE_TXN_BEGIN                1 
-/** mark the end of an aborted transaction */
-#define JOURNAL_ENTRY_TYPE_TXN_ABORT                2 
-/** mark the end of an committed transaction */
-#define JOURNAL_ENTRY_TYPE_TXN_COMMIT               3 
-/** mark an insert operation */
-#define JOURNAL_ENTRY_TYPE_INSERT                   4 
-/** mark an erase operation */
-#define JOURNAL_ENTRY_TYPE_ERASE                    5 
-
-/**
- * @}
- */
-
-
-/**
  * a Journal object
  */
-struct journal_t 
+class Journal
 {
-    /** the allocator object */
-    mem_allocator_t *_alloc;
+  public:
+    static const ham_u32_t HEADER_MAGIC=('h'<<24)|('j'<<16)|('o'<<8)|'1';
 
-	/** references the Environment this journal file is for */
-	ham_env_t *_env;
+    enum {
+        /** mark the start of a new transaction */
+        ENTRY_TYPE_TXN_BEGIN  = 1,
+        /** mark the end of an aborted transaction */
+        ENTRY_TYPE_TXN_ABORT  = 2,
+        /** mark the end of an committed transaction */
+        ENTRY_TYPE_TXN_COMMIT = 3,
+        /** mark an insert operation */
+        ENTRY_TYPE_INSERT     = 4,
+        /** mark an erase operation */
+        ENTRY_TYPE_ERASE      = 5
+    };
 
-    /** the index of the file descriptor we are currently writing to */
-    ham_size_t _current_fd;
+    /**
+     * the header structure of a journal file
+     */
+    HAM_PACK_0 struct HAM_PACK_1 Header {
+        Header() : magic(0), _reserved(0), lsn(0) { }
 
-    /** the two file descriptors */
-    ham_fd_t _fd[2];
+        /** the magic */
+        ham_u32_t magic;
+    
+        /* a reserved field */
+        ham_u32_t _reserved;
+    
+        /** the last used lsn */
+        ham_u64_t lsn;
+    } HAM_PACK_2;
 
-    /** for counting all open transactions in the files */
-    ham_size_t _open_txn[2];
+    /**
+     * An "iterator" structure for traversing the journal files
+     */
+    struct Iterator {
+        Iterator() : fdidx(0), fdstart(0), offset(0) { }
 
-    /** for counting all closed transactions in the files */
-    ham_size_t _closed_txn[2];
+        /** selects the file descriptor [0..1] */
+        int fdidx;
 
-    /** the last used lsn */
-    ham_u64_t _lsn;
+        /** which file descriptor did we start with? [0..1] */
+        int fdstart;
 
-    /** the lsn of the previous checkpoint */
-    ham_u64_t _last_cp_lsn;
+        /** the offset in the file of the NEXT entry */
+        ham_offset_t offset;
+    };
 
-    /** when having more than these Transactions in one file, we 
-     * swap the files */
-    ham_size_t _threshold;
-};
+    /** constructor */
+    Journal(Environment *env);
 
-/** get the allocator */
-#define journal_get_allocator(j)                    (j)->_alloc
+    /** creates a new journal */
+    ham_status_t create(void);
 
-/** set the allocator */
-#define journal_set_allocator(j, a)                 (j)->_alloc=(a)
+    /** opens an existing journal */
+    ham_status_t open(void);
 
-/** get the environment */
-#define journal_get_env(j)                          (j)->_env
+    /** checks if the journal is empty */
+    bool is_empty(void);
 
-/** set the environment */
-#define journal_set_env(j, a)                       (j)->_env=(a)
+    /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
+    ham_status_t append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+                const char *name, ham_u64_t lsn);
 
-/** get the journal flags */
-#define journal_get_flags(j)                        (j)->_flags
+    /** appends a journal entry for 
+     * ham_txn_abort/ENTRY_TYPE_TXN_ABORT */
+    ham_status_t append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn);
 
-/** set the journal flags */
-#define journal_set_flags(j, f)                     (j)->_flags=(f)
+    /** appends a journal entry for 
+     * ham_txn_commit/ENTRY_TYPE_TXN_COMMIT */
+    ham_status_t append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn);
 
-/** get the index of the current file */
-#define journal_get_current_fd(j)                   (j)->_current_fd
-
-/** set the index of the current file */
-#define journal_set_current_fd(j, c)                (j)->_current_fd=c
-
-/** get a file descriptor */
-#define journal_get_fd(j, i)                        (j)->_fd[i]
-
-/** set a file descriptor */
-#define journal_set_fd(j, i, fd)                    (j)->_fd[i]=fd
-
-/** get the number of open transactions */
-#define journal_get_open_txn(j, i)                  (j)->_open_txn[i]
-
-/** set the number of open transactions */
-#define journal_set_open_txn(j, i, c)               (j)->_open_txn[i]=(c)
-
-/** get the number of closed transactions */
-#define journal_get_closed_txn(j, i)                (j)->_closed_txn[i]
-
-/** set the number of closed transactions */
-#define journal_set_closed_txn(j, i, c)             (j)->_closed_txn[i]=(c)
-
-/** get the last used lsn */
-#define journal_get_lsn(j)                          (j)->_lsn
-
-/** set the last used lsn */
-#define journal_set_lsn(j, lsn)                     (j)->_lsn=(lsn)
-
-/** increment the last used lsn */
-#define journal_increment_lsn(j)                    (j)->_lsn++
-
-/** get the lsn of the last checkpoint */
-#define journal_get_last_checkpoint_lsn(j)          (j)->_last_cp_lsn
-
-/** set the lsn of the last checkpoint */
-#define journal_set_last_checkpoint_lsn(j, lsn)     (j)->_last_cp_lsn=(lsn)
-
-/** get the threshold */
-#define journal_get_threshold(j)                    (j)->_threshold
-
-/** set the threshold */
-#define journal_set_threshold(j, t)                 (j)->_threshold=(t)
-
-/**
- * This function creates a new journal_t object
- */
-extern ham_status_t
-journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, 
-                journal_t **journal);
-
-/**
- * This function opens an existing journal
- */
-extern ham_status_t
-journal_open(ham_env_t *env, ham_u32_t flags, journal_t **journal);
-
-/**
- * Returns true if the journal is empty
- */
-extern ham_status_t
-journal_is_empty(journal_t *journal, ham_bool_t *isempty);
-
-/**
- * Appends an entry to the journal
- */
-extern ham_status_t
-journal_append_entry(journal_t *journal, int fdidx, 
-            journal_entry_t *entry, void *aux, ham_size_t size);
-
-/**
- * Append a journal entry for ham_txn_begin/JOURNAL_ENTRY_TYPE_TXN_BEGIN
- */
-extern ham_status_t
-journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
-                    ham_db_t *db, ham_u64_t lsn);
-
-/**
- * Append a journal entry for ham_txn_abort/JOURNAL_ENTRY_TYPE_TXN_ABORT
- */
-extern ham_status_t
-journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn, 
-                    ham_u64_t lsn);
-
-/**
- * Append a journal entry for ham_txn_commit/JOURNAL_ENTRY_TYPE_TXN_COMMIT
- */
-extern ham_status_t
-journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
-                    ham_u64_t lsn);
-
-/**
- * Append a journal entry for ham_insert/JOURNAL_ENTRY_TYPE_INSERT
- */
-extern ham_status_t
-journal_append_insert(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+    /** appends a journal entry for ham_insert/ENTRY_TYPE_INSERT */
+    ham_status_t append_insert(Database *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn);
 
-/**
- * Append a journal entry for ham_erase/JOURNAL_ENTRY_TYPE_ERASE
- */
-extern ham_status_t
-journal_append_erase(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+    /** appends a journal entry for ham_erase/ENTRY_TYPE_ERASE */
+    ham_status_t append_erase(Database *db, ham_txn_t *txn, 
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
-/**
- * Empties the journal, removes all entries
- */
-extern ham_status_t
-journal_clear(journal_t *journal);
+    /** empties the journal, removes all entries */
+    ham_status_t clear(void);
 
-/**
- * An "iterator" structure for traversing the journal files
- */
-typedef struct {
+    /**
+     * Sequentially returns the next journal entry, starting with 
+     * the oldest entry.
+     *
+     * iter must be initialized with zeroes for the first call
+     *
+     * 'aux' returns the auxiliary data of the entry, or NULL.
+     * 'aux' is either a structure of type journal_entry_insert_t or 
+     * journal_entry_erase_t.
+     * The memory of 'aux' has to be freed by the caller.
+     *
+     * returns SUCCESS and an empty entry (lsn is zero) after the last element.
+     */
+    ham_status_t get_entry(Iterator *iter, 
+                JournalEntry *entry, void **aux);
 
-    /** selects the file descriptor [0..1] */
-    int _fdidx;
+    /** Closes the journal, frees all allocated resources */
+    ham_status_t close(ham_bool_t noclear=false);
 
-    /** which file descriptor did we start with? [0..1] */
-    int _fdstart;
+    /**
+     * Recovers! All committed Transactions will be re-applied, all others
+     * are automatically aborted
+     */
+    ham_status_t recover(void);
 
-    /** the offset in the file of the NEXT entry */
-    ham_offset_t _offset;
+    /** get the lsn */
+    ham_u64_t get_lsn(void) {
+        return (m_lsn);
+    }
 
-} journal_iterator_t;
+    /** get the lsn and increment it */
+    ham_u64_t get_incremented_lsn(void) {
+        return (m_lsn++);
+    }
 
-/**
- * Sequentially returns the next journal entry, starting with the oldest entry
- *
- * iter must be initialized with zeroes for the first call
- *
- * 'aux' returns the auxiliary data of the entry, or NULL if there is no data. 
- * It's either a structure of type journal_entry_insert_t or 
- * journal_entry_erase_t.
- *
- * The memory of 'aux' has to be freed by the caller.
- *
- * returns SUCCESS and an empty entry (lsn is zero) after the last element.
- */
-extern ham_status_t
-journal_get_entry(journal_t *journal, journal_iterator_t *iter, 
-                journal_entry_t *entry, void **aux);
+    /** returns the path of the journal file */
+    std::string get_path(int i);
 
-/**
- * Closes the journal, frees all allocated resources
- */
-extern ham_status_t
-journal_close(journal_t *journal, ham_bool_t noclear);
+  private:
+    /** appends an entry to the journal */
+    ham_status_t append_entry(int fdidx,
+                void *ptr1=0, ham_size_t ptr1_size=0,
+                void *ptr2=0, ham_size_t ptr2_size=0,
+                void *ptr3=0, ham_size_t ptr3_size=0,
+                void *ptr4=0, ham_size_t ptr4_size=0,
+                void *ptr5=0, ham_size_t ptr5_size=0) {
+        return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
+                    ptr2, ptr2_size, ptr3, ptr3_size, 
+                    ptr4, ptr4_size, ptr5, ptr5_size));
+    }
 
-/**
- * Recovers! All committed Transactions will be re-applied, all others
- * are automatically aborted
- */
-extern ham_status_t
-journal_recover(journal_t *journal);
+    /** clears a single file */
+    ham_status_t clear_file(int idx);
 
+    /** helper function for the allocator */
+    void *allocate(ham_size_t size) {
+        return (m_env->get_allocator()->alloc(size));
+    }
 
-#ifdef __cplusplus
-} // extern "C"
-#endif 
+    /** helper function for the allocator */
+    void alloc_free(void *ptr) {
+        return (m_env->get_allocator()->free(ptr));
+    }
+
+	/** references the Environment this journal file is for */
+	Environment *m_env;
+
+    /** the index of the file descriptor we are currently writing to */
+    ham_size_t m_current_fd;
+
+    /** the two file descriptors */
+    ham_fd_t m_fd[2];
+
+    /** for counting all open transactions in the files */
+    ham_size_t m_open_txn[2];
+
+    /** for counting all closed transactions in the files */
+    ham_size_t m_closed_txn[2];
+
+    /** the last used lsn */
+    ham_u64_t m_lsn;
+
+    /** the lsn of the previous checkpoint */
+    ham_u64_t m_last_cp_lsn;
+
+    /** when having more than these Transactions in one file, we 
+     * swap the files */
+    ham_size_t m_threshold;
+
+    friend class JournalTest;
+};
+
+#include "packstop.h"
+
 
 #endif /* HAM_JOURNAL_H__ */

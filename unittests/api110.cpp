@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,7 +16,6 @@
 #include <time.h>
 
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/version.h"
@@ -37,7 +36,7 @@ class APIv110Test : public hamsterDB_fixture
 
 public:
     APIv110Test()
-    :   hamsterDB_fixture("APIv110Test"), m_db(NULL), m_alloc(NULL)
+    :   hamsterDB_fixture("APIv110Test"), m_db(NULL)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(APIv110Test, transactionTest);
@@ -52,7 +51,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup()
@@ -60,9 +58,7 @@ public:
         __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
@@ -76,13 +72,12 @@ public:
         ham_delete(m_db);
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_env_delete(m_env);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void transactionTest(void)
     {
         ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_abort(txn, 0));
 
         // reopen the database, check the transaction flag vs. actual 
@@ -90,13 +85,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -390,7 +384,6 @@ public:
     {
         ham_db_t *db;
         ham_key_t key={0};
-        ham_record_t rec={0};
         ham_cursor_t *cursor;
 
         ham_new(&db);
@@ -399,8 +392,6 @@ public:
                         HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
 
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                    ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                     ham_cursor_find(cursor, &key, HAM_FIND_GEQ_MATCH));
 

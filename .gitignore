@@ -1,5 +1,12 @@
 *.o
 *~
+*.lo
+*.la
+.libs
+.deps
+
+*.bak
+
 documentation/html
 documentation/latex
 Makefile
@@ -15,11 +22,10 @@ configure
 libtool
 stamp-h1
 m4
-*.o
-*.lo
-*.la
-.libs
-.deps
-
-*.bak
+config.guess
+config.sub
+depcomp
+install-sh
+ltmain.sh
+missing
 

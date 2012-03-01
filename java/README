@@ -1,0 +1,27 @@
+
+hamsterdb-java Wrapper API
+(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
+
+This is the README file of the Java Wrapper API of hamsterdb Embedded Storage.
+
+Contents:
+
+1. About
+
+This Java Wrapper API is a JNI based Java interface for hamstedb.
+
+2. Building
+
+On Linux/Unix, type
+    make
+    make test
+    make install
+
+For Win32, open the hamsterdb.sln file in the win32 folder in the root 
+directory. The Java API is a sub project.
+
+3. Usage
+
+For usage instructions, either generate the documentation with javadoc
+or look at the unittests. 
+

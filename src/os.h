@@ -22,11 +22,6 @@
 #include <stdio.h>
 #include <limits.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * read data from a file with mmap
  *
@@ -67,6 +62,16 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
  */
 extern ham_status_t
 os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
+
+/**
+ * append data from two buffers to a file
+ */
+extern ham_status_t
+os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
+                void *buffer2=0, ham_offset_t buffer2_len=0,
+                void *buffer3=0, ham_offset_t buffer3_len=0,
+                void *buffer4=0, ham_offset_t buffer4_len=0,
+                void *buffer5=0, ham_offset_t buffer5_len=0);
 
 #ifdef HAM_OS_POSIX
 #    define HAM_OS_SEEK_SET     SEEK_SET
@@ -140,9 +145,5 @@ os_flush(ham_fd_t fd);
 extern ham_status_t
 os_close(ham_fd_t fd, ham_u32_t flags);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_OS_H__ */

@@ -1,3 +1,161 @@
+Feb 18, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.1
+
+Feb 15, 2012 - chris ---------------------------------------------------
+o ham_find() now supports approximate matching w/ transactions enabled
+
+Feb 07, 2012 - chris ---------------------------------------------------
+o fixed bug where HAM_ONLY_DUPLICATES was ignored when used in a
+	Transaction (thanks, Mark Ruijter from lessfs)
+
+Feb 06, 2012 - chris ---------------------------------------------------
+o added a public macro HAM_API_REVISION to allow users to programmatically
+    distinguish between new and old interface of ham_txn_begin
+o win32: fixed build issue if HAM_DISABLE_COMPRESSION is defined (thanks,
+    Andy Thalmann (http://www.softdev.ch))
+
+Feb 05, 2012 - chris ---------------------------------------------------
+o the device structure (ham_device_t) was C++-ified; if you use 
+    ham_env_set_device then you will have to change your code
+o fixed wrong version check when loading databases from 1.1.x 
+o now using the native Win32 API for os_pwrite and os_pread (thanks,
+    Andy Thalmann (http://www.softdev.ch))
+o added new parameter HAM_PARAM_LOG_DIRECTORY to specify the directory
+    where the log file and the journal files are stored
+
+Jan 19, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0
+o Changed interface ham_txn_begin, also for Wrapper APIs
+
+Jan 05, 2012 - chris ---------------------------------------------------
+o when recovery or transactions are enabled then for most operations the 
+    physical log is no longer required; this reduces I/O and improves 
+    performance
+
+Dec 14, 2011 - chris ---------------------------------------------------
+o dotnet: integrated the files, updated the interface
+
+Dec 11, 2011 - chris ---------------------------------------------------
+o java: integrated the files, updated the interface
+o wince: moved to /contrib directory
+
+Nov 26, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0rc3
+
+Nov 20, 2011 - chris ---------------------------------------------------
+o improved performance for duplicates, transactions and cursors
+
+Nov 10, 2011 - chris ---------------------------------------------------
+o fixed the remaining 3 known issues after lots of refactoring
+
+Oct 11, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0rc2
+
+Oct 09, 2011 - chris ---------------------------------------------------
+o fixed a bug when erasing extended keys; sometimes this would try to
+    load extended keys which do not exist (thanks, Andi Weber)
+
+Oct 02, 2011 - chris ---------------------------------------------------
+o added a new function ham_cursor_get_record_size; retrieves the record
+    size of the current item
+
+Sep 27, 2011 - chris ---------------------------------------------------
+o the cache size is now 64bit, allowing caches > 4 GB
+
+Aug 25, 2011 - chris ---------------------------------------------------
+o configure.in: AM_INIT_AUTOMAKE requests now version 1.10 (thanks, Ger)
+o enabled large file support for 32bit linux (thanks, liheyuan)
+
+Jul 25, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0rc1
+
+Jun 02, 2011 - chris
+o the ./configure switch --enable-internal is now obsolte and enabled by
+	default
+
+Apr 18, 2011 - chris
+o HAM_SORT_DUPLICATES is now disabled if Transactions are enabled.
+    In such cases hamsterdb will return HAM_INV_PARAMETER. 
+
+Dec 29, 2010 - chris
+o Approx. matching is now disabled if Transactions are enabled. 
+    In such cases functions will return HAM_INV_PARAMETER. 
+o Direct access (HAM_DIRECT_ACCESS) is now disabled if Transactions are 
+    enabled. In such cases functions will return HAM_INV_PARAMETER. 
+    In previous versions Direct Access was anyway not possible in combination
+    with Transactions, because Transactions were not possible with In-Memory
+    Databases.
+
+Dec 27, 2010 - chris
+o when using HAM_PARTIAL in combination with Transactions, HAM_INV_PARAMETER
+    is now returned. In previous versions of hamsterdb, this combination was
+    allowed. If you need this implemented then please tell me.
+
+Dec 26, 2010 - chris
+o when using HAM_PARTIAL and the record->size is <= 8 then error 
+    HAM_INV_PARAMETER is returned. In previous versions, this combination
+    returned false results. Reason is because hamsterdb uses a compressed,
+    efficient storage for such records, and they do not support partial
+    access.
+
+Sep 15, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.6
+
+
+Oct 11, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0rc2
+
+Oct 09, 2011 - chris ---------------------------------------------------
+o fixed a bug when erasing extended keys; sometimes this would try to
+    load extended keys which do not exist (thanks, Andi Weber)
+
+Oct 02, 2011 - chris ---------------------------------------------------
+o added a new function ham_cursor_get_record_size; retrieves the record
+    size of the current item
+
+Sep 27, 2011 - chris ---------------------------------------------------
+o the cache size is now 64bit, allowing caches > 4 GB
+
+Aug 25, 2011 - chris ---------------------------------------------------
+o configure.in: AM_INIT_AUTOMAKE requests now version 1.10 (thanks, Ger)
+o enabled large file support for 32bit linux (thanks, liheyuan)
+
+Jul 25, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.0rc1
+
+Jun 02, 2011 - chris
+o the ./configure switch --enable-internal is now obsolte and enabled by
+	default
+
+Apr 18, 2011 - chris
+o HAM_SORT_DUPLICATES is now disabled if Transactions are enabled.
+    In such cases hamsterdb will return HAM_INV_PARAMETER. 
+
+Dec 29, 2010 - chris
+o Approx. matching is now disabled if Transactions are enabled. 
+    In such cases functions will return HAM_INV_PARAMETER. 
+o Direct access (HAM_DIRECT_ACCESS) is now disabled if Transactions are 
+    enabled. In such cases functions will return HAM_INV_PARAMETER. 
+    In previous versions Direct Access was anyway not possible in combination
+    with Transactions, because Transactions were not possible with In-Memory
+    Databases.
+
+Dec 27, 2010 - chris
+o when using HAM_PARTIAL in combination with Transactions, HAM_INV_PARAMETER
+    is now returned. In previous versions of hamsterdb, this combination was
+    allowed. If you need this implemented then please tell me.
+
+Dec 26, 2010 - chris
+o when using HAM_PARTIAL and the record->size is <= 8 then error 
+    HAM_INV_PARAMETER is returned. In previous versions, this combination
+    returned false results. Reason is because hamsterdb uses a compressed,
+    efficient storage for such records, and they do not support partial
+    access.
+
+Sep 15, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.6
+
+
 Jul 01, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.12
 

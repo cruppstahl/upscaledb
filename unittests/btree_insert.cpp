@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/page.h"
@@ -34,7 +33,7 @@ class BtreeInsertTest : public hamsterDB_fixture
 public:
     BtreeInsertTest(ham_u32_t flags=0, const char *name="BtreeInsertTest")
         : hamsterDB_fixture(name), 
-        m_db(0), m_flags(flags), m_alloc(0)
+        m_db(0), m_flags(flags)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BtreeInsertTest, defaultPivotTest);
@@ -44,9 +43,8 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_env_t *m_env;
+    Environment *m_env;
     ham_u32_t m_flags;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -60,12 +58,11 @@ public:
         };
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 
                                 0644, &params[0]));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -74,7 +71,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void defaultPivotTest() 
@@ -98,23 +94,26 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*1, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*2, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*3, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }
@@ -140,23 +139,26 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*1, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*2, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*3, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }
@@ -176,12 +178,11 @@ public:
             { HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_SEQUENTIAL_INSERT },
             { 0, 0 }
         };
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 
                                 0644, &params[0]));
-        m_env=ham_get_env(m_db);
+        m_env=(Environment *)ham_get_env(m_db);
 
         for (int i=0; i<7; i++) {
             key.data=&i;
@@ -197,23 +198,26 @@ public:
          * the first page is the old root page, which became an index
          * page after the split
          */
-        ham_page_t *page;
+        Page *page;
         btree_node_t *node;
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*1, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*1, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(4, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*2, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_INDEX, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*2, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(3, btree_node_get_count(node));
 
         BFC_ASSERT_EQUAL(0, 
-                db_fetch_page(&page, m_db, env_get_pagesize(m_env)*3, 0));
-        BFC_ASSERT_EQUAL((unsigned)PAGE_TYPE_B_ROOT, page_get_type(page));
+                db_fetch_page(&page, (Database *)m_db, 
+                    m_env->get_pagesize()*3, 0));
+        BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
         node=page_get_btree_node(page);
         BFC_ASSERT_EQUAL(1, btree_node_get_count(node));
     }

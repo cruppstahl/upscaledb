@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -12,7 +12,7 @@
 /**
  * @file hamsterdb.hpp
  * @author Christoph Rupp, chris@crupp.de
- * @version 1.1.1
+ * @version 2.0.1
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible. 
@@ -100,13 +100,9 @@ public:
     }
 
     /** Assignment operator. */
-    key &operator=(const key &other) 
-	{
-		/* TODO -- [i_a] copy key data; same for record; depends on USER_ALLOC flags, etc. */
+    key &operator=(const key &other) {
 		if (&other != this)
-		{
 			m_key=other.m_key;
-		}
         return (*this);
     }
 
@@ -256,6 +252,11 @@ public:
             throw error(st);
     }
 
+    std::string get_name() {
+        const char *p=ham_txn_get_name(m_txn);
+        return (p ? p : "");
+    }
+
     /** Returns a pointer to the internal ham_txn_t structure. */
     ham_txn_t *get_handle() {
         return (m_txn);
@@ -349,15 +350,6 @@ public:
         if (!m_db)
 			return (HAM_NOT_INITIALIZED);
         return (ham_get_error(m_db));
-    }
-
-    /** Begin a new Transaction */
-    txn begin() {
-        ham_txn_t *h;
-        ham_status_t st=ham_txn_begin(&h, get_handle(), 0);
-        if (st)
-            throw error(st);
-        return (txn(h));
     }
 
     /** Sets the prefix comparison function. */
@@ -602,6 +594,15 @@ public:
         return (c);
     }
 
+    /** Returns the size of the current record. */
+    ham_u64_t get_record_size() {
+        ham_u64_t s;
+        ham_status_t st=ham_cursor_get_record_size(m_cursor, &s);
+        if (st)
+            throw error(st);
+        return (s);
+    }
+
     /** Closes the Cursor. */
     void close() {
         if (!m_cursor)
@@ -717,9 +718,17 @@ public:
             throw error(st);
     }
 
-    /** 
-     * Closes the Environment. 
-     */
+    /** Begin a new Transaction */
+    txn begin(const char *name=0) {
+        ham_txn_t *h;
+        ham_status_t st=ham_txn_begin(&h, m_env, name, 0, 0);
+        if (st)
+            throw error(st);
+        return (txn(h));
+    }
+
+
+    /** Closes the Environment. */
     void close(void) {
         if (!m_env)
             return;

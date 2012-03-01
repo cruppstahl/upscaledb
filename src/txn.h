@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,10 +20,6 @@
 #include "internal_fwd_decl.h"
 #include "rb.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 /**
  * a single operation in a transaction
@@ -69,7 +65,7 @@ typedef struct txn_op_t
     ham_u64_t _other_lsn;
 
     /** the record */
-    ham_record_t *_record;
+    ham_record_t _record;
 
     /** a linked list of cursors which are attached to this txn_op */
     struct txn_cursor_t *_cursors;
@@ -161,10 +157,7 @@ typedef struct txn_op_t
 #define txn_op_set_other_lsn(t, l)         (t)->_other_lsn=l
 
 /** get record */
-#define txn_op_get_record(t)               (t)->_record
-
-/** set record */
-#define txn_op_set_record(t, r)            (t)->_record=r
+#define txn_op_get_record(t)               (&(t)->_record)
 
 /** get cursor list */
 #define txn_op_get_cursors(t)              (t)->_cursors
@@ -200,12 +193,12 @@ typedef struct txn_opnode_t
     rb_node(struct txn_opnode_t) node;
 
     /** the database - need this pointer for the compare function */
-    ham_db_t *_db;
+    Database *_db;
 
     /** this is the key which is modified */
-    ham_key_t *_key;
+    ham_key_t _key;
 
-    /** the parent key */
+    /** the parent tree */
     struct txn_optree_t *_tree;
 
     /** the linked list of operations - head is oldest operation */
@@ -223,10 +216,10 @@ typedef struct txn_opnode_t
 #define txn_opnode_set_db(t, db)                (t)->_db=db
 
 /** get pointer to the modified key */
-#define txn_opnode_get_key(t)                   (t)->_key
+#define txn_opnode_get_key(t)                   (&(t)->_key)
 
 /** set pointer to the modified key */
-#define txn_opnode_set_key(t, k)                (t)->_key=k
+#define txn_opnode_set_key(t, k)                (t)->_key=(*k)
 
 /** get pointer to the parent tree */
 #define txn_opnode_get_tree(t)                  (t)->_tree
@@ -254,7 +247,7 @@ typedef struct txn_opnode_t
 typedef struct txn_optree_t
 {
     /* the Database for all operations in this tree */
-    ham_db_t *_db;
+    Database *_db;
 
     /* stuff for rb.h */
     txn_opnode_t *rbt_root;
@@ -278,7 +271,10 @@ struct ham_txn_t
     ham_u64_t _id;
 
     /** owner of this transaction */
-    ham_env_t *_env;
+    Environment *_env;
+
+    /** the Transaction name */
+    const char *_name;
 
     /** flags for this transaction */
     ham_u32_t _flags;
@@ -324,6 +320,12 @@ struct ham_txn_t
 
 /** set the environment pointer */
 #define txn_set_env(txn, env)                   (txn)->_env=(env)
+
+/** get the txn name */
+#define txn_get_name(txn)                       (txn)->_name
+
+/** set the txn name */
+#define txn_set_name(txn, name)                 (txn)->_name=(name)
 
 /** get the flags */
 #define txn_get_flags(txn)                      (txn)->_flags
@@ -374,13 +376,10 @@ struct ham_txn_t
 #define txn_set_newest_op(txn, o)               (txn)->_newest_op=o
 
 /**
- * creates an optree for a Database, or retrieves it if it was
- * already created
- *
- * returns NULL if out of memory
+ * initializes the txn-tree
  */
-extern txn_optree_t *
-txn_tree_get_or_create(ham_db_t *db);
+extern void
+txn_tree_init(Database *db, txn_optree_t *tree);
 
 /**
  * traverses a tree; for each node, a callback function is executed
@@ -411,7 +410,7 @@ txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
  * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
  */
 extern txn_opnode_t *
-txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
+txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags);
 
 /**
  * creates an opnode for an optree; asserts that a node with this
@@ -420,7 +419,7 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
  * returns NULL if out of memory 
  */
 extern txn_opnode_t *
-txn_opnode_create(ham_db_t *db, ham_key_t *key);
+txn_opnode_create(Database *db, ham_key_t *key);
 
 /**
  * insert an actual operation into the txn_tree
@@ -433,7 +432,7 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
  * frees a txn_opnode_t structure, and removes it from its tree
  */
 extern void
-txn_opnode_free(ham_env_t *env, txn_opnode_t *node);
+txn_opnode_free(Environment *env, txn_opnode_t *node);
 
 /**
  * retrieves the next larger sibling of a given node, or NULL if there
@@ -455,7 +454,8 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags);
+txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, 
+                ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 
@@ -472,7 +472,7 @@ extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /**
- * frees the txn_optree_t structure; asserts that the tree is empty
+ * frees all nodes in the tree
  */
 extern void
 txn_free_optree(txn_optree_t *tree);
@@ -492,9 +492,5 @@ txn_free_ops(ham_txn_t *txn);
 extern void
 txn_free(ham_txn_t *txn);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_TXN_H__ */

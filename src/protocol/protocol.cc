@@ -44,13 +44,13 @@ proto_delete(proto_wrapper_t *wrapper)
 }
 
 ham_bool_t
-proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc,
+proto_pack(proto_wrapper_t *wrapper, Allocator *alloc,
             ham_u8_t **data, ham_size_t *size)
 {
     Wrapper *w=(Wrapper *)wrapper;
     ham_size_t packed_size=w->ByteSize();
     /* we need 8 more bytes for magic and size */
-    ham_u8_t *p=(ham_u8_t *)allocator_alloc(alloc, packed_size+8);
+    ham_u8_t *p=(ham_u8_t *)alloc->alloc(packed_size+8);
     if (!p)
         return (HAM_FALSE);
 
@@ -60,7 +60,7 @@ proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc,
 
     /* now write the packed structure */
     if (!w->SerializeToArray(&p[8], packed_size)) {
-        allocator_free(alloc, p);
+        alloc->free(p);
         return (HAM_FALSE);
     }
     
@@ -841,12 +841,13 @@ proto_env_open_db_reply_get_db_handle(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_txn_begin_request(ham_u64_t dbhandle, ham_u32_t flags)
+proto_init_txn_begin_request(const char *name, ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
     w->set_type(Wrapper::TXN_BEGIN_REQUEST);
-    w->mutable_txn_begin_request()->set_db_handle(dbhandle);
     w->mutable_txn_begin_request()->set_flags(flags);
+    if (name)
+        w->mutable_txn_begin_request()->set_name(name);
     return ((proto_wrapper_t *)w);
 }
 
@@ -871,11 +872,14 @@ proto_txn_begin_request_get_flags(proto_wrapper_t *wrapper)
     return (w->txn_begin_request().flags());
 }
 
-ham_u64_t
-proto_txn_begin_request_get_db_handle(proto_wrapper_t *wrapper)
+const char *
+proto_txn_begin_request_get_name(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->txn_begin_request().db_handle());
+    if (w->txn_begin_request().has_name())
+        return (w->txn_begin_request().name().c_str());
+    else
+        return (0);
 }
 
 proto_wrapper_t *

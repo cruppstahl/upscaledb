@@ -106,7 +106,7 @@ bfc_signal(int code, signal_handler_f handler)
 #if defined(UNDER_CE)
     return 0;
 #else
-	return (signal_handler_f)signal(code, handler);
+	return (0);//signal_handler_f)signal(code, (__sighandler_t)handler);
 #endif
 
 #if defined(_MSC_VER)

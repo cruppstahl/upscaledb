@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,10 +19,6 @@
 
 #include <ham/hamsterdb.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 /*
  * function prototypes
@@ -89,8 +85,5 @@ extern void (*ham_test_abort)(void);
                                 dbg_verify_failed f;                           \
                                 dbg_unlock();                                  \
                              }
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_ERROR_H__ */

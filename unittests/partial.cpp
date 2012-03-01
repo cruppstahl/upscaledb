@@ -20,7 +20,6 @@
 #include "../src/page.h"
 #include "../src/btree_key.h"
 #include "../src/freelist.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -44,7 +43,6 @@ protected:
     bool m_inmemory;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -61,12 +59,11 @@ public:
             params[0].value=m_pagesize;
         }
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -75,7 +72,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size)
@@ -265,19 +261,19 @@ public:
 
     void insertGapsTestPagesize(void)
     {
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps, ps, ps*2);
     }
 
     void insertGapsTestPagesize2(void)
     {
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps*2, ps*2, ps*4);
     }
 
     void insertGapsTestPagesize4(void)
     {
-        ham_size_t ps=env_get_pagesize(m_env);
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
         insertGaps(ps*4, ps*4, ps*8);
     }
 };
@@ -1162,7 +1158,6 @@ protected:
     ham_u32_t m_find_flags;
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -1179,12 +1174,11 @@ public:
             params[0].value=m_pagesize;
         }
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -1193,7 +1187,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void fillBuffer(ham_u8_t *ptr, ham_size_t offset, ham_size_t size)
@@ -1531,7 +1524,6 @@ public:
 
     ham_db_t *m_db;
     ham_env_t *m_env;
-    memtracker_t *m_alloc;
     bool m_inmemory;
     ham_u32_t m_find_flags;
 
@@ -1539,12 +1531,11 @@ public:
     { 
         __super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, 0));
-        m_env=db_get_env(m_db);
+        m_env=ham_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -1553,7 +1544,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void negativeInsertTest(void)

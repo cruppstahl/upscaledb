@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <string.h>
 #include <ham/hamsterdb.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "os.hpp"
 
@@ -41,7 +40,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_bool_t m_inmemory;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
@@ -50,7 +48,6 @@ public:
 
         os::unlink(BFC_OPATH(".test"));
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
@@ -63,7 +60,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void emptyDatabaseTest()

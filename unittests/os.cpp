@@ -52,6 +52,9 @@ public:
         BFC_REGISTER_TEST(OsTest, multipleMmapTest);
         BFC_REGISTER_TEST(OsTest, negativeMmapTest);
 #endif
+#if HAVE_WRITEV
+        BFC_REGISTER_TEST(OsTest, writevTest);
+#endif
         BFC_REGISTER_TEST(OsTest, seekTellTest);
         BFC_REGISTER_TEST(OsTest, negativeSeekTest);
         BFC_REGISTER_TEST(OsTest, truncateTest);
@@ -328,6 +331,33 @@ public:
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 os_mmap(fd, &mmaph, 33, 66, 0, &page));
 #endif
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+    }
+
+    void writevTest()
+    {
+        ham_fd_t fd;
+        const char *hello="hello ";
+        const char *world="world!";
+        char buffer[128];
+
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, 128));
+
+        BFC_ASSERT_EQUAL(0,
+                os_writev(fd, (void *)hello, strlen(hello), 
+                            (void *)world, strlen(world)+1));
+        memset(buffer, 0, sizeof(buffer));
+        BFC_ASSERT_EQUAL(0, os_pread(fd, 0, buffer, sizeof(buffer)));
+        BFC_ASSERT_EQUAL(0, strcmp("hello world!", buffer));
+
+        BFC_ASSERT_EQUAL(0, os_seek(fd, 10, HAM_OS_SEEK_SET));
+        BFC_ASSERT_EQUAL(0,
+                os_writev(fd, (void *)hello, strlen(hello), 
+                            (void *)world, strlen(world)+1));
+        BFC_ASSERT_EQUAL(0, os_pread(fd, 10, buffer, sizeof(buffer)-10));
+        BFC_ASSERT_EQUAL(0, strcmp("hello world!", buffer));
+
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
     }
 

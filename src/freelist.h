@@ -21,10 +21,6 @@
 #include "freelist_statistics.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 /**
  * an entry in the freelist cache
  */
@@ -109,19 +105,19 @@ struct freelist_entry_t
      * create and initialize a new class instance                       \
      */                                                                 \
     ham_status_t                                                        \
-	(*_constructor)(clss *be, ham_device_t *dev, ham_env_t *env);       \
+	(*_constructor)(clss *be, Device *dev, Environment *env);           \
                                                                         \
 	/**                                                                 \
 	 * release all freelist pages (and their statistics)                \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_destructor)(ham_device_t *dev, ham_env_t *env);                  \
+	(*_destructor)(Device *dev, Environment *env);                \
                                                                         \
 	/**                                                                 \
 	 * flush all freelist page statistics                               \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_flush_stats)(ham_device_t *dev, ham_env_t *env);                 \
+	(*_flush_stats)(Device *dev, Environment *env);               \
                                                                         \
 	/**                                                                 \
 	 * mark an area in the file as "free"                               \
@@ -133,7 +129,7 @@ struct freelist_entry_t
 	 * will assert that address and size are DB_CHUNKSIZE-aligned!      \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_mark_free)(ham_device_t *dev, ham_env_t *env, ham_db_t *db,      \
+	(*_mark_free)(Device *dev, Environment *env, Database *db,    \
             ham_offset_t address, ham_size_t size,                      \
 			ham_bool_t overwrite);                                      \
                                                                         \
@@ -155,8 +151,8 @@ struct freelist_entry_t
 	 * on a DB_CHUNKSIZE boundary level anyhow.							\
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_alloc_area)(ham_offset_t *addr_ref, ham_device_t *dev,			\
-			   ham_env_t *env, ham_db_t *db, ham_size_t size,           \
+	(*_alloc_area)(ham_offset_t *addr_ref, Device *dev,			\
+			   Environment *env, Database *db, ham_size_t size,         \
                ham_bool_t aligned, ham_offset_t lower_bound_address);   \
                                                                         \
 	/**																	\
@@ -168,7 +164,7 @@ struct freelist_entry_t
 			 freelist.													\
 	*/																	\
 	ham_status_t                                                        \
-	(*_check_area_is_allocated)(ham_device_t *dev, ham_env_t *env,		\
+	(*_check_area_is_allocated)(Device *dev, Environment *env,    \
 								ham_offset_t address, ham_size_t size);	\
                                                                         \
 	/**																	\
@@ -180,7 +176,7 @@ struct freelist_entry_t
 	 * freelist algorithm persists this data to disc.					\
 	 */																	\
 	ham_status_t														\
-	(*_init_perf_data)(clss *be, ham_device_t *dev, ham_env_t *env,		\
+	(*_init_perf_data)(clss *be, Device *dev, Environment *env,   \
 						freelist_entry_t *entry,						\
 						freelist_payload_t *payload)
 
@@ -219,7 +215,7 @@ struct freelist_cache_t
 #include "packstart.h"
 
 /**
- * a freelist-payload; it spans the persistent part of a ham_page_t
+ * a freelist-payload; it spans the persistent part of a Page
  */
 HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 {
@@ -380,9 +376,9 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #define freel_set_overflow(fl, o)         (fl)->_overflow=ham_h2db_offset(o)
 
 /**
- * get a freelist_payload_t from a ham_page_t
+ * get a freelist_payload_t from a Page
  */
-#define page_get_freelist(p)     ((freelist_payload_t *)p->_pers->_s._payload)
+#define page_get_freelist(p)     ((freelist_payload_t *)p->get_payload())
 
 /**
  * get the bitmap of the freelist
@@ -403,21 +399,21 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
  * Initialize a v1.1.0+ compatible freelist management object
  */
 extern ham_status_t
-freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
-                ham_env_t *env);
+freel_constructor_prepare32(freelist_cache_t **cache_ref, Device *dev, 
+                Environment *env);
 
 /**
  * Initialize a v1.0.x compatible freelist management object
  */
 extern ham_status_t
-freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
-                ham_env_t *env);
+freel_constructor_prepare16(freelist_cache_t **cache_ref, Device *dev, 
+                Environment *env);
 
 /**
  * flush and release all freelist pages
  */
 extern ham_status_t
-freel_shutdown(ham_env_t *env);
+freel_shutdown(Environment *env);
 
 /**
  * mark an area in the file as "free"
@@ -430,7 +426,7 @@ freel_shutdown(ham_env_t *env);
  * @a db can be NULL
  */
 extern ham_status_t
-freel_mark_free(ham_env_t *env, ham_db_t *db, 
+freel_mark_free(Environment *env, Database *db, 
             ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 
 /**
@@ -442,7 +438,7 @@ freel_mark_free(ham_env_t *env, ham_db_t *db,
  * will assert that size is DB_CHUNKSIZE-aligned!
  */
 extern ham_status_t
-freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db, 
+freel_alloc_area(ham_offset_t *addr_ref, Environment *env, Database *db, 
             ham_size_t size);
 
 /**
@@ -463,7 +459,7 @@ freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
  * on a DB_CHUNKSIZE boundary level anyhow.							
  */
 extern ham_status_t
-freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
+freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
                 ham_size_t size, ham_bool_t aligned, 
                 ham_offset_t lower_bound_address);
 
@@ -475,7 +471,7 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
  * returns 0 on failure
  */
 extern ham_status_t
-freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db);
+freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db);
 
 /**																	
  * check whether the given block is administrated in the freelist.
@@ -486,12 +482,8 @@ freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db);
  *   freelist.													
  */
 extern ham_status_t
-freel_check_area_is_allocated(ham_env_t *env, ham_db_t *db, 
+freel_check_area_is_allocated(Environment *env, Database *db, 
                 ham_offset_t address, ham_size_t size);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_FREELIST_H__ */

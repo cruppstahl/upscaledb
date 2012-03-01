@@ -12,6 +12,16 @@
 /**
  * @brief A cursor which can iterate over transaction nodes and operations
  *
+ * A Transaction Cursor can walk over Transaction trees (txn_tree_t). 
+ *
+ * Transaction Cursors are only used as part of the Cursor structure as defined
+ * in cursor.h. Like all Transaction operations it is in-memory only, 
+ * traversing the red-black tree that is implemented in txn.h, and 
+ * consolidating multiple operations in a node (i.e. if a Transaction first
+ * overwrites a record, and another transaction then erases the key).
+ *
+ * The Transaction Cursor has two states: either it is coupled to a 
+ * Transaction operation (txn_op_t) or it is unused.
  */
 
 #ifndef HAM_TXN_CURSOR_H__
@@ -21,19 +31,20 @@
 #include "txn.h"
 
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
-
 /*
- * An cursor which can walk over Transaction nodes
+ * An cursor which can iterate over Transaction nodes
  */
 typedef struct txn_cursor_t
 {
+    txn_cursor_t() {
+        _parent=0;
+        _coupled._op=0;
+        _coupled._next=0;
+        _coupled._previous=0;
+    }
+
     /** the parent cursor */
-    ham_cursor_t *_parent;
+    Cursor *_parent;
 
     /** 
      * a Cursor can either be coupled or nil ("not in list"). If it's 
@@ -54,28 +65,16 @@ typedef struct txn_cursor_t
 
     } _coupled;
     
-    /* the flags store the state of the cursor - see below */
-    ham_u32_t _flags;
-
 } txn_cursor_t;
 
-/** cursor flag - cursor is coupled */
-#define TXN_CURSOR_FLAG_COUPLED                     1
-
 /** get the database pointer */
-#define txn_cursor_get_db(c)                        (c)->_parent->_db
+#define txn_cursor_get_db(c)                        (c)->_parent->get_db()
 
 /** get the parent cursor */
 #define txn_cursor_get_parent(c)                    (c)->_parent
 
 /** set the parent cursor */
 #define txn_cursor_set_parent(c, p)                 (c)->_parent=p
-
-/** get the cursor flags */
-#define txn_cursor_get_flags(c)                     (c)->_flags
-
-/** set the cursor flags */
-#define txn_cursor_set_flags(c, f)                  (c)->_flags=f
 
 /** get the pointer to the coupled txn_op */
 #define txn_cursor_get_coupled_op(c)                (c)->_coupled._op
@@ -99,20 +98,26 @@ typedef struct txn_cursor_t
  * cursors */
 #define txn_cursor_set_coupled_previous(c, p)       (c)->_coupled._previous=p
 
-/** 
- * returns true if the cursor is nil (does not point to any item) 
+/**
+ * Create a new txn cursor
  */
-extern ham_bool_t
-txn_cursor_is_nil(txn_cursor_t *cursor);
+extern ham_status_t
+txn_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+                txn_cursor_t *cursor, Cursor *parent);
 
 /** 
- * sets a cursor to nil
+ * Returns true if the cursor is nil (does not point to any item) 
+ */
+#define txn_cursor_is_nil(c)                            ((c)->_coupled._op==0)
+
+/** 
+ * Sets a cursor to nil
  */
 extern void
 txn_cursor_set_to_nil(txn_cursor_t *cursor);
 
 /**
- * couples a txn cursor to an txn_op_t structure
+ * Couples a txn cursor to an txn_op_t structure
  */
 extern void
 txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
@@ -121,55 +126,58 @@ txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
  * clones a cursor
  */
 extern void
-txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest);
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest, 
+                Cursor *parent);
 
 /**
- * closes a cursor
+ * Closes a cursor
  */
 extern void
 txn_cursor_close(txn_cursor_t *cursor);
 
 /**
- * overwrites the record of a cursor
+ * Overwrites the record of a cursor
  */
 extern ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record);
 
 /**
- * moves the cursor to first, last, previous or next
+ * Moves the cursor to first, last, previous or next
  */
 extern ham_status_t
 txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * returns true if the cursor points to a key that is erased
+ * Returns true if the cursor points to a key that is erased
  */
 extern ham_bool_t
 txn_cursor_is_erased(txn_cursor_t *cursor);
 
 /**
- * returns true if the cursor points to a duplicate key that is erased
+ * Returns true if the cursor points to a duplicate key that is erased
  */
 extern ham_bool_t
 txn_cursor_is_erased_duplicate(txn_cursor_t *cursor);
 
 /**
- * looks up an item, places the cursor
+ * Looks up an item, places the cursor
  */
 extern ham_status_t
 txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
- * inserts an item, places the cursor on the new item
+ * Inserts an item, places the cursor on the new item
+ *
+ * This function is only used in the unittests
  */
 extern ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags);
 
 /**
- * retrieves the key from the current item
+ * Retrieves the key from the current item
  *
- * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
  * that the item was already flushed to the btree, and the caller has to 
  * use the btree lookup function to retrieve the key.
  */
@@ -177,9 +185,9 @@ extern ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key);
 
 /**
- * retrieves the record from the current item
+ * Retrieves the record from the current item
  *
- * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
  * that the item was already flushed to the btree, and the caller has to 
  * use the btree lookup function to retrieve the record.
  */
@@ -187,14 +195,16 @@ extern ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
 
 /**
- * erases the current item, then 'nil's the cursor
+ * Retrieves the record size of the current item
+ */
+extern ham_status_t
+txn_cursor_get_record_size(txn_cursor_t *cursor, ham_offset_t *psize);
+
+/**
+ * Erases the current item, then 'nil's the cursor
  */
 extern ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_TXN_CURSOR_H__ */

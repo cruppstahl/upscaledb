@@ -19,13 +19,7 @@
 #define HAM_BLOB_H__
 
 #include "internal_fwd_decl.h"
-
 #include "endianswap.h"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif 
 
 #include "packstart.h"
 
@@ -183,7 +177,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
+blob_allocate(Environment *env, Database *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid);
 
 /**
@@ -194,8 +188,16 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-blob_read(ham_db_t *db, ham_offset_t blobid, 
+blob_read(Database *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags);
+
+/**
+ * retrieves a blob size
+ *
+ * stores the size in @a size
+ */
+extern ham_status_t
+blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size);
 
 /**
  * overwrite an existing blob
@@ -204,14 +206,14 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid, 
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
 
 /**
  * delete an existing blob
  */
 extern ham_status_t
-blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
+blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
 
 /**
  * create a duplicate table and insert all entries in the duplicate
@@ -222,7 +224,7 @@ blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
  * entry depending on the flags (only one entry is allowed in this case)
  */
 extern ham_status_t
-blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+blob_duplicate_insert(Database *db, ham_offset_t table_id, 
         ham_record_t *record, ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position);
@@ -236,21 +238,21 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
  * sets new_table_id to 0 if the table is empty
  */
 extern ham_status_t
-blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
+blob_duplicate_erase(Database *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
 
 /**
  * get the number of duplicates
  */
 extern ham_status_t
-blob_duplicate_get_count(ham_env_t *env, ham_offset_t table_id,
+blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry);
 
 /**
  * get a duplicate
  */
 extern ham_status_t 
-blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
+blob_duplicate_get(Environment *env, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry);
 
 /**
@@ -260,12 +262,8 @@ blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
  * @warning memory has to be freed by the caller IF needs_free is true!
  */
 extern ham_status_t 
-blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
+blob_duplicate_get_table(Environment *env, ham_offset_t table_id, 
                     dupe_table_t **ptable, ham_bool_t *needs_free);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BLOB_H__ */

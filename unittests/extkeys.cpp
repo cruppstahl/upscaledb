@@ -17,7 +17,6 @@
 #include "../src/db.h"
 #include "../src/extkeys.h"
 #include "../src/env.h"
-#include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -33,31 +32,26 @@ public:
     :   hamsterDB_fixture("ExtendedKeyTest")
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(ExtendedKeyTest, keyStructureTest);
-        BFC_REGISTER_TEST(ExtendedKeyTest, cacheStructureTest);
         BFC_REGISTER_TEST(ExtendedKeyTest, insertFetchRemoveTest);
         BFC_REGISTER_TEST(ExtendedKeyTest, negativeFetchTest);
-        BFC_REGISTER_TEST(ExtendedKeyTest, negativeRemoveTest);
         BFC_REGISTER_TEST(ExtendedKeyTest, bigCacheTest);
         BFC_REGISTER_TEST(ExtendedKeyTest, purgeTest);
     }
 
 protected:
     ham_db_t *m_db;
-    memtracker_t *m_alloc;
 
 public:
     virtual void setup() 
 	{ 
 		__super::setup();
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
-        extkey_cache_t *c=extkey_cache_new(m_db);
+        ExtKeyCache *c=new ExtKeyCache((Database *)m_db);
         BFC_ASSERT(c!=0);
-        db_set_extkey_cache(m_db, c);
+        ((Database *)m_db)->set_extkey_cache(c);
     }
     
     virtual void teardown() 
@@ -66,153 +60,85 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
-    }
-
-    void keyStructureTest(void)
-    {
-        extkey_t e;
-
-        BFC_ASSERT_EQUAL(SIZEOF_EXTKEY_T, sizeof(extkey_t)-1);
-
-        extkey_set_blobid(&e, (ham_offset_t)0x12345);
-        BFC_ASSERT_EQUAL((ham_offset_t)0x12345, 
-                extkey_get_blobid(&e));
-
-        extkey_set_age(&e, (ham_u64_t)0x12345678);
-        BFC_ASSERT_EQUAL((ham_u64_t)0x12345678, extkey_get_age(&e));
-
-        extkey_set_next(&e, (extkey_t *)0x13);
-        BFC_ASSERT_EQUAL((extkey_t *)0x13, extkey_get_next(&e));
-
-        extkey_set_size(&e, 200);
-        BFC_ASSERT_EQUAL((ham_size_t)200, extkey_get_size(&e));
-    }
-
-    void cacheStructureTest(void)
-    {
-        ham_size_t tmp;
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
-
-        extkey_cache_set_db(c, m_db);
-        BFC_ASSERT_EQUAL(m_db, extkey_cache_get_db(c));
-
-        tmp=extkey_cache_get_usedsize(c);
-        extkey_cache_set_usedsize(c, 1000);
-        BFC_ASSERT_EQUAL((ham_size_t)1000, extkey_cache_get_usedsize(c));
-        extkey_cache_set_usedsize(c, tmp);
-
-        tmp=extkey_cache_get_bucketsize(c);
-        extkey_cache_set_bucketsize(c, 500);
-        BFC_ASSERT_EQUAL((ham_size_t)500, extkey_cache_get_bucketsize(c));
-        extkey_cache_set_bucketsize(c, tmp);
-
-        for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c); i++) {
-            extkey_t *e;
-
-            e=extkey_cache_get_bucket(c, i);
-            BFC_ASSERT_EQUAL((extkey_t *)0, e);
-
-            extkey_cache_set_bucket(c, i, (extkey_t *)(i+1));
-            e=extkey_cache_get_bucket(c, i);
-            BFC_ASSERT_EQUAL((extkey_t *)(i+1), e);
-
-            extkey_cache_set_bucket(c, i, 0);
-        }
     }
 
     void insertFetchRemoveTest(void)
     {
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
-        BFC_ASSERT_EQUAL(0, 
-                extkey_cache_insert(c, 0x123, sizeof(buffer), buffer));
+        c->insert(0x123, sizeof(buffer), buffer);
 
-        BFC_ASSERT_EQUAL(0, 
-                extkey_cache_fetch(c, 0x123, &size, &pbuffer));
+        BFC_ASSERT_EQUAL(0, c->fetch(0x123, &size, &pbuffer));
         BFC_ASSERT_EQUAL((ham_size_t)12, size);
         BFC_ASSERT(::memcmp(pbuffer, buffer, size)==0);
 
-        BFC_ASSERT_EQUAL(0, 
-                extkey_cache_remove(c, 0x123));
+        c->remove(0x123);
     }
 
     void negativeFetchTest(void)
     {
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
-        BFC_ASSERT_EQUAL(0, 
-                extkey_cache_insert(c, 0x123, sizeof(buffer), buffer));
+        c->insert(0x123, sizeof(buffer), buffer);
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, c->fetch(0x321, &size, &pbuffer));
 
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                extkey_cache_fetch(c, 0x1234, &size, &pbuffer));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                extkey_cache_fetch(c, 0x12345, &size, &pbuffer));
+        BFC_ASSERT_EQUAL(0, c->fetch(0x123, &size, &pbuffer));
+        BFC_ASSERT_EQUAL((ham_size_t)12, size);
+        BFC_ASSERT(::memcmp(pbuffer, buffer, size)==0);
 
-        BFC_ASSERT_EQUAL(0, 
-                extkey_cache_remove(c, 0x123));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                extkey_cache_fetch(c, 0x123, &size, &pbuffer));
-    }
-
-    void negativeRemoveTest(void)
-    {
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
-
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                extkey_cache_remove(c, 0x12345));
+        c->remove(0x123);
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, c->fetch(0x123, &size, &pbuffer));
     }
 
     void bigCacheTest(void)
     {
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
-        for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                extkey_cache_insert(c, (ham_offset_t)i, 
-                    sizeof(buffer), buffer));
+        for (ham_size_t i=0; i<10000; i++) {
+            c->insert((ham_offset_t)i, sizeof(buffer), buffer);
         }
 
-        for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
+        for (ham_size_t i=0; i<10000; i++) {
             BFC_ASSERT_EQUAL(0, 
-                extkey_cache_fetch(c, (ham_offset_t)i, 
-                    &size, &pbuffer));
+                c->fetch((ham_offset_t)i, &size, &pbuffer));
             BFC_ASSERT_EQUAL((ham_size_t)12, size);
         }
 
-        for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                extkey_cache_remove(c, (ham_offset_t)i));
+        for (ham_size_t i=0; i<10000; i++) {
+             c->remove((ham_offset_t)i);
+        }
+
+        for (ham_size_t i=0; i<10000; i++) {
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        c->fetch((ham_offset_t)i, 0, 0));
         }
     }
 
     void purgeTest(void)
     {
-        extkey_cache_t *c=db_get_extkey_cache(m_db);
+        ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
         for (int i=0; i<20; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                extkey_cache_insert(c, (ham_offset_t)i, 
-                    sizeof(buffer), buffer));
+            c->insert((ham_offset_t)i, sizeof(buffer), buffer);
         }
 
-        ham_env_t *env=db_get_env(m_db);
-        env_set_txn_id(env, env_get_txn_id(env)+2000);
+        ham_env_t *env=ham_get_env(m_db);
+        Environment *e=(Environment *)env;
+        e->set_txn_id(e->get_txn_id()+2000);
 
-        BFC_ASSERT_EQUAL(0, extkey_cache_purge(c));
+        c->purge();
 
         for (int i=0; i<20; i++) {
             BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                extkey_cache_fetch(c, (ham_offset_t)i, 
-                    &size, &pbuffer));
+                c->fetch((ham_offset_t)i, &size, &pbuffer));
         }
     }
 };

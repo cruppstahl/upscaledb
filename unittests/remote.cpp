@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,8 +18,8 @@
 #include <cstdlib>
 #include <ham/hamsterdb_int.h>
 #include <ham/hamsterdb_srv.h>
-#include "memtracker.h"
 #include "../src/env.h"
+#include "../src/db.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -164,16 +164,16 @@ protected:
         ham_env_t *env;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, SERVER_URL, 0, 0664));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -188,12 +188,12 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0,
             ham_env_open(env, SERVER_URL, 0));
-        BFC_ASSERT_EQUAL(1u, env_is_active(env));
+        BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0u, env_is_active(env));
+        BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -329,7 +329,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -353,7 +353,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, &params[0]));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
         params[0].value=0;
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &params[0]));
@@ -377,12 +377,12 @@ protected:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x200000000ull, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x200000000ull, ((Database *)db)->get_remote_handle());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -494,7 +494,8 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), "name", 0, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("name", ham_txn_get_name(txn)));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -509,7 +510,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -1160,7 +1161,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 14, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, txn, 0, &c));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
@@ -1400,7 +1401,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, HAM_TXN_AUTO_ABORT));
         BFC_ASSERT_EQUAL(0, ham_delete(db));

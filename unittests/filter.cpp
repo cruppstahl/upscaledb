@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb_int.h>
-#include "memtracker.h"
 #include "../src/db.h"
 #include "../src/env.h"
 #include "os.hpp"
@@ -175,8 +174,6 @@ public:
 protected:
     ham_db_t *m_db;
     ham_u32_t m_flags;
-    memtracker_t *m_alloc;
-    memtracker_t *m_alloc2;
     ham_env_t *m_env;
 	/*
 	filters MUST 'live' for the entire lifetime of the ENV they are related to.
@@ -206,11 +203,8 @@ public:
         record_filter_closed=0;
 
         os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc2);
     }
     
     virtual void teardown() 
@@ -218,13 +212,10 @@ public:
 		__super::teardown();
 
         ham_delete(m_db);
-		if (m_env)
-		{
+		if (m_env) {
 			BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 			BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
 		}
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc2));
     }
 
     void addRemoveFileTest()
@@ -248,7 +239,7 @@ public:
         BFC_ASSERT(filter1._next==0);
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter1); 
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
         BFC_ASSERT(filter1._next==&filter2);
@@ -256,7 +247,7 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter2); 
         BFC_ASSERT(filter2._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter3));
         BFC_ASSERT(filter1._next==&filter2);
@@ -266,7 +257,7 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter3); 
         BFC_ASSERT(filter3._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter2));
         BFC_ASSERT(filter1._next==&filter3);
@@ -274,16 +265,17 @@ public:
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter3);
         BFC_ASSERT(filter3._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter3));
         // filters have a cyclic 'prev' chain; see the tech documentation
         BFC_ASSERT(filter1._prev==&filter1);
         BFC_ASSERT(filter1._next==0);
-        BFC_ASSERT_EQUAL(&filter1, env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL(&filter1, ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_remove_file_filter(m_env, &filter1));
-        BFC_ASSERT(0==env_get_file_filter(m_env));
+        BFC_ASSERT_EQUAL((ham_file_filter_t *)0, 
+                    ((Environment *)m_env)->get_file_filter());
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
@@ -308,14 +300,16 @@ public:
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter1));
         BFC_ASSERT(rec_filter1._next==0);
         BFC_ASSERT(rec_filter1._prev==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                ((Database *)m_db)->get_record_filter());
 
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter2));
         BFC_ASSERT(rec_filter1._next==&rec_filter2);
         BFC_ASSERT(rec_filter2._prev==&rec_filter1);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter2._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                ((Database *)m_db)->get_record_filter());
 
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter3));
         BFC_ASSERT(rec_filter1._next==&rec_filter2);
@@ -324,386 +318,390 @@ public:
         BFC_ASSERT(rec_filter3._prev==&rec_filter2);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter3._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                ((Database *)m_db)->get_record_filter());
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter2));
         BFC_ASSERT(rec_filter1._next==&rec_filter3);
         BFC_ASSERT(rec_filter3._prev==&rec_filter1);
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter3._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                ((Database *)m_db)->get_record_filter());
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter3));
         BFC_ASSERT(rec_filter1._prev==0);
         BFC_ASSERT(rec_filter1._next==0);
-        BFC_ASSERT_EQUAL(&rec_filter1, db_get_record_filter(m_db));
+        BFC_ASSERT_EQUAL(&rec_filter1, 
+                ((Database *)m_db)->get_record_filter());
 
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &rec_filter1));
-        BFC_ASSERT(0==db_get_record_filter(m_db));
+        BFC_ASSERT(0==((Database *)m_db)->get_record_filter());
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void simpleFileFilterTest()
     {
-        ham_db_t *db;
+            ham_db_t *db;
 
-        memset(&filter, 0, sizeof(filter));
-		filter.before_write_cb=my_file_pre_cb;
-        filter.after_read_cb=my_file_post_cb;
-        filter.close_cb=my_file_close_cb;
+            memset(&filter, 0, sizeof(filter));
+            filter.before_write_cb=my_file_pre_cb;
+            filter.after_read_cb=my_file_post_cb;
+            filter.close_cb=my_file_close_cb;
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_env_create_db(m_env, db, 333, 0, 0));
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(2, file_filter_written);
-        BFC_ASSERT_EQUAL(0, file_filter_read);
-        BFC_ASSERT_EQUAL(1, file_filter_closed);
+            BFC_ASSERT_EQUAL(2, file_filter_written);
+            BFC_ASSERT_EQUAL(1, file_filter_read);
+            BFC_ASSERT_EQUAL(1, file_filter_closed);
 
-        file_filter_written=0;
-        file_filter_read=0;
-        file_filter_closed=0;
+            file_filter_written=0;
+            file_filter_read=0;
+            file_filter_closed=0;
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(0, file_filter_read);
-        BFC_ASSERT_EQUAL(0, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(0, file_filter_read);
+            BFC_ASSERT_EQUAL(0, file_filter_closed);
 
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(1, file_filter_read);
-        BFC_ASSERT_EQUAL(0, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(1, file_filter_read);
+            BFC_ASSERT_EQUAL(0, file_filter_closed);
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(1, file_filter_read);
-        BFC_ASSERT_EQUAL(1, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(1, file_filter_read);
+            BFC_ASSERT_EQUAL(1, file_filter_closed);
 
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-		m_env = 0;
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
+            m_env = 0;
     }
 
     void cascadedFileFilterTest()
     {
-        ham_db_t *db;
+            ham_db_t *db;
 
-        ch1=0x13;
-		ch2=0x15;
-        memset(&filter1, 0, sizeof(filter1));
-        filter1.userdata=(void *)&ch1;
-        filter1.before_write_cb=my_xor_pre_cb;
-        filter1.after_read_cb=my_xor_post_cb;
-		memset(&filter2, 0, sizeof(filter2));
-        filter2.userdata=(void *)&ch2;
-        filter2.before_write_cb=my_add_pre_cb; // make sure filters break when swapped in exec order
-        filter2.after_read_cb=my_add_post_cb;
+            ch1=0x13;
+            ch2=0x15;
+            memset(&filter1, 0, sizeof(filter1));
+            filter1.userdata=(void *)&ch1;
+            filter1.before_write_cb=my_xor_pre_cb;
+            filter1.after_read_cb=my_xor_post_cb;
+            memset(&filter2, 0, sizeof(filter2));
+            filter2.userdata=(void *)&ch2;
+            filter2.before_write_cb=my_add_pre_cb; // make sure filters break when swapped in exec order
+            filter2.after_read_cb=my_add_post_cb;
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter1));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter1));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter1));
-        BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter1));
+            BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter2));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-		m_env = 0;
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
+            m_env = 0;
     }
 
     void simpleRecordFilterTest()
     {
-        char buffer[1024]={0};
-        memset(&rec_filter1, 0, sizeof(rec_filter1));
-        rec_filter1.before_write_cb=my_record_pre_cb;
-        rec_filter1.after_read_cb=my_record_post_cb;
-        rec_filter1.close_cb=my_record_close_cb;
+            char buffer[1024]={0};
+            memset(&rec_filter1, 0, sizeof(rec_filter1));
+            rec_filter1.before_write_cb=my_record_pre_cb;
+            rec_filter1.after_read_cb=my_record_post_cb;
+            rec_filter1.close_cb=my_record_close_cb;
 
-        BFC_ASSERT_EQUAL(0, 
-                    ham_add_record_filter(m_db, &rec_filter1));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_add_record_filter(m_db, &rec_filter1));
 
-        BFC_ASSERT_EQUAL(0, 
-                    ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        rec.data=buffer;
-        rec.size=sizeof(buffer);
-        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            rec.data=buffer;
+            rec.size=sizeof(buffer);
+            BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(0, file_filter_read);
-        BFC_ASSERT_EQUAL(1, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(0, file_filter_read);
+            BFC_ASSERT_EQUAL(1, file_filter_closed);
 
-        file_filter_written=0;
-        file_filter_read=0;
-        file_filter_closed=0;
+            file_filter_written=0;
+            file_filter_read=0;
+            file_filter_closed=0;
 
-        BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter1));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(0, file_filter_read);
-        BFC_ASSERT_EQUAL(0, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter1));
+            BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(0, file_filter_read);
+            BFC_ASSERT_EQUAL(0, file_filter_closed);
 
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(1, file_filter_read);
-        BFC_ASSERT_EQUAL(0, file_filter_closed);
-        BFC_ASSERT(!strcmp((const char *)rec.data, "123"));
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(1, file_filter_read);
+            BFC_ASSERT_EQUAL(0, file_filter_closed);
+            BFC_ASSERT(!strcmp((const char *)rec.data, "123"));
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, file_filter_written);
-        BFC_ASSERT_EQUAL(1, file_filter_read);
-        BFC_ASSERT_EQUAL(1, file_filter_closed);
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, file_filter_written);
+            BFC_ASSERT_EQUAL(1, file_filter_read);
+            BFC_ASSERT_EQUAL(1, file_filter_closed);
     }
 
     void aesFilterTest()
     {
 #ifndef HAM_DISABLE_ENCRYPTION
-        ham_db_t *db;
+            ham_db_t *db;
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey[16] ={0x13};
-        ham_u8_t aeskey2[16]={0x14};
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            ham_u8_t aeskey[16] ={0x13};
+            ham_u8_t aeskey2[16]={0x14};
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(HAM_ACCESS_DENIED, 
-                ham_env_enable_encryption(m_env, aeskey2, 0));
-		BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-		BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(HAM_ACCESS_DENIED, 
+                            ham_env_enable_encryption(m_env, aeskey2, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-		m_env = 0;
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
+            m_env = 0;
 #endif
     }
 
     void aesFilterInMemoryTest()
     {
 #ifndef HAM_DISABLE_ENCRYPTION
-        ham_db_t *db;
+            ham_db_t *db;
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey[16] ={0x13};
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            ham_u8_t aeskey[16] ={0x13};
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(m_env, BFC_OPATH(".test"), 
-                        HAM_IN_MEMORY_DB, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_env_create(m_env, BFC_OPATH(".test"), 
+                                    HAM_IN_MEMORY_DB, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
+            BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
 
     void aesTwiceFilterTest()
     {
 #ifndef HAM_DISABLE_ENCRYPTION
-        ham_db_t *db;
+            ham_db_t *db;
 
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey1[16]={0x13};
-        ham_u8_t aeskey2[16]={0x14};
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            ham_u8_t aeskey1[16]={0x13};
+            ham_u8_t aeskey2[16]={0x14};
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey1, 0));
-        BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
-                ham_env_enable_encryption(m_env, aeskey2, 0));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey1, 0));
+            BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
+                            ham_env_enable_encryption(m_env, aeskey2, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        m_env=0;
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            m_env=0;
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
 
     void negativeAesFilterTest(void)
     {
 #ifndef HAM_DISABLE_ENCRYPTION
-        ham_db_t *db;
-        ham_u8_t aeskey[16]={0x13};
+            ham_db_t *db;
+            ham_u8_t aeskey[16]={0x13};
 
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                        ham_env_enable_encryption(0, aeskey, 0));
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                            ham_env_enable_encryption(0, aeskey, 0));
 
-        //BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
-                        ham_env_enable_encryption(m_env, aeskey, 0));
+            //BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+            BFC_ASSERT_EQUAL(0, ham_new(&db));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
+            BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
+                            ham_env_enable_encryption(m_env, aeskey, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        m_env=0;
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            m_env=0;
+            BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
 
     void zlibFilterTest()
     {
 #ifndef HAM_DISABLE_COMPRESSION
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
-        rec.size=(ham_size_t)strlen((char *)rec.data);
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
+            rec.size=(ham_size_t)strlen((char *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_enable_compression(0, 0, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_enable_compression(m_db, 9999, 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                            ham_enable_compression(0, 0, 0));
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                            ham_enable_compression(m_db, 9999, 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        rec.flags=HAM_RECORD_USER_ALLOC;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_find(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            rec.flags=HAM_RECORD_USER_ALLOC;
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                            ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 #endif
     }
-    
+
     void zlibFilterEmptyRecordTest(void)
     {
 #ifndef HAM_DISABLE_COMPRESSION
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, 
+                            ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 #endif
     }
 
     void zlibEnvFilterTest()
     {
 #ifndef HAM_DISABLE_COMPRESSION
-        ham_db_t *db[3];
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
+            ham_db_t *db[3];
+            ham_key_t key;
+            ham_record_t rec;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
 
-        rec.data=(void *)"123";
-        rec.size=(ham_size_t)strlen("123");
+            rec.data=(void *)"123";
+            rec.size=(ham_size_t)strlen("123");
 
-        BFC_ASSERT_EQUAL(0, ham_new(&db[0]));
-        BFC_ASSERT_EQUAL(0, ham_new(&db[1]));
-        BFC_ASSERT_EQUAL(0, ham_new(&db[2]));
+            BFC_ASSERT_EQUAL(0, ham_new(&db[0]));
+            BFC_ASSERT_EQUAL(0, ham_new(&db[1]));
+            BFC_ASSERT_EQUAL(0, ham_new(&db[2]));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[0], 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[1], 334, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[2], 335, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create(m_env, BFC_OPATH(".test"), 0, 0664));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[0], 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[1], 334, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db[2], 335, 0, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db[0], 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db[1], 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db[2], 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db[0], 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db[1], 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db[2], 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db[0], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db[1], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_insert(db[2], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[0], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[1], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[2], 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[0], 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[1], 334, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[2], 335, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
-        BFC_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db[0], 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db[1], 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db[2], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[0], 333, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[1], 334, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, db[2], 335, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
+            BFC_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db[0], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db[1], 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, ham_find(db[2], 0, &key, &rec, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
-        m_env=0;
-        BFC_ASSERT_EQUAL(0, ham_delete(db[0]));
-        BFC_ASSERT_EQUAL(0, ham_delete(db[1]));
-        BFC_ASSERT_EQUAL(0, ham_delete(db[2]));
+            BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+            BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+            m_env=0;
+            BFC_ASSERT_EQUAL(0, ham_delete(db[0]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[1]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[2]));
 #endif
     }
 

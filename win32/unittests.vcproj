@@ -336,6 +336,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\approx.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\bfc-signal.c"
 			>
 		</File>
@@ -356,7 +360,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\unittests\bt_cursor.cpp"
+			RelativePath="..\unittests\btree_cursor.cpp"
 			>
 		</File>
 		<File
@@ -449,18 +453,6 @@
 		</File>
 		<File
 			RelativePath="..\unittests\main.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\unittests\mem.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\unittests\memtracker.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\unittests\memtracker.h"
 			>
 		</File>
 		<File

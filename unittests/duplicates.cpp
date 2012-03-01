@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <vector>
+#include <string>
 #include <algorithm>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
@@ -21,9 +22,9 @@
 #include "../src/backend.h"
 #include "../src/btree.h"
 #include "../src/endianswap.h"
+#include "../src/cursor.h"
 #include "../src/env.h"
 #include "../src/btree_cursor.h"
-#include "memtracker.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -67,6 +68,7 @@ public:
         BFC_REGISTER_TEST(DupeTest, insertTest);
         BFC_REGISTER_TEST(DupeTest, insertSkipDuplicatesTest);
         BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest);
+        BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest2);
         BFC_REGISTER_TEST(DupeTest, coupleUncoupleTest);
         BFC_REGISTER_TEST(DupeTest, moveToLastDuplicateTest);
 
@@ -695,10 +697,42 @@ public:
         ham_cursor_close(c);
     }
 
+    void insertOnlyDuplicatesTest2(void)
+    {
+        ham_cursor_t *c;
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData("1", "1");
+        insertData("1", "2");
+        insertData("1", "3");
+        insertData("1", "4");
+
+        const char *exp[] = { "1", "2", "3", "4" };
+
+        ham_key_t key={0};
+        key.data=(void *)"1";
+        key.size=2;
+        ham_record_t rec={0};
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
+            BFC_ASSERT_EQUAL(0, strcmp(exp[i], (char *)rec.data));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, 
+                            HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+        }
+
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, HAM_KEY_NOT_FOUND, 0);
+
+        ham_cursor_close(c);
+    }
+
     void coupleUncoupleTest(void)
     {
         ham_cursor_t *c;
-        ham_page_t *page;
+        Page *page;
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 
@@ -716,27 +750,27 @@ public:
         insertData("222", "bbbbbbbbbb");
         insertData("333", "cccccccccc");
 
-        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db,
+        ham_btree_t *be=(ham_btree_t *)((Database *)m_db)->get_backend();
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, (Database *)m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
 
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-        BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
         ham_cursor_close(c);
@@ -777,10 +811,11 @@ public:
                         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, bt_cursor_uncouple((ham_bt_cursor_t *)c2, 0));
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -846,8 +881,8 @@ public:
         BFC_ASSERT_EQUAL(3, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -919,7 +954,7 @@ public:
 			BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 			BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
 		}
-        BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
+        BFC_ASSERT(((Database *)m_db)->get_rt_flags()&HAM_ENABLE_DUPLICATES);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         
@@ -997,8 +1032,8 @@ public:
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1053,11 +1088,13 @@ public:
                 ham_cursor_move(c2, &key, &rec, 0));
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, bt_cursor_uncouple((ham_bt_cursor_t *)c1, 0));
-        BFC_ASSERT_EQUAL(0, bt_cursor_uncouple((ham_bt_cursor_t *)c2, 0));
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c1)->get_btree_cursor(), 0));
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1111,8 +1148,8 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1165,11 +1202,13 @@ public:
                         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, bt_cursor_uncouple((ham_bt_cursor_t *)c1, 0));
-        BFC_ASSERT_EQUAL(0, bt_cursor_uncouple((ham_bt_cursor_t *)c2, 0));
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c1)->get_btree_cursor(), 0));
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1223,8 +1262,8 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -1557,7 +1596,8 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)i, 
-                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+                            btree_cursor_get_dupe_id(
+                                ((Cursor *)c)->get_btree_cursor()));
         }
 
         checkData(c, HAM_CURSOR_FIRST,    0, values[0]);
@@ -1594,7 +1634,8 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)0, 
-                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+                            btree_cursor_get_dupe_id(
+                                ((Cursor *)c)->get_btree_cursor()));
         }
 
         checkData(c, HAM_CURSOR_FIRST,    0, values[3]);
@@ -1631,7 +1672,8 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)(i>=1 ? 1 : 0), 
-                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+                            btree_cursor_get_dupe_id(
+                                ((Cursor *)c)->get_btree_cursor()));
             BFC_ASSERT_EQUAL(0, 
                         ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
         }
@@ -1670,7 +1712,8 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)(i<=1 ? 0 : i-1),
-                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+                            btree_cursor_get_dupe_id(
+                                ((Cursor *)c)->get_btree_cursor()));
             BFC_ASSERT_EQUAL(0, 
                         ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
         }
@@ -1768,7 +1811,8 @@ public:
 
         insertData(0, "3333333333");
         checkData(c, HAM_CURSOR_NEXT,     0, "3333333333");
-        bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
+        BFC_ASSERT_EQUAL(0, 
+                btree_cursor_uncouple(((Cursor *)c)->get_btree_cursor(), 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_get_duplicate_count(c, &count, 0));
         BFC_ASSERT_EQUAL((ham_size_t)3, count);
@@ -1787,7 +1831,7 @@ public:
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
             BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
-            BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
+            BFC_ASSERT(((Database *)m_db)->get_rt_flags()&HAM_ENABLE_DUPLICATES);
 
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 
@@ -1886,8 +1930,8 @@ public:
         BFC_ASSERT_EQUAL(3, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-        BFC_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
-        BFC_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+        BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+        BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));

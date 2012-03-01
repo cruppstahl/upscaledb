@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.0 rc1 UNSTABLE      Mon Jul 25 19:28:45 CEST 2011
+hamsterdb Embedded Storage 2.0.1               Sun Feb 19 13:38:00 CET 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,49 +12,44 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release re-implemented the Transaction support. In previous versions 
-(1.x), only one Transaction was allowed to run, and recovery was implemented
-with write-ahead logging. If a Transaction was aborted (or undone during
-recovery), the modified pages were recovered from the log. 
-
-This version now allows to start an arbitrary number of Transactions that run 
-in parallel. All modified keys are stored in RAM and are flushed to disk when
-the Transaction is committed. If the Transaction is aborted then the 
-information in RAM is simply discarded. For recovery a journal is written; the
-journal does not write the physical page information, but a logical 
-meta-information about the operations in this Transaction. (This version of 
-2.0.0rc1 still uses the physical log in combination with the new journal; the
-old log will be removed in the next versions).
-
-At runtime, the information in RAM and in the btree index is then consolidated.
-
-Users who do not use Transactions should not notice any difference between 
-1.x and this version. 
-
-Compared to 1.x, a few functions were disabled if Transactions are enabled:
-- sorting duplicate keys (HAM_SORT_DUPLICATES)
-- approximate matching
-- direct access (HAM_DIRECT_ACCESS)
-- partial read/write (HAM_PARTIAL)
+This release adds a few minor features like setting a custom path for 
+log files and re-enabling approximate matching for use with Transactions.
+A few bugs were fixed as well, including a crash on Win32.
 
 2. Changes
 
 New Features
-* an unlimited number of Transactions can now run in parallel
+* Approximate matching now works if Transactions are enabled (only for
+    ham_find)
+* Added new parameter HAM_PARAM_LOG_DIRECTORY to specify the directory
+    where the log file and the journal files are stored
 
 Bugfixes
-* all bugfixes of 1.x were merged
+* Win32 release builds no longer crash when using Transactions
+* Win32: fixed build issue if HAM_DISABLE_COMPRESSION is defined (thanks,
+    Andy Thalmann (http://www.softdev.ch))
+* hamsterdb 2.0.0 failed to load database files created with hamsterdb 1.x
+    because of a bad version check
+* Fixed bug where HAM_ONLY_DUPLICATES was ignored when used in a
+    Transaction (thanks, Mark Ruijter)
 
 Other Changes
-* the ./configure switch --enable-internal is now obsolte and enabled by default
+* The internal ham_device_t structure was rewritten as a C++ class. If you
+    use this structure to overwrite the device handling then you have to 
+    rewrite your code.
+* Now using the native Win32 API for os_pwrite and os_pread (thanks,
+    Andy Thalmann (http://www.softdev.ch))
+* Added a public macro HAM_API_REVISION to allow users to programmatically
+    distinguish between new and old interface of ham_txn_begin
+
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- stabilize the new code
-- improve performance
-- increase test coverage
+- more transactional stuff (i.e. recreate pending transactions when 
+    recovering from a crash)
+- multi threading/concurrency
 
 4. Features
 
@@ -64,12 +59,11 @@ To see a list of all changes, look in the file ChangeLog.
 - Supports record number databases ("auto-increment")
 - Supports duplicate keys (with sorting)
 - Support for logging and recovery
-- Support for Transactions
+- Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases) through http
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
-- Portable ANSI-C implementation
 - Runs on Linux, Unices, Microsoft Windows, Windows CE and on many
     architectures (also embedded and SPARC)
 - Endian-independent file format
@@ -115,10 +109,12 @@ you want to include remote functionality, then you have to download the
 dependencies from here:
     http://code.google.com/p/protobuf/
     http://curl.haxx.se/libcurl/
+    http://www.boost.org
 On Ubuntu, you can install the following packages:
     protobuf-compiler
     libprotobuf-dev
     libcurl-dev
+    libboost-dev
 
 For Windows, precompiled libcurl/protobuf libraries are available on 
 hamsterdb.com.

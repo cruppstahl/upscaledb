@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,7 +13,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.0.0 rc1 UNSTABLE
+ * @version 2.0.1
  *
  * @mainpage
  *
@@ -110,6 +110,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * The interface revision
+ *  undefined: hamsterdb 1.x
+ *          1: hamsterdb 2.0 - ham_txn_begin() was changed
+ */
+#define HAM_API_REVISION                1
 
 /**
  * The hamsterdb Database structure
@@ -371,6 +378,8 @@ typedef struct {
 #define HAM_TXN_CONFLICT             (-31)
 /* internal use: key was erased in a Transaction */
 #define HAM_KEY_ERASED_IN_TXN        (-32)
+/** Database cannot be closed because it is modified in a Transaction */
+#define HAM_TXN_STILL_OPEN           (-33)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
@@ -504,7 +513,7 @@ ham_env_new(ham_env_t **env);
  *
  * @param env A valid Environment handle
  *
- * @return This function always returns @ref HAM_SUCCESS
+ * @return @ref HAM_INV_PARAMETER if @a env is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *env);
@@ -584,7 +593,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
- *          parameter for creat(2). Ignored on Microsoft Windows.
+ *          parameter for creat(2). Ignored on Microsoft Windows. Default
+ *          is 0644.
  * @param param An array of ham_parameter_t structures. The following
  *          parameters are available:
  *        <ul>
@@ -597,6 +607,9 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            Page sizes must be 1024 or a multiple of 2048.
  *        <li>@ref HAM_PARAM_MAX_ENV_DATABASES</li> The number of maximum
  *            Databases in this Environment; default value: 16.
+ *        <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
+ *            and the journal files; default is the same path as the database
+ *            file
  *        </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -717,6 +730,9 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            Databases within a single Environment.
  *            For more information about available DAM (Data Access Mode)
  *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
+ *        <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
+ *            and the journal files; default is the same path as the database
+ *            file
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -755,6 +771,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *        <li>HAM_PARAM_GET_FILENAME</li> returns the filename (the @a value
  *              of this parameter is a const char * pointer casted to a
  *              ham_u64_t variable)
+ *        <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
+ *              and the journal files
  *      </ul>
  *
  * @param env A valid Environment handle
@@ -971,6 +989,9 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_flush(ham_env_t *env, ham_u32_t flags);
 
+/* internal use only - don't lock mutex */
+#define HAM_DONT_LOCK                0xf0000000
+
 /**
  * Enables AES encryption
  *
@@ -1103,15 +1124,13 @@ typedef struct ham_txn_t ham_txn_t;
  * In order to use Transactions, the Environment has to be created or
  * opened with the flag @ref HAM_ENABLE_TRANSACTIONS.
  * 
- * Although for historical reasons @ref ham_txn_begin creates a Transaction
- * and attaches it to a Database (the second parameter is a @ref ham_db_t
- * handle), the Transaction is actually valid for the whole Environment.
- *
  * You can create as many Transactions as you want (older versions of
- * hamsterdb did not allow to create multiple parallel Transactions).
+ * hamsterdb did not allow to create more than one Transaction in parallel).
  *
  * @param txn Pointer to a pointer of a Transaction structure
- * @param db A valid Database handle
+ * @param env A valid Environment handle
+ * @param name An optional Transaction name
+ * @param reserved A reserved pointer; always set to NULL
  * @param flags Optional flags for beginning the Transaction, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
@@ -1123,10 +1142,19 @@ typedef struct ham_txn_t ham_txn_t;
  * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
  */
 HAM_EXPORT ham_status_t
-ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
+ham_txn_begin(ham_txn_t **txn, ham_env_t *env, const char *name, 
+        void *reserved, ham_u32_t flags);
 
 /** Flag for @ref ham_txn_begin */
 #define HAM_TXN_READ_ONLY                                       1
+
+/**
+ * Retrieves the Transaction name
+ *
+ * @returns NULL if the name was not assigned or if @a txn is invalid
+ */
+HAM_EXPORT const char *
+ham_txn_get_name(ham_txn_t *txn);
 
 /**
  * Commits a Transaction
@@ -1203,7 +1231,7 @@ ham_new(ham_db_t **db);
  *
  * @param db A valid Database handle
  *
- * @return This function always returns @ref HAM_SUCCESS
+ * @return @ref HAM_INV_PARAMETER if @a db is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_delete(ham_db_t *db);
@@ -1742,7 +1770,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2074,9 +2102,7 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount);
 
-/**
- * Flag for @ref ham_get_key_count
- */
+/** Flag for @ref ham_get_key_count */
 #define HAM_FAST_ESTIMATE           0x0001
 
 /**
@@ -2091,6 +2117,8 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *        <li>HAM_PARAM_KEYSIZE</li> returns the key size
  *        <li>HAM_PARAM_MAX_ENV_DATABASES</li> returns the max. number of 
  *              Databases of this Database's Environment
+ *        <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
+ *            and the journal files
  *        <li>HAM_PARAM_GET_FLAGS</li> returns the flags which were used to
  *              open or create this Database
  *        <li>HAM_PARAM_GET_FILEMODE</li> returns the @a mode parameter which
@@ -2114,8 +2142,8 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
-/** Parameter name for @ref ham_open_ex, @ref ham_create_ex; sets the cache
- * size */
+/** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex, 
+ * @ref ham_open_ex, @ref ham_create_ex; sets the cache size */
 #define HAM_PARAM_CACHESIZE          0x00000100
 
 /** Parameter name for @ref ham_env_create_ex, @ref ham_create_ex; sets the page
@@ -2133,6 +2161,10 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * expected access mode.
  */
 #define HAM_PARAM_DATA_ACCESS_MODE   0x00000104
+
+/** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex, 
+ * @ref ham_open_ex, @ref ham_create_ex; sets the path of the log files */
+#define HAM_PARAM_LOG_DIRECTORY      0x00000105
 
 /**
  * Retrieve the Database/Environment flags as were specified at the time of 
@@ -2276,6 +2308,8 @@ ham_key_get_approximate_match_type(ham_key_t *key);
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
  * @return @ref HAM_CURSOR_STILL_OPEN if not all Cursors of this Database
  *      were closed, and @ref HAM_AUTO_CLEANUP was not specified
+ * @return @ref HAM_TXN_STILL_OPEN if this Database is modified by a 
+ *      currently active Transaction
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_close(ham_db_t *db, ham_u32_t flags);
@@ -2367,7 +2401,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2386,9 +2420,9 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
  * If Transactions are enabled (see @ref HAM_ENABLE_TRANSACTIONS), and 
- * the Cursor moves to a key which is currently modified in an active
- * Transaction (one that is not yet committed or aborted), then hamsterdb
- * will skip the modified key. (This behavior is different from i.e. 
+ * the Cursor moves next or previous to a key which is currently modified 
+ * in an active Transaction (one that is not yet committed or aborted), then 
+ * hamsterdb will skip the modified key. (This behavior is different from i.e. 
  * @a ham_cursor_find, which would return the error @ref HAM_TXN_CONFLICT).
  *
  * If a key has duplicates and any of the duplicates is currently modified
@@ -2396,9 +2430,14 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * moving to the next or previous key.
  *
  * If the first (@ref HAM_CURSOR_FIRST) or last (@ref HAM_CURSOR_LAST) key
- * is requested, and this key (or any of its duplicate keys) is currently
+ * is requested, and the current key (or any of its duplicates) is currently
  * modified in an active Transaction, then @ref HAM_TXN_CONFLICT is 
  * returned.
+ *
+ * If this Cursor is nil (i.e. because it was not yet used or the Cursor's 
+ * item was erased) then the flag @a HAM_CURSOR_NEXT (or @a 
+ * HAM_CURSOR_PREVIOUS) will be identical to @a HAM_CURSOR_FIRST (or 
+ * @a HAM_CURSOR_LAST).
  *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
@@ -2527,7 +2566,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -2665,7 +2704,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
- * but the pointer must not be reallocated of freed. The flag @ref 
+ * but the pointer must not be reallocated or freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
@@ -3050,6 +3089,21 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags);
+
+/**
+ * Returns the record size of the current key
+ *
+ * Returns the record size of the item to which the Cursor currently refers.
+ *
+ * @param cursor A valid Cursor handle
+ * @param size Returns the record size, in bytes
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_INV_PARAMETER if @a cursor or @a size is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_cursor_get_record_size(ham_cursor_t *cursor, ham_offset_t *size);
 
 /**
  * Closes a Database Cursor
