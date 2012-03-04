@@ -22,6 +22,12 @@
 #endif
 
 #include "../src/error.h"
+#if HAM_ENABLE_REMOTE
+#  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
+#  include <curl/curl.h>
+#  include <curl/easy.h>
+#  include "../src/protocol/protocol.h"
+#endif
 
 
 using namespace bfc;
@@ -213,6 +219,11 @@ main(int argc, char **argv)
 	testrunner::get_instance()->outputdir("./");
 	testrunner::get_instance()->inputdir("./");
 #   endif
+#endif
+
+#ifdef HAM_ENABLE_REMOTE
+    atexit(curl_global_cleanup);
+    atexit(proto_shutdown);
 #endif
 
 	// as we wish to print all collected errors at the very end, we act
