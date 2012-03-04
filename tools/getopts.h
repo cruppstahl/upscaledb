@@ -171,7 +171,7 @@ typedef struct
  * is NOT thread-safe!
  */
 extern void
-getopts_init(int argc, char **argv, const char *program);
+getopts_init(int argc, const char **argv, const char *program);
 
 /**
  * getopts_usage()
@@ -181,7 +181,7 @@ getopts_init(int argc, char **argv, const char *program);
  * @remark prints a help screen
  */
 extern void
-getopts_usage(option_t *options);
+getopts_usage(const option_t *options);
 
 /**
  * getopts()
@@ -194,7 +194,7 @@ getopts_usage(option_t *options);
  *
  */
 extern unsigned int 
-getopts(option_t *options, char **param);
+getopts(const option_t *options, const char **param);
 
 /**
  * return value of getopts(), if you forgot to call getopts_init()
@@ -202,13 +202,15 @@ getopts(option_t *options, char **param);
 #define GETOPTS_NO_INIT              0xffffffff
 
 /**
- * return value of getopts() for unknown options
+ * return value of getopts() for unknown options. The offending option is
+ * written to the 'param' argument.
  */
 #define GETOPTS_UNKNOWN              0xfffffffe
 
 /**
  * return value of getopts() if user entered an option which expected
- * a parameter, but the parameter is missing
+ * a parameter, but the parameter is missing. The offending option is
+ * written to the 'param' argument.
  */
 #define GETOPTS_MISSING_PARAM        0xfffffffc
 
@@ -216,7 +218,7 @@ getopts(option_t *options, char **param);
  * found a parameter which is not an option (i.e. doesn't start with 
  * '--', '-' or '/'. 
  * i.e. in "grep pattern", "pattern" is not an option but a simple
- * parameter.
+ * parameter.. The parameter is stored in the 'param' argument.
  */
 #define GETOPTS_PARAMETER            0xfffffffb
 

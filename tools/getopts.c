@@ -27,11 +27,11 @@
 
 static int g_a=0;
 static int g_argc=0;
-static char **g_argv=0;
+static const char **g_argv=0;
 static const char *g_program=0;
 
 void
-getopts_init(int argc, char **argv, const char *program)
+getopts_init(int argc, const char **argv, const char *program)
 {
     g_a=0;
     g_argc=argc-1;
@@ -40,7 +40,7 @@ getopts_init(int argc, char **argv, const char *program)
 }
 
 void
-getopts_usage(option_t *options)
+getopts_usage(const option_t *options)
 {
     printf("usage: %s <options>\n", g_program);
     for (; options->shortopt; options++) {
@@ -54,10 +54,12 @@ getopts_usage(option_t *options)
 }
 
 unsigned int 
-getopts(option_t *options, char **param)
+getopts(const option_t *options, const char **param)
 {
     char *p;
-    option_t *o=options;
+    const option_t *o=options;
+
+	*param = NULL;
 
     if (!g_argv)
         return (GETOPTS_NO_INIT);
@@ -94,8 +96,10 @@ getopts(option_t *options, char **param)
                         g_a++;
                         return (o->name);
                     }
-                    if (g_a==g_argc)
+                    if (g_a==g_argc) {
+						*param = g_argv[g_a];
                         return (GETOPTS_MISSING_PARAM);
+					}
                     *param=g_argv[g_a+1];
                     g_a++;
                 }
@@ -103,6 +107,7 @@ getopts(option_t *options, char **param)
                 return (o->name);
             }
         }
+		*param = g_argv[g_a];
         return (GETOPTS_UNKNOWN);
     }
 
@@ -114,8 +119,10 @@ getopts(option_t *options, char **param)
         for (; o->shortopt; o++) {
             if (!strcmp(o->shortopt, &g_argv[g_a][1])) {
                 if (o->flags & GETOPTS_NEED_ARGUMENT) {
-                    if (g_a==g_argc)
+                    if (g_a==g_argc) {
+						*param = g_argv[g_a];
                         return (GETOPTS_MISSING_PARAM);
+					}
                     *param=g_argv[g_a+1];
                     g_a++;
                 }
@@ -123,6 +130,7 @@ getopts(option_t *options, char **param)
                 return (o->name);
             }
         }
+		*param = g_argv[g_a];
         return (GETOPTS_UNKNOWN);
     }
 
