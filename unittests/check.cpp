@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -24,7 +24,7 @@ using namespace bfc;
 
 class CheckIntegrityTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE, const char *name="CheckIntegrityTest")
@@ -42,21 +42,21 @@ protected:
     ham_bool_t m_inmemory;
 
 public:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"),
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644));
     }
     
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -80,7 +80,7 @@ public:
         for (int i=0; i<5; i++) {
             key.size=sizeof(i);
             key.data=&i;
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, 0, &key, &rec, 0));
         }
 
@@ -101,14 +101,14 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"),
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644, &params[0]));
 
         for (int i=0; i<100; i++) {
             key.size=sizeof(i);
             key.data=&i;
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, 0, &key, &rec, 0));
         }
 

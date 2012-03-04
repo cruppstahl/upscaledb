@@ -3,14 +3,14 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
  */
 
 /**
- * @brief an object which handles a database page 
+ * @brief an object which handles a database page
  *
  */
 
@@ -29,13 +29,13 @@
 
 /*
  * This header is only available if the (non-persistent) flag
- * NPERS_NO_HEADER is not set! 
+ * NPERS_NO_HEADER is not set!
  *
  * all blob-areas in the file do not have such a header, if they
  * span page-boundaries
  *
  * !!
- * if this structure is changed, db_get_usable_pagesize has 
+ * if this structure is changed, db_get_usable_pagesize has
  * to be changed as well!
  */
 HAM_PACK_0 struct HAM_PACK_1 page_header_t {
@@ -50,7 +50,7 @@ HAM_PACK_0 struct HAM_PACK_1 page_header_t {
     ham_u32_t _reserved2;
 
     /**
-     * this is just a blob - the backend (hashdb, btree etc) 
+     * this is just a blob - the backend (hashdb, btree etc)
      * will use it appropriately
      */
     ham_u8_t _payload[1];
@@ -60,8 +60,8 @@ HAM_PACK_0 struct HAM_PACK_1 page_header_t {
 /**
  * The page header which is persisted on disc
  *
- * This structure definition is present outside of @ref Page scope 
- * to allow compile-time OFFSETOF macros to correctly judge the size, depending 
+ * This structure definition is present outside of @ref Page scope
+ * to allow compile-time OFFSETOF macros to correctly judge the size, depending
  * on platform and compiler settings.
  */
 typedef HAM_PACK_0 union HAM_PACK_1 page_data_t
@@ -81,15 +81,15 @@ typedef HAM_PACK_0 union HAM_PACK_1 page_data_t
  * The Page class
  *
  * Each Page instance is a node in several linked lists.
- * In order to avoid multiple memory allocations, the previous/next pointers 
+ * In order to avoid multiple memory allocations, the previous/next pointers
  * are part of the Page class (m_prev and m_next).
  * Both fields are arrays of pointers and can be used i.e.
- * with m_prev[Page::LIST_BUCKET] etc. (or with the methods 
+ * with m_prev[Page::LIST_BUCKET] etc. (or with the methods
  * defined below).
  */
 class Page {
-  public:   
-    /** 
+  public:
+    /**
      * get the size of the persistent header of a page
      *
      * equals the size of struct page_data_t, without the payload byte
@@ -123,8 +123,8 @@ class Page {
     /**
      * Page types
      *
-     * @note When large BLOBs span multiple pages, only their initial page 
-     * will have a valid type code; subsequent pages of this blog will store 
+     * @note When large BLOBs span multiple pages, only their initial page
+     * will have a valid type code; subsequent pages of this blog will store
      * the data as-is, so as to provide one continuous storage space
      */
     enum {
@@ -139,7 +139,7 @@ class Page {
         /** a freelist management page */
         TYPE_FREELIST           =  0x40000000,
         /** a page which stores (the front part of) a BLOB. */
-        TYPE_BLOB               =  0x50000000     
+        TYPE_BLOB               =  0x50000000
     };
 
 
@@ -284,7 +284,7 @@ class Page {
     /** write a page to the device */
     ham_status_t flush();
 
-    /** frees a page - deletes the persistent part and moves the page to 
+    /** frees a page - deletes the persistent part and moves the page to
      * the freelist (if a freelist is available) */
     ham_status_t free();
 
@@ -299,8 +299,8 @@ class Page {
         return (false);
     }
 
-    /** inserts this page at the beginning of a list and returns the 
-     * new head of the list 
+    /** inserts this page at the beginning of a list and returns the
+     * new head of the list
      */
     Page *list_insert(Page *list_head, int which) {
         set_next(which, 0);
@@ -373,7 +373,7 @@ class Page {
     Cursor *m_cursors;
 
     /** linked lists of pages - see comments above */
-    Page *m_prev[Page::MAX_LISTS]; 
+    Page *m_prev[Page::MAX_LISTS];
     Page *m_next[Page::MAX_LISTS];
 
     /** from here on everything will be written to disk */

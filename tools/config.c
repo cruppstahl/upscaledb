@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -102,7 +102,7 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
         case STATE_ENVIRONMENTS: {
             if (type==JSON_T_OBJECT_BEGIN) {
                 p->env_count++;
-                p->envs=(struct config_env_t *)realloc(p->envs, 
+                p->envs=(struct config_env_t *)realloc(p->envs,
                         p->env_count*sizeof(struct config_env_t));
                 memset(&p->envs[p->env_count-1], 0, sizeof(struct config_env_t));
                 p->cur_env=p->env_count;
@@ -153,7 +153,7 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
             if (type==JSON_T_OBJECT_BEGIN) {
                 struct config_env_t *e=&p->envs[p->cur_env-1];
                 e->db_count++;
-                e->dbs=(struct config_db_t *)realloc(e->dbs, 
+                e->dbs=(struct config_db_t *)realloc(e->dbs,
                         e->db_count*sizeof(struct config_db_t));
                 memset(&e->dbs[e->db_count-1], 0, sizeof(struct config_db_t));
                 p->cur_db=e->db_count;

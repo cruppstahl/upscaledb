@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -23,7 +23,7 @@
 #include "env.h"
 
 
-/** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
+/** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in
  * a MODULO hash scheme */
 #define CACHE_BUCKET_SIZE    10317
 
@@ -40,7 +40,7 @@ class Cache
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    Cache(Environment *env, 
+    Cache(Environment *env,
                 ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
     /**
@@ -54,7 +54,7 @@ class Cache
      * get an unused page (or an unreferenced page, if no unused page
      * was available
      *
-     * @remark if the page is dirty, it's the caller's responsibility to 
+     * @remark if the page is dirty, it's the caller's responsibility to
      * write it to disk!
      *
      * @remark the page is removed from the cache
@@ -69,12 +69,12 @@ class Cache
             return (0);
 
         /* now iterate through all pages, starting from the oldest
-         * (which is the tail of the "totallist", the list of ALL cached 
+         * (which is the tail of the "totallist", the list of ALL cached
          * pages) */
         page=oldest;
         do {
             /* pick the first unused page (not in a changeset) */
-            if (!page->is_in_list(m_env->get_changeset().get_head(), 
+            if (!page->is_in_list(m_env->get_changeset().get_head(),
                         Page::LIST_CHANGESET))
                 break;
         
@@ -116,11 +116,11 @@ class Cache
         /* otherwise remove the page from the cache */
         remove_page(page);
 
-        /* if the flag NOREMOVE is set, then re-insert the page. 
+        /* if the flag NOREMOVE is set, then re-insert the page.
          *
          * The remove/insert trick causes the page to be inserted at the
          * head of the "totallist", and therefore it will automatically move
-         * far away from the tail. And the pages at the tail are highest 
+         * far away from the tail. And the pages at the tail are highest
          * candidates to be deleted when the cache is purged. */
         if (flags&Cache::NOREMOVE)
             put_page(page);
@@ -138,7 +138,7 @@ class Cache
 
         /* first remove the page from the cache, if it's already cached
          *
-         * we re-insert the page because we want to make sure that the 
+         * we re-insert the page because we want to make sure that the
          * cache->_totallist_tail pointer is updated and that the page
          * is inserted at the HEAD of the list
          */
@@ -155,11 +155,11 @@ class Cache
         /*
          * insert it in the cache buckets
          * !!!
-         * to avoid inserting the page twice, we first remove it from the 
+         * to avoid inserting the page twice, we first remove it from the
          * bucket
          */
         if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
-            m_buckets[hash]=page->list_remove(m_buckets[hash], 
+            m_buckets[hash]=page->list_remove(m_buckets[hash],
                             Page::LIST_BUCKET);
         ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET), (0));
         m_buckets[hash]=page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
@@ -177,7 +177,7 @@ class Cache
     void remove_page(Page *page) {
         ham_bool_t removed = HAM_FALSE;
 
-        /* are we removing the chronologically oldest page? then 
+        /* are we removing the chronologically oldest page? then
          * update the pointer with the next oldest page */
         if (m_totallist_tail==page)
             m_totallist_tail=page->get_previous(Page::LIST_CACHED);
@@ -186,7 +186,7 @@ class Cache
         if (page->get_self()) {
             ham_u64_t hash=calc_hash(page->get_self());
             if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET)) {
-                m_buckets[hash]=page->list_remove(m_buckets[hash], 
+                m_buckets[hash]=page->list_remove(m_buckets[hash],
                         Page::LIST_BUCKET);
             }
         }
@@ -221,30 +221,30 @@ class Cache
     /**
      * set the HEAD of the global page list
      */
-    void set_totallist(Page *l) { 
-        m_totallist=l; 
+    void set_totallist(Page *l) {
+        m_totallist=l;
     }
 
     /**
      * retrieve the HEAD of the global page list
      */
-    Page *get_totallist(void) { 
-        return (m_totallist); 
+    Page *get_totallist(void) {
+        return (m_totallist);
     }
 
     /**
      * decrease number of current elements
      * TODO this should be private, but db.c needs it
      */
-    void dec_cur_elements() { 
-        m_cur_elements--; 
+    void dec_cur_elements() {
+        m_cur_elements--;
     }
 
     /**
      * get the capacity (in bytes)
      */
-    ham_u64_t get_capacity(void) { 
-        return (m_capacity); 
+    ham_u64_t get_capacity(void) {
+        return (m_capacity);
     }
 
     /**

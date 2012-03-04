@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -20,7 +20,7 @@
 
 using namespace bfc;
 
-static void HAM_CALLCONV 
+static void HAM_CALLCONV
 my_handler(int level, const char *msg)
 {
     static int i=0;
@@ -42,13 +42,13 @@ static int g_aborted=0;
 
 static void
 my_abort_handler(void)
-{ 
+{
     g_aborted=1;
 }
 
 class ErrorTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     ErrorTest()
@@ -60,19 +60,19 @@ public:
     }
 
 public:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
         ham_set_errhandler(my_handler);
-	}
+    }
 
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
-		ham_set_errhandler(0);
-	}
+        ham_set_errhandler(0);
+    }
 
     void errorHandlerTest()
     {

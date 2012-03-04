@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -11,7 +11,7 @@
 
 /**
  * @file hamsterdb_stats.h
- * @brief Internal hamsterdb Embedded Storage statistics gathering and 
+ * @brief Internal hamsterdb Embedded Storage statistics gathering and
  *        hinting functions.
  * @author Ger Hobbelt, ger@hobbelt.com
  *
@@ -28,7 +28,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 struct ham_statistics_t;
 typedef struct ham_statistics_t ham_statistics_t;
@@ -46,8 +46,8 @@ typedef void ham_free_statistics_func_t(ham_statistics_t *self);
 
 /**
  * The upper bound value which will trigger a statistics data rescale operation
- * to be initiated in order to prevent integer overflow in the statistics data 
- * elements. 
+ * to be initiated in order to prevent integer overflow in the statistics data
+ * elements.
  */
 #define HAM_STATISTICS_HIGH_WATER_MARK                0x7FFFFFFF /* could be 0xFFFFFFFF */
 
@@ -73,7 +73,7 @@ typedef void ham_free_statistics_func_t(ham_statistics_t *self);
 /* -- equivalents of the statistics.h internal PERSISTED data structures -- */
 
 /**
- * We keep track of VERY first free slot index + free slot index 
+ * We keep track of VERY first free slot index + free slot index
  * pointing at last (~ supposed largest) free range + 'utilization' of the
  * range between FIRST and LAST as a ratio of number of free slots in
  * there vs. total number of slots in that range (giving us a 'fill'
@@ -83,10 +83,10 @@ typedef void ham_free_statistics_func_t(ham_statistics_t *self);
  * (a FAIL here meaning the freelist scan did not deliver a free slot
  * WITHIN the first..last range, i.e. it has scanned this entire range
  * without finding anything suitably large).
- * 
+ *
  * Note that the free_fill in here is AN ESTIMATE.
  */
-typedef struct ham_freelist_slotsize_stats_t 
+typedef struct ham_freelist_slotsize_stats_t
 {
     ham_u32_t first_start;
 
@@ -117,7 +117,7 @@ typedef struct ham_freelist_slotsize_stats_t
  */
 typedef struct ham_freelist_page_statistics_t
 {
-	ham_freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD]; 
+    ham_freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD];
 
     /**
      * (bit) offset which tells us which free slot is the EVER LAST
@@ -156,7 +156,7 @@ typedef struct ham_freelist_page_statistics_t
 
 } ham_freelist_page_statistics_t;
 
-/* -- end of equivalents of the statistics.h internal PERSISTED data 
+/* -- end of equivalents of the statistics.h internal PERSISTED data
  * structures -- */
 
 /**
@@ -205,8 +205,8 @@ typedef struct ham_runtime_statistics_globdata_t
      *
      * The statistics all are meant to represent relative numbers,
      * so uniformly scaling these numbers will not produce worse
-     * results from the hinters -- as long as the scaling does not produce 
-     * edge values (0 or 1) which destroy the significance of the numbers 
+     * results from the hinters -- as long as the scaling does not produce
+     * edge values (0 or 1) which destroy the significance of the numbers
      * gathered thus far.
      *
      * I believe a rescale by a factor of 256 (2^8) is quite safe
@@ -217,9 +217,9 @@ typedef struct ham_runtime_statistics_globdata_t
      * there is ample headroom again for the next 100K+ operations;
      * at an average monitored cost increase of 10-20 per
      * insert/delete trial and, for very large databases using an
-     * overly conservative freelist management setting, ~50-200 trials 
-     * per insert/delete API invocation (which should be a hint to the 
-     * user that another DAM mode is preferred; after all, 'classical' 
+     * overly conservative freelist management setting, ~50-200 trials
+     * per insert/delete API invocation (which should be a hint to the
+     * user that another DAM mode is preferred; after all, 'classical'
      * is only there for backwards compatibility, and in the old
      * days, hamsterdb was a snail when you'd be storing 1M+ records
      * in a single DB table), the resulting statistics additive step
@@ -227,7 +227,7 @@ typedef struct ham_runtime_statistics_globdata_t
      * insert/delete.
      *
      * Assuming a high water mark for signed int, i.e. 2^31 ~ 2.14
-     * billion, dividing ('rescaling') that number down to 2^(31-8) ~ 8M 
+     * billion, dividing ('rescaling') that number down to 2^(31-8) ~ 8M
      * produces a headroom of ~ 2.13 billion points, which,
      * assuming the nominal worst case of a cost addition of 4000
      * points per insert/delete, implies new headroom for ~ 500K
@@ -238,7 +238,7 @@ typedef struct ham_runtime_statistics_globdata_t
      * operations, resulting in an - on average - negligible overhead.
      *
      * So we can use 32-bits for all statistics counters quite
-     * safely. Assuming our 'cost is the fastest riser' position holds for 
+     * safely. Assuming our 'cost is the fastest riser' position holds for
      * all use cases, that is.
      *
      * A quick analysis shows this to be probably true, even for
@@ -252,7 +252,7 @@ typedef struct ham_runtime_statistics_globdata_t
      * both fail and success costs are immediately fed into the
      * statistics, so our worst case for the 'cost-is-fastest' lemma
      * would be a long trace of fail trials, which do NOT test the
-     * freelist bitarrays, i.e. fails which are discarded in the outer layers, 
+     * freelist bitarrays, i.e. fails which are discarded in the outer layers,
      * thanks to the hinters (global and per-entry) kicking in and preventing
      * those freelist bitarray scans. Assume then that all counters
      * have the same value, which would mean that the number of
@@ -289,7 +289,7 @@ typedef struct ham_runtime_statistics_globdata_t
  * @{
  *
  * Indices into find/insert/erase specific statistics
- * 
+ *
  * @sa ham_statistics_t
  * @sa ham_runtime_statistics_opdbdata_t
  */
@@ -317,11 +317,11 @@ typedef struct ham_runtime_statistics_opdbdata_t
         
     ham_offset_t btree_last_page_addr;
 
-    /** 
-     * number of consecutive times that this last page was produced as 
-     * an answer ('sequential hits') 
+    /**
+     * number of consecutive times that this last page was produced as
+     * an answer ('sequential hits')
      */
-    ham_u32_t btree_last_page_sq_hits; 
+    ham_u32_t btree_last_page_sq_hits;
 
     ham_u32_t query_count;
 
@@ -335,12 +335,12 @@ typedef struct ham_runtime_statistics_opdbdata_t
 typedef struct ham_runtime_statistics_dbdata_t
 {
     /* find/insert/erase */
-    ham_runtime_statistics_opdbdata_t op[HAM_OPERATION_STATS_MAX]; 
+    ham_runtime_statistics_opdbdata_t op[HAM_OPERATION_STATS_MAX];
 
     /**
      * common rescale tracker as the rescaling is done on all operations data
      * at once, so these remain 'balanced'.
-     * 
+     *
      * Fringe case consideration: when there's, say, a lot of FIND going
      * on with a few ERASE operations in between, is it A Bad Thing that
      * the ERASE stats risc getting rescaled to almost nil then? Answer: NO.
@@ -348,7 +348,7 @@ typedef struct ham_runtime_statistics_dbdata_t
      * node isn't in cache anymore anyway -- unless it's the same one
      * as used by FIND.
      *
-     * The reason we keep track of 3 different leaf nodes is only so we 
+     * The reason we keep track of 3 different leaf nodes is only so we
      * can supply good hinting in scanerios where FIND, INSERT and/or
      * ERASE are mixed in reasonable ratios; keeping track of only a single
      * btree leaf would deny us some good hinting for the other operations.
@@ -356,51 +356,51 @@ typedef struct ham_runtime_statistics_dbdata_t
     ham_u32_t rescale_tracker;
 
     /**
-     * Remember the upper and lower bound kays for this database; update them 
-     * when we insert a new key, maybe even update them when we delete/erase 
+     * Remember the upper and lower bound kays for this database; update them
+     * when we insert a new key, maybe even update them when we delete/erase
      * a key.
-     * 
+     *
      * These bounds are collected on the fly while searching (find()): they are
-     * stored in here as soon as a find() operation hits either the lower or 
+     * stored in here as soon as a find() operation hits either the lower or
      * upper bound of the key range stored in the database.
      *
-     * The purpose of storing these bounds is to speed up out-of-bounds 
-     * key searches significantly: by comparing incoming keys with these 
-     * bounds, we can immediately tell whether a key will have a change of 
-     * being found or not, thus precluding the need to traverse the btree - 
+     * The purpose of storing these bounds is to speed up out-of-bounds
+     * key searches significantly: by comparing incoming keys with these
+     * bounds, we can immediately tell whether a key will have a change of
+     * being found or not, thus precluding the need to traverse the btree -
      * which would produce the same answer in the end anyhow.
      *
-     * WARNING: having these key (copies) in here means we'll need to 
-     * clean them up when we close the database connection, or we'll risk 
+     * WARNING: having these key (copies) in here means we'll need to
+     * clean them up when we close the database connection, or we'll risk
      * leaking memory in the key->data here.
      *
-     * NOTE #1: this is the humble beginning of what in a more sophisticated 
-     * database server system would be called a 'histogram' (Oracle, etc.). 
-     * Here we don't spend the effort to collect data for a full histogram, 
+     * NOTE #1: this is the humble beginning of what in a more sophisticated
+     * database server system would be called a 'histogram' (Oracle, etc.).
+     * Here we don't spend the effort to collect data for a full histogram,
      * but merely collect info about the extremes of our stored key range.
-     * 
-     * NOTE #2: I'm pondering whether this piece of statistics gathering 
-     * should be allowed to be turned off by the user 'because he knows best' 
-     * where premium run-time performance requirements are at stake. 
-     * Yet... The overhead here is a maximum of two key comparisons plus 
-     * 2 key copies (which can be significant when we're talking about 
+     *
+     * NOTE #2: I'm pondering whether this piece of statistics gathering
+     * should be allowed to be turned off by the user 'because he knows best'
+     * where premium run-time performance requirements are at stake.
+     * Yet... The overhead here is a maximum of two key comparisons plus
+     * 2 key copies (which can be significant when we're talking about
      * extended keys!) when we're producing find/insert/erase results which
-     * access a btree leaf node which is positioned at the upper/lower edge of 
+     * access a btree leaf node which is positioned at the upper/lower edge of
      * the btree key range.
      *
-     * Hence, worst case happens for sure with tiny databases, as those will 
-     * have ONE btree page only (root=leaf!) and the worst case is reduced 
-     * to 1 key comparison + 1 key copy for any larger database, which spans 
+     * Hence, worst case happens for sure with tiny databases, as those will
+     * have ONE btree page only (root=leaf!) and the worst case is reduced
+     * to 1 key comparison + 1 key copy for any larger database, which spans
      * two btree pages or more.
      *
-     * To further reduce the worst case overhead, we also store the 
-     * within-btree-node index of the upper/lower bound key: when this does 
-     * not change, there is no need to compare the key - unless the key is 
+     * To further reduce the worst case overhead, we also store the
+     * within-btree-node index of the upper/lower bound key: when this does
+     * not change, there is no need to compare the key - unless the key is
      * overwritten, which is a special case of the insert operation.
-     * 
+     *
      * @warning
-     * The @a key data is allocated using the @ref ham_db_t allocator and the 
-     * key data must be freed before the related @ref ham_db_t handle 
+     * The @a key data is allocated using the @ref ham_db_t allocator and the
+     * key data must be freed before the related @ref ham_db_t handle
      * is closed or deleted.
      */
     ham_key_t lower_bound;
@@ -421,29 +421,29 @@ typedef struct ham_runtime_statistics_dbdata_t
 } ham_runtime_statistics_dbdata_t;
 
 /**
- * This structure is a @e READ-ONLY data structure returned through invoking 
- * @ref ham_env_get_parameters or @ref ham_get_parameters with a 
+ * This structure is a @e READ-ONLY data structure returned through invoking
+ * @ref ham_env_get_parameters or @ref ham_get_parameters with a
  * @ref HAM_PARAM_GET_STATISTICS @ref ham_parameter_t entry.
  *
  * @warning
- * The content of this structure will be subject to change with each hamsterdb 
- * release; having it available in the public interface does @e not mean one 
- * can assume the data layout and/or content of the @ref ham_statistics_t 
- * structure to remain constant over multiple release version updates of 
+ * The content of this structure will be subject to change with each hamsterdb
+ * release; having it available in the public interface does @e not mean one
+ * can assume the data layout and/or content of the @ref ham_statistics_t
+ * structure to remain constant over multiple release version updates of
  * hamsterdb.
  *
- * Also note that the data is exported to aid very advanced uses of hamsterdb 
+ * Also note that the data is exported to aid very advanced uses of hamsterdb
  * only and is to be accessed in an exclusively @e read-only fashion.
  *
- * The structure includes a function pointer which will optionally be set 
- * by hamsterdb upon invoking @ref ham_env_get_parameters or 
- * @ref ham_get_parameters and this function should be invoked 
- * by the caller to release all memory allocated by hamsterdb in the 
- * @ref ham_statistics_t structure, and this action @e MUST be performed 
- * @e before the related @a env and/or @a db handles are either closed 
+ * The structure includes a function pointer which will optionally be set
+ * by hamsterdb upon invoking @ref ham_env_get_parameters or
+ * @ref ham_get_parameters and this function should be invoked
+ * by the caller to release all memory allocated by hamsterdb in the
+ * @ref ham_statistics_t structure, and this action @e MUST be performed
+ * @e before the related @a env and/or @a db handles are either closed
  * or deleted, whichever of these comes first in your application run-time flow.
  *
- * The easiest way to invoke this @ref ham_clean_statistics_datarec function 
+ * The easiest way to invoke this @ref ham_clean_statistics_datarec function
  * (when it is set) is to use the provided @ref ham_clean_statistics_datarec() function.
  *
  * @sa HAM_PARAM_GET_STATISTICS
@@ -469,7 +469,7 @@ struct ham_statistics_t
     ham_runtime_statistics_globdata_t global_stats;
 
     /**
-     * [input] Whether the freelist statistics should be gathered (this is 
+     * [input] Whether the freelist statistics should be gathered (this is
      * a relatively costly operation)
      * [output] will be reset when the freelist statistics have been gathered
      */
@@ -482,7 +482,7 @@ struct ham_statistics_t
     unsigned dont_collect_db_stats: 1;
 
     /**
-     * [input] Whether the @ref ham_env_t statistics (a.k.a. 'global 
+     * [input] Whether the @ref ham_env_t statistics (a.k.a. 'global
      * statistics') should be gathered
      * [output] will be reset when the global statistics have been gathered
      */
@@ -492,17 +492,17 @@ struct ham_statistics_t
      * A reference to a hamsterdb-specified @e optional data cleanup function.
      *
      * @warning
-     * The user @e MUST call this cleanup function when it is set by 
-     * hamsterdb, preferrably through invoking 
+     * The user @e MUST call this cleanup function when it is set by
+     * hamsterdb, preferrably through invoking
      * @ref ham_clean_statistics_datarec() as that function will check if
      * this callback has been set or not before invoking it.
-     * 
+     *
      * @sa ham_clean_statistics_datarec
      */
     ham_free_statistics_func_t *_free_func;
 
-    /* 
-     * internal use: this element is set by hamsterdb and to be used by the 
+    /*
+     * internal use: this element is set by hamsterdb and to be used by the
      * @a _free_func callback.
      */
     void *_free_func_internal_arg;
@@ -510,18 +510,18 @@ struct ham_statistics_t
 };
 
 /**
- * Invoke the optional @ref ham_statistics_t content cleanup function. 
- * 
- * This function will check whether the @ref ham_statistics_t free/cleanup 
+ * Invoke the optional @ref ham_statistics_t content cleanup function.
+ *
+ * This function will check whether the @ref ham_statistics_t free/cleanup
  * callback has been set or not before invoking it.
  *
- * @param stats A pointer to a valid @ref ham_statistics_t data structure. 'Valid' 
- * means you must call this @ref ham_clean_statistics_datarec() function @e after having 
- * called @ref ham_env_get_parameters or @ref ham_get_parameters with 
- * a @ref HAM_PARAM_GET_STATISTICS @ref ham_parameter_t entry which had this 
- * @ref ham_statistics_t reference @a stats attached and @e before either the 
- * related @ref ham_db_t or @ref ham_env_t handles are closed (@ref 
- * ham_env_close/@ref ham_close) or deleted (@ref ham_env_delete/@ref 
+ * @param stats A pointer to a valid @ref ham_statistics_t data structure. 'Valid'
+ * means you must call this @ref ham_clean_statistics_datarec() function @e after having
+ * called @ref ham_env_get_parameters or @ref ham_get_parameters with
+ * a @ref HAM_PARAM_GET_STATISTICS @ref ham_parameter_t entry which had this
+ * @ref ham_statistics_t reference @a stats attached and @e before either the
+ * related @ref ham_db_t or @ref ham_env_t handles are closed (@ref
+ * ham_env_close/@ref ham_close) or deleted (@ref ham_env_delete/@ref
  * ham_delete).
  *
  * @return @ref HAM_SUCCESS upon success
@@ -538,7 +538,7 @@ ham_clean_statistics_datarec(ham_statistics_t *stats);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif 
+#endif
 
 #endif /* HAM_HAMSTERDB_STATS_H__ */
 

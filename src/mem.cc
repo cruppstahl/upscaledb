@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -32,7 +32,7 @@ class DefaultAllocator : public Allocator
     {
         typedef std::stack<void *> LookasideList;
 
-        Lookasides() 
+        Lookasides()
         : max_sizes(2) {
             sizes[0]=sizeof(txn_op_t);
             sizes[1]=sizeof(txn_opnode_t);
@@ -79,8 +79,8 @@ class DefaultAllocator : public Allocator
             return ((char *)p+sizeof(ham_u32_t));
 
 #if defined(_CRTDBG_MAP_ALLOC)
-        p=::_malloc_dbg(size+sizeof(ham_u32_t), _NORMAL_BLOCK, 
-			          __FILE__, __LINE__);
+        p=::_malloc_dbg(size+sizeof(ham_u32_t), _NORMAL_BLOCK,
+                      __FILE__, __LINE__);
 #else
         p=::malloc(size+sizeof(ham_u32_t));
 #endif
@@ -120,7 +120,7 @@ class DefaultAllocator : public Allocator
         void *p=ptr ? (char *)ptr-sizeof(ham_u32_t) : 0;
 
 #if defined(_CRTDBG_MAP_ALLOC)
-        ptr=::_realloc_dbg((void *)p, size+sizeof(ham_u32_t), 
+        ptr=::_realloc_dbg((void *)p, size+sizeof(ham_u32_t),
                     _NORMAL_BLOCK, __FILE__, __LINE__);
 #else
         ptr=::realloc((void *)p, size+sizeof(ham_u32_t));

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -48,7 +48,7 @@ insert(int argc, char **argv)
     if (argc!=8) {
         usage();
         exit(-1);
-    } 
+    }
 
     ham_status_t st;
     ham_db_t *db;
@@ -86,10 +86,10 @@ insert(int argc, char **argv)
             { HAM_PARAM_KEYSIZE, 200 },
             { 0, 0 }
         };
-        st=ham_env_create_ex(env, "recovery.db", 
+        st=ham_env_create_ex(env, "recovery.db",
                         (dupes ? HAM_ENABLE_DUPLICATES : 0)
                             | (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-                            | HAM_ENABLE_RECOVERY, 0644, 
+                            | HAM_ENABLE_RECOVERY, 0644,
                         &params[0]);
         if (st) {
             printf("ham_env_create_ex failed: %d\n", (int)st);
@@ -164,7 +164,7 @@ erase(int argc, char **argv)
     if (argc!=7) {
         usage();
         exit(-1);
-    } 
+    }
 
     ham_status_t st=0;
     ham_db_t *db;
@@ -186,7 +186,7 @@ erase(int argc, char **argv)
     key.size=keysize;
     memset(key.data, 0, key.size);
 
-    st=ham_env_open(env, "recovery.db", 
+    st=ham_env_open(env, "recovery.db",
                     (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                     | HAM_ENABLE_RECOVERY);
     if (st) {
@@ -260,7 +260,7 @@ recover(int argc, char **argv)
     if (argc!=3) {
         usage();
         exit(-1);
-    } 
+    }
 
     int use_txn=(int)strtol(argv[2], 0, 0);
     printf("recover: use_txn=%d\n", use_txn);
@@ -270,7 +270,7 @@ recover(int argc, char **argv)
 
     ham_env_new(&env);
 
-    st=ham_env_open(env, "recovery.db", 
+    st=ham_env_open(env, "recovery.db",
                 (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_ENABLE_RECOVERY);
     if (st==0)
         exit(0);
@@ -302,7 +302,7 @@ verify(int argc, char **argv)
     if (argc!=8) {
         usage();
         exit(-1);
-    } 
+    }
 
     int keysize=(int)strtol(argv[2], 0, 0);
     int recsize=(int)strtol(argv[3], 0, 0);

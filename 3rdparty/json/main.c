@@ -33,7 +33,7 @@ static void print_indention()
 static int print(void* ctx, int type, const JSON_value* value)
 {
     switch(type) {
-    case JSON_T_ARRAY_BEGIN:    
+    case JSON_T_ARRAY_BEGIN:
         if (!s_IsKey) print_indention();
         s_IsKey = 0;
         printf("[\n");
@@ -86,7 +86,7 @@ static int print(void* ctx, int type, const JSON_value* value)
         s_IsKey = 1;
         print_indention();
         printf("key = '%s', value = ", value->vu.str.value);
-        break;   
+        break;
     case JSON_T_STRING:
         if (!s_IsKey) print_indention();
         s_IsKey = 0;

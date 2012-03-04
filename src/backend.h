@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -25,11 +25,11 @@
 */
 
 /** continue with the traversal */
-#define CB_CONTINUE            0 
+#define CB_CONTINUE            0
 /** do not not descend another level (or descend from page to key traversal) */
-#define CB_DO_NOT_DESCEND    1 
+#define CB_DO_NOT_DESCEND    1
 /** stop the traversal entirely */
-#define CB_STOP                2 
+#define CB_STOP                2
 
 /**
  * @}
@@ -37,15 +37,15 @@
 
 
 /**
- * a callback function for enumerating the index nodes/pages using the 
+ * a callback function for enumerating the index nodes/pages using the
  * @ref ham_backend_t::_fun_enumerate callback/method.
  *
  * @param event one of the @ref ham_cb_event state codes
  *
- * @return one of the @ref ham_cb_status values or a @ref ham_status_codes 
+ * @return one of the @ref ham_cb_status values or a @ref ham_status_codes
  *         error code when an error occurred.
  */
-typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, 
+typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
                     void *param2, void *context);
 
 /**
@@ -62,7 +62,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 /** end of a new page; param1 points to the page */
 #define ENUM_EVENT_PAGE_STOP    3
 
-/** an item in the page; param1 points to the key; param2 is the index 
+/** an item in the page; param1 points to the key; param2 is the index
  * of the key in the page */
 #define ENUM_EVENT_ITEM         4
 
@@ -72,7 +72,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 
 /**
  * the backend structure - these functions and members are "inherited"
- * by every other backend (i.e. btree, hashdb etc). 
+ * by every other backend (i.e. btree, hashdb etc).
  */
 #define BACKEND_DECLARATIONS(clss)                                      \
     /**                                                                 \
@@ -209,10 +209,10 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 #include "packstart.h"
 
 /**
- * A generic backend structure, which has the same memory layout as 
+ * A generic backend structure, which has the same memory layout as
  * all other backends.
  *
- * @remark We're pre-declaring struct ham_backend_t and the typedef 
+ * @remark We're pre-declaring struct ham_backend_t and the typedef
  * to avoid syntax errors in @ref BACKEND_DECLARATIONS .
  *
  * @remark Since this structure is not persistent, we don't really

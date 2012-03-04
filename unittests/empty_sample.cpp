@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -35,7 +35,7 @@ using namespace bfc;
 
 /*
 __super is MSVC specific, but other compilers can simply offer the same
-using this macro; place at the top of class definition and you're good 
+using this macro; place at the top of class definition and you're good
 to go.
 */
 #if !defined(_MSC_VER) || (_MSC_VER < 1310 /* MSVC.NET 2003 */)
@@ -49,8 +49,8 @@ to go.
 
 class EmptyTest : public fixture
 {
-	// call this macro here to define __super for all compilers:
-	define_super(fixture);
+    // call this macro here to define __super for all compilers:
+    define_super(fixture);
 
 public:
     EmptyTest(const char *name="EmptyTest")
@@ -63,18 +63,18 @@ public:
     }
 
 protected:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
-		// add your own setup code, which is run before each test invocation
+        // add your own setup code, which is run before each test invocation
     }
     
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
-		// add your own teardown code, which is always run after each test invocation (even when the test failed dramatically!)
+        // add your own teardown code, which is always run after each test invocation (even when the test failed dramatically!)
     }
 
     void Test1(void)
@@ -83,20 +83,20 @@ protected:
 
 #if 0 // turn on to see a SIGSEGV being caught by BFC: one failed test
 
-		// cause a SIGSEGV (or something along those lines: a hardware trap)
-		char *p = 0;
-		char c = *p;
-		BFC_ASSERT(c != 0);
+        // cause a SIGSEGV (or something along those lines: a hardware trap)
+        char *p = 0;
+        char c = *p;
+        BFC_ASSERT(c != 0);
 
 #endif
-	}
+    }
 
     void Test2(void)
     {
 #if 0 // turn on to see an intentional validation failure occur: one failed test
-		BFC_ASSERT_EQUAL(0, 1);
+        BFC_ASSERT_EQUAL(0, 1);
 #endif
-	}
+    }
 
 };
 

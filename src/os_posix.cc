@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -97,7 +97,7 @@ os_get_granularity(void)
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
-		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
+        ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
     int prot=PROT_READ;
     if (!readonly)
@@ -128,7 +128,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 #if HAVE_MUNMAP
     r=munmap(buffer, size);
     if (r) {
-        ham_log(("munmap failed with status %d (%s)", errno, 
+        ham_log(("munmap failed with status %d (%s)", errno,
                     strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -159,7 +159,7 @@ __os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
 #endif
 
 ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_offset_t bufferlen)
 {
 #if HAVE_PREAD
@@ -169,7 +169,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     while (total<bufferlen) {
         r=pread(fd, (ham_u8_t *)buffer+total, bufferlen-total, addr+total);
         if (r<0) {
-            ham_log(("os_pread failed with status %u (%s)", 
+            ham_log(("os_pread failed with status %u (%s)",
                     errno, strerror(errno)));
             return (HAM_IO_ERROR);
         }
@@ -210,7 +210,7 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 }
 
 ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_offset_t bufferlen)
 {
 #if HAVE_PWRITE
@@ -231,7 +231,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 
     if (total!=bufferlen)
         return (HAM_IO_ERROR);
-    return (os_seek(fd, addr+total, HAM_OS_SEEK_SET)); 
+    return (os_seek(fd, addr+total, HAM_OS_SEEK_SET));
 #else
     ham_status_t st;
 
@@ -297,9 +297,9 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
     }
     return (0);
 #else
-    /* 
+    /*
      * Win32 also has a writev implementation, but it requires the pointers
-     * to be memory page aligned 
+     * to be memory page aligned
      */
     ham_status_t st;
     ham_offset_t rollback;

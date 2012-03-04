@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -25,7 +25,7 @@
 #   define EXT ""
 #endif
 
-int 
+int
 main(void)
 {
     ham_db_t *db;
@@ -57,7 +57,7 @@ main(void)
     }
     ham_close(db, 0);
 
-    st=ham_env_create_db(env, db, 33, 
+    st=ham_env_create_db(env, db, 33,
                 HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
@@ -70,7 +70,7 @@ main(void)
     ham_srv_init(&cfg, &srv);
     ham_srv_add_env(srv, env, "/env1.db");
 
-    printf("server1%s started - please run sample 'client1%s' for a test\n", 
+    printf("server1%s started - please run sample 'client1%s' for a test\n",
             EXT, EXT);
     printf("type 'exit' to end the server\n");
     
