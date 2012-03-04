@@ -60,7 +60,7 @@
 #define NO_SSI  /* WinCE has no pipes */
 
 #define FILENAME_MAX    MAX_PATH
-#define BUFSIZ          4096
+#define BUFSIZ      	4096
 typedef long off_t;
 
 #define errno           GetLastError()
@@ -69,9 +69,9 @@ typedef long off_t;
 
 #define EPOCH_DIFF  0x019DB1DED53E8000 /* 116444736000000000 nsecs */
 #define RATE_DIFF   10000000 /* 100 nsecs */
-#define MAKEUQUAD(lo, hi)   ((uint64_t)(((uint32_t)(lo)) |              \
+#define MAKEUQUAD(lo, hi)   ((uint64_t)(((uint32_t)(lo)) | 				\
                 ((uint64_t)((uint32_t)(hi))) << 32))
-#define SYS2UNIX_TIME(lo, hi)                                           \
+#define SYS2UNIX_TIME(lo, hi) 											\
     (time_t) ((MAKEUQUAD((lo), (hi)) - EPOCH_DIFF) / RATE_DIFF)
 
 /*
@@ -79,34 +79,34 @@ typedef long off_t;
  * The rest of MS compilers use __FUNCTION__, not C99 __func__
  */
 #if defined(_MSC_VER) && _MSC_VER < 1300
-#define STRX(x)             #x
-#define STR(x)              STRX(x)
-#define __func__            "line " STR(__LINE__)
+#define STRX(x)         	#x
+#define STR(x)          	STRX(x)
+#define __func__        	"line " STR(__LINE__)
 #else
-#define __func__            __FUNCTION__
+#define __func__        	__FUNCTION__
 #endif /* _MSC_VER */
 
-#define ERRNO               GetLastError()
+#define ERRNO           	GetLastError()
 #define NO_SOCKLEN_T
-#define SSL_LIB             "ssleay32.dll"
-#define CRYPTO_LIB          "libeay32.dll"
-#define DIRSEP              '\\'
+#define SSL_LIB         	"ssleay32.dll"
+#define CRYPTO_LIB      	"libeay32.dll"
+#define DIRSEP          	'\\'
 #define	IS_DIRSEP_CHAR(c)	((c) == '/' || (c) == '\\')
-#define O_NONBLOCK          0
-#define EWOULDBLOCK         WSAEWOULDBLOCK
+#define O_NONBLOCK      	0
+#define EWOULDBLOCK     	WSAEWOULDBLOCK
 #define _POSIX_
-#define UINT64_FMT          "I64"
+#define UINT64_FMT      	"I64"
 
-#define SHUT_WR             1
-#define snprintf            _snprintf
-#define vsnprintf           _vsnprintf
-#define sleep(x)            Sleep((x) * 1000)
+#define SHUT_WR         	1
+#define snprintf        	_snprintf
+#define vsnprintf       	_vsnprintf
+#define sleep(x)        	Sleep((x) * 1000)
 
-#define popen(x, y)         _popen(x, y)
-#define pclose(x)           _pclose(x)
-#define close(x)            _close(x)
-#define dlsym(x,y)          GetProcAddress((HINSTANCE) (x), (y))
-#define RTLD_LAZY           0
+#define popen(x, y)     	_popen(x, y)
+#define pclose(x)       	_pclose(x)
+#define close(x)        	_close(x)
+#define dlsym(x,y)      	GetProcAddress((HINSTANCE) (x), (y))
+#define RTLD_LAZY       	0
 #define fseeko(x, y, z)     fseek((x), (y), (z))
 #define write(x, y, z)      _write((x), (y), (unsigned) z)
 #define read(x, y, z)       _read((x), (y), (unsigned) z)
@@ -120,7 +120,7 @@ typedef long off_t;
 #endif /* HAVE_STRTOUI64 */
 
 #if !defined(fileno)
-#define fileno(x)           _fileno(x)
+#define fileno(x)       	_fileno(x)
 #endif /* !fileno MINGW #defines fileno */
 
 typedef HANDLE pthread_mutex_t;
@@ -157,7 +157,7 @@ struct dirent {
 };
 
 typedef struct DIR {
-    HANDLE              handle;
+    HANDLE          	handle;
     WIN32_FIND_DATAW    info;
     struct dirent       result;
 } DIR;
@@ -176,36 +176,36 @@ typedef struct DIR {
 #include <dirent.h>
 #include <dlfcn.h>
 #include <pthread.h>
-#define SSL_LIB             "libssl.so"
-#define CRYPTO_LIB          "libcrypto.so"
-#define DIRSEP              '/'
+#define SSL_LIB         	"libssl.so"
+#define CRYPTO_LIB      	"libcrypto.so"
+#define DIRSEP          	'/'
 #define IS_DIRSEP_CHAR(c)   ((c) == '/')
-#define O_BINARY            0
+#define O_BINARY        	0
 #define closesocket(a)      close(a)
 #define mg_fopen(x, y)      fopen(x, y)
 #define mg_mkdir(x, y)      mkdir(x, y)
 #define mg_remove(x)        remove(x)
 #define mg_rename(x, y)     rename(x, y)
 #define mg_getcwd(x, y)     getcwd(x, y)
-#define ERRNO               errno
+#define ERRNO           	errno
 #define INVALID_SOCKET      (-1)
-#define UINT64_FMT          "ll"
+#define UINT64_FMT      	"ll"
 typedef int SOCKET;
 
 #endif /* End of Windows and UNIX specific includes */
 
 #include "mongoose.h"
 
-#define MONGOOSE_VERSION        "2.8"
-#define PASSWORDS_FILE_NAME     ".htpasswd"
+#define MONGOOSE_VERSION    	"2.8"
+#define PASSWORDS_FILE_NAME 	".htpasswd"
 #define CGI_ENVIRONMENT_SIZE    4096
-#define MAX_CGI_ENVIR_VARS      64
-#define MAX_REQUEST_SIZE        8192
+#define MAX_CGI_ENVIR_VARS  	64
+#define MAX_REQUEST_SIZE    	8192
 #define MAX_LISTENING_SOCKETS   10
-#define MAX_CALLBACKS           128
-#define ARRAY_SIZE(array)       (sizeof(array) / sizeof(array[0]))
+#define MAX_CALLBACKS       	128
+#define ARRAY_SIZE(array)   	(sizeof(array) / sizeof(array[0]))
 #define UNKNOWN_CONTENT_LENGTH  ((uint64_t) ~0)
-#define DEBUG_MGS_PREFIX        "*** Mongoose debug *** "
+#define DEBUG_MGS_PREFIX    	"*** Mongoose debug *** "
 
 #if defined(DEBUG)
 #define DEBUG_TRACE(x) do {printf x; putchar('\n'); fflush(stdout);} while (0)
@@ -238,25 +238,25 @@ typedef struct ssl_st SSL;
 typedef struct ssl_method_st SSL_METHOD;
 typedef struct ssl_ctx_st SSL_CTX;
 
-#define SSL_ERROR_WANT_READ     2
+#define SSL_ERROR_WANT_READ 	2
 #define SSL_ERROR_WANT_WRITE    3
-#define SSL_FILETYPE_PEM        1
-#define CRYPTO_LOCK             1
+#define SSL_FILETYPE_PEM    	1
+#define CRYPTO_LOCK     		1
 
 /*
  * Dynamically loaded SSL functionality
  */
 struct ssl_func {
-    const char  *name;          /* SSL function name    */
-    void        (*ptr)(void);   /* Function pointer     */
+    const char  *name;      	/* SSL function name    */
+    void        (*ptr)(void);   /* Function pointer 	*/
 };
 
 #define SSL_free(x) (* (void (*)(SSL *)) ssl_sw[0].ptr)(x)
 #define SSL_accept(x)   (* (int (*)(SSL *)) ssl_sw[1].ptr)(x)
 #define SSL_connect(x)  (* (int (*)(SSL *)) ssl_sw[2].ptr)(x)
-#define SSL_read(x,y,z) (* (int (*)(SSL *, void *, int))                    \
+#define SSL_read(x,y,z) (* (int (*)(SSL *, void *, int))        			\
                 ssl_sw[3].ptr)((x),(y),(z))
-#define SSL_write(x,y,z) (* (int (*)(SSL *, const void *,int))              \
+#define SSL_write(x,y,z) (* (int (*)(SSL *, const void *,int))      		\
                 ssl_sw[4].ptr)((x), (y), (z))
 #define SSL_get_error(x,y)(* (int (*)(SSL *, int)) ssl_sw[5])((x), (y))
 #define SSL_set_fd(x,y) (* (int (*)(SSL *, SOCKET)) ssl_sw[6].ptr)((x), (y))
@@ -264,19 +264,19 @@ struct ssl_func {
 #define SSL_CTX_new(x)  (* (SSL_CTX * (*)(SSL_METHOD *)) ssl_sw[8].ptr)(x)
 #define SSLv23_server_method()  (* (SSL_METHOD * (*)(void)) ssl_sw[9].ptr)()
 #define SSL_library_init() (* (int (*)(void)) ssl_sw[10].ptr)()
-#define SSL_CTX_use_PrivateKey_file(x,y,z)  (* (int (*)(SSL_CTX *,          \
+#define SSL_CTX_use_PrivateKey_file(x,y,z)  (* (int (*)(SSL_CTX *, 			\
         const char *, int)) ssl_sw[11].ptr)((x), (y), (z))
-#define SSL_CTX_use_certificate_file(x,y,z) (* (int (*)(SSL_CTX *,          \
+#define SSL_CTX_use_certificate_file(x,y,z) (* (int (*)(SSL_CTX *, 			\
         const char *, int)) ssl_sw[12].ptr)((x), (y), (z))
 #define SSL_CTX_set_default_passwd_cb(x,y) \
     (* (void (*)(SSL_CTX *, mg_spcb_t)) ssl_sw[13].ptr)((x),(y))
 #define SSL_CTX_free(x) (* (void (*)(SSL_CTX *)) ssl_sw[14].ptr)(x)
 
 #define CRYPTO_num_locks() (* (int (*)(void)) crypto_sw[0].ptr)()
-#define CRYPTO_set_locking_callback(x)                                      \
-        (* (void (*)(void (*)(int, int, const char *, int)))                \
+#define CRYPTO_set_locking_callback(x)                  					\
+        (* (void (*)(void (*)(int, int, const char *, int)))    			\
         crypto_sw[1].ptr)(x)
-#define CRYPTO_set_id_callback(x)                                           \
+#define CRYPTO_set_id_callback(x)                   						\
     (* (void (*)(unsigned long (*)(void))) crypto_sw[2].ptr)(x)
 
 /*
@@ -286,32 +286,32 @@ struct ssl_func {
  * just calling these functions indirectly via the pointer.
  */
 static struct ssl_func  ssl_sw[] = {
-    {"SSL_free",                        NULL},
-    {"SSL_accept",                      NULL},
-    {"SSL_connect",                     NULL},
-    {"SSL_read",                        NULL},
-    {"SSL_write",                       NULL},
-    {"SSL_get_error",                   NULL},
-    {"SSL_set_fd",                      NULL},
-    {"SSL_new",                         NULL},
-    {"SSL_CTX_new",                     NULL},
-    {"SSLv23_server_method",            NULL},
-    {"SSL_library_init",                NULL},
-    {"SSL_CTX_use_PrivateKey_file",     NULL},
-    {"SSL_CTX_use_certificate_file",    NULL},
-    {"SSL_CTX_set_default_passwd_cb",   NULL},
-    {"SSL_CTX_free",                    NULL},
-    {NULL,                              NULL}
+    {"SSL_free",            			NULL},
+    {"SSL_accept",          			NULL},
+    {"SSL_connect",         			NULL},
+    {"SSL_read",            			NULL},
+    {"SSL_write",           			NULL},
+    {"SSL_get_error",       			NULL},
+    {"SSL_set_fd",          			NULL},
+    {"SSL_new",         				NULL},
+    {"SSL_CTX_new",         			NULL},
+    {"SSLv23_server_method",    		NULL},
+    {"SSL_library_init",        		NULL},
+    {"SSL_CTX_use_PrivateKey_file", 	NULL},
+    {"SSL_CTX_use_certificate_file",	NULL},
+    {"SSL_CTX_set_default_passwd_cb",	NULL},
+    {"SSL_CTX_free",        			NULL},
+    {NULL,              				NULL}
 };
 
 /*
  * Similar array as ssl_sw. These functions are located in different lib.
  */
 static struct ssl_func  crypto_sw[] = {
-    {"CRYPTO_num_locks",            NULL},
+    {"CRYPTO_num_locks",        	NULL},
     {"CRYPTO_set_locking_callback", NULL},
-    {"CRYPTO_set_id_callback",      NULL},
-    {NULL,                          NULL}
+    {"CRYPTO_set_id_callback",  	NULL},
+    {NULL,              			NULL}
 };
 
 /*
@@ -356,8 +356,8 @@ struct mg_option {
     const char  *name;
     const char  *description;
     const char  *default_value;
-    int         index;
-    bool_t      (*setter)(struct mg_context *, const char *);
+    int     	index;
+    bool_t 		(*setter)(struct mg_context *, const char *);
 };
 
 /*
@@ -379,56 +379,56 @@ enum mg_option_index {
  * by the worker thread.
  */
 struct socket {
-    SOCKET      sock;       /* Listening socket         */
+    SOCKET      sock;       /* Listening socket     	*/
     struct usa  lsa;        /* Local socket address     */
     struct usa  rsa;        /* Remote socket address    */
-    bool_t      is_ssl;     /* Is socket SSL-ed         */
+    bool_t      is_ssl;     /* Is socket SSL-ed     	*/
 };
 
 /*
  * Callback function, and where it is bound to
  */
 struct callback {
-    char        *uri_regex;     /* URI regex to handle      */
-    mg_callback_t   func;       /* user callback            */
-    bool_t      is_auth;        /* func is auth checker     */
-    int         status_code;    /* error code to handle     */
-    void        *user_data;     /* opaque user data         */
+    char        *uri_regex; 	/* URI regex to handle      */
+    mg_callback_t   func;       /* user callback        	*/
+    bool_t      is_auth;    	/* func is auth checker     */
+    int     	status_code;    /* error code to handle     */
+    void        *user_data; 	/* opaque user data     	*/
 };
 
 /*
  * Mongoose context
  */
 struct mg_context {
-    int             stop_flag;      /* Should we stop event loop    */
-    SSL_CTX        *ssl_ctx;        /* SSL context                  */
+    int     		stop_flag; 		/* Should we stop event loop    */
+    SSL_CTX        *ssl_ctx;   		/* SSL context          		*/
 
-    FILE           *access_log;     /* Opened access log            */
-    FILE           *error_log;      /* Opened error log             */
+    FILE           *access_log;    	/* Opened access log        	*/
+    FILE           *error_log; 		/* Opened error log     		*/
 
     struct socket   listeners[MAX_LISTENING_SOCKETS];
-    int             num_listeners;
+    int     		num_listeners;
 
     struct callback callbacks[MAX_CALLBACKS];
-    int             num_callbacks;
+    int     		num_callbacks;
 
-    char           *options[NUM_OPTIONS];   /* Configured opions    */
-    pthread_mutex_t opt_mutex[NUM_OPTIONS]; /* Option protector     */
+    char           *options[NUM_OPTIONS];	/* Configured opions    */
+    pthread_mutex_t opt_mutex[NUM_OPTIONS]; /* Option protector 	*/
 
-    int             max_threads;    /* Maximum number of threads    */
-    int             num_threads;    /* Number of threads            */
-    int             num_idle;       /* Number of idle threads       */
-    pthread_mutex_t thr_mutex;      /* Protects (max|num)_threads   */
+    int     		max_threads;	/* Maximum number of threads    */
+    int     		num_threads;    /* Number of threads        	*/
+    int     		num_idle;   	/* Number of idle threads   	*/
+    pthread_mutex_t thr_mutex;  	/* Protects (max|num)_threads   */
     pthread_cond_t  thr_cond;
-    pthread_mutex_t bind_mutex;     /* Protects bind operations     */
+    pthread_mutex_t bind_mutex; 	/* Protects bind operations 	*/
 
-    struct socket   queue[20];      /* Accepted sockets             */
-    int             sq_head;        /* Head of the socket queue     */
-    int             sq_tail;        /* Tail of the socket queue     */
-    pthread_cond_t  empty_cond;     /* Socket queue empty condvar   */
-    pthread_cond_t  full_cond;      /* Socket queue full condvar    */
+    struct socket   queue[20];  	/* Accepted sockets     		*/
+    int     		sq_head;    	/* Head of the socket queue 	*/
+    int     		sq_tail;    	/* Tail of the socket queue 	*/
+    pthread_cond_t  empty_cond; 	/* Socket queue empty condvar   */
+    pthread_cond_t  full_cond;  	/* Socket queue full condvar    */
 
-    mg_spcb_t       ssl_password_callback;
+    mg_spcb_t   	ssl_password_callback;
     mg_callback_t   log_callback;
 };
 
@@ -437,13 +437,13 @@ struct mg_context {
  */
 struct mg_connection {
     struct mg_request_info  request_info;
-    struct mg_context      *ctx;            /* Mongoose context we belong to */
-    SSL                    *ssl;            /* SSL descriptor                */
-    struct socket           client;         /* Connected client              */
-    time_t                  birth_time;     /* Time connection was accepted  */
-    bool_t                  free_post_data; /* post_data was malloc-ed       */
-    bool_t                  embedded_auth;  /* Used for authorization        */
-    uint64_t                num_bytes_sent; /* Total bytes sent to client    */
+    struct mg_context 	   *ctx;     		/* Mongoose context we belong to */
+    SSL  				   *ssl;       		/* SSL descriptor       		 */
+    struct socket   		client;     	/* Connected client     		 */
+    time_t      			birth_time; 	/* Time connection was accepted  */
+    bool_t      			free_post_data; /* post_data was malloc-ed  	 */
+    bool_t      			embedded_auth;  /* Used for authorization   	 */
+    uint64_t    			num_bytes_sent;	/* Total bytes sent to client    */
 };
 
 /*
@@ -622,7 +622,7 @@ static bool_t
 is_true(const char *str)
 {
     static const char   *trues[] = {"1", "yes", "true", "ja", NULL};
-    int                 i;
+    int         		i;
 
     for (i = 0; trues[i] != NULL; i++)
         if (str != NULL && mg_strcasecmp(str, trues[i]) == 0)
@@ -767,7 +767,7 @@ find_callback(struct mg_context *ctx, bool_t is_auth,
         const char *uri, int status_code)
 {
     const struct callback   *cb, *found;
-    int                     i;
+    int         			i;
 
     found = NULL;
     pthread_mutex_lock(&ctx->bind_mutex);
@@ -1076,8 +1076,8 @@ mg_fopen(const char *path, const char *mode)
 static int
 mg_stat(const char *path, struct mgstat *stp)
 {
-    int                         ok = -1; /* Error */
-    wchar_t                     wbuf[FILENAME_MAX];
+    int             			ok = -1; /* Error */
+    wchar_t             		wbuf[FILENAME_MAX];
     WIN32_FILE_ATTRIBUTE_DATA   info;
 
     to_unicode(path, wbuf, ARRAY_SIZE(wbuf));
@@ -1254,9 +1254,9 @@ static pid_t
 spawn_process(struct mg_connection *conn, const char *prog, char *envblk,
         char *envp[], int fd_stdin, int fd_stdout, const char *dir)
 {
-    HANDLE              me;
-    char                *p, *interp, cmdline[FILENAME_MAX], line[FILENAME_MAX];
-    FILE                *fp;
+    HANDLE  			me;
+    char    			*p, *interp, cmdline[FILENAME_MAX], line[FILENAME_MAX];
+    FILE    			*fp;
     STARTUPINFOA        si;
     PROCESS_INFORMATION pi;
 
@@ -1266,8 +1266,8 @@ spawn_process(struct mg_connection *conn, const char *prog, char *envblk,
     (void) memset(&pi, 0, sizeof(pi));
 
     /* XXX redirect CGI errors to the error log file */
-    si.cb           = sizeof(si);
-    si.dwFlags      = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.cb       	= sizeof(si);
+    si.dwFlags  	= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
     si.wShowWindow  = SW_HIDE;
 
     me = GetCurrentProcess();
@@ -1344,7 +1344,7 @@ static int
 mg_stat(const char *path, struct mgstat *stp)
 {
     struct stat st;
-    int         ok;
+    int     	ok;
 
     if (stat(path, &st) == 0) {
         ok = 0;
@@ -1367,9 +1367,9 @@ set_close_on_exec(int fd)
 static int
 start_thread(struct mg_context *ctx, mg_thread_func_t func, void *param)
 {
-    pthread_t       thread_id;
+    pthread_t   	thread_id;
     pthread_attr_t  attr;
-    int             retval;
+    int     		retval;
 
     (void) pthread_attr_init(&attr);
     (void) pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -1475,7 +1475,7 @@ static uint64_t
 push(FILE *fp, SOCKET sock, SSL *ssl, const char *buf, uint64_t len)
 {
     uint64_t    sent;
-    int         n, k;
+    int     	n, k;
 
     sent = 0;
     while (sent < len) {
@@ -1536,7 +1536,7 @@ int
 mg_printf(struct mg_connection *conn, const char *fmt, ...)
 {
     char    buf[MAX_REQUEST_SIZE];
-    int     len;
+    int 	len;
     va_list ap;
 
     va_start(ap, fmt);
@@ -1569,7 +1569,7 @@ url_decode(const char *src, size_t src_len, char *dst, size_t dst_len,
         bool_t is_form_url_encoded)
 {
     size_t  i, j;
-    int     a, b;
+    int 	a, b;
 #define HEXTOI(x)   (isdigit(x) ? x - '0' : x - 'W')
 
     for (i = j = 0; i < src_len && j < dst_len - 1; i++, j++) {
@@ -1651,7 +1651,7 @@ char *
 mg_get_var(const struct mg_connection *conn, const char *name)
 {
     const struct mg_request_info    *ri = &conn->request_info;
-    char                            *v1, *v2;
+    char                			*v1, *v2;
 
     v1 = v2 = NULL;
 
@@ -1676,8 +1676,8 @@ convert_uri_to_file_name(struct mg_connection *conn, const char *uri,
         char *buf, size_t buf_len)
 {
     struct mg_context   *ctx = conn->ctx;
-    struct vec          uri_vec, path_vec;
-    const char          *list;
+    struct vec      	uri_vec, path_vec;
+    const char      	*list;
 
     lock_option(ctx, OPT_ROOT);
     mg_snprintf(conn, buf, buf_len, "%s%s", ctx->options[OPT_ROOT], uri);
@@ -1725,7 +1725,7 @@ mg_open_listening_port(struct mg_context *ctx, const char *str, struct usa *usa)
         return (INVALID_SOCKET);
     }
 
-    usa->len                = sizeof(usa->u.sin);
+    usa->len            	= sizeof(usa->u.sin);
     usa->u.sin.sin_family   = AF_INET;
     usa->u.sin.sin_port     = htons((uint16_t) port);
 
@@ -1757,7 +1757,7 @@ static int
 get_request_len(const char *buf, size_t buflen)
 {
     const char  *s, *e;
-    int         len = 0;
+    int     	len = 0;
 
     for (s = buf, e = s + buflen - 1; len <= 0 && s < e; s++)
         /* Control characters are not allowed but >=128 is. */
@@ -1797,7 +1797,7 @@ date_to_epoch(const char *s)
     time_t      current_time;
     struct tm   tm, *tmp;
     char        mon[32];
-    int         sec, min, hour, mday, month, year;
+    int     	sec, min, hour, mday, month, year;
 
     (void) memset(&tm, 0, sizeof(tm));
     sec = min = hour = mday = month = year = 0;
@@ -1865,43 +1865,43 @@ static const struct {
     const char  *mime_type;
     size_t      mime_type_len;
 } mime_types[] = {
-    {".html",       5,  "text/html",                     9},
-    {".htm",        4,  "text/html",                     9},
-    {".shtm",       5,  "text/html",                     9},
-    {".shtml",      6,  "text/html",                     9},
-    {".css",        4,  "text/css",                      8},
-    {".js",         3,  "application/x-javascript",     24},
-    {".ico",        4,  "image/x-icon",                 12},
-    {".gif",        4,  "image/gif",                     9},
-    {".jpg",        4,  "image/jpeg",                   10},
-    {".jpeg",       5,  "image/jpeg",                   10},
-    {".png",        4,  "image/png",                     9},
-    {".svg",        4,  "image/svg+xml",                13},
+    {".html",   	5,  "text/html",            		 9},
+    {".htm",    	4,  "text/html",            		 9},
+    {".shtm",   	5,  "text/html",            		 9},
+    {".shtml",  	6,  "text/html",            		 9},
+    {".css",    	4,  "text/css",         			 8},
+    {".js",     	3,  "application/x-javascript",     24},
+    {".ico",    	4,  "image/x-icon",         	    12},
+    {".gif",    	4,  "image/gif",            		 9},
+    {".jpg",    	4,  "image/jpeg",                   10},
+    {".jpeg",   	5,  "image/jpeg",           	    10},
+    {".png",    	4,  "image/png",            	 	 9},
+    {".svg",    	4,  "image/svg+xml",        	    13},
     {".torrent",    8,  "application/x-bittorrent",     24},
-    {".wav",        4,  "audio/x-wav",                  11},
-    {".mp3",        4,  "audio/x-mp3",                  11},
-    {".mid",        4,  "audio/mid",                     9},
-    {".m3u",        4,  "audio/x-mpegurl",              15},
-    {".ram",        4,  "audio/x-pn-realaudio",         20},
-    {".ra",         3,  "audio/x-pn-realaudio",         20},
-    {".doc",        4,  "application/msword",           19},
-    {".exe",        4,  "application/octet-stream",     24},
-    {".zip",        4,  "application/x-zip-compressed", 28},
-    {".xls",        4,  "application/excel",            17},
-    {".tgz",        4,  "application/x-tar-gz",         20},
-    {".tar",        4,  "application/x-tar",            17},
-    {".gz",         3,  "application/x-gunzip",         20},
-    {".arj",        4,  "application/x-arj-compressed", 28},
-    {".rar",        4,  "application/x-arj-compressed", 28},
-    {".rtf",        4,  "application/rtf",              15},
-    {".pdf",        4,  "application/pdf",              15},
-    {".swf",        4,  "application/x-shockwave-flash",29},
-    {".mpg",        4,  "video/mpeg",                   10},
-    {".mpeg",       5,  "video/mpeg",                   10},
-    {".asf",        4,  "video/x-ms-asf",               14},
-    {".avi",        4,  "video/x-msvideo",              15},
-    {".bmp",        4,  "image/bmp",                     9},
-    {NULL,          0,  NULL,                            0}
+    {".wav",    	4,  "audio/x-wav",          	    11},
+    {".mp3",    	4,  "audio/x-mp3",          	    11},
+    {".mid",    	4,  "audio/mid",            		 9},
+    {".m3u",    	4,  "audio/x-mpegurl",      	    15},
+    {".ram",    	4,  "audio/x-pn-realaudio",         20},
+    {".ra",     	3,  "audio/x-pn-realaudio",         20},
+    {".doc",    	4,  "application/msword",           19},
+    {".exe",    	4,  "application/octet-stream",     24},
+    {".zip",    	4,  "application/x-zip-compressed", 28},
+    {".xls",    	4,  "application/excel",           	17},
+    {".tgz",    	4,  "application/x-tar-gz",     	20},
+    {".tar",    	4,  "application/x-tar",        	17},
+    {".gz",     	3,  "application/x-gunzip",     	20},
+    {".arj",    	4,  "application/x-arj-compressed", 28},
+    {".rar",    	4,  "application/x-arj-compressed", 28},
+    {".rtf",    	4,  "application/rtf",      		15},
+    {".pdf",    	4,  "application/pdf",      		15},
+    {".swf",    	4,  "application/x-shockwave-flash",29},
+    {".mpg",    	4,  "video/mpeg",           		10},
+    {".mpeg",   	5,  "video/mpeg",           		10},
+    {".asf",    	4,  "video/x-ms-asf",       		14},
+    {".avi",    	4,  "video/x-msvideo",      		15},
+    {".bmp",    	4,  "image/bmp",            		 9},
+    {NULL,      	0,  NULL,               			 0}
 };
 
 /*
@@ -1952,8 +1952,8 @@ get_mime_type(struct mg_context *ctx, const char *path, struct vec *vec)
 
 #ifndef HAVE_MD5
 typedef struct MD5Context {
-    uint32_t        buf[4];
-    uint32_t        bits[2];
+    uint32_t    	buf[4];
+    uint32_t    	bits[2];
     unsigned char   in[64];
 } MD5_CTX;
 
@@ -2213,9 +2213,9 @@ static void
 mg_md5(char *buf, ...)
 {
     unsigned char   hash[16];
-    const char      *p;
-    va_list         ap;
-    MD5_CTX         ctx;
+    const char  	*p;
+    va_list     	ap;
+    MD5_CTX     	ctx;
 
     MD5Init(&ctx);
 
@@ -2261,10 +2261,10 @@ static FILE *
 open_auth_file(struct mg_connection *conn, const char *path)
 {
     struct mg_context   *ctx = conn->ctx;
-    char                name[FILENAME_MAX];
-    const char          *p, *e;
+    char            	name[FILENAME_MAX];
+    const char      	*p, *e;
     struct mgstat       st;
-    FILE                *fp;
+    FILE	            *fp;
 
     if (ctx->options[OPT_AUTH_GPASSWD] != NULL) {
         /* Use global passwords file */
@@ -2458,7 +2458,7 @@ static bool_t
 is_authorized_for_put(struct mg_connection *conn)
 {
     FILE    *fp;
-    int     ret = FALSE;
+    int 	ret = FALSE;
 
     if ((fp = mg_fopen(conn->ctx->options[OPT_AUTH_PUT], "r")) != NULL) {
         set_close_on_exec(fileno(fp));
@@ -2473,7 +2473,7 @@ int
 mg_modify_passwords_file(struct mg_context *ctx, const char *fname,
         const char *user, const char *pass)
 {
-    int         found;
+    int     	found;
     char        line[512], u[512], d[512], ha1[33], tmp[FILENAME_MAX];
     const char  *domain;
     FILE        *fp, *fp2;
@@ -2537,8 +2537,8 @@ mg_modify_passwords_file(struct mg_context *ctx, const char *fname,
 
 struct de {
     struct mg_connection    *conn;
-    char                    *file_name;
-    struct mgstat            st;
+    char        		    *file_name;
+    struct mgstat      		 st;
 };
 
 /*
@@ -2588,8 +2588,8 @@ static int
 compare_dir_entries(const void *p1, const void *p2)
 {
     const struct de *a = (struct de *) p1, *b = (struct de *) p2;
-    const char      *query_string = a->conn->request_info.query_string;
-    int             cmp_result = 0;
+    const char  	*query_string = a->conn->request_info.query_string;
+    int     		cmp_result = 0;
 
     if (query_string == NULL)
         query_string = "na";
@@ -2618,10 +2618,10 @@ static void
 send_directory(struct mg_connection *conn, const char *dir)
 {
     struct dirent   *dp;
-    DIR             *dirp;
-    struct de       *entries = NULL;
-    char            path[FILENAME_MAX];
-    int             i, sort_direction, num_entries = 0, arr_size = 128;
+    DIR     		*dirp;
+    struct de   	*entries = NULL;
+    char        	path[FILENAME_MAX];
+    int     		i, sort_direction, num_entries = 0, arr_size = 128;
 
     if ((dirp = opendir(dir)) == NULL) {
         send_error(conn, 500, "Cannot open directory",
@@ -2703,7 +2703,7 @@ static void
 send_opened_file_stream(struct mg_connection *conn, FILE *fp, uint64_t len)
 {
     char    buf[BUFSIZ];
-    int     to_read, num_read, num_written;
+    int 	to_read, num_read, num_written;
 
     while (len > 0) {
         /* Calculate how much to read from the file in the buffer */
@@ -2737,7 +2737,7 @@ send_file(struct mg_connection *conn, const char *path, struct mgstat *stp)
     uint64_t    cl, r1, r2;
     struct vec  mime_vec;
     FILE        *fp;
-    int         n;
+    int     	n;
 
     get_mime_type(conn->ctx, path, &mime_vec);
     cl = stp->size;
@@ -2826,7 +2826,7 @@ static bool_t
 parse_http_request(char *buf, struct mg_request_info *ri, const struct usa *usa)
 {
     char    *http_version;
-    int     n, success_code = FALSE;
+    int 	n, success_code = FALSE;
 
     ri->request_method = skip(&buf, " ");
     ri->uri = skip(&buf, " ");
@@ -2882,11 +2882,11 @@ static bool_t
 substitute_index_file(struct mg_connection *conn,
         char *path, size_t path_len, struct mgstat *stp)
 {
-    const char      *list;
+    const char  	*list;
     struct mgstat   st;
-    struct vec      filename_vec;
-    size_t          n;
-    bool_t          found;
+    struct vec  	filename_vec;
+    size_t      	n;
+    bool_t      	found;
 
     n = strlen(path);
 
@@ -3041,7 +3041,7 @@ handle_request_body(struct mg_connection *conn, FILE *fp)
     const char  *expect, *tmp;
     uint64_t    content_len;
     char        buf[BUFSIZ];
-    int         to_read, nread, already_read;
+    int     	to_read, nread, already_read;
     bool_t      success_code = FALSE;
 
     content_len = get_content_length(conn);
@@ -3123,9 +3123,9 @@ handle_request_body(struct mg_connection *conn, FILE *fp)
 struct cgi_env_block {
     struct mg_connection *conn;
     char    buf[CGI_ENVIRONMENT_SIZE];  /* Environment buffer   */
-    int     len;                        /* Space taken      */
+    int 	len;                		/* Space taken      */
     char    *vars[MAX_CGI_ENVIR_VARS];  /* char **envp      */
-    int     nvars;                      /* Number of variables  */
+    int 	nvars;              		/* Number of variables  */
 };
 
 /*
@@ -3135,7 +3135,7 @@ struct cgi_env_block {
 static char *
 addenv(struct cgi_env_block *block, const char *fmt, ...)
 {
-    int     n, space;
+    int 	n, space;
     char    *added;
     va_list ap;
 
@@ -3170,7 +3170,7 @@ prepare_cgi_environment(struct mg_connection *conn, const char *prog,
     const char  *s, *script_filename, *root;
     struct vec  var_vec;
     char        *p;
-    int         i;
+    int     	i;
 
     blk->len = blk->nvars = 0;
     blk->conn = conn;
@@ -3264,13 +3264,13 @@ prepare_cgi_environment(struct mg_connection *conn, const char *prog,
 static void
 send_cgi(struct mg_connection *conn, const char *prog)
 {
-    int             headers_len, data_len, i, n;
+    int         	headers_len, data_len, i, n;
     const char      *status;
     char            buf[MAX_REQUEST_SIZE], *pbuf;
     struct mg_request_info  ri;
     struct cgi_env_block    blk;
     char            dir[FILENAME_MAX], *p;
-    int             fd_stdin[2], fd_stdout[2];
+    int         	fd_stdin[2], fd_stdout[2];
     FILE            *in, *out;
     pid_t           pid;
 
@@ -3396,10 +3396,10 @@ done:
 static int
 put_dir(const char *path)
 {
-    char            buf[FILENAME_MAX];
-    const char      *s, *p;
+    char        	buf[FILENAME_MAX];
+    const char  	*s, *p;
     struct mgstat   st;
-    size_t          len;
+    size_t      	len;
 
     for (s = p = path + 2; (p = strchr(s, '/')) != NULL; s = ++p) {
         len = p - path;
@@ -3423,8 +3423,8 @@ static void
 put_file(struct mg_connection *conn, const char *path)
 {
     struct mgstat   st;
-    FILE            *fp;
-    int             rc;
+    FILE        	*fp;
+    int     		rc;
 
     conn->request_info.status_code = mg_stat(path, &st) == 0 ? 200 : 201;
 
@@ -3524,7 +3524,7 @@ send_ssi_file(struct mg_connection *conn, const char *path, FILE *fp,
         int include_level)
 {
     char    buf[BUFSIZ];
-    int     ch, len, in_ssi_tag;
+    int 	ch, len, in_ssi_tag;
 
     if (include_level > 10) {
         cry(conn, "SSI #include level is too deep (%s)", path);
@@ -3613,7 +3613,7 @@ static bool_t
 check_embedded_authorization(struct mg_connection *conn)
 {
     const struct callback   *cb;
-    bool_t                  authorized;
+    bool_t          		authorized;
 
     authorized = TRUE;
     cb = find_callback(conn->ctx, TRUE, conn->request_info.uri, -1);
@@ -3636,8 +3636,8 @@ static void
 analyze_request(struct mg_connection *conn)
 {
     struct mg_request_info *ri = &conn->request_info;
-    char                    path[FILENAME_MAX], *uri = ri->uri;
-    struct mgstat           st;
+    char            		path[FILENAME_MAX], *uri = ri->uri;
+    struct mgstat       	st;
     const struct callback   *cb;
 
     if ((conn->request_info.query_string = strchr(uri, '?')) != NULL)
@@ -3727,9 +3727,9 @@ close_all_listening_sockets(struct mg_context *ctx)
 static bool_t
 set_ports_option(struct mg_context *ctx, const char *list)
 {
-    SOCKET          sock;
-    int             is_ssl;
-    struct vec      vec;
+    SOCKET      	sock;
+    int     		is_ssl;
+    struct vec  	vec;
     struct socket   *listener;
 
     close_all_listening_sockets(ctx);
@@ -3820,7 +3820,7 @@ isbyte(int n) {
 static int
 check_acl(struct mg_context *ctx, const char *list, const struct usa *usa)
 {
-    int         a, b, c, d, n, mask, allowed;
+    int     	a, b, c, d, n, mask, allowed;
     char        flag;
     uint32_t    acl_subnet, acl_mask, remote_ip;
     struct vec  vec;
@@ -3928,7 +3928,7 @@ static bool_t
 set_uid_option(struct mg_context *ctx, const char *uid)
 {
     struct passwd   *pw;
-    int             retval = FALSE;
+    int     		retval = FALSE;
 
     if ((pw = getpwnam(uid)) == NULL)
         cry(fc(ctx), "%s: unknown user [%s]", __func__, uid);
@@ -3957,7 +3957,7 @@ static pthread_mutex_t *ssl_mutexes;
 static void
 ssl_locking_callback(int mode, int mutex_num, const char *file, int line)
 {
-    line = 0;       /* Unused */
+    line = 0;	   	/* Unused */
     file = NULL;    /* Unused */
 
     if (mode & CRYPTO_LOCK)
@@ -3976,7 +3976,7 @@ static bool_t
 load_dll(struct mg_context *ctx, const char *dll_name, struct ssl_func *sw)
 {
     union {void *p; void (*fp)(void);} u;
-    void            *dll_handle;
+    void        	*dll_handle;
     struct ssl_func *fp;
 
     if ((dll_handle = dlopen(dll_name, RTLD_LAZY)) == NULL) {
@@ -4014,7 +4014,7 @@ static bool_t
 set_ssl_option(struct mg_context *ctx, const char *pem)
 {
     SSL_CTX     *CTX;
-    int         i, size, retval = FALSE;
+    int     	i, size, retval = FALSE;
 
     if (load_dll(ctx, SSL_LIB, ssl_sw) == FALSE ||
         load_dll(ctx, CRYPTO_LIB, crypto_sw) == FALSE)
@@ -4213,7 +4213,7 @@ int
 mg_set_option(struct mg_context *ctx, const char *opt, const char *val)
 {
     const struct mg_option  *option;
-    int                     i, retval;
+    int     			    i, retval;
 
     DEBUG_TRACE((DEBUG_MGS_PREFIX "%s: [%s]->[%s]", __func__, opt, val));
     if (opt != NULL && (option = find_opt(opt)) != NULL) {
@@ -4278,7 +4278,7 @@ admin_page(struct mg_connection *conn, const struct mg_request_info *ri,
                void *user_data)
 {
     const struct mg_option  *option;
-    const char              *option_name, *option_value;
+    const char 			    *option_name, *option_value;
 
     user_data = NULL; /* Unused */
 
@@ -4341,7 +4341,7 @@ static void
 close_socket_gracefully(struct mg_connection *conn, SOCKET sock)
 {
     char    buf[BUFSIZ];
-    int     n;
+    int 	n;
 
     /* Send FIN to the client */
     (void) shutdown(sock, SHUT_WR);
@@ -4388,7 +4388,7 @@ static void
 shift_to_next(struct mg_connection *conn, char *buf, int req_len, int *nread)
 {
     uint64_t    cl;
-    int         over_len, body_len;
+    int     	over_len, body_len;
 
     cl = get_content_length(conn);
     over_len = *nread - req_len;
@@ -4411,7 +4411,7 @@ process_new_connection(struct mg_connection *conn)
 {
     struct mg_request_info *ri = &conn->request_info;
     char    buf[MAX_REQUEST_SIZE];
-    int     request_len, nread;
+    int 	request_len, nread;
 
     nread = 0;
     reset_connection_attributes(conn);
@@ -4621,9 +4621,9 @@ accept_new_connection(const struct socket *listener, struct mg_context *ctx)
 static void
 master_thread(struct mg_context *ctx)
 {
-    fd_set          read_set;
+    fd_set  	    read_set;
     struct timeval  tv;
-    int             i, max_fd;
+    int     		i, max_fd;
 
     while (ctx->stop_flag == 0) {
         FD_ZERO(&read_set);
@@ -4682,10 +4682,10 @@ mg_stop(struct mg_context *ctx)
 struct mg_context *
 mg_start(void)
 {
-    struct mg_context       *ctx;
+    struct mg_context   	*ctx;
     const struct mg_option  *option;
-    char                    web_root[FILENAME_MAX];
-    int                     i;
+    char            		web_root[FILENAME_MAX];
+    int         			i;
 
 #if defined(_WIN32)
     WSADATA data;

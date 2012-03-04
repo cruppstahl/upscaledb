@@ -278,9 +278,9 @@ static int state_transition_table[NR_STATES][NR_CLASSES] = {
     These modes can be pushed on the stack.
 */
 enum modes {
-    MODE_ARRAY  = 1,
-    MODE_DONE   = 2,
-    MODE_KEY    = 3,
+    MODE_ARRAY 	= 1,
+    MODE_DONE 	= 2,
+    MODE_KEY 	= 3,
     MODE_OBJECT = 4
 };
 
