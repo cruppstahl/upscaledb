@@ -3,14 +3,14 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
  */
 
 /**
- * device management; a device encapsulates the physical device, either a 
+ * device management; a device encapsulates the physical device, either a
  * file or memory chunks (for in-memory-databases)
  *
  */
@@ -28,22 +28,22 @@ class Page;
 class Device {
   public:
     /** constructor */
-    Device(Environment *env, ham_u32_t flags) 
-      : m_env(env), m_flags(flags), m_freelist_cache(0) { 
+    Device(Environment *env, ham_u32_t flags)
+      : m_env(env), m_flags(flags), m_freelist_cache(0) {
         /*
          * initialize the pagesize with a default value - this will be
-         * overwritten i.e. by ham_open, ham_create when the pagesize 
+         * overwritten i.e. by ham_open, ham_create when the pagesize
          * of the file is known
          */
         set_pagesize(get_pagesize());
     }
 
     /** virtual destructor */
-    virtual ~Device() { 
+    virtual ~Device() {
     }
 
     /** Create a new device */
-    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+    virtual ham_status_t create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode) = 0;
 
     /** opens an existing device */
@@ -71,13 +71,13 @@ class Device {
     virtual ham_status_t tell(ham_offset_t *offset) = 0;
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t read(ham_offset_t offset, void *buffer,
                 ham_offset_t size) = 0;
 
     /** writes to the device; this function does not use mmap,
-     * and is responsible for writing the data is run through the file 
+     * and is responsible for writing the data is run through the file
      * filters */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t write(ham_offset_t offset, void *buffer,
                 ham_offset_t size) = 0;
 
     /** reads a page from the device; this function CAN use mmap */
@@ -86,16 +86,16 @@ class Device {
     /** writes a page to the device */
     virtual ham_status_t write_page(Page *page) = 0;
 
-    /** allocate storage from this device; this function 
+    /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) = 0;
 
     /**
-     * allocate storage for a page from this device; this function 
+     * allocate storage for a page from this device; this function
      * can use mmap if available
      *
      * @note
-     * The caller is responsible for flushing the page; the @ref free_page 
+     * The caller is responsible for flushing the page; the @ref free_page
      * function will assert that the page is not dirty.
      */
     virtual ham_status_t alloc_page(Page *page) = 0;
@@ -146,8 +146,8 @@ class Device {
      *
      * Currently, these flags are used (at least):
      * - @ref HAM_DISABLE_MMAP do not use mmap but pread/pwrite
-     * - @ref DB_USE_MMAP use memory mapped I/O (this bit is 
-     *		not observed through here, though)
+     * - @ref DB_USE_MMAP use memory mapped I/O (this bit is
+     *      not observed through here, though)
      * - @ref HAM_READ_ONLY this is a read-only device
      */
     ham_u32_t m_flags;
@@ -165,21 +165,21 @@ class Device {
 class FileDevice : public Device {
   public:
     /** constructor */
-    FileDevice(Environment *env, ham_u32_t flags) 
+    FileDevice(Environment *env, ham_u32_t flags)
       : Device(env, flags), m_fd(HAM_INVALID_FD) {
         m_pagesize=os_get_pagesize();
     }
 
     /** Create a new device */
-    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+    virtual ham_status_t create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode) {
-	    set_flags(flags);
+        set_flags(flags);
         return (os_create(filename, flags, mode, &m_fd));
     }
 
     /** opens an existing device */
     virtual ham_status_t open(const char *filename, ham_u32_t flags) {
-	    set_flags(flags);
+        set_flags(flags);
         return (os_open(filename, flags, &m_fd));
     }
 
@@ -214,22 +214,22 @@ class FileDevice : public Device {
 
     /** seek position in a file */
     virtual ham_status_t seek(ham_offset_t offset, int whence) {
-	    return (os_seek(m_fd, offset, whence));
+        return (os_seek(m_fd, offset, whence));
     }
 
     /** tell the position in a file */
     virtual ham_status_t tell(ham_offset_t *offset) {
-	    return (os_tell(m_fd, offset));
+        return (os_tell(m_fd, offset));
     }
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t read(ham_offset_t offset, void *buffer,
                 ham_offset_t size);
 
     /** writes to the device; this function does not use mmap,
-     * and is responsible for writing the data is run through the file 
+     * and is responsible for writing the data is run through the file
      * filters */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t write(ham_offset_t offset, void *buffer,
                 ham_offset_t size);
 
     /** reads a page from the device; this function CAN use mmap */
@@ -240,7 +240,7 @@ class FileDevice : public Device {
         return (write(page->get_self(), page->get_pers(), get_pagesize()));
     }
 
-    /** allocate storage from this device; this function 
+    /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
         ham_status_t st=os_get_filesize(m_fd, address);
@@ -250,11 +250,11 @@ class FileDevice : public Device {
     }
 
     /**
-     * allocate storage for a page from this device; this function 
+     * allocate storage for a page from this device; this function
      * can use mmap if available
      *
      * @note
-     * The caller is responsible for flushing the page; the @ref free_page 
+     * The caller is responsible for flushing the page; the @ref free_page
      * function will assert that the page is not dirty.
      */
     virtual ham_status_t alloc_page(Page *page) {
@@ -266,7 +266,7 @@ class FileDevice : public Device {
         if (st)
             return (st);
 
-	    st=os_truncate(m_fd, pos+size);
+        st=os_truncate(m_fd, pos+size);
         if (st)
             return (st);
 
@@ -288,13 +288,13 @@ class FileDevice : public Device {
 class InMemoryDevice : public Device {
   public:
     /** constructor */
-    InMemoryDevice(Environment *env, ham_u32_t flags) 
+    InMemoryDevice(Environment *env, ham_u32_t flags)
       : Device(env, flags), m_is_open(false) {
         m_pagesize=1024*4;
     }
 
     /** Create a new device */
-    virtual ham_status_t create(const char *filename, ham_u32_t flags, 
+    virtual ham_status_t create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode) {
         m_is_open=true;
         return (0);
@@ -330,7 +330,7 @@ class InMemoryDevice : public Device {
 
     /** get the current file/storage size */
     virtual ham_status_t get_filesize(ham_offset_t *length) {
-        ham_assert(!"this operation is not possible for in-memory-databases", 
+        ham_assert(!"this operation is not possible for in-memory-databases",
                     (0));
         return (HAM_NOT_IMPLEMENTED);
     }
@@ -348,16 +348,16 @@ class InMemoryDevice : public Device {
     }
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t read(ham_offset_t offset, void *buffer,
                 ham_offset_t size) {
         ham_assert(!"operation is not possible for in-memory-databases", (0));
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes to the device; this function does not use mmap,
-     * and is responsible for writing the data is run through the file 
+     * and is responsible for writing the data is run through the file
      * filters */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer, 
+    virtual ham_status_t write(ham_offset_t offset, void *buffer,
                 ham_offset_t size) {
         ham_assert(!"operation is not possible for in-memory-databases", (0));
         return (HAM_NOT_IMPLEMENTED);
@@ -375,7 +375,7 @@ class InMemoryDevice : public Device {
         return (HAM_NOT_IMPLEMENTED);
     }
 
-    /** allocate storage from this device; this function 
+    /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
         ham_assert(!"can't alloc from an in-memory-device", (0));
@@ -383,11 +383,11 @@ class InMemoryDevice : public Device {
     }
 
     /**
-     * allocate storage for a page from this device; this function 
+     * allocate storage for a page from this device; this function
      * can use mmap if available
      *
      * @note
-     * The caller is responsible for flushing the page; the @ref free_page 
+     * The caller is responsible for flushing the page; the @ref free_page
      * function will assert that the page is not dirty.
      */
     virtual ham_status_t alloc_page(Page *page) {

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -63,7 +63,7 @@ ExtKeyCache::insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data)
     Environment *env=m_db->get_env();
 
     /* DEBUG build: make sure that the item is not inserted twice!  */
-    ham_assert(m_hash.get(blobid)==0, ("")); 
+    ham_assert(m_hash.get(blobid)==0, (""));
 
     e=(extkey_t *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T+size);
     extkey_set_blobid(e, blobid);

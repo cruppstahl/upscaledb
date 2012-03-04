@@ -33,13 +33,13 @@ SOFTWARE.
     
     Changelog:
     
-        2008/05/28 
-            - Made JSON_value structure ansi C compliant. This bug was report by 
+        2008/05/28
+            - Made JSON_value structure ansi C compliant. This bug was report by
               trisk@acm.jhu.edu
         
-        2008/05/20 
-            - Fixed bug reported by Charles.Kerr@noaa.gov where the switching 
-              from static to dynamic parse buffer did not copy the static parse 
+        2008/05/20
+            - Fixed bug reported by Charles.Kerr@noaa.gov where the switching
+              from static to dynamic parse buffer did not copy the static parse
               buffer's content.
 */
 
@@ -57,7 +57,7 @@ SOFTWARE.
 #include "ConvertUTF.h"
 
 #if _MSC_VER >= 1400 /* Visual Studio 2005 and up */
-#	pragma warning(disable:4996) // unsecure sscanf
+#   pragma warning(disable:4996) // unsecure sscanf
 #endif
 
 
@@ -92,7 +92,7 @@ typedef struct JSON_parser_struct {
     char static_parse_buffer[JSON_PARSER_PARSE_BUFFER_SIZE];
 } * JSON_parser;
 
-#define COUNTOF(x) (sizeof(x)/sizeof(x[0])) 
+#define COUNTOF(x) (sizeof(x)/sizeof(x[0]))
 
 /*
     Characters are mapped into these 31 character classes. This allows for
@@ -133,7 +133,7 @@ enum classes {
     C_ABCDF,  /* ABCDF */
     C_E,      /* E */
     C_ETC,    /* everything else */
-    C_STAR,   /* * */   
+    C_STAR,   /* * */
     NR_CLASSES
 };
 
@@ -278,9 +278,9 @@ static int state_transition_table[NR_STATES][NR_CLASSES] = {
     These modes can be pushed on the stack.
 */
 enum modes {
-    MODE_ARRAY = 1, 
-    MODE_DONE = 2,  
-    MODE_KEY = 3,   
+    MODE_ARRAY  = 1,
+    MODE_DONE   = 2,
+    MODE_KEY    = 3,
     MODE_OBJECT = 4
 };
 
@@ -338,7 +338,7 @@ pop(JSON_parser jc, int mode)
         assert(jc->parse_buffer_count >= 1);\
         --jc->parse_buffer_count;\
         jc->parse_buffer[jc->parse_buffer_count] = 0;\
-    } while (0)    
+    } while (0)
     
 void delete_JSON_parser(JSON_parser jc)
 {
@@ -350,7 +350,7 @@ void delete_JSON_parser(JSON_parser jc)
             free((void*)jc->parse_buffer);
         }
         free((void*)jc);
-     }   
+     }
 }
 
 
@@ -465,7 +465,7 @@ static int parse_parse_buffer(JSON_parser jc)
                     if (jc->handle_floats_manually) {
                         value.vu.str.value = jc->parse_buffer;
                         value.vu.str.length = jc->parse_buffer_count;
-                    } else { 
+                    } else {
                         result = sscanf(jc->parse_buffer, "%Lf", &value.vu.float_value);
                     }
                     break;
@@ -622,7 +622,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
         default:
             return false;
         }
-    } else if (!jc->comment) { 
+    } else if (!jc->comment) {
         if (jc->type != JSON_T_NONE || !(next_class == C_SPACE || next_class == C_WHITE) /* non-white-space */) {
             parse_buffer_push_back_char(jc, (char)next_char);
         }
@@ -644,7 +644,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
     Or perform one of the actions.
 */
         switch (next_state) {
-/* Unicode character */        
+/* Unicode character */
         case UC:
             if(!decode_unicode_char(jc)) {
                 return false;
@@ -665,17 +665,17 @@ JSON_parser_char(JSON_parser jc, int next_char)
         case MX:
             jc->type = JSON_T_INTEGER;
             jc->state = MI;
-            break;  
-/* integer detected by zero */            
+            break;
+/* integer detected by zero */
         case ZX:
             jc->type = JSON_T_INTEGER;
             jc->state = ZE;
-            break;  
-/* integer detected by 1-9 */            
+            break;
+/* integer detected by 1-9 */
         case IX:
             jc->type = JSON_T_INTEGER;
             jc->state = IN;
-            break;  
+            break;
             
 /* floating point number detected by exponent*/
         case DE:
@@ -685,7 +685,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
             assert(jc->type != JSON_T_STRING);
             jc->type = JSON_T_FLOAT;
             jc->state = E1;
-            break;   
+            break;
         
 /* floating point number detected by fraction */
         case DF:
@@ -695,33 +695,33 @@ JSON_parser_char(JSON_parser jc, int next_char)
             assert(jc->type != JSON_T_STRING);
             jc->type = JSON_T_FLOAT;
             jc->state = FX;
-            break;   
+            break;
 /* string begin " */
         case SB:
             parse_buffer_clear(jc);
             assert(jc->type == JSON_T_NONE);
             jc->type = JSON_T_STRING;
             jc->state = ST;
-            break;        
+            break;
         
 /* n */
         case NU:
             assert(jc->type == JSON_T_NONE);
             jc->type = JSON_T_NULL;
             jc->state = N1;
-            break;        
+            break;
 /* f */
         case FA:
             assert(jc->type == JSON_T_NONE);
             jc->type = JSON_T_FALSE;
             jc->state = F1;
-            break;        
+            break;
 /* t */
         case TR:
             assert(jc->type == JSON_T_NONE);
             jc->type = JSON_T_TRUE;
             jc->state = T1;
-            break;        
+            break;
         
 /* closing comment */
         case CE:
@@ -729,7 +729,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
             assert(jc->parse_buffer_count == 0);
             assert(jc->type == JSON_T_NONE);
             jc->state = jc->before_comment_state;
-            break;        
+            break;
         
 /* opening comment  */
         case CB:
@@ -744,7 +744,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
             assert(jc->type != JSON_T_STRING);
             switch (jc->stack[jc->top]) {
             case MODE_ARRAY:
-            case MODE_OBJECT:   
+            case MODE_OBJECT:
                 switch(jc->state) {
                 case VA:
                 case AR:
@@ -764,7 +764,7 @@ JSON_parser_char(JSON_parser jc, int next_char)
             jc->comment = 1;
             break;
 /* empty } */
-        case -9:        
+        case -9:
             parse_buffer_clear(jc);
             if (jc->callback && !(*jc->callback)(jc->ctx, JSON_T_OBJECT_END, NULL)) {
                 return false;
@@ -928,7 +928,7 @@ int JSON_parser_is_legal_white_space_string(const char* s)
         return false;
     }
     
-    for (; *s; ++s) {   
+    for (; *s; ++s) {
         c = *s;
         
         if (c < 0 || c >= 128) {

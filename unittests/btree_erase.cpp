@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -25,11 +25,11 @@ using namespace bfc;
 
 class EraseTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     EraseTest(ham_u32_t flags=0, const char *name="EraseTest")
-        : hamsterDB_fixture(name), 
+        : hamsterDB_fixture(name),
         m_db(0), m_flags(flags)
     {
         testrunner::get_instance()->register_fixture(this);
@@ -44,19 +44,19 @@ protected:
     ham_u32_t m_flags;
 
 public:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_create(m_db, BFC_OPATH(".test"), m_flags, 0644));
     }
     
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -68,8 +68,8 @@ public:
         ham_record_t rec;
 
         ham_parameter_t ps[]={
-            {HAM_PARAM_PAGESIZE,   1024}, 
-            {HAM_PARAM_KEYSIZE,   128}, 
+            {HAM_PARAM_PAGESIZE,   1024},
+            {HAM_PARAM_KEYSIZE,   128},
             {0, 0}
         };
 
@@ -77,7 +77,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 0644, &ps[0]));
 
         for (int i=0; i<num_inserts*10; i+=10) {

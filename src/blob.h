@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -26,13 +26,13 @@
 /**
  * a blob structure (blob_t)
  *
- * every blob has a blob_t header; it holds flags and some other 
+ * every blob has a blob_t header; it holds flags and some other
  * administrative information
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 {
     /**
-     * the blob ID - which is the absolute address/offset of this 
+     * the blob ID - which is the absolute address/offset of this
      * blob_t structure in the file
      */
     ham_u64_t _blobid;
@@ -90,7 +90,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 
     /**
      * the flags - same as @ref KEY_BLOB_SIZE_SMALL,
-	 *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
+     *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
      */
     ham_u8_t _flags;
 
@@ -109,7 +109,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 
 /*
  * get the record id of a duplicate entry
- * 
+ *
  * !!!
  * if TINY or SMALL is set, the rid is actually a char*-pointer;
  * in this case, we must not use endian-conversion!
@@ -188,7 +188,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-blob_read(Database *db, ham_offset_t blobid, 
+blob_read(Database *db, ham_offset_t blobid,
         ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -206,7 +206,7 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size);
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid, 
+blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
         ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
 
 /**
@@ -220,13 +220,13 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
  * (max. two entries are allowed; first entry will be at the first position,
  * second entry will be set depending on the flags)
  *
- * OR, if the table already exists (i.e. table_id != 0), insert the 
+ * OR, if the table already exists (i.e. table_id != 0), insert the
  * entry depending on the flags (only one entry is allowed in this case)
  */
 extern ham_status_t
-blob_duplicate_insert(Database *db, ham_offset_t table_id, 
-        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
-        dupe_entry_t *entries, ham_size_t num_entries, 
+blob_duplicate_insert(Database *db, ham_offset_t table_id,
+        ham_record_t *record, ham_size_t position, ham_u32_t flags,
+        dupe_entry_t *entries, ham_size_t num_entries,
         ham_offset_t *rid, ham_size_t *new_position);
 
 /**
@@ -251,7 +251,7 @@ blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
 /**
  * get a duplicate
  */
-extern ham_status_t 
+extern ham_status_t
 blob_duplicate_get(Environment *env, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry);
 
@@ -261,8 +261,8 @@ blob_duplicate_get(Environment *env, ham_offset_t table_id,
  * @warning will return garbage if the key has no dupes!!
  * @warning memory has to be freed by the caller IF needs_free is true!
  */
-extern ham_status_t 
-blob_duplicate_get_table(Environment *env, ham_offset_t table_id, 
+extern ham_status_t
+blob_duplicate_get_table(Environment *env, ham_offset_t table_id,
                     dupe_table_t **ptable, ham_bool_t *needs_free);
 
 

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -34,7 +34,7 @@ using namespace bfc;
 
 class ApproxTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     ApproxTest(const char *name="ApproxTest")
@@ -52,23 +52,23 @@ protected:
     ham_txn_t *m_txn;
 
 public:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
         (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0,
-                    ham_create(m_db, BFC_OPATH(".test"), 
+                    ham_create(m_db, BFC_OPATH(".test"),
                             HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                     ham_txn_begin(&m_txn, ham_get_env(m_db), 0, 0, 0));
     }
 
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(m_txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));

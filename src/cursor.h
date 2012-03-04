@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -12,7 +12,7 @@
 /**
  * @brief a base-"class" for cursors
  *
- * A Cursor is an object which is used to traverse a Database. 
+ * A Cursor is an object which is used to traverse a Database.
  *
  * A Cursor structure is separated into 3 components:
  * 1. The btree cursor
@@ -22,14 +22,14 @@
  *      This cursor can traverse txn-trees. It is described and implemented
  *      in txn_cursor.h.
  * 3. The upper layer
- *      This layer acts as a kind of dispatcher for both cursors. If 
- *      Transactions are used, then it also uses a duplicate cache for 
+ *      This layer acts as a kind of dispatcher for both cursors. If
+ *      Transactions are used, then it also uses a duplicate cache for
  *      consolidating the duplicate keys from both cursors. This layer is
  *      described and implemented in cursor.h (this file.
- * 
- * A Cursor can have several states. It can be 
+ *
+ * A Cursor can have several states. It can be
  * 1. NIL (not in list) - this is the default state, meaning that the Cursor
- *      does not point to any key. If the Cursor was initialized, then it's 
+ *      does not point to any key. If the Cursor was initialized, then it's
  *      "NIL". If the Cursor was erased (@ref ham_cursor_erase) then it's
  *      also "NIL".
  *
@@ -55,20 +55,20 @@
  *          @ref Cursor::is_coupled_to_btree
  *          @ref Cursor::couple_to_btree
  *
- * The dupecache is used when information from the btree and the txn-tree 
+ * The dupecache is used when information from the btree and the txn-tree
  * is merged. The btree cursor has its private dupecache. Both will be merged
- * sooner or later. 
+ * sooner or later.
  *
- * The cursor interface is used in db.c. Many of the functions in db.c use 
- * a high-level cursor interface (i.e. @ref cursor_create, @ref cursor_clone) 
+ * The cursor interface is used in db.c. Many of the functions in db.c use
+ * a high-level cursor interface (i.e. @ref cursor_create, @ref cursor_clone)
  * while some directly use the low-level interfaces of btree_cursor.h and
  * txn_cursor.h. Over time i will clean this up, trying to maintain a clear
  * separation of the 3 layers, and only accessing the top-level layer in
  * cursor.h. This is work in progress.
  *
- * In order to speed up Cursor::move() we keep track of the last compare 
+ * In order to speed up Cursor::move() we keep track of the last compare
  * between the two cursors. i.e. if the btree cursor is currently pointing to
- * a larger key than the txn-cursor, the 'lastcmp' field is <0 etc. 
+ * a larger key than the txn-cursor, the 'lastcmp' field is <0 etc.
  */
 
 #ifndef HAM_CURSORS_H__
@@ -88,9 +88,9 @@
 
 /**
  * A single line in the dupecache structure - can reference a btree
- * record or a txn-op 
+ * record or a txn-op
  */
-class DupeCacheLine 
+class DupeCacheLine
 {
   public:
     DupeCacheLine(bool use_btree=HAM_TRUE, ham_u64_t btree_dupeidx=0)
@@ -105,7 +105,7 @@ class DupeCacheLine
 
     /** Returns true if this cache entry is a duplicate in the btree */
     ham_bool_t use_btree(void) {
-        return ((ham_bool_t)m_use_btree); 
+        return ((ham_bool_t)m_use_btree);
     }
 
     /** Returns the btree duplicate index */
@@ -151,7 +151,7 @@ class DupeCacheLine
  */
 class DupeCache {
   public:
-    /* default constructor - creates an empty dupecache with room for 8 
+    /* default constructor - creates an empty dupecache with room for 8
      * duplicates */
     DupeCache(void) {
         m_elements.reserve(8);
@@ -178,7 +178,7 @@ class DupeCache {
     }
 
     /**
-     * Inserts a new item somewhere in the cache; resizes the 
+     * Inserts a new item somewhere in the cache; resizes the
      * cache if necessary
      */
     void insert(unsigned position, const DupeCacheLine &dcl) {
@@ -273,7 +273,7 @@ class Cursor
 
     /** Returns true if a cursor is coupled to a txn-op */
     bool is_coupled_to_txnop(void) {
-		return ((get_flags()&_CURSOR_COUPLED_TO_TXN) ? true : false);
+        return ((get_flags()&_CURSOR_COUPLED_TO_TXN) ? true : false);
     }
 
     /** Couples the cursor to a btree key */
@@ -290,10 +290,10 @@ class Cursor
     void set_to_nil(int what=CURSOR_BOTH);
 
     /**
-     * Erases the key/record pair that the cursor points to. 
+     * Erases the key/record pair that the cursor points to.
      *
-     * On success, the cursor is then set to nil. The Transaction is passed 
-     * as a separate pointer since it might be a local/temporary Transaction 
+     * On success, the cursor is then set to nil. The Transaction is passed
+     * as a separate pointer since it might be a local/temporary Transaction
      * that was created only for this single operation.
      */
     ham_status_t erase(ham_txn_t *txn, ham_u32_t flags);
@@ -301,18 +301,18 @@ class Cursor
     /**
      * Retrieves the number of duplicates of the current key
      *
-     * The Transaction is passed as a separate pointer since it might be a 
-     * local/temporary Transaction that was created only for this single 
+     * The Transaction is passed as a separate pointer since it might be a
+     * local/temporary Transaction that was created only for this single
      * operation.
      */
-    ham_status_t get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, 
+    ham_status_t get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount,
                 ham_u32_t flags);
 
     /**
      * Retrieves the size of the current record
      *
-     * The Transaction is passed as a separate pointer since it might be a 
-     * local/temporary Transaction that was created only for this single 
+     * The Transaction is passed as a separate pointer since it might be a
+     * local/temporary Transaction that was created only for this single
      * operation.
      */
     ham_status_t get_record_size(ham_txn_t *txn, ham_offset_t *psize);
@@ -320,8 +320,8 @@ class Cursor
     /**
      * Overwrites the record of the current key
      *
-     * The Transaction is passed as a separate pointer since it might be a 
-     * local/temporary Transaction that was created only for this single 
+     * The Transaction is passed as a separate pointer since it might be a
+     * local/temporary Transaction that was created only for this single
      * operation.
      */
     ham_status_t overwrite(ham_txn_t *txn, ham_record_t *record,
@@ -351,7 +351,7 @@ class Cursor
      * Checks if a btree cursor points to a key that was overwritten or erased
      * in the txn-cursor
      *
-     * This is needed in db.c when moving the cursor backwards/forwards and 
+     * This is needed in db.c when moving the cursor backwards/forwards and
      * consolidating the btree and the txn-tree
      */
     ham_status_t check_if_btree_key_is_erased_or_overwritten(void);

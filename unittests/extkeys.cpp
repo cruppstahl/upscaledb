@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -25,7 +25,7 @@ using namespace bfc;
 
 class ExtendedKeyTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     ExtendedKeyTest()
@@ -42,9 +42,9 @@ protected:
     ham_db_t *m_db;
 
 public:
-    virtual void setup() 
-	{ 
-		__super::setup();
+    virtual void setup()
+    {
+        __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
@@ -54,9 +54,9 @@ public:
         ((Database *)m_db)->set_extkey_cache(c);
     }
     
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown()
+    {
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -105,7 +105,7 @@ public:
         }
 
         for (ham_size_t i=0; i<10000; i++) {
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                 c->fetch((ham_offset_t)i, &size, &pbuffer));
             BFC_ASSERT_EQUAL((ham_size_t)12, size);
         }
@@ -115,7 +115,7 @@ public:
         }
 
         for (ham_size_t i=0; i<10000; i++) {
-            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                         c->fetch((ham_offset_t)i, 0, 0));
         }
     }
@@ -137,7 +137,7 @@ public:
         c->purge();
 
         for (int i=0; i<20; i++) {
-            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                 c->fetch((ham_offset_t)i, &size, &pbuffer));
         }
     }

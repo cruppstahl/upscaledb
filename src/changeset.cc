@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -76,8 +76,8 @@ Changeset::clear(void)
 }
 
 ham_status_t
-Changeset::log_bucket(Page **bucket, ham_size_t bucket_size, 
-                      ham_u64_t lsn, ham_size_t &page_count) 
+Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
+                      ham_u64_t lsn, ham_size_t &page_count)
 {
     for (ham_size_t i=0; i<bucket_size; i++) {
         ham_assert(bucket[i]->is_dirty(), (""));
@@ -198,7 +198,7 @@ Changeset::flush(ham_u64_t lsn)
     if (g_CHANGESET_POST_LOG_HOOK)
         g_CHANGESET_POST_LOG_HOOK();
     
-    /* now write all the pages to the file; if any of these writes fail, 
+    /* now write all the pages to the file; if any of these writes fail,
      * we can still recover from the log */
     while (p) {
         if (p->is_dirty()) {

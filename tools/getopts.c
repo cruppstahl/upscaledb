@@ -1,4 +1,4 @@
-/* 
+/*
  * getopts()
 
   Copyright (C) 2005-2008 Christoph Rupp, www.crupp.de
@@ -45,21 +45,21 @@ getopts_usage(const option_t *options)
     printf("usage: %s <options>\n", g_program);
     for (; options->shortopt; options++) {
         if (options->flags & GETOPTS_NEED_ARGUMENT)
-            printf("    -%s, --%s=<arg>: %s\n", 
+            printf("    -%s, --%s=<arg>: %s\n",
                 options->shortopt, options->longopt, options->helpdesc);
         else
-            printf("    -%s, --%s: %s\n", 
+            printf("    -%s, --%s: %s\n",
                 options->shortopt, options->longopt, options->helpdesc);
     }
 }
 
-unsigned int 
+unsigned int
 getopts(const option_t *options, const char **param)
 {
     char *p;
     const option_t *o=options;
 
-	*param = NULL;
+    *param = NULL;
 
     if (!g_argv)
         return (GETOPTS_NO_INIT);
@@ -97,9 +97,9 @@ getopts(const option_t *options, const char **param)
                         return (o->name);
                     }
                     if (g_a==g_argc) {
-						*param = g_argv[g_a];
+                        *param = g_argv[g_a];
                         return (GETOPTS_MISSING_PARAM);
-					}
+                    }
                     *param=g_argv[g_a+1];
                     g_a++;
                 }
@@ -107,7 +107,7 @@ getopts(const option_t *options, const char **param)
                 return (o->name);
             }
         }
-		*param = g_argv[g_a];
+        *param = g_argv[g_a];
         return (GETOPTS_UNKNOWN);
     }
 
@@ -120,9 +120,9 @@ getopts(const option_t *options, const char **param)
             if (!strcmp(o->shortopt, &g_argv[g_a][1])) {
                 if (o->flags & GETOPTS_NEED_ARGUMENT) {
                     if (g_a==g_argc) {
-						*param = g_argv[g_a];
+                        *param = g_argv[g_a];
                         return (GETOPTS_MISSING_PARAM);
-					}
+                    }
                     *param=g_argv[g_a+1];
                     g_a++;
                 }
@@ -130,7 +130,7 @@ getopts(const option_t *options, const char **param)
                 return (o->name);
             }
         }
-		*param = g_argv[g_a];
+        *param = g_argv[g_a];
         return (GETOPTS_UNKNOWN);
     }
 

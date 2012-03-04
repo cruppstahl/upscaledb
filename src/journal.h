@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -11,7 +11,7 @@
 
 /**
  * @brief Routines for the journal - writing, reading, recovering
- * 
+ *
  * The journal is a logical logfile. It stores high-level information about
  * the database operations (unlike the (physical) log which stores low-level
  * information about modified pages.
@@ -97,43 +97,43 @@ class Journal
     bool is_empty(void);
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+    ham_status_t append_txn_begin(struct ham_txn_t *txn, Environment *env,
                 const char *name, ham_u64_t lsn);
 
-    /** appends a journal entry for 
+    /** appends a journal entry for
      * ham_txn_abort/ENTRY_TYPE_TXN_ABORT */
     ham_status_t append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn);
 
-    /** appends a journal entry for 
+    /** appends a journal entry for
      * ham_txn_commit/ENTRY_TYPE_TXN_COMMIT */
     ham_status_t append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn);
 
     /** appends a journal entry for ham_insert/ENTRY_TYPE_INSERT */
-    ham_status_t append_insert(Database *db, ham_txn_t *txn, 
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+    ham_status_t append_insert(Database *db, ham_txn_t *txn,
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn);
 
     /** appends a journal entry for ham_erase/ENTRY_TYPE_ERASE */
-    ham_status_t append_erase(Database *db, ham_txn_t *txn, 
+    ham_status_t append_erase(Database *db, ham_txn_t *txn,
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     /** empties the journal, removes all entries */
     ham_status_t clear(void);
 
     /**
-     * Sequentially returns the next journal entry, starting with 
+     * Sequentially returns the next journal entry, starting with
      * the oldest entry.
      *
      * iter must be initialized with zeroes for the first call
      *
      * 'aux' returns the auxiliary data of the entry, or NULL.
-     * 'aux' is either a structure of type journal_entry_insert_t or 
+     * 'aux' is either a structure of type journal_entry_insert_t or
      * journal_entry_erase_t.
      * The memory of 'aux' has to be freed by the caller.
      *
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
      */
-    ham_status_t get_entry(Iterator *iter, 
+    ham_status_t get_entry(Iterator *iter,
                 JournalEntry *entry, void **aux);
 
     /** Closes the journal, frees all allocated resources */
@@ -167,7 +167,7 @@ class Journal
                 void *ptr4=0, ham_size_t ptr4_size=0,
                 void *ptr5=0, ham_size_t ptr5_size=0) {
         return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
-                    ptr2, ptr2_size, ptr3, ptr3_size, 
+                    ptr2, ptr2_size, ptr3, ptr3_size,
                     ptr4, ptr4_size, ptr5, ptr5_size));
     }
 
@@ -184,8 +184,8 @@ class Journal
         return (m_env->get_allocator()->free(ptr));
     }
 
-	/** references the Environment this journal file is for */
-	Environment *m_env;
+    /** references the Environment this journal file is for */
+    Environment *m_env;
 
     /** the index of the file descriptor we are currently writing to */
     ham_size_t m_current_fd;
@@ -205,7 +205,7 @@ class Journal
     /** the lsn of the previous checkpoint */
     ham_u64_t m_last_cp_lsn;
 
-    /** when having more than these Transactions in one file, we 
+    /** when having more than these Transactions in one file, we
      * swap the files */
     ham_size_t m_threshold;
 

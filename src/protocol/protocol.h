@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -16,7 +16,7 @@
  * interfaces, whereas this layer provides a functional interface. There's
  * no way to avoid ugliness when translating one to the other.
  *
- * The abstraction is necessary because google protobuf uses C++, whereas 
+ * The abstraction is necessary because google protobuf uses C++, whereas
  * hamsterdb is plain C. If someone has an idea how to avoid this mess pls
  * tell me.
  */
@@ -97,27 +97,27 @@ enum {
  * in messages.pb.h */
 typedef void proto_wrapper_t;
 
-/* 
- * unpack a buffer into a proto_wrapper_t structure 
+/*
+ * unpack a buffer into a proto_wrapper_t structure
  */
 extern proto_wrapper_t *
 proto_unpack(ham_size_t size, const ham_u8_t *buf);
 
-/* 
- * delete an unpacked proto_wrapper_t structure 
+/*
+ * delete an unpacked proto_wrapper_t structure
  */
 extern void
 proto_delete(proto_wrapper_t *wrapper);
 
-/* 
+/*
  * packs the proto_wrapper_t structure into a memory buffer and returns
- * a pointer to the buffer and the buffer size 
+ * a pointer to the buffer and the buffer size
  */
 extern ham_bool_t
-proto_pack(proto_wrapper_t *wrapper, Allocator *alloc, 
+proto_pack(proto_wrapper_t *wrapper, Allocator *alloc,
             ham_u8_t **data, ham_size_t *size);
 
-/* 
+/*
  * get the type of the Wrapper structure
  */
 extern ham_u32_t
@@ -157,7 +157,7 @@ proto_connect_reply_get_env_flags(proto_wrapper_t *wrapper);
  * env_rename request
  */
 extern proto_wrapper_t *
-proto_init_env_rename_request(ham_u16_t oldname, ham_u16_t newname, 
+proto_init_env_rename_request(ham_u16_t oldname, ham_u16_t newname,
                 ham_u32_t flags);
 
 extern ham_u32_t
@@ -354,7 +354,7 @@ proto_env_flush_reply_get_status(proto_wrapper_t *wrapper);
  * env_create_db request
  */
 extern proto_wrapper_t *
-proto_init_env_create_db_request(ham_u16_t dbname, ham_u32_t flags, 
+proto_init_env_create_db_request(ham_u16_t dbname, ham_u32_t flags,
                 ham_u32_t *names, ham_u64_t *values, ham_u32_t num_params);
 
 extern ham_bool_t
@@ -554,7 +554,7 @@ proto_db_close_reply_get_status(proto_wrapper_t *wrapper);
  * db_get_parameters request
  */
 extern proto_wrapper_t *
-proto_init_db_get_parameters_request(ham_u64_t dbhandle, ham_u32_t *names, 
+proto_init_db_get_parameters_request(ham_u64_t dbhandle, ham_u32_t *names,
                 ham_u32_t names_size);
 
 extern ham_bool_t
@@ -612,7 +612,7 @@ extern ham_u32_t
 proto_db_get_parameters_reply_get_max_env_databases(proto_wrapper_t *wrapper);
 
 extern void
-proto_db_get_parameters_reply_set_flags(proto_wrapper_t *wrapper, 
+proto_db_get_parameters_reply_set_flags(proto_wrapper_t *wrapper,
                 ham_u32_t flags);
 
 extern ham_bool_t
@@ -622,7 +622,7 @@ extern ham_u32_t
 proto_db_get_parameters_reply_get_flags(proto_wrapper_t *wrapper);
 
 extern void
-proto_db_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper, 
+proto_db_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper,
                 ham_u32_t filemode);
 
 extern ham_bool_t
@@ -712,7 +712,7 @@ proto_check_integrity_reply_get_status(proto_wrapper_t *wrapper);
  * db_get_key_count request
  */
 extern proto_wrapper_t *
-proto_init_db_get_key_count_request(ham_u64_t dbhandle, 
+proto_init_db_get_key_count_request(ham_u64_t dbhandle,
                 ham_u64_t txnhandle, ham_u32_t flags);
 
 extern ham_bool_t
@@ -746,7 +746,7 @@ proto_db_get_key_count_reply_get_key_count(proto_wrapper_t *wrapper);
  * db_insert request
  */
 extern proto_wrapper_t *
-proto_init_db_insert_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_insert_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 extern ham_bool_t
@@ -816,7 +816,7 @@ proto_db_insert_reply_get_key_size(proto_wrapper_t *wrapper);
  * db_find request
  */
 extern proto_wrapper_t *
-proto_init_db_find_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_find_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 extern ham_bool_t
@@ -859,7 +859,7 @@ proto_db_find_request_get_record_partial_size(proto_wrapper_t *wrapper);
  * db_find reply
  */
 extern proto_wrapper_t *
-proto_init_db_find_reply(ham_status_t status, ham_key_t *key, 
+proto_init_db_find_reply(ham_status_t status, ham_key_t *key,
                 ham_record_t *record);
 
 extern ham_bool_t
@@ -893,7 +893,7 @@ proto_db_find_reply_get_record_size(proto_wrapper_t *wrapper);
  * db_erase request
  */
 extern proto_wrapper_t *
-proto_init_db_erase_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_erase_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_u32_t flags);
 
 extern ham_bool_t
@@ -933,7 +933,7 @@ proto_db_erase_reply_get_status(proto_wrapper_t *wrapper);
  * cursor_create request
  */
 extern proto_wrapper_t *
-proto_init_cursor_create_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_cursor_create_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_u32_t flags);
 
 extern ham_bool_t
@@ -1189,7 +1189,7 @@ proto_cursor_find_reply_get_record_size(proto_wrapper_t *wrapper);
  * cursor_get_duplicate_count request
  */
 extern proto_wrapper_t *
-proto_init_cursor_get_duplicate_count_request(ham_u64_t cursorhandle, 
+proto_init_cursor_get_duplicate_count_request(ham_u64_t cursorhandle,
                 ham_u32_t flags);
 
 extern ham_bool_t
@@ -1221,7 +1221,7 @@ proto_cursor_get_duplicate_count_reply_get_count(proto_wrapper_t *wrapper);
  * cursor_overwrite request
  */
 extern proto_wrapper_t *
-proto_init_cursor_overwrite_request(ham_u64_t cursorhandle, 
+proto_init_cursor_overwrite_request(ham_u64_t cursorhandle,
                 ham_record_t *record, ham_u32_t flags);
 
 extern ham_bool_t

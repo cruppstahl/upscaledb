@@ -6,26 +6,26 @@
 
 #include <stddef.h>
 
-#if 0 
+#if 0
 /* Windows DLL stuff */
 #ifdef _WIN32
-#	ifdef JSON_PARSER_DLL_EXPORTS
-#		define JSON_PARSER_DLL_API __declspec(dllexport)
-#	else
-#		define JSON_PARSER_DLL_API __declspec(dllimport)
+#   ifdef JSON_PARSER_DLL_EXPORTS
+#       define JSON_PARSER_DLL_API __declspec(dllexport)
+#   else
+#       define JSON_PARSER_DLL_API __declspec(dllimport)
 #   endif
 #else
-#	define JSON_PARSER_DLL_API 
+#   define JSON_PARSER_DLL_API
 #endif
 #endif
-#define JSON_PARSER_DLL_API 
+#define JSON_PARSER_DLL_API
 
 /* Determine the integer type use to parse non-floating point numbers */
 #if __STDC_VERSION__ >= 199901L || HAVE_LONG_LONG == 1
 typedef long long JSON_int_t;
 #define JSON_PARSER_INTEGER_SSCANF_TOKEN "%lld"
 #define JSON_PARSER_INTEGER_SPRINTF_TOKEN "%lld"
-#else 
+#else
 typedef long JSON_int_t;
 #define JSON_PARSER_INTEGER_SSCANF_TOKEN "%ld"
 #define JSON_PARSER_INTEGER_SPRINTF_TOKEN "%ld"
@@ -34,9 +34,9 @@ typedef long JSON_int_t;
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
-typedef enum 
+typedef enum
 {
     JSON_T_NONE = 0,
     JSON_T_ARRAY_BEGIN,
@@ -66,21 +66,21 @@ typedef struct JSON_value_struct {
     } vu;
 } JSON_value;
 
-/*! \brief JSON parser callback 
+/*! \brief JSON parser callback
 
     \param ctx The pointer passed to new_JSON_parser.
-    \param type An element of JSON_type but not JSON_T_NONE.    
+    \param type An element of JSON_type but not JSON_T_NONE.
     \param value A representation of the parsed value. This parameter is NULL for
         JSON_T_ARRAY_BEGIN, JSON_T_ARRAY_END, JSON_T_OBJECT_BEGIN, JSON_T_OBJECT_END,
         JSON_T_NULL, JSON_T_TRUE, and SON_T_FALSE. String values are always returned
         as zero-terminated C strings.
 
     \return Non-zero if parsing should continue, else zero.
-*/    
+*/
 typedef int (*JSON_parser_callback)(void* ctx, int type, const struct JSON_value_struct* value);
 
 
-/*! \brief The structure used to configure a JSON parser object 
+/*! \brief The structure used to configure a JSON parser object
     
     \param depth If negative, the parser can parse arbitrary levels of JSON, otherwise
         the depth is the limit
@@ -112,9 +112,9 @@ typedef struct JSON_config_struct {
 */
 JSON_PARSER_DLL_API void init_JSON_config(JSON_config* config);
 
-/*! \brief Create a JSON parser object 
+/*! \brief Create a JSON parser object
     
-    \param config. Used to configure the parser. Set to NULL to use the default configuration. 
+    \param config. Used to configure the parser. Set to NULL to use the default configuration.
         See init_JSON_config
     
     \return The parser object.
@@ -138,7 +138,7 @@ JSON_PARSER_DLL_API extern int JSON_parser_char(struct JSON_parser_struct* jc, i
 */
 JSON_PARSER_DLL_API extern int JSON_parser_done(struct JSON_parser_struct* jc);
 
-/*! \brief Determine if a given string is valid JSON white space 
+/*! \brief Determine if a given string is valid JSON white space
 
     \return Non-zero if the string is valid, zero otherwise.
 */
@@ -147,7 +147,7 @@ JSON_PARSER_DLL_API extern int JSON_parser_is_legal_white_space_string(const cha
 
 #ifdef __cplusplus
 }
-#endif 
+#endif
     
 
 #endif /* JSON_PARSER_H */

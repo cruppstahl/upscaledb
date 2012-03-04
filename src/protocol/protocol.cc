@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -144,7 +144,7 @@ proto_connect_reply_get_env_flags(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_env_rename_request(ham_u16_t oldname, ham_u16_t newname,     
+proto_init_env_rename_request(ham_u16_t oldname, ham_u16_t newname,
                 ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -619,7 +619,7 @@ proto_env_flush_reply_get_status(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_env_create_db_request(ham_u16_t dbname, ham_u32_t flags, 
+proto_init_env_create_db_request(ham_u16_t dbname, ham_u32_t flags,
                 ham_u32_t *names, ham_u64_t *values, ham_u32_t num_params)
 {
     Wrapper *w=new Wrapper();
@@ -730,7 +730,7 @@ proto_env_create_db_reply_get_db_handle(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_env_open_db_request(ham_u16_t dbname, ham_u32_t flags, 
+proto_init_env_open_db_request(ham_u16_t dbname, ham_u32_t flags,
                 ham_u32_t *names, ham_u64_t *values, ham_u32_t num_params)
 {
     Wrapper *w=new Wrapper();
@@ -1125,7 +1125,7 @@ proto_db_close_reply_get_status(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_db_get_parameters_request(ham_u64_t dbhandle, ham_u32_t *names, 
+proto_init_db_get_parameters_request(ham_u64_t dbhandle, ham_u32_t *names,
                 ham_u32_t names_size)
 {
     Wrapper *w=new Wrapper();
@@ -1268,7 +1268,7 @@ proto_db_get_parameters_reply_get_max_env_databases(proto_wrapper_t *wrapper)
 }
 
 void
-proto_db_get_parameters_reply_set_flags(proto_wrapper_t *wrapper, 
+proto_db_get_parameters_reply_set_flags(proto_wrapper_t *wrapper,
                 ham_u32_t flags)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -1290,7 +1290,7 @@ proto_db_get_parameters_reply_get_flags(proto_wrapper_t *wrapper)
 }
 
 void
-proto_db_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper, 
+proto_db_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper,
                 ham_u32_t filemode)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -1490,7 +1490,7 @@ proto_check_integrity_reply_get_status(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_db_get_key_count_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_get_key_count_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -1592,7 +1592,7 @@ assign_record(Record *protorec, ham_record_t *hamrec)
 }
 
 proto_wrapper_t *
-proto_init_db_insert_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_insert_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -1775,7 +1775,7 @@ proto_db_insert_reply_get_key_size(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_db_find_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_find_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -1978,7 +1978,7 @@ proto_db_find_reply_get_record_size(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_db_erase_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_db_erase_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_key_t *key, ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -2081,7 +2081,7 @@ proto_db_erase_reply_get_status(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_cursor_create_request(ham_u64_t dbhandle, ham_u64_t txnhandle, 
+proto_init_cursor_create_request(ham_u64_t dbhandle, ham_u64_t txnhandle,
                 ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -2302,10 +2302,10 @@ proto_init_cursor_insert_request(ham_u64_t cursorhandle, ham_key_t *key,
     w->mutable_cursor_insert_request()->set_cursor_handle(cursorhandle);
     w->mutable_cursor_insert_request()->set_flags(flags);
     if (key)
-        assign_key(w->mutable_cursor_insert_request()->mutable_key(), 
+        assign_key(w->mutable_cursor_insert_request()->mutable_key(),
                 key);
     if (record)
-        assign_record(w->mutable_cursor_insert_request()->mutable_record(), 
+        assign_record(w->mutable_cursor_insert_request()->mutable_record(),
                 record);
     return ((proto_wrapper_t *)w);
 }
@@ -2547,10 +2547,10 @@ proto_init_cursor_find_request(ham_u64_t cursorhandle, ham_key_t *key,
     w->mutable_cursor_find_request()->set_cursor_handle(cursorhandle);
     w->mutable_cursor_find_request()->set_flags(flags);
     if (key)
-        assign_key(w->mutable_cursor_find_request()->mutable_key(), 
+        assign_key(w->mutable_cursor_find_request()->mutable_key(),
                 key);
     if (record)
-        assign_record(w->mutable_cursor_find_request()->mutable_record(), 
+        assign_record(w->mutable_cursor_find_request()->mutable_record(),
                 record);
     return ((proto_wrapper_t *)w);
 }
@@ -2743,7 +2743,7 @@ proto_cursor_find_reply_get_record_size(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_cursor_get_duplicate_count_request(ham_u64_t cursorhandle, 
+proto_init_cursor_get_duplicate_count_request(ham_u64_t cursorhandle,
                 ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();
@@ -2822,7 +2822,7 @@ proto_cursor_get_duplicate_count_reply_get_count(proto_wrapper_t *wrapper)
 }
 
 proto_wrapper_t *
-proto_init_cursor_overwrite_request(ham_u64_t cursorhandle, 
+proto_init_cursor_overwrite_request(ham_u64_t cursorhandle,
                 ham_record_t *record, ham_u32_t flags)
 {
     Wrapper *w=new Wrapper();

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -54,8 +54,8 @@ protected:
     ham_env_t *m_env;
 
 public:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
@@ -67,8 +67,8 @@ public:
         m_env=ham_get_env(m_db);
     }
     
-    virtual void teardown() 
-    { 
+    virtual void teardown()
+    {
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -135,10 +135,10 @@ public:
 
         btree_key_t *key=(btree_key_t *)&buffer[0];
 
-        BFC_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull,
                 key_get_ptr(key));
         BFC_ASSERT_EQUAL((ham_u8_t)0xf0, key_get_flags(key));
-        BFC_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull,
                 key_get_extended_rid(m_dbp, key));
     }
 
@@ -149,7 +149,7 @@ public:
         memset(buffer, 0, sizeof(buffer));
 
         key_set_extended_rid(m_dbp, key, 0x12345);
-        BFC_ASSERT_EQUAL((ham_offset_t)0x12345, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0x12345,
                 key_get_extended_rid(m_dbp, key));
     }
 
@@ -160,17 +160,17 @@ public:
         if (!flags)
             memset(key, 0, sizeof(*key));
         memset(&rec, 0, sizeof(rec));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_set_record(m_dbp, key, &rec, 0, flags, 0));
         if (!(flags&HAM_DUPLICATE))
             BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
         
         if (!(flags&HAM_DUPLICATE)) {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_EMPTY, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_EMPTY,
                     key_get_flags(key));
         }
         else {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES,
                     key_get_flags(key));
         }
     }
@@ -202,14 +202,14 @@ public:
         rec.data=(void *)data;
         rec.size=size;
 
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_set_record(m_dbp, key, &rec, 0, flags, 0));
         if (!(flags&HAM_DUPLICATE)) {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_TINY, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_TINY,
                 key_get_flags(key));
         }
         else {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES,
                     key_get_flags(key));
         }
 
@@ -248,14 +248,14 @@ public:
         rec.data=(void *)data;
         rec.size=sizeof(ham_offset_t);
 
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_set_record(m_dbp, key, &rec, 0, flags, 0));
         if (!(flags&HAM_DUPLICATE)) {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_SMALL, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_SMALL,
                 key_get_flags(key));
         }
         else {
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES,
                     key_get_flags(key));
         }
 
@@ -295,10 +295,10 @@ public:
         rec.data=(void *)data;
         rec.size=size;
 
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_set_record(m_dbp, key, &rec, 0, flags, 0));
         if (flags&HAM_DUPLICATE)
-            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES,
                     key_get_flags(key));
 
         if (!(flags&HAM_DUPLICATE)) {
@@ -391,13 +391,13 @@ public:
         overwriteNormal(&key, "1234123456785678", 16);
     }
 
-    void checkDupe(btree_key_t *key, int position, 
+    void checkDupe(btree_key_t *key, int position,
             const char *data, ham_size_t size)
     {
         BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
 
         dupe_entry_t entry;
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                     blob_duplicate_get((Environment *)m_env, key_get_ptr(key),
                             (ham_size_t)position, &entry));
 
@@ -555,7 +555,7 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, 0, 0);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_erase_record(m_dbp, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
@@ -565,7 +565,7 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234", 4);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_erase_record(m_dbp, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
@@ -575,7 +575,7 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "12345678", 8);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_erase_record(m_dbp, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
@@ -585,7 +585,7 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234123456785678", 16);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 key_erase_record(m_dbp, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
