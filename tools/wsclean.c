@@ -114,18 +114,21 @@ static const option_t opts[] =
 		ARG_RETAB,					
 			"r",                    
 			"retab",                 
-			"convert leading whitespace to tabs, all other whitespace to spaces",     
+			"convert leading whitespace to tabs, all other\n"
+			"        whitespace to spaces",     
 			0                       
 	},
 	{ 
 		ARG_LANGUAGE,					
 			"l",                    
 			"lang",                 
-			"assume the input file is source code written in the specified language and\n"
-			"adjust the 'entab/retab' conversion-to-TAB rules accordingly.\n"
-			"These languages are supported:\n"
-			"	none (default)\n"
-			"   C (which can also be used to process JavaScript, PHP, etc.)",     
+			"assume the input file is source code written in the\n"
+			"        specified language and adjust the 'entab/retab' conversion-to-TAB\n"
+			"        rules accordingly.\n"
+			"\n"
+			"        These languages are supported:\n"
+			"           none (default)\n"
+			"           C (which can also be used to process JavaScript, PHP, etc.)",     
 			GETOPTS_NEED_ARGUMENT   
 	},
 	{ 
