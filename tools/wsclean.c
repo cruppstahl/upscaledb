@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 							i -= c - 1;
 							memcpy(d, tab2space_blob, i);
 							d += i;
-							colpos += i;
+							colpos += i - 1;
 						}
 						continue;
 					}
