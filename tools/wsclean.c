@@ -35,6 +35,7 @@ Features:
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 #if defined(_MSC_VER)
 #include <io.h>
 #else
@@ -127,7 +128,8 @@ static const option_t opts[] =
 			"        rules accordingly.\n"
 			"\n"
 			"        These languages are supported:\n"
-			"           none (default)\n"
+			"           none\n"
+			"           auto (default)\n"
 			"           C (which can also be used to process JavaScript, PHP, etc.)",     
 			GETOPTS_NEED_ARGUMENT   
 	},
@@ -328,13 +330,68 @@ void report_lf_mode(cmd_t cmd)
 		fprintf(stderr, "            Detected LF mode: %s\n", (cmd.lf_mode == 1 ? "UNIX" : cmd.lf_mode == 2 ? "Windows/MSDOS" : "old Mac"));
 }
 
+char *strtolower(char *s)
+{
+	while (*s)
+	{
+		if (*s < 127)
+		{
+			*s = (char)tolower(*s);
+		}
+		s++;
+	}
+	return s;
+}
+
+int determine_indent_language(cmd_t cmd, const char *lang, const char *fname, const char *buf, size_t len)
+{
+	int smart = (lang && strcmp(lang, "none") != 0);
+	const char *ext = strrchr(fname, '.');
+	static const char *exts[] = 
+	{
+		"c",
+		"cc",
+		"cpp",
+		"h",
+		"hpp",
+		"js",
+		"php",
+		"sh",
+		NULL
+	};
+	const char **elst = exts;
+	char *e;
+	const char *known_lang = NULL;
+
+	if (ext)
+		ext++;
+	else
+		ext = "";
+	e = strdup(ext);
+	strtolower(e);
+
+	while (*elst)
+	{
+		if (strcmp(e, *elst) == 0)
+		{
+			known_lang = *elst;
+			break;
+		}
+		elst++;
+	}
+
+	free(e);
+	return smart && known_lang;
+}
+
+
 int main(int argc, char **argv)
 {
 	unsigned int opt;
 	char *param;
 	const char *appname = filename(argv[0]);
 	unsigned int tabsize = 4;
-	const char *lang = "none";
+	const char *lang = "auto";
 	cmd_t cmd = {0};
 	const char *fpath;
 	const char *fname;
@@ -440,6 +497,25 @@ int main(int argc, char **argv)
 		char *d_non_ws;
 		char *obuf;
 		unsigned int colpos;
+		unsigned int previous_line_indent;
+		union
+		{
+			unsigned int anything;
+
+			struct
+			{
+				unsigned c_comment: 1;
+				unsigned cpp_comment: 1;
+				unsigned continued_line: 2; /* state: 1 = continued line will follow beyond next LF; 2 = on continued line */
+				unsigned conditional_exp: 1;
+				unsigned quoted_string: 1;
+				unsigned dquoted_string: 1;
+				unsigned doctext: 1; /* <<<EOT ... EOT */
+			} el;
+		} inside = {0};
+		const char *doctext_marker;
+		int doctext_marker_len;
+		int do_smart_lang_indent;
 
 		fname = filename(fpath);
 
@@ -452,6 +528,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "*** ERROR: failure while reading data from file '%s'\n", (cmd.verbose ? fpath : fname));
 			exit(EXIT_FAILURE);
 		}
+
+		do_smart_lang_indent = determine_indent_language(cmd, lang, fname, buf, len);
 
 		// get me a fast, rough, worst-case estimate of the buffer size needed for the conversion:
 		size = len;
@@ -477,6 +555,9 @@ int main(int argc, char **argv)
 		}
 
 		colpos = 0;
+		previous_line_indent = 0;
+		doctext_marker = NULL;
+		doctext_marker_len = 0;
 		d_non_ws = NULL;
 		d = obuf;
 		for (s = buf, e = buf + len; s < e; s++)
@@ -505,6 +586,17 @@ int main(int argc, char **argv)
 				// one newline:
 				colpos = 0;
 				d_non_ws = NULL;
+
+				if (inside.el.cpp_comment)
+				{
+					inside.el.cpp_comment = 0;
+				}
+				if (inside.el.continued_line)
+				{
+					inside.el.continued_line++;
+					inside.el.continued_line %= 3;
+				}
+
 				switch (cmd.lf_mode)
 				{
 				default:
@@ -520,7 +612,14 @@ int main(int argc, char **argv)
 			case '\t':
 				colstep = tabsize - (colpos % tabsize);
 				colpos += colstep;
-				switch (cmd.tab_mode)
+
+				switch (!inside.anything 
+						? cmd.tab_mode
+						: (inside.el.doctext || inside.el.dquoted_string || inside.el.quoted_string)
+						? 0
+						: colpos > previous_line_indent
+						? 2
+						: cmd.tab_mode)
 				{
 				default:
 				case 0:
@@ -542,13 +641,15 @@ int main(int argc, char **argv)
 
 			case ' ':
 				colpos++;
-				switch (cmd.tab_mode)
-				{
-				default:
-				case 0:
-					*d++ = *s;
-					continue;
 
+				switch (!inside.anything 
+						? cmd.tab_mode
+						: (inside.el.doctext || inside.el.dquoted_string || inside.el.quoted_string)
+						? 0
+						: colpos > previous_line_indent
+						? 2
+						: cmd.tab_mode)
+				{
 				case 1:
 				case 3:
 					if (!d_non_ws)
@@ -566,9 +667,16 @@ int main(int argc, char **argv)
 								;
 							if (i == tabsize)
 							{
-								colpos += i - c;
-								*d++ = '\t';
-								continue;
+								if (inside.anything && colpos + i - c > previous_line_indent)
+								{
+									s++;
+								}
+								else
+								{
+									colpos += i - c;
+									*d++ = '\t';
+									continue;
+								}
 							}
 							s--;
 							i -= c - 1;
@@ -578,6 +686,8 @@ int main(int argc, char **argv)
 						}
 						continue;
 					}
+				default:
+				case 0:
 				case 2:
 					*d++ = *s;
 					continue;
@@ -585,6 +695,51 @@ int main(int argc, char **argv)
 
 			default:
 				// non-whitespace is assumed:
+				if (!inside.anything && !d_non_ws)
+				{
+					previous_line_indent = colpos;
+				}
+
+				/* now check if we are entering a comment, conditional expression, string, or other possibly multiline spanning 'feature': */
+				if (do_smart_lang_indent)
+				{
+					if (!inside.el.cpp_comment && !inside.el.c_comment)
+					{
+						if (*s == '/' && s[1] == '/')
+							inside.el.cpp_comment = 1;
+						if (*s == '/' && s[1] == '*')
+							inside.el.c_comment = inside.el.cpp_comment = 1;
+
+						if (*s == '\\' && (s[1] == '\r' || s[1] == '\n'))
+							inside.el.continued_line = 1;
+
+						if (*s == '\'' && s != buf && s[-1] != '\\' && !inside.el.dquoted_string)
+							inside.el.quoted_string = !inside.el.quoted_string;
+						if (*s == '"' && s != buf && s[-1] != '\\' && !inside.el.quoted_string)
+							inside.el.dquoted_string = !inside.el.dquoted_string;
+
+						if (*s == '<' && s[1] == '<' && s[2] == '<' && !inside.el.quoted_string && !inside.el.dquoted_string)
+						{
+							inside.el.doctext = 1;
+
+							doctext_marker = s + 3;
+							doctext_marker_len = strcspn(doctext_marker, "\r\n \t");
+						}
+						if (inside.el.doctext && colpos == 0 && strncmp(s, doctext_marker, doctext_marker_len) == 0)
+						{
+							inside.el.doctext = 0;
+
+							doctext_marker = NULL;
+							doctext_marker_len = 0;
+						}
+					}
+					else if (inside.el.c_comment)
+					{
+						if (*s == '*' && s[1] == '/')
+							inside.el.c_comment = 0;
+					}
+				}
+
 				colpos++;
 				*d++ = *s;
 				d_non_ws = d;
