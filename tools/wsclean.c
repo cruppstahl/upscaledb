@@ -314,6 +314,19 @@ void closefile(filedef_t *f)
 	}
 }
 
+typedef struct
+{
+	unsigned verbose: 2;
+	unsigned trim_trailing: 1;
+	unsigned tab_mode: 2; /* 0: none, 1: entab, 2: detab; 3: retab */
+	unsigned lf_mode: 2; /* 0: autodetect, 1: UNIX, 2: MSDOS, 3: old-style Mac (CR-only) */
+} cmd_t;
+
+void report_lf_mode(cmd_t cmd)
+{
+	if (cmd.verbose) 
+		fprintf(stderr, "            Detected LF mode: %s\n", (cmd.lf_mode == 1 ? "UNIX" : cmd.lf_mode == 2 ? "Windows/MSDOS" : "old Mac"));
+}
 
 int main(int argc, char **argv)
 {
@@ -322,13 +335,7 @@ int main(int argc, char **argv)
 	const char *appname = filename(argv[0]);
 	unsigned int tabsize = 4;
 	const char *lang = "none";
-	struct
-	{
-		unsigned verbose: 2;
-		unsigned trim_trailing: 1;
-		unsigned tab_mode: 2; /* 0: none, 1: entab, 2: detab; 3: retab */
-		unsigned lf_mode: 2; /* 0: autodetect, 1: UNIX, 2: MSDOS, 3: old-style Mac (CR-only) */
-	} cmd = {0};
+	cmd_t cmd = {0};
 	const char *fpath;
 	const char *fname;
 	const char *out_fname = NULL;
@@ -420,6 +427,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	fflush(stdout);
+
 	while (pop_filedef(&fdef, &fpath, out_fname))
 	{
 		char *buf;
@@ -481,11 +490,11 @@ int main(int argc, char **argv)
 				if (s[1] == '\n')
 				{
 					s++;
-					if (cmd.lf_mode == 0) cmd.lf_mode = 2;
+					if (cmd.lf_mode == 0) { cmd.lf_mode = 2; report_lf_mode(cmd); }
 				}
-				if (cmd.lf_mode == 0) cmd.lf_mode = 3;
+				if (cmd.lf_mode == 0) { cmd.lf_mode = 3; report_lf_mode(cmd); }
 			case '\n':
-				if (cmd.lf_mode == 0) cmd.lf_mode = 1;
+				if (cmd.lf_mode == 0) { cmd.lf_mode = 1; report_lf_mode(cmd); }
 
 				// trim trailing WS?
 				if (cmd.trim_trailing && d_non_ws)
