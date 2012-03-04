@@ -272,11 +272,10 @@ __record_filters_after_find(Database *db, ham_record_t *record)
 
 Database::Database()
   : m_error(0), m_context(0), m_backend(0), m_cursors(0),
-    m_prefix_func(0), m_cmp_func(0), m_duperec_func(0),
-    m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0),
-    m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0),
-    m_is_active(0), m_rec_allocsize(0), m_rec_allocdata(0),
-    m_key_allocsize(0), m_key_allocdata(0), m_impl(0)
+    m_prefix_func(0), m_cmp_func(0), m_duperec_func(0), 
+    m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0), 
+    m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0), 
+    m_is_active(0), m_impl(0)
 {
     memset(&m_perf_data, 0, sizeof(m_perf_data));
 
@@ -284,6 +283,9 @@ Database::Database()
     m_remote_handle=0;
 #endif
     txn_tree_init(this, &m_optree);
+
+    m_key_alloc.reset(new ByteArray(0, 0));
+    m_record_alloc.reset(new ByteArray(0, 0));
 }
 
 ham_u16_t
@@ -907,6 +909,9 @@ Database::close_cursor(Cursor *cursor)
 ham_status_t
 Database::resize_record_allocdata(ham_size_t size)
 {
+    if (!m_record_alloc.get())
+        m_record_alloc.reset(new ByteArray(0, 0));
+
     if (size==0) {
         if (get_record_allocdata())
             get_env()->get_allocator()->free(get_record_allocdata());
@@ -928,6 +933,9 @@ Database::resize_record_allocdata(ham_size_t size)
 ham_status_t
 Database::resize_key_allocdata(ham_size_t size)
 {
+    if (!m_key_alloc.get())
+        m_key_alloc.reset(new ByteArray(0, 0));
+
     if (size==0) {
         if (get_key_allocdata())
             get_env()->get_allocator()->free(get_key_allocdata());
@@ -2957,11 +2965,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /* free cached memory */
     (void)m_db->resize_record_allocdata(0);
-    if (m_db->get_key_allocdata()) {
-        env->get_allocator()->free(m_db->get_key_allocdata());
-        m_db->set_key_allocdata(0);
-        m_db->set_key_allocsize(0);
-    }
+    (void)m_db->resize_key_allocdata(0);
 
     /* clean up the transaction tree */
     if (m_db->get_optree())

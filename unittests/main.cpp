@@ -22,6 +22,12 @@
 #endif
 
 #include "../src/error.h"
+#if HAM_ENABLE_REMOTE
+#  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
+#  include <curl/curl.h>
+#  include <curl/easy.h>
+#  include "../src/protocol/protocol.h"
+#endif
 
 
 using namespace bfc;
@@ -215,77 +221,82 @@ main(int argc, char **argv)
 #   endif
 #endif
 
-    // as we wish to print all collected errors at the very end, we act
-    // as if we don't want the default built-in reporting, hence we MUST
-    // call init_run() here.
-    testrunner::get_instance()->init_run();
-    unsigned int r;
-    if (argc > 1)
-    {
-        std::string lead_fixture;
-        std::string lead_test;
-        bool lead = false;
-        bool inclusive_begin = true;
+#ifdef HAM_ENABLE_REMOTE
+    atexit(curl_global_cleanup);
+    atexit(proto_shutdown);
+#endif
 
-        r = 0;
-        for (int i = 1; i <= argc; i++)
-        {
-            std::string fixture_name;
-            if (i < argc)
-            {
-                fixture_name = argv[i];
-            }
+	// as we wish to print all collected errors at the very end, we act
+	// as if we don't want the default built-in reporting, hence we MUST
+	// call init_run() here.
+	testrunner::get_instance()->init_run();
+	unsigned int r;
+	if (argc > 1)
+	{
+		std::string lead_fixture;
+		std::string lead_test;
+		bool lead = false;
+		bool inclusive_begin = true;
 
-            if (fixture_name == "*")
-            {
-                // lead or tail or chain?
-                lead = true;
-            }
-            else
-            {
-                size_t pos = fixture_name.find(':');
-                std::string test_name;
-                if (pos != std::string::npos)
-                {
-                    test_name = fixture_name.substr(pos + 1);
-                    fixture_name = fixture_name.substr(0, pos);
-                    while ((pos = test_name.find(':')) != std::string::npos)
-                    {
-                        test_name.erase(pos, 1);
-                    }
-                }
+		r = 0;
+		for (int i = 1; i <= argc; i++)
+		{
+			std::string fixture_name;
+			if (i < argc)
+			{
+				fixture_name = argv[i];
+			}
 
-                if (!lead && (i < argc)
-                    && (i+1 >= argc || std::string(argv[i+1]) != "*"))
-                {
-                    // single case:
-                    r = testrunner::get_instance()->run(
-                            fixture_name.c_str(), test_name.c_str(),
-                            false);
-                    inclusive_begin = true;
-                }
-                else if (lead)
-                {
-                    r = testrunner::get_instance()->run(
-                            lead_fixture, lead_test,
-                            fixture_name, test_name,
-                            inclusive_begin,
-                            false,
-                            false);
-                    inclusive_begin = false;
-                }
-                lead_fixture = fixture_name;
-                lead_test = test_name;
-                lead = false;
-            }
-        }
-    }
-    else
-    {
-        r = testrunner::get_instance()->run(false);
-    }
-    testrunner::get_instance()->print_errors();
-    testrunner::delete_instance();
+			if (fixture_name == "*")
+			{
+				// lead or tail or chain?
+				lead = true;
+			}
+			else
+			{
+				size_t pos = fixture_name.find(':');
+				std::string test_name;
+				if (pos != std::string::npos)
+				{
+					test_name = fixture_name.substr(pos + 1);
+					fixture_name = fixture_name.substr(0, pos);
+					while ((pos = test_name.find(':')) != std::string::npos)
+					{
+						test_name.erase(pos, 1);
+					}
+				}
+
+				if (!lead && (i < argc)
+					&& (i+1 >= argc || std::string(argv[i+1]) != "*"))
+				{
+					// single case:
+					r = testrunner::get_instance()->run(
+							fixture_name.c_str(), test_name.c_str(),
+							false);
+					inclusive_begin = true;
+				}
+				else if (lead)
+				{
+					r = testrunner::get_instance()->run(
+							lead_fixture, lead_test,
+							fixture_name, test_name,
+							inclusive_begin,
+							false,
+							false);
+					inclusive_begin = false;
+				}
+				lead_fixture = fixture_name;
+				lead_test = test_name;
+				lead = false;
+			}
+		}
+	}
+	else
+	{
+		r = testrunner::get_instance()->run(false);
+	}
+	testrunner::get_instance()->print_errors();
+	testrunner::delete_instance();
 
     return (r);
 }
