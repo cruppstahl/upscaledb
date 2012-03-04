@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -186,7 +186,7 @@ namespace Unittests
             compareCounter = 0;
             try {
                 db.Create("ntest.db");
-                db.SetPrefixCompareFunc(new 
+                db.SetPrefixCompareFunc(new
                     PrefixCompareFunc(MyPrefixCompareFunc));
                 db.Insert(k, r);
                 k[0] = 1;
@@ -310,7 +310,7 @@ namespace Unittests
             try {
                 db.Create("ntest.db");
                 k[0] = 1;
-                r1[0] = 1; 
+                r1[0] = 1;
                 db.Insert(k, r1);
                 r2 = db.Find(k);
                 checkEqual(r1, r2);
@@ -551,7 +551,7 @@ namespace Unittests
             db.Open(file, 0, list.ToArray());
             db.SetCompareFunc(new CompareFunc(NumericalCompareFunc));
             return db;
-        } 
+        }
 
         [TestMethod()]
         public void Cursor10000Test()

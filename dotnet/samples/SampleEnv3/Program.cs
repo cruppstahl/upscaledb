@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -95,7 +95,7 @@ namespace SampleEnv3
         const short DBNAME_C2O      = 3;
 
         static void Main(string[] args) {
-            System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding(); 
+            System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
             Hamster.Environment env = new Hamster.Environment();
             Database[] db=new Database[3];
             Cursor[] cursor=new Cursor[3];
@@ -145,7 +145,7 @@ namespace SampleEnv3
 
             /*
              * Insert the customers in the customer Database
-             * 
+             *
              * INSERT INTO customers VALUES (1, "Alan Antonov Corp.");
              * INSERT INTO customers VALUES (2, "Barry Broke Inc.");
              * etc.
@@ -159,7 +159,7 @@ namespace SampleEnv3
 
             /*
              * Insert the orders in the order Database
-             * 
+             *
              * INSERT INTO orders VALUES (1, "Joe");
              * INSERT INTO orders VALUES (2, "Tom");
              * etc.
@@ -187,13 +187,13 @@ namespace SampleEnv3
             }
 
             /*
-             * now start the queries - we want to dump each customer and 
+             * now start the queries - we want to dump each customer and
              * his orders
-             * 
-             * loop over the customer; for each customer, loop over the 
-             * 1:n table and pick those orders with the customer id. 
+             *
+             * loop over the customer; for each customer, loop over the
+             * 1:n table and pick those orders with the customer id.
              * then load the order and print it
-             * 
+             *
              * the outer loop is similar to
              * SELECT * FROM customers WHERE 1;
              */
@@ -220,7 +220,7 @@ namespace SampleEnv3
 
                 /*
                  * loop over the 1:n table
-                 * 
+                 *
                  * SELECT * FROM customers, orders, c2o
                  *      WHERE c2o.customer_id=customers.id AND
                  *          c2o.order_id=orders.id;
@@ -253,7 +253,7 @@ namespace SampleEnv3
 
                     /*
                      * move to the next order of this customer
-                     * 
+                     *
                      * the flag HAM_ONLY_DUPLICATES restricts the cursor
                      * movement to the duplicates of the current key.
                      */

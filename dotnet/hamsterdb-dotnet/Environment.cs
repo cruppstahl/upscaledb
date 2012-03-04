@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -46,7 +46,7 @@ namespace Hamster
         /// Creates a new Environment
         /// </summary>
         /// <remarks>
-        /// This is an overloaded function for 
+        /// This is an overloaded function for
         ///   Create(fileName, 0, 0, null).
         /// </remarks>
         public void Create(string fileName) {
@@ -57,7 +57,7 @@ namespace Hamster
         /// Creates a new Environment
         /// </summary>
         /// <remarks>
-        /// This is an overloaded function for 
+        /// This is an overloaded function for
         ///   Create(fileName, flags, 0, null).
         /// </remarks>
         public void Create(String fileName, int flags) {
@@ -68,7 +68,7 @@ namespace Hamster
         /// Creates a new Environment
         /// </summary>
         /// <remarks>
-        /// This is an overloaded function for 
+        /// This is an overloaded function for
         ///   Create(fileName, flags, mode, null).
         /// </remarks>
         public void Create(String fileName, int flags, int mode) {
@@ -85,15 +85,15 @@ namespace Hamster
         /// stored in one physical file (or in-memory). Per default, up to 16
         /// Databases can be stored in one file (<see
         /// cref="HamConst.HAM_PARAM_MAX_ENV_DATABASES" />
-        /// on how to store even more Databases). 
+        /// on how to store even more Databases).
         /// <br />
         /// Each Database is identified by a positive 16bit value (except
         /// 0 and values at or above 0xf000).
-        /// Databases in an Environment can be created with 
-        /// <see cref="Environment.CreateDatabase(short)" /> or opened with 
+        /// Databases in an Environment can be created with
+        /// <see cref="Environment.CreateDatabase(short)" /> or opened with
         /// <see cref="Environment.OpenDatabase(short)" />.
         /// </remarks>
-        /// 
+        ///
         /// <param name="fileName">The file name of the Environment file. If
         /// the file already exists, it is overwritten. Can be null if you
         /// create an In-Memory Environment.</param>
@@ -101,8 +101,8 @@ namespace Hamster
         /// with bitwise OR. Possible flags are:
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_WRITE_THROUGH" />
-        ///         Immediately write modified pages to the disk. This 
-        ///         slows down all Database operations, but may save the 
+        ///         Immediately write modified pages to the disk. This
+        ///         slows down all Database operations, but may save the
         ///         Database integrity in case of a system crash.</item><br />
         ///     <item><see cref="HamConst.HAM_IN_MEMORY_DB" />
         ///         Creates an In-Memory Environment. No file will be created,
@@ -112,13 +112,13 @@ namespace Hamster
         ///         <see cref="HamConst.HAM_CACHE_STRICT" /> and do <b>NOT</b>
         ///         specify a cache size other than 0.</item><br />
         ///     <item><see cref="HamConst.HAM_DISABLE_MMAP" />
-        ///         Do not use memory mapped files for I/O. By default, 
-        ///         hamsterdb checks if it can use mmap, since mmap is faster 
-        ///         than read/write. For performance reasons, this flag should 
+        ///         Do not use memory mapped files for I/O. By default,
+        ///         hamsterdb checks if it can use mmap, since mmap is faster
+        ///         than read/write. For performance reasons, this flag should
         ///         not be used.</item><br />
         ///     <item><see cref="HamConst.HAM_CACHE_STRICT" />
         ///         Do not allow the cache to grow larger than the size specified
-        ///         with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a 
+        ///         with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a
         ///         Database operation needs to resize the cache, it will
         ///         fail and return <see cref="HamConst.HAM_CACHE_FULL" />.
         ///         If the flag is not set, the cache is allowed to allocate
@@ -128,7 +128,7 @@ namespace Hamster
         ///         This flag is deprecated.</item><br />
         ///     <item><see cref="HamConst.HAM_LOCK_EXCLUSIVE" />
         ///         Place an exclusive lock on the file. Only one process
-        ///         may hold an exclusive lock for a given file at a given 
+        ///         may hold an exclusive lock for a given file at a given
         ///         time. Deprecated - this is now the default
         ///         behaviour.</item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
@@ -141,20 +141,20 @@ namespace Hamster
         ///         <see cref="HamConst.HAM_ENABLE_RECOVERY" />.</item><br />
         ///   </list>
         /// </param>
-        /// <param name="mode">File access rights for the new file. This is 
-        /// the <i>mode</i> parameter for creat(2). Ignored on 
+        /// <param name="mode">File access rights for the new file. This is
+        /// the <i>mode</i> parameter for creat(2). Ignored on
         /// Microsoft Windows.</param>
-        /// <param name="parameters">An array of <see cref="Parameter" /> 
+        /// <param name="parameters">An array of <see cref="Parameter" />
         /// structures. The following parameters are available:<br />
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_PARAM_CACHESIZE" />
-        ///         The size of the Database cache, in bytes. The default size 
+        ///         The size of the Database cache, in bytes. The default size
         ///         is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE
         ///         - usually 2 MB.</item><br />
         ///     <item><see cref="HamConst.HAM_PARAM_PAGESIZE" />
-        ///         The size of a file page, in bytes. It is recommended not 
-        ///         to change the default size. The default size depends on 
-        ///         hardware and operating system. Page sizes must be 1024 or a 
+        ///         The size of a file page, in bytes. It is recommended not
+        ///         to change the default size. The default size depends on
+        ///         hardware and operating system. Page sizes must be 1024 or a
         ///         multiple of 2048.</item><br />
         ///     <item><see cref="HamConst.HAM_PARAM_MAX_ENV_DATABASES" />
         ///         The number of maximum Databases in this Environment;
@@ -204,7 +204,7 @@ namespace Hamster
         /// Opens an existing Environment
         /// </summary>
         /// <remarks>
-        /// This is an overloaded function for 
+        /// This is an overloaded function for
         ///   Open(fileName, 0, null).
         /// </remarks>
         public void Open(String fileName) {
@@ -215,7 +215,7 @@ namespace Hamster
         /// Opens an existing Environment
         /// </summary>
         /// <remarks>
-        /// This is an overloaded function for 
+        /// This is an overloaded function for
         ///   Open(fileName, flags, null).
         /// </remarks>
         public void Open(String fileName, int flags) {
@@ -228,28 +228,28 @@ namespace Hamster
         /// <remarks>
         /// This method wraps the native ham_env_open_ex function.
         /// </remarks>
-        /// 
+        ///
         /// <param name="fileName">The file name of the Environment file.</param>
         /// <param name="flags">Optional flags for this operation, combined
         /// with bitwise OR. Possible flags are:
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_READ_ONLY" />
         ///         Opens the file for reading only. Operations which need
-        ///         write access (i.e. Database.Insert) 
+        ///         write access (i.e. Database.Insert)
         ///         will return <see cref="HamConst.HAM_DB_READ_ONLY" />.
         ///         </item><br />
         ///     <item><see cref="HamConst.HAM_WRITE_THROUGH" />
-        ///         Immediately write modified pages to the disk. This 
-        ///         slows down all Database operations, but may save the 
+        ///         Immediately write modified pages to the disk. This
+        ///         slows down all Database operations, but may save the
         ///         Database integrity in case of a system crash.</item><br />
         ///     <item><see cref="HamConst.HAM_DISABLE_MMAP" />
-        ///         Do not use memory mapped files for I/O. By default, 
-        ///         hamsterdb checks if it can use mmap, since mmap is faster 
-        ///         than read/write. For performance reasons, this flag should 
+        ///         Do not use memory mapped files for I/O. By default,
+        ///         hamsterdb checks if it can use mmap, since mmap is faster
+        ///         than read/write. For performance reasons, this flag should
         ///         not be used.</item><br />
         ///     <item><see cref="HamConst.HAM_CACHE_STRICT" />
         ///         Do not allow the cache to grow larger than the size specified
-        ///         with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a 
+        ///         with <see cref="HamConst.HAM_PARAM_CACHESIZE" />. If a
         ///         Database operation needs to resize the cache, it will
         ///         fail and return <see cref="HamConst.HAM_CACHE_FULL" />.
         ///         If the flag is not set, the cache is allowed to allocate
@@ -259,8 +259,8 @@ namespace Hamster
         ///         This flag is deprecated.</item><br />
         ///     <item><see cref="HamConst.HAM_LOCK_EXCLUSIVE" />
         ///         Place an exclusive lock on the file. Only one process
-        ///         may hold an exclusive lock for a given file at a given 
-        ///         time. Deprecated - this is the default 
+        ///         may hold an exclusive lock for a given file at a given
+        ///         time. Deprecated - this is the default
         ///         behaviour.</item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
         ///         Enables logging/recovery for this Database. Will return
@@ -278,12 +278,12 @@ namespace Hamster
         ///         <see cref="HamConst.HAM_ENABLE_RECOVERY" />.</item><br />
         ///   </list>
         /// </param>
-        /// <param name="parameters">An array of <see cref="Parameter" /> 
+        /// <param name="parameters">An array of <see cref="Parameter" />
         /// structures. The following parameters are available:<br />
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_PARAM_CACHESIZE" />
-        ///         The size of the Database cache, in bytes. The default size 
-        ///         is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE 
+        ///         The size of the Database cache, in bytes. The default size
+        ///         is defined in <i>src/config.h</i> as HAM_DEFAULT_CACHESIZE
         ///         - usually 2 MB.</item><br />
         ///   </list>
         /// </param>
@@ -296,7 +296,7 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_IO_ERROR"/>
         ///         if the file could not be opened or reading/writing failed</item>
         ///     <item><see cref="HamConst.HAM_INV_FILE_VERSION"/>
-        ///         if the Database version is not compatible with the library 
+        ///         if the Database version is not compatible with the library
         ///         version</item>
         ///     <item><see cref="HamConst.HAM_OUT_OF_MEMORY"/>
         ///         if memory could not be allocated</item>
@@ -349,7 +349,7 @@ namespace Hamster
         /// </remarks>
         /// <returns>The new Database object</returns>
         /// <param name="name">The name of the Database. If a Database
-        /// with this name already exists, 
+        /// with this name already exists,
         /// <see cref="HamConst.HAM_DATABASE_ALREADY_EXISTS"/> is thrown.
         /// Database names from 0xf000 to 0xffff and 0 are reserved.</param>
         /// <param name="flags">Optional flags for creating the Database,
@@ -357,11 +357,11 @@ namespace Hamster
         ///   <list>
         ///     <item><see cref="HamConst.HAM_USE_BTREE" />
         ///         Use a B+Tree for the index structure. Currently enabled
-        ///         by default, but future releases of hamsterdb will offer 
+        ///         by default, but future releases of hamsterdb will offer
         ///         additional index structures, i.e. hash tables.</item><br />
         ///     <item><see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />
-        ///         Do not allow the use of variable length keys. Inserting 
-        ///         a key, which is larger than the B+Tree index key size, 
+        ///         Do not allow the use of variable length keys. Inserting
+        ///         a key, which is larger than the B+Tree index key size,
         ///         returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item><br />
         ///     <item><see cref="HamConst.HAM_RECORD_NUMBER" />
         ///         Enable duplicate keys for this Database. By default,
@@ -369,26 +369,26 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_ENABLE_DUPLICATES" />
         ///         Creates an "auto-increment" Database. Keys in Record
         ///         Number Databases are automatically assigned an incrementing
-        ///         64bit value.</item>        
+        ///         64bit value.</item>
         ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
         ///         Sort duplicate keys for this Database. Only allowed in
         ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>. 
+        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
         ///         This flag is not persistent.</item><br />
         ///   </list>
         /// </param>
-        /// <param name="parameters">An array of <see cref="Parameter" /> 
+        /// <param name="parameters">An array of <see cref="Parameter" />
         /// structures. The following parameters are available:<br />
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_PARAM_KEYSIZE" />
         ///         The size of the keys in the B+Tree index. The default size
         ///         is 21 bytes.</item><br />
         ///     <item><see cref="HamConst.HAM_PARAM_DATA_ACCESS_MODE" />
-        ///         Gives a hint regarding data access patterns. The default 
-        ///         setting optimizes hamsterdb for random read/write access 
+        ///         Gives a hint regarding data access patterns. The default
+        ///         setting optimizes hamsterdb for random read/write access
         ///         (<see cref="HamConst.HAM_DAM_RANDOM_WRITE"/>).
-        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
-        ///         sequential inserts (this is automatically set for 
+        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for
+        ///         sequential inserts (this is automatically set for
         ///         record number Databases). This flag is not persistent.</item>
         ///     </list>
         /// </param>
@@ -397,7 +397,7 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
         ///         if an invalid combination of flags was specified</item>
         ///     <item><see cref="HamConst.HAM_DATABASE_ALREADY_EXISTS"/>
-        ///         if a Database with this name already exists in this 
+        ///         if a Database with this name already exists in this
         ///         Environment</item>
         ///     <item><see cref="HamConst.HAM_OUT_OF_MEMORY"/>
         ///         if memory could not be allocated</item>
@@ -405,12 +405,12 @@ namespace Hamster
         ///         if the key size is too large (at least 4 keys must
         ///         fit in a page)</item>
         ///     <item><see cref="HamConst.HAM_LIMITS_REACHED"/>
-        ///         if the maximum number of Databases per Environment 
+        ///         if the maximum number of Databases per Environment
         ///         was already created</item>
         ///   </list>
         /// </exception>
         /// <returns>The new Database object</returns>
-        public Database CreateDatabase(short name, int flags, 
+        public Database CreateDatabase(short name, int flags,
                 Parameter[] parameters) {
             int st;
             IntPtr dbh;
@@ -418,7 +418,7 @@ namespace Hamster
                 st = NativeMethods.NewDatabaseHandle(out dbh);
                 if (st != 0)
                     throw new DatabaseException(st);
-                st = NativeMethods.EnvCreateDatabase(handle, dbh, 
+                st = NativeMethods.EnvCreateDatabase(handle, dbh,
                     name, flags, parameters);
             }
             if (st != 0)
@@ -459,25 +459,25 @@ namespace Hamster
         /// with bitwise OR. Possible flags are:
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />
-        ///         Do not allow the use of variable length keys. Inserting 
-        ///         a key, which is larger than the B+Tree index key size, 
+        ///         Do not allow the use of variable length keys. Inserting
+        ///         a key, which is larger than the B+Tree index key size,
         ///         returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item>
         ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
         ///         Sort duplicate keys for this Database. Only allowed in
         ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>. 
+        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
         ///         This flag is not persistent.</item><br />
         ///   </list>
         /// </param>
-        /// <param name="parameters">An array of <see cref="Parameter" /> 
+        /// <param name="parameters">An array of <see cref="Parameter" />
         /// structures. The following parameters are available:<br />
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_PARAM_DATA_ACCESS_MODE" />
-        ///         Gives a hint regarding data access patterns. The default 
-        ///         setting optimizes hamsterdb for random read/write access 
+        ///         Gives a hint regarding data access patterns. The default
+        ///         setting optimizes hamsterdb for random read/write access
         ///         (<see cref="HamConst.HAM_DAM_RANDOM_WRITE"/>).
-        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for 
-        ///         sequential inserts (this is automatically set for 
+        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for
+        ///         sequential inserts (this is automatically set for
         ///         record number Databases). This flag is not persistent.</item>
         ///     </list>
         /// </param>
@@ -551,7 +551,7 @@ namespace Hamster
         /// <remarks>
         /// This method wraps the native ham_env_erase_db function.
         /// </remarks>
-        /// <param name="name">The name of the Database which is deleted. 
+        /// <param name="name">The name of the Database which is deleted.
         /// If a Database with this name does not exist, the function will throw
         /// <see cref="HamConst.HAM_DATABASE_NOT_FOUND"/>.</param>
         /// <exception cref="DatabaseException">
@@ -581,11 +581,11 @@ namespace Hamster
         /// Environment.
         /// <br />
         /// The AES key is cached in the Environment handle. The AES
-        /// encryption/decryption is only active when file chunks are written 
-        /// to disk/read from disk; the cached pages in RAM are decrypted. 
+        /// encryption/decryption is only active when file chunks are written
+        /// to disk/read from disk; the cached pages in RAM are decrypted.
         /// Please read the FAQ for security relevant notes.
         /// <br />
-        /// The encryption has no effect on In-Memory Environments, but the 
+        /// The encryption has no effect on In-Memory Environments, but the
         /// function will return successfully.
         /// </remarks>
         /// <param name="aesKey">A 128 bit (16 bytes) encryption key</param>

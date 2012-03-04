@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -44,7 +44,7 @@ namespace Hamster
             public Int32 _flags;
         }
 
-        [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_set_errhandler", 
+        [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_set_errhandler",
             CallingConvention = CallingConvention.Cdecl)]
         static public extern void SetErrorHandler(ErrorHandler eh);
         
@@ -238,7 +238,7 @@ namespace Hamster
 
         static public unsafe byte[] Find(IntPtr handle, IntPtr txnhandle, byte[] data, int flags) {
             KeyStruct key = new KeyStruct();
-            RecordStruct record = new RecordStruct(); 
+            RecordStruct record = new RecordStruct();
             key.size = (short)data.GetLength(0);
             fixed (byte* bk = data) {
                 key.data = bk;
@@ -274,7 +274,7 @@ namespace Hamster
 
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_erase",
            CallingConvention = CallingConvention.Cdecl)]
-        static private extern int EraseLow(IntPtr handle, IntPtr txnhandle, 
+        static private extern int EraseLow(IntPtr handle, IntPtr txnhandle,
                 ref KeyStruct key, int flags);
 
         static public unsafe int Erase(IntPtr handle, IntPtr txnhandle, byte[] data, int flags) {
@@ -293,7 +293,7 @@ namespace Hamster
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_get_key_count",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int GetKeyCount(IntPtr handle, IntPtr txnhandle,
-		        int flags, out Int64 keycount);
+                int flags, out Int64 keycount);
 
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_close",
            CallingConvention = CallingConvention.Cdecl)]
@@ -355,7 +355,7 @@ namespace Hamster
 
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_cursor_overwrite",
            CallingConvention = CallingConvention.Cdecl)]
-        static private extern int CursorOverwriteLow(IntPtr handle, 
+        static private extern int CursorOverwriteLow(IntPtr handle,
                 ref RecordStruct record, int flags);
 
         static unsafe public int CursorOverwrite(IntPtr handle, byte[] data, int flags) {
@@ -369,7 +369,7 @@ namespace Hamster
 
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_cursor_find",
            CallingConvention = CallingConvention.Cdecl)]
-        static private extern int CursorFindLow(IntPtr handle, 
+        static private extern int CursorFindLow(IntPtr handle,
                 ref KeyStruct key, int flags);
 
         static unsafe public int CursorFind(IntPtr handle, byte[] data, int flags) {
@@ -383,10 +383,10 @@ namespace Hamster
 
         [DllImport("hamsterdb-2.0.1.dll", EntryPoint = "ham_cursor_insert",
            CallingConvention = CallingConvention.Cdecl)]
-        static private extern int CursorInsertLow(IntPtr handle, 
+        static private extern int CursorInsertLow(IntPtr handle,
                 ref KeyStruct key, ref RecordStruct record, int flags);
 
-        static public unsafe int CursorInsert(IntPtr handle, 
+        static public unsafe int CursorInsert(IntPtr handle,
                 byte[] keyData, byte[] recordData, int flags) {
             RecordStruct record = new RecordStruct();
             KeyStruct key = new KeyStruct();
