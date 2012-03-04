@@ -159,7 +159,7 @@ const char *filename(const char *path)
 	for ( ; *delims; delims++)
 	{
 		const char *p = strrchr(path, *delims);
-		if (p) path = p;
+		if (p) path = p + 1;
 	}
 	return path;
 }
@@ -297,6 +297,19 @@ int writefile(filedef_t *f, const char *buf, size_t size)
 	return len;
 }
 
+void closefile(filedef_t *f)
+{
+	if (f->fin && f->fin != stdin)
+	{
+		fclose(f->fin);
+		f->fin = NULL;
+	}
+	if (f->fout && f->fout != stdout)
+	{
+		fclose(f->fout);
+		f->fout = NULL;
+	}
+}
 
 
 int main(int argc, char **argv)
@@ -323,6 +336,7 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		char *p;
+		unsigned long l;
 
 		opt = getopts(opts, &param);
 		switch (opt)
@@ -348,12 +362,13 @@ int main(int argc, char **argv)
 			continue;
 
 		case ARG_TABSIZE:
-			tabsize = strtoul(param, &p, 10);
-			if (*p || tabsize == 0 || tabsize > 16 /* heuristicly sane max tab size */)
+			l = strtoul(param, &p, 10);
+			if (*p || l == 0 || l > 16 /* heuristicly sane max tab size */)
 			{
 				printf("%s: invalid tabsize specified: %s\n", appname, param);
 				exit(EXIT_FAILURE);
 			}
+			tabsize = (unsigned int)l;
 			continue;
 
 		case ARG_ENTAB:
@@ -412,7 +427,7 @@ int main(int argc, char **argv)
 		char *e;
 		char *d_non_ws;
 		char *obuf;
-		int colpos;
+		unsigned int colpos;
 
 		fname = filename(fpath);
 
@@ -454,7 +469,7 @@ int main(int argc, char **argv)
 		d = obuf;
 		for (s = buf, e = buf + len; s < e; s++)
 		{
-			int colstep;
+			unsigned int colstep;
 			static const char *tab2space_blob = "                "; /* another reason why we limit tabsize to 16 ;-) */
 
 			switch (*s)
@@ -491,7 +506,7 @@ int main(int argc, char **argv)
 				}
 
 			case '\t':
-				colstep = 8 - (colpos % tabsize);
+				colstep = tabsize - (colpos % tabsize);
 				colpos += colstep;
 				switch (cmd.tab_mode)
 				{
@@ -526,9 +541,28 @@ int main(int argc, char **argv)
 				case 3:
 					if (!d_non_ws)
 					{
-						if (colpos % tabsize == 0)
+						unsigned int c = colpos % tabsize;
+						if (c == 0)
 						{
 							*d++ = '\t';
+						}
+						else
+						{
+							unsigned int i;
+
+							for (i = c; i < tabsize && *++s == ' '; i++)
+								;
+							if (i == tabsize)
+							{
+								colpos += i - c;
+								*d++ = '\t';
+								continue;
+							}
+							s--;
+							i -= c - 1;
+							memcpy(d, tab2space_blob, i);
+							d += i;
+							colpos += i;
 						}
 						continue;
 					}
@@ -539,6 +573,7 @@ int main(int argc, char **argv)
 
 			default:
 				// non-whitespace is assumed:
+				colpos++;
 				*d++ = *s;
 				d_non_ws = d;
 				continue;
@@ -553,6 +588,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "*** ERROR: failure while WRITING data to file '%s'\n", (cmd.verbose ? fpath : fname));
 			exit(EXIT_FAILURE);
 		}
+
+		closefile(&fdef);
 	}
 	
 	if (cmd.verbose) fprintf(stderr, "Processing: ---done---\n");
