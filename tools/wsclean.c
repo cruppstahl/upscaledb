@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 				unsigned c_comment: 1;
 				unsigned cpp_comment: 1;
 				unsigned continued_line: 2; /* state: 1 = continued line will follow beyond next LF; 2 = on continued line */
-				unsigned conditional_exp: 1;
+				unsigned conditional_exp: 12; /* count the number of braces/brackets here */
 				unsigned quoted_string: 1;
 				unsigned dquoted_string: 1;
 				unsigned doctext: 1; /* <<<EOT ... EOT */
@@ -731,6 +731,19 @@ int main(int argc, char **argv)
 
 							doctext_marker = NULL;
 							doctext_marker_len = 0;
+						}
+
+						if (!inside.el.doctext && !inside.el.dquoted_string && !inside.el.quoted_string)
+						{
+							if (*s == '(' || *s == '[')
+							{
+								inside.el.conditional_exp++;
+							}
+							if (inside.el.conditional_exp && (*s == ')' || *s == ']'))
+							{
+								inside.el.conditional_exp--;
+							}
+							// note: because we also support JavaScript, we cannot simply reset the conditional_exp value to 0 when encountering a '{'!
 						}
 					}
 					else if (inside.el.c_comment)
