@@ -145,26 +145,26 @@ class DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn) = 0;
+    virtual ham_status_t check_integrity(Transaction *txn) = 0;
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount) = 0;
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, 
                     ham_u32_t flags) = 0;
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags) = 0;
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags) = 0;
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src) = 0;
@@ -220,25 +220,25 @@ class DatabaseImplementationLocal : public DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn);
+    virtual ham_status_t check_integrity(Transaction *txn);
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount);
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, ham_u32_t flags);
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src);
@@ -294,25 +294,25 @@ class DatabaseImplementationRemote : public DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn);
+    virtual ham_status_t check_integrity(Transaction *txn);
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount);
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, ham_u32_t flags);
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key, 
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src);
@@ -1095,7 +1095,7 @@ db_write_page_and_delete(Page *page, ham_u32_t flags);
  */
 struct txn_cursor_t;
 extern ham_status_t 
-db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key, 
+db_insert_txn(Database *db, Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor);
 
@@ -1103,7 +1103,7 @@ db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
  * erase a key/record pair from a txn; on success, cursor will be set to nil
  */
 extern ham_status_t
-db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
+db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
                 struct txn_cursor_t *cursor);
 
 

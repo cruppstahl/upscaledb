@@ -19,7 +19,7 @@
 #include "btree_cursor.h"
 
 ham_status_t
-txn_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+txn_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, Cursor *parent)
 {
     (void)db;
@@ -71,7 +71,7 @@ txn_cursor_close(txn_cursor_t *cursor)
 ham_status_t 
 txn_cursor_conflicts(txn_cursor_t *cursor)
 {
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
 
     if (txn_op_get_txn(op)!=txn) {
@@ -87,7 +87,7 @@ ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
     Database *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op;
     txn_opnode_t *node;
 
@@ -113,7 +113,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
     txn_op_t *lastdup=0;
-    ham_txn_t *optxn=0;
+    Transaction *optxn=0;
     Cursor *pc=txn_cursor_get_parent(cursor);
 
     if (!op)
@@ -277,7 +277,7 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
     op=txn_opnode_get_newest_op(node);
 
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        Transaction *optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from 
          * committed transactions */
         if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
@@ -338,7 +338,7 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     Database *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
 
     return (db_insert_txn(db, txn, key, record, flags, cursor));
 }
@@ -369,7 +369,6 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
         }
         else
             key->data=0;
-
     }
     /* 
      * otherwise cursor is nil and we cannot return a key 
@@ -439,7 +438,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     txn_opnode_t *node;
     Database *db=txn_cursor_get_db(cursor);
     Cursor *parent=txn_cursor_get_parent(cursor);
-    ham_txn_t *txn=parent->get_txn();
+    Transaction *txn=parent->get_txn();
 
     /* don't continue if cursor is nil */
     if (btree_cursor_is_nil(parent->get_btree_cursor())

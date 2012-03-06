@@ -196,19 +196,19 @@ class Environment
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(Environment *env, ham_txn_t **txn, 
+    ham_status_t (*_fun_txn_begin)(Environment *env, Transaction **txn, 
                 const char *name, ham_u32_t flags);
 
     /**
      * aborts a transaction
      */
-    ham_status_t (*_fun_txn_abort)(Environment *env, ham_txn_t *txn, 
+    ham_status_t (*_fun_txn_abort)(Environment *env, Transaction *txn, 
                 ham_u32_t flags);
 
     /**
      * commits a transaction
      */
-    ham_status_t (*_fun_txn_commit)(Environment *env, ham_txn_t *txn, 
+    ham_status_t (*_fun_txn_commit)(Environment *env, Transaction *txn, 
                 ham_u32_t flags);
 
     /**
@@ -307,22 +307,22 @@ class Environment
     }
 
     /** get the oldest transaction */
-    ham_txn_t *get_oldest_txn() {
+    Transaction *get_oldest_txn() {
         return (m_oldest_txn);
     }
 
     /** set the oldest transaction */
-    void set_oldest_txn(ham_txn_t *txn) {
+    void set_oldest_txn(Transaction *txn) {
         m_oldest_txn=txn;
     }
 
     /** get the newest transaction */
-    ham_txn_t *get_newest_txn() {
+    Transaction *get_newest_txn() {
         return (m_newest_txn);
     }
 
     /** set the newest transaction */
-    void set_newest_txn(ham_txn_t *txn) {
+    void set_newest_txn(Transaction *txn) {
         m_newest_txn=txn;
     }
 
@@ -600,10 +600,10 @@ class Environment
     Page *m_hdrpage;
 
     /** the head of the transaction list (the oldest transaction) */
-    ham_txn_t *m_oldest_txn;
+    Transaction *m_oldest_txn;
 
     /** the tail of the transaction list (the youngest/newest transaction) */
-    ham_txn_t *m_newest_txn;
+    Transaction *m_newest_txn;
 
     /** the physical log */
     Log *m_log;
@@ -718,13 +718,13 @@ env_reserve_space(Environment *env, ham_offset_t minimum_page_count);
  * add a new transaction to this Environment
  */
 extern void
-env_append_txn(Environment *env, ham_txn_t *txn);
+env_append_txn(Environment *env, Transaction *txn);
 
 /**
  * remove a transaction to this Environment
  */
 extern void
-env_remove_txn(Environment *env, ham_txn_t *txn);
+env_remove_txn(Environment *env, Transaction *txn);
 
 /*
  * flush all committed Transactions to disk

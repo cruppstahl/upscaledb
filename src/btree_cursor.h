@@ -145,7 +145,7 @@ typedef struct btree_cursor_t
  * Create a new cursor
  */
 extern void
-btree_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+btree_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 btree_cursor_t *cursor, Cursor *parent);
 
 /**                                                                 

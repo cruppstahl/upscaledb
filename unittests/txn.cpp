@@ -122,29 +122,41 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_env, 0, 0, 0));
 
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn1));
-        BFC_ASSERT_EQUAL(txn2, txn_get_newer(txn1));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_older((Transaction *)txn1));
+        BFC_ASSERT_EQUAL((Transaction *)txn2, 
+                txn_get_newer((Transaction *)txn1));
 
-        BFC_ASSERT_EQUAL(txn1, txn_get_older(txn2));
-        BFC_ASSERT_EQUAL(txn3, txn_get_newer(txn2));
+        BFC_ASSERT_EQUAL((Transaction *)txn1, 
+                txn_get_older((Transaction *)txn2));
+        BFC_ASSERT_EQUAL((Transaction *)txn3, 
+                txn_get_newer((Transaction *)txn2));
 
-        BFC_ASSERT_EQUAL(txn2, txn_get_older(txn3));
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+        BFC_ASSERT_EQUAL((Transaction *)txn2, 
+                txn_get_older((Transaction *)txn3));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_newer((Transaction *)txn3));
 
         /* have to commit the txns in the same order as they were created,
          * otherwise env_flush_committed_txns() will not flush the oldest
          * transaction */
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
 
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn2));
-        BFC_ASSERT_EQUAL(txn3, txn_get_newer(txn2));
-        BFC_ASSERT_EQUAL(txn2, txn_get_older(txn3));
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_older((Transaction *)txn2));
+        BFC_ASSERT_EQUAL((Transaction *)txn3, 
+                txn_get_newer((Transaction *)txn2));
+        BFC_ASSERT_EQUAL((Transaction *)txn2, 
+                txn_get_older((Transaction *)txn3));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_newer((Transaction *)txn3));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
 
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn3));
-        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_older((Transaction *)txn3));
+        BFC_ASSERT_EQUAL((Transaction *)0, 
+                txn_get_newer((Transaction *)txn3));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn3, 0));
     }
@@ -153,15 +165,15 @@ public:
     {
         ham_txn_t *txn;
 
-        BFC_ASSERT(ham_txn_begin(&txn, m_env, 0, 0, 0)==HAM_SUCCESS);
-        BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     }
 
     void txnStructureTest(void)
     {
-        ham_txn_t *txn;
+        Transaction *txn;
 
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
         BFC_ASSERT_EQUAL(m_env, txn_get_env(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
 
@@ -180,15 +192,15 @@ public:
         BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_newest_op(txn));
         txn_set_newest_op(txn, (txn_op_t *)0);
 
-        txn_set_newer(txn, (ham_txn_t *)1);
-        BFC_ASSERT_EQUAL((ham_txn_t *)1, txn_get_newer(txn));
-        txn_set_newer(txn, (ham_txn_t *)0);
+        txn_set_newer(txn, (Transaction *)1);
+        BFC_ASSERT_EQUAL((Transaction *)1, txn_get_newer(txn));
+        txn_set_newer(txn, (Transaction *)0);
 
-        txn_set_older(txn, (ham_txn_t *)3);
-        BFC_ASSERT_EQUAL((ham_txn_t *)3, txn_get_older(txn));
-        txn_set_older(txn, (ham_txn_t *)0);
+        txn_set_older(txn, (Transaction *)3);
+        BFC_ASSERT_EQUAL((Transaction *)3, txn_get_older(txn));
+        txn_set_older(txn, (Transaction *)0);
 
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit((ham_txn_t *)txn, 0));
     }
 
     void txnTreeStructureTest(void)
@@ -282,7 +294,8 @@ public:
 
         /* need at least one txn_op_t structure in this node, otherwise
          * memory won't be cleaned up correctly */
-        (void)txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
+        (void)txn_opnode_append((Transaction *)txn, node, 0, 
+                TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -354,7 +367,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create(m_dbp, &key);
-        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append((Transaction *)txn, node, 0, 
+                TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         BFC_ASSERT_EQUAL(TXN_OP_INSERT_DUP, txn_op_get_flags(op));
@@ -382,7 +396,7 @@ public:
         BFC_ASSERT_EQUAL((txn_cursor_t *)0x43, txn_op_get_cursors(op));
         txn_op_set_cursors(op, (txn_cursor_t *)0x0);
 
-        txn_free_ops(txn);
+        txn_free_ops((Transaction *)txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -402,11 +416,14 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create(m_dbp, &key);
-        op1=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &rec);
+        op1=txn_opnode_append((Transaction *)txn, node, 
+                0, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);
-        op2=txn_opnode_append(txn, node, 0, TXN_OP_ERASE, 55, &rec);
+        op2=txn_opnode_append((Transaction *)txn, node, 
+                0, TXN_OP_ERASE, 55, &rec);
         BFC_ASSERT(op2!=0);
-        op3=txn_opnode_append(txn, node, 0, TXN_OP_NOP, 55, &rec);
+        op3=txn_opnode_append((Transaction *)txn, node, 
+                0, TXN_OP_NOP, 55, &rec);
         BFC_ASSERT(op3!=0);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));

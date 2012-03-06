@@ -1289,7 +1289,7 @@ _local_fun_open_db(Environment *env, Database *db,
 }
 
 static ham_status_t 
-_local_fun_txn_begin(Environment *env, ham_txn_t **txn, 
+_local_fun_txn_begin(Environment *env, Transaction **txn, 
                     const char *name, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1314,7 +1314,7 @@ _local_fun_txn_begin(Environment *env, ham_txn_t **txn,
 }
 
 static ham_status_t
-_local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
 {
     ham_status_t st;
 
@@ -1353,12 +1353,12 @@ _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 {
     /* an ugly hack - txn_abort() will free the txn structure, but we need
      * it for the journal; therefore create a temp. copy which we can use
      * later */
-    ham_txn_t copy=*txn;
+    Transaction copy=*txn;
     ham_status_t st=txn_abort(txn, flags);
 
     /* append journal entry */
@@ -1405,7 +1405,7 @@ env_initialize_local(Environment *env)
 }
 
 void
-env_append_txn(Environment *env, ham_txn_t *txn)
+env_append_txn(Environment *env, Transaction *txn)
 {
     txn_set_env(txn, env);
 
@@ -1427,14 +1427,14 @@ env_append_txn(Environment *env, ham_txn_t *txn)
 }
 
 void
-env_remove_txn(Environment *env, ham_txn_t *txn)
+env_remove_txn(Environment *env, Transaction *txn)
 {
     if (env->get_newest_txn()==txn) {
         env->set_newest_txn(txn_get_older(txn));
     }
 
     if (env->get_oldest_txn()==txn) {
-        ham_txn_t *n=txn_get_newer(txn);
+        Transaction *n=txn_get_newer(txn);
         env->set_oldest_txn(n);
         if (n)
             txn_set_older(n, 0);
@@ -1445,7 +1445,7 @@ env_remove_txn(Environment *env, ham_txn_t *txn)
 }
 
 static ham_status_t
-__flush_txn(Environment *env, ham_txn_t *txn)
+__flush_txn(Environment *env, Transaction *txn)
 {
     ham_status_t st=0;
     txn_op_t *op=txn_get_oldest_op(txn);
@@ -1568,7 +1568,7 @@ bail:
 ham_status_t
 env_flush_committed_txns(Environment *env)
 {
-    ham_txn_t *oldest;
+    Transaction *oldest;
 
     ham_assert(!(env->get_flags()&DB_DISABLE_AUTO_FLUSH), (""));
 

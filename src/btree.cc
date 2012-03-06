@@ -880,8 +880,6 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
                     ham_status_t st=db->resize_key_allocdata(keysize);
                     if (st)
                         return (st);
-                    else
-                        db->set_key_allocsize(keysize);
                 }
                 dest->data = db->get_key_allocdata();
                 memcpy(dest->data, key_get_key(source), keysize);

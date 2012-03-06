@@ -254,7 +254,7 @@ class Cursor
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
-    Cursor(Database *db, ham_txn_t *txn=0, ham_u32_t flags=0);
+    Cursor(Database *db, Transaction *txn=0, ham_u32_t flags=0);
 
     /** Copy constructor; used for cloning a Cursor */
     Cursor(Cursor &other);
@@ -296,7 +296,7 @@ class Cursor
      * as a separate pointer since it might be a local/temporary Transaction 
      * that was created only for this single operation.
      */
-    ham_status_t erase(ham_txn_t *txn, ham_u32_t flags);
+    ham_status_t erase(Transaction *txn, ham_u32_t flags);
 
     /**
      * Retrieves the number of duplicates of the current key
@@ -305,7 +305,7 @@ class Cursor
      * local/temporary Transaction that was created only for this single 
      * operation.
      */
-    ham_status_t get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, 
+    ham_status_t get_duplicate_count(Transaction *txn, ham_u32_t *pcount, 
                 ham_u32_t flags);
 
     /**
@@ -315,7 +315,7 @@ class Cursor
      * local/temporary Transaction that was created only for this single 
      * operation.
      */
-    ham_status_t get_record_size(ham_txn_t *txn, ham_offset_t *psize);
+    ham_status_t get_record_size(Transaction *txn, ham_offset_t *psize);
 
     /**
      * Overwrites the record of the current key
@@ -324,7 +324,7 @@ class Cursor
      * local/temporary Transaction that was created only for this single 
      * operation.
      */
-    ham_status_t overwrite(ham_txn_t *txn, ham_record_t *record,
+    ham_status_t overwrite(Transaction *txn, ham_record_t *record,
             ham_u32_t flags);
 
     /**
@@ -447,12 +447,12 @@ class Cursor
     }
 
     /** Get the Transaction handle */
-    ham_txn_t *get_txn() {
+    Transaction *get_txn() {
         return (m_txn);
     }
 
     /** Sets the Transaction handle */
-    void set_txn(ham_txn_t *txn) {
+    void set_txn(Transaction *txn) {
         m_txn=txn;
     }
 
@@ -573,7 +573,7 @@ class Cursor
     Database *m_db;
 
     /** Pointer to the Transaction */
-    ham_txn_t *m_txn;
+    Transaction *m_txn;
 
     /** A Cursor which can walk over Transaction trees */
     txn_cursor_t m_txn_cursor;

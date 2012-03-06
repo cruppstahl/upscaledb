@@ -97,24 +97,24 @@ class Journal
     bool is_empty(void);
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+    ham_status_t append_txn_begin(struct Transaction *txn, Environment *env, 
                 const char *name, ham_u64_t lsn);
 
     /** appends a journal entry for 
      * ham_txn_abort/ENTRY_TYPE_TXN_ABORT */
-    ham_status_t append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn);
+    ham_status_t append_txn_abort(struct Transaction *txn, ham_u64_t lsn);
 
     /** appends a journal entry for 
      * ham_txn_commit/ENTRY_TYPE_TXN_COMMIT */
-    ham_status_t append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn);
+    ham_status_t append_txn_commit(struct Transaction *txn, ham_u64_t lsn);
 
     /** appends a journal entry for ham_insert/ENTRY_TYPE_INSERT */
-    ham_status_t append_insert(Database *db, ham_txn_t *txn, 
+    ham_status_t append_insert(Database *db, Transaction *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn);
 
     /** appends a journal entry for ham_erase/ENTRY_TYPE_ERASE */
-    ham_status_t append_erase(Database *db, ham_txn_t *txn, 
+    ham_status_t append_erase(Database *db, Transaction *txn, 
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     /** empties the journal, removes all entries */

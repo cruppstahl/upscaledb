@@ -176,7 +176,7 @@ Journal::is_empty(void)
 }
 
 ham_status_t
-Journal::append_txn_begin(struct ham_txn_t *txn, Environment *env, 
+Journal::append_txn_begin(struct Transaction *txn, Environment *env, 
                 const char *name, ham_u64_t lsn)
 {
     ham_status_t st;
@@ -236,7 +236,7 @@ Journal::append_txn_begin(struct ham_txn_t *txn, Environment *env,
 }
 
 ham_status_t
-Journal::append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn)
+Journal::append_txn_abort(struct Transaction *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
@@ -261,7 +261,7 @@ Journal::append_txn_abort(struct ham_txn_t *txn, ham_u64_t lsn)
 }
 
 ham_status_t
-Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
+Journal::append_txn_commit(struct Transaction *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
@@ -286,7 +286,7 @@ Journal::append_txn_commit(struct ham_txn_t *txn, ham_u64_t lsn)
 }
 
 ham_status_t
-Journal::append_insert(Database *db, ham_txn_t *txn, 
+Journal::append_insert(Database *db, Transaction *txn, 
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn)
 {
@@ -318,7 +318,7 @@ Journal::append_insert(Database *db, ham_txn_t *txn,
 }
 
 ham_status_t
-Journal::append_erase(Database *db, ham_txn_t *txn, ham_key_t *key, 
+Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key, 
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
     char padding[16]={0};
@@ -494,9 +494,9 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 }
 
 static ham_status_t
-__recover_get_txn(Environment *env, ham_u32_t txn_id, ham_txn_t **ptxn)
+__recover_get_txn(Environment *env, ham_u32_t txn_id, Transaction **ptxn)
 {
-    ham_txn_t *txn=env->get_oldest_txn();
+    Transaction *txn=env->get_oldest_txn();
     while (txn) {
         if (txn_get_id(txn)==txn_id) {
             *ptxn=txn;
@@ -533,12 +533,12 @@ static ham_status_t
 __abort_uncommitted_txns(Environment *env)
 {
     ham_status_t st;
-    ham_txn_t *newer, *txn=env->get_oldest_txn();
+    Transaction *newer, *txn=env->get_oldest_txn();
 
     while (txn) {
         newer=txn_get_newer(txn);
         if (!(txn_get_flags(txn)&TXN_STATE_COMMITTED)) {
-            st=ham_txn_abort(txn, HAM_DONT_LOCK);
+            st=ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
             if (st)
                 return (st);
         }
@@ -609,9 +609,9 @@ Journal::recover()
         /* re-apply this operation */
         switch (entry.type) {
         case ENTRY_TYPE_TXN_BEGIN: {
-            ham_txn_t *txn;
-            st=ham_txn_begin(&txn, (ham_env_t *)m_env, (const char *)aux, 
-                            0, HAM_DONT_LOCK);
+            Transaction *txn;
+            st=ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env, 
+                    (const char *)aux, 0, HAM_DONT_LOCK);
             /* on success: patch the txn ID */
             if (st==0) {
                 txn_set_id(txn, entry.txn_id);
@@ -620,24 +620,24 @@ Journal::recover()
             break;
         }
         case ENTRY_TYPE_TXN_ABORT: {
-            ham_txn_t *txn;
+            Transaction *txn;
             st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=ham_txn_abort(txn, HAM_DONT_LOCK);
+            st=ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_TXN_COMMIT: {
-            ham_txn_t *txn;
+            Transaction *txn;
             st=__recover_get_txn(m_env, entry.txn_id, &txn);
             if (st)
                 break;
-            st=ham_txn_commit(txn, HAM_DONT_LOCK);
+            st=ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_INSERT: {
             JournalEntryInsert *ins=(JournalEntryInsert *)aux;
-            ham_txn_t *txn;
+            Transaction *txn;
             Database *db;
             ham_key_t key={0};
             ham_record_t record={0};
@@ -662,13 +662,13 @@ Journal::recover()
             st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
-            st=ham_insert((ham_db_t *)db, txn, 
+            st=ham_insert((ham_db_t *)db, (ham_txn_t *)txn, 
                     &key, &record, ins->insert_flags|HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_ERASE: {
             JournalEntryErase *e=(JournalEntryErase *)aux;
-            ham_txn_t *txn;
+            Transaction *txn;
             Database *db;
             ham_key_t key={0};
             if (!e) {
@@ -688,7 +688,7 @@ Journal::recover()
                 break;
             key.data=e->get_key_data();
             key.size=e->key_size;
-            st=ham_erase((ham_db_t *)db, txn, &key, 
+            st=ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key, 
                             e->erase_flags|HAM_DONT_LOCK);
             // key might have already been erased when the changeset
             // was flushed

@@ -874,7 +874,7 @@ btree_uncouple_all_cursors(Page *page, ham_size_t start)
 }
 
 void
-btree_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+btree_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 btree_cursor_t *cursor, Cursor *parent)
 {
     btree_cursor_set_parent(cursor, parent);

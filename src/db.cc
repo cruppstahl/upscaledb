@@ -950,7 +950,7 @@ struct keycount_t
 {
     ham_u64_t c;
     ham_u32_t flags;
-    ham_txn_t *txn;
+    Transaction *txn;
     Database *db;
 };
 
@@ -976,7 +976,7 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
      */
     op=txn_opnode_get_newest_op(node);
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        Transaction *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
@@ -1038,7 +1038,7 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
 }
 
 static ham_status_t
-db_check_insert_conflicts(Database *db, ham_txn_t *txn, 
+db_check_insert_conflicts(Database *db, Transaction *txn, 
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1058,7 +1058,7 @@ db_check_insert_conflicts(Database *db, ham_txn_t *txn,
      */
     op=txn_opnode_get_newest_op(node);
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        Transaction *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
@@ -1110,7 +1110,7 @@ db_check_insert_conflicts(Database *db, ham_txn_t *txn,
 }
 
 static ham_status_t
-db_check_erase_conflicts(Database *db, ham_txn_t *txn, 
+db_check_erase_conflicts(Database *db, Transaction *txn, 
                 txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     txn_op_t *op=0;
@@ -1129,7 +1129,7 @@ db_check_erase_conflicts(Database *db, ham_txn_t *txn,
      */
     op=txn_opnode_get_newest_op(node);
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        Transaction *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
@@ -1205,7 +1205,7 @@ next:
 }
 
 ham_status_t
-db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key, 
+db_insert_txn(Database *db, Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor)
 {
@@ -1288,7 +1288,7 @@ db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
 }
 
 static void
-__nil_all_cursors_in_node(ham_txn_t *txn, Cursor *current, 
+__nil_all_cursors_in_node(Transaction *txn, Cursor *current, 
                 txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
@@ -1376,7 +1376,7 @@ next:
 }
 
 ham_status_t
-db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
+db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
                 txn_cursor_t *cursor)
 {
     ham_status_t st=0;
@@ -1466,7 +1466,7 @@ copy_record(Database *db, txn_op_t *op, ham_record_t *record)
 }
 
 static ham_status_t
-db_find_txn(Database *db, ham_txn_t *txn,
+db_find_txn(Database *db, Transaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
@@ -1505,7 +1505,7 @@ retry:
     if (tree && node)
         op=txn_opnode_get_newest_op(node);
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
+        Transaction *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
@@ -1740,7 +1740,7 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t 
-DatabaseImplementationLocal::check_integrity(ham_txn_t *txn)
+DatabaseImplementationLocal::check_integrity(Transaction *txn)
 {
     ham_status_t st;
     ham_backend_t *be;
@@ -1769,7 +1769,7 @@ DatabaseImplementationLocal::check_integrity(ham_txn_t *txn)
 }
 
 ham_status_t 
-DatabaseImplementationLocal::get_key_count(ham_txn_t *txn, ham_u32_t flags, 
+DatabaseImplementationLocal::get_key_count(Transaction *txn, ham_u32_t flags, 
                 ham_offset_t *keycount)
 {
     ham_status_t st;
@@ -1823,11 +1823,11 @@ bail:
 }
 
 ham_status_t 
-DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key, 
+DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno = 0;
@@ -1862,6 +1862,15 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
             /* get the record number (host endian) and increment it */
             recno=be_get_recno(be);
             recno++;
+        }
+
+        /* allocate memory for the key */
+        if (!key->data) {
+            st=m_db->resize_key_allocdata(sizeof(ham_u64_t));
+            if (st)
+                return (st);
+            key->data=m_db->get_key_allocdata();
+            key->size=sizeof(ham_u64_t);
         }
 
         /* store it in db endian */
@@ -1945,11 +1954,11 @@ DatabaseImplementationLocal::insert(ham_txn_t *txn, ham_key_t *key,
 }
 
 ham_status_t 
-DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key, 
+DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key, 
                 ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     Environment *env=m_db->get_env();
     ham_backend_t *be;
     ham_offset_t recno=0;
@@ -2013,11 +2022,11 @@ DatabaseImplementationLocal::erase(ham_txn_t *txn, ham_key_t *key,
 }
 
 ham_status_t 
-DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key, 
+DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     ham_status_t st;
     ham_backend_t *be=m_db->get_backend();
 
@@ -2041,8 +2050,8 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
      * only available in ham_cursor_find */
     if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
-        st=ham_cursor_create((ham_db_t *)m_db, txn, HAM_DONT_LOCK, 
-                            (ham_cursor_t **)&c);
+        st=ham_cursor_create((ham_db_t *)m_db, (ham_txn_t *)txn, 
+                HAM_DONT_LOCK, (ham_cursor_t **)&c);
         if (st)
             return (st);
         st=ham_cursor_find_ex((ham_cursor_t *)c, key, record, 
@@ -2114,7 +2123,7 @@ DatabaseImplementationLocal::find(ham_txn_t *txn, ham_key_t *key,
 }
 
 Cursor *
-DatabaseImplementationLocal::cursor_create(ham_txn_t *txn, ham_u32_t flags)
+DatabaseImplementationLocal::cursor_create(Transaction *txn, ham_u32_t flags)
 {
     ham_backend_t *be;
 
@@ -2140,7 +2149,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
     ham_u64_t recno = 0;
     ham_record_t temprec;
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
 
     if ((db_get_keysize(m_db)<sizeof(ham_offset_t)) &&
             (key->size>db_get_keysize(m_db))) {
@@ -2162,6 +2171,15 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
             /* get the record number (host endian) and increment it */
             recno=be_get_recno(be);
             recno++;
+        }
+
+        /* allocate memory for the key */
+        if (!key->data) {
+            st=m_db->resize_key_allocdata(sizeof(ham_u64_t));
+            if (st)
+                return (st);
+            key->data=m_db->get_key_allocdata();
+            key->size=sizeof(ham_u64_t);
         }
 
         /* store it in db endian */
@@ -2306,7 +2324,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
     ham_status_t st;
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
 
     db_update_global_stats_erase_query(m_db, 0);
 
@@ -2367,7 +2385,7 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
 {
     ham_status_t st;
     ham_offset_t recno=0;
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     Environment *env=m_db->get_env();
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
@@ -2561,7 +2579,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
 {
     ham_status_t st=0;
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
@@ -2623,7 +2641,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
 {
     ham_status_t st=0;
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
     txn_cursor_t *txnc=cursor->get_txn_cursor();
 
     /* purge cache if necessary */
@@ -2687,7 +2705,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
     Environment *env=m_db->get_env();
     ham_status_t st;
     ham_record_t temprec;
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
 
     /* purge cache if necessary */
     if (__cache_needs_purge(env)) {
@@ -2755,7 +2773,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
 {
     ham_status_t st=0;
     Environment *env=m_db->get_env();
-    ham_txn_t *local_txn=0;
+    Transaction *local_txn=0;
 
     /* purge cache if necessary */
     if (__cache_needs_purge(env)) {
@@ -2922,7 +2940,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /* in-memory-database: free all allocated blobs */
     if (be && be_is_active(be) && env->get_flags()&HAM_IN_MEMORY_DB) {
-        ham_txn_t *txn;
+        Transaction *txn;
         free_cb_context_t context;
         context.db=m_db;
         st=txn_begin(&txn, env, 0, 0);
@@ -2957,11 +2975,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
 
     /* free cached memory */
     (void)m_db->resize_record_allocdata(0);
-    if (m_db->get_key_allocdata()) {
-        env->get_allocator()->free(m_db->get_key_allocdata());
-        m_db->set_key_allocdata(0);
-        m_db->set_key_allocsize(0);
-    }
+    (void)m_db->resize_key_allocdata(0);
 
     /* clean up the transaction tree */
     if (m_db->get_optree())
