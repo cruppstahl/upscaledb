@@ -35,16 +35,19 @@ o implement basic concurrency
         x scopedlock
         x condition
         x tls
-    o from each public handle: need a way to lock the Env
+    x from each public handle: need a way to lock the Env
         x Env
-        o Db
-            o store key data in TLS
-        o Cursor
-        o Txn
-        o what else?
-    o hamsterdb.cc:1064 releases curl - make sure this is threadsafe
-    o should work with and without redundancy; if redundancy is disabled
-        then there should not be ANY performance penalty!
+        x Db
+        x Cursor
+        x Txn
+        x what else?
+        x store key data in TLS
+            x use boost tls
+            x this needs a test
+            x check for memory leaks
+    o check with valgrind
+    o check with helgrind
+    o check with ThreadSanitizer
 
 o implementation of hamsterdb should move into a namespace; otherwise
     there are conflicts if users have a C++ class called Database or
@@ -112,6 +115,10 @@ o python API - update and integrate
 o mail an Tony B, Curt M., andere
 
 
+o continue with c++-ification of db.h/db.cc
+
+o c++-ify the backend
+    o remove be_set_dirty, replace with be->_fun_flush()
 
 o continue with c++-ification of the environment - need to split into
     local and remote (same as for Database class)
@@ -125,9 +132,6 @@ o need a function to get the txn of a conflict (same as in v2)
 
 o recovery: re-create pending transactions (if required)
     o needs a function to enumerate them
-
-. c++-ify the backend
-    o remove be_set_dirty, replace with be->_fun_flush()
 
 . c++-ify the transaction
 

@@ -113,7 +113,6 @@ typedef struct btree_key_t btree_key_t;
 
 typedef boost::mutex::scoped_lock ScopedLock;
 typedef boost::thread Thread;
-typedef boost::thread_specific_ptr<class T> ThreadLocalStorage;
 typedef boost::condition Condition;
 
 class Mutex : public boost::mutex {

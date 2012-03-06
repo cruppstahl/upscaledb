@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,16 +49,16 @@
  * the maximum number of indices (if this file is an environment with 
  * multiple indices)
  */
-#define DB_MAX_INDICES      16  /* 16*32 = 512 byte wasted */
+#define DB_MAX_INDICES                  16 /* 16*32 = 512 byte wasted */
 
 /* the size of an index data */
-#define DB_INDEX_SIZE       sizeof(db_indexdata_t) /* 32 */
+#define DB_INDEX_SIZE                   sizeof(db_indexdata_t) /* 32 */
 
 /** get the key size */
-#define db_get_keysize(db)         be_get_keysize((db)->get_backend())
+#define db_get_keysize(db)              be_get_keysize((db)->get_backend())
 
 /** get the (non-persisted) flags of a key */
-#define ham_key_get_intflags(key)         (key)->_flags
+#define ham_key_get_intflags(key)       (key)->_flags
 
 /**
  * set the flags of a key
@@ -67,7 +67,7 @@
  * be defined such that those can peacefully co-exist with these; that's
  * why those public flags start at the value 0x1000 (4096).
  */
-#define ham_key_set_intflags(key, f)      (key)->_flags=(f)
+#define ham_key_set_intflags(key, f)    (key)->_flags=(f)
 
 
 #include "packstart.h"
@@ -367,6 +367,8 @@ struct ham_db_t {
  */
 class Database
 {
+    typedef std::pair<void *, ham_size_t> ByteArray;
+
   public:
     /** constructor */
     Database();
@@ -566,42 +568,58 @@ class Database
 
     /** get the size of the last allocated data blob */
     ham_size_t get_record_allocsize(void) {
-        return (m_rec_allocsize);
+        if (!m_record_alloc.get())
+            m_record_alloc.reset(new ByteArray(0, 0));
+        return (m_record_alloc.get()->second);
     }
 
     /** set the size of the last allocated data blob */
     void set_record_allocsize(ham_size_t size) {
-        m_rec_allocsize=size;
+        if (!m_record_alloc.get())
+            m_record_alloc.reset(new ByteArray(0, 0));
+        m_record_alloc.get()->second=size;
     }
 
     /** get the pointer to the last allocated data blob */
     void *get_record_allocdata(void) {
-        return (m_rec_allocdata);
+        if (!m_record_alloc.get())
+            m_record_alloc.reset(new ByteArray(0, 0));
+        return (m_record_alloc.get()->first);
     }
 
     /** set the pointer to the last allocated data blob */
     void set_record_allocdata(void *p) {
-        m_rec_allocdata=p;
+        if (!m_record_alloc.get())
+            m_record_alloc.reset(new ByteArray(0, 0));
+        m_record_alloc.get()->first=p;
     }
 
     /** get the size of the last allocated key blob */
     ham_size_t get_key_allocsize(void) {
-        return (m_key_allocsize);
+        if (!m_key_alloc.get())
+            m_key_alloc.reset(new ByteArray(0, 0));
+        return (m_key_alloc.get()->second);
     }
 
     /** set the size of the last allocated key blob */
     void set_key_allocsize(ham_size_t size) {
-        m_key_allocsize=size;
+        if (!m_key_alloc.get())
+            m_key_alloc.reset(new ByteArray(0, 0));
+        m_key_alloc.get()->second=size;
     }
 
     /** get the pointer to the last allocated key blob */
     void *get_key_allocdata(void) {
-        return (m_key_allocdata);
+        if (!m_key_alloc.get())
+            m_key_alloc.reset(new ByteArray(0, 0));
+        return (m_key_alloc.get()->first);
     }
 
     /** set the pointer to the last allocated key blob */
     void set_key_allocdata(void *p) {
-        m_key_allocdata=p;
+        if (!m_key_alloc.get())
+            m_key_alloc.reset(new ByteArray(0, 0));
+        m_key_alloc.get()->first=p;
     }
 
     /** closes a cursor */
@@ -820,17 +838,11 @@ class Database
     /** some database specific run-time data */
     ham_runtime_statistics_dbdata_t m_perf_data;
 
-    /** the size of the last allocated data pointer for records */
-    ham_size_t m_rec_allocsize;
+    /** TLS cached key size/alloc data */
+    boost::thread_specific_ptr<ByteArray> m_key_alloc;
 
-    /** the last allocated data pointer for records */
-    void *m_rec_allocdata;
-
-    /** the size of the last allocated data pointer for keys */
-    ham_size_t m_key_allocsize;
-
-    /** the last allocated data pointer for keys */
-    void *m_key_allocdata;
+    /** TLS cached record size/alloc data */
+    boost::thread_specific_ptr<ByteArray> m_record_alloc;
 
 #if HAM_ENABLE_REMOTE
     /** the remote database handle */

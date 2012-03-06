@@ -1035,10 +1035,6 @@ ham_env_new(ham_env_t **env)
 ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *henv)
 {
-#if HAM_ENABLE_REMOTE
-    static ham_u64_t critsec=0;
-#endif
-
     if (!henv) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1046,30 +1042,7 @@ ham_env_delete(ham_env_t *henv)
 
     Environment *env=(Environment *)henv;
 
-    // TODO lock will assert in ~Environment since a locked mutex
-    // will go out of scope
-    // ScopedLock lock(env->get_mutex());
-
     delete env;
-
-    /* avoid memory leaks by releasing static libcurl and libprotocol data */
-#if HAM_ENABLE_REMOTE
-    /* TODO curl_global_cleanup is not threadsafe! currently, hamsterdb
-     * does not have support for critical sections or mutexes etc. Therefore
-     * we just use a static variable. This is still not safe, but it should 
-     * work for now. */
-    if (critsec==0) {
-        ham_u64_t pseudo_random=((ham_u64_t)PTR_TO_U64(env))&0xffffffff;
-        critsec=pseudo_random;
-        if (critsec==pseudo_random) {
-            /* shutdown libcurl library */
-            curl_global_cleanup();
-            /* shutdown network protocol library */
-            proto_shutdown();
-            critsec=0;
-        }
-    }
-#endif
 
     return (0);
 }
@@ -1099,6 +1072,9 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
     }
 
     ScopedLock lock(env->get_mutex());
+
+    atexit(curl_global_cleanup);
+    atexit(proto_shutdown);
 
     /*
      * make sure that this environment is not yet open/created
@@ -1288,6 +1264,9 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
     }
 
     ScopedLock lock(env->get_mutex());
+
+    atexit(curl_global_cleanup);
+    atexit(proto_shutdown);
 
     /* make sure that this environment is not yet open/created */
     if (env->is_active()) {

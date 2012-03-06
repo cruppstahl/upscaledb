@@ -21,6 +21,7 @@ test_SOURCES    = log.cpp \
                   hamsterdb.cpp \
                   blob.cpp \
                   extkeys.cpp \
+                  threading.cpp \
                   btree_key.cpp \
                   partial.cpp \
                   btree_cursor.cpp \
@@ -45,7 +46,7 @@ test_SOURCES    = log.cpp \
                   bfc-signal.h \
                   bfc-signal.c
 
-test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
+test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lboost_thread-mt -lpthread -ldl
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
