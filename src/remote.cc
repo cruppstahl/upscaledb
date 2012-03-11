@@ -933,16 +933,18 @@ DatabaseImplementationRemote::insert(Transaction *txn, ham_key_t *key,
     proto_wrapper_t *request, *reply;
     ham_bool_t send_key=HAM_TRUE;
 
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_key_arena()
+                        : &txn->get_key_arena();
+
     /* recno: do not send the key */
     if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
         send_key=HAM_FALSE;
 
         /* allocate memory for the key */
         if (!key->data) {
-            st=m_db->resize_key_allocdata(sizeof(ham_u64_t));
-            if (st)
-                return (st);
-            key->data=m_db->get_key_allocdata();
+            arena->resize(sizeof(ham_u64_t));
+            key->data=arena->get_ptr();
             key->size=sizeof(ham_u64_t);
         }
     }
@@ -1028,6 +1030,13 @@ DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
         return (st);
     }
 
+    ByteArray *key_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_key_arena()
+                        : &txn->get_key_arena();
+    ByteArray *rec_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_record_arena()
+                        : &txn->get_record_arena();
+
     ham_assert(reply!=0, (""));
     ham_assert(proto_has_db_find_reply(reply)!=0, (""));
 
@@ -1039,10 +1048,8 @@ DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
             key->_flags=proto_db_find_reply_get_key_intflags(reply);
             key->size=proto_db_find_reply_get_key_size(reply);
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                st=m_db->resize_key_allocdata(key->size);
-                if (st)
-                    goto bail;
-                key->data=m_db->get_key_allocdata();
+                key_arena->resize(key->size);
+                key->data=key_arena->get_ptr();
             }
             memcpy(key->data, proto_db_find_reply_get_key_data(reply),
                     key->size);
@@ -1050,17 +1057,14 @@ DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
         if (proto_db_find_reply_has_record(reply)) {
             record->size=proto_db_find_reply_get_record_size(reply);
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                st=m_db->resize_record_allocdata(record->size);
-                if (st)
-                    goto bail;
-                record->data=m_db->get_record_allocdata();
+                rec_arena->resize(record->size);
+                record->data=rec_arena->get_ptr();
             }
             memcpy(record->data, proto_db_find_reply_get_record_data(reply),
                     record->size);
         }
     }
 
-bail:
     proto_delete(reply);
 
     return (st);
@@ -1145,6 +1149,11 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
     Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     ham_bool_t send_key=HAM_TRUE;
+    Transaction *txn=cursor->get_txn();
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_key_arena()
+                        : &txn->get_key_arena();
 
     /* recno: do not send the key */
     if (m_db->get_rt_flags()&HAM_RECORD_NUMBER) {
@@ -1152,10 +1161,8 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
 
         /* allocate memory for the key */
         if (!key->data) {
-            st=m_db->resize_key_allocdata(sizeof(ham_u64_t));
-            if (st)
-                return (st);
-            key->data=m_db->get_key_allocdata();
+            arena->resize(sizeof(ham_u64_t));
+            key->data=arena->get_ptr();
             key->size=sizeof(ham_u64_t);
         }
     }
@@ -1240,6 +1247,12 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
         return (st);
     }
 
+    Transaction *txn=cursor->get_txn();
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_record_arena()
+                        : &txn->get_record_arena();
+
     ham_assert(reply!=0, (""));
     ham_assert(proto_has_cursor_find_reply(reply)!=0, (""));
 
@@ -1255,10 +1268,8 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=proto_cursor_find_reply_get_record_size(reply);
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=m_db->resize_record_allocdata(record->size);
-            if (st)
-                goto bail;
-            record->data=m_db->get_record_allocdata();
+            arena->resize(record->size);
+            record->data=arena->get_ptr();
         }
         memcpy(record->data, proto_cursor_find_reply_get_record_data(reply),
                 record->size);
@@ -1350,6 +1361,14 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
     Environment *env=m_db->get_env();
     proto_wrapper_t *request, *reply;
     
+    Transaction *txn=cursor->get_txn();
+    ByteArray *key_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_key_arena()
+                        : &txn->get_key_arena();
+    ByteArray *rec_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &m_db->get_record_arena()
+                        : &txn->get_record_arena();
+
     request=proto_init_cursor_move_request(cursor->get_remote_handle(), 
                         key, record, flags);
 
@@ -1374,10 +1393,8 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
         key->_flags=proto_cursor_move_reply_get_key_intflags(reply);
         key->size=proto_cursor_move_reply_get_key_size(reply);
         if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-            st=m_db->resize_key_allocdata(key->size);
-            if (st)
-                goto bail;
-            key->data=m_db->get_key_allocdata();
+            key_arena->resize(key->size);
+            key->data=key_arena->get_ptr();
         }
         memcpy(key->data, proto_cursor_move_reply_get_key_data(reply),
                 key->size);
@@ -1388,10 +1405,8 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=proto_cursor_move_reply_get_record_size(reply);
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=m_db->resize_record_allocdata(record->size);
-            if (st)
-                goto bail;
-            record->data=m_db->get_record_allocdata();
+            rec_arena->resize(record->size);
+            record->data=rec_arena->get_ptr();
         }
         memcpy(record->data, proto_cursor_move_reply_get_record_data(reply),
                 record->size);
@@ -1446,9 +1461,6 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
         return (HAM_CURSOR_STILL_OPEN);
     }
 
-    (void)m_db->resize_record_allocdata(0);
-    (void)m_db->resize_key_allocdata(0);
-
     request=proto_init_db_close_request(m_db->get_remote_handle(), flags);
 
     st=_perform_request(env, env->get_curl(), request, &reply);
@@ -1458,6 +1470,10 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
             proto_delete(reply);
         return (st);
     }
+
+    /* free cached memory */
+    m_db->get_key_arena().clear();
+    m_db->get_record_arena().clear();
 
     ham_assert(reply!=0, (""));
     ham_assert(proto_has_db_close_reply(reply), (""));

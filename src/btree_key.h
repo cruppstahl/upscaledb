@@ -164,9 +164,9 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db,
  * a previously existing blob will be deleted if necessary
  */
 extern ham_status_t
-key_set_record(Database *db, btree_key_t *key, ham_record_t *record, 
-                ham_size_t position, ham_u32_t flags,
-                ham_size_t *new_position);
+key_set_record(Database *db, Transaction *txn, btree_key_t *key, 
+        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+        ham_size_t *new_position);
 
 /*
  * deletes a record
@@ -174,7 +174,7 @@ key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
  * flag can be HAM_ERASE_ALL_DUPLICATES
  */
 extern ham_status_t
-key_erase_record(Database *db, btree_key_t *key, 
+key_erase_record(Database *db, Transaction *txn, btree_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
 

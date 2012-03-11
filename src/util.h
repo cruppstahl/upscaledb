@@ -25,14 +25,13 @@
 class ByteArray
 {
   public:
-    ByteArray(Allocator *alloc, ham_size_t size = 0)
+    ByteArray(Allocator *alloc=0, ham_size_t size=0)
     : m_alloc(alloc), m_ptr(0), m_size(0) {
         resize(size);
     }
     
     ~ByteArray() {
-        if (m_ptr)
-            m_alloc->free(m_ptr);
+        clear();
     }
 
     void resize(ham_size_t size) {
@@ -42,12 +41,29 @@ class ByteArray
         }
     }
 
+    void set_allocator(Allocator *alloc) {
+        m_alloc=alloc;
+    }
+
     ham_size_t get_size() {
         return (m_size);
     }
 
     void *get_ptr() {
         return (m_ptr);
+    }
+
+    void assign(void *ptr, ham_size_t size) {
+        clear();
+        m_ptr=ptr;
+        m_size=size;
+    }
+
+    void clear() {
+        if (m_ptr)
+            m_alloc->free(m_ptr);
+        m_ptr=0;
+        m_size=0;
     }
 
   private:

@@ -112,7 +112,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
     /**                                                                 \
      * find a key in the index                                          \
      */                                                                 \
-    ham_status_t (*_fun_find)(clss *be, ham_key_t *key,                 \
+    ham_status_t (*_fun_find)(clss *be, Transaction *txn, ham_key_t *key,\
             ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
@@ -121,13 +121,13 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
      * the backend is responsible for inserting or updating the         \
      * record. (see blob.h for blob management functions)               \
      */                                                                 \
-    ham_status_t (*_fun_insert)(clss *be,                               \
+    ham_status_t (*_fun_insert)(clss *be, Transaction *txn,             \
             ham_key_t *key, ham_record_t *record, ham_u32_t flags);     \
                                                                         \
     /**                                                                 \
      * erase a key in the index                                         \
      */                                                                 \
-    ham_status_t (*_fun_erase)(clss *be, ham_key_t *key,                \
+    ham_status_t (*_fun_erase)(clss *be, Transaction *txn, ham_key_t *key,\
             ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \

@@ -20,6 +20,7 @@
 #include "internal_fwd_decl.h"
 #include "rb.h"
 #include "util.h"
+#include "error.h"
 
 class Transaction;
 
@@ -314,7 +315,25 @@ class Transaction
     /** the linked list of operations - tail is newest operation */
     txn_op_t *_newest_op;
 
+    /** Get the memory buffer for the key data */
+    ByteArray &get_key_arena() {
+        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
+        return (m_key_arena);
+    }
+
+    /** Get the memory buffer for the record data */
+    ByteArray &get_record_arena() {
+        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
+        return (m_record_arena);
+    }
+
+  private:
+    /** this is where key->data points to when returning a 
+     * key to the user */
     ByteArray m_key_arena;
+
+    /** this is where record->data points to when returning a 
+     * record to the user */
     ByteArray m_record_arena;
 };
 

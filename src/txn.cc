@@ -332,9 +332,7 @@ txn_begin(Transaction **ptxn, Environment *env, const char *name, ham_u32_t flag
     ham_status_t st=0;
     Transaction *txn;
 
-    txn=(Transaction *)env->get_allocator()->alloc(sizeof(Transaction));
-    if (!txn)
-        return (HAM_OUT_OF_MEMORY);
+    txn=new Transaction();
 
     memset(txn, 0, sizeof(*txn));
     txn_set_id(txn, env->get_txn_id()+1);
@@ -345,6 +343,10 @@ txn_begin(Transaction **ptxn, Environment *env, const char *name, ham_u32_t flag
         txn_set_name(txn, p);
     }
     env->set_txn_id(txn_get_id(txn));
+    if (!(flags&HAM_TXN_TEMPORARY)) {
+        txn->get_key_arena().set_allocator(env->get_allocator());
+        txn->get_record_arena().set_allocator(env->get_allocator());
+    }
 
     /* link this txn with the Environment */
     env_append_txn(env, txn);
@@ -502,6 +504,6 @@ txn_free(Transaction *txn)
     if (txn_get_name(txn))
         env->get_allocator()->free(txn_get_name(txn));
 
-    env->get_allocator()->free(txn);
+    delete txn;
 }
 

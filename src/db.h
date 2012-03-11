@@ -367,8 +367,6 @@ struct ham_db_t {
  */
 class Database
 {
-    typedef std::pair<void *, ham_size_t> ByteArray;
-
   public:
     /** constructor */
     Database();
@@ -495,6 +493,10 @@ class Database
     /** set the environment pointer */
     void set_env(Environment *env) {
         m_env=env;
+        if (env) {
+            m_key_arena.set_allocator(env->get_allocator());
+            m_record_arena.set_allocator(env->get_allocator());
+        }
     }
 
     /** get the next database in a linked list of databases */
@@ -566,60 +568,14 @@ class Database
         return (&m_perf_data);
     }
 
-    /** get the size of the last allocated data blob */
-    ham_size_t get_record_allocsize(void) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        return (m_record_alloc.get()->second);
+    /** Get the memory buffer for the key data */
+    ByteArray &get_key_arena() {
+        return (m_key_arena);
     }
 
-    /** set the size of the last allocated data blob */
-    void set_record_allocsize(ham_size_t size) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        m_record_alloc.get()->second=size;
-    }
-
-    /** get the pointer to the last allocated data blob */
-    void *get_record_allocdata(void) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        return (m_record_alloc.get()->first);
-    }
-
-    /** set the pointer to the last allocated data blob */
-    void set_record_allocdata(void *p) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        m_record_alloc.get()->first=p;
-    }
-
-    /** get the size of the last allocated key blob */
-    ham_size_t get_key_allocsize(void) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        return (m_key_alloc.get()->second);
-    }
-
-    /** set the size of the last allocated key blob */
-    void set_key_allocsize(ham_size_t size) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        m_key_alloc.get()->second=size;
-    }
-
-    /** get the pointer to the last allocated key blob */
-    void *get_key_allocdata(void) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        return (m_key_alloc.get()->first);
-    }
-
-    /** set the pointer to the last allocated key blob */
-    void set_key_allocdata(void *p) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        m_key_alloc.get()->first=p;
+    /** Get the memory buffer for the record data */
+    ByteArray &get_record_arena() {
+        return (m_record_arena);
     }
 
     /** closes a cursor */
@@ -627,24 +583,6 @@ class Database
 
     /** clones a cursor into *dest */
     void clone_cursor(Cursor *src, Cursor **dest);
-
-    /**
-     * Resize the record data buffer. This buffer is an internal storage for 
-     * record buffers. When a ham_record_t structure is returned to the user,
-     * the record->data pointer will point to this buffer.
-     *
-     * Set the size to 0, and the data is freed.
-     */
-    ham_status_t resize_record_allocdata(ham_size_t size);
-
-    /**
-     * Resize the key data buffer. This buffer is an internal storage for 
-     * key buffers. When a ham_key_t structure is returned to the user,
-     * the key->data pointer will point to this buffer.
-     *
-     * Set the size to 0, and the data is freed.
-     */
-    ham_status_t resize_key_allocdata(ham_size_t size);
 
 #if HAM_ENABLE_REMOTE
     /** get the remote database handle */
@@ -838,12 +776,6 @@ class Database
     /** some database specific run-time data */
     ham_runtime_statistics_dbdata_t m_perf_data;
 
-    /** TLS cached key size/alloc data */
-    boost::thread_specific_ptr<ByteArray> m_key_alloc;
-
-    /** TLS cached record size/alloc data */
-    boost::thread_specific_ptr<ByteArray> m_record_alloc;
-
 #if HAM_ENABLE_REMOTE
     /** the remote database handle */
     ham_u64_t m_remote_handle;
@@ -854,6 +786,14 @@ class Database
 
     /** the object which does the actual work */
     DatabaseImplementation *m_impl;
+
+    /** this is where key->data points to when returning a 
+     * key to the user; used if Transactions are disabled */
+    ByteArray m_key_arena;
+
+    /** this is where record->data points to when returning a 
+     * record to the user; used if Transactions are disabled */
+    ByteArray m_record_arena;
 };
 
 

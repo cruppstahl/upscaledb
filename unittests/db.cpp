@@ -141,16 +141,6 @@ public:
         BFC_ASSERT_EQUAL((Database *)40, m_dbp->get_next());
         m_dbp->set_next((Database *)0);
 
-        BFC_ASSERT_EQUAL(0u, m_dbp->get_record_allocsize());
-        m_dbp->set_record_allocsize(21);
-        BFC_ASSERT_EQUAL(21u, m_dbp->get_record_allocsize());
-        m_dbp->set_record_allocsize(0);
-
-        BFC_ASSERT_EQUAL((void *)0, m_dbp->get_record_allocdata());
-        m_dbp->set_record_allocdata((void *)22);
-        BFC_ASSERT_EQUAL((void *)22, m_dbp->get_record_allocdata());
-        m_dbp->set_record_allocdata(0);
-
         BFC_ASSERT_EQUAL(1u, m_dbp->is_active());
         m_dbp->set_active(HAM_FALSE);
         BFC_ASSERT_EQUAL(0u, m_dbp->is_active());

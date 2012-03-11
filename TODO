@@ -49,10 +49,6 @@ o implement basic concurrency
     o check with helgrind
     o check with ThreadSanitizer
 
-o implementation of hamsterdb should move into a namespace; otherwise
-    there are conflicts if users have a C++ class called Database or
-    Environment etc
-
 o implement a full test suite (including gathering of performance metrics etc)
     o refactor monster test and include multi-threading
         x single point for collecting metrics
@@ -100,6 +96,23 @@ o implement a full test suite (including gathering of performance metrics etc)
         - before execution: dump into a (temp.) file, and if the test fails:
             copy the file to a reserved directory
         - read from file (this is the same as we have now)
+
+o enable approx matching for cursors (see Sevencat's email)
+
+o also remove locking from C# and Java APIs
+
+
+
+o btree_read_record: calls db->get_extended_key, which should use an
+    existing ByteArray to avoid memory allocations
+
+o db_erase_txn: calls check_erase_conflict, which does a btree lookup.
+    but the lookup then happens again when doing the final erase, or not?
+    o also check for find, insert
+
+o implementation of hamsterdb should move into a namespace; otherwise
+    there are conflicts if users have a C++ class called Database or
+    Environment etc
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close

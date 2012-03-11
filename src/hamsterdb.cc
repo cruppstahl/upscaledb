@@ -1042,7 +1042,7 @@ ham_env_delete(ham_env_t *henv)
 
     Environment *env=(Environment *)henv;
 
-    delete env;
+    delete (Environment *)env;
 
     return (0);
 }
@@ -1724,7 +1724,7 @@ ham_delete(ham_db_t *hdb)
         return (HAM_INV_PARAMETER);
     }
 
-    delete db;
+    delete (Database *)db;
     return (0);
 }
 
@@ -1833,7 +1833,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            delete env;
+            delete (Environment *)env;
         }
     }
 
@@ -1965,7 +1965,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            delete env;
+            delete (Environment *)env;
         }
     }
 
@@ -2180,7 +2180,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME, 
                         HAM_DONT_LOCK, 0);
     if (st) {
-        delete db;
+        delete (Database *)db;
         db=0;
     }
 
@@ -2221,7 +2221,7 @@ bail:
 
     if (db) {
         ham_close(db, 0);
-        delete db;
+        delete (Database *)db;
     }
 
     if (st)
@@ -2305,6 +2305,8 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (!record->size)
         return (db->set_error(0));
 
+    ByteArray *arena=&db->get_record_arena();
+
     origsize=ham_db2h32(*(ham_u32_t *)record->data);
 
     /* don't allow HAM_RECORD_USER_ALLOC */
@@ -2320,12 +2322,8 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
 
     memcpy(src, (char *)record->data+4, newsize);
 
-    st=db->resize_record_allocdata(origsize);
-    if (st) {
-        env->get_allocator()->free(src);
-        return (db->set_error(st));
-    }
-    record->data=db->get_record_allocdata();
+    arena->resize(origsize);
+    record->data=arena->get_ptr();
     newsize=origsize;
 
     zret=uncompress((Bytef *)record->data, &newsize, (Bytef *)src, srcsize);
@@ -2619,8 +2617,6 @@ ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                 }
             }
             else {
-                ham_status_t st;
-
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
                     return (db->set_error(HAM_INV_PARAMETER));
@@ -2872,7 +2868,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
             (void)ham_env_close((ham_env_t *)db->get_env(), 
                             flags|HAM_DONT_LOCK);
-            delete db->get_env();
+            delete (Environment *)db->get_env();
         }
         db->set_env(0);
     }

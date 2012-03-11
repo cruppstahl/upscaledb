@@ -662,7 +662,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
         BFC_ASSERT_EQUAL(0, 
@@ -684,7 +684,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* overwrite it in the Transaction */
         BFC_ASSERT_EQUAL(0, 
@@ -734,7 +734,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* couple the cursor to this key */
         BFC_ASSERT_EQUAL(0, 
@@ -847,7 +847,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this looks up a key in an empty Transaction but with the btree */
         BFC_ASSERT_EQUAL(0, 
@@ -942,7 +942,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -963,7 +963,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -1024,7 +1024,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
         BFC_ASSERT_EQUAL(0, 
@@ -1052,7 +1052,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a smaller key into the Transaction */
         key.data=(void *)"11111";
@@ -1080,7 +1080,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a smaller key into the Transaction */
         key.data=(void *)ext1;
@@ -1106,7 +1106,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)"22222";
@@ -1134,7 +1134,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)ext2;
@@ -1160,7 +1160,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         key.data=(void *)"11111";
@@ -1187,7 +1187,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         key.data=(void *)ext1;
@@ -1202,7 +1202,7 @@ public:
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
 
         /* we have to manually clear the changeset, otherwise ham_close will
-         * fail. The changeset was filled in be->_fun_insert, but this is an
+         * fail. The changeset was filled in be->_fun_insert, 0, but this is an
          * internal function which will not clear it. All other functions fail
          * and therefore do not touch the changeset. */
         ((Environment *)m_env)->get_changeset().clear();
@@ -1219,7 +1219,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         BFC_ASSERT_EQUAL(0, 
@@ -1250,7 +1250,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)"22222";
@@ -1285,7 +1285,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
@@ -1306,7 +1306,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the last item */
         BFC_ASSERT_EQUAL(0,
@@ -1367,7 +1367,7 @@ public:
 
         /* insert a key into the btree */
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert the same key into the Transaction */
         BFC_ASSERT_EQUAL(0, 
@@ -1394,7 +1394,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"22222";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a smaller key into the Transaction */
         key.data=(void *)"11111";
@@ -1422,7 +1422,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext2;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a smaller key into the Transaction */
         key.data=(void *)ext1;
@@ -1448,7 +1448,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)"22222";
@@ -1476,7 +1476,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)ext2;
@@ -1502,7 +1502,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         key.data=(void *)"11111";
@@ -1529,7 +1529,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)ext1;
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         key.data=(void *)ext1;
@@ -1561,7 +1561,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* erase it */
         key.data=(void *)"11111";
@@ -1593,7 +1593,7 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"abcde";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* insert a greater key into the Transaction */
         key.data=(void *)"22222";
@@ -1626,13 +1626,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -1705,7 +1705,7 @@ public:
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -1731,7 +1731,7 @@ public:
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
@@ -1775,13 +1775,13 @@ public:
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"55555";
         rec.data=(void *)"eeeee";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"66666";
         rec.data=(void *)"fffff";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -1823,13 +1823,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* and a few "large" keys in the transaction */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -1884,13 +1884,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* erase the one in the middle */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
@@ -1921,13 +1921,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* overwrite the same keys in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -1973,16 +1973,16 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* skip the first key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2036,13 +2036,13 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* skip the first key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2093,16 +2093,16 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* overwrite all keys but the last */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2153,13 +2153,13 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0,
@@ -2214,7 +2214,7 @@ public:
         r.size=rec ? strlen(rec)+1 : 0;
 
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        return (be->_fun_insert(be, &k, &r, flags));
+        return (be->_fun_insert(be, 0, &k, &r, flags));
     }
 
     ham_status_t insertTxn(const char *key, const char *rec, 
@@ -2420,13 +2420,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -2499,7 +2499,7 @@ public:
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -2525,7 +2525,7 @@ public:
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* and a "large" one in the txn */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
@@ -2569,13 +2569,13 @@ public:
         /* and a few "large" keys in the btree */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"55555";
         rec.data=(void *)"eeeee";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"66666";
         rec.data=(void *)"fffff";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
 
         /* this moves the cursor to the first item */
         BFC_ASSERT_EQUAL(0,
@@ -2617,13 +2617,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* and a few "large" keys in the transaction */
         key.data=(void *)"44444";
         rec.data=(void *)"ddddd";
@@ -2678,13 +2678,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* erase the one in the middle */
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
@@ -2715,13 +2715,13 @@ public:
         ham_backend_t *be=((Database *)m_db)->get_backend();
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* overwrite the same keys in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2767,16 +2767,16 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"00000";
         rec.data=(void *)"xxxxx";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* skip the first key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2830,13 +2830,13 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* skip the first key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2887,16 +2887,16 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         /* skip the last key, and overwrite all others in the transaction */
         key.data=(void *)"11111";
         rec.data=(void *)"bbbbb";
@@ -2947,13 +2947,13 @@ public:
         /* insert a few keys into the btree */
         key.data=(void *)"11111";
         rec.data=(void *)"aaaaa";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"22222";
         rec.data=(void *)"bbbbb";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"33333";
         rec.data=(void *)"ccccc";
-        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, 0, &key, &rec, 0));
         key.data=(void *)"99999";
         rec.data=(void *)"xxxxx";
         BFC_ASSERT_EQUAL(0,
@@ -4146,7 +4146,7 @@ public:
         r.size=rec ? strlen(rec)+1 : 0;
 
         ham_backend_t *be=((Database *)m_db)->get_backend();
-        return (be->_fun_insert(be, &k, &r, flags));
+        return (be->_fun_insert(be, 0, &k, &r, flags));
     }
 
     ham_status_t eraseTxn(const char *key)

@@ -1485,7 +1485,7 @@ __flush_txn(Environment *env, Transaction *txn)
                     ? HAM_DUPLICATE
                     : HAM_OVERWRITE;
             if (!txn_op_get_cursors(op)) {
-                st=be->_fun_insert(be, txn_opnode_get_key(node), 
+                st=be->_fun_insert(be, txn, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
             }
@@ -1520,12 +1520,12 @@ __flush_txn(Environment *env, Transaction *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=btree_erase_duplicate((ham_btree_t *)be, 
+                st=btree_erase_duplicate((ham_btree_t *)be, txn,
                         txn_opnode_get_key(node), 
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }
             else {
-                st=be->_fun_erase(be, txn_opnode_get_key(node), 
+                st=be->_fun_erase(be, txn, txn_opnode_get_key(node), 
                         txn_op_get_flags(op));
             }
         }
