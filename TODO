@@ -59,11 +59,18 @@ o implement a full test suite (including gathering of performance metrics etc)
             -- no, does not work! times are just too short
         x can run ham2 vs bdb or alone, default is ham2 vs bdb
             x single backend: skip fullcheck
-        o needs new option --num-threads
-        o threads run same test in parallel, in different database
-        o threads run each line round-robin and synchronize in fullcheck
-            o in ham_find: all threads of a database handler synchronize
-            o in fullcheck: all threads of ALL database handlers synchronize
+        x needs new option --num-threads
+        o threads run same test in parallel, in different databases
+            x parser: read whole file into vector<string>
+            x main: if num-threads > 1: create multiple threads, then 
+                wait for them
+            o engine: split create/open/close in 
+                x create_env/create_db, 
+                x open_env/open_db, 
+                o close_env/close_db
+            o in the _env functions: only execute if id==1; otherwise wait
+                till thread 1 finished (make sure that synchronization is
+                not profiled)
 
     o has a wrapper script (http://search.cpan.org/~garu/App-Rad-1.04/)
         that calls and manages the file, gathers the metrics, generates
