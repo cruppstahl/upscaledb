@@ -64,8 +64,10 @@ o implement a full test suite (including gathering of performance metrics etc)
             x parser: read whole file into vector<string>
             x main: if num-threads > 1: create multiple threads, then 
                 wait for them
-            o engine: split create/open/close in create_env/create_db, 
-                open_env/open_db, close_env/close_db
+            o engine: split create/open/close in 
+                x create_env/create_db, 
+                x open_env/open_db, 
+                o close_env/close_db
             o in the _env functions: only execute if id==1; otherwise wait
                 till thread 1 finished (make sure that synchronization is
                 not profiled)
