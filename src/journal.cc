@@ -512,7 +512,7 @@ __recover_get_txn(Environment *env, ham_u32_t txn_id, Transaction **ptxn)
 static ham_status_t
 __close_all_databases(Environment *env)
 {
-    ham_status_t st;
+    ham_status_t st=0;
     Database *db;
 
     while ((db=env->get_databases())) {
@@ -551,7 +551,7 @@ __abort_uncommitted_txns(Environment *env)
 ham_status_t
 Journal::recover()
 {
-    ham_status_t st;
+    ham_status_t st=0;
     ham_u64_t start_lsn=m_env->get_log()->get_lsn();
     Iterator it;
     void *aux=0;

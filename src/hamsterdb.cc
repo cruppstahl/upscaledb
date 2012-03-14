@@ -3106,15 +3106,6 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-
-    if (flags & ~(HAM_DONT_LOCK | HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
-                HAM_FIND_EXACT_MATCH | HAM_DIRECT_ACCESS)) {
-        ham_trace(("flag values besides any combination of "
-                   "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH, "
-                   "HAM_FIND_EXACT_MATCH and HAM_DIRECT_ACCESS "
-                   "are not allowed"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
     if ((flags&HAM_DIRECT_ACCESS) 
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "

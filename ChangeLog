@@ -1,3 +1,6 @@
+Mar 14, 2012 - chris ---------------------------------------------------
+o enabled approx matching for ham_cursor_find
+
 Mar 11, 2012 - chris ---------------------------------------------------
 o hamsterdb is now thread-safe
 o When using Transactions, the key->data and record->data pointers

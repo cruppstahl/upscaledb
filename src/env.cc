@@ -1355,21 +1355,27 @@ _local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
 static ham_status_t
 _local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 {
-    /* an ugly hack - txn_abort() will free the txn structure, but we need
-     * it for the journal; therefore create a temp. copy which we can use
-     * later */
-    Transaction copy=*txn;
-    ham_status_t st=txn_abort(txn, flags);
+    ham_status_t st=0;
+
+    /* are cursors attached to this txn? if yes, fail */
+    if (txn_get_cursor_refcount(txn)) {
+        ham_trace(("Transaction cannot be aborted till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
+    }
 
     /* append journal entry */
-    if (st==0
-            && env->get_flags()&HAM_ENABLE_RECOVERY
+    if (env->get_flags()&HAM_ENABLE_RECOVERY
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=env->get_journal()->append_txn_abort(&copy, lsn);
+            st=env->get_journal()->append_txn_abort(txn, lsn);
     }
+
+    if (st==0)
+        st=txn_abort(txn, flags);
+
 
     /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
      * enabled; then purge caches */
