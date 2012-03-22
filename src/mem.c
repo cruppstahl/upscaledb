@@ -70,7 +70,12 @@ realloc_impl(mem_allocator_t *self, const char *file, int line,
 printf("current %8u, peak %8u, size: +%4u\n", total_allocs, max_allocs,
         size);*/
 
-    return (realloc((void *)p, size));
+    p=(char *)realloc((void *)p, size+sizeof(ham_u32_t));
+    if (!p)
+        return 0;
+
+    *(ham_u32_t *)p=size;
+    return ((char *)p)+sizeof(ham_u32_t);
 }
 
 void 

@@ -55,7 +55,7 @@
 * of the older Hamster versions.
 */
 
-#if !defined(IMPLEMENT_MODERN_FREELIST32)
+#if 0
 
 #define FORCE_UNITTEST_PASS
 
@@ -3887,7 +3887,7 @@ it's possible that 'db' is NULL - so how do i know which constructor to
 call?? alternatively, we just call the constructor when opening/creating 
 the environment, but that wouldn't be nice...
 */
-        st = freel_constructor_prepare16(&cache, dev, env);
+        st = HAM_NOT_IMPLEMENTED;
     }
     else
     {

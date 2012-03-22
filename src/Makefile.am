@@ -25,7 +25,6 @@ libhamsterdb_la_SOURCES = log.c \
 			env.c \
 			error.c \
 			extkeys.c \
-			freelist.c \
 			freelist_v2.c \
 			freelist_statistics.c \
 			hamsterdb.c \
