@@ -129,13 +129,13 @@ protected:
         env->set_header_page(0);
 
         BFC_ASSERT(env->get_oldest_txn()==0);
-        env->set_oldest_txn((ham_txn_t *)19);
-        BFC_ASSERT(env->get_oldest_txn()==(ham_txn_t *)19);
+        env->set_oldest_txn((Transaction *)19);
+        BFC_ASSERT(env->get_oldest_txn()==(Transaction *)19);
         env->set_oldest_txn(0);
 
         BFC_ASSERT(env->get_newest_txn()==0);
-        env->set_newest_txn((ham_txn_t *)19);
-        BFC_ASSERT(env->get_newest_txn()==(ham_txn_t *)19);
+        env->set_newest_txn((Transaction *)19);
+        BFC_ASSERT(env->get_newest_txn()==(Transaction *)19);
         env->set_newest_txn(0);
 
         BFC_ASSERT(env->get_flags()==0);

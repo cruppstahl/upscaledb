@@ -145,26 +145,26 @@ class DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn) = 0;
+    virtual ham_status_t check_integrity(Transaction *txn) = 0;
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags,
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount) = 0;
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, 
                     ham_u32_t flags) = 0;
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags) = 0;
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags) = 0;
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src) = 0;
@@ -220,25 +220,25 @@ class DatabaseImplementationLocal : public DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn);
+    virtual ham_status_t check_integrity(Transaction *txn);
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags,
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount);
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, ham_u32_t flags);
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src);
@@ -294,25 +294,25 @@ class DatabaseImplementationRemote : public DatabaseImplementation
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
     /** check Database integrity */
-    virtual ham_status_t check_integrity(ham_txn_t *txn);
+    virtual ham_status_t check_integrity(Transaction *txn);
 
     /** get number of keys */
-    virtual ham_status_t get_key_count(ham_txn_t *txn, ham_u32_t flags,
+    virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags, 
                     ham_offset_t *keycount);
 
     /** insert a key/value pair */
-    virtual ham_status_t insert(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, ham_u32_t flags);
 
     /** lookup of a key/value pair */
-    virtual ham_status_t find(ham_txn_t *txn, ham_key_t *key,
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags);
 
     /** create a cursor */
-    virtual Cursor *cursor_create(ham_txn_t *txn, ham_u32_t flags);
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
 
     /** clone a cursor */
     virtual Cursor *cursor_clone(Cursor *src);
@@ -367,8 +367,6 @@ struct ham_db_t {
  */
 class Database
 {
-    typedef std::pair<void *, ham_size_t> ByteArray;
-
   public:
     /** constructor */
     Database();
@@ -495,6 +493,10 @@ class Database
     /** set the environment pointer */
     void set_env(Environment *env) {
         m_env=env;
+        if (env) {
+            m_key_arena.set_allocator(env->get_allocator());
+            m_record_arena.set_allocator(env->get_allocator());
+        }
     }
 
     /** get the next database in a linked list of databases */
@@ -566,60 +568,14 @@ class Database
         return (&m_perf_data);
     }
 
-    /** get the size of the last allocated data blob */
-    ham_size_t get_record_allocsize(void) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        return (m_record_alloc.get()->second);
+    /** Get the memory buffer for the key data */
+    ByteArray &get_key_arena() {
+        return (m_key_arena);
     }
 
-    /** set the size of the last allocated data blob */
-    void set_record_allocsize(ham_size_t size) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        m_record_alloc.get()->second=size;
-    }
-
-    /** get the pointer to the last allocated data blob */
-    void *get_record_allocdata(void) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        return (m_record_alloc.get()->first);
-    }
-
-    /** set the pointer to the last allocated data blob */
-    void set_record_allocdata(void *p) {
-        if (!m_record_alloc.get())
-            m_record_alloc.reset(new ByteArray(0, 0));
-        m_record_alloc.get()->first=p;
-    }
-
-    /** get the size of the last allocated key blob */
-    ham_size_t get_key_allocsize(void) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        return (m_key_alloc.get()->second);
-    }
-
-    /** set the size of the last allocated key blob */
-    void set_key_allocsize(ham_size_t size) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        m_key_alloc.get()->second=size;
-    }
-
-    /** get the pointer to the last allocated key blob */
-    void *get_key_allocdata(void) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        return (m_key_alloc.get()->first);
-    }
-
-    /** set the pointer to the last allocated key blob */
-    void set_key_allocdata(void *p) {
-        if (!m_key_alloc.get())
-            m_key_alloc.reset(new ByteArray(0, 0));
-        m_key_alloc.get()->first=p;
+    /** Get the memory buffer for the record data */
+    ByteArray &get_record_arena() {
+        return (m_record_arena);
     }
 
     /** closes a cursor */
@@ -627,24 +583,6 @@ class Database
 
     /** clones a cursor into *dest */
     void clone_cursor(Cursor *src, Cursor **dest);
-
-    /**
-     * Resize the record data buffer. This buffer is an internal storage for
-     * record buffers. When a ham_record_t structure is returned to the user,
-     * the record->data pointer will point to this buffer.
-     *
-     * Set the size to 0, and the data is freed.
-     */
-    ham_status_t resize_record_allocdata(ham_size_t size);
-
-    /**
-     * Resize the key data buffer. This buffer is an internal storage for
-     * key buffers. When a ham_key_t structure is returned to the user,
-     * the key->data pointer will point to this buffer.
-     *
-     * Set the size to 0, and the data is freed.
-     */
-    ham_status_t resize_key_allocdata(ham_size_t size);
 
 #if HAM_ENABLE_REMOTE
     /** get the remote database handle */
@@ -838,12 +776,6 @@ class Database
     /** some database specific run-time data */
     ham_runtime_statistics_dbdata_t m_perf_data;
 
-    /** TLS cached key size/alloc data */
-    boost::thread_specific_ptr<ByteArray> m_key_alloc;
-
-    /** TLS cached record size/alloc data */
-    boost::thread_specific_ptr<ByteArray> m_record_alloc;
-
 #if HAM_ENABLE_REMOTE
     /** the remote database handle */
     ham_u64_t m_remote_handle;
@@ -854,6 +786,14 @@ class Database
 
     /** the object which does the actual work */
     DatabaseImplementation *m_impl;
+
+    /** this is where key->data points to when returning a 
+     * key to the user; used if Transactions are disabled */
+    ByteArray m_key_arena;
+
+    /** this is where record->data points to when returning a 
+     * record to the user; used if Transactions are disabled */
+    ByteArray m_record_arena;
 };
 
 
@@ -1106,16 +1046,16 @@ db_write_page_and_delete(Page *page, ham_u32_t flags);
  * be attached to the new txn_op structure
  */
 struct txn_cursor_t;
-extern ham_status_t
-db_insert_txn(Database *db, ham_txn_t *txn, ham_key_t *key,
-                ham_record_t *record, ham_u32_t flags,
+extern ham_status_t 
+db_insert_txn(Database *db, Transaction *txn, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor);
 
 /*
  * erase a key/record pair from a txn; on success, cursor will be set to nil
  */
 extern ham_status_t
-db_erase_txn(Database *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
+db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
                 struct txn_cursor_t *cursor);
 
 

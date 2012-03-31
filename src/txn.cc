@@ -100,9 +100,9 @@ txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
 }
 
 ham_bool_t
-txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn)
+txn_op_conflicts(txn_op_t *op, Transaction *current_txn)
 {
-    ham_txn_t *optxn=txn_op_get_txn(op);
+    Transaction *optxn=txn_op_get_txn(op);
     if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
         return (HAM_FALSE);
     else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
@@ -262,7 +262,7 @@ txn_opnode_create(Database *db, ham_key_t *key)
 }
 
 txn_op_t *
-txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
+txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
     Allocator *alloc=txn_get_env(txn)->get_allocator();
@@ -327,14 +327,12 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 }
 
 ham_status_t
-txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
+txn_begin(Transaction **ptxn, Environment *env, const char *name, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_txn_t *txn;
+    Transaction *txn;
 
-    txn=(ham_txn_t *)env->get_allocator()->alloc(sizeof(ham_txn_t));
-    if (!txn)
-        return (HAM_OUT_OF_MEMORY);
+    txn=new Transaction();
 
     memset(txn, 0, sizeof(*txn));
     txn_set_id(txn, env->get_txn_id()+1);
@@ -345,6 +343,10 @@ txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
         txn_set_name(txn, p);
     }
     env->set_txn_id(txn_get_id(txn));
+    if (!(flags&HAM_TXN_TEMPORARY)) {
+        txn->get_key_arena().set_allocator(env->get_allocator());
+        txn->get_record_arena().set_allocator(env->get_allocator());
+    }
 
     /* link this txn with the Environment */
     env_append_txn(env, txn);
@@ -355,7 +357,7 @@ txn_begin(ham_txn_t **ptxn, Environment *env, const char *name, ham_u32_t flags)
 }
 
 ham_status_t
-txn_commit(ham_txn_t *txn, ham_u32_t flags)
+txn_commit(Transaction *txn, ham_u32_t flags)
 {
     Environment *env=txn_get_env(txn);
 
@@ -373,7 +375,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
 }
 
 ham_status_t
-txn_abort(ham_txn_t *txn, ham_u32_t flags)
+txn_abort(Transaction *txn, ham_u32_t flags)
 {
     /*
      * are cursors attached to this txn? if yes, fail
@@ -427,7 +429,7 @@ txn_opnode_free(Environment *env, txn_opnode_t *node)
 }
 
 static void
-txn_op_free(Environment *env, ham_txn_t *txn, txn_op_t *op)
+txn_op_free(Environment *env, Transaction *txn, txn_op_t *op)
 {
     ham_record_t *rec;
     txn_op_t *next, *prev;
@@ -467,7 +469,7 @@ txn_op_free(Environment *env, ham_txn_t *txn, txn_op_t *op)
 }
 
 void
-txn_free_ops(ham_txn_t *txn)
+txn_free_ops(Transaction *txn)
 {
     Environment *env=txn_get_env(txn);
     txn_op_t *n, *op=txn_get_oldest_op(txn);
@@ -483,7 +485,7 @@ txn_free_ops(ham_txn_t *txn)
 }
 
 void
-txn_free(ham_txn_t *txn)
+txn_free(Transaction *txn)
 {
     Environment *env=txn_get_env(txn);
 
@@ -502,6 +504,6 @@ txn_free(ham_txn_t *txn)
     if (txn_get_name(txn))
         env->get_allocator()->free(txn_get_name(txn));
 
-    env->get_allocator()->free(txn);
+    delete txn;
 }
 

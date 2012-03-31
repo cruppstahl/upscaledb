@@ -47,6 +47,8 @@ class Device;
 
 class Environment;
 
+class Transaction;
+
 class Page;
 
 struct ham_backend_t;

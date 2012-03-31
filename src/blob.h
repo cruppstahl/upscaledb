@@ -188,7 +188,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-blob_read(Database *db, ham_offset_t blobid,
+blob_read(Database *db, Transaction *txn, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -224,9 +224,9 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
  * entry depending on the flags (only one entry is allowed in this case)
  */
 extern ham_status_t
-blob_duplicate_insert(Database *db, ham_offset_t table_id,
-        ham_record_t *record, ham_size_t position, ham_u32_t flags,
-        dupe_entry_t *entries, ham_size_t num_entries,
+blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id, 
+        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+        dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position);
 
 /**
@@ -238,7 +238,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
  * sets new_table_id to 0 if the table is empty
  */
 extern ham_status_t
-blob_duplicate_erase(Database *db, ham_offset_t table_id,
+blob_duplicate_erase(Database *db, Transaction *txn, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
 
 /**

@@ -639,13 +639,17 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
 }
 
 ham_status_t
-blob_read(Database *db, ham_offset_t blobid,
+blob_read(Database *db, Transaction *txn, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
     Page *page;
     blob_t hdr;
     ham_size_t blobsize=0;
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_record_arena()
+                        : &txn->get_record_arena();
 
     /*
      * in-memory-database: the blobid is actually a pointer to the memory
@@ -691,16 +695,14 @@ blob_read(Database *db, ham_offset_t blobid,
                 record->data=d;
             }
             else {
-                /* resize buffer, if necessary */
-                if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                    st=db->resize_record_allocdata(blobsize);
-                    if (st)
-                        return (st);
-                    record->data = db->get_record_allocdata();
+                /* resize buffer if necessary */
+                if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+                    arena->resize(blobsize);
+                    record->data=arena->get_ptr();
                 }
                 /* and copy the data */
                 memcpy(record->data, d, blobsize);
-                record->size = blobsize;
+                record->size=blobsize;
             }
         }
 
@@ -709,9 +711,7 @@ blob_read(Database *db, ham_offset_t blobid,
 
     ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
 
-    /*
-     * first step: read the blob header
-     */
+    /* first step: read the blob header */
     st=__read_chunk(db->get_env(), 0, &page, blobid, db,
                     (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
@@ -719,13 +719,11 @@ blob_read(Database *db, ham_offset_t blobid,
 
     ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
 
-    /*
-     * sanity check
-     */
+    /* sanity check */
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
-    blobsize = (ham_size_t)blob_get_size(&hdr);
+    blobsize=(ham_size_t)blob_get_size(&hdr);
 
     if (flags&HAM_PARTIAL) {
         if (record->partial_offset>blobsize) {
@@ -739,37 +737,29 @@ blob_read(Database *db, ham_offset_t blobid,
             blobsize=record->partial_size;
     }
 
-    /*
-     * empty blob?
-     */
+    /* empty blob?  */
     if (!blobsize) {
         record->data = 0;
         record->size = 0;
         return (0);
     }
 
-    /*
-     * second step: resize the blob buffer
-     */
-    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        st=db->resize_record_allocdata(blobsize);
-        if (st)
-            return (st);
-        record->data = db->get_record_allocdata();
+    /* second step: resize the blob buffer */
+    if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+        arena->resize(blobsize);
+        record->data=arena->get_ptr();
     }
 
-    /*
-     * third step: read the blob data
-     */
-    st=__read_chunk(db->get_env(), page, 0,
-                    blobid+sizeof(blob_t)+(flags&HAM_PARTIAL
-                            ? record->partial_offset
+    /* third step: read the blob data */
+    st=__read_chunk(db->get_env(), page, 0, 
+                    blobid+sizeof(blob_t)+(flags&HAM_PARTIAL 
+                            ? record->partial_offset 
                             : 0),
                     db, (ham_u8_t *)record->data, blobsize);
     if (st)
         return (st);
 
-    record->size = blobsize;
+    record->size=blobsize;
 
     return (0);
 }
@@ -1029,8 +1019,8 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags)
 }
 
 static ham_size_t
-__get_sorted_position(Database *db, dupe_table_t *table, ham_record_t *record,
-                ham_u32_t flags)
+__get_sorted_position(Database *db, Transaction *txn, dupe_table_t *table, 
+                ham_record_t *record, ham_u32_t flags)
 {
     ham_duplicate_compare_func_t foo = db->get_duplicate_compare_func();
     ham_size_t l, r, m;
@@ -1076,7 +1066,7 @@ __get_sorted_position(Database *db, dupe_table_t *table, ham_record_t *record,
         item_record._intflags = dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
                                                          |KEY_BLOB_SIZE_TINY
                                                          |KEY_BLOB_SIZE_EMPTY);
-        st=btree_read_record(db, &item_record,
+        st=btree_read_record(db, txn, &item_record, 
                     (ham_u64_t *)&dupe_entry_get_ridptr(e), flags);
         if (st)
             return (st);
@@ -1122,9 +1112,9 @@ __get_sorted_position(Database *db, dupe_table_t *table, ham_record_t *record,
 }
 
 ham_status_t
-blob_duplicate_insert(Database *db, ham_offset_t table_id,
-        ham_record_t *record, ham_size_t position, ham_u32_t flags,
-        dupe_entry_t *entries, ham_size_t num_entries,
+blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id, 
+        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+        dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position)
 {
     ham_status_t st=0;
@@ -1215,7 +1205,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
     }
     else {
         if (db->get_rt_flags()&HAM_SORT_DUPLICATES) {
-            position=__get_sorted_position(db, table, record, flags);
+            position=__get_sorted_position(db, txn, table, record, flags);
         }
         else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */
@@ -1281,7 +1271,7 @@ blob_duplicate_insert(Database *db, ham_offset_t table_id,
 }
 
 ham_status_t
-blob_duplicate_erase(Database *db, ham_offset_t table_id,
+blob_duplicate_erase(Database *db, Transaction *txn, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id)
 {
     ham_status_t st;
@@ -1291,24 +1281,31 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
     ham_offset_t rid;
     Environment *env = db->get_env();
 
+#if 0
+    ByteArray *key_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_key_arena()
+                        : &txn->get_key_arena();
+    ByteArray *rec_arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_record_arena()
+                        : &txn->get_record_arena();
+
     /* store the public record pointer, otherwise it's destroyed */
-    ham_size_t rs=db->get_record_allocsize();
-    void      *rp=db->get_record_allocdata();
-    db->set_record_allocdata(0);
-    db->set_record_allocsize(0);
+    ByteArray old_rec_arena=*rec_arena;
+    ByteArray old_key_arena=*key_arena;
+#endif
 
     memset(&rec, 0, sizeof(rec));
 
     if (new_table_id)
         *new_table_id=table_id;
 
-    st=blob_read(db, table_id, &rec, 0);
+    st=blob_read(db, txn, table_id, &rec, 0);
     if (st)
         return (st);
 
     /* restore the public record pointer */
-    db->set_record_allocsize(rs);
-    db->set_record_allocdata(rp);
+    //*rec_arena=old_rec_arena;
+    //*key_arena=old_key_arena;
 
     table=(dupe_table_t *)rec.data;
 
@@ -1333,7 +1330,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
         st=blob_free(env, db, table_id, 0); /* [i_a] isn't this superfluous (&
                                         * dangerous), thanks to the
                                         * free_all_dupes loop above??? */
-        env->get_allocator()->free(table);
+//      env->get_allocator()->free(table);
         if (st)
             return (st);
 
@@ -1377,7 +1374,7 @@ blob_duplicate_erase(Database *db, ham_offset_t table_id,
         if (new_table_id)
             *new_table_id=0;
 
-    env->get_allocator()->free(table);
+//  env->get_allocator()->free(table);
     return (0);
 }
 

@@ -30,8 +30,8 @@
 #include "util.h"
 
 
-ham_status_t
-btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor,
+ham_status_t 
+btree_find_cursor(ham_btree_t *be, Transaction *txn, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -427,7 +427,7 @@ no_fast_track:
     if (key
             && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
             && !(flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
-        ham_status_t st=btree_read_key(db, entry, key);
+        ham_status_t st=btree_read_key(db, txn, entry, key);
         if (st) {
             btree_stats_update_find_fail(db, &hints);
             return (st);
@@ -438,7 +438,7 @@ no_fast_track:
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=btree_read_record(db, record,
+        st=btree_read_record(db, txn, record, 
                         (ham_u64_t *)&key_get_rawptr(entry), flags);
         if (st) {
             btree_stats_update_find_fail(db, &hints);
@@ -458,11 +458,11 @@ no_fast_track:
  * Find a key in the index.
 
  @note This is a B+-tree 'backend' method.
- */
-ham_status_t
-btree_find(ham_btree_t *be, ham_key_t *key,
+ */                                                                 
+ham_status_t 
+btree_find(ham_btree_t *be, Transaction *txn, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags)
 {
-    return (btree_find_cursor(be, 0, key, record, flags));
+    return (btree_find_cursor(be, txn, 0, key, record, flags));
 }
 

@@ -19,7 +19,7 @@
 #include "btree_cursor.h"
 
 ham_status_t
-txn_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+txn_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, Cursor *parent)
 {
     (void)db;
@@ -71,7 +71,7 @@ txn_cursor_close(txn_cursor_t *cursor)
 ham_status_t
 txn_cursor_conflicts(txn_cursor_t *cursor)
 {
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
 
     if (txn_op_get_txn(op)!=txn) {
@@ -87,7 +87,7 @@ ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
     Database *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op;
     txn_opnode_t *node;
 
@@ -113,7 +113,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
     txn_op_t *lastdup=0;
-    ham_txn_t *optxn=0;
+    Transaction *optxn=0;
     Cursor *pc=txn_cursor_get_parent(cursor);
 
     if (!op)
@@ -277,8 +277,8 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
     op=txn_opnode_get_newest_op(node);
 
     while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
-        /* only look at ops from the current transaction and from
+        Transaction *optxn=txn_op_get_txn(op);
+        /* only look at ops from the current transaction and from 
          * committed transactions */
         if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
                 || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
@@ -338,7 +338,7 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     Database *db=txn_cursor_get_db(cursor);
-    ham_txn_t *txn=txn_cursor_get_parent(cursor)->get_txn();
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
 
     return (db_insert_txn(db, txn, key, record, flags, cursor));
 }
@@ -347,7 +347,12 @@ ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
 {
     Database *db=txn_cursor_get_db(cursor);
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     ham_key_t *source=0;
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_key_arena()
+                        : &txn->get_key_arena();
 
     /* coupled cursor? get key from the txn_op structure */
     if (!txn_cursor_is_nil(cursor)) {
@@ -360,20 +365,15 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
         key->size=source->size;
         if (source->data && source->size) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                ham_status_t st=db->resize_key_allocdata(source->size);
-                if (st)
-                    return (st);
-                key->data=db->get_key_allocdata();
+                arena->resize(source->size);
+                key->data=arena->get_ptr();
             }
             memcpy(key->data, source->data, source->size);
         }
         else
             key->data=0;
-
     }
-    /*
-     * otherwise cursor is nil and we cannot return a key
-     */
+    /* otherwise cursor is nil and we cannot return a key */
     else
         return (HAM_CURSOR_IS_NIL);
 
@@ -385,6 +385,11 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
 {
     Database *db=txn_cursor_get_db(cursor);
     ham_record_t *source=0;
+    Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_record_arena()
+                        : &txn->get_record_arena();
 
     /* coupled cursor? get record from the txn_op structure */
     if (!txn_cursor_is_nil(cursor)) {
@@ -394,19 +399,15 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
         record->size=source->size;
         if (source->data && source->size) {
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                ham_status_t st=db->resize_record_allocdata(source->size);
-                if (st)
-                    return (st);
-                record->data=db->get_record_allocdata();
+                arena->resize(source->size);
+                record->data=arena->get_ptr();
             }
             memcpy(record->data, source->data, source->size);
         }
         else
             record->data=0;
     }
-    /*
-     * otherwise cursor is nil and we cannot return a key
-     */
+    /* otherwise cursor is nil and we cannot return a key */
     else
         return (HAM_CURSOR_IS_NIL);
 
@@ -439,7 +440,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     txn_opnode_t *node;
     Database *db=txn_cursor_get_db(cursor);
     Cursor *parent=txn_cursor_get_parent(cursor);
-    ham_txn_t *txn=parent->get_txn();
+    Transaction *txn=parent->get_txn();
 
     /* don't continue if cursor is nil */
     if (btree_cursor_is_nil(parent->get_btree_cursor())

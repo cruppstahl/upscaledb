@@ -224,7 +224,7 @@ public:
         ham_u8_t *data;
         BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
         BFC_ASSERT_EQUAL((ham_u64_t)1, entry.lsn);
-        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
+        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id((Transaction *)txn));
         BFC_ASSERT_EQUAL((ham_u32_t)1024, entry.data_size);
         BFC_ASSERT_NOTNULL(data);
         BFC_ASSERT_EQUAL((ham_u32_t)0, entry.flags);

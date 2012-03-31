@@ -183,64 +183,65 @@ btree_create(Database *db, ham_u32_t flags);
  *
  * @remark this function is exported through the backend structure.
  */
-extern ham_status_t
-btree_find(ham_btree_t *be, ham_key_t *key,
+extern ham_status_t 
+btree_find(ham_btree_t *be, Transaction *txn, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags);
 
 /**
  * same as above, but sets the cursor to the position
  */
-extern ham_status_t
-btree_find_cursor(ham_btree_t *be, btree_cursor_t *cursor,
+extern ham_status_t 
+btree_find_cursor(ham_btree_t *be, Transaction *txn, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 /**
  * insert a new tuple (key/record) in the tree
  */
 extern ham_status_t
-btree_insert(ham_btree_t *be, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags);
+btree_insert(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags);
 
 /**
  * same as above, but sets the cursor position to the new item
  */
 extern ham_status_t
-btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
+btree_insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
         ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * erase a key from the tree
  */
 extern ham_status_t
-btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags);
+btree_erase(ham_btree_t *be, Transaction *txn, ham_key_t *key, ham_u32_t flags);
 
 /**
  * same as above, but with a coupled cursor
  */
 extern ham_status_t
-btree_erase_cursor(ham_btree_t *be, ham_key_t *key, btree_cursor_t *cursor,
-        ham_u32_t flags);
+btree_erase_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+        btree_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * same as above, but assumes that the cursor is coupled to a leaf page
  * and the key can be removed without rebalancing the tree
  */
 extern ham_status_t
-btree_cursor_erase_fasttrack(ham_btree_t *be, btree_cursor_t *cursor);
+btree_cursor_erase_fasttrack(ham_btree_t *be, Transaction *txn,
+        btree_cursor_t *cursor);
 
 /**
  * same as above, but only erases a single duplicate
  */
 extern ham_status_t
-btree_erase_duplicate(ham_btree_t *be, ham_key_t *key, ham_u32_t dupe_id,
+btree_erase_duplicate(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+        ham_u32_t dupe_id, 
         ham_u32_t flags);
 
 /**
  * enumerate all items
  */
 extern ham_status_t
-btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb,
-        void *context);
+btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context);
 
 /**
  * verify the whole tree
@@ -359,7 +360,8 @@ btree_prepare_key_for_compare(Database *db, int which, btree_key_t *src,
  * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
  */
 extern ham_status_t
-btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest);
+btree_read_key(Database *db, Transaction *txn, btree_key_t *source, 
+                ham_key_t *dest);
 
 /**
  * read a record
@@ -371,8 +373,8 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest);
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-btree_read_record(Database *db, ham_record_t *record, ham_u64_t *rid,
-                ham_u32_t flags);
+btree_read_record(Database *db, Transaction *txn, ham_record_t *record, 
+                ham_u64_t *ridptr, ham_u32_t flags);
 
 /**
  * copy a key

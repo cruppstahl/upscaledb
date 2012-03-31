@@ -53,8 +53,9 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page,
 }
 
 ham_status_t
-key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
-        ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
+key_set_record(Database *db, Transaction *txn, btree_key_t *key, 
+        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+        ham_size_t *new_position)
 {
     ham_status_t st;
     Environment *env = db->get_env();
@@ -218,7 +219,7 @@ key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
         i++;
 
         rid=0;
-        st=blob_duplicate_insert(db,
+        st=blob_duplicate_insert(db, txn,
                 (i==2 ? 0 : ptr), record, position,
                 flags, &entries[0], i, &rid, new_position);
         if (st) {
@@ -245,7 +246,7 @@ key_set_record(Database *db, btree_key_t *key, ham_record_t *record,
 }
 
 ham_status_t
-key_erase_record(Database *db, btree_key_t *key,
+key_erase_record(Database *db, Transaction *txn, btree_key_t *key, 
         ham_size_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
@@ -256,7 +257,7 @@ key_erase_record(Database *db, btree_key_t *key,
                     |KEY_BLOB_SIZE_EMPTY))) {
         if (key_get_flags(key)&KEY_HAS_DUPLICATES) {
             /* delete one (or all) duplicates */
-            st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags,
+            st=blob_duplicate_erase(db, txn, key_get_ptr(key), dupe_id, flags,
                     &rid);
             if (st)
                 return (st);

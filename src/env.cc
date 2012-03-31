@@ -1288,8 +1288,8 @@ _local_fun_open_db(Environment *env, Database *db,
     return (0);
 }
 
-static ham_status_t
-_local_fun_txn_begin(Environment *env, ham_txn_t **txn,
+static ham_status_t 
+_local_fun_txn_begin(Environment *env, Transaction **txn, 
                     const char *name, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1314,7 +1314,7 @@ _local_fun_txn_begin(Environment *env, ham_txn_t **txn,
 }
 
 static ham_status_t
-_local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
 {
     ham_status_t st;
 
@@ -1353,25 +1353,30 @@ _local_fun_txn_commit(Environment *env, ham_txn_t *txn, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_txn_abort(Environment *env, ham_txn_t *txn, ham_u32_t flags)
+_local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 {
-    /* an ugly hack - txn_abort() will free the txn structure, but we need
-     * it for the journal; therefore create a temp. copy which we can use
-     * later */
-    ham_txn_t copy=*txn;
-    ham_status_t st=txn_abort(txn, flags);
+    ham_status_t st=0;
+
+    /* are cursors attached to this txn? if yes, fail */
+    if (txn_get_cursor_refcount(txn)) {
+        ham_trace(("Transaction cannot be aborted till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
+    }
 
     /* append journal entry */
-    if (st==0
-            && env->get_flags()&HAM_ENABLE_RECOVERY
+    if (env->get_flags()&HAM_ENABLE_RECOVERY
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
         if (st==0)
-            st=env->get_journal()->append_txn_abort(&copy, lsn);
+            st=env->get_journal()->append_txn_abort(txn, lsn);
     }
 
-    /* on success: flush all open file handles if HAM_WRITE_THROUGH is
+    if (st==0)
+        st=txn_abort(txn, flags);
+
+    /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
      * enabled; then purge caches */
     if (st==0) {
         if (env->get_flags()&HAM_WRITE_THROUGH) {
@@ -1405,7 +1410,7 @@ env_initialize_local(Environment *env)
 }
 
 void
-env_append_txn(Environment *env, ham_txn_t *txn)
+env_append_txn(Environment *env, Transaction *txn)
 {
     txn_set_env(txn, env);
 
@@ -1427,14 +1432,14 @@ env_append_txn(Environment *env, ham_txn_t *txn)
 }
 
 void
-env_remove_txn(Environment *env, ham_txn_t *txn)
+env_remove_txn(Environment *env, Transaction *txn)
 {
     if (env->get_newest_txn()==txn) {
         env->set_newest_txn(txn_get_older(txn));
     }
 
     if (env->get_oldest_txn()==txn) {
-        ham_txn_t *n=txn_get_newer(txn);
+        Transaction *n=txn_get_newer(txn);
         env->set_oldest_txn(n);
         if (n)
             txn_set_older(n, 0);
@@ -1445,7 +1450,7 @@ env_remove_txn(Environment *env, ham_txn_t *txn)
 }
 
 static ham_status_t
-__flush_txn(Environment *env, ham_txn_t *txn)
+__flush_txn(Environment *env, Transaction *txn)
 {
     ham_status_t st=0;
     txn_op_t *op=txn_get_oldest_op(txn);
@@ -1485,8 +1490,8 @@ __flush_txn(Environment *env, ham_txn_t *txn)
                     ? HAM_DUPLICATE
                     : HAM_OVERWRITE;
             if (!txn_op_get_cursors(op)) {
-                st=be->_fun_insert(be, txn_opnode_get_key(node),
-                        txn_op_get_record(op),
+                st=be->_fun_insert(be, txn, txn_opnode_get_key(node), 
+                        txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
             }
             else {
@@ -1520,12 +1525,12 @@ __flush_txn(Environment *env, ham_txn_t *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=btree_erase_duplicate((ham_btree_t *)be,
-                        txn_opnode_get_key(node),
+                st=btree_erase_duplicate((ham_btree_t *)be, txn,
+                        txn_opnode_get_key(node), 
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }
             else {
-                st=be->_fun_erase(be, txn_opnode_get_key(node),
+                st=be->_fun_erase(be, txn, txn_opnode_get_key(node), 
                         txn_op_get_flags(op));
             }
         }
@@ -1568,7 +1573,7 @@ bail:
 ham_status_t
 env_flush_committed_txns(Environment *env)
 {
-    ham_txn_t *oldest;
+    Transaction *oldest;
 
     ham_assert(!(env->get_flags()&DB_DISABLE_AUTO_FLUSH), (""));
 

@@ -19,7 +19,10 @@
 
 #include "internal_fwd_decl.h"
 #include "rb.h"
+#include "util.h"
+#include "error.h"
 
+class Transaction;
 
 /**
  * a single operation in a transaction
@@ -39,7 +42,7 @@ typedef struct txn_op_t
     ham_u32_t _referenced_dupe;
 
     /** the Transaction of this operation */
-    ham_txn_t *_txn;
+    Transaction *_txn;
 
     /** the parent node */
     struct txn_opnode_t *_node;
@@ -50,10 +53,10 @@ typedef struct txn_op_t
     /** previous in linked list (managed in txn_opnode_t) */
     struct txn_op_t *_node_prev;
 
-    /** next in linked list (managed in ham_txn_t) */
+    /** next in linked list (managed in Transaction) */
     struct txn_op_t *_txn_next;
 
-    /** previous in linked list (managed in ham_txn_t) */
+    /** previous in linked list (managed in Transaction) */
     struct txn_op_t *_txn_prev;
 
     /** the log serial number (lsn) of this operation */
@@ -181,7 +184,7 @@ txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
  * returns true if the op is in a txn which has a conflict
  */
 extern ham_bool_t
-txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn);
+txn_op_conflicts(txn_op_t *op, Transaction *current_txn);
 
 /*
  * a node in the red-black Transaction tree (implemented in rb.h);
@@ -261,12 +264,22 @@ typedef struct txn_optree_t
 /** set the database handle of this txn tree */
 #define txn_optree_set_db(t, d)     (t)->_db=d
 
+/**
+ * A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_txn_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_txn_t
+{
+    int dummy;
+};
 
 /**
  * a Transaction structure
  */
-struct ham_txn_t
+class Transaction
 {
+  public:
     /** the id of this txn */
     ham_u64_t _id;
 
@@ -294,13 +307,34 @@ struct ham_txn_t
 #endif
 
     /** linked list of all transactions */
-    ham_txn_t *_newer, *_older;
+    Transaction *_newer, *_older;
 
     /** the linked list of operations - head is oldest operation */
     txn_op_t *_oldest_op;
 
     /** the linked list of operations - tail is newest operation */
     txn_op_t *_newest_op;
+
+    /** Get the memory buffer for the key data */
+    ByteArray &get_key_arena() {
+        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
+        return (m_key_arena);
+    }
+
+    /** Get the memory buffer for the record data */
+    ByteArray &get_record_arena() {
+        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
+        return (m_record_arena);
+    }
+
+  private:
+    /** this is where key->data points to when returning a 
+     * key to the user */
+    ByteArray m_key_arena;
+
+    /** this is where record->data points to when returning a 
+     * record to the user */
+    ByteArray m_record_arena;
 };
 
 /** transaction is still alive but was aborted */
@@ -425,7 +459,7 @@ txn_opnode_create(Database *db, ham_key_t *key);
  * insert an actual operation into the txn_tree
  */
 extern txn_op_t *
-txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
+txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
 /**
@@ -454,7 +488,7 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t **ptxn, Environment *env, const char *name,
+txn_begin(Transaction **ptxn, Environment *env, const char *name, 
                 ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
@@ -463,13 +497,13 @@ txn_begin(ham_txn_t **ptxn, Environment *env, const char *name,
  * commit a Transaction
  */
 extern ham_status_t
-txn_commit(ham_txn_t *txn, ham_u32_t flags);
+txn_commit(Transaction *txn, ham_u32_t flags);
 
 /**
  * abort a Transaction
  */
 extern ham_status_t
-txn_abort(ham_txn_t *txn, ham_u32_t flags);
+txn_abort(Transaction *txn, ham_u32_t flags);
 
 /**
  * frees all nodes in the tree
@@ -482,7 +516,7 @@ txn_free_optree(txn_optree_t *tree);
  * This function is a test gate for the unittests. do not use it.
  */
 extern void
-txn_free_ops(ham_txn_t *txn);
+txn_free_ops(Transaction *txn);
 
 /**
  * free the txn structure
@@ -490,7 +524,7 @@ txn_free_ops(ham_txn_t *txn);
  * will call txn_free_ops() and then free the txn pointer itself
  */
 extern void
-txn_free(ham_txn_t *txn);
+txn_free(Transaction *txn);
 
 
 #endif /* HAM_TXN_H__ */

@@ -102,7 +102,7 @@ typedef struct txn_cursor_t
  * Create a new txn cursor
  */
 extern ham_status_t
-txn_cursor_create(Database *db, ham_txn_t *txn, ham_u32_t flags,
+txn_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, Cursor *parent);
 
 /**

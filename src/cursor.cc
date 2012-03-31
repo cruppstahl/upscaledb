@@ -87,8 +87,8 @@ Cursor::update_dupecache(ham_u32_t what)
         op=txn_opnode_get_oldest_op(node);
 
         while (op) {
-            ham_txn_t *optxn=txn_op_get_txn(op);
-            /* collect all ops that are valid (even those that are
+            Transaction *optxn=txn_op_get_txn(op);
+            /* collect all ops that are valid (even those that are 
              * from conflicting transactions) */
             if (!(txn_get_flags(optxn)&TXN_STATE_ABORTED)) {
                 /* a normal (overwriting) insert will overwrite ALL dupes,
@@ -1020,7 +1020,7 @@ bail:
     return (st);
 }
 
-Cursor::Cursor(Database *db, ham_txn_t *txn, ham_u32_t flags)
+Cursor::Cursor(Database *db, Transaction *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
     m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
     m_lastop(0), m_lastcmp(0), m_flags(flags), m_is_first_use(true)
@@ -1099,7 +1099,7 @@ Cursor::set_to_nil(int what)
 }
 
 ham_status_t
-Cursor::erase(ham_txn_t *txn, ham_u32_t flags)
+Cursor::erase(Transaction *txn, ham_u32_t flags)
 {
     ham_status_t st;
 
@@ -1123,7 +1123,7 @@ Cursor::erase(ham_txn_t *txn, ham_u32_t flags)
 }
 
 ham_status_t
-Cursor::get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, ham_u32_t flags)
+Cursor::get_duplicate_count(Transaction *txn, ham_u32_t *pcount, ham_u32_t flags)
 {
     ham_status_t st=0;
 
@@ -1154,7 +1154,7 @@ Cursor::get_duplicate_count(ham_txn_t *txn, ham_u32_t *pcount, ham_u32_t flags)
 }
 
 ham_status_t
-Cursor::get_record_size(ham_txn_t *txn, ham_offset_t *psize)
+Cursor::get_record_size(Transaction *txn, ham_offset_t *psize)
 {
     ham_status_t st=0;
 
@@ -1172,8 +1172,8 @@ Cursor::get_record_size(ham_txn_t *txn, ham_offset_t *psize)
     return (st);
 }
 
-ham_status_t
-Cursor::overwrite(ham_txn_t *txn, ham_record_t *record, ham_u32_t flags)
+ham_status_t 
+Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
 

@@ -255,9 +255,11 @@ __check_recovery_flags(ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_begin(ham_txn_t **txn, ham_env_t *henv, const char *name,
+ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name, 
                 void *reserved, ham_u32_t flags)
 {
+    Transaction **txn=(Transaction **)htxn;
+
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -290,8 +292,9 @@ ham_txn_begin(ham_txn_t **txn, ham_env_t *henv, const char *name,
 }
 
 HAM_EXPORT const char *
-ham_txn_get_name(ham_txn_t *txn)
+ham_txn_get_name(ham_txn_t *htxn)
 {
+    Transaction *txn=(Transaction *)htxn;
     if (!txn)
         return (0);
     ScopedLock lock(txn_get_env(txn)->get_mutex());
@@ -299,8 +302,9 @@ ham_txn_get_name(ham_txn_t *txn)
 }
 
 ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
+ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
 {
+    Transaction *txn=(Transaction *)htxn;
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -323,8 +327,9 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
+ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
 {
+    Transaction *txn=(Transaction *)htxn;
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1037,7 +1042,7 @@ ham_env_delete(ham_env_t *henv)
 
     Environment *env=(Environment *)henv;
 
-    delete env;
+    delete (Environment *)env;
 
     return (0);
 }
@@ -1619,7 +1624,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 
     /* auto-abort (or commit) all pending transactions */
     if (env && env->get_newest_txn()) {
-        ham_txn_t *n, *t=env->get_newest_txn();
+        Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=txn_get_older(t);
             if ((txn_get_flags(t)&TXN_STATE_ABORTED)
@@ -1627,11 +1632,11 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
-                    if ((st=ham_txn_commit(t, HAM_DONT_LOCK)))
+                    if ((st=ham_txn_commit((ham_txn_t *)t, HAM_DONT_LOCK)))
                         return (st);
                 }
                 else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-                    if ((st=ham_txn_abort(t, HAM_DONT_LOCK)))
+                    if ((st=ham_txn_abort((ham_txn_t *)t, HAM_DONT_LOCK)))
                         return (st);
                 }
             }
@@ -1719,7 +1724,7 @@ ham_delete(ham_db_t *hdb)
         return (HAM_INV_PARAMETER);
     }
 
-    delete db;
+    delete (Database *)db;
     return (0);
 }
 
@@ -1828,7 +1833,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            delete env;
+            delete (Environment *)env;
         }
     }
 
@@ -1960,7 +1965,7 @@ bail:
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
-            delete env;
+            delete (Environment *)env;
         }
     }
 
@@ -2175,7 +2180,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME,
                         HAM_DONT_LOCK, 0);
     if (st) {
-        delete db;
+        delete (Database *)db;
         db=0;
     }
 
@@ -2216,7 +2221,7 @@ bail:
 
     if (db) {
         ham_close(db, 0);
-        delete db;
+        delete (Database *)db;
     }
 
     if (st)
@@ -2300,6 +2305,8 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (!record->size)
         return (db->set_error(0));
 
+    ByteArray *arena=&db->get_record_arena();
+
     origsize=ham_db2h32(*(ham_u32_t *)record->data);
 
     /* don't allow HAM_RECORD_USER_ALLOC */
@@ -2315,12 +2322,8 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
 
     memcpy(src, (char *)record->data+4, newsize);
 
-    st=db->resize_record_allocdata(origsize);
-    if (st) {
-        env->get_allocator()->free(src);
-        return (db->set_error(st));
-    }
-    record->data=db->get_record_allocdata();
+    arena->resize(origsize);
+    record->data=arena->get_ptr();
     newsize=origsize;
 
     zret=uncompress((Bytef *)record->data, &newsize, (Bytef *)src, srcsize);
@@ -2419,10 +2422,11 @@ ham_enable_compression(ham_db_t *hdb, ham_u32_t level, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_find(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
+ham_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
     Environment *env;
 
     if (!db) {
@@ -2500,17 +2504,18 @@ ham_key_get_approximate_match_type(ham_key_t *key)
 }
 
 ham_status_t HAM_CALLCONV
-ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
+ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
     Environment *env;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return HAM_INV_PARAMETER;
     }
-    env = db->get_env();
+    env=db->get_env();
     if (!env) {
         ham_trace(("parameter 'db' must be linked to a valid (implicit or "
                    "explicit) environment"));
@@ -2612,27 +2617,10 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
                 }
             }
             else {
-                ham_status_t st;
-
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
                     return (db->set_error(HAM_INV_PARAMETER));
                 }
-                /*
-                 * allocate memory for the key
-                 */
-                if (sizeof(ham_u64_t)>db->get_key_allocsize()) {
-                    st=db->resize_key_allocdata(sizeof(ham_u64_t));
-                    if (st)
-                        return (db->set_error(st));
-                    else
-                        db->set_key_allocsize(sizeof(ham_u64_t));
-                }
-                else
-                    db->set_key_allocsize(sizeof(ham_u64_t));
-
-                key->data=db->get_key_allocdata();
-                key->size=sizeof(ham_u64_t);
             }
         }
     }
@@ -2641,9 +2629,10 @@ ham_insert(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_erase(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+ham_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
     Environment *env;
 
     if (!db) {
@@ -2683,9 +2672,10 @@ ham_erase(ham_db_t *hdb, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_check_integrity(ham_db_t *hdb, ham_txn_t *txn)
+ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2833,7 +2823,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     /* auto-abort (or commit) all pending transactions */
     if (env && env->get_newest_txn()
             && db->get_rt_flags(true)&DB_ENV_IS_PRIVATE) {
-        ham_txn_t *n, *t=env->get_newest_txn();
+        Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=txn_get_older(t);
             if ((txn_get_flags(t)&TXN_STATE_ABORTED)
@@ -2841,11 +2831,11 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
-                    if ((st=ham_txn_commit(t, 0)))
+                    if ((st=ham_txn_commit((ham_txn_t *)t, 0)))
                         return (st);
                 }
                 else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-                    if ((st=ham_txn_abort(t, 0)))
+                    if ((st=ham_txn_abort((ham_txn_t *)t, 0)))
                         return (st);
                 }
             }
@@ -2859,10 +2849,6 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     st=(*db)()->close(flags);
     if (st)
         return (db->set_error(st));
-
-    /* free cached data pointers */
-    (void)db->resize_record_allocdata(0);
-    (void)db->resize_key_allocdata(0);
 
     /* remove this database from the environment */
     if (env) {
@@ -2882,7 +2868,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
             (void)ham_env_close((ham_env_t *)db->get_env(),
                             flags|HAM_DONT_LOCK);
-            delete db->get_env();
+            delete (Environment *)db->get_env();
         }
         db->set_env(0);
     }
@@ -2893,10 +2879,11 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_create(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
+ham_cursor_create(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
                 ham_cursor_t **hcursor)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
     Environment *env;
     Cursor **cursor=0;
     
@@ -3119,16 +3106,7 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-
-    if (flags & ~(HAM_DONT_LOCK | HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH |
-                HAM_FIND_EXACT_MATCH | HAM_DIRECT_ACCESS)) {
-        ham_trace(("flag values besides any combination of "
-                   "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH, "
-                   "HAM_FIND_EXACT_MATCH and HAM_DIRECT_ACCESS "
-                   "are not allowed"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DIRECT_ACCESS)
+    if ((flags&HAM_DIRECT_ACCESS) 
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
@@ -3280,26 +3258,10 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                 }
             }
             else {
-                ham_status_t st;
-
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
                     return (db->set_error(HAM_INV_PARAMETER));
                 }
-
-                /* allocate memory for the key */
-                if (sizeof(ham_u64_t)>db->get_key_allocsize()) {
-                    st=db->resize_key_allocdata(sizeof(ham_u64_t));
-                    if (st)
-                        return (db->set_error(st));
-                    else
-                        db->set_key_allocsize(sizeof(ham_u64_t));
-                }
-                else
-                    db->set_key_allocsize(sizeof(ham_u64_t));
-
-                key->data=db->get_key_allocdata();
-                key->size=sizeof(ham_u64_t);
             }
         }
     }
@@ -3612,10 +3574,11 @@ ham_get_env(ham_db_t *hdb)
 }
 
 ham_status_t HAM_CALLCONV
-ham_get_key_count(ham_db_t *hdb, ham_txn_t *txn, ham_u32_t flags,
+ham_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
     Database *db=(Database *)hdb;
+    Transaction *txn=(Transaction *)htxn;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));

@@ -818,83 +818,64 @@ btree_compare_keys(Database *db, Page *page,
 }
 
 ham_status_t
-btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
+btree_read_key(Database *db, Transaction *txn, btree_key_t *source, 
+        ham_key_t *dest)
 {
     Allocator *alloc=db->get_env()->get_allocator();
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_key_arena()
+                        : &txn->get_key_arena();
 
     /*
      * extended key: copy the whole key, not just the
      * overflow region!
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_u16_t keysize = key_get_size(source);
+        ham_u16_t keysize=key_get_size(source);
         ham_status_t st=db->get_extended_key(key_get_key(source),
-                    keysize, key_get_flags(source),
-                    dest);
+                                    keysize, key_get_flags(source),
+                                    dest);
         if (st) {
-            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-                /*
-                 * key data can be allocated in db->get_extended_key():
-                 * prevent that heap memory leak
-                 */
-                if (dest->data && (db->get_key_allocdata()!=dest->data))
-                    alloc->free(dest->data);
+            /* if db->get_extended_key() allocated memory: Release it and
+             * make sure that there's no leak
+             */
+            if (!(dest->flags&HAM_KEY_USER_ALLOC)) {
+                if (dest->data && arena->get_ptr()!=dest->data)
+                   alloc->free(dest->data);
                 dest->data=0;
             }
-            return st;
+            return (st);
         }
-        ham_assert(dest->data != 0, ("invalid extended key"));
 
-        ham_assert(sizeof(key_get_size(source)) == sizeof(keysize), (0));
-        ham_assert(sizeof(dest->size) == sizeof(keysize), (0));
-        ham_assert(keysize == dest->size, (0));
-        ham_assert(keysize ? dest->data != 0 : 1, (0));
+        ham_assert(dest->data!=0, ("invalid extended key"));
 
-        if (dest->flags & HAM_KEY_USER_ALLOC) {
-            ham_assert(dest->size == keysize, (0));
-        }
-        else {
-            if (keysize) {
-                (void)db->resize_key_allocdata(0);
-                db->set_key_allocdata(dest->data);
-                db->set_key_allocsize(keysize);
-            }
-            else {
+        if (!(dest->flags&HAM_KEY_USER_ALLOC)) {
+            if (keysize)
+                arena->assign(dest->data, dest->size);
+            else
                 dest->data=0;
-            }
         }
     }
+    /* code path below is for a non-extended key */
     else {
-        /*
-         * otherwise (non-extended key)...
-         */
-        ham_u16_t keysize = key_get_size(source);
+        ham_u16_t keysize=key_get_size(source);
 
-        ham_assert(sizeof(key_get_size(source)) == sizeof(keysize), (0));
         if (keysize) {
-            if (dest->flags & HAM_KEY_USER_ALLOC) {
+            if (dest->flags&HAM_KEY_USER_ALLOC)
                 memcpy(dest->data, key_get_key(source), keysize);
-            }
             else {
-                if (keysize>db->get_key_allocsize()) {
-                    ham_status_t st=db->resize_key_allocdata(keysize);
-                    if (st)
-                        return (st);
-                    else
-                        db->set_key_allocsize(keysize);
-                }
-                dest->data = db->get_key_allocdata();
+                arena->resize(keysize);
+                dest->data=arena->get_ptr();
                 memcpy(dest->data, key_get_key(source), keysize);
             }
         }
         else {
-            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+            if (!(dest->flags&HAM_KEY_USER_ALLOC))
                 dest->data=0;
-            }
         }
 
-        ham_assert(sizeof(dest->size) == sizeof(keysize), (0));
-        dest->size = keysize;
+        dest->size=keysize;
     }
 
     /*
@@ -915,12 +896,15 @@ btree_read_key(Database *db, btree_key_t *source, ham_key_t *dest)
 }
 
 ham_status_t
-btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
-            ham_u32_t flags)
+btree_read_record(Database *db, Transaction *txn, ham_record_t *record, 
+                ham_u64_t *ridptr, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_bool_t noblob=HAM_FALSE;
     ham_size_t blobsize;
+
+    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+                        ? &db->get_record_arena()
+                        : &txn->get_record_arena();
 
     /*
      * if this key has duplicates: fetch the duplicate entry
@@ -945,27 +929,27 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
     if (record->_intflags&KEY_BLOB_SIZE_TINY) {
         /* the highest byte of the record id is the size of the blob */
         char *p=(char *)ridptr;
-        blobsize = p[sizeof(ham_offset_t)-1];
+        blobsize=p[sizeof(ham_offset_t)-1];
         noblob=HAM_TRUE;
     }
     else if (record->_intflags&KEY_BLOB_SIZE_SMALL) {
         /* record size is sizeof(ham_offset_t) */
-        blobsize = sizeof(ham_offset_t);
+        blobsize=sizeof(ham_offset_t);
         noblob=HAM_TRUE;
     }
     else if (record->_intflags&KEY_BLOB_SIZE_EMPTY) {
         /* record size is 0 */
-        blobsize = 0;
+        blobsize=0;
         noblob=HAM_TRUE;
     }
     else {
         /* set to a dummy value, so the third if-branch is executed */
-        blobsize = 0xffffffff;
+        blobsize=0xffffffff;
     }
 
     if (noblob && blobsize == 0) {
-        record->size = 0;
-        record->data = 0;
+        record->size=0;
+        record->data=0;
     }
     else if (noblob && blobsize > 0) {
         if (flags&HAM_PARTIAL) {
@@ -981,17 +965,15 @@ btree_read_record(Database *db, ham_record_t *record, ham_u64_t *ridptr,
         }
         else {
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                st=db->resize_record_allocdata(blobsize);
-                if (st)
-                    return (st);
-                record->data = db->get_record_allocdata();
+                arena->resize(blobsize);
+                record->data=arena->get_ptr();
             }
             memcpy(record->data, ridptr, blobsize);
             record->size=blobsize;
         }
     }
     else if (!noblob && blobsize != 0) {
-        return (blob_read(db, record->_rid, record, flags));
+        return (blob_read(db, txn, record->_rid, record, flags));
     }
 
     return (HAM_SUCCESS);
