@@ -28,7 +28,7 @@ ham_u32_t total_allocs;
 ham_u32_t max_allocs;
 ham_u32_t current_alloc;
 
-#define MAX                         20
+#define MAX                         30
 #define LOOKASIDE(s)                                                        \
 void *lookaside ## s[MAX];                                                  \
 int   used ## s;
@@ -110,8 +110,13 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
     void *p=pop_ptr(size);
     if (p)
         return (p);
-    else
+    else {
         p=malloc(size+sizeof(ham_u32_t));
+        if (!p) {
+            ham_log(("failed to allocate %u bytes - out of memory", size));
+            return 0;
+        }
+    }
     total_allocs+=size;
     if (total_allocs>max_allocs)
         max_allocs=total_allocs;
@@ -154,9 +159,10 @@ printf("current %8u, peak %8u, size: +%4u\n", total_allocs, max_allocs,
         size);*/
 
     p=(char *)realloc((void *)p, size+sizeof(ham_u32_t));
-    if (!p)
+    if (!p) {
+        ham_log(("failed to re-allocate %u bytes - out of memory", size));
         return 0;
-
+    }
     *(ham_u32_t *)p=size;
     return ((char *)p)+sizeof(ham_u32_t);
 }

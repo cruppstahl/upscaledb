@@ -2517,6 +2517,7 @@ ham_status_t HAM_CALLCONV
 ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_env_t *env;
 
     if (!db) {
@@ -2637,12 +2638,16 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    return (db_set_error(db, db->_fun_insert(db, txn, key, record, flags)));
+    st=db_set_error(db, db->_fun_insert(db, txn, key, record, flags));
+    if (!st)
+        return ham_env_flush(db_get_env(db), 0);
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_env_t *env;
 
     if (!db) {
@@ -2680,7 +2685,10 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     db_set_error(db, 0);
 
-    return (db_set_error(db, db->_fun_erase(db, txn, key, flags)));
+    st=db_set_error(db, db->_fun_erase(db, txn, key, flags));
+    if (!st)
+        return ham_env_flush(db_get_env(db), 0);
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -2948,6 +2956,7 @@ ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
+    ham_status_t st;
     ham_db_t *db;
 
     if (!cursor) {
@@ -2987,7 +2996,10 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, db->_fun_cursor_overwrite(cursor, record, flags)));
+    st=db_set_error(db, db->_fun_cursor_overwrite(cursor, record, flags));
+    if (!st)
+        return ham_env_flush(db_get_env(db), 0);
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -3110,6 +3122,7 @@ ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_db_t *db;
 
     if (!cursor) {
@@ -3234,13 +3247,17 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         return (HAM_NOT_INITIALIZED);
     }
 
-    return (db_set_error(db, 
-                db->_fun_cursor_insert(cursor, key, record, flags)));
+    st=db_set_error(db, 
+                db->_fun_cursor_insert(cursor, key, record, flags));
+    if (!st)
+        return ham_env_flush(db_get_env(db), 0);
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_db_t *db;
 
     if (!cursor) {
@@ -3275,8 +3292,11 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, 
-                db->_fun_cursor_erase(cursor, flags)));
+    st=db_set_error(db, 
+                db->_fun_cursor_erase(cursor, flags));
+    if (!st)
+        return ham_env_flush(db_get_env(db), 0);
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
