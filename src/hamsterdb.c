@@ -2639,7 +2639,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     db_set_error(db, 0);
 
     st=db_set_error(db, db->_fun_insert(db, txn, key, record, flags));
-    if (!st)
+    if (!st && db_get_rt_flags(db)&HAM_WRITE_THROUGH)
         return ham_env_flush(db_get_env(db), 0);
     return (st);
 }
@@ -2686,7 +2686,7 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     db_set_error(db, 0);
 
     st=db_set_error(db, db->_fun_erase(db, txn, key, flags));
-    if (!st)
+    if (!st && db_get_rt_flags(db)&HAM_WRITE_THROUGH)
         return ham_env_flush(db_get_env(db), 0);
     return (st);
 }
@@ -2997,7 +2997,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     }
 
     st=db_set_error(db, db->_fun_cursor_overwrite(cursor, record, flags));
-    if (!st)
+    if (!st && db_get_rt_flags(db)&HAM_WRITE_THROUGH)
         return ham_env_flush(db_get_env(db), 0);
     return (st);
 }
@@ -3249,7 +3249,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     st=db_set_error(db, 
                 db->_fun_cursor_insert(cursor, key, record, flags));
-    if (!st)
+    if (!st && db_get_rt_flags(db)&HAM_WRITE_THROUGH)
         return ham_env_flush(db_get_env(db), 0);
     return (st);
 }
@@ -3294,7 +3294,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     st=db_set_error(db, 
                 db->_fun_cursor_erase(cursor, flags));
-    if (!st)
+    if (!st && db_get_rt_flags(db)&HAM_WRITE_THROUGH)
         return ham_env_flush(db_get_env(db), 0);
     return (st);
 }
