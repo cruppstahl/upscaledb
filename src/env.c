@@ -975,11 +975,11 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
     /*
      * flush the device - this usually causes a fsync()
      */
-    if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {
+    /*if (env_get_rt_flags(env)&HAM_WRITE_THROUGH) {*/
         st=dev->flush(dev);
         if (st)
             return st;
-    }
+    /*}*/
 
     return (HAM_SUCCESS);
 }
