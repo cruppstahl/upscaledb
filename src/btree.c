@@ -220,13 +220,13 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
      * allocate a new root page
      */
     st=db_alloc_page(&root, db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
-    ham_assert(st ? root == NULL : 1, (0));
-    ham_assert(!st ? root != NULL : 1, (0));
-    if (!root)
-        return st ? st : HAM_INTERNAL_ERROR;
+    if (st)
+        return st;
 
     memset(page_get_raw_payload(root), 0, 
             sizeof(btree_node_t)+sizeof(ham_perm_page_union_t));
+    page_set_type(page, PAGE_TYPE_B_ROOT);
+    page_set_dirty(root, db_get_env(db));
 
     /*
      * calculate the maximum number of keys for this page, 

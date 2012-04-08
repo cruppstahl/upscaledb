@@ -954,31 +954,6 @@ done:
 
     if (env_get_cache(env)) {
         cache_put_page(env_get_cache(env), page);
-#if 0
-        /*
-        Some quick measurements indicate that this (and the btree lines which
-        do the same: bumping the cache age of the given page) is deteriorating
-        performance:
-
-        with this it's ~ 17K refetches (reloads of previously cached pages);
-        without it's ~ 16K refetches, which means the dumb version without the
-        weights reloads less database pages.
-
-        All in all, the conclusion is simple:
-
-        Stick with the simplest cache aging system, unless we can come up with something
-        truely fantastic to cut down disc I/O (which is particularly important when the
-        database file is located on a remote storage disc (SAN).
-
-        And the simplest system is... 
-        
-        Count every access as one age point, i.e. age 
-        all pages with each cache access by 1 and dicard the oldest bugger.
-        
-        Don't bother with high/low watermarks in purging either as that didn't help
-        neither.
-        */
-#endif
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
             page_set_cache_cntr(page, 1);
