@@ -231,8 +231,7 @@ main(int argc, char **argv)
 	// call init_run() here.
 	testrunner::get_instance()->init_run();
 	unsigned int r;
-	if (argc > 1)
-	{
+	if (argc > 1) {
 		std::string lead_fixture;
 		std::string lead_test;
 		bool lead = false;

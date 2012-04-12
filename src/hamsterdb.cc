@@ -2842,6 +2842,8 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             t=n;
         }
     }
+    // make sure all Transactions are flushed
+    env_flush_committed_txns(env);
 
     db->set_error(0);
     
