@@ -591,7 +591,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 |HAM_DONT_LOCK
                                 |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
-                                |DB_DISABLE_AUTO_FLUSH
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT

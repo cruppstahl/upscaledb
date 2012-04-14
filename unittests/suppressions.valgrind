@@ -1,0 +1,153 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:longest_match
+   fun:deflate_slow
+   fun:deflate
+   fun:compress2
+   fun:_ZL22__zlib_before_write_cbP8ham_db_tP19ham_record_filter_tP12ham_record_t
+   fun:_ZL29__record_filters_before_writeP8DatabaseP12ham_record_t
+   fun:_ZN27DatabaseImplementationLocal6insertEP11TransactionP9ham_key_tP12ham_record_tj
+   fun:ham_insert
+   fun:_ZN10FilterTest14zlibFilterTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   write(buf)
+   fun:__write_nocancel
+   fun:_Z9os_pwriteiyPKvy
+   fun:_ZN10FileDevice5writeEyPvy
+   fun:_ZN10FileDevice10write_pageEP4Page
+   fun:_ZN4Page5flushEv
+   fun:_Z13db_flush_pageP11EnvironmentP4Page
+   fun:_ZN27DatabaseImplementationLocal5closeEj
+   fun:ham_close
+   fun:_ZN16MiscPartialTests8teardownEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   writev(vector[...])
+   fun:writev
+   fun:_ZN7Journal12append_entryEiPvjS0_jS0_jS0_jS0_j
+   fun:_ZN7Journal13append_insertEP8DatabaseP11TransactionP9ham_key_tP12ham_record_tjy
+   fun:_Z13db_insert_txnP8DatabaseP11TransactionP9ham_key_tP12ham_record_tjP12txn_cursor_t
+   fun:_ZN27DatabaseImplementationLocal6insertEP11TransactionP9ham_key_tP12ham_record_tj
+   fun:ham_insert
+   fun:_ZN16MiscPartialTests24disabledTransactionsTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   writev(vector[...])
+   fun:writev
+   fun:_ZN3Log12append_writeEyjyPhj
+   fun:_ZN3Log11append_pageEP4Pageyj
+   fun:_ZN9Changeset10log_bucketEPP4PagejyRj
+   fun:_ZN9Changeset5flushEy
+   fun:_ZL11__flush_txnP11EnvironmentP11Transaction
+   fun:_Z24env_flush_committed_txnsP11Environment
+   fun:_Z10txn_commitP11Transactionj
+   fun:_ZN27DatabaseImplementationLocal6insertEP11TransactionP9ham_key_tP12ham_record_tj
+   fun:ham_insert
+   fun:_ZN16MiscPartialTests24disabledTransactionsTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr1
+   fun:bcmp
+   fun:_ZN7TxnTest18txnInsertFind1TestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+   fun:_ZN3bfc10testrunner3runEb
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr1
+   fun:bcmp
+   fun:_ZN7TxnTest18txnInsertFind1TestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+   fun:_ZN3bfc10testrunner3runEb
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   socketcall.send(msg)
+   fun:send
+   obj:*
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   obj:/usr/lib/i386-linux-gnu/libcurl.so.4.2.0
+   fun:Curl_connect
+   obj:*
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   obj:/usr/lib/i386-linux-gnu/libcurl.so.4.2.0
+   fun:Curl_connect
+   obj:*
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:mg_strndup
+   fun:mg_strdup
+   fun:mg_set_option
+   fun:ham_srv_init
+   fun:_ZN10RemoteTest5setupEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
+   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
+   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/i386-linux-gnu/libcrypto.so.1.0.0
+   fun:CRYPTO_malloc
+   obj:/lib/i386-linux-gnu/libcrypto.so.1.0.0
+   fun:ENGINE_add
+   fun:ENGINE_load_dynamic
+   fun:ham_env_create_ex
+   fun:ham_env_create
+   fun:_ZN10RemoteTest14invalidUrlTestEv
+   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
+}
+

@@ -165,6 +165,10 @@ typedef struct ham_cursor_t ham_cursor_t;
  * @a size parameter will then return the size of the record. It's the
  * responsibility of the caller to make sure that the @a data parameter is
  * large enough for the record.
+ *
+ * The record->data pointer is not threadsafe. For threadsafe access it is
+ * recommended to use @a HAM_RECORD_USER_ALLOC or have each thread manage its
+ * own Transaction.
  */
 typedef struct
 {
@@ -216,6 +220,10 @@ typedef struct
  * @a size parameter will then return the size of the key. It's the
  * responsibility of the caller to make sure that the @a data parameter is
  * large enough for the key.
+ *
+ * The key->data pointer is not threadsafe. For threadsafe access it is
+ * recommended to use @a HAM_KEY_USER_ALLOC or have each thread manage its
+ * own Transaction.
  */
 typedef struct
 {

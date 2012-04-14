@@ -368,10 +368,7 @@ txn_commit(Transaction *txn, ham_u32_t flags)
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
     /* now flush all committed Transactions to disk */
-    if (!(env->get_flags()&DB_DISABLE_AUTO_FLUSH))
-        return (env_flush_committed_txns(env));
-    else
-        return (0);
+    return (env_flush_committed_txns(env));
 }
 
 ham_status_t

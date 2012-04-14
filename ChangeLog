@@ -1,3 +1,7 @@
+Apr 14, 2012 - chris ---------------------------------------------------
+o hamsterdb is now thread safe. The boost c++ library is now required for
+    building
+
 Mar 14, 2012 - chris ---------------------------------------------------
 o enabled approx matching for ham_cursor_find
 

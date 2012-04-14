@@ -1016,9 +1016,7 @@ db_write_page_and_delete(Page *page, ham_u32_t flags);
 * @{
 */
 
-/**
- * An internal database flag - use mmap instead of read(2).
- */
+/** An internal database flag - use mmap instead of read(2).  */
 #define DB_USE_MMAP                  0x00000100
 
 /**
@@ -1027,15 +1025,8 @@ db_write_page_and_delete(Page *page, ham_u32_t flags);
  */
 #define DB_ENV_IS_PRIVATE            0x00080000
 
-/**
- * An internal database flag - env handle is remote
- */
+/** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                 0x00200000
-
-/**
- * An internal database flag - disable txn flushin when they're committed
- */
-#define DB_DISABLE_AUTO_FLUSH        0x00400000
 
 /**
  * @}

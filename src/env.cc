@@ -1576,8 +1576,6 @@ env_flush_committed_txns(Environment *env)
 {
     Transaction *oldest;
 
-    ham_assert(!(env->get_flags()&DB_DISABLE_AUTO_FLUSH), (""));
-
     /* always get the oldest transaction; if it was committed: flush 
      * it; if it was aborted: discard it; otherwise return */
     while ((oldest=env->get_oldest_txn())) {
@@ -1646,12 +1644,14 @@ __purge_cache_max20(Environment *env)
      */
     if (!(env->get_flags()&HAM_CACHE_STRICT)) {
         max_pages/=10;
+        if (max_pages==0)
+            max_pages=1;
         /* but still we set an upper limit to avoid IO spikes */
-        if (max_pages>20)
+        else if (max_pages>20)
             max_pages=20;
     }
 
-    /* try to free 10% of the unused pages */
+    /* now free those pages */
     for (i=0; i<max_pages; i++) {
         page=cache->get_unused_page();
         if (!page) {

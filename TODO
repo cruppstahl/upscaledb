@@ -29,7 +29,7 @@ x design redundancy
 
 x enable approx matching for cursors (see Sevencat's email)
 
-o implement basic concurrency
+x implement basic concurrency
     x ./configure: add dependency to boost
     x abstract boost stuff using typedefs:
         x thread
@@ -76,43 +76,52 @@ o implement basic concurrency
     x check with valgrind
     x check with ham_info - every thread must create its own database
     x check with helgrind and create suppressions file
-    o check with drd
-    o check with ThreadSanitizer
+    x check with drd and create suppressions file
 
-    o add multi-threading to monster testsuite
-    o remove HAM_RECORD_USER_ALLOC from monster.sh suite
+    x improve metrics (same as in hypertable shell/load generator)
+        x perf-* is always 0
+        x format values as float, not as ticks
 
-    o need a way to graphically display performance metrics
-        o improve metrics (same as in hypertable shell/load generator)
-        o output in a text file
-            version/configuration/test-id
-            each test is run in multiple threads
-                performance-metrics based on time(), not real duration
-                memory-metrics
-                disk size
-                same for berkeleydb
-        o skript that generates a static html page from this file, 
-            w/ graphs over the different versions
+    x add multi-threading to monster testsuite
+    x remove HAM_RECORD_USER_ALLOC from monster.sh suite
 
-o merge fixes of Bhautik-branch
+x merge fixes of Bhautik-branch
 
-o what is DB_DISABLE_AUTO_FLUSH? remove it
+x what is DB_DISABLE_AUTO_FLUSH? remove it
 
-o need documentation for thread-safety of the record->data pointers
+x need documentation for thread-safety of the record->data pointers
 
-o improve valgrind tests of the unittests 
-    o collect all valgrind suppressions
-    o create a new target in the makefile which uses the suppressions
-    o release.sh: use this target, check that there are no un-suppressed
-        errors (or leaks)
+o need a way to graphically display performance metrics
+    o output in a text file
+        version/configuration/test-id
+        each test is run in multiple threads
+            performance-metrics based on time(), not real duration
+            memory-metrics
+            disk size
+            same for berkeleydb
+    o skript that generates a static html page from this file, 
+        w/ graphs over the different versions
 
-o also remove locking from C# and Java APIs
+x improve valgrind tests of the unittests 
+    x collect all valgrind suppressions
+    x create a new target in the makefile which uses the suppressions
+
+o run monster tests
+
+o fix Windows build; add boost dependency, fix code, remove warnings...
+
+o extend the FAQ
+
+o extend the documentation
+
 
 
 
 
 o more fine-grained locking: lock ham_db_t handle for ham_insert, ham_find,
     ham_cursor_*, ham_erase
+
+o also remove locking from C# and Java APIs
 
 o btree_read_record: calls db->get_extended_key, which should use an
     existing ByteArray to avoid memory allocations
@@ -134,6 +143,7 @@ o clean up the "close" functions
         Database::close_cursor()
 
 o python API - update and integrate
+    o rewrite with boost::python??
     o also add to win32 package
 
 o continue with c++-ification of db.h/db.cc
