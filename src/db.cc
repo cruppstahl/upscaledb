@@ -2219,6 +2219,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
                     }
                 }
             }
+            env->get_changeset().clear();
         }
     }
     else {
