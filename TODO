@@ -104,8 +104,14 @@ x run monster tests
 o fix Windows build; add boost dependency, fix code, remove warnings...
 
 o extend the FAQ
+  - threadsafety
+  - rec.data scope
 
 o extend the documentation
+
+o update doxygen documentation on the webpage
+
+o update prebuilt libraries on the webpage (include boost)
 
 . need a way to graphically display performance metrics
     o output in a text file
