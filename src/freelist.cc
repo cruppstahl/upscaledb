@@ -3253,6 +3253,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, Device *device,
 
             ham_assert(freel_entry_get_allocated_bits(entry) 
                         <= freel_entry_get_max_bits(entry), (0));
+            if (i < (ham_s32_t)hints.page_span_width)
+                return HAM_SUCCESS;
             ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
             /*
              * entry points at a freelist entry in the possible sequence, scan 

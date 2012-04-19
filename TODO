@@ -95,13 +95,19 @@ x improve valgrind tests of the unittests
     x collect all valgrind suppressions
     x create a new target in the makefile which uses the suppressions
 
-o run monster tests
-    ./test --num-threads=2 --use-transactions=20 --overwrite ../../testfiles/2/blb-001.tst
-    ./test --num-threads=2 --use-transactions=20 --use-cursors --overwrite ../../testfiles/2/blb-001.tst
-    ./test --inmemorydb ../../testfiles/3/ext_022.tst
-    ./test --use-cursors --inmemorydb ../../testfiles/3/ext_022.tst
+x run monster tests
+  x ./test --num-threads=2 --use-transactions=20 --overwrite ../../testfiles/2/blb-001.tst
+  x ./test --num-threads=2 --use-transactions=20 --use-cursors --overwrite ../../testfiles/2/blb-001.tst
+  x ./test --inmemorydb ../../testfiles/3/ext_022.tst
+  x ./test --use-cursors --inmemorydb ../../testfiles/3/ext_022.tst
 
-o need a way to graphically display performance metrics
+o fix Windows build; add boost dependency, fix code, remove warnings...
+
+o extend the FAQ
+
+o extend the documentation
+
+. need a way to graphically display performance metrics
     o output in a text file
         version/configuration/test-id
         each test is run in multiple threads
@@ -111,12 +117,6 @@ o need a way to graphically display performance metrics
             same for berkeleydb
     o skript that generates a static html page from this file, 
         w/ graphs over the different versions
-
-o fix Windows build; add boost dependency, fix code, remove warnings...
-
-o extend the FAQ
-
-o extend the documentation
 
 
 

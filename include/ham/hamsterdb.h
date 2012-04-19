@@ -158,7 +158,8 @@ typedef struct ham_cursor_t ham_cursor_t;
  * When hamsterdb returns a record structure, the pointer to the record
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent hamsterdb API calls using the same Transaction
- * (or, if Transactions are disabled, using the same Database).
+ * (or, if Transactions are disabled, using the same Database). The pointer
+ * will also be invalidated after the Transaction is aborted or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
  * In this case, you have to set the flag @ref HAM_RECORD_USER_ALLOC. The
@@ -214,6 +215,8 @@ typedef struct
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent calls to @ref ham_cursor_move using the 
  * same Transaction (or, if Transactions are disabled, using the same Database).
+ * The pointer will also be invalidated after the Transaction is aborted 
+ * or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
  * In this case, you have to set the flag @ref HAM_KEY_USER_ALLOC. The
