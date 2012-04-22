@@ -101,7 +101,7 @@ x run monster tests
   x ./test --inmemorydb ../../testfiles/3/ext_022.tst
   x ./test --use-cursors --inmemorydb ../../testfiles/3/ext_022.tst
 
-o fix Windows build; add boost dependency, fix code, remove warnings...
+x fix Windows build; add boost dependency, fix code, remove warnings...
 
 o extend the FAQ
   - threadsafety

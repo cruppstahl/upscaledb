@@ -1,3 +1,6 @@
+Apr 21, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.2
+
 Apr 14, 2012 - chris ---------------------------------------------------
 o hamsterdb is now thread safe. The boost c++ library is now required for
     building

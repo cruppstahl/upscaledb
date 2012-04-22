@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86_debug.lib ..\..\hamsterdb-alien\boost\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
@@ -147,7 +147,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64_debug.lib ..\..\hamsterdb-alien\boost\x64\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;..\..\hamsterdb-alien\boost\x64&quot;"
 				GenerateDebugInformation="true"
@@ -224,7 +224,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86.lib ..\..\hamsterdb-alien\boost\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\..\hamsterdb-alien\boost"
 				GenerateDebugInformation="true"
@@ -303,7 +303,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64.lib ..\..\hamsterdb-alien\boost\x64\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\hamsterdb-alien\boost\x64&quot;"
 				GenerateDebugInformation="true"

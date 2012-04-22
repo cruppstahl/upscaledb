@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				OutputFile="$(OutDir)\libhamserver-2.0.2.lib"
 				AdditionalLibraryDirectories="../../hamsterdb-alien/boost"
 			/>
 			<Tool
@@ -136,7 +136,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				OutputFile="$(OutDir)\libhamserver-2.0.2.lib"
 				AdditionalLibraryDirectories="../../hamsterdb-alien/boost/x64"
 			/>
 			<Tool
@@ -201,7 +201,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				OutputFile="$(OutDir)\libhamserver-2.0.2.lib"
 				AdditionalLibraryDirectories="../../hamsterdb-alien/boost"
 			/>
 			<Tool
@@ -267,7 +267,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				OutputFile="$(OutDir)\libhamserver-2.0.2.lib"
 				AdditionalLibraryDirectories="../../hamsterdb-alien/boost/x64"
 			/>
 			<Tool

@@ -2030,7 +2030,9 @@ ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
         return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock(db->get_env()->get_mutex());
+    ScopedLock lock;
+    if (db->get_env())
+        lock=ScopedLock(db->get_env()->get_mutex());
 
     db->set_error(0);
     db->set_compare_func(foo ? foo : db_default_compare);
