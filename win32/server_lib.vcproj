@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -68,6 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				AdditionalLibraryDirectories="../../hamsterdb-alien/boost"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -111,7 +112,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -136,6 +137,7 @@
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				AdditionalLibraryDirectories="../../hamsterdb-alien/boost/x64"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -178,7 +180,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -200,6 +202,7 @@
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				AdditionalLibraryDirectories="../../hamsterdb-alien/boost"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -243,7 +246,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -265,6 +268,7 @@
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.0.1.lib"
+				AdditionalLibraryDirectories="../../hamsterdb-alien/boost/x64"
 			/>
 			<Tool
 				Name="VCALinkTool"

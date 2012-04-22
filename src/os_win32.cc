@@ -224,7 +224,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     ov.Offset = (DWORD)addr;
     ov.OffsetHigh = addr >> 32;
     DWORD read;
-    if (!::ReadFile(fd, buffer, bufferlen, &read, &ov)) {
+    if (!::ReadFile(fd, buffer, (DWORD)bufferlen, &read, &ov)) {
         if( GetLastError() != ERROR_IO_PENDING ) {
             char buf[256];
             st=(ham_status_t)GetLastError();
@@ -252,7 +252,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     ov.Offset = (DWORD)addr;
     ov.OffsetHigh = addr >> 32;
     DWORD written;
-    if (!::WriteFile(fd, buffer, bufferlen, &written, &ov)) {
+    if (!::WriteFile(fd, buffer, (DWORD)bufferlen, &written, &ov)) {
         if( GetLastError() != ERROR_IO_PENDING ) {
             char buf[256];
             st=(ham_status_t)GetLastError();

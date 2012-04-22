@@ -23,7 +23,7 @@
 
 #include "endianswap.h"
 #include "error.h"
-
+#include "mem.h"
 
 #include "packstart.h"
 
@@ -206,8 +206,8 @@ class Page {
 
     /** win32: get a pointer to the mmap handle */
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-    HANDLE get_mmap_handle_ptr() {
-        return (m_win32mmap);
+    ham_fd_t *get_mmap_handle_ptr() {
+        return (&m_win32mmap);
     }
 #else
     ham_fd_t *get_mmap_handle_ptr() {

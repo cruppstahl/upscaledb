@@ -176,7 +176,7 @@ Journal::is_empty(void)
 }
 
 ham_status_t
-Journal::append_txn_begin(struct Transaction *txn, Environment *env, 
+Journal::append_txn_begin(Transaction *txn, Environment *env, 
                 const char *name, ham_u64_t lsn)
 {
     ham_status_t st;
@@ -220,7 +220,7 @@ Journal::append_txn_begin(struct Transaction *txn, Environment *env,
 
     if (txn_get_name(txn))
         st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
-                    (void *)txn_get_name(txn), strlen(txn_get_name(txn))+1);
+                    (void *)txn_get_name(txn), (ham_size_t)strlen(txn_get_name(txn))+1);
     else
         st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
     if (st)
@@ -236,7 +236,7 @@ Journal::append_txn_begin(struct Transaction *txn, Environment *env,
 }
 
 ham_status_t
-Journal::append_txn_abort(struct Transaction *txn, ham_u64_t lsn)
+Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
@@ -261,7 +261,7 @@ Journal::append_txn_abort(struct Transaction *txn, ham_u64_t lsn)
 }
 
 ham_status_t
-Journal::append_txn_commit(struct Transaction *txn, ham_u64_t lsn)
+Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
 {
     int idx;
     ham_status_t st;
@@ -416,7 +416,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
 
     /* read auxiliary data if it's available */
     if (entry->followup_size) {
-        *aux=allocate(entry->followup_size);
+        *aux=allocate((ham_size_t)entry->followup_size);
         if (!*aux)
             return (HAM_OUT_OF_MEMORY);
 
@@ -494,7 +494,7 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 }
 
 static ham_status_t
-__recover_get_txn(Environment *env, ham_u32_t txn_id, Transaction **ptxn)
+__recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
 {
     Transaction *txn=env->get_oldest_txn();
     while (txn) {

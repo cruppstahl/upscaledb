@@ -338,7 +338,7 @@ txn_begin(Transaction **ptxn, Environment *env, const char *name, ham_u32_t flag
     txn_set_id(txn, env->get_txn_id()+1);
     txn_set_flags(txn, flags);
     if (name) {
-        char *p=(char *)env->get_allocator()->alloc(strlen(name)+1);
+        char *p=(char *)env->get_allocator()->alloc((ham_size_t)strlen(name)+1);
         strcpy(p, name);
         txn_set_name(txn, p);
     }
