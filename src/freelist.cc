@@ -2403,7 +2403,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 }
 
                 /*
-                 * second, we still ain't got enough space, but we
+                 * otherwise, we can determine the new skip value: our
+                 * next probe should be here:
+                 */
+                bm_l += min_slice_width;
+
+                /*
+                 * we still ain't got enough space, but we
                  * already counted all the tail bits at [bm_l] -- if we
                  * haven't hit the upper bound already.
                  */
@@ -2414,16 +2420,15 @@ __freel_search_bits_ex(Device *device, Environment *env,
                     return (-1);
                 }
 
-                /*
-                 * otherwise, we can determine the new skip value: our
-                 * next probe should be here:
-                 */
-                bm_l += min_slice_width;
-
                 /* BM skipscan */
                 for (;;)
                 {
                     hints->cost++;
+
+                    if (bm_l >= bm_r) {
+                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        return (-1);
+                    }
 
                     /*
                     the 'byte level front scanner':

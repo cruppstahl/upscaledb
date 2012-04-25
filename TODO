@@ -103,6 +103,15 @@ x run monster tests
 
 x fix Windows build; add boost dependency, fix code, remove warnings...
 
+o some tests are failing
+  x freelist: eventuell ist bm_l >= bm_r ok? ausprobieren - ja
+  - unittests testen
+  - unittests mit valgrind testen
+  - die Tests unten müssten funktionieren
+  - alles committen, neuen release machen
+  - schauen ob die änderungen im test funktionieren (common/run-tests.sh)
+  - Ger bescheid sagen wegen freelist-bug
+
 o extend the FAQ
   - threadsafety
   - rec.data scope
