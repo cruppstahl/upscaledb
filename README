@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.1               Sun Feb 19 13:38:00 CET 2012
+hamsterdb Embedded Storage 2.0.2               Sun Apr 22 14:47:02 CEST 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,35 +12,21 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release adds a few minor features like setting a custom path for 
-log files and re-enabling approximate matching for use with Transactions.
-A few bugs were fixed as well, including a crash on Win32.
+With this release hamsterdb is now thread safe. Boost (http://www.boost.org)
+is now required for building the sources.
+Approximate matching is now enabled for ham_cursor_find.
 
 2. Changes
 
 New Features
-* Approximate matching now works if Transactions are enabled (only for
-    ham_find)
-* Added new parameter HAM_PARAM_LOG_DIRECTORY to specify the directory
-    where the log file and the journal files are stored
+* Approximate matching now works with ham_cursor_find
+* hamsterdb is now thread safe
 
 Bugfixes
-* Win32 release builds no longer crash when using Transactions
-* Win32: fixed build issue if HAM_DISABLE_COMPRESSION is defined (thanks,
-    Andy Thalmann (http://www.softdev.ch))
-* hamsterdb 2.0.0 failed to load database files created with hamsterdb 1.x
-    because of a bad version check
-* Fixed bug where HAM_ONLY_DUPLICATES was ignored when used in a
-    Transaction (thanks, Mark Ruijter)
+* Fixed a buffer overrun in the freelist
 
 Other Changes
-* The internal ham_device_t structure was rewritten as a C++ class. If you
-    use this structure to overwrite the device handling then you have to 
-    rewrite your code.
-* Now using the native Win32 API for os_pwrite and os_pread (thanks,
-    Andy Thalmann (http://www.softdev.ch))
-* Added a public macro HAM_API_REVISION to allow users to programmatically
-    distinguish between new and old interface of ham_txn_begin
+* Several code cleanups; more modules were converted to C++
 
 
 To see a list of all changes, look in the file ChangeLog.
@@ -49,7 +35,7 @@ To see a list of all changes, look in the file ChangeLog.
 
 - more transactional stuff (i.e. recreate pending transactions when 
     recovering from a crash)
-- multi threading/concurrency
+- fine-grained locking for faster concurrent access
 
 4. Features
 

@@ -97,16 +97,16 @@ class Journal
     bool is_empty(void);
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(struct Transaction *txn, Environment *env, 
+    ham_status_t append_txn_begin(Transaction *txn, Environment *env, 
                 const char *name, ham_u64_t lsn);
 
     /** appends a journal entry for
      * ham_txn_abort/ENTRY_TYPE_TXN_ABORT */
-    ham_status_t append_txn_abort(struct Transaction *txn, ham_u64_t lsn);
+    ham_status_t append_txn_abort(Transaction *txn, ham_u64_t lsn);
 
     /** appends a journal entry for
      * ham_txn_commit/ENTRY_TYPE_TXN_COMMIT */
-    ham_status_t append_txn_commit(struct Transaction *txn, ham_u64_t lsn);
+    ham_status_t append_txn_commit(Transaction *txn, ham_u64_t lsn);
 
     /** appends a journal entry for ham_insert/ENTRY_TYPE_INSERT */
     ham_status_t append_insert(Database *db, Transaction *txn, 

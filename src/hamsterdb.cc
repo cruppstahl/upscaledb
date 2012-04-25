@@ -591,7 +591,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 |HAM_DONT_LOCK
                                 |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
-                                |DB_DISABLE_AUTO_FLUSH
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT
@@ -2031,7 +2030,9 @@ ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
         return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock(db->get_env()->get_mutex());
+    ScopedLock lock;
+    if (db->get_env())
+        lock=ScopedLock(db->get_env()->get_mutex());
 
     db->set_error(0);
     db->set_compare_func(foo ? foo : db_default_compare);
@@ -2842,6 +2843,8 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             t=n;
         }
     }
+    // make sure all Transactions are flushed
+    env_flush_committed_txns(env);
 
     db->set_error(0);
     

@@ -29,7 +29,7 @@ x design redundancy
 
 x enable approx matching for cursors (see Sevencat's email)
 
-o implement basic concurrency
+x implement basic concurrency
     x ./configure: add dependency to boost
     x abstract boost stuff using typedefs:
         x thread
@@ -48,70 +48,99 @@ o implement basic concurrency
             x this needs a test
             x check for memory leaks
 
-    o rewrite monster testsuite
-        o every database will run in its own thread
-        o if --num-threads > 1: only create additional hamsterdb threads;
-            bdb will always run in 1 thread
-        o engine: split create/open/close in 
+    x rewrite monster testsuite
+        x engine: split create/open/close in 
             x create_env/create_db, 
             x open_env/open_db, 
-            o close_env/close_db
-        o create_env: only execute if thread-id == 1; all others wait till
+            x close_env/close_db
+        x if --num-threads > 1: only create additional hamsterdb threads;
+            bdb will always run in 1 thread
+        x create_env: only execute if thread-id == 1; all others wait till
             thread 1 completed, then run
-        o open_env: only execute if thread-id == 1; all others wait till
+        x open_env: only execute if thread-id == 1; all others wait till
             thread 1 completed, then run
-        o close_env: only execute if thread-id == 1; only execute if all
+        x close_env: only execute if thread-id == 1; only execute if all
             other threads are done closing their db
-        o engine: has a counter which is increased by the database after
-            every operation; will then compare the results of al threads.
-            then reset the counter and signal all threads that they can
-            continue
-    o check with valgrind
-    o check with helgrind
-    o check with ThreadSanitizer
+        x reopen still does not work
+            x Status und Ergebnisse der Aufrufe werden nicht verglichen
+            x status im controller vergleichen
+            x FIND: records und status im controller vergleichen
+            x FULLCHECK
+                x forwards
+                x backwards
+                x find
+            x remove debug-output (or: only print if VERBOSE)
+            x also check all FULLCHECKs with transactions
+        x increase MAX_DBs to 20
 
-    o create a wrapper script for the tests 
-        (based on http://search.cpan.org/~garu/App-Rad-1.04/)
-        that calls and manages the files, gathers the metrics, generates
-        tests, create graphs, builds and links the binaries etc
-        o needs a config file which describes input/output paths etc
-        o monster.pl run-suite 1
-        o monster.pl run-test ../../testsuite/1/1.tst --options...
-            o integrate valgrind/hellgrind
-            o integrate ThreadSanitizer
-            o integrate clang
-        o monster.pl create-graphs
-        o monster.pl create-test --options...
+    x check with valgrind
+    x check with ham_info - every thread must create its own database
+    x check with helgrind and create suppressions file
+    x check with drd and create suppressions file
 
-    o need a way to graphically display performance metrics
-        o output in a text file
-            version/configuration/test-id
-            each test is run in multiple threads
-                performance-metrics based on time(), not real duration
-                memory-metrics
-                disk size
-                same for berkeleydb
-        o skript that generates a static html page from this file, 
-            w/ graphs over the different versions
+    x improve metrics (same as in hypertable shell/load generator)
+        x perf-* is always 0
+        x format values as float, not as ticks
 
-    o need a "load-generator" which runs for a defined duration 
-        - max number of keys, max bytes to insert
-        - key distribution: random, ascending, descending, zipfian, ...
-        - duplicates yes/no
-        - ...
-        - before execution: dump into a (temp.) file, and if the test fails:
-            copy the file to a reserved directory
-        - read from file (this is the same as we have now)
+    x add multi-threading to monster testsuite
+    x remove HAM_RECORD_USER_ALLOC from monster.sh suite
 
-o improve valgrind tests of the unittests 
-    o collect all valgrind suppressions
-    o create a new target in the makefile which uses the suppressions
-    o release.sh: use this target, check that there are no un-suppressed
-        errors (or leaks)
+x merge fixes of Bhautik-branch
+
+x what is DB_DISABLE_AUTO_FLUSH? remove it
+
+x need documentation for thread-safety of the record->data pointers
+
+x improve valgrind tests of the unittests 
+    x collect all valgrind suppressions
+    x create a new target in the makefile which uses the suppressions
+
+x run monster tests
+  x ./test --num-threads=2 --use-transactions=20 --overwrite ../../testfiles/2/blb-001.tst
+  x ./test --num-threads=2 --use-transactions=20 --use-cursors --overwrite ../../testfiles/2/blb-001.tst
+  x ./test --inmemorydb ../../testfiles/3/ext_022.tst
+  x ./test --use-cursors --inmemorydb ../../testfiles/3/ext_022.tst
+
+x fix Windows build; add boost dependency, fix code, remove warnings...
+
+o some tests are failing
+  x freelist: eventuell ist bm_l >= bm_r ok? ausprobieren - ja
+  - unittests testen
+  - unittests mit valgrind testen
+  - die Tests unten müssten funktionieren
+  - alles committen, neuen release machen
+  - schauen ob die änderungen im test funktionieren (common/run-tests.sh)
+  - Ger bescheid sagen wegen freelist-bug
+
+o extend the FAQ
+  - threadsafety
+  - rec.data scope
+
+o extend the documentation
+
+o update doxygen documentation on the webpage
+
+o update prebuilt libraries on the webpage (include boost)
+
+. need a way to graphically display performance metrics
+    o output in a text file
+        version/configuration/test-id
+        each test is run in multiple threads
+            performance-metrics based on time(), not real duration
+            memory-metrics
+            disk size
+            same for berkeleydb
+    o skript that generates a static html page from this file, 
+        w/ graphs over the different versions
+
+
+
+
+
+o more fine-grained locking: lock ham_db_t handle for ham_insert, ham_find,
+    ham_cursor_*, ham_erase
 
 o also remove locking from C# and Java APIs
-
-
 
 o btree_read_record: calls db->get_extended_key, which should use an
     existing ByteArray to avoid memory allocations
@@ -133,15 +162,21 @@ o clean up the "close" functions
         Database::close_cursor()
 
 o python API - update and integrate
+    o rewrite with boost::python??
     o also add to win32 package
-
-o mail an Tony B, Curt M., andere
-
 
 o continue with c++-ification of db.h/db.cc
 
 o c++-ify the backend
     o remove be_set_dirty, replace with be->_fun_flush()
+
+
+
+
+
+o move flushing of transactions in background
+    o new flag HAM_DISABLE_ASYNC_COMMITS
+    o need new test: n threads; each thread inserts keys [i*n, i*(n+1))
 
 o continue with c++-ification of the environment - need to split into
     local and remote (same as for Database class)
@@ -156,7 +191,33 @@ o need a function to get the txn of a conflict (same as in v2)
 o recovery: re-create pending transactions (if required)
     o needs a function to enumerate them
 
-. c++-ify the transaction
+o c++-ify the transaction
+
+
+
+
+
+
+o allow transactions in-memory
+
+o allow transactions w/o journal
+
+o allow transactions w/o recovery
+
+o rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
+
+o new node format:
+    iiikkkkkkkkkrrrrrrrr
+
+    iii: fixed size index (skip-list)
+    kkk: keys
+    rrr: records
+    keys can have different compressions (bitmap, suppress null, ...)
+    records are compressed; will be multiplied by BLOCKSIZE (32)
+    each key consists of { char flag; short record_id; char data[1]; }
+        where record_id is an offset into rrrrrrrrr
+    keys are sorted lazily (i.e. inserted at the end and only sorted 
+        when flushed to disk or when searched
 
 . android port (needs new java api) in /contrib directory (it's on a separate
     branch)

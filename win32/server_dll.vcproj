@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -66,8 +66,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.0.1.dll"
+				OutputFile="$(OutDir)\hamserver-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories=";../../hamsterdb-alien/boost"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -122,7 +123,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,8 +146,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamserver-2.0.1.dll"
+				OutputFile="$(OutDir)\hamserver-2.0.2.dll"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories=";../../hamsterdb-alien/boost/x64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -200,7 +202,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -220,8 +222,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.0.1.dll"
+				OutputFile="$(OutDir)\hamserver-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories=";../../hamsterdb-alien/boost"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -278,7 +281,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src;../../hamsterdb-alien/boost"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -298,8 +301,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamserver-2.0.1.dll"
+				OutputFile="$(OutDir)\hamserver-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories=";../../hamsterdb-alien/boost/x64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"

@@ -61,6 +61,10 @@ bfc_sample_SOURCES = bfc-sample.cpp \
                   bfc-signal.h \
                   bfc-signal.c
 
+valgrind:
+	valgrind --suppressions=suppressions.valgrind --leak-check=full \
+			--show-reachable=yes .libs/lt-test 
+
 bfc_sample_LDADD = -ldl
 
 recovery_SOURCES = recovery.cpp

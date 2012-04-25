@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
-	Name="hamsterdb_dll"
+	Version="9,00"
+	Name="dll"
 	ProjectGUID="{B82D2DF8-F8B2-4331-86D0-508BBD806507}"
 	RootNamespace="dll"
 	Keyword="Win32Proj"
@@ -21,8 +21,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
-			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			OutputDirectory="out\dll_debug"
+			IntermediateDirectory="tmp\dll_debug"
 			ConfigurationType="2"
 			CharacterSet="1"
 			>
@@ -44,8 +44,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../../hamsterdb-alien/libcurl"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;&quot;../../hamsterdb-alien/boost&quot;;&quot;../../hamsterdb-alien/libcurl&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -66,9 +66,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86_debug.lib ..\..\hamsterdb-alien\boost\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -99,8 +100,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
-			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			OutputDirectory="out\dll_debug_x64"
+			IntermediateDirectory="tmp\dll_debug_x64"
 			ConfigurationType="2"
 			CharacterSet="1"
 			>
@@ -123,8 +124,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../../hamsterdb-alien/libcurl"
-				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;&quot;../../hamsterdb-alien/boost&quot;;&quot;../../hamsterdb-alien/libcurl&quot;"
+				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -145,9 +146,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64_debug.lib ..\..\hamsterdb-alien\boost\x64\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="&quot;..\..\hamsterdb-alien\boost\x64&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -178,8 +180,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
-			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			OutputDirectory="out\dll"
+			IntermediateDirectory="tmp\dll"
 			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -201,8 +203,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../../hamsterdb-alien/libcurl"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;&quot;../../hamsterdb-alien/boost&quot;;&quot;../../hamsterdb-alien/libcurl&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
@@ -221,9 +223,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86.lib ..\..\hamsterdb-alien\boost\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="..\..\hamsterdb-alien\boost"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -256,8 +259,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(SolutionDir)bin/$(PlatformName)_MSVC2008.$(ConfigurationName)"
-			IntermediateDirectory="$(SolutionDir)obj/$(ProjectName)_$(PlatformName)_MSVC2008.$(ConfigurationName)"
+			OutputDirectory="out\dll_x64"
+			IntermediateDirectory="tmp\dll_x64"
 			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -280,8 +283,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../../hamsterdb-alien/libcurl"
-				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;&quot;../../hamsterdb-alien/boost&quot;;&quot;../../hamsterdb-alien/libcurl&quot;"
+				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -299,9 +302,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\hamsterdb-2.0.1.dll"
+				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64.lib ..\..\hamsterdb-alien\boost\x64\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
+				OutputFile="$(OutDir)\hamsterdb-2.0.2.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="&quot;..\..\hamsterdb-alien\boost\x64&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"

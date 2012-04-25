@@ -551,10 +551,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn2, &key, &rec2, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
 
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec2.size));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
 
     void txnInsertFind2Test(void)

@@ -12,7 +12,7 @@
 /**
  * @file hamsterdb.hpp
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.0.1
+ * @version 2.0.2
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible.

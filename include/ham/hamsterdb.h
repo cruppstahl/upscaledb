@@ -13,7 +13,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.0.1
+ * @version 2.0.2
  *
  * @mainpage
  *
@@ -158,13 +158,18 @@ typedef struct ham_cursor_t ham_cursor_t;
  * When hamsterdb returns a record structure, the pointer to the record
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent hamsterdb API calls using the same Transaction
- * (or, if Transactions are disabled, using the same Database).
+ * (or, if Transactions are disabled, using the same Database). The pointer
+ * will also be invalidated after the Transaction is aborted or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
  * In this case, you have to set the flag @ref HAM_RECORD_USER_ALLOC. The
  * @a size parameter will then return the size of the record. It's the
  * responsibility of the caller to make sure that the @a data parameter is
  * large enough for the record.
+ *
+ * The record->data pointer is not threadsafe. For threadsafe access it is
+ * recommended to use @a HAM_RECORD_USER_ALLOC or have each thread manage its
+ * own Transaction.
  */
 typedef struct
 {
@@ -210,12 +215,18 @@ typedef struct
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent calls to @ref ham_cursor_move using the 
  * same Transaction (or, if Transactions are disabled, using the same Database).
+ * The pointer will also be invalidated after the Transaction is aborted 
+ * or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
  * In this case, you have to set the flag @ref HAM_KEY_USER_ALLOC. The
  * @a size parameter will then return the size of the key. It's the
  * responsibility of the caller to make sure that the @a data parameter is
  * large enough for the key.
+ *
+ * The key->data pointer is not threadsafe. For threadsafe access it is
+ * recommended to use @a HAM_KEY_USER_ALLOC or have each thread manage its
+ * own Transaction.
  */
 typedef struct
 {
