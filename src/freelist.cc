@@ -66,14 +66,14 @@
 #define freel_set_allocated_bitsXX(fl, u)  freel_set_allocated_bits16(fl, u)
 #define freel_get_bitmapXX(fl)             freel_get_bitmap16(fl)
 
-#define __freel_lazy_createXX                __freel_lazy_create16
+#define __freel_lazy_createXX               __freel_lazy_create16
 #define __freel_destructorXX                __freel_destructor16
 #define __freel_alloc_areaXX                __freel_alloc_area16
-#define __freel_mark_freeXX                    __freel_mark_free16
-#define __freel_check_area_is_allocatedXX    __freel_check_area_is_allocated16
+#define __freel_mark_freeXX                 __freel_mark_free16
+#define __freel_check_area_is_allocatedXX   __freel_check_area_is_allocated16
 #define __freel_init_perf_dataXX            __freel_init_perf_data16
 
-typedef ham_u16_t                            ham_uXX_t;
+typedef ham_u16_t                           ham_uXX_t;
 
 #define __freel_alloc_pageXX                __freel_alloc_page16
 
@@ -155,7 +155,7 @@ extern ham_status_t
 __freel_check_area_is_allocated16(Device *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
 __freel_alloc_area16(ham_offset_t *addr_ref, Device *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
-extern ham_status_t                                                        
+extern ham_status_t
 __freel_init_perf_data16(freelist_cache_t *cache, Device *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 extern ham_status_t
@@ -170,7 +170,7 @@ extern ham_status_t
 __freel_check_area_is_allocated32(Device *dev, Environment *env, ham_offset_t address, ham_size_t size);
 extern ham_status_t
 __freel_alloc_area32(ham_offset_t *addr_ref, Device *dev, Environment *env, Database *db, ham_size_t size, ham_bool_t aligned, ham_offset_t lower_bound_address);
-extern ham_status_t                                                        
+extern ham_status_t
 __freel_init_perf_data32(freelist_cache_t *cache, Device *dev, Environment *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
 /**
@@ -488,7 +488,7 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 }
 
 /**
-* Search for a sufficiently large free slot in the freelist bitarray.
+* Search for a sufficiently large free slot in the freelist bit-array.
 *
 * Before v1.0.9, this was a sequential scan, sped up by first scanning
 * QWORDs in an outer loop in order to find spots with at least 1 free
@@ -591,7 +591,7 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 *     deliver a sufficiently trustworthy 'probable size of
 *     free area' to do this before we wind down to a (costly)
 *     sequential scan. Note that the two bsearches can
-*     be reduced to the first only, if it's verdict is that 
+*     be reduced to the first only, if its verdict is that
 *     the range starts at offset -P+1, i.e. the first bit
 *     past the previous (failed) sample in the skip loop.
 *     The two blocks bsearched are, given the above, assumed
@@ -723,14 +723,14 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 *     space to slices of 1 bit each, unless we
 *     limit the bsearch prescan to BYTE-level,
 *     i.e. 8-bit slices only for speed sake. 
-*     AH! ANOTHER IMPROEMENT THERE!
+*     AH! ANOTHER IMPROVEMENT THERE!
 *
 *     the former (bsearch-at-start) will ALWAYS
 *     limit its divide-and-conquer to slices of
 *     P bits (or more); further reducing the 
 *     minimum slice is identical to having a BM
 *     skip loop with a jump distance of P/2 (or
-*     lower), which is considered sub-optimumal.
+*     lower), which is considered sub-optimal.
 *     Such a bsearch would be blending the search
 *     pattern into the task area alotted the 
 *     dual-bsearch backtrack prescans.
@@ -834,8 +834,8 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 * @author Ger Hobbelt, ger@hobbelt.com
 */
 
-/** 8 QWORDS or less: 1-stage scan, otherwise, bsearch prescan */
-#define SIMPLE_SCAN_THRESHOLD            8 
+/** 8 QWORDS or less: 1-stage scan, otherwise, bsearch pre-scan */
+#define SIMPLE_SCAN_THRESHOLD            8
 
 
 
@@ -1500,7 +1500,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
          * (i.e. searches for size >= sizeof(2 QWORDS)),
          *
          * (2) a search for sizes which are smaller, but still require
-         * spanning an e BYTE (i.e. searches for size >= sizeof(2
+         * spanning an entire BYTE (i.e. searches for size >= sizeof(2
          * BYTES)),
          *
          * (3) a search for sizes even tinier than that
@@ -1584,8 +1584,15 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         }
                         if (r < l + d)
                         {
-                            /* l == lowest PROBABLY okay probe location */
-                            break;
+                            if (r < l + 1)
+                        	{
+                            	/* l == lowest PROBABLY okay probe location */
+                            	break;
+							}
+							else
+							{
+								d = 1;
+							}
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
@@ -1599,7 +1606,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * QWORD
                      * _and_ QWORD[bm_l-1] are all-1s at least, so we
                      * don't have to linear-scan those again. However,
-                     * we we 'lost' the QWORD[bm_l-1] info as the guard
+                     * we 'lost' the QWORD[bm_l-1] info as the guard
                      * scan went on, so we have to rescan that one again
                      * anyway.
                      *
@@ -1916,8 +1923,15 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         }
                         if (r < l + d)
                         {
-                            /* l == lowest PROBABLY okay probe location */
-                            break;
+                            if (r < l + 1)
+                        	{
+                            	/* l == lowest PROBABLY okay probe location */
+                            	break;
+							}
+							else
+							{
+								d = 1;
+							}
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
@@ -1931,7 +1945,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * BYTE
                      * _and_ BYTE[bm_l-1] are all-1s at least, so we
                      * don't have to linear-scan those again. However,
-                     * we we 'lost' the BYTE[bm_l-1] info as the guard
+                     * we 'lost' the BYTE[bm_l-1] info as the guard
                      * scan went on, so we have to rescan that one again
                      * anyway.
                      *
@@ -2304,8 +2318,15 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         }
                         if (r < l + d)
                         {
-                            /* l == lowest PROBABLY okay probe location */
-                            break;
+                            if (r < l + 1)
+                        	{
+                            	/* l == lowest PROBABLY okay probe location */
+                            	break;
+							}
+							else
+							{
+								d = 1;
+							}
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
@@ -2319,7 +2340,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * BIT
                      * _and_ BIT[bm_l-1] are all-1s at least, so we
                      * don't have to linear-scan those again. However,
-                     * we we 'lost' the BIT[bm_l-1] info as the guard
+                     * we 'lost' the BIT[bm_l-1] info as the guard
                      * scan went on, so we have to rescan that one again
                      * anyway.
                      *
@@ -2408,27 +2429,10 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  */
                 bm_l += min_slice_width;
 
-                /*
-                 * we still ain't got enough space, but we
-                 * already counted all the tail bits at [bm_l] -- if we
-                 * haven't hit the upper bound already.
-                 */
-                if (bm_l >= bm_r)
-                {
-                    /* upper bound hit: we won't be able to report a match. */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
-                    return (-1);
-                }
-
                 /* BM skipscan */
-                for (;;)
+                while (bm_l < bm_r)
                 {
                     hints->cost++;
-
-                    if (bm_l >= bm_r) {
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
-                        return (-1);
-                    }
 
                     /*
                     the 'byte level front scanner':
@@ -2447,7 +2451,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         {
                             hints->cost++;
                         }
-                        
+
                         /*
                          * BM: a miss: skip to next opportunity
                          * sequentially:
@@ -2463,12 +2467,6 @@ __freel_search_bits_ex(Device *device, Environment *env,
                          * the next part of the skip:
                          */
                         bm_l += min_slice_width - 1;
-                        if (bm_l >= bm_r)
-                        {
-                            /* report our failure to find a free slot */
-                            db_update_freelist_stats_fail(device, env, entry, f, hints);
-                            return (-1);
-                        }
                         continue;
                     }
 
@@ -2484,13 +2482,19 @@ __freel_search_bits_ex(Device *device, Environment *env,
                     {
                         /* BM: a miss: skip to next opportunity sequentially */
                         bm_l += min_slice_width;
-                        if (bm_l >= bm_r)
-                        {
-                            /* report our failure to find a free slot */
-                            db_update_freelist_stats_fail(device, env, entry, f, hints);
-                            return (-1);
-                        }
                     }
+                }
+
+                /*
+                 * we still ain't got enough space, but we
+                 * already counted all the tail bits at [bm_l] -- if we
+                 * haven't hit the upper bound already.
+                 */
+                if (bm_l >= bm_r)
+                {
+                    /* upper bound hit: we won't be able to report a match. */
+                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    return (-1);
                 }
             }
         }
@@ -2589,7 +2593,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
              */
             if (min_slice_width <= 16)
             {
-                /* the usual; just step on it */
+                /* the usual; just step on it using Duff's Device (loop unrolling) */
                 ham_u32_t l = (bm_l >> 3);
                 ham_u32_t r = ((bm_r + 8 - 1) >> 3);
                 ham_u8_t *e = p + r;
@@ -2633,9 +2637,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 }
 
                 /*
-                now we have the byte with the free bit slot;
-                see which bit it is:
-                */
+                 * now we have the byte with the free bit slot;
+                 * see which bit it is:
+                 */
                 l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
 
                 ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
@@ -2690,9 +2694,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 }
 
                 /*
-                now we have the byte with the free bit slot;
-                see which bit it is:
-                */
+                 * now we have the byte with the free bit slot;
+                 * see which bit it is:
+                 */
                 l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
 
                 ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
@@ -2798,7 +2802,7 @@ __freel_alloc_pageXX(Page **page_ref, Device *device, Environment *env, freelist
              prolong the life expectancy of certain pages in a cache), then
              'fp' will point to Nirvana by the time the overflow address
              gets updated further below.
-             
+
              The solution for that little conundrum is to temporarily 'lock'
              prev_page into the cache, which is done simply by bumping up
              it's reference count, bumping down again once the update has been
@@ -2832,6 +2836,8 @@ __freel_alloc_pageXX(Page **page_ref, Device *device, Environment *env, freelist
                 ham_assert(st != 0, (0));
                 return st;
             }
+            ham_assert(st == 0, (0));
+
             freel_set_overflow(fp, page->get_self());
             /* done editing /previous/ freelist page */
 
@@ -3009,7 +3015,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
          * the regular check: no way if there's not enough in there, lump sum 
          */
         if (hints->page_span_width > 1) {
-            /*        
+            /*
              * handle this a little differently for 'huge blobs' which span 
              * multiple freelist entries: there, we'll be looking at _at 
              * least_ SPAN-2 'fully allocated AND free' freelist entries,
@@ -3811,7 +3817,7 @@ __freel_check_area_is_allocatedXX(Device *device, Environment *env, ham_offset_t
  * removed from the in-memory cache, unless the currently active
  * freelist algorithm persists this data to disc.
  */
-ham_status_t                                                        
+ham_status_t
 __freel_init_perf_dataXX(freelist_cache_t *cache, Device *device, Environment *env, 
         freelist_entry_t *entry, freelist_payload_t *fp)
 {
@@ -3893,7 +3899,7 @@ __freel_constructor(Device *device, Environment *env, Database *db)
     {
 /*
 TODO TODO TODO
-env does not know about DAM - an dit's not necessary. But it should know if
+env does not know about DAM - and it's not necessary. But it should know if
 it's pre-1.1.0. ???
 it's possible that 'db' is NULL - so how do i know which constructor to
 call?? alternatively, we just call the constructor when opening/creating 
