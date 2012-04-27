@@ -103,16 +103,45 @@ x run monster tests
 
 x fix Windows build; add boost dependency, fix code, remove warnings...
 
-o some tests are failing
-  x freelist: eventuell ist bm_l >= bm_r ok? ausprobieren - ja
-  - unittests testen
-  - unittests mit valgrind testen
-  - die Tests unten müssten funktionieren
-  - alles committen, neuen release machen
-  - schauen ob die änderungen im test funktionieren (common/run-tests.sh)
-  - Ger bescheid sagen wegen freelist-bug
+x some tests are failing
+  x freelist: test with bm_l >= bm_r
+  x run unittests (also test with valgrind)
+  x tell Ger about this issue
 
-o extend the FAQ
+o unittest: valgrind reports leaks in the test
+==22694== 150 bytes in 5 blocks are definitely lost in loss record 1 of 6
+==22694==    at 0x4C28B35: operator new(unsigned long)
+(vg_replace_malloc.c:261)
+==22694==    by 0x575B058: std::string::_Rep::_S_create(unsigned long, unsigned
+long, std::allocator<char> const&) (in
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
+==22694==    by 0x575B249: std::string::_M_mutate(unsigned long, unsigned long,
+unsigned long) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
+==22694==    by 0x575B3EB: std::string::_M_replace_safe(unsigned long, unsigned
+long, char const*, unsigned long) (in
+/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
+==22694==    by 0x422671: LogEntry::LogEntry(unsigned long, unsigned long,
+unsigned int, unsigned short, char const*) (journal.cpp:46)
+==22694==    by 0x42C809: JournalTest::iterateOverLogMultipleEntryTest()
+(journal.cpp:587)
+==22694==    by 0x40C5C9: bfc::fixture::FUT_invoker(bfc::testrunner*, void
+(bfc::fixture::*)(), char const*, bfc::bfc_state_t, bfc::error&)
+(bfc-testsuite.hpp:647)
+==22694==    by 0x5F5638: bfc::testrunner::cpp_eh_run(bfc::testrunner*,
+bfc::fixture*, void (bfc::fixture::*)(), char const*, bfc::bfc_state_t,
+bfc::error&) (bfc-testsuite.cpp:379)
+==22694==    by 0x5F5CD2: bfc::testrunner::exec_testfun(bfc::testrunner*,
+bfc::fixture*, void (bfc::fixture::*)(), char const*, bfc::bfc_state_t,
+bfc::error&) (bfc-testsuite.cpp:515)
+==22694==    by 0x5F8179: bfc::testrunner::exec_a_single_test(bfc::fixture*,
+bfc::test const*) (bfc-testsuite.cpp:1366)
+==22694==    by 0x5F7EAB: bfc::testrunner::run(bfc::fixture*, bfc::test const*,
+bfc::bfc_error_report_mode_t) (bfc-testsuite.cpp:1325)
+==22694==    by 0x5F7A84: bfc::testrunner::run(std::string const&, std::string
+const&, std::string const&, std::string const&, bool, bool, bool)
+(bfc-testsuite.
+
+o extend the FAQ and the tutorial
   - threadsafety
   - rec.data scope
 
@@ -136,6 +165,8 @@ o update prebuilt libraries on the webpage (include boost)
 
 
 
+o why do tests with 20 threads fail with oom when using mmap? the cache limits
+    should still work
 
 o more fine-grained locking: lock ham_db_t handle for ham_insert, ham_find,
     ham_cursor_*, ham_erase
