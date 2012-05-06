@@ -1072,8 +1072,10 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     ScopedLock lock(env->get_mutex());
 
+#if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(proto_shutdown);
+#endif
 
     /*
      * make sure that this environment is not yet open/created
@@ -1264,8 +1266,10 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 
     ScopedLock lock(env->get_mutex());
 
+#if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(proto_shutdown);
+#endif
 
     /* make sure that this environment is not yet open/created */
     if (env->is_active()) {
