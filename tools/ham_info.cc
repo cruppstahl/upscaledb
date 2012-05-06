@@ -97,7 +97,7 @@ print_environment(ham_env_t *env)
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full)
 {
-    ham_btree_t *be;
+    BtreeBackend *be;
     ham_cursor_t *cursor;
     ham_status_t st;
     ham_key_t key;
@@ -106,19 +106,17 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
              max_key_size=0, min_rec_size=0xffffffff, max_rec_size=0,
             total_key_size=0, total_rec_size=0;
 
-    be=(ham_btree_t *)((Database *)db)->get_backend();
+    be=(BtreeBackend *)((Database *)db)->get_backend();
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
 
     printf("\n");
     printf("    database %d (0x%x)\n", (int)dbname, (int)dbname);
-    printf("        max key size:           %u\n", 
-            be_get_keysize(be));
-    printf("        max keys per page:      %u\n", 
-            btree_get_maxkeys(be));
+    printf("        max key size:           %u\n", be->get_keysize());
+    printf("        max keys per page:      %u\n", be->get_maxkeys());
     printf("        address of root page:   %llu\n", 
-            (long long unsigned int)btree_get_rootpage(be));
+            (long long unsigned int)be->get_rootpage());
     printf("        flags:                  0x%04x\n", 
             ((Database *)db)->get_rt_flags());
 

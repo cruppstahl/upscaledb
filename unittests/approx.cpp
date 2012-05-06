@@ -83,8 +83,8 @@ public:
         r.data=k.data;
         r.size=k.size;
 
-        ham_backend_t *be=((Database *)m_db)->get_backend();
-        return (be->_fun_insert(be, (Transaction *)m_txn, &k, &r, 0));
+        BtreeBackend *be=(BtreeBackend *)((Database *)m_db)->get_backend();
+        return (be->insert((Transaction *)m_txn, &k, &r, 0));
     }
 
     ham_status_t insertTxn(const char *s, ham_u32_t flags=0) {

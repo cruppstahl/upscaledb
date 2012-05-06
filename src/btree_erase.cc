@@ -45,7 +45,7 @@ typedef struct erase_scratchpad_t
     /*
      * the backend pointer
      */
-    ham_btree_t *be;
+    BtreeBackend *be;
 
     /*
      * the flags of the ham_erase()-call
@@ -153,14 +153,14 @@ my_remove_entry(Page *page, ham_s32_t slot,
 #define INTERNAL_KEY 2
 
 static ham_status_t
-btree_erase_impl(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         btree_cursor_t *cursor, ham_u32_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
     Page *root;
     Page *p;
     ham_offset_t rootaddr;
-    Database *db=be_get_db(be);
+    Database *db=be->get_db();
     erase_scratchpad_t scratchpad;
     erase_hints_t hints = {flags, flags, 
                     cursor 
@@ -196,32 +196,23 @@ btree_erase_impl(ham_btree_t *be, Transaction *txn, ham_key_t *key,
     /* 
      * get the root-page...
      */
-    rootaddr=btree_get_rootpage(be);
-    if (!rootaddr)
-    {
+    rootaddr=be->get_rootpage();
+    if (!rootaddr) {
         btree_stats_update_erase_fail(db, &hints);
         return HAM_KEY_NOT_FOUND;
     }
     st=db_fetch_page(&root, db, rootaddr, flags);
-    ham_assert(st ? !root : 1, (0));
-    if (!root)
-    {
-        btree_stats_update_erase_fail(db, &hints);
-        return st ? st : HAM_INTERNAL_ERROR;
-    }
-
-    /* 
-     * ... and start the recursion 
-     */
-    st=my_erase_recursive(&p, root, 0, 0, 0, 0, 0, &scratchpad, &hints);
     if (st)
-    {
+        return (st);
+
+    /* ... and start the recursion */
+    st=my_erase_recursive(&p, root, 0, 0, 0, 0, 0, &scratchpad, &hints);
+    if (st) {
         btree_stats_update_erase_fail(db, &hints);
         return (st);
     }
 
-    if (p) 
-    {
+    if (p) {
         ham_status_t st;
 
         /* 
@@ -263,21 +254,20 @@ my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left, ham_offset_t 
     Page *tempp=0;
     Database *db=page->get_db();
     btree_node_t *node=page_get_btree_node(page);
-    ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
+    ham_size_t maxkeys=scratchpad->be->get_maxkeys();
 
     *page_ref = 0;
 
     /* 
      * empty node? then most likely we're in the empty root page.
      */
-    if (btree_node_get_count(node)==0) {
+    if (btree_node_get_count(node)==0)
         return HAM_KEY_NOT_FOUND;
-    }
 
     /*
      * mark the nodes which may need rebalancing
      */
-    if (btree_get_rootpage(scratchpad->be)==page->get_self())
+    if (scratchpad->be->get_rootpage()==page->get_self())
         isfew=(btree_node_get_count(node)<=1);
     else
         isfew=(btree_node_get_count(node)<btree_get_minkeys(maxkeys)); 
@@ -423,9 +413,9 @@ __collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
 {
     Environment *env;
 
-    btree_set_rootpage(scratchpad->be, newroot->get_self());
-    be_set_dirty(scratchpad->be, HAM_TRUE);
-    scratchpad->be->_fun_flush(scratchpad->be);
+    scratchpad->be->set_rootpage( newroot->get_self());
+    scratchpad->be->set_dirty(true);
+    scratchpad->be->flush();
     ham_assert(newroot->get_db(), (0));
 
     env=newroot->get_db()->get_env();
@@ -455,7 +445,7 @@ my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t rig
     btree_node_t *rightnode=0;
     ham_bool_t fewleft=HAM_FALSE;
     ham_bool_t fewright=HAM_FALSE;
-    ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
+    ham_size_t maxkeys=scratchpad->be->get_maxkeys();
     ham_size_t minkeys=btree_get_minkeys(maxkeys);
 
     ham_assert(page->get_db(), (0));
@@ -1182,8 +1172,7 @@ my_copy_key(Database *db, Transaction *txn, btree_key_t *lhs, btree_key_t *rhs)
      * have to add reference counting to the blob, because two keys are now 
      * using the same blobid. this would be too complicated.
      */
-    if (key_get_flags(rhs)&KEY_IS_EXTENDED) 
-    {
+    if (key_get_flags(rhs)&KEY_IS_EXTENDED) {
         ham_status_t st;
         ham_record_t record;
         ham_offset_t rhsblobid, lhsblobid;
@@ -1445,27 +1434,27 @@ free_all:
 }
 
 ham_status_t
-btree_erase(ham_btree_t *be, Transaction *txn, ham_key_t *key, ham_u32_t flags)
+BtreeBackend::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 {
-    return (btree_erase_impl(be, txn, key, 0, 0, flags));
+    return (btree_erase_impl(this, txn, key, 0, 0, flags));
 }
 
 ham_status_t
-btree_erase_duplicate(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+btree_erase_duplicate(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         ham_u32_t dupe_id, ham_u32_t flags)
 {
     return (btree_erase_impl(be, txn, key, 0, dupe_id, flags));
 }
 
 ham_status_t
-btree_erase_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+btree_erase_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         btree_cursor_t *cursor, ham_u32_t flags) 
 {
     return (btree_erase_impl(be, txn, key, cursor, 0, flags));
 }
 
 ham_status_t
-btree_cursor_erase_fasttrack(ham_btree_t *be, Transaction *txn,
+btree_cursor_erase_fasttrack(BtreeBackend *be, Transaction *txn,
         btree_cursor_t *cursor)
 {
     erase_scratchpad_t scratchpad;

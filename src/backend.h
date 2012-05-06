@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -10,7 +10,7 @@
  */
 
 /**
- * @brief a base-"class" for a generic database backend
+ * @brief a base class for a generic database backend
  *
  */
 
@@ -38,7 +38,7 @@
 
 /**
  * a callback function for enumerating the index nodes/pages using the 
- * @ref ham_backend_t::_fun_enumerate callback/method.
+ * @ref Backend::enumerate callback/method.
  *
  * @param event one of the @ref ham_cb_event state codes
  *
@@ -71,194 +71,181 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 */
 
 /**
- * the backend structure - these functions and members are "inherited"
+ * the backend structure - these functions and members are inherited
  * by every other backend (i.e. btree, hashdb etc). 
  */
-#define BACKEND_DECLARATIONS(clss)                                      \
-    /**                                                                 \
-     * create and initialize a new backend                              \
-     *                                                                  \
-     * @remark this function is called after the @a Database structure  \
-     * and the file were created                                        \
-     *                                                                  \
-     * the @a flags are stored in the database; only transfer           \
-     * the persistent flags!                                            \
-     */                                                                 \
-    ham_status_t (*_fun_create)(clss *be, ham_u16_t keysize,            \
-            ham_u32_t flags);                                           \
-                                                                        \
-    /**                                                                 \
-     * open and initialize a backend                                    \
-     *                                                                  \
-     * @remark this function is called after the ham_db_structure       \
-     * was allocated and the file was opened                            \
-     */                                                                 \
-    ham_status_t (*_fun_open)(clss *be, ham_u32_t flags);               \
-                                                                        \
-    /**                                                                 \
-     * close the backend                                                \
-     *                                                                  \
-     * @remark this function is called before the file is closed        \
-     */                                                                 \
-    ham_status_t (*_fun_close)(clss *be);                               \
-                                                                        \
-    /**                                                                 \
-     * flush the backend                                                \
-     *                                                                  \
-     * @remark this function is called during ham_flush                 \
-     */                                                                 \
-    ham_status_t (*_fun_flush)(clss *be);                               \
-                                                                        \
-    /**                                                                 \
-     * find a key in the index                                          \
-     */                                                                 \
-    ham_status_t (*_fun_find)(clss *be, Transaction *txn, ham_key_t *key,\
-            ham_record_t *record, ham_u32_t flags);                     \
-                                                                        \
-    /**                                                                 \
-     * insert (or update) a key in the index                            \
-     *                                                                  \
-     * the backend is responsible for inserting or updating the         \
-     * record. (see blob.h for blob management functions)               \
-     */                                                                 \
-    ham_status_t (*_fun_insert)(clss *be, Transaction *txn,             \
-            ham_key_t *key, ham_record_t *record, ham_u32_t flags);     \
-                                                                        \
-    /**                                                                 \
-     * erase a key in the index                                         \
-     */                                                                 \
-    ham_status_t (*_fun_erase)(clss *be, Transaction *txn, ham_key_t *key,\
-            ham_u32_t flags);                                           \
-                                                                        \
-    /**                                                                 \
-     * iterate the whole tree and enumerate every item                  \
-     */                                                                 \
-    ham_status_t (*_fun_enumerate)(clss *be,                            \
-            ham_enumerate_cb_t cb, void *context);                      \
-                                                                        \
-    /**                                                                 \
-     * verify the whole tree                                            \
-     */                                                                 \
-    ham_status_t (*_fun_check_integrity)(clss *be);                     \
-                                                                        \
-    /**                                                                 \
-     * free all allocated resources                                     \
-     *                                                                  \
-     * @remark this function is called after _fun_close()               \
-     */                                                                 \
-    ham_status_t (*_fun_delete)(clss *be);                              \
-                                                                        \
-    /**                                                                 \
-     * estimate the number of keys per page, given the keysize          \
-     */                                                                 \
-    ham_status_t (*_fun_calc_keycount_per_page)(clss *be,               \
-                  ham_size_t *keycount, ham_u16_t keysize);             \
-                                                                        \
-    /**                                                                 \
-     * Close (and free) all cursors related to this database table.     \
-     */                                                                 \
-    ham_status_t (*_fun_close_cursors)(clss *be, ham_u32_t flags);      \
-                                                                        \
-    /**                                                                 \
-     * uncouple all cursors from a page                                 \
-     *                                                                  \
-     * @remark this is called whenever the page is deleted or           \
-     * becoming invalid                                                 \
-     */                                                                 \
-    ham_status_t (*_fun_uncouple_all_cursors)(clss *be,                 \
-                Page *page, ham_size_t start);                    \
-                                                                        \
-    /**                                                                 \
-     * Remove all extended keys for the given @a page from the          \
-     * extended key cache.                                              \
-     */                                                                 \
-    ham_status_t (*_fun_free_page_extkeys)(clss *be,                    \
-                Page *page, ham_u32_t flags);                     \
-                                                                        \
-    /**                                                                 \
-     * pointer to the database object                                   \
-     */                                                                 \
-    Database *_db;                                                      \
-                                                                        \
-    /**                                                                 \
-     * the last used record number                                      \
-     */                                                                 \
-    ham_offset_t _recno;                                                \
-                                                                        \
-    /**                                                                 \
-     * the keysize of this backend index                                \
-     */                                                                 \
-    ham_u16_t _keysize;                                                 \
-                                                                        \
-    /**                                                                 \
-     * flag if this backend has to be written to disk                   \
-     */                                                                 \
-    unsigned _dirty: 1;                                                 \
-                                                                        \
-    /**                                                                 \
-     * flag if this backend has been fully initialized                  \
-     */                                                                 \
-    unsigned _is_active: 1;                                             \
-                                                                        \
-    /**                                                                 \
-     * the persistent flags of this backend index                       \
-     */                                                                 \
-    ham_u32_t _flags
-
-
-#include "packstart.h"
-
-/**
- * A generic backend structure, which has the same memory layout as 
- * all other backends.
- *
- * @remark We're pre-declaring struct ham_backend_t and the typedef 
- * to avoid syntax errors in @ref BACKEND_DECLARATIONS .
- *
- * @remark Since this structure is not persistent, we don't really
- * need packing; however, with Microsoft Visual C++ 8, the
- * offset of ham_backend_t::_flags (the last member) is not the same
- * as the offset of ham_btree_t::_flags, unless packing is enabled.
- */
-HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
+class Backend
 {
-    BACKEND_DECLARATIONS(ham_backend_t);
-} HAM_PACK_2;
+  public:
+    Backend(Database *db, ham_u32_t flags)
+      : m_db(db), m_keysize(0), m_recno(0), m_is_dirty(false), 
+        m_is_active(false), m_flags(flags) {
+    }
 
-#include "packstop.h"
+    /**
+     * destructor; can be overwritten
+     */
+    virtual ~Backend() { }
 
-/** convenience macro to get the database of a ham_backend_t-structure */
-#define be_get_db(be)                        (be)->_db
+    /**
+     * create and initialize a backend
+     *
+     * @remark this function is called after the ham_db_t structure
+     * was allocated and the file was opened
+     */
+    virtual ham_status_t create(ham_u16_t keysize, ham_u32_t flags) = 0;
 
-/** get the keysize */
-#define be_get_keysize(be)                  (be)->_keysize
+    /**
+     * open and initialize a backend
+     *
+     * @remark this function is called after the ham_db_t structure
+     * was allocated and the file was opened
+     */
+    virtual ham_status_t open(ham_u32_t flags) = 0;
 
-/** set the keysize */
-#define be_set_keysize(be, ks)              (be)->_keysize=(ks)
+    /**
+     * close the backend
+     *
+     * @remark this function is called before the file is closed
+     */
+    virtual ham_status_t close() = 0;
 
-/** get the flags */
-#define be_get_flags(be)                    (be)->_flags
+    /**
+     * flush the backend
+     *
+     * @remark this function is called during ham_flush
+     */
+    virtual ham_status_t flush() = 0;
 
-/** set the flags */
-#define be_set_flags(be, f)                 (be)->_flags=(f)
+    /**
+     * find a key in the index
+     */
+    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
 
-/** get the last used record number */
-#define be_get_recno(be)                    (be)->_recno
+    /**
+     * insert (or update) a key in the index
+     *
+     * the backend is responsible for inserting or updating the
+     * record. (see blob.h for blob management functions)
+     */
+    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
 
-/** set the last used record number */
-#define be_set_recno(be, rn)                (be)->_recno=(rn)
+    /**
+     * erase a key in the index
+     */
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, 
+                    ham_u32_t flags) = 0;
 
-/** get the dirty-flag */
-#define be_is_dirty(be)                     (be)->_dirty
+    /**
+     * iterate the whole tree and enumerate every item
+     */
+    virtual ham_status_t enumerate(ham_enumerate_cb_t cb, void *context) = 0;
 
-/** set the dirty-flag */
-#define be_set_dirty(be, d)                 (be)->_dirty=!!(d)
+    /**
+     * verify the whole tree
+     */
+    virtual ham_status_t check_integrity() = 0;
 
-/** get the active-flag */
-#define be_is_active(be)                    (be)->_is_active
+    /**
+     * estimate the number of keys per page, given the keysize
+     */
+    virtual ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
+                    ham_u16_t keysize) = 0;
 
-/** set the active-flag */
-#define be_set_active(be, d)                (be)->_is_active=!!(d)
+    /**
+     * Close (and free) all cursors related to this database table.
+     */
+    virtual ham_status_t close_cursors(ham_u32_t flags) = 0;
 
+    /**
+     * uncouple all cursors from a page
+     *
+     * @remark this is called whenever the page is deleted or
+     * becoming invalid
+     */
+    virtual ham_status_t uncouple_all_cursors(Page *page, ham_size_t start) = 0;
+
+    /**
+     * Remove all extended keys for the given @a page from the
+     * extended key cache.
+     */
+    virtual ham_status_t free_page_extkeys(Page *page, ham_u32_t flags) = 0;
+
+    /** get the database pointer */
+    Database *get_db() {
+        return m_db;
+    }
+
+    /** get the key size */
+    ham_u16_t get_keysize() {
+        return m_keysize;
+    }
+
+    /** set the key size */
+    void set_keysize(ham_u16_t keysize) {
+        m_keysize=keysize;
+    }
+
+    /** get the flags */
+    ham_u32_t get_flags() {
+        return m_flags;
+    }
+
+    /** set the flags */
+    void set_flags(ham_u32_t flags) {
+        m_flags=flags;
+    }
+
+    /** get the last used record number */
+    ham_u64_t get_recno() {
+        return m_recno;
+    }
+
+    /** set the last used record number */
+    void set_recno(ham_u64_t recno) {
+        m_recno=recno;
+    }
+
+    /** get the dirty-flag */
+    bool is_dirty() {
+        return m_is_dirty;
+    }
+
+    /** set the dirty-flag */
+    void set_dirty(bool b) {
+        m_is_dirty=b;
+    }
+
+    /** check whether this backend is active */
+    bool is_active() {
+        return m_is_active;
+    }
+
+    /** set the is_active-flag */
+    void set_active(bool b) {
+        m_is_active=b;
+    }
+
+  private:
+    /** pointer to the database object */
+    Database *m_db;
+
+    /** the keysize of this backend index */
+    ham_u16_t m_keysize;
+
+    /** the last used record number */
+    ham_offset_t m_recno;
+
+    /** flag if this backend has to be written to disk */
+    bool m_is_dirty;
+
+    /** flag if this backend has been fully initialized */
+    bool m_is_active;
+
+    /** the persistent flags of this backend index */
+    ham_u32_t m_flags;
+};
 
 #endif /* HAM_BACKEND_H__ */

@@ -576,7 +576,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     Database *db;
     ham_status_t st;
     free_cb_context_t context;
-    ham_backend_t *be;
+    Backend *be;
 
     /*
      * check if this database is still open
@@ -627,13 +627,10 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
      */
     context.db=db;
     be=db->get_backend();
-    if (!be || !be_is_active(be))
+    if (!be || !be->is_active())
         return (HAM_INTERNAL_ERROR);
 
-    if (!be->_fun_enumerate)
-        return (HAM_NOT_IMPLEMENTED);
-
-    st=be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
+    st=be->enumerate(__free_inmemory_blobs_cb, &context);
     if (st) {
         (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         delete db;
@@ -879,18 +876,15 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
      * flush the open backends
      */
     db = env->get_databases();
-    while (db) 
-    {
-        ham_backend_t *be=db->get_backend();
+    while (db) {
+        Backend *be=db->get_backend();
 
-        if (!be || !be_is_active(be))
+        if (!be || !be->is_active())
             return HAM_NOT_INITIALIZED;
-        if (!be->_fun_flush)
-            return (HAM_NOT_IMPLEMENTED);
-        st = be->_fun_flush(be);
+        st=be->flush();
         if (st)
             return st;
-        db = db->get_next();
+        db=db->get_next();
     }
 
     /*
@@ -925,7 +919,7 @@ _local_fun_create_db(Environment *env, Database *db,
     ham_u16_t dam = 0;
     ham_u16_t dbi;
     ham_size_t i;
-    ham_backend_t *be;
+    Backend *be;
     ham_u32_t pflags;
     std::string logdir;
 
@@ -1012,7 +1006,7 @@ _local_fun_create_db(Environment *env, Database *db,
     /* create the backend */
     be=db->get_backend();
     if (be==NULL) {
-        be=btree_create(db, flags);
+        be=new BtreeBackend(db, flags);
         if (!be) {
             st=HAM_OUT_OF_MEMORY;
             (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
@@ -1023,13 +1017,13 @@ _local_fun_create_db(Environment *env, Database *db,
     }
 
     /* initialize the backend */
-    st=be->_fun_create(be, keysize, pflags);
+    st=be->create(keysize, pflags);
     if (st) {
         (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         goto bail;
     }
 
-    ham_assert(be_is_active(be) != 0, (0));
+    ham_assert(be->is_active()!=0, (0));
 
     /*
      * initialize the remaining function pointers in Database
@@ -1107,7 +1101,7 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_status_t st;
     ham_u16_t dam = 0;
     ham_u64_t cachesize = 0;
-    ham_backend_t *be = 0;
+    Backend *be = 0;
     ham_u16_t dbi;
     std::string logdir;
 
@@ -1171,7 +1165,7 @@ _local_fun_open_db(Environment *env, Database *db,
     /* create the backend */
     be=db->get_backend();
     if (be==NULL) {
-        be=btree_create(db, flags);
+        be=new BtreeBackend(db, flags);
         if (!be) {
             (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             return (HAM_OUT_OF_MEMORY);
@@ -1181,13 +1175,13 @@ _local_fun_open_db(Environment *env, Database *db,
     }
 
     /* initialize the backend */
-    st=be->_fun_open(be, flags);
+    st=be->open(flags);
     if (st) {
         (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
-    ham_assert(be_is_active(be) != 0, (0));
+    ham_assert(be->is_active()!=0, (0));
 
     /*
      * initialize the remaining function pointers in Database
@@ -1216,29 +1210,29 @@ _local_fun_open_db(Environment *env, Database *db,
              |HAM_SORT_DUPLICATES
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
-    db->set_rt_flags(flags|be_get_flags(be));
-    ham_assert(!(be_get_flags(be)&HAM_DISABLE_VAR_KEYLEN), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_CACHE_STRICT), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_CACHE_UNLIMITED), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_DISABLE_MMAP), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_WRITE_THROUGH), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_READ_ONLY), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_DISABLE_FREELIST_FLUSH), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_ENABLE_RECOVERY), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_AUTO_RECOVERY), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&HAM_ENABLE_TRANSACTIONS), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
-    ham_assert(!(be_get_flags(be)&DB_USE_MMAP), 
-            ("invalid persistent database flags 0x%x", be_get_flags(be)));
+    db->set_rt_flags(flags|be->get_flags());
+    ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_CACHE_STRICT), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_DISABLE_MMAP), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_WRITE_THROUGH), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_READ_ONLY), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_DISABLE_FREELIST_FLUSH), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&DB_USE_MMAP), 
+            ("invalid persistent database flags 0x%x", be->get_flags()));
 
     /*
      * SORT_DUPLICATES is only allowed if the Database was created
@@ -1459,7 +1453,7 @@ __flush_txn(Environment *env, Transaction *txn)
 
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
-        ham_backend_t *be=txn_opnode_get_db(node)->get_backend();
+        Backend *be=txn_opnode_get_db(node)->get_backend();
         if (!be)
             return (HAM_INTERNAL_ERROR);
 
@@ -1491,7 +1485,7 @@ __flush_txn(Environment *env, Transaction *txn)
                     ? HAM_DUPLICATE
                     : HAM_OVERWRITE;
             if (!txn_op_get_cursors(op)) {
-                st=be->_fun_insert(be, txn, txn_opnode_get_key(node), 
+                st=be->insert(txn, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
             }
@@ -1526,12 +1520,12 @@ __flush_txn(Environment *env, Transaction *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=btree_erase_duplicate((ham_btree_t *)be, txn,
+                st=btree_erase_duplicate((BtreeBackend *)be, txn,
                         txn_opnode_get_key(node), 
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }
             else {
-                st=be->_fun_erase(be, txn, txn_opnode_get_key(node), 
+                st=be->erase(txn, txn_opnode_get_key(node), 
                         txn_op_get_flags(op));
             }
         }

@@ -55,7 +55,7 @@
 #define DB_INDEX_SIZE                   sizeof(db_indexdata_t) /* 32 */
 
 /** get the key size */
-#define db_get_keysize(db)              be_get_keysize((db)->get_backend())
+#define db_get_keysize(db)              ((db)->get_backend()->get_keysize())
 
 /** get the (non-persisted) flags of a key */
 #define ham_key_get_intflags(key)       (key)->_flags
@@ -420,12 +420,12 @@ class Database
     }
 
     /** get the backend pointer */
-    ham_backend_t *get_backend(void) {
+    Backend *get_backend(void) {
         return (m_backend);
     }
 
     /** set the backend pointer */
-    void set_backend(ham_backend_t *b) {
+    void set_backend(Backend *b) {
         m_backend=b;
     }
 
@@ -734,7 +734,7 @@ class Database
     void *m_context;
 
     /** the backend pointer - btree, hashtable etc */
-    ham_backend_t *m_backend;
+    Backend *m_backend;
 
     /** linked list of all cursors */
     Cursor *m_cursors;

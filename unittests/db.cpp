@@ -107,9 +107,9 @@ public:
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, m_dbp->get_error());
 
         BFC_ASSERT_NOTNULL(m_dbp->get_backend());// already initialized
-        ham_backend_t *oldbe=m_dbp->get_backend();
-        m_dbp->set_backend((ham_backend_t *)15);
-        BFC_ASSERT_EQUAL((ham_backend_t *)15, m_dbp->get_backend());
+        Backend *oldbe=m_dbp->get_backend();
+        m_dbp->set_backend((Backend *)15);
+        BFC_ASSERT_EQUAL((Backend *)15, m_dbp->get_backend());
         m_dbp->set_backend(oldbe);
 
         BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_cache());
@@ -283,14 +283,10 @@ public:
 
         // checks to make sure structure packing by the compiler is still okay
         // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
-        BFC_ASSERT(compare_sizes(sizeof(ham_backend_t), 
-                OFFSETOF(ham_btree_t, _rootpage)));
         BFC_ASSERT(compare_sizes(sizeof(blob_t), 28));
         BFC_ASSERT(compare_sizes(sizeof(dupe_entry_t), 16));
         BFC_ASSERT(compare_sizes(sizeof(dupe_table_t), 
                 8 + sizeof(dupe_entry_t)));
-        BFC_ASSERT(compare_sizes(sizeof(ham_btree_t) - OFFSETOF(ham_btree_t, 
-                _rootpage), 8 + sizeof(void *)*2 + 2));
         BFC_ASSERT(compare_sizes(sizeof(btree_node_t), 28+sizeof(btree_key_t)));
         BFC_ASSERT(compare_sizes(sizeof(btree_key_t), 12));
         BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
@@ -322,12 +318,12 @@ public:
         BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
         Page page;
         Database db;
-        ham_backend_t be = {0};
+        BtreeBackend be(&db, 0);
 
         page.set_self(1000);
         page.set_db(&db);
         db.set_backend(&be);
-        be_set_keysize(&be, 666);
+        be.set_keysize(666);
         for (i = 0; i < 5; i++) {
             BFC_ASSERT_I(compare_sizes(
                 (ham_size_t)btree_node_get_key_offset(&page, i), 

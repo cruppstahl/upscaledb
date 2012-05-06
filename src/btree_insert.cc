@@ -47,7 +47,7 @@ typedef struct insert_scratchpad_t
     /**
      * the backend pointer
      */
-    ham_btree_t *be;
+    BtreeBackend *be;
 
     /**
      * the record which is inserted
@@ -126,12 +126,12 @@ __insert_split(Page *page, ham_key_t *key,
                 insert_hints_t *hints);
 
 static ham_status_t
-__insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+__insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         ham_record_t *record, btree_cursor_t *cursor, insert_hints_t *hints);
 
 
 static ham_status_t
-__append_key(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+__append_key(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         ham_record_t *record, btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st=0;
@@ -141,11 +141,11 @@ __append_key(ham_btree_t *be, Transaction *txn, ham_key_t *key,
 
 #ifdef HAM_DEBUG
     if (cursor && !btree_cursor_is_nil(cursor)) {
-        ham_assert(be_get_db(be) == btree_cursor_get_db(cursor), (0));
+        ham_assert(be->get_db()==btree_cursor_get_db(cursor), (0));
     }
 #endif
 
-    db = be_get_db(be);
+    db=be->get_db();
 
     /* 
      * see if we get this btree leaf; if not, revert to regular scan 
@@ -173,7 +173,7 @@ __append_key(ham_btree_t *be, Transaction *txn, ham_key_t *key,
      */
     if ((hints->force_append && btree_node_get_right(node))
             || (hints->force_prepend && btree_node_get_left(node))
-            || btree_node_get_count(node) >= btree_get_maxkeys(be)) {
+            || btree_node_get_count(node) >= be->get_maxkeys()) {
         hints->force_append = HAM_FALSE;
         hints->force_prepend = HAM_FALSE;
         return (__insert_cursor(be, txn, key, record, cursor, hints));
@@ -296,12 +296,12 @@ __append_key(ham_btree_t *be, Transaction *txn, ham_key_t *key,
 }
 
 static ham_status_t
-__insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+__insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
         ham_record_t *record, btree_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st;
     Page *root;
-    Database *db=be_get_db(be);
+    Database *db=be->get_db();
     Environment *env = db->get_env();
     insert_scratchpad_t scratchpad;
 
@@ -320,8 +320,8 @@ __insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key,
     /* 
      * get the root-page...
      */
-    ham_assert(btree_get_rootpage(be)!=0, ("btree has no root page"));
-    st=db_fetch_page(&root, db, btree_get_rootpage(be), 0);
+    ham_assert(be->get_rootpage()!=0, ("btree has no root page"));
+    st=db_fetch_page(&root, db, be->get_rootpage(), 0);
     ham_assert(st ? root == NULL : 1, (0));
     if (st)
         return st;
@@ -356,7 +356,7 @@ __insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key,
          * insert the pivot element and the ptr_left
          */ 
         node=page_get_btree_node(newroot);
-        btree_node_set_ptr_left(node, btree_get_rootpage(be));
+        btree_node_set_ptr_left(node, be->get_rootpage());
         st=__insert_nosplit(newroot, scratchpad.txn, &scratchpad.key, 
                 scratchpad.rid, scratchpad.record, scratchpad.cursor, hints);
         ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC), (0));
@@ -376,10 +376,10 @@ __insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key,
          * do NOT delete the old root page - it's still in use! also add the
          * root page to the changeset to make sure that the changes are logged
          */
-        btree_set_rootpage(be, newroot->get_self());
-        be_set_dirty(be, HAM_TRUE);
+        be->set_rootpage(newroot->get_self());
+        be->set_dirty(true);
         env->set_dirty(true);
-        be->_fun_flush(be);
+        be->flush();
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(env->get_header_page());
         root->set_type(Page::TYPE_B_INDEX);
@@ -398,11 +398,11 @@ __insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-btree_insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+btree_insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    Database *db=be_get_db(be);
+    Database *db=be->get_db();
     insert_hints_t hints = {flags, flags, 
         cursor ? (ham_cursor_t *)btree_cursor_get_parent(cursor) : 0, 0, 
         HAM_FALSE, HAM_FALSE, HAM_FALSE, 0, NULL, -1};
@@ -447,10 +447,10 @@ btree_insert_cursor(ham_btree_t *be, Transaction *txn, ham_key_t *key,
  * @note This is a B+-tree 'backend' method.
  */                                                                 
 ham_status_t
-btree_insert(ham_btree_t *be, Transaction *txn, ham_key_t *key, 
+BtreeBackend::insert(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    return (btree_insert_cursor(be, txn, key, record, 0, flags));
+    return (btree_insert_cursor(this, txn, key, record, 0, flags));
 }
 
 static ham_status_t
@@ -521,7 +521,7 @@ __insert_in_page(Page *page, ham_key_t *key,
                 insert_hints_t *hints)
 {
     ham_status_t st;
-    ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
+    ham_size_t maxkeys=scratchpad->be->get_maxkeys();
     btree_node_t *node=page_get_btree_node(page);
 
     ham_assert(maxkeys>1, 
