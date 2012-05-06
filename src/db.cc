@@ -1782,18 +1782,16 @@ bail:
     return (st);
 }
 
-ham_status_t 
+ham_status_t
 DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
     Environment *env=m_db->get_env();
     Transaction *local_txn=0;
     ham_status_t st;
-    Backend *be;
-    ham_u64_t recno = 0;
+    Backend *be=m_db->get_backend();
+    ham_u64_t recno=0;
     ham_record_t temprec;
-
-    be=m_db->get_backend();
 
     ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
                         ? &m_db->get_key_arena()
