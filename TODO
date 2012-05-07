@@ -26,7 +26,7 @@ o Mark reported an error after surprise-shutdown
     o get access to the corrupt file
     o ...
 
-o unittest: valgrind reports leaks in the test
+x unittest: valgrind reports leaks in the test
     ==22694== 150 bytes in 5 blocks are definitely lost in loss record 1 of 6
     ==22694==    at 0x4C28B35: operator new(unsigned long)
     (vg_replace_malloc.c:261)

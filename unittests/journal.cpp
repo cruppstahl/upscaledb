@@ -36,21 +36,20 @@ using namespace bfc;
 struct LogEntry
 {
     LogEntry()
-    :   lsn(0), txn_id(0), type(0), dbname(0) {
+      : lsn(0), txn_id(0), type(0), dbname(0) {
     }
 
     LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
-                ham_u32_t _type, ham_u16_t _dbname, const char *_name=0)
-    :   lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
-        if (_name)
-            name=_name;
+                ham_u32_t _type, ham_u16_t _dbname, const char *_name="")
+      : lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
+        strcpy(name, _name);
     }
 
     ham_u64_t lsn;
     ham_u64_t txn_id;
     ham_u32_t type;
     ham_u16_t dbname;
-    std::string name;
+    char name[256];
 };
 
 struct InsertLogEntry : public LogEntry
@@ -552,9 +551,9 @@ public:
             BFC_ASSERT_EQUAL(vec->txn_id, entry.txn_id);
             BFC_ASSERT_EQUAL(vec->type, entry.type);
             BFC_ASSERT_EQUAL(vec->dbname, entry.dbname);
-            if (vec->name.size()) {
+            if (strlen(vec->name)) {
                 BFC_ASSERT_NOTNULL(aux);
-                BFC_ASSERT_EQUAL(0, strcmp((char *)aux, vec->name.c_str()));
+                BFC_ASSERT_EQUAL(0, strcmp((char *)aux, vec->name));
             }
 
             if (aux)
