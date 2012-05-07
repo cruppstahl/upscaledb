@@ -62,7 +62,7 @@ o look at ssb's clang output and try to integrate it into the build process
     o skript that generates a static html page from this file, 
         w/ graphs over the different versions
 
-o email from Jason: Great product as usual. 20.2 seems to have broken the .NET
+x email from Jason: Great product as usual. 20.2 seems to have broken the .NET
     unit test "GetError" in DatabaseTest.cs. It ultimately calls 
     ham_get_error which causes an exception
 

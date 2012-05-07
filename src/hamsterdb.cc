@@ -2004,7 +2004,9 @@ ham_get_error(ham_db_t *hdb)
         return (0);
     }
 
-    ScopedLock lock(db->get_env()->get_mutex());
+    ScopedLock lock;
+    if (db->get_env())
+		lock=ScopedLock(db->get_env()->get_mutex());
 
     return (db->get_error());
 }
