@@ -214,13 +214,13 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
      * Otherwise continue writing to the current file, till the other file
      * can be deleted safely
      */
-    else {
+    else
         txn_set_log_desc(txn, cur);
-    }
 
     if (txn_get_name(txn))
         st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
-                    (void *)txn_get_name(txn), (ham_size_t)strlen(txn_get_name(txn))+1);
+                    (void *)txn_get_name(txn),
+                    (ham_size_t)strlen(txn_get_name(txn))+1);
     else
         st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
     if (st)

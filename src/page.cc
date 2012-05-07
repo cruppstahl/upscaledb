@@ -126,10 +126,9 @@ Page::uncouple_all_cursors(ham_size_t start)
     if (c) {
         Database *db=c->get_db();
         if (db) {
-            ham_backend_t *be=db->get_backend();
-            
+            Backend *be=db->get_backend();
             if (be)
-                return (*be->_fun_uncouple_all_cursors)(be, this, start);
+                return be->uncouple_all_cursors(this, start);
         }
     }
 

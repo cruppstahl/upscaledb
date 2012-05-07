@@ -71,7 +71,7 @@ btree_cursor_couple(btree_cursor_t *c)
 }
 
 static ham_status_t
-__move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
+__move_first(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     Page *page;
@@ -82,9 +82,9 @@ __move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
     btree_cursor_set_to_nil(c);
 
     /* get the root page */
-    if (!btree_get_rootpage(be))
+    if (!be->get_rootpage())
         return (HAM_KEY_NOT_FOUND);
-    st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db, be->get_rootpage(), 0);
     if (st)
         return (st);
 
@@ -118,7 +118,7 @@ __move_first(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
 }
 
 static ham_status_t
-__move_next(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
+__move_next(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     Page *page;
@@ -200,7 +200,7 @@ __move_next(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
 }
 
 static ham_status_t
-__move_previous(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
+__move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     Page *page;
@@ -297,7 +297,7 @@ __move_previous(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
 }
 
 static ham_status_t
-__move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
+__move_last(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     Page *page;
@@ -312,9 +312,9 @@ __move_last(ham_btree_t *be, btree_cursor_t *c, ham_u32_t flags)
         return (st);
 
     /* get the root page */
-    if (!btree_get_rootpage(be))
+    if (!be->get_rootpage())
         return HAM_KEY_NOT_FOUND;
-    st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db, be->get_rootpage(), 0);
     if (st)
         return (st);
     /* hack: prior to 2.0, the type of btree root pages was not set
@@ -561,7 +561,7 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
     Database *db=btree_cursor_get_db(c);
     Environment *env=db->get_env();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
-    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
     btree_key_t *entry;
 
     if (!be)
@@ -645,7 +645,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     ham_status_t st;
-    ham_backend_t *be=btree_cursor_get_db(c)->get_backend();
+    Backend *be=btree_cursor_get_db(c)->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
 
     if (!be)
@@ -656,7 +656,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
     if (st)
         return (st);
 
-    st=btree_find_cursor((ham_btree_t *)be, txn, c, key, record, flags);
+    st=btree_find_cursor((BtreeBackend *)be, txn, c, key, record, flags);
     if (st) {
         /* cursor is now NIL */
         return (st);
@@ -671,7 +671,7 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
 {
     ham_status_t st;
     Database *db=btree_cursor_get_db(c);
-    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
 
     if (!be)
@@ -692,7 +692,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     Database *db=btree_cursor_get_db(c);
-    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
 
     if (!be)
@@ -704,9 +704,9 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     if (btree_cursor_is_coupled(c)) {
         Page *page=btree_cursor_get_coupled_page(c);
         btree_node_t *node=page_get_btree_node(page);
-        ham_btree_t *be=(ham_btree_t *)db->get_backend();
-        ham_size_t maxkeys=btree_get_maxkeys(be);
-        ham_assert(btree_node_is_leaf(node),
+        BtreeBackend *be=(BtreeBackend *)db->get_backend();
+        ham_size_t maxkeys=be->get_maxkeys();
+        ham_assert(btree_node_is_leaf(node), 
                 ("iterator points to internal node"));
         if (btree_cursor_get_coupled_index(c)>0
                 && btree_node_get_count(node)>btree_get_minkeys(maxkeys)) {
@@ -804,7 +804,7 @@ btree_cursor_get_duplicate_count(btree_cursor_t *c,
     ham_status_t st;
     Database *db=btree_cursor_get_db(c);
     Environment *env = db->get_env();
-    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
     Page *page;
     btree_node_t *node;
     btree_key_t *entry;
@@ -937,7 +937,7 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
 {
     ham_status_t st;
     Database *db=btree_cursor_get_db(c);
-    ham_btree_t *be=(ham_btree_t *)db->get_backend();
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
     Page *page;
     btree_node_t *node;
     btree_key_t *entry;

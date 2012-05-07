@@ -31,15 +31,15 @@
  * enumerate a whole level in the tree - start with "page" and traverse
  * the linked list of all the siblings
  */
-static ham_status_t
-_enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level,
+static ham_status_t 
+_enumerate_level(BtreeBackend *be, Page *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, ham_bool_t recursive, void *context);
 
 /**
  * enumerate a single page
  */
 static ham_status_t
-_enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level,
+_enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level, 
         ham_u32_t count, ham_enumerate_cb_t cb, void *context);
 
 /**
@@ -48,28 +48,26 @@ _enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level,
  * @note This is a B+-tree 'backend' method.
  */
 ham_status_t
-btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
+BtreeBackend::enumerate(ham_enumerate_cb_t cb, void *context)
 {
     Page *page;
     ham_u32_t level=0;
     ham_offset_t ptr_left;
     btree_node_t *node;
     ham_status_t st;
-    Database *db=be_get_db(be);
+    Database *db=get_db();
     ham_status_t cb_st = CB_CONTINUE;
 
-    ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
+    ham_assert(get_rootpage()!=0, ("invalid root page"));
     ham_assert(cb!=0, ("invalid parameter"));
 
     /* get the root page of the tree */
-    st = db_fetch_page(&page, db, btree_get_rootpage(be), 0);
-    ham_assert(st ? !page : 1, (0));
-    if (!page)
-        return st ? st : HAM_INTERNAL_ERROR;
+    st=db_fetch_page(&page, db, get_rootpage(), 0);
+    if (st)
+        return (st);
 
     /* while we found a page... */
-    while (page)
-    {
+    while (page) {
         ham_size_t count;
 
         node=page_get_btree_node(page);
@@ -98,7 +96,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
         /*
          * enumerate the page and all its siblings
          */
-        cb_st = _enumerate_level(be, page, level, cb,
+        cb_st = _enumerate_level(this, page, level, cb, 
                         (cb_st == CB_DO_NOT_DESCEND), context);
         if (cb_st == CB_STOP || cb_st < 0 /* error */)
             break;
@@ -122,8 +120,8 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
     return (cb_st < 0 ? cb_st : HAM_SUCCESS);
 }
 
-static ham_status_t
-_enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level,
+static ham_status_t 
+_enumerate_level(BtreeBackend *be, Page *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, ham_bool_t recursive, void *context)
 {
     ham_status_t st;
@@ -131,11 +129,8 @@ _enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level,
     btree_node_t *node;
     ham_status_t cb_st = CB_CONTINUE;
 
-    while (page)
-    {
-        /*
-         * enumerate the page
-         */
+    while (page) {
+        /* enumerate the page */
         cb_st = _enumerate_page(be, page, level, count, cb, context);
         if (cb_st == CB_STOP || cb_st < 0 /* error */)
             break;
@@ -144,9 +139,8 @@ _enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level,
          * get the right sibling
          */
         node=page_get_btree_node(page);
-        if (btree_node_get_right(node))
-        {
-            st=db_fetch_page(&page, be_get_db(be),
+        if (btree_node_get_right(node)) {
+            st=db_fetch_page(&page, be->get_db(), 
                     btree_node_get_right(node), 0);
             ham_assert(st ? !page : 1, (0));
             if (st)
@@ -162,7 +156,7 @@ _enumerate_level(ham_btree_t *be, Page *page, ham_u32_t level,
 }
 
 ham_status_t
-_enumerate_page(ham_btree_t *be, Page *page, ham_u32_t level,
+_enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level, 
         ham_u32_t sibcount, ham_enumerate_cb_t cb, void *context)
 {
     ham_size_t i;

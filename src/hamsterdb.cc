@@ -1072,8 +1072,10 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     ScopedLock lock(env->get_mutex());
 
+#if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(proto_shutdown);
+#endif
 
     /*
      * make sure that this environment is not yet open/created
@@ -1264,8 +1266,10 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 
     ScopedLock lock(env->get_mutex());
 
+#if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(proto_shutdown);
+#endif
 
     /* make sure that this environment is not yet open/created */
     if (env->is_active()) {
@@ -2693,7 +2697,7 @@ ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
                 ham_u16_t keysize)
 {
     Database *db=(Database *)hdb;
-    ham_backend_t *be;
+    Backend *be;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2723,15 +2727,9 @@ ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
     be=db->get_backend();
     if (!be)
         return (db->set_error(HAM_NOT_INITIALIZED));
-    if (!be->_fun_calc_keycount_per_page) {
-        ham_trace(("hamsterdb was compiled without support for internal "
-                    "functions"));
-        return (db->set_error(HAM_NOT_IMPLEMENTED));
-    }
 
     /* call the backend function */
-    return (db->set_error(be->_fun_calc_keycount_per_page(be,
-                    keycount, keysize)));
+    return (db->set_error(be->calc_keycount_per_page(keycount, keysize)));
 }
 
 ham_status_t HAM_CALLCONV

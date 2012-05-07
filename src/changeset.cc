@@ -99,8 +99,8 @@ Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
 
 #define append(b, bs, bc, p)                                                 \
   if (bs+1>=bc) {                                                            \
-    bc=bc ? bc*2 : 8;                                                        \
-    b=(Page **)::realloc(b, sizeof(void *)*bc);                        \
+      bc=bc ? bc*2 : 8;                                                      \
+      b=(Page **)::realloc(b, sizeof(void *)*bc);                            \
   }                                                                          \
   b[bs++]=p;
 

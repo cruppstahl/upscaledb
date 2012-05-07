@@ -571,7 +571,7 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 *     at the end of the pattern and then backtracked; we can
 *     improve our backtracking by assuming a few things about
 *     both the pattern and the search space: since our pattern
-*     is all-1s and we can assume that our search space,
+*     is all-1s and we can can assume that our search space,
 *     delimited by a previous sample which was false, and the
 *     latest sample, distanced pattern_length bits apart, is
 *     mostly 'used bits' (zeroes), we MAY assume that the
@@ -1585,14 +1585,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         if (r < l + d)
                         {
                             if (r < l + 1)
-                        	{
-                            	/* l == lowest PROBABLY okay probe location */
-                            	break;
-							}
-							else
-							{
-								d = 1;
-							}
+                            {
+                                /* l == lowest PROBABLY okay probe location */
+                                break;
+                            }
+                            else
+                            {
+                                d = 1;
+                            }
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
@@ -1924,14 +1924,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         if (r < l + d)
                         {
                             if (r < l + 1)
-                        	{
-                            	/* l == lowest PROBABLY okay probe location */
-                            	break;
-							}
-							else
-							{
-								d = 1;
-							}
+                            {
+                                /* l == lowest PROBABLY okay probe location */
+                                break;
+                            }
+                            else
+                            {
+                                d = 1;
+                            }
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
@@ -2319,14 +2319,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         if (r < l + d)
                         {
                             if (r < l + 1)
-                        	{
-                            	/* l == lowest PROBABLY okay probe location */
-                            	break;
-							}
-							else
-							{
-								d = 1;
-							}
+                            {
+                                /* l == lowest PROBABLY okay probe location */
+                                break;
+                            }
+                            else
+                            {
+                                d = 1;
+                            }
                         }
                         r -= d;
                         d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
