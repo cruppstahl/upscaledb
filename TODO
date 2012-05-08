@@ -21,11 +21,6 @@ x update prebuilt libraries on the webpage (include boost)
 
 x add Ger's freelist patch
 
-o Mark reported an error after surprise-shutdown
-    o with or without logging?
-    o get access to the corrupt file
-    o ...
-
 x unittest: valgrind reports leaks in the test
     ==22694== 150 bytes in 5 blocks are definitely lost in loss record 1 of 6
     ==22694==    at 0x4C28B35: operator new(unsigned long)
@@ -43,31 +38,9 @@ x unittest: valgrind reports leaks in the test
     ==22694==    by 0x42C809: JournalTest::iterateOverLogMultipleEntryTest()
     (journal.cpp:587)
     
-o extend the FAQ and the tutorial
-  - thread safety
-  - rec.data scope
-
-o extend the documentation
-
-o look at ssb's clang output and try to integrate it into the build process
-
-. need a way to graphically display performance metrics
-    o output in a text file
-        version/configuration/test-id
-        each test is run in multiple threads
-            performance-metrics based on time(), not real duration
-            memory-metrics
-            disk size
-            same for berkeleydb
-    o skript that generates a static html page from this file, 
-        w/ graphs over the different versions
-
 x email from Jason: Great product as usual. 20.2 seems to have broken the .NET
     unit test "GetError" in DatabaseTest.cs. It ultimately calls 
     ham_get_error which causes an exception
-
-o why do tests with 20 threads fail with oom when using mmap? the cache limits
-    should still work
 
 x btree_read_key: calls db->get_extended_key, which should use an
     existing ByteArray to avoid memory allocations
@@ -77,10 +50,37 @@ x db_erase_txn: calls check_erase_conflict, which does a btree lookup.
     but the lookup then happens again when doing the final erase, or not?
     - no, everything is fine
 
+x extend the FAQ and the tutorial
+    x thread safety
+    x rec.data scope
+
+x extend the documentation with information about the new Transactions
+
+o Mark reported an error after surprise-shutdown
+    o with or without logging?
+    o get access to the corrupt file
+    o ...
+
+o look at ssb's clang output and try to integrate it into the build process
+
+o why do tests with 20 threads fail with oom when using mmap? the cache limits
+    should still work
+
 o more fine-grained locking: lock ham_db_t handle for ham_insert, ham_find,
     ham_cursor_*, ham_erase
 
 o also remove locking from C# and Java APIs
+
+o need a way to graphically display performance metrics
+    o output in a text file
+        version/configuration/test-id
+        each test is run in multiple threads
+            performance-metrics based on time(), not real duration
+            memory-metrics
+            disk size
+            same for berkeleydb
+    o skript that generates a static html page from this file, 
+        w/ graphs over the different versions
 
 o implementation of hamsterdb should move into a namespace; otherwise
     there are conflicts if users have a C++ class called Database or
