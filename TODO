@@ -65,23 +65,64 @@ o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
 
 o more fine-grained locking
-    o identify all shared components in the Environment and protect them
-        o cache
-        o extkey-cache
-        o freelist --> translate to c++
-        o device
-        o env-header-page
-        o env-transaction list -- why? ham_txn_* is locked by global mutex
-            and will not be modified by the functions that we selected
-        o log
-        o journal
-        o changeset
-        o curl handle -- really?
-        o file filters -- why? the filter list is not modified in the selected
-            functions; but it needs to be documented that it has to be
-            threadsafe, therefore verify that the AES filter *is* threadsafe
-        o performance data/statistics: remove everything that is not required
-        o all other functions: assert that the env-mutex is locked!
+    o cache
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o extkey-cache
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o log
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o journal
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o device
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o changeset
+        o make sure it's perfectly abstracted
+        o protect with mutex
+    o freelist
+        o remove legacy code (1.x)
+        o create c++ class
+        o protect with mutex
+    o db
+        o completely hide the local/remote implementation in the database
+        o move more members from Database to the Implementation classes
+        o improve abstraction
+        o protect with mutex
+    o env
+        o completely hide the local/remote implementation in the Environment
+        o move more members from Environment to the Implementation classes
+        o improve abstraction
+    o backend
+        o replace with C++ class and inheritance
+        o BtreeBackend does not require to store in little/big-endian!
+        o remove be_set_dirty, replace with be->_fun_flush()
+        o btree has keydata1, keydata2 - why? better use DynamicArray?
+        o improve abstraction
+        o assert that the Database is locked
+    o statistics
+        o split into env/db/freelist
+        o remove unused code
+        o protect env and freelist with mutex
+        o in db: assert that the db is locked
+    o txn
+        o convert to clean c++ code
+        o protect with a mutex
+        o when changing the transaction queue: assert that the env is locked
+    o configuration/env-header-page
+        o create configuration object
+        o protect with mutex
+    o file filters -- why? the filter list is not modified in the selected
+        functions; but it needs to be documented that it has to be
+        threadsafe, therefore verify that the AES filter *is* threadsafe
+        o convert to C++ visitor pattern?
+
+    o all other functions/modules: assert that the env-mutex is locked!
+
+>>>>>>> Stashed changes
     o use read/write lock for Environment
     o introduce a new lock in the Database
     o the following functions lock the Environment for reading, but the
@@ -123,6 +164,7 @@ o python API - update and integrate
     o rewrite with boost::python??
     o also add to win32 package
 
+<<<<<<< Updated upstream
 o continue with c++-ification of db.h/db.cc
 
 o c++-ify the backend
@@ -130,6 +172,8 @@ o c++-ify the backend
     o BtreeBackend does not require to store in little/big-endian!
     o remove be_set_dirty, replace with be->_fun_flush()
     o btree has keydata1, keydata2 - why? better use DynamicArray?
+=======
+>>>>>>> Stashed changes
 
 
 
@@ -138,9 +182,11 @@ o c++-ify the backend
 o move flushing of transactions in background
     o new flag HAM_DISABLE_ASYNC_COMMITS
     o need new test: n threads; each thread inserts keys [i*n, i*(n+1))
-
-o continue with c++-ification of the environment - need to split into
-    local and remote (same as for Database class)
+    o make sure that each Database accesses its own pages; i.e. do not share
+        blob pages between databases. Each database stores the address of the
+        previously used blob page in order to reduce freelist access
+    o when flushing and values are written to multiple databases: write them
+        in parallel
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
