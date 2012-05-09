@@ -1617,65 +1617,32 @@ env_get_incremented_lsn(Environment *env, ham_u64_t *lsn)
 }
 
 static ham_status_t
-__purge_cache_max20(Environment *env)
+purge_callback(Page *page)
 {
-    ham_status_t st;
-    Page *page;
-    Cache *cache=env->get_cache();
-    unsigned i, max_pages=(unsigned)cache->get_cur_elements();
+    ham_status_t st=page->uncouple_all_cursors();
+    if (st)
+        return (st);
 
-    /* don't remove pages from the cache if it's an in-memory database */
-    if ((env->get_flags()&HAM_IN_MEMORY_DB))
-        return (0);
-    if (!cache->is_too_big())
-        return (0);
+    st=page->flush();
+    if (st)
+        return (st);
 
-    /* 
-     * max_pages specifies how many pages we try to flush in case the
-     * cache is full. some benchmarks showed that 10% is a good value. 
-     *
-     * if STRICT cache limits are enabled then purge as much as we can
-     */
-    if (!(env->get_flags()&HAM_CACHE_STRICT)) {
-        max_pages/=10;
-        if (max_pages==0)
-            max_pages=1;
-        /* but still we set an upper limit to avoid IO spikes */
-        else if (max_pages>20)
-            max_pages=20;
-    }
-
-    /* now free those pages */
-    for (i=0; i<max_pages; i++) {
-        page=cache->get_unused_page();
-        if (!page) {
-            if (i==0 && (env->get_flags()&HAM_CACHE_STRICT)) 
-                return (HAM_CACHE_FULL);
-            else
-                break;
-        }
-
-        st=db_write_page_and_delete(page, 0);
-        if (st)
-            return (st);
-    }
-
-    if (i==max_pages && max_pages!=0)
-        return (HAM_LIMITS_REACHED);
+    st=page->free();
+    if (st)
+        return (st);
+    delete page;
     return (0);
 }
 
 ham_status_t
 env_purge_cache(Environment *env)
 {
-    ham_status_t st;
     Cache *cache=env->get_cache();
 
-    do {
-        st=__purge_cache_max20(env);
-        if (st && st!=HAM_LIMITS_REACHED)
-            return st;
-    } while (st==HAM_LIMITS_REACHED && cache->is_too_big());
+    /* in-memory-db: don't remove the pages or they would be lost */
+    if (env->get_flags()&HAM_IN_MEMORY_DB)
+        return (0);
 
-    return (0);
+    return (cache->purge(purge_callback,
+                (env->get_flags()&HAM_CACHE_STRICT) != 0));
 }

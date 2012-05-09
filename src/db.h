@@ -939,12 +939,6 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
 
 
 /**
- * flush a page
- */
-extern ham_status_t
-db_flush_page(Environment *env, Page *page);
-
-/**
  * Flush all pages, and clear the cache.
  *
  * @param flags Set to DB_FLUSH_NODELETE if you do NOT want the cache to
@@ -987,29 +981,6 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
 
 #define PAGE_IGNORE_FREELIST          8
 #define PAGE_CLEAR_WITH_ZERO         16
-
-/**
- * Free a page.
- *
- * @remark will also remove the page from the cache and free all extended keys,
- * if there are any.
- *
- * @remark valid flag: DB_MOVE_TO_FREELIST; marks the page as 'deleted'
- * in the freelist. Ignored in in-memory databases.
- */
-extern ham_status_t
-db_free_page(Page *page, ham_u32_t flags);
-
-#define DB_MOVE_TO_FREELIST         1
-
-/**
- * Write a page, then delete the page from memory.
- *
- * @remark This function is used by the cache; it shouldn't be used
- * anywhere else.
- */
-extern ham_status_t
-db_write_page_and_delete(Page *page, ham_u32_t flags);
 
 /**
 * @defgroup ham_database_flags 

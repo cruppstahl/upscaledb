@@ -1,5 +1,5 @@
 
-EXTRA_DIST      = valgrind.supp
+EXTRA_DIST      = suppressions.valgrind
 
 noinst_PROGRAMS = test bfc_sample recovery
 

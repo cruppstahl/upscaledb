@@ -317,7 +317,6 @@ BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
     Database *db=get_db();
 
     ham_assert(page->get_db() == db, (0));
-    ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
     /*
      * if this page has a header, and it's either a B-Tree root page or 

@@ -22,6 +22,7 @@
 #include "../src/env.h"
 #include "../src/page.h"
 #include "../src/cursor.h"
+#include "../src/cache.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -1838,7 +1839,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         off=(int)btree_node_get_key_offset(page, 2);
         BFC_ASSERT_EQUAL((int)page->get_self()+12+28+64, off);
 
-        db_free_page(page, 0);
+        page->free();
+        ((Environment *)m_env)->get_cache()->remove_page(page);
+        delete page;
     }
 
     void cursorInsertAppendTest(void)

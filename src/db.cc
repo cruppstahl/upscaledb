@@ -549,57 +549,6 @@ Database::get_extended_key(ham_u8_t *key_data,
 }
 
 ham_status_t
-db_free_page(Page *page, ham_u32_t flags)
-{
-    ham_status_t st;
-    Environment *env=page->get_device()->get_env();
-    
-    ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
-
-    st=page->uncouple_all_cursors();
-    if (st)
-        return (st);
-
-    env->get_cache()->remove_page(page);
-
-    /*
-     * if this page has a header, and it's either a B-Tree root page or 
-     * a B-Tree index page: remove all extended keys from the cache, 
-     * and/or free their blobs
-     */
-    if (page->get_pers() && 
-        (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&
-            (page->get_type()==Page::TYPE_B_ROOT ||
-                page->get_type()==Page::TYPE_B_INDEX)) {
-        Backend *be;
-        
-        ham_assert(page->get_db(), ("Must be set as page owner when this is a Btree page"));
-        be = page->get_db()->get_backend();
-        ham_assert(be, (0));
-        
-        st = be->free_page_extkeys(page, flags);
-        if (st)
-            return (st);
-    }
-
-    /*
-     * move the page to the freelist
-     */
-    if (flags&DB_MOVE_TO_FREELIST) {
-        if (!(env->get_flags()&HAM_IN_MEMORY_DB))
-            (void)freel_mark_free(env, 0, page->get_self(), 
-                    env->get_pagesize(), HAM_TRUE);
-    }
-
-    /* free the page; since it's deleted, we don't need to flush it */
-    page->set_dirty(false);
-    (void)page->free();
-    delete page;
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
 db_alloc_page_impl(Page **page_ref, Environment *env, Database *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
@@ -754,99 +703,35 @@ db_fetch_page(Page **page_ref, Database *db,
     return (db_fetch_page_impl(page_ref, db->get_env(), db, address, flags));
 }
 
-ham_status_t
-db_flush_page(Environment *env, Page *page)
+static bool
+db_flush_callback(Page *page, Database *db, ham_u32_t flags)
 {
-    ham_status_t st;
+    (void)db;
 
-    /* write the page if it's dirty and if HAM_WRITE_THROUGH is enabled */
-    if (page->is_dirty()) {
-        st=page->flush();
-        if (st)
-            return (st);
-    }
+    (void)page->flush();
 
     /*
-     * put page back into the cache; do NOT update the page_counter, as
-     * this flush operation should not be considered an 'additional page
-     * access' impacting the page life-time in the cache.
-     *
-     * TODO why "put it back"? it's already in the cache
-     * be careful - don't store the header page in the cache
+     * if the page is deleted, uncouple all cursors, then
+     * free the memory of the page, then remove from the cache
      */
-    if (!page->is_header())
-        env->get_cache()->put_page(page);
+    if (!(flags&DB_FLUSH_NODELETE)) {
+        (void)page->uncouple_all_cursors();
+        (void)page->free();
+        return (true);
+    }
 
-    return (0);
+    return (false);
 }
 
 ham_status_t
 db_flush_all(Cache *cache, ham_u32_t flags)
 {
-    Page *head;
-
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
     if (!cache)
         return (0);
 
-    head=cache->get_totallist();
-    while (head) {
-        Page *next=head->get_next(Page::LIST_CACHED);
-
-        /*
-         * don't remove the page from the cache, if flag NODELETE
-         * is set (this flag is used i.e. in ham_flush())
-         */
-        if (!(flags&DB_FLUSH_NODELETE)) {
-            cache->set_totallist(head->list_remove(cache->get_totallist(), 
-                    Page::LIST_CACHED));
-            cache->dec_cur_elements();
-        }
-
-        (void)db_write_page_and_delete(head, flags);
-
-        head=next;
-    }
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-db_write_page_and_delete(Page *page, ham_u32_t flags)
-{
-    ham_status_t st;
-    Environment *env=page->get_device()->get_env();
-    
-    ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
-
-    /*
-     * write page to disk if it's dirty (and if we don't have 
-     * an IN-MEMORY DB)
-     */
-    ham_assert(env, (0));
-    if (page->is_dirty() && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
-        st=page->flush();
-        if (st)
-            return st;
-    }
-
-    /*
-     * if the page is deleted, uncouple all cursors, then
-     * free the memory of the page
-     */
-    if (!(flags&DB_FLUSH_NODELETE)) {
-        st=page->uncouple_all_cursors();
-        if (st)
-            return (st);
-        env->get_cache()->remove_page(page);
-        st=page->free();
-        if (st)
-            return (st);
-        delete page;
-    }
-
-    return (HAM_SUCCESS);
+    return (cache->visit(db_flush_callback, 0, flags));
 }
 
 void
@@ -2841,6 +2726,40 @@ DatabaseImplementationLocal::cursor_close(Cursor *cursor)
     cursor->close();
 }
 
+static bool
+db_close_callback(Page *page, Database *db, ham_u32_t flags)
+{
+    Environment *env=page->get_device()->get_env();
+
+    if (page->get_db()==db && page!=env->get_header_page()) {
+        (void)page->flush();
+        (void)page->uncouple_all_cursors();
+
+        /*
+         * if this page has a header, and it's either a B-Tree root page or 
+         * a B-Tree index page: remove all extended keys from the cache, 
+         * and/or free their blobs
+         */
+        if (page->get_pers() && 
+            (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&
+                (page->get_type()==Page::TYPE_B_ROOT ||
+                    page->get_type()==Page::TYPE_B_INDEX)) {
+            Backend *be;
+        
+            ham_assert(page->get_db(),
+                ("Must be set as page owner when this is a Btree page"));
+            be=page->get_db()->get_backend();
+            (void)be->free_page_extkeys(page, flags);
+        }
+
+        /* free the page */
+        (void)page->free();
+        return (true);
+    }
+
+    return (false);
+}
+
 ham_status_t 
 DatabaseImplementationLocal::close(ham_u32_t flags)
 {
@@ -2924,18 +2843,8 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      * flush all pages of this database (but not the header page,
      * it's still required and will be flushed below)
      */
-    if (env && env->get_cache()) {
-        Page *n, *head=env->get_cache()->get_totallist();
-        while (head) {
-            n=head->get_next(Page::LIST_CACHED);
-            if (head->get_db()==m_db && head!=env->get_header_page()) {
-                if (!(env->get_flags()&HAM_IN_MEMORY_DB)) 
-                    (void)db_flush_page(env, head);
-                (void)db_free_page(head, 0);
-            }
-            head=n;
-        }
-    }
+    if (env && env->get_cache())
+        (void)env->get_cache()->visit(db_close_callback, m_db, 0);
 
     /* clean up the transaction tree */
     if (m_db->get_optree())

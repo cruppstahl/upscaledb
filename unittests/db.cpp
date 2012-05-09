@@ -227,7 +227,9 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(m_dbp, page->get_db());
-        BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
+        BFC_ASSERT_EQUAL(0, page->free());
+        ((Environment *)m_env)->get_cache()->remove_page(page);
+        delete page;
     }
 
     void fetchPageTest(void)
@@ -239,7 +241,9 @@ public:
         BFC_ASSERT_EQUAL(0,
                 db_fetch_page(&p2, m_dbp, p1->get_self(), 0));
         BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
-        BFC_ASSERT_EQUAL(0, db_free_page(p1, 0));
+        BFC_ASSERT_EQUAL(0, p1->free());
+        ((Environment *)m_env)->get_cache()->remove_page(p1);
+        delete p1;
     }
 
     void flushPageTest(void)
@@ -257,18 +261,18 @@ public:
             p[i]=(ham_u8_t)i;
         page->set_dirty(true);
         address=page->get_self();
-        BFC_ASSERT_EQUAL(0, db_flush_page((Environment *)m_env, page));
-        BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
+        BFC_ASSERT_EQUAL(0, page->flush());
+        BFC_ASSERT_EQUAL(0, page->free());
+        ((Environment *)m_env)->get_cache()->remove_page(page);
+        delete page;
 
         BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_dbp, address, 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(address, page->get_self());
         p=page->get_raw_payload();
-        /* TODO see comment in db.c - db_free_page()
-        for (int i=0; i<16; i++)
-            BFC_ASSERT(p[i]==(ham_u8_t)i);
-        */
-        BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
+        BFC_ASSERT_EQUAL(0, page->free());
+        ((Environment *)m_env)->get_cache()->remove_page(page);
+        delete page;
     }
 
     // using a function to compare the constants is easier for debugging

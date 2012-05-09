@@ -201,11 +201,9 @@ Changeset::flush(ham_u64_t lsn)
     /* now write all the pages to the file; if any of these writes fail, 
      * we can still recover from the log */
     while (p) {
-        if (p->is_dirty()) {
-            st=db_flush_page(env, p);
-            if (st)
-                return (st);
-        }
+        st=p->flush();
+        if (st)
+            return (st);
         p=p->get_next(Page::LIST_CHANGESET);
 
         induce(ErrorInducer::CHANGESET_FLUSH);

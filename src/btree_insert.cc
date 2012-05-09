@@ -893,10 +893,8 @@ __insert_split(Page *page, ham_key_t *key,
     oldkey.size=key_get_size(nbte);
     oldkey._flags=key_get_flags(nbte);
     st=db->copy_key(&oldkey, &pivotkey);
-    if (st) {
-        (void)db_free_page(newpage, DB_MOVE_TO_FREELIST);
+    if (st)
         goto fail_dramatically;
-    }
     pivotrid=newpage->get_self();
 
     /*
