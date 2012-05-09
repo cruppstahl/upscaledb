@@ -102,14 +102,14 @@ ExtKeyCache::fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data)
 }
 
 void
-ExtKeyCache::purge(void)
+ExtKeyCache::purge()
 {
     m_extkeyhelper->m_removeall=false;
     m_hash.remove_if();
 }
 
 void
-ExtKeyCache::purge_all(void)
+ExtKeyCache::purge_all()
 {
     m_extkeyhelper->m_removeall=true;
     m_hash.remove_if();

@@ -40,16 +40,8 @@ class Cache
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    Cache(Environment *env, 
-                ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
+    Cache(Environment *env, ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
-    /**
-     * the destructor closes and destroys the cache manager object
-     * @remark this will NOT flush the cache!
-     */
-    ~Cache() {
-    }
-    
     /**
      * get an unused page (or an unreferenced page, if no unused page
      * was available
@@ -59,7 +51,7 @@ class Cache
      *
      * @remark the page is removed from the cache
      */
-    Page *get_unused_page(void) {
+    Page *get_unused_page() {
         Page *page;
         Page *oldest;
 
@@ -207,14 +199,14 @@ class Cache
     /**
      * returns true if the caller should purge the cache
      */
-    bool is_too_big(void) {
+    bool is_too_big() {
         return (m_cur_elements*m_env->get_pagesize()>m_capacity);
     }
 
     /**
      * get number of currently stored pages
      */
-    ham_u64_t get_cur_elements(void) {
+    ham_u64_t get_cur_elements() {
         return (m_cur_elements);
     }
 
@@ -243,14 +235,14 @@ class Cache
     /**
      * get the capacity (in bytes)
      */
-    ham_u64_t get_capacity(void) { 
+    ham_u64_t get_capacity() { 
         return (m_capacity); 
     }
 
     /**
      * check the cache integrity
      */
-    ham_status_t check_integrity(void);
+    ham_status_t check_integrity();
 
   private:
     ham_u64_t calc_hash(ham_offset_t o) {

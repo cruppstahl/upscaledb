@@ -88,13 +88,13 @@ class Journal
     Journal(Environment *env);
 
     /** creates a new journal */
-    ham_status_t create(void);
+    ham_status_t create();
 
     /** opens an existing journal */
-    ham_status_t open(void);
+    ham_status_t open();
 
     /** checks if the journal is empty */
-    bool is_empty(void);
+    bool is_empty();
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
     ham_status_t append_txn_begin(Transaction *txn, Environment *env, 
@@ -118,7 +118,7 @@ class Journal
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     /** empties the journal, removes all entries */
-    ham_status_t clear(void);
+    ham_status_t clear();
 
     /**
      * Sequentially returns the next journal entry, starting with 
@@ -143,15 +143,15 @@ class Journal
      * Recovers! All committed Transactions will be re-applied, all others
      * are automatically aborted
      */
-    ham_status_t recover(void);
+    ham_status_t recover();
 
     /** get the lsn */
-    ham_u64_t get_lsn(void) {
+    ham_u64_t get_lsn() {
         return (m_lsn);
     }
 
     /** get the lsn and increment it */
-    ham_u64_t get_incremented_lsn(void) {
+    ham_u64_t get_incremented_lsn() {
         return (m_lsn++);
     }
 

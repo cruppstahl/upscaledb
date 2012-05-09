@@ -134,15 +134,11 @@ class ExtKeyCache
      */
     ham_status_t fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data);
     
-    /**
-     * removes all OLD keys from the cache
-     */
-    void purge(void);
+    /** removes all OLD keys from the cache */
+    void purge();
     
-    /**
-     * removes ALL keys from the cache
-     */
-    void purge_all(void);
+    /** removes ALL keys from the cache */
+    void purge_all();
 
   private:
     /** the owner of the cache */
@@ -160,6 +156,7 @@ class ExtKeyCache
 
 /**
  * a combination of extkey_cache_remove and blob_free
+ * TODO move this to Database.cc (DatabaseImplementationLocal)
  */
 extern ham_status_t 
 extkey_remove(Database *db, ham_offset_t blobid);

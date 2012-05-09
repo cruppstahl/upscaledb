@@ -61,17 +61,42 @@ o Mark reported an error after surprise-shutdown
     o get access to the corrupt file
     o ...
 
-o look at ssb's clang output and try to integrate it into the build process
-
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
 
-o more fine-grained locking: lock ham_db_t handle for ham_insert, ham_find,
-    ham_cursor_*, ham_erase
+o more fine-grained locking
+    o identify all shared components in the Environment and protect them
+        o cache
+        o extkey-cache
+        o freelist --> translate to c++
+        o device
+        o env-header-page
+        o env-transaction list -- why? ham_txn_* is locked by global mutex
+            and will not be modified by the functions that we selected
+        o log
+        o journal
+        o changeset
+        o curl handle -- really?
+        o file filters -- why? the filter list is not modified in the selected
+            functions; but it needs to be documented that it has to be
+            threadsafe, therefore verify that the AES filter *is* threadsafe
+        o performance data/statistics: remove everything that is not required
+        o all other functions: assert that the env-mutex is locked!
+    o use read/write lock for Environment
+    o introduce a new lock in the Database
+    o the following functions lock the Environment for reading, but the
+        Database for writing:
+        o ham_insert
+        o ham_find
+        o ham_erase
+        o ham_cursor_*
+    o any others?
 
 o also remove locking from C# and Java APIs
 
-o need a way to graphically display performance metrics
+. look at ssb's clang output and try to integrate it into the build process
+
+. need a way to graphically display performance metrics
     o output in a text file
         version/configuration/test-id
         each test is run in multiple threads
