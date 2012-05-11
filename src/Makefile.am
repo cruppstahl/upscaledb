@@ -27,7 +27,6 @@ libhamsterdb_la_SOURCES = log.cc \
 			db.cc \
 			env.cc \
 			error.cc \
-			extkeys.cc \
 			freelist.cc \
 			freelist_v2.cc \
 			freelist_statistics.cc \

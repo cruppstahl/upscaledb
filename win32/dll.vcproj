@@ -469,10 +469,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\extkeys.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\src\extkeys.h"
 			>
 		</File>

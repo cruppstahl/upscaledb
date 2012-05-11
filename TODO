@@ -68,19 +68,19 @@ o more fine-grained locking
     x cache
         x make sure it's perfectly abstracted
         x protect with mutex
-    o extkey-cache
-        o make sure it's perfectly abstracted
-        o protect with mutex
+    x extkey-cache
+        x make sure it's perfectly abstracted
+        x protect with mutex
     o log
         o make sure it's perfectly abstracted
         o protect with mutex
     o journal
         o make sure it's perfectly abstracted
         o protect with mutex
-    o device
+    o changeset
         o make sure it's perfectly abstracted
         o protect with mutex
-    o changeset
+    o device
         o make sure it's perfectly abstracted
         o protect with mutex
     o freelist
