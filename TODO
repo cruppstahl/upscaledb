@@ -71,9 +71,9 @@ o more fine-grained locking
     x extkey-cache
         x make sure it's perfectly abstracted
         x protect with mutex
-    o log
-        o make sure it's perfectly abstracted
-        o protect with mutex
+    x log
+        x make sure it's perfectly abstracted
+        x protect with mutex
     o journal
         o make sure it's perfectly abstracted
         o protect with mutex

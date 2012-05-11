@@ -25,14 +25,10 @@
 #include "util.h"
 
 
-Log::Log(Environment *env, ham_u32_t flags)
-: m_env(env), m_flags(flags), m_lsn(0), m_fd(HAM_INVALID_FD)
-{
-}
-
 ham_status_t
-Log::create(void)
+Log::create()
 {
+    ScopedLock lock(m_mutex);
     Log::Header header;
     ham_status_t st;
     std::string path=get_path();
@@ -47,7 +43,7 @@ Log::create(void)
 
     st=os_write(m_fd, &header, sizeof(header));
     if (st) {
-        close();
+        close_nolock();
         return (st);
     }
 
@@ -55,8 +51,9 @@ Log::create(void)
 }
 
 ham_status_t
-Log::open(void)
+Log::open()
 {
+    ScopedLock lock(m_mutex);
     Log::Header header;
     std::string path=get_path();
     ham_status_t st;
@@ -64,19 +61,19 @@ Log::open(void)
     /* open the file */
     st=os_open(path.c_str(), 0, &m_fd);
     if (st) {
-        close();
+        close_nolock();
         return (st);
     }
 
     /* check the file header with the magic */
     st=os_pread(m_fd, 0, &header, sizeof(header));
     if (st) {
-        close();
+        close_nolock();
         return (st);
     }
     if (header.magic!=HEADER_MAGIC) {
         ham_trace(("logfile has unknown magic or is corrupt"));
-        close();
+        close_nolock();
         return (HAM_LOG_INV_FILE_HEADER);
     }
 
@@ -84,36 +81,6 @@ Log::open(void)
     m_lsn=header.lsn;
 
     return (0);
-}
-
-bool
-Log::is_empty(void)
-{
-    ham_status_t st; 
-    ham_offset_t size;
-
-    st=os_get_filesize(m_fd, &size);
-    if (st)
-		return (st ? false : true); /* TODO throw */
-    if (size && size!=sizeof(Log::Header))
-        return (false);
-
-    return (true);
-}
-
-ham_status_t
-Log::clear(void)
-{
-    ham_status_t st;
-
-    st=os_truncate(m_fd, sizeof(Log::Header));
-    if (st)
-        return (st);
-
-    /* after truncate, the file pointer is far beyond the new end of file;
-     * reset the file pointer, or the next write will resize the file to
-     * the original size */
-    return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
 }
 
 ham_status_t
@@ -172,7 +139,7 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
 }
 
 ham_status_t
-Log::close(ham_bool_t noclear)
+Log::close_nolock(ham_bool_t noclear)
 {
     ham_status_t st=0;
     Log::Header header;
@@ -186,7 +153,7 @@ Log::close(ham_bool_t noclear)
         return (st);
 
     if (!noclear)
-        clear();
+        clear_nolock();
 
     if (m_fd!=HAM_INVALID_FD) {
         if ((st=os_close(m_fd, 0)))
@@ -200,6 +167,7 @@ Log::close(ham_bool_t noclear)
 ham_status_t
 Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 {
+    ScopedLock lock(m_mutex);
     ham_status_t st=0;
     ham_file_filter_t *head=m_env->get_file_filter();
     ham_u8_t *p;
@@ -240,6 +208,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 ham_status_t
 Log::recover()
 {
+    ScopedLock lock(m_mutex);
     ham_status_t st;
     Page *page;
     Device *device=m_env->get_device();
@@ -340,7 +309,7 @@ Log::recover()
 
 clear:
     /* and finally clear the log */
-    st=clear();
+    st=clear_nolock();
     if (st) {
         ham_log(("unable to clear logfiles; please manually delete the "
                 ".log0 file of this Database, then open again."));
@@ -362,12 +331,6 @@ bail:
     }
 
     return (st);
-}
-
-ham_status_t
-Log::flush(void)
-{
-    return (os_flush(m_fd));
 }
 
 ham_status_t
