@@ -1603,11 +1603,11 @@ env_get_incremented_lsn(Environment *env, ham_u64_t *lsn)
 {
     Journal *j=env->get_journal();
     if (j) {
-        if (j->get_lsn()==0xffffffffffffffffull) {
+        *lsn=j->get_incremented_lsn();
+        if (*lsn==0) {
             ham_log(("journal limits reached (lsn overflow) - please reorg"));
             return (HAM_LIMITS_REACHED);
         }
-        *lsn=j->get_incremented_lsn();
         return (0);
     }
     else {

@@ -1052,7 +1052,7 @@ public:
     void lsnOverflowTest(void)
     {
         Journal *j=m_env->get_journal();
-        j->m_lsn=0xffffffffffffffffull-1;
+        j->m_lsn=0xffffffffffffffffull;
         ham_txn_t *txn;
 
         /* this one must work */

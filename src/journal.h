@@ -36,6 +36,8 @@
  */
 class Journal
 {
+    static const int JOURNAL_DEFAULT_THRESHOLD = 16;
+
   public:
     static const ham_u32_t HEADER_MAGIC=('h'<<24)|('j'<<16)|('o'<<8)|'1';
 
@@ -85,7 +87,16 @@ class Journal
     };
 
     /** constructor */
-    Journal(Environment *env);
+    Journal(Environment *env)
+      : m_env(env), m_current_fd(0), m_lsn(0), m_last_cp_lsn(0), 
+        m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
+        m_fd[0]=HAM_INVALID_FD;
+        m_fd[1]=HAM_INVALID_FD;
+        m_open_txn[0]=0;
+        m_open_txn[1]=0;
+        m_closed_txn[0]=0;
+        m_closed_txn[1]=0;
+    }
 
     /** creates a new journal */
     ham_status_t create();
@@ -94,7 +105,20 @@ class Journal
     ham_status_t open();
 
     /** checks if the journal is empty */
-    bool is_empty();
+    bool is_empty() {
+        ScopedLock lock(m_mutex);
+        ham_offset_t size;
+
+        for (int i=0; i<2; i++) {
+            ham_status_t st=os_get_filesize(m_fd[i], &size);
+            if (st)
+                return (false); /* TODO throw exception */
+            if (size && size!=sizeof(Header))
+                return (false);
+        }
+
+        return (true);
+    }
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
     ham_status_t append_txn_begin(Transaction *txn, Environment *env, 
@@ -118,7 +142,55 @@ class Journal
                 ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
     /** empties the journal, removes all entries */
-    ham_status_t clear();
+    ham_status_t clear() {
+        ScopedLock lock(m_mutex);
+        return (clear_nolock());
+    }
+
+    /** Closes the journal, frees all allocated resources */
+    ham_status_t close(ham_bool_t noclear=false) {
+        ScopedLock lock(m_mutex);
+        return (close_nolock(noclear));
+    }
+
+    /**
+     * Recovers! All committed Transactions will be re-applied, all others
+     * are automatically aborted
+     */
+    ham_status_t recover();
+
+    /** get the lsn and increment it */
+    ham_u64_t get_incremented_lsn() {
+        ScopedLock lock(m_mutex);
+        return (m_lsn++);
+    }
+
+  private:
+    friend class JournalTest;
+
+    /** gets the lsn; only required for unittests */
+    ham_u64_t get_lsn() {
+        ScopedLock lock(m_mutex);
+        return (m_lsn);
+    }
+
+    /** empties the journal, removes all entries (w/o mutex) */
+    ham_status_t clear_nolock() {
+        ham_status_t st; 
+
+        for (int i=0; i<2; i++) {
+            if ((st=clear_file(i)))
+                return (st);
+        }
+
+        return (0);
+    }
+
+    /** returns the path of the journal file */
+    std::string get_path(int i);
+
+    /** Closes the journal (w/o mutex) */
+    ham_status_t close_nolock(ham_bool_t noclear=false);
 
     /**
      * Sequentially returns the next journal entry, starting with 
@@ -136,29 +208,6 @@ class Journal
     ham_status_t get_entry(Iterator *iter, 
                 JournalEntry *entry, void **aux);
 
-    /** Closes the journal, frees all allocated resources */
-    ham_status_t close(ham_bool_t noclear=false);
-
-    /**
-     * Recovers! All committed Transactions will be re-applied, all others
-     * are automatically aborted
-     */
-    ham_status_t recover();
-
-    /** get the lsn */
-    ham_u64_t get_lsn() {
-        return (m_lsn);
-    }
-
-    /** get the lsn and increment it */
-    ham_u64_t get_incremented_lsn() {
-        return (m_lsn++);
-    }
-
-    /** returns the path of the journal file */
-    std::string get_path(int i);
-
-  private:
     /** appends an entry to the journal */
     ham_status_t append_entry(int fdidx,
                 void *ptr1=0, ham_size_t ptr1_size=0,
@@ -184,6 +233,9 @@ class Journal
         return (m_env->get_allocator()->free(ptr));
     }
 
+    /** a mutex to protect the journal */
+    Mutex m_mutex;
+
 	/** references the Environment this journal file is for */
 	Environment *m_env;
 
@@ -208,8 +260,6 @@ class Journal
     /** when having more than these Transactions in one file, we 
      * swap the files */
     ham_size_t m_threshold;
-
-    friend class JournalTest;
 };
 
 #include "packstop.h"
