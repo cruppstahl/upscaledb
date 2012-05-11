@@ -189,8 +189,7 @@ class Cache
         page=oldest;
         do {
             /* pick the first unused page (not in a changeset) */
-            if (!page->is_in_list(m_env->get_changeset().get_head(), 
-                        Page::LIST_CHANGESET))
+            if (!m_env->get_changeset().contains(page))
                 break;
         
             page=page->get_previous(Page::LIST_CACHED);

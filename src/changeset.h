@@ -26,6 +26,7 @@
 
 #include "internal_fwd_decl.h"
 #include "errorinducer.h"
+#include "page.h"
 
 
 /**
@@ -42,6 +43,7 @@ class Changeset
     }
 
     ~Changeset() {
+        ScopedLock lock(m_mutex);
         if (m_inducer)
             delete m_inducer;
         if (m_blobs)
@@ -56,6 +58,7 @@ class Changeset
 
     /** is the changeset empty? */
     bool is_empty() {
+        ScopedLock lock(m_mutex);
         return (m_head==0);
     }
 
@@ -69,7 +72,10 @@ class Changeset
     Page *get_page(ham_offset_t pageid);
 
     /** removes all pages from the changeset */
-    void clear();
+    void clear() {
+        ScopedLock lock(m_mutex);
+        clear_nolock();
+    }
 
     /**
      * flush all pages in the changeset - first write them to the log, then 
@@ -79,15 +85,22 @@ class Changeset
      */
     ham_status_t flush(ham_u64_t lsn);
 
-    /** retrieve the head of the linked list */
-    Page *get_head() {
-        return (m_head);
+    /** check if the page is already part of the changeset */
+    bool contains(Page *page) {
+        ScopedLock lock(m_mutex);
+        return (page->is_in_list(m_head, Page::LIST_CHANGESET));
     }
 
   private:
+    /** removes all pages from the changeset (w/o mutex) */
+    void clear_nolock();
+
     /* write all pages in a bucket to the log file */
     ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,
                             ham_u64_t lsn, ham_size_t &page_count) ;
+
+    /* a mutex to protect the changeset */
+    Mutex m_mutex;
 
     /* the head of our linked list */
     Page *m_head;

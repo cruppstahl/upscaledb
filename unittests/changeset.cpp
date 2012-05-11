@@ -119,7 +119,6 @@ public:
 
         BFC_ASSERT_EQUAL(false, ch.is_empty());
         ch.clear();
-        BFC_ASSERT_EQUAL((Page *)NULL, ch.get_head());
         BFC_ASSERT_EQUAL(true, ch.is_empty());
 
         for (int i=0; i<3; i++)

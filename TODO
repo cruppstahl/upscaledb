@@ -77,9 +77,9 @@ o more fine-grained locking
     x journal
         x make sure it's perfectly abstracted
         x protect with mutex
-    o changeset
-        o make sure it's perfectly abstracted
-        o protect with mutex
+    x changeset
+        x make sure it's perfectly abstracted
+        x protect with mutex
     o device
         o make sure it's perfectly abstracted
         o protect with mutex
