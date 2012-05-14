@@ -77,9 +77,15 @@ o more fine-grained locking
     x journal
         x make sure it's perfectly abstracted
         x protect with mutex
-    x changeset
+    o changeset
         x make sure it's perfectly abstracted
         x protect with mutex
+        o changeset::contains is not thread safe
+            -> review others once more
+        o do we also need to lock pages?? or are they locked implicitly by
+            adding them to the changeset? if yes then make sure that this is
+            failsafe! and assert that there can be only one changeset at a
+            time
     o device
         o make sure it's perfectly abstracted
         o protect with mutex
