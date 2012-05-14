@@ -467,7 +467,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 }
 
 ham_status_t
-os_close(ham_fd_t fd, ham_u32_t flags)
+os_close(ham_fd_t fd)
 {
     ham_status_t st;
 

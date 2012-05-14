@@ -143,7 +143,7 @@ os_flush(ham_fd_t fd);
  * close a filedescriptor
  */
 extern ham_status_t
-os_close(ham_fd_t fd, ham_u32_t flags);
+os_close(ham_fd_t fd);
 
 
 #endif /* HAM_OS_H__ */

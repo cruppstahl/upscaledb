@@ -76,7 +76,7 @@ public:
 
         st=os_open("Makefile.am", 0, &fd);
         BFC_ASSERT(st==0);
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -90,7 +90,7 @@ public:
         BFC_ASSERT(st==0);
         st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
         BFC_ASSERT(st==HAM_IO_ERROR);
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -110,7 +110,7 @@ public:
 
         st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT_EQUAL(0, st);
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT_EQUAL(0, st);
     }
 
@@ -128,7 +128,7 @@ public:
             BFC_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
             BFC_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
             BFC_ASSERT(filesize==1024);
-            BFC_ASSERT(os_close(fd, 0)==HAM_SUCCESS);
+            BFC_ASSERT(os_close(fd)==HAM_SUCCESS);
         }
     }
 
@@ -137,7 +137,7 @@ public:
 #ifndef WIN32  // crashs in ntdll.dll
         ham_status_t st;
 
-        st=os_close((ham_fd_t)0x12345, 0);
+        st=os_close((ham_fd_t)0x12345);
         BFC_ASSERT(st==HAM_IO_ERROR);
 #endif
     }
@@ -150,18 +150,18 @@ public:
 
         BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 
                     HAM_LOCK_EXCLUSIVE, 0664, &fd));
-        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
         
         BFC_ASSERT_EQUAL(0, 
                          os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd));
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
                 os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
-        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
         BFC_ASSERT_EQUAL(0, 
                          os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
-        BFC_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, os_close(fd2));
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd2));
-        BFC_ASSERT_EQUAL(0, os_close(fd2, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd2));
 #endif
     }
 
@@ -186,7 +186,7 @@ public:
             BFC_ASSERT(st==0);
             BFC_ASSERT(0==memcmp(buffer, orig, sizeof(buffer)));
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -221,7 +221,7 @@ public:
             st=os_munmap(&mmaph, p2, ps);
             BFC_ASSERT(st==0);
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
         free(p1);
     }
@@ -248,7 +248,7 @@ public:
         /* compare */
         BFC_ASSERT_EQUAL(0x13, page[0]);
 		
-		BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+		BFC_ASSERT_EQUAL(0, os_close(fd));
         free(page);
     }
 
@@ -265,7 +265,7 @@ public:
             memset(p1, i, ps);
             BFC_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
         }
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), HAM_READ_ONLY, &fd));
         for (i=0; i<10; i++) {
@@ -275,7 +275,7 @@ public:
             BFC_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
             BFC_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
         }
-        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
         free(p1);
     }
 
@@ -315,7 +315,7 @@ public:
             free(p1);
             addr+=size;
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -331,7 +331,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 os_mmap(fd, &mmaph, 33, 66, 0, &page));
 #endif
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
     }
 
     void writevTest()
@@ -358,7 +358,7 @@ public:
         BFC_ASSERT_EQUAL(0, os_pread(fd, 10, buffer, sizeof(buffer)-10));
         BFC_ASSERT_EQUAL(0, strcmp("hello world!", buffer));
 
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
     }
 
     void seekTellTest()
@@ -377,7 +377,7 @@ public:
             BFC_ASSERT(st==0);
             BFC_ASSERT(tell==(ham_offset_t)i);
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -405,7 +405,7 @@ public:
             BFC_ASSERT(st==0);
             BFC_ASSERT(fsize==(ham_offset_t)(i*128));
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 
@@ -425,7 +425,7 @@ public:
             st=os_pwrite(fd, i*sizeof(kb), kb, sizeof(kb));
             BFC_ASSERT(st==0);
         }
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
 
         st=os_open(BFC_OPATH(".test"), 0, &fd);
@@ -435,7 +435,7 @@ public:
         st=os_tell(fd, &tell);
         BFC_ASSERT(st==0);
         BFC_ASSERT(tell==(ham_offset_t)1024*1024*4);
-        st=os_close(fd, 0);
+        st=os_close(fd);
         BFC_ASSERT(st==0);
     }
 

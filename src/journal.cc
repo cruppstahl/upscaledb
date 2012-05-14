@@ -415,7 +415,7 @@ Journal::close_nolock(ham_bool_t noclear)
 
     for (i=0; i<2; i++) {
         if (m_fd[i]!=HAM_INVALID_FD) {
-            (void)os_close(m_fd[i], 0);
+            (void)os_close(m_fd[i]);
             m_fd[i]=HAM_INVALID_FD;
         }
     }

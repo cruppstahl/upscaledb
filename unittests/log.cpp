@@ -148,7 +148,7 @@ public:
          * to patch the file before we start the test. */
         BFC_ASSERT_EQUAL(0, os_open("data/log-broken-magic.log0", 0, &fd));
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         env->set_filename("data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, log->open());
@@ -636,7 +636,7 @@ public:
         ham_fd_t fd;
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
         BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         /* make sure that the log has one alloc-page entry */
         compareLog(BFC_OPATH(".test2"), LogEntry(1, ps*2, ps));
@@ -686,7 +686,7 @@ public:
         ham_fd_t fd;
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
         BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;
@@ -739,7 +739,7 @@ public:
         ham_fd_t fd;
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps*2, "XXXXXXXXXXXXXXXXXXXX", 20));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         /* make sure that the log has one alloc-page entry */
         compareLog(BFC_OPATH(".test2"), LogEntry(2, ps*2, ps));
@@ -792,7 +792,7 @@ public:
             BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps*(2+i), 
                                 "XXXXXXXXXXXXXXXXXXXX", 20));
         }
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;
@@ -852,7 +852,7 @@ public:
                                 "XXXXXXXXXXXXXXXXXXXX", 20));
         }
         BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*7));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         /* make sure that the log has one alloc-page entry */
         std::vector<LogEntry> vec;

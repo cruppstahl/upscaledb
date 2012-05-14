@@ -212,7 +212,7 @@ public:
          * therefore we have to patch the file before we start the test. */
         BFC_ASSERT_EQUAL(0, os_open("data/log-broken-magic.jrn0", 0, &fd));
         BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
-        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd));
 
         m_env->set_filename("data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, j->open());

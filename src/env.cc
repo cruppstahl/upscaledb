@@ -171,11 +171,7 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
-        if (flags&HAM_IN_MEMORY_DB)
-            device=new InMemoryDevice(env, flags);
-        else
-            device=new FileDevice(env, flags);
-
+        device=new Device(env, flags);
         device->set_pagesize(env->get_pagesize());
         env->set_device(device);
 
@@ -361,11 +357,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
 
     /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
-        if (flags&HAM_IN_MEMORY_DB)
-            device=new InMemoryDevice(env, flags);
-        else
-            device=new FileDevice(env, flags);
-
+        device=new Device(env, flags);
         env->set_device(device);
     }
     else {

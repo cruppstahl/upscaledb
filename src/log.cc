@@ -156,7 +156,7 @@ Log::close_nolock(ham_bool_t noclear)
         clear_nolock();
 
     if (m_fd!=HAM_INVALID_FD) {
-        if ((st=os_close(m_fd, 0)))
+        if ((st=os_close(m_fd)))
             return (st);
         m_fd=HAM_INVALID_FD;
     }

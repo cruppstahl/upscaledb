@@ -528,16 +528,15 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 }
 
 ham_status_t
-os_close(ham_fd_t fd, ham_u32_t flags)
+os_close(ham_fd_t fd)
 {
     ham_status_t st;
-
-    (void)flags;
 
     if (!CloseHandle((HANDLE)fd)) {
         char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("CloseHandle failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
+        ham_log(("CloseHandle failed with OS status %u (%s)", st,
+                DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 

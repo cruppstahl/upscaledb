@@ -43,20 +43,6 @@ class Cache
     Cache(Environment *env, ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
 
     /**
-     * get an unused page (or an unreferenced page, if no unused page
-     * was available
-     *
-     * @remark if the page is dirty, it's the caller's responsibility to 
-     * write it to disk!
-     *
-     * @remark the page is removed from the cache
-     */
-    Page *get_unused_page() {
-        ScopedLock lock(m_mutex);
-        return (get_unused_page_nolock());
-    }
-
-    /**
      * get a page from the cache
      *
      * @remark the page is removed from the cache
