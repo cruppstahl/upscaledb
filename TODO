@@ -64,6 +64,9 @@ o Mark reported an error after surprise-shutdown
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
 
+o look at Peter's mail - sometimes, ham_env_create_db returns
+    HAM_INTERNAL_ERROR (only win32, C++ API)
+
 o more fine-grained locking
     x cache
         x make sure it's perfectly abstracted
