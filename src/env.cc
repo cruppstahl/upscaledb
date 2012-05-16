@@ -1490,23 +1490,22 @@ __flush_txn(Environment *env, Transaction *txn)
                 st=btree_cursor_insert(c1->get_btree_cursor(), 
                         txn_opnode_get_key(node), txn_op_get_record(op), 
                         txn_op_get_orig_flags(op)|additional_flag);
-                if (st)
-                    goto bail;
+                if (!st) {
+                    /* uncouple the cursor from the txn-op, and remove it */
+                    txn_op_remove_cursor(op, tc1);
+                    c1->couple_to_btree();
+                    c1->set_to_nil(Cursor::CURSOR_TXN);
 
-                /* uncouple the cursor from the txn-op, and remove it */
-                txn_op_remove_cursor(op, tc1);
-                c1->couple_to_btree();
-                c1->set_to_nil(Cursor::CURSOR_TXN);
-
-                /* all other (btree) cursors need to be coupled to the same 
-                 * item as the first one. */
-                while ((tc2=txn_op_get_cursors(op))) {
-                    txn_op_remove_cursor(op, tc2);
-                    c2=txn_cursor_get_parent(tc2);
-                    btree_cursor_couple_to_other(c2->get_btree_cursor(), 
-                                c1->get_btree_cursor());
-                    c2->couple_to_btree();
-                    c2->set_to_nil(Cursor::CURSOR_TXN);
+                    /* all other (btree) cursors need to be coupled to the same 
+                     * item as the first one. */
+                    while ((tc2=txn_op_get_cursors(op))) {
+                        txn_op_remove_cursor(op, tc2);
+                        c2=txn_cursor_get_parent(tc2);
+                        btree_cursor_couple_to_other(c2->get_btree_cursor(), 
+                                    c1->get_btree_cursor());
+                        c2->couple_to_btree();
+                        c2->set_to_nil(Cursor::CURSOR_TXN);
+                    }
                 }
             }
         }
@@ -1522,17 +1521,22 @@ __flush_txn(Environment *env, Transaction *txn)
             }
         }
 
-bail:
+        if (st) {
+            ham_trace(("failed to flush op: %d (%s)", 
+                            (int)st, ham_strerror(st)));
+            env->get_changeset().clear();
+            return (st);
+        }
+
         /* now flush the changeset to disk */
         if (env->get_flags()&HAM_ENABLE_RECOVERY) {
             env->get_changeset().add_page(env->get_header_page());
             st=env->get_changeset().flush(txn_op_get_lsn(op));
-        }
-
-        if (st) {
-            ham_trace(("failed to flush op: %d (%s)", 
-                            (int)st, ham_strerror(st)));
-            return (st);
+            if (st) {
+                ham_trace(("failed to flush op: %d (%s)", 
+                                (int)st, ham_strerror(st)));
+                return (st);
+            }
         }
 
         /* 
