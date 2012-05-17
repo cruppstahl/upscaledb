@@ -182,11 +182,8 @@ _local_fun_create(Environment *env, const char *filename,
     }
     else {
         device=env->get_device();
-        ham_assert(device->get_pagesize(), (0));
-        ham_assert(env->get_pagesize() == device->get_pagesize(), (0));
     }
     ham_assert(device == env->get_device(), (0));
-    ham_assert(env->get_pagesize() == device->get_pagesize(), (""));
 
     /* create the file */
     st=device->create(filename, flags, mode);

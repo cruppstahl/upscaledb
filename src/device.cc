@@ -27,7 +27,7 @@ DeviceImplDisk::alloc_page(Page *page)
 {
     ham_status_t st;
     ham_offset_t pos;
-    ham_size_t size=m_device->get_pagesize();
+    ham_size_t size=m_pagesize;
 
     st=os_get_filesize(m_fd, &pos);
     if (st)
@@ -55,7 +55,7 @@ DeviceImplDisk::read(ham_offset_t offset, void *buffer, ham_offset_t size)
      * we're done unless there are file filters (or if we're reading the
      * header page - the header page is not filtered)
      */
-    head=m_device->get_env()->get_file_filter();
+    head=m_device->m_env->get_file_filter();
     if (!head || offset==0)
         return (0);
 
@@ -64,7 +64,7 @@ DeviceImplDisk::read(ham_offset_t offset, void *buffer, ham_offset_t size)
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb((ham_env_t *)m_device->get_env(), head, 
+            st=head->after_read_cb((ham_env_t *)m_device->m_env, head, 
                         (ham_u8_t *)buffer, (ham_size_t)size);
             if (st)
                 return (st);
@@ -81,9 +81,9 @@ DeviceImplDisk::read_page(Page *page)
     ham_u8_t *buffer;
     ham_status_t st;
     ham_file_filter_t *head=0;
-    ham_size_t size=m_device->get_pagesize();
+    ham_size_t size=m_pagesize;
     
-    head=m_device->get_env()->get_file_filter();
+    head=m_device->m_env->get_file_filter();
 
     /*
      * first, try to mmap the file (if mmap is available/enabled). 
@@ -93,21 +93,21 @@ DeviceImplDisk::read_page(Page *page)
      * in such a case, the os_mmap function will return HAM_LIMITS_REACHED
      * and we force a fallback to read/write.
      */
-    if (!(m_device->get_flags()&HAM_DISABLE_MMAP)) {
+    if (!(m_device->m_flags&HAM_DISABLE_MMAP)) {
         st=os_mmap(m_fd, page->get_mmap_handle_ptr(), 
                 page->get_self(), size,
-                m_device->get_flags()&HAM_READ_ONLY, &buffer);
+                m_device->m_flags&HAM_READ_ONLY, &buffer);
         if (st && st!=HAM_LIMITS_REACHED)
             return (st);
         if (st==HAM_LIMITS_REACHED) {
-            m_device->set_flags(m_device->get_flags()|HAM_DISABLE_MMAP);
+            m_device->m_flags=m_device->m_flags|HAM_DISABLE_MMAP;
             goto fallback_rw;
         }
     }
     else {
 fallback_rw:
 		if (page->get_pers()==0) {
-            buffer=(ham_u8_t *)m_device->get_env()->get_allocator()->alloc(size);
+            buffer=(ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
             page->set_pers((page_data_t *)buffer);
@@ -133,7 +133,8 @@ fallback_rw:
     /* otherwise run the filters */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb((ham_env_t *)m_device->get_env(), head, buffer, size);
+            st=head->after_read_cb((ham_env_t *)m_device->m_env, 
+                                head, buffer, size);
             if (st)
                 return (st);
         }
@@ -147,8 +148,7 @@ fallback_rw:
 ham_status_t
 DeviceImplDisk::write_page(Page *page)
 {
-    return (write(page->get_self(), page->get_pers(),
-                m_device->get_pagesize()));
+    return (write(page->get_self(), page->get_pers(), m_pagesize));
 }
 
 ham_status_t 
@@ -162,20 +162,20 @@ DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
      * run page through page-level filters, but not for the 
      * root-page!
      */
-    head=m_device->get_env()->get_file_filter();
+    head=m_device->m_env->get_file_filter();
     if (!head || offset==0)
         return (os_pwrite(m_fd, offset, buffer, size));
 
     /* don't modify the data in-place!  */
-    tempdata=(ham_u8_t *)m_device->get_env()->get_allocator()->alloc((ham_size_t)size);
+    tempdata=(ham_u8_t *)m_device->m_env->get_allocator()->alloc((ham_size_t)size);
     if (!tempdata)
         return (HAM_OUT_OF_MEMORY);
     memcpy(tempdata, buffer, size);
 
     while (head) {
         if (head->before_write_cb) {
-            st=head->before_write_cb((ham_env_t *)m_device->get_env(), head, tempdata, 
-                            (ham_size_t)size);
+            st=head->before_write_cb((ham_env_t *)m_device->m_env,
+                            head, tempdata, (ham_size_t)size);
             if (st) 
                 break;
         }
@@ -185,7 +185,7 @@ DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
     if (!st)
         st=os_pwrite(m_fd, offset, tempdata, size);
 
-    m_device->get_env()->get_allocator()->free(tempdata);
+    m_device->m_env->get_allocator()->free(tempdata);
     return (st);
 }
 
@@ -196,12 +196,12 @@ DeviceImplDisk::free_page(Page *page)
 
     if (page->get_pers()) {
         if (page->get_flags()&Page::NPERS_MALLOC) {
-            m_device->get_env()->get_allocator()->free(page->get_pers());
+            m_device->m_env->get_allocator()->free(page->get_pers());
             page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
         }
         else {
             st=os_munmap(page->get_mmap_handle_ptr(), 
-                    page->get_pers(), m_device->get_pagesize());
+                    page->get_pers(), m_pagesize);
             if (st)
                 return (st);
         }
@@ -215,11 +215,11 @@ ham_status_t
 DeviceImplInMemory::alloc_page(Page *page)
 {
     ham_u8_t *buffer;
-    ham_size_t size=m_device->get_pagesize();
+    ham_size_t size=m_pagesize;
 
     ham_assert(page->get_pers()==0, (0));
 
-    buffer=(ham_u8_t *)m_device->get_env()->get_allocator()->alloc(size);
+    buffer=(ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
     if (!buffer)
         return (HAM_OUT_OF_MEMORY);
     page->set_pers((page_data_t *)buffer);
@@ -235,7 +235,7 @@ DeviceImplInMemory::free_page(Page *page)
     ham_assert(page->get_pers()!=0, (0));
     ham_assert(page->get_flags()|Page::NPERS_MALLOC, (0));
 
-    m_device->get_env()->get_allocator()->free(page->get_pers());
+    m_device->m_env->get_allocator()->free(page->get_pers());
     page->set_pers(0);
     page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
 

@@ -65,7 +65,7 @@ o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
 
 o look at Peter's mail - sometimes, ham_env_create_db returns
-    HAM_INTERNAL_ERROR (only win32, C++ API)
+    HAM_INTERNAL_ERROR (only win32, C++ API, Windows 7)
 
 o more fine-grained locking
     x cache
@@ -85,10 +85,11 @@ o more fine-grained locking
         x protect with mutex
     x device
         x make sure it's perfectly abstracted
-        o protect with mutex
+        x protect with mutex
     o freelist
         o remove legacy code (1.x)
         o create c++ class
+        o freelist class takes ownership of freelist_cache (from device)
         o protect with mutex
     o db
         o completely hide the local/remote implementation in the database
