@@ -433,13 +433,6 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
         }
     }
     else {
-#ifdef HAM_DEBUG
-        for (i=0; i<size_bits; i++) {
-            ham_assert((p[(i+start_bit)/8] & 1 << ((i+start_bit)%8)),
-                    ("bit is already deleted!"));
-        }
-#endif
-
         if (qw_end <= qw_start)
         {
             for (i=0; i<size_bits; i++, start_bit++)

@@ -477,6 +477,27 @@ public:
         BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
     }
 
+    void markAllocTwiceTest()
+    {
+        ham_size_t ps=((Environment *)m_env)->get_pagesize();
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                freel_mark_free((Environment *)m_env, (Database *)m_db, 
+                            ps, ps, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, 
+                freel_mark_free((Environment *)m_env, (Database *)m_db, 
+                            ps, ps, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, 
+                freel_mark_free((Environment *)m_env, (Database *)m_db, 
+                            ps, ps, HAM_FALSE));
+        ham_offset_t o;
+        BFC_ASSERT_EQUAL(0, freel_alloc_page(&o, (Environment *)m_env, 
+                            (Database *)m_db));
+        BFC_ASSERT_EQUAL((ham_offset_t)ps, o);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
 };
 
 class FreelistV1Test : public FreelistBaseTest
@@ -544,6 +565,7 @@ public:
         BFC_REGISTER_TEST(FreelistV2Test, markAllocOverflow4Test);
         BFC_REGISTER_TEST(FreelistV2Test, markAllocAlignTest);
         BFC_REGISTER_TEST(FreelistV2Test, markAllocAlignMultipleTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocTwiceTest);
     }
 };
 
