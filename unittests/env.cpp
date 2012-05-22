@@ -1520,6 +1520,9 @@ protected:
 
     void endianTestOpenDatabase(void)
     {
+// i currently don't have access to a big-endian machine, and the existing
+// files were created with a database < 1.0.9 and are no longer supported
+#if 0
         ham_env_t *env;
         ham_db_t *db;
 
@@ -1542,6 +1545,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_delete(db));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+#endif
     }
 
     void limitsReachedTest(void)

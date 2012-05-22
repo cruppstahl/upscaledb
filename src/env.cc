@@ -48,8 +48,7 @@ Environment::Environment()
   : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
     m_journal(0), m_flags(0), m_databases(0), m_pagesize(0), m_cachesize(0),
-    m_max_databases_cached(0), m_is_active(false), m_is_legacy(false),
-    m_file_filters(0)
+    m_max_databases_cached(0), m_is_active(false), m_file_filters(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -444,24 +443,20 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
             goto fail_with_fake_cleansing;
         }
 
-        /* 
-         * check the database version
-         *
-         * if this Database is from 1.0.x: force the PRE110-DAM
-         * TODO this is done again some lines below; remove this and
-         * replace it with a function __is_supported_version()
-         */
+        /* check the database version; everything > 1.0.9 is ok */
         if (envheader_get_version(hdr, 0)>HAM_VERSION_MAJ ||
                 (envheader_get_version(hdr, 0)==HAM_VERSION_MAJ 
                     && envheader_get_version(hdr, 1)>HAM_VERSION_MIN)) {
             ham_log(("invalid file version"));
-            st = HAM_INV_FILE_VERSION;
+            st=HAM_INV_FILE_VERSION;
             goto fail_with_fake_cleansing;
         }
         else if (envheader_get_version(hdr, 0) == 1 &&
             envheader_get_version(hdr, 1) == 0 &&
             envheader_get_version(hdr, 2) <= 9) {
-            env->set_legacy(true);
+            ham_log(("invalid file version; < 1.0.9 is not supported"));
+            st=HAM_INV_FILE_VERSION;
+            goto fail_with_fake_cleansing;
         }
 
         st=0;
@@ -1039,12 +1034,6 @@ _local_fun_create_db(Environment *env, Database *db,
     env->set_dirty(true);
 
     /* finally calculate and store the data access mode */
-    if (env->get_version(0) == 1 &&
-        env->get_version(1) == 0 &&
-        env->get_version(2) <= 9) {
-        dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-        env->set_legacy(true);
-    }
     if (!dam) {
         dam=(flags&HAM_RECORD_NUMBER)
             ? HAM_DAM_SEQUENTIAL_INSERT 
@@ -1238,12 +1227,6 @@ _local_fun_open_db(Environment *env, Database *db,
     }
 
     /* finally calculate and store the data access mode */
-    if (env->get_version(0) == 1 &&
-        env->get_version(1) == 0 &&
-        env->get_version(2) <= 9) {
-        dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-        env->set_legacy(true);
-    }
     if (!dam) {
         dam=(db->get_rt_flags()&HAM_RECORD_NUMBER)
             ? HAM_DAM_SEQUENTIAL_INSERT 

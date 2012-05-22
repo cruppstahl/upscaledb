@@ -1,3 +1,11 @@
+Apr 22, 2012 - chris ---------------------------------------------------
+o The legacy database format of hamsterdb 1.0.9 and older is no longer
+    supported
+
+Apr 21, 2012 - chris ---------------------------------------------------
+o Fixed a bug in recovery; recovery is now more robust, and there are more
+    fsync's if HAM_WRITE_THROUGH is enabled
+
 Apr 25, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.2
 

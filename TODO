@@ -66,10 +66,11 @@ x look at Peter's mail - sometimes, ham_env_create_db returns
     x replace HAM_INTERNAL_ERROR with asserts
     x OR use the error logger to write additional information
 
-o Mark reported an error after surprise-shutdown (with Txn, 2.0.2)
-    i managed to reproduce this once; a blob-page is corrupt
-    o add instrumentation to Page::flush, Changeset::flush and Log::flush; 
+o Mark reported an error after kill -9 (with Txn, 2.0.2)
+    i managed to reproduce this twice; a blob-page is corrupt
+    x add instrumentation to Page::flush, Changeset::flush and Log::flush; 
             write to stdout
+    x fsync's were missing; make flushing of changeset more robust
     o then try to reproduce once more and see if that page was (or was not)
         flushed
     sudo ./mklessfs /etc/lessfs.cfg
@@ -110,7 +111,9 @@ o more fine-grained locking
         x make sure it's perfectly abstracted
         x protect with mutex
     o freelist
+        x remove HAM_DAM_ENFORCE_PRE110_FORMAT
         o remove legacy code (1.x)
+        o remove freelist_v2.cc
         o create c++ class
         o freelist class takes ownership of freelist_cache (from device)
         o protect with mutex

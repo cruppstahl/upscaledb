@@ -104,7 +104,8 @@ public:
         BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
                 BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+                ham_open(m_db, BFC_OPATH(".test"), 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         os::unlink(BFC_OPATH(".test"));
@@ -112,7 +113,8 @@ public:
         BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"), 
                 BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+                ham_open(m_db, BFC_OPATH(".test"), 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         os::unlink(BFC_OPATH(".test"));
@@ -121,25 +123,17 @@ public:
         BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
                 BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+                ham_env_open(m_env, BFC_OPATH(".test"), 0));
 
-        ham_db_t *m_db2;
-        BFC_ASSERT_EQUAL(0, ham_new(&m_db2)); 
-        // first and only DB in there seems to be db # 0xF000, 
-        // which is an illegal number
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_open_db(m_env, m_db2, HAM_FIRST_DATABASE_NAME /* 1 */, 
-                    0, 0));
-        
-        BFC_ASSERT_EQUAL(0, ham_close(m_db2, 0));
-        ham_delete(m_db2);
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"), 
                 BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+                ham_env_open(m_env, BFC_OPATH(".test"), 0));
     }
 
     ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name)

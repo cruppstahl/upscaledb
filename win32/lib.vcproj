@@ -441,14 +441,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\freelist_v2.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\src\freelist_v2.h"
-			>
-		</File>
-		<File
 			RelativePath="..\src\hamsterdb.cc"
 			>
 		</File>

@@ -28,7 +28,6 @@ libhamsterdb_la_SOURCES = log.cc \
 			env.cc \
 			error.cc \
 			freelist.cc \
-			freelist_v2.cc \
 			freelist_statistics.cc \
 			hamsterdb.cc \
 			remote.cc \

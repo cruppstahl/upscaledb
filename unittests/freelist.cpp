@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -85,19 +85,11 @@ public:
 
         f=(((Environment *)m_env)->get_freelist());
 
-        BFC_ASSERT(freel_get_allocated_bits16(f)==0);
-        freel_set_allocated_bits16(f, 13);
-
-        BFC_ASSERT(freel_get_max_bits16(f)==0);
-        freel_set_max_bits16(f, 0x1234);
-
         BFC_ASSERT(freel_get_overflow(f)==0ull);
         freel_set_overflow(f, 0x12345678ull);
 
         freel_set_start_address(f, 0x7878787878787878ull);
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        BFC_ASSERT(freel_get_allocated_bits16(f)==13);
-        BFC_ASSERT(freel_get_max_bits16(f)==0x1234);
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
 
         // reopen the database, check if the values were stored correctly
@@ -111,8 +103,6 @@ public:
         f=(((Environment *)m_env)->get_freelist());
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        BFC_ASSERT(freel_get_allocated_bits16(f)==13);
-        BFC_ASSERT(freel_get_max_bits16(f)==0x1234);
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
     }
 
@@ -462,12 +452,6 @@ public:
         // checks to make sure structure packing by the compiler is still okay
         BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 
                 16 + 13 + sizeof(freelist_page_statistics_t)));
-        freelist_payload_t f;
-        BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
-        BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16), 16));
-        BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap),
-                16 + 4));
-        BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
         BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 
                 16 + 12 + sizeof(freelist_page_statistics_t)));
         BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 
@@ -500,50 +484,6 @@ public:
     }
 };
 
-class FreelistV1Test : public FreelistBaseTest
-{
-    define_super(FreelistBaseTest);
-
-public:
-    FreelistV1Test()
-    :   FreelistBaseTest("FreelistV1Test")
-    {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(FreelistV1Test, checkStructurePackingTest);
-        BFC_REGISTER_TEST(FreelistV1Test, structureTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignedTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocPageTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocHighOffsetTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocRangeTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflowTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow2Test);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow3Test);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow4Test);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignTest);
-        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignMultipleTest);
-    }
-
-    virtual void setup() 
-    { 
-        __super::setup();
-
-        ((Database *)m_db)->set_data_access_mode(
-                ((Database *)m_db)->get_data_access_mode() |
-                    HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-
-    virtual ham_status_t open(ham_u32_t flags)
-    {
-        ham_status_t st=ham_open_ex(m_db, BFC_OPATH(".test"), flags, 0);
-        if (st==0)
-            ((Database *)m_db)->set_data_access_mode(
-                ((Database *)m_db)->get_data_access_mode()
-                    |HAM_DAM_ENFORCE_PRE110_FORMAT);
-        m_env=ham_get_env(m_db);
-        return (st);
-    }
-};
-
 class FreelistV2Test : public FreelistBaseTest
 {
     define_super(FreelistBaseTest);
@@ -569,6 +509,5 @@ public:
     }
 };
 
-BFC_REGISTER_FIXTURE(FreelistV1Test);
 BFC_REGISTER_FIXTURE(FreelistV2Test);
 

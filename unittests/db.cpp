@@ -298,17 +298,10 @@ public:
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
         BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 
                 16 + 13 + sizeof(freelist_page_statistics_t)));
-        freelist_payload_t f;
-        BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
-        BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, 
-                _s._s16), 16));
-        BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, 
-                _s._s16._bitmap), 16 + 4));
         BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 
               4*8+sizeof(freelist_slotsize_stats_t)*HAM_FREELIST_SLOT_SPREAD));
         BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8*4));
         BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
-        BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
         BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 
                 16 + 12 + sizeof(freelist_page_statistics_t)));
         BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));

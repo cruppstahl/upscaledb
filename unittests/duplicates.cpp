@@ -1479,6 +1479,9 @@ public:
 
     void endianTest(void)
     {
+// i currently don't have access to a big-endian machine, and the existing
+// files were created with a database < 1.0.9 and are no longer supported
+#if 0
         ham_key_t key;
         ham_record_t rec;
         ham_cursor_t *c;
@@ -1529,6 +1532,7 @@ public:
                                 HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+#endif
     }
 
     void eraseCursorTest(void)

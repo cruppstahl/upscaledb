@@ -675,11 +675,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                     ham_trace(("invalid parameter HAM_PARAM_DATA_ACCESS_MODE"));
                     return (HAM_INV_PARAMETER);
                 }
-                if (param->value&HAM_DAM_ENFORCE_PRE110_FORMAT) {
-                    ham_trace(("Data access mode HAM_DAM_ENFORCE_PRE110_FORMAT "
-                                "must not be specified"));
-                    return (HAM_INV_PARAMETER);
-                }
                 if (pdata_access_mode) { 
                     switch (param->value) {
                     case 0: /* ignore 0 */

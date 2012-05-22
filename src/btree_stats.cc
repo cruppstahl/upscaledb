@@ -728,10 +728,9 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
             flags |= HAM_HINT_SEQUENTIAL;
         }
 
-        if ((flags & HAM_HINTS_MASK) == 0)
-        {
+        if ((flags & HAM_HINTS_MASK) == 0) {
             /* no local preference specified; go with the DB-wide DAM config */
-            switch (db->get_data_access_mode()&~HAM_DAM_ENFORCE_PRE110_FORMAT) {
+            switch (db->get_data_access_mode()) {
             default:
                 break;
 
@@ -1035,7 +1034,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
         if ((hints->flags & HAM_HINTS_MASK) == 0)
         {
             /* no local preference specified; go with the DB-wide DAM config */
-            switch (db->get_data_access_mode()&~HAM_DAM_ENFORCE_PRE110_FORMAT) {
+            switch (db->get_data_access_mode()) {
             default:
                 break;
 

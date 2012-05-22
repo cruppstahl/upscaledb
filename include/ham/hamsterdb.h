@@ -320,9 +320,6 @@ typedef struct {
  */
 #define HAM_DAM_SEQUENTIAL_INSERT        0x0002
 
-/* internal use only - will be set implicitly when opening a file from 1.0.x */ 
-#define HAM_DAM_ENFORCE_PRE110_FORMAT    0x8000
-
 /**
  * @}
  */

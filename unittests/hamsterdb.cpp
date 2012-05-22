@@ -82,7 +82,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidDamInEnvTest);
-        BFC_REGISTER_TEST(HamsterdbTest, setPre110DamTest);
         BFC_REGISTER_TEST(HamsterdbTest, recnoUsesSequentialDamTest);
         BFC_REGISTER_TEST(HamsterdbTest, unknownDamTest);
         BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
@@ -448,33 +447,6 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_open_ex(env, BFC_OPATH(".test"), 0, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-    }
-
-    void setPre110DamTest(void)
-    {
-        ham_db_t *db;
-        ham_parameter_t p[]={
-            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_ENFORCE_PRE110_FORMAT}, 
-            {0, 0}
-        };
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(db, 
-                    BFC_IPATH("data/recno-endian-test-open-database-be.hdb"),
-                        0));
-        BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT
-                & ((Database *)db)->get_data_access_mode());
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_open_ex(db, BFC_OPATH(".test"), 0, &p[0]));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
     }
 
     void recnoUsesSequentialDamTest(void)

@@ -434,16 +434,6 @@ class Environment
         return (m_is_active);
     }
 
-    /** set the 'legacy' flag of the environment */
-    void set_legacy(bool l) {
-        m_is_legacy=l;
-    }
-
-    /** check whether this environment is a legacy file (pre 1.1.0) */
-    bool is_legacy() {
-        return (m_is_legacy);
-    }
-
     /** returns true if this Environment is private to a Database 
      * (was implicitly created in ham_create/ham_open) */
     bool is_private();
@@ -634,9 +624,6 @@ class Environment
 
 	/** true after this object is already in use */
 	bool m_is_active;
-
-    /** true if this Environment is pre-1.1.0 format */
-	bool m_is_legacy;
 
 #if HAM_ENABLE_REMOTE
     /** libcurl remote handle */

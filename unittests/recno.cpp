@@ -541,6 +541,9 @@ public:
 
     void endianTestOpenDatabase(void)
     {
+// i currently don't have access to a big-endian machine, and the existing
+// files were created with a database < 1.0.9 and are no longer supported
+#if 0
         ham_key_t key;
         ham_record_t rec;
         ham_offset_t recno=100;
@@ -549,15 +552,16 @@ public:
         /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
 #if defined(HAM_LITTLE_ENDIAN)
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/recno-endian-test-open-database-be.hdb", BFC_OPATH(".test")));
+            os::copy("data/recno-endian-test-open-database-be.hdb",
+                    BFC_OPATH(".test")));
 #else
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/recno-endian-test-open-database-le.hdb", BFC_OPATH(".test")));
+            os::copy("data/recno-endian-test-open-database-le.hdb",
+                    BFC_OPATH(".test")));
 #endif
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -597,6 +601,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
 
     void overwriteTest(void)

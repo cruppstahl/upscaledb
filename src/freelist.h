@@ -231,28 +231,6 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 
 	HAM_PACK_0 union HAM_PACK_1 
 	{
-		/**
-		 * This structure represents the backwards compatible v1.0.9 freelist
-		 * payload layout, which can cope with up to 65535 chunks per page.
-		 */
-		HAM_PACK_0 struct HAM_PACK_1 
-		{
-			/**
-			 * maximum number of bits for this page
-			 */
-			ham_u16_t _max_bits;
-
-			/**
-			 * number of already allocated bits in the page 
-			 */
-			ham_u16_t _allocated_bits;
-
-			/**
-			 * the bitmap; the size of the bitmap is _max_bits/8
-			 */
-			ham_u8_t _bitmap[1];
-		} HAM_PACK_2 _s16;
-
 		HAM_PACK_0 struct HAM_PACK_1 
 		{
 			/**
@@ -304,11 +282,6 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #include "packstop.h"
 
 /**
- * get the size of the persistent freelist header (old style)
- */
-#define db_get_freelist_header_size16()   (OFFSETOF(freelist_payload_t, _s._s16._bitmap) /*(sizeof(freelist_payload_t)-1)*/ )
-
-/**
  * get the size of the persistent freelist header (new style)
  */
 #define db_get_freelist_header_size32()   (OFFSETOF(freelist_payload_t, _s._s32._bitmap))
@@ -326,32 +299,12 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the maximum number of bits which are handled by this bitmap
  */
-#define freel_get_max_bits16(fl)          (ham_db2h16((fl)->_s._s16._max_bits))
-
-/**
- * set the maximum number of bits which are handled by this bitmap
- */
-#define freel_set_max_bits16(fl, m)       (fl)->_s._s16._max_bits=ham_h2db16(m)
-
-/**
- * get the maximum number of bits which are handled by this bitmap
- */
 #define freel_get_max_bits32(fl)          (ham_db2h32((fl)->_s._s32._max_bits))
 
 /**
  * set the maximum number of bits which are handled by this bitmap
  */
 #define freel_set_max_bits32(fl, m)       (fl)->_s._s32._max_bits=ham_h2db32(m)
-
-/**
- * get the number of currently used bits which are handled by this bitmap
- */
-#define freel_get_allocated_bits16(fl)    (ham_db2h16((fl)->_s._s16._allocated_bits))
-
-/**
- * set the number of currently used bits which are handled by this bitmap
- */
-#define freel_set_allocated_bits16(fl, u) (fl)->_s._s16._allocated_bits=ham_h2db16(u)
 
 /**
  * get the number of currently used bits which are handled by this
@@ -383,11 +336,6 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the bitmap of the freelist
  */
-#define freel_get_bitmap16(fl)            (fl)->_s._s16._bitmap
-
-/**
- * get the bitmap of the freelist
- */
 #define freel_get_bitmap32(fl)            (fl)->_s._s32._bitmap
 
 /**
@@ -400,13 +348,6 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
  */
 extern ham_status_t
 freel_constructor_prepare32(freelist_cache_t **cache_ref, Device *dev, 
-                Environment *env);
-
-/**
- * Initialize a v1.0.x compatible freelist management object
- */
-extern ham_status_t
-freel_constructor_prepare16(freelist_cache_t **cache_ref, Device *dev, 
                 Environment *env);
 
 /**
