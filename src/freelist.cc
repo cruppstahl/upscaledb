@@ -375,9 +375,7 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
     ham_size_t qw_start = (start_bit + 64 - 1) >> 6;     /* ROUNDUP(S DIV 64) */
     ham_size_t qw_end;
 
-//#if !defined(FORCE_UNITTEST_PASS) || 01
     ham_assert(start_bit<freel_get_max_bitsXX(fp), (0));
-//#endif
 
     if (start_bit+size_bits>freel_get_max_bitsXX(fp))
         size_bits=freel_get_max_bitsXX(fp)-start_bit;

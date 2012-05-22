@@ -56,16 +56,39 @@ x extend the FAQ and the tutorial
 
 x extend the documentation with information about the new Transactions
 
-o Mark reported an error after surprise-shutdown
-    o with or without logging?
-    o get access to the corrupt file
-    o ...
+o Mark reported an error after surprise-shutdown (with Txn, 2.0.2)
+    i managed to reproduce this once; a blob-page is corrupt
+    o add instrumentation to Page::flush, Changeset::flush and Log::flush; 
+            write to stdout
+    o then try to reproduce once more and see if that page was (or was not)
+        flushed
+    sudo ./mklessfs /etc/lessfs.cfg
+    sudo ./lessfs /etc/lessfs.cfg /home/chris/tmp/data/dir/ -f -d
 
-o why do tests with 20 threads fail with oom when using mmap? the cache limits
-    should still work
+    sudo dd bs=1024 if=/dev/sda of=/home/chris/tmp/data/dir/test.img
+    sudo pkill -9 lessfs
+    sudo sh check.sh
+
+o freelist: make sure that it allows to re-set bits that are already set
+    and to delete bits that are already deleted (to make operations
+    idempotent for recovery)
+    o add tests
+
+o identify a set of 3 testfiles (long running) and let them run in different
+    configurations; track the times. There should be few enough tests to be
+    able to compare the times manually!
 
 o look at Peter's mail - sometimes, ham_env_create_db returns
     HAM_INTERNAL_ERROR (only win32, C++ API, Windows 7)
+    o replace HAM_INTERNAL_ERROR with asserts
+    o OR use the error logger to write additional information
+
+
+
+
+
+
+
 
 o more fine-grained locking
     x cache
@@ -150,6 +173,9 @@ o more fine-grained locking
         by any Transaction
 
 o also remove locking from C# and Java APIs
+
+o why do tests with 20 threads fail with oom when using mmap? the cache limits
+    should still work
 
 . look at ssb's clang output and try to integrate it into the build process
 

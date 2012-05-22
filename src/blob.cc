@@ -154,7 +154,6 @@ __write_chunks(Environment *env, Page *page, ham_offset_t addr,
                 st=env_fetch_page(&page, env, pageid, 
                         cacheonly ? DB_ONLY_FROM_CACHE : 
                         at_blob_edge ? 0 : 0/*DB_NEW_PAGE_DOES_THRASH_CACHE*/);
-				ham_assert(st ? !page : 1, (0));
                 /* blob pages don't have a page header */
                 if (page)
                     page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
@@ -230,12 +229,11 @@ __read_chunk(Environment *env, Page *page, Page **fpage,
             else
                 st=env_fetch_page(&page, env, pageid, 
                     __blob_from_cache(env, size) ? 0 : DB_ONLY_FROM_CACHE);
-			ham_assert(st ? !page : 1, (0));
+			if (st)
+				return st;
             /* blob pages don't have a page header */
             if (page)
                 page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
-			else if (st)
-				return st;
         }
 
         /*
@@ -384,9 +382,8 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
         blob_t *hdr;
         ham_u8_t *p=(ham_u8_t *)env->get_allocator()->alloc( 
                                     record->size+sizeof(blob_t));
-        if (!p) {
-            return HAM_OUT_OF_MEMORY;
-        }
+        if (!p)
+            return (HAM_OUT_OF_MEMORY);
 
         /* initialize the header */
         hdr=(blob_t *)p;
@@ -439,10 +436,8 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
         if (__blob_from_cache(env, alloc_size)) {
             st = db_alloc_page(&page, db, Page::TYPE_BLOB, 
                         PAGE_IGNORE_FREELIST);
-			ham_assert(st ? page == NULL : 1, (0));
-			ham_assert(!st ? page  != NULL : 1, (0));
             if (st)
-                return st;
+                return (st);
             /* blob pages don't have a page header */
             page->set_flags(page->get_flags()|Page::NPERS_NO_HEADER);
             addr=page->get_self();
@@ -681,8 +676,8 @@ blob_read(Database *db, Transaction *txn, ham_offset_t blobid,
 
         if (!blobsize) {
             /* empty blob? */
-            record->data = 0;
-            record->size = 0;
+            record->data=0;
+            record->size=0;
         }
         else {
             ham_u8_t *d=data;

@@ -115,7 +115,6 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
     /* now read the extended data, if it's available */
     if (entry->data_size) {
         ham_offset_t pos=(*iter)-entry->data_size;
-        // pos += 8-1;
         pos -= (pos % 8);
 
         *data=(ham_u8_t *)m_env->get_allocator()->alloc(

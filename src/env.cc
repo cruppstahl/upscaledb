@@ -1320,19 +1320,7 @@ _local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
             return (st);
     }
 
-    st=txn_commit(txn, flags);
-
-    /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
-     * enabled; then purge caches */
-    if (st==0) {
-        if (env->get_flags()&HAM_WRITE_THROUGH) {
-            Device *device=env->get_device();
-            (void)env->get_log()->flush();
-            (void)device->flush();
-        }
-    }
-
-    return (st);
+    return (txn_commit(txn, flags));
 }
 
 static ham_status_t
@@ -1352,25 +1340,14 @@ _local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
-        if (st==0)
-            st=env->get_journal()->append_txn_abort(txn, lsn);
+        if (st)
+            return (st);
+        st=env->get_journal()->append_txn_abort(txn, lsn);
+        if (st)
+            return (st);
     }
 
-    if (st==0)
-        st=txn_abort(txn, flags);
-
-
-    /* on success: flush all open file handles if HAM_WRITE_THROUGH is 
-     * enabled; then purge caches */
-    if (st==0) {
-        if (env->get_flags()&HAM_WRITE_THROUGH) {
-            Device *device=env->get_device();
-            (void)env->get_log()->flush();
-            (void)device->flush();
-        }
-    }
-
-    return (st);
+    return (txn_abort(txn, flags));
 }
 
 ham_status_t
