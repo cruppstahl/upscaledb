@@ -802,8 +802,6 @@ btree_read_key(Database *db, Transaction *txn, btree_key_t *source,
         ham_u64_t recno;
         ham_assert(dest->data!=0, ("this should never happen."));
         ham_assert(dest->size==sizeof(ham_u64_t), (0));
-        if (dest->data==0 || dest->size!=sizeof(ham_u64_t))
-            return (HAM_INTERNAL_ERROR);
         recno=*(ham_u64_t *)dest->data;
         recno=ham_db2h64(recno);
         memcpy(dest->data, &recno, sizeof(ham_u64_t));

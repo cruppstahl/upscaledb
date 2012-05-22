@@ -106,7 +106,7 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
 
 #define SETOPT(curl, opt, val)                                                \
                     if ((cc=curl_easy_setopt(curl, opt, val))) {              \
-                        ham_trace(("curl_easy_setopt failed: %d/%s", cc,      \
+                        ham_log(("curl_easy_setopt failed: %d/%s", cc,        \
                                     curl_easy_strerror(cc)));                 \
                         return (HAM_INTERNAL_ERROR);                          \
                     }
@@ -126,8 +126,11 @@ _perform_request(Environment *env, CURL *handle, proto_wrapper_t *request,
 
     *reply=0;
 
-    if (!proto_pack(request, wbuf.alloc, &rbuf.packed_data, &rbuf.packed_size))
+    if (!proto_pack(request, wbuf.alloc, &rbuf.packed_data,
+                &rbuf.packed_size)) {
+        ham_log(("protoype proto_pack failed"));
         return (HAM_INTERNAL_ERROR);
+    }
 
     sprintf(header, "Content-Length: %u", rbuf.packed_size);
     slist=curl_slist_append(slist, header);

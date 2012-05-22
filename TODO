@@ -56,6 +56,16 @@ x extend the FAQ and the tutorial
 
 x extend the documentation with information about the new Transactions
 
+x freelist: make sure that it allows to re-set bits that are already set
+    and to delete bits that are already deleted (to make operations
+    idempotent for recovery)
+    x add tests
+
+x look at Peter's mail - sometimes, ham_env_create_db returns
+    HAM_INTERNAL_ERROR (only win32, C++ API, Windows 7)
+    x replace HAM_INTERNAL_ERROR with asserts
+    x OR use the error logger to write additional information
+
 o Mark reported an error after surprise-shutdown (with Txn, 2.0.2)
     i managed to reproduce this once; a blob-page is corrupt
     o add instrumentation to Page::flush, Changeset::flush and Log::flush; 
@@ -69,19 +79,9 @@ o Mark reported an error after surprise-shutdown (with Txn, 2.0.2)
     sudo pkill -9 lessfs
     sudo sh check.sh
 
-o freelist: make sure that it allows to re-set bits that are already set
-    and to delete bits that are already deleted (to make operations
-    idempotent for recovery)
-    o add tests
-
 o identify a set of 3 testfiles (long running) and let them run in different
     configurations; track the times. There should be few enough tests to be
     able to compare the times manually!
-
-o look at Peter's mail - sometimes, ham_env_create_db returns
-    HAM_INTERNAL_ERROR (only win32, C++ API, Windows 7)
-    o replace HAM_INTERNAL_ERROR with asserts
-    o OR use the error logger to write additional information
 
 
 

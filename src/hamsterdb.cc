@@ -2286,6 +2286,7 @@ __zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     }
 
     if (zret!=Z_OK) {
+        ham_log(("zlib compression failed with error %d", (int)zret));
         env->get_allocator()->free(dest);
         return (db->set_error(HAM_INTERNAL_ERROR));
     }
@@ -2342,8 +2343,10 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
         ham_assert(origsize==newsize, (""));
         st=0;
     }
-    else
+    else {
+        ham_log(("zlib uncompress failed with error %d", (int)zret));
         st=HAM_INTERNAL_ERROR;
+    }
 
     if (!st)
         record->size=(ham_size_t)newsize;

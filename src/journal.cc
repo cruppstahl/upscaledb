@@ -466,6 +466,7 @@ __recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
         txn=txn_get_newer(txn);
     }
 
+    ham_assert(!"shouldn't be here", (""));
     *ptxn=0;
     return (HAM_INTERNAL_ERROR);
 }

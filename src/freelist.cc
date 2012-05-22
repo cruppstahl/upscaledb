@@ -2811,8 +2811,8 @@ __freel_alloc_pageXX(Page **page_ref, Device *device, Environment *env, freelist
             else {
                 st=env_fetch_page(&prev_page, env,
                         freel_entry_get_page_id(&entries[i-1]), 0);
-                if (!prev_page)
-                    return st ? st : HAM_INTERNAL_ERROR;
+                if (st)
+                    return (st);
                 __page_set_dirty(prev_page);
                 fp=page_get_freelist(prev_page);
             }
@@ -3340,9 +3340,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, Device *device,
                     else {
                         st = env_fetch_page(&page, env,
                                      freel_entry_get_page_id(entry), 0);
-                        ham_assert(st ? page == NULL : 1, (0));
-                        if (!page)
-                            return st ? st : HAM_INTERNAL_ERROR;
+                        if (st)
+                            return (st);
                         fp=page_get_freelist(page);
                     }
                     ham_assert(freel_entry_get_allocated_bits(entry)
@@ -3407,8 +3406,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, Device *device,
             else {
                 st = env_fetch_page(&page, env,
                             freel_entry_get_page_id(entry), 0);
-                if (!page)
-                    return st ? st : HAM_INTERNAL_ERROR;
+                if (st)
+                    return (st);
                 fp=page_get_freelist(page);
             }
 
@@ -3522,8 +3521,8 @@ __freel_lazy_createXX(freelist_cache_t *cache, Device *device,
             return st;
 
         st=env_fetch_page(&page, env, freel_get_overflow(fp), 0);
-        if (!page)
-            return st ? st : HAM_INTERNAL_ERROR;
+        if (st)
+            return (st);
 
         fp=page_get_freelist(page);
         ham_assert(entry_pos<freel_cache_get_count(cache), (0));
@@ -3658,8 +3657,8 @@ __freel_mark_freeXX(Device *device, Environment *env, Database *db,
             }
             else {
                 st=__freel_alloc_pageXX(&page, device, env, cache, entry);
-                if (!page)
-                    return st ? st : HAM_INTERNAL_ERROR;
+                if (st)
+                    return (st);
                 fp=page_get_freelist(page);
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
@@ -3669,8 +3668,8 @@ __freel_mark_freeXX(Device *device, Environment *env, Database *db,
          */
         else {
             st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
-            if (!page)
-                return st ? st : HAM_INTERNAL_ERROR;
+            if (st)
+                return (st);
             fp=page_get_freelist(page);
             ham_assert(freel_get_start_address(fp) != 0, (0));
         }
@@ -3754,11 +3753,8 @@ __freel_check_area_is_allocatedXX(Device *device, Environment *env, ham_offset_t
             }
             else {
                 st=__freel_alloc_pageXX(&page, device, env, cache, entry);
-                if (!page)
-                {
-                    ham_assert(st != 0, (0));
-                    return st ? st : HAM_INTERNAL_ERROR;
-                }
+                if (st)
+                    return (st);
                 fp=page_get_freelist(page);
                 ham_assert(freel_get_start_address(fp) != 0, (0));
             }
@@ -3768,11 +3764,8 @@ __freel_check_area_is_allocatedXX(Device *device, Environment *env, ham_offset_t
         */
         else {
             st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
-            if (!page)
-            {
-                ham_assert(st != 0, (0));
-                return st ? st : HAM_INTERNAL_ERROR;
-            }
+            if (st)
+                return (st);
             fp=page_get_freelist(page);
             ham_assert(freel_get_start_address(fp) != 0, (0));
         }
@@ -4012,8 +4005,6 @@ freel_mark_free(Environment *env, Database *db, ham_offset_t address,
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
     device = env->get_device();
-    if (!device)
-        return (HAM_INTERNAL_ERROR);
 
     if (!device->get_freelist_cache()) {
         st = __freel_constructor(env->get_device(), env, db);
@@ -4044,8 +4035,6 @@ freel_check_area_is_allocated(Environment *env, Database *db,
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
     device=env->get_device();
-    if (!device)
-        return HAM_INTERNAL_ERROR;
 
     if (!device->get_freelist_cache()) {
         st = __freel_constructor(env->get_device(), env, db);
@@ -4087,8 +4076,6 @@ freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
     }
 
     device=env->get_device();
-    if (!device)
-        return HAM_INTERNAL_ERROR;
 
     if (!device->get_freelist_cache())
     {
@@ -4118,18 +4105,11 @@ freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
         return HAM_SUCCESS;
 
     device=env->get_device();
-    if (!device)
-    {
-        return HAM_INTERNAL_ERROR;
-    }
 
-    if (!device->get_freelist_cache())
-    {
+    if (!device->get_freelist_cache()) {
         ham_status_t st = __freel_constructor(env->get_device(), env, db);
         if (st)
-        {
             return st;
-        }
     }
     cache=device->get_freelist_cache();
 

@@ -474,8 +474,8 @@ __insert_recursive(Page *page, ham_key_t *key,
      */
     hints->cost += 2;
     st=btree_traverse_tree(&child, 0, db, page, key);
-    if (!child)
-        return st ? st : HAM_INTERNAL_ERROR;
+    if (st)
+        return (st);
 
     /*
      * and call this function recursively
@@ -762,9 +762,9 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
         key_set_key(bte, key->data, db_get_keysize(db));
 
         st=key_insert_extended(&blobid, db, page, key);
-        ham_assert(st ? blobid == 0 : 1, (0));
-        if (!blobid)
-            return st ? st : HAM_INTERNAL_ERROR;
+        if (st)
+            return (st);
+        ham_assert(blobid!=0, (""));
 
         key_set_extended_rid(db, bte, blobid);
     }

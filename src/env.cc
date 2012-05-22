@@ -601,10 +601,10 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
-        if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-            ham_assert(env->get_changeset().is_empty(), (""));
-            ham_assert(env->get_log()->is_empty(), (""));
-        }
+    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
+        ham_assert(env->get_changeset().is_empty(), (""));
+        ham_assert(env->get_log()->is_empty(), (""));
+    }
 #endif
 
     /*
@@ -616,8 +616,10 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
      */
     context.db=db;
     be=db->get_backend();
-    if (!be || !be->is_active())
+    if (!be || !be->is_active()) {
+        ham_log(("database is not initialized"));
         return (HAM_INTERNAL_ERROR);
+    }
 
     st=be->enumerate(__free_inmemory_blobs_cb, &context);
     if (st) {
@@ -1420,8 +1422,7 @@ __flush_txn(Environment *env, Transaction *txn)
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
         Backend *be=txn_opnode_get_db(node)->get_backend();
-        if (!be)
-            return (HAM_INTERNAL_ERROR);
+        ham_assert(be!=0, (""));
 
         /* make sure that this op was not yet flushed - this would be
          * a serious bug */

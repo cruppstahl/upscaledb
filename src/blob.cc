@@ -1141,14 +1141,10 @@ blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id,
         alloc_table=1;
     }
     else {
-        /*
-         * otherwise load the existing table 
-         */
+        /* otherwise load the existing table */
         st=__get_duplicate_table(&table, &page, env, table_id);
-		ham_assert(st ? table == NULL : 1, (0));
-		ham_assert(st ? page == NULL : 1, (0));
-        if (!table)
-			return st ? st : HAM_INTERNAL_ERROR;
+        if (st)
+            return (st);
         if (!page && !(env->get_flags()&HAM_IN_MEMORY_DB))
             alloc_table=1;
     }
@@ -1381,10 +1377,8 @@ blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
     Page *page=0;
 
     st=__get_duplicate_table(&table, &page, env, table_id);
-	ham_assert(st ? table == NULL : 1, (0));
-	ham_assert(st ? page == NULL : 1, (0));
-    if (!table)
-		return st ? st : HAM_INTERNAL_ERROR;
+    if (st)
+        return (st);
 
     *count=dupe_table_get_count(table);
     if (entry)
@@ -1406,13 +1400,10 @@ blob_duplicate_get(Environment *env, ham_offset_t table_id,
     Page *page=0;
 
     st = __get_duplicate_table(&table, &page, env, table_id);
-	ham_assert(st ? table == NULL : 1, (0));
-	ham_assert(st ? page == NULL : 1, (0));
-    if (!table)
-		return st ? st : HAM_INTERNAL_ERROR;
+    if (st)
+        return (st);
 
-    if (position>=dupe_table_get_count(table)) 
-	{
+    if (position>=dupe_table_get_count(table)) {
         if (!(env->get_flags()&HAM_IN_MEMORY_DB))
             if (!page)
                 env->get_allocator()->free(table);
