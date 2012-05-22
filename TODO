@@ -112,20 +112,11 @@ o more fine-grained locking
         x protect with mutex
     o freelist
         x remove HAM_DAM_ENFORCE_PRE110_FORMAT
-        o remove legacy code (1.x)
-        o remove freelist_v2.cc
+        x remove legacy code (1.x)
+        x remove freelist_v2.cc
         o create c++ class
         o freelist class takes ownership of freelist_cache (from device)
         o protect with mutex
-    o db
-        o completely hide the local/remote implementation in the database
-        o move more members from Database to the Implementation classes
-        o improve abstraction
-        o protect with mutex
-    o env
-        o completely hide the local/remote implementation in the Environment
-        o move more members from Environment to the Implementation classes
-        o improve abstraction
     o backend
         o replace with C++ class and inheritance
         o BtreeBackend does not require to store in little/big-endian!
@@ -138,6 +129,15 @@ o more fine-grained locking
         o remove unused code
         o protect env and freelist with mutex
         o in db: assert that the db is locked
+    o db
+        o completely hide the local/remote implementation in the database
+        o move more members from Database to the Implementation classes
+        o improve abstraction
+        o protect with mutex
+    o env
+        o completely hide the local/remote implementation in the Environment
+        o move more members from Environment to the Implementation classes
+        o improve abstraction
     o txn
         o convert to clean c++ code
         o protect with a mutex
