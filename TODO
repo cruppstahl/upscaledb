@@ -66,6 +66,9 @@ x look at Peter's mail - sometimes, ham_env_create_db returns
     x replace HAM_INTERNAL_ERROR with asserts
     x OR use the error logger to write additional information
 
+x a typical lessfs run has many many seeks - where do they come from?
+    -> pread/pwrite was not checked correctly in configure.in
+
 o Mark reported an error after kill -9 (with Txn, 2.0.2)
     i managed to reproduce this twice; a blob-page is corrupt
     x add instrumentation to Page::flush, Changeset::flush and Log::flush; 
@@ -120,6 +123,7 @@ o more fine-grained locking
     o backend
         o replace with C++ class and inheritance
         o BtreeBackend does not require to store in little/big-endian!
+            -- why not??
         o remove be_set_dirty, replace with be->_fun_flush()
         o btree has keydata1, keydata2 - why? better use DynamicArray?
         o improve abstraction
@@ -174,6 +178,8 @@ o more fine-grained locking
     o any others?
     o make sure that the cache does not flush pages that are currently locked
         by any Transaction
+
+o blob_allocate: remove writev when writing header and blob body
 
 o also remove locking from C# and Java APIs
 

@@ -1,3 +1,8 @@
+Apr 23, 2012 - chris ---------------------------------------------------
+o configure.in now checking for pread and pwrite (for some reason the
+	previous test were missing)
+o fixed fsync's when flushing to disk, making recovery more robust
+
 Apr 22, 2012 - chris ---------------------------------------------------
 o The legacy database format of hamsterdb 1.0.9 and older is no longer
     supported

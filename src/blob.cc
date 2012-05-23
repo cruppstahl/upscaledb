@@ -715,8 +715,10 @@ blob_read(Database *db, Transaction *txn, ham_offset_t blobid,
     ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
 
     /* sanity check */
-    if (blob_get_self(&hdr)!=blobid)
+    if (blob_get_self(&hdr)!=blobid) {
+        ham_log(("blob %lld not found", blobid));
         return (HAM_BLOB_NOT_FOUND);
+    }
 
     blobsize=(ham_size_t)blob_get_size(&hdr);
 

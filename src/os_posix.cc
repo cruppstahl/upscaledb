@@ -32,6 +32,11 @@
 #include "error.h"
 #include "os.h"
 
+#if 0
+#  define os_log(x)          ham_log(x)
+#else
+#  define os_log(x)          
+#endif
 
 static ham_status_t
 __lock_exclusive(int fd, ham_bool_t lock)
@@ -99,6 +104,8 @@ ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
+    os_log(("os_mmap: fd=%d, position=%lld, size=%lld", fd, position, size));
+
     int prot=PROT_READ;
     if (!readonly)
         prot|=PROT_WRITE;
@@ -122,6 +129,8 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 {
+    os_log(("os_munmap: size=%lld", size));
+
     int r;
     (void)mmaph; /* only used on win32-platforms */
 
@@ -142,6 +151,8 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 static ham_status_t
 __os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
 {
+    os_log(("_os_read: fd=%d, size=%lld", fd, bufferlen));
+
     int r;
     ham_size_t total=0;
 
@@ -163,6 +174,8 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_offset_t bufferlen)
 {
 #if HAVE_PREAD
+    os_log(("os_pread: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
+
     int r;
     ham_offset_t total=0;
 
@@ -193,6 +206,8 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 ham_status_t
 os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 {
+    os_log(("os_write: fd=%d, size=%lld", fd, bufferlen));
+
     int w;
     ham_offset_t total=0;
     const char *p=(const char *)buffer;
@@ -213,6 +228,8 @@ ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
         ham_offset_t bufferlen)
 {
+    os_log(("os_pwrite: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
+
 #if HAVE_PWRITE
     ssize_t s;
     ham_offset_t total=0;
@@ -250,6 +267,9 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
                 void *buffer4, ham_offset_t buffer4_len,
                 void *buffer5, ham_offset_t buffer5_len)
 {
+    os_log(("os_writev: fd=%d, len1=%lld, len2=%lld, len3=%lld, "
+                "len4=%lld, len5=%lld", fd, buffer1_len, buffer2_len,
+                buffer3_len, buffer4_len, buffer5_len));
 #ifdef HAVE_WRITEV
     struct iovec vec[5];
 
@@ -344,6 +364,7 @@ bail:
 ham_status_t
 os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 {
+    os_log(("os_seek: fd=%d, offset=%lld, whence=%d", fd, offset, whence));
     if (lseek(fd, offset, whence)<0)
         return (HAM_IO_ERROR);
     return (HAM_SUCCESS);
@@ -353,6 +374,7 @@ ham_status_t
 os_tell(ham_fd_t fd, ham_offset_t *offset)
 {
     *offset=lseek(fd, 0, SEEK_CUR);
+    os_log(("os_tell: fd=%d, offset=%lld", fd, *offset));
     return (*offset==(ham_offset_t)-1 ? errno : HAM_SUCCESS);
 }
 
@@ -367,12 +389,14 @@ os_get_filesize(ham_fd_t fd, ham_offset_t *size)
     st=os_tell(fd, size);
     if (st)
         return (st);
+    os_log(("os_get_filesize: fd=%d, size=%lld", fd, *size));
     return (0);
 }
 
 ham_status_t
 os_truncate(ham_fd_t fd, ham_offset_t newsize)
 {
+    os_log(("os_truncate: fd=%d, size=%lld", fd, newsize));
     if (ftruncate(fd, newsize))
         return (HAM_IO_ERROR);
     return (HAM_SUCCESS);
@@ -416,6 +440,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 ham_status_t
 os_flush(ham_fd_t fd)
 {
+    os_log(("os_flush: fd=%d", fd));
     /* unlike fsync(), fdatasync() does not flush the metadata unless
      * it's really required. it's therefore a lot faster. */
 #if HAVE_FDATASYNC

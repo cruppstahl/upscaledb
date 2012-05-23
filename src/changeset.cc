@@ -179,14 +179,9 @@ Changeset::flush(ham_u64_t lsn)
     //
     // - if there's more than one freelist page modified then the freelist
     //   operation would be huge and we rather not risk to lose that much space
-    // - if there's more than one blob operation and the blob is overwritten
-    //   then the operation must be atomic
     // - if there's more than one index operation then the operation must 
     //   be atomic
-    if (m_others_size 
-            || m_blobs_size>1 
-            || m_indices_size>1 
-            || m_freelists_size>1) {
+    if (m_others_size || m_indices_size>1 || m_freelists_size>1) {
         if ((st=log_bucket(m_blobs, m_blobs_size, lsn, page_count)))
             return (st);
         if ((st=log_bucket(m_freelists, m_freelists_size, lsn, page_count)))
@@ -198,14 +193,18 @@ Changeset::flush(ham_u64_t lsn)
         log_written=true;
     }
 
-    induce(ErrorInducer::CHANGESET_FLUSH);
-
-    // now flush all modified pages to disk
     p=m_head;
 
     Environment *env=p->get_device()->get_env();
     Log *log=env->get_log();
 
+    /* flush the file handles (if required) */
+    if (env->get_flags()&HAM_WRITE_THROUGH && log_written)
+        env->get_log()->flush();
+
+    induce(ErrorInducer::CHANGESET_FLUSH);
+
+    // now flush all modified pages to disk
     ham_assert(log!=0, (""));
     ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY, (""));
 
@@ -225,12 +224,9 @@ Changeset::flush(ham_u64_t lsn)
         induce(ErrorInducer::CHANGESET_FLUSH);
     }
 
-    /* flush the file handles (if required) */
-    if (env->get_flags()&HAM_WRITE_THROUGH) {
+    /* flush the file handle (if required) */
+    if (env->get_flags()&HAM_WRITE_THROUGH)
         env->get_device()->flush();
-        if (log_written)
-            env->get_log()->flush();
-    }
 
     /* done - we can now clear the changeset and the log */
     clear_nolock();
