@@ -69,19 +69,20 @@ x look at Peter's mail - sometimes, ham_env_create_db returns
 x a typical lessfs run has many many seeks - where do they come from?
     -> pread/pwrite was not checked correctly in configure.in
 
-o Mark reported an error after kill -9 (with Txn, 2.0.2)
+x Mark reported an error after kill -9 (with Txn, 2.0.2)
     i managed to reproduce this twice; a blob-page is corrupt
     x add instrumentation to Page::flush, Changeset::flush and Log::flush; 
             write to stdout
     x fsync's were missing; make flushing of changeset more robust
-    o then try to reproduce once more and see if that page was (or was not)
+    x then try to reproduce once more and see if that page was (or was not)
         flushed
     sudo ./mklessfs /etc/lessfs.cfg
     sudo ./lessfs /etc/lessfs.cfg /home/chris/tmp/data/dir/ -f -d
-
     sudo dd bs=1024 if=/dev/sda of=/home/chris/tmp/data/dir/test.img
     sudo pkill -9 lessfs
     sudo sh check.sh
+
+o support MS Visual Studio 2010
 
 o identify a set of 3 testfiles (long running) and let them run in different
     configurations; track the times. There should be few enough tests to be
