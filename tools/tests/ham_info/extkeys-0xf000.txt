@@ -1,11 +1,6 @@
 environment
     pagesize:                   16384
-    version:                    1.0.4.0
+    version:                    2.0.2.0
     serialno:                   0
-    max databases:              16
-
-    database 61440 (0xf000)
-        max key size:           21
-        max keys per page:      510
-        address of root page:   16384
-        flags:                  0x0004
+    max databases:              32
+Database 61440 (0xf000) not found
