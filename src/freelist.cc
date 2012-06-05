@@ -24,33 +24,6 @@
 #include "btree_stats.h"
 #include "txn.h"
 
-extern ham_status_t
-__freel_lazy_create32(freelist_cache_t *cache, Device *dev, Environment *env);
-
-extern ham_status_t
-__freel_destructor32(Device *dev, Environment *env);
-
-extern ham_status_t
-__freel_flush_stats32(Device *dev, Environment *env);
-
-extern ham_status_t
-__freel_mark_free32(Device *dev, Environment *env, Database *db,
-                ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
-
-extern ham_status_t
-__freel_check_area_is_allocated32(Device *dev, Environment *env,
-                ham_offset_t address, ham_size_t size);
-
-extern ham_status_t
-__freel_alloc_area32(ham_offset_t *addr_ref, Device *dev, Environment *env,
-                Database *db, ham_size_t size, ham_bool_t aligned,
-                ham_offset_t lower_bound_address);
-
-extern ham_status_t
-__freel_init_perf_data32(freelist_cache_t *cache, Device *dev,
-                Environment *env, freelist_entry_t *entry,
-                freelist_payload_t *fp);
-
 /**
  * replacement for env->set_dirty(); will call the macro, but also
  * add the header page to the changeset
@@ -77,286 +50,6 @@ __page_set_dirty(Page *page)
 }
 
 /**
- * @return the maximum number of chunks a freelist page entry can span;
- * all freelist entry pages (except the first, as it has to share the
- * db page with a (largish) database header) have this span, which is
- * a little less than
- *
- * <pre>
- * DB_CHUNKSIZE * env->get_pagesize()
- * </pre>
- */
-static ham_size_t
-__freel_get_freelist_entry_maxspan(Device *device, Environment *env, freelist_cache_t *cache)
-{
-    ham_u32_t ret;
-    ham_size_t size=env->get_usable_pagesize()-db_get_freelist_header_size32();
-    ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-    size -= size % sizeof(ham_u64_t);
-
-    ret = (ham_u32_t)(size*8);    /* this step is very important for pre-v1.1.0 databases as those have an integer overflow issue right here. */
-
-    return (ham_size_t)ret;
-}
-
-
-static ham_status_t
-__freel_cache_resize(Device *device, Environment *env, freelist_cache_t *cache,
-        ham_size_t new_count)
-{
-    ham_size_t i;
-    freelist_entry_t *entries;
-    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
-    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0,
-            ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
-             "due to the scan algorithm"));
-
-    ham_assert(new_count > freel_cache_get_count(cache), (0));
-    entries=(freelist_entry_t *)env->get_allocator()->alloc(
-                    sizeof(*entries)*new_count);
-    if (!entries)
-        return HAM_OUT_OF_MEMORY;
-    memcpy(entries, freel_cache_get_entries(cache),
-            sizeof(*entries)*freel_cache_get_count(cache));
-
-    for (i=freel_cache_get_count(cache); i<new_count; i++)
-    {
-        ham_status_t st;
-        freelist_entry_t *entry=&entries[i];
-
-        ham_assert(i > 0, (0));
-        memset(entry, 0, sizeof(*entry));
-
-        freel_entry_set_start_address(entry,
-                freel_entry_get_start_address(&entries[i-1])+
-                    freel_entry_get_max_bits(&entries[i-1])*DB_CHUNKSIZE);
-        freel_entry_set_max_bits(entry, (ham_u32_t)(size_bits));
-
-        ham_assert(cache->_init_perf_data, (0));
-        st = cache->_init_perf_data(cache, device, env, entry, NULL);
-        if (st)
-            return st;
-    }
-
-    env->get_allocator()->free(freel_cache_get_entries(cache));
-    freel_cache_set_entries(cache, entries);
-    freel_cache_set_count(cache, new_count);
-
-    return HAM_SUCCESS;
-}
-
-
-
-/**
-Produce the @ref freelist_entry_t record which stores the freelist bit for the
-specified @a address.
-
-@param entry_ref call by reference; will always be set, either to NULL or a valid instance
-
-@param dev
-
-@param env
-
-@param cache
-
-@param address the specified address (a.k.a. 'RID')
-
-
-@remark An important side effect of this function is that the freelist is
-        extended to encompass the address space indicated by the specified storage
-        device address @address.
-
-@return HAM_SUCCESS and a valid @ref freelist_entry_t instance reference written to the
-        variable pointed at by @a entry_ref
-
-@return an error code, most probably @ref HAM_OUT_OF_MEMORY . The @a entry_ref will be
-        set to NULL.
-
-@note On exit, the following assertion will always hold:
-      <pre>
-      ham_assert(return_code == HAM_SUCCESS ? *entry_ref != NULL : *entry_ref == NULL, (0));
-      </pre>
-         i.e. the @a entry_ref will only be NULL when an error occurred.
-
-*/
-static ham_status_t
-__freel_cache_get_entry(freelist_entry_t **entry_ref, Device *device, Environment *env, freelist_cache_t *cache,
-        ham_offset_t address)
-{
-    ham_size_t i=0;
-    ham_status_t st=0;
-    freelist_entry_t *entries;
-    
-    ham_assert(entry_ref != NULL, (0));
-    for(;;)
-    {
-        ham_size_t add;
-        ham_size_t single_size_bits;
-
-        entries=freel_cache_get_entries(cache);
-
-        for (; i<freel_cache_get_count(cache); i++) {
-            freelist_entry_t *entry=&entries[i];
-    
-            ham_assert(!(address<freel_entry_get_start_address(entry)),
-                            (""));
-
-            if (address>=freel_entry_get_start_address(entry)
-                    && address<freel_entry_get_start_address(entry)+
-                        freel_entry_get_max_bits(entry)*DB_CHUNKSIZE)
-            {
-                *entry_ref = entry;
-                return HAM_SUCCESS;
-            }
-        }
-
-        /*
-         * not found? resize the table; we can guestimate where
-         * 'address' is going to land within the freelist...
-         */
-        ham_assert(i == freel_cache_get_count(cache), (0));
-        add = (ham_size_t)(address
-                - freel_entry_get_start_address(&entries[i-1])
-                - freel_entry_get_max_bits(&entries[i-1]));
-        add += DB_CHUNKSIZE - 1;
-        add /= DB_CHUNKSIZE;
-
-        single_size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
-        ham_assert(((single_size_bits/8) % sizeof(ham_u64_t)) == 0,
-                ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
-                 "due to the scan algorithm"));
-
-        add += single_size_bits - 1;
-        add /= single_size_bits;
-        ham_assert(add >= 1, (0));
-        st=__freel_cache_resize(device, env, cache, i + add);
-        if (st) {
-            *entry_ref = 0;
-            return st;
-        }
-        ham_assert(i<freel_cache_get_count(cache), (0));
-    }
-}
-
-static ham_size_t
-__freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
-        freelist_payload_t *fp, ham_bool_t overwrite,
-        ham_size_t start_bit,
-        ham_size_t size_bits,
-        ham_bool_t set,
-        freelist_hints_t *hints)
-{
-    ham_size_t i;
-    ham_u8_t *p=freel_get_bitmap32(fp);
-
-    ham_size_t qw_offset = start_bit & (64 - 1);
-    ham_size_t qw_start = (start_bit + 64 - 1) >> 6;     /* ROUNDUP(S DIV 64) */
-    ham_size_t qw_end;
-
-    ham_assert(start_bit<freel_get_max_bits32(fp), (0));
-
-    if (start_bit+size_bits>freel_get_max_bits32(fp))
-        size_bits=freel_get_max_bits32(fp)-start_bit;
-
-    qw_end = (start_bit + size_bits) >> 6;    /* one past the last full QWORD */
-
-    db_update_freelist_stats_edit(device, env, entry, fp, start_bit, size_bits, set, hints);
-
-    if (set) {
-        /*
-        Note: bits which are set here, may have been already SET before: this
-        particular event happens when page space is freed during a transaction
-        rollback, where space might or might not yet be freed, but MUST be
-        ensured to be freed after a record insert failure.
-        */
-        if (qw_end <= qw_start)
-        {
-            for (i=0; i<size_bits; i++, start_bit++)
-            {
-                p[start_bit>>3] |= 1 << (start_bit&(8-1));
-            }
-        }
-        else
-        {
-            ham_size_t n = size_bits;
-            ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap32(fp);
-            p64 += qw_start;
-            
-            if (qw_offset)
-            {
-                p = (ham_u8_t *)&p64[-1];
-
-                for (i = qw_offset; i < 64; i++)
-                {
-                    p[i>>3] |= 1 << (i&(8-1));
-                }
-                
-                n -= 64 - qw_offset;
-            }
-
-            qw_end -= qw_start;
-            for (i = 0; i < qw_end; i++)
-            {
-                p64[i] = 0xFFFFFFFFFFFFFFFFULL;
-            }
-
-            p = (ham_u8_t *)&p64[qw_end];
-
-            n -= qw_end << 6;
-
-            for (i = 0; i < n; i++)
-            {
-                p[i>>3] |= 1 << (i&(8-1));
-            }
-        }
-    }
-    else {
-        if (qw_end <= qw_start)
-        {
-            for (i=0; i<size_bits; i++, start_bit++)
-            {
-                p[start_bit>>3] &= ~(1 << (start_bit&(8-1)));
-            }
-        }
-        else
-        {
-            ham_size_t n = size_bits;
-            ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap32(fp);
-            p64 += qw_start;
-
-            if (qw_offset)
-            {
-                p = (ham_u8_t *)&p64[-1];
-
-                for (i = qw_offset; i < 64; i++)
-                {
-                    p[i>>3] &= ~(1 << (i&(8-1)));
-                }
-
-                n -= 64 - qw_offset;
-            }
-
-            qw_end -= qw_start;
-            for (i = 0; i < qw_end; i++)
-            {
-                p64[i] = 0;
-            }
-
-            p = (ham_u8_t *)&p64[qw_end];
-
-            n -= qw_end << 6;
-
-            for (i = 0; i < n; i++)
-            {
-                p[i>>3] &= ~(1 << (i&(8-1)));
-            }
-        }
-    }
-
-    return size_bits;
-}
-
-/**
 * Search for a sufficiently large free slot in the freelist bit-array.
 *
 * Before v1.0.9, this was a sequential scan, sped up by first scanning
@@ -377,7 +70,6 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 * This was very slow, especially in scenarios where tiny free slots
 * are located near the front of the bitarray (which represents the
 * storage layout of the whole database, incidentally).
-*
 *
 *  A few improvements can be thought of (and have been implemented):
 *
@@ -706,9 +398,6 @@ __freel_set_bits(Device *device, Environment *env, freelist_entry_t *entry,
 /** 8 QWORDS or less: 1-stage scan, otherwise, bsearch pre-scan */
 #define SIMPLE_SCAN_THRESHOLD            8
 
-
-
-
 /**
  * adjust the bit index to the lowest MSBit which is part of a
  * consecutive '1' series starting at the top of the QWORD
@@ -724,8 +413,7 @@ BITSCAN_MSBit(ham_u64_t v, ham_u32_t pos)
      * This is crafted to spend the least number of
      * rounds inside the BM freelist bitarray scans.
      */
-    while (value < 0)
-    {
+    while (value < 0) {
         pos--;
         value <<= 1;
     }
@@ -743,8 +431,7 @@ BITSCAN_MSBit8(ham_u8_t v, ham_u32_t pos)
      * This is crafted to spend the least number of
      * rounds inside the BM freelist bitarray scans.
      */
-    while (value < 0)
-    {
+    while (value < 0) {
         pos--;
         value <<= 1;
     }
@@ -766,8 +453,7 @@ BITSCAN_LSBit(ham_u64_t v, ham_u32_t pos)
      * This is crafted to spend the least number of
      * rounds inside the BM freelist bitarray scans.
      */
-    while (value & 0x01)
-    {
+    while (value & 0x01) {
         pos++;
         value >>= 1;
     }
@@ -785,22 +471,567 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
      * This is crafted to spend the least number of
      * rounds inside the BM freelist bitarray scans.
      */
-    while (value & 0x01)
-    {
+    while (value & 0x01) {
         pos++;
         value >>= 1;
     }
     return pos;
 }
 
+ham_status_t
+Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
+                ham_bool_t overwrite)
+{
+    ham_status_t st;
+    Page *page=0;
+    FreelistEntry *entry;
+    FreelistPayload *fp;
+    ham_size_t s;
+    freelist_hints_t hints = {
+        0,
+        0,
+        0,
+        db ? db->get_data_access_mode() : 0, /* mgt_mode */
+        HAM_FALSE,
+        0,
+        0,
+        0,
+        0,
+        0
+    };
 
-static ham_s32_t
-__freel_search_bits_ex(Device *device, Environment *env,
-                freelist_entry_t *entry, freelist_payload_t *f,
+    ScopedLock lock(m_mutex);
+
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(address%DB_CHUNKSIZE==0, (0));
+
+    if (m_entries.empty()) {
+        st=initialize();
+        if (st)
+            return (st);
+    }
+
+    /* split the chunk if it doesn't fit in one freelist page */
+    while (size) {
+        /* get the cache entry of this address */
+        st=get_entry(&entry, address);
+        if (st)
+            return st;
+
+        /* allocate a page if necessary */
+        if (!entry->page_id) {
+            if (entry->start_address == m_env->get_pagesize()) {
+                fp=m_env->get_freelist_payload();
+                ham_assert(freel_get_start_address(fp) != 0, (0));
+            }
+            else {
+                st=alloc_page(&page, entry);
+                if (st)
+                    return (st);
+                fp=page_get_freelist(page);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
+            }
+        }
+        /* otherwise just fetch the page from the cache or the disk */
+        else {
+            st=env_fetch_page(&page, m_env, entry->page_id, 0);
+            if (st)
+                return (st);
+            fp=page_get_freelist(page);
+            ham_assert(freel_get_start_address(fp) != 0, (0));
+        }
+
+        ham_assert(address>=freel_get_start_address(fp), (0));
+
+        /* set the bits and update the values in the cache and the fp */
+        s = set_bits(entry, fp, overwrite,
+                (ham_size_t)(address-freel_get_start_address(fp))
+                        / DB_CHUNKSIZE,
+                size/DB_CHUNKSIZE, true, &hints);
+
+        freel_set_allocated_bits(fp,
+                (ham_u32_t)(freel_get_allocated_bits(fp)+s));
+        entry->allocated_bits = freel_get_allocated_bits(fp);
+
+        if (page)
+            __page_set_dirty(page);
+        else
+            __env_set_dirty(m_env);
+
+        size -= s * DB_CHUNKSIZE;
+        address += s * DB_CHUNKSIZE;
+    }
+
+    return (0);
+}
+
+ham_status_t
+Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
+                bool aligned, ham_offset_t lower_bound_address)
+{
+    ham_status_t st;
+    ham_s32_t i;
+    FreelistEntry *entry = NULL;
+    FreelistPayload *fp = NULL;
+    Page *page=0;
+    ham_s32_t s=-1;
+    ham_u16_t mgt_mode = db ? db->get_data_access_mode() : 0;
+    freelist_global_hints_t global_hints =
+    {
+        0,
+        1,
+        0,
+        m_entries.size(),
+        mgt_mode,
+        0, /* span_width will be set by the hinter */
+        aligned,
+        lower_bound_address,
+        size/DB_CHUNKSIZE,
+        get_entry_maxspan()
+    };
+    freelist_hints_t hints = {0};
+
+    ScopedLock lock(m_mutex);
+
+    ham_assert(addr_ref != 0, (0));
+    *addr_ref = 0;
+
+    if (m_entries.empty()) {
+        st=initialize();
+        if (st)
+            return (st);
+    }
+
+    freelist_get_global_hints(this, &global_hints);
+
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(global_hints.page_span_width >= 1, (0));
+
+    /*
+     * __freel_locate_sufficient_free_space() is used to calculate the
+     * next freelist entry page to probe; as a side-effect it also
+     * delivers the hints for this entry - no use calculating those a
+     * second time for use in search_bits() -- faster to pass
+     * them along.
+     */
+    for (i = -1;
+        0 <= (i = locate_sufficient_free_space(&hints, &global_hints, i)); ) {
+        ham_assert(i<(ham_s32_t)m_entries.size(), (0));
+
+        entry=&m_entries[i];
+            
+        /*
+         * when we look for a free slot for a multipage spanning blob
+         * ('huge blob'), we could, of course, play nice, and check every
+         * bit of freelist, but that takes time.
+         *
+         * The faster approach employed here is to look for a sufficiently
+         * large sequence of /completely free/ freelist pages; the worst
+         * case space utilization of this speedup is >50% as the worst case
+         * is looking for a chunk of space as large as one freelist page
+         * (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the second
+         * freelist page will not be checked against a subsequent huge size
+         * request as it is not 'completely free' any longer, thus effectively
+         * occupying 2 freelist page spans where 1 (and a bit) would have
+         * sufficed, resulting in a worst case space utilization of a little
+         * more than 50%.
+         */
+        if (global_hints.page_span_width>1) {
+            /*
+             * we must employ a different freelist alloc system for requests
+             * spanning multiple freelist pages as the regular
+             * search_bits() is not able to cope with such
+             * requests.
+             *
+             * hamsterdb versions prior to 1.1.0 would simply call that
+             * function and fail every time, resulting in a behaviour where
+             * 'huge blobs' could be added or overwritten in the database,
+             * but erased huge blobs' space would never be re-used for
+             * subsequently inserted 'huge blobs', thus resulting in an ever
+             * growing database file when hamsterdb would be subjected to a
+             * insert+erase use pattern for huge blobs.
+             *
+             * Note that the multipage spanning search employs a Boyer-Moore
+             * search mechanism, which is (at least partly) built into the
+             * locate_sufficient_free_space() function;
+             * all that's left for us here is to scan _backwards_ conform
+             * BM to see if we have a sufficiently large sequence of
+             * completely freed freelist entries.
+             */
+            ham_size_t pagecount_sought=hints.page_span_width;
+            ham_size_t start_idx;
+            ham_size_t end_idx;
+            ham_size_t available=entry->allocated_bits;
+
+            ham_assert(entry->allocated_bits <= entry->max_bits, (0));
+            if (i < (ham_s32_t)hints.page_span_width)
+                return (0);
+            ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
+            /*
+             * entry points at a freelist entry in the possible sequence, scan
+             * back and forth to discover our actual sequence length. Scan
+             * back first, then forward when we need a tail.
+             */
+            for (start_idx = 0; ++start_idx < pagecount_sought; ) {
+                ham_assert(i >= (ham_s32_t)start_idx, (0));
+                ham_assert(i - start_idx >= global_hints.start_entry, (0));
+                FreelistEntry *e = entry - start_idx;
+                if (e->allocated_bits != e->max_bits)
+                    break;
+                available += e->allocated_bits;
+            }
+            start_idx--;
+
+            /*
+             * now see if we need (and have) a sufficiently large tail;
+             * we can't simply say
+             *
+             *      pagecount_sought -= start_idx;
+             *
+             * because our very first freelist entry in the sequence may have
+             * less maxbits than the others (as it may be the header page!)
+             * so we need to properly calculate the number of freelist
+             * entries that we need more:
+             */
+            ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1
+                            >= available, (0));
+            pagecount_sought = hints.size_bits - available;
+            /* round up: */
+            pagecount_sought += hints.freelist_pagesize_bits - 1;
+            pagecount_sought /= hints.freelist_pagesize_bits;
+            FreelistEntry *e = entry + 1;
+            for (end_idx = 1;
+                    end_idx < pagecount_sought
+                    && i + end_idx < m_entries.size()
+                    && (e->allocated_bits != e->max_bits);
+                    end_idx++) {
+                e = entry + end_idx;
+                available += e->allocated_bits;
+            }
+            end_idx--;
+
+            /*
+             * we can move i forward to the first non-suitable entry and
+             * BM-skip from there, HOWEVER, we have two BM modes in here
+             * really: one that scans forward (DAM:RANDOM_ACCESS)
+             * and one that scans backwards (DAM:SEQUENTIAL) and moving 'i'
+             * _up_ would harm the latter.
+             *
+             * The way out of this is to add end_idx+1 as a skip_offset
+             * instead and let locate_sufficient_free_space()
+             * handle it from there.
+             */
+            global_hints.skip_init_offset = end_idx + 1;
+
+            if (available < hints.size_bits) {
+                /* register the NO HIT */
+                freelist_globalhints_no_hit(this, entry, &hints);
+            }
+            else {
+                ham_size_t len;
+                ham_offset_t addr = 0;
+
+                /* we have a hit! */
+                i -= start_idx;
+                end_idx += start_idx;
+                
+                start_idx = 0;
+                for (len = hints.size_bits; len > 0; i++, start_idx++) {
+                    ham_size_t fl;
+
+                    ham_assert(i < (ham_s32_t)m_entries.size(), (0));
+
+                    entry=&m_entries[i];
+                    if (i == 0) {
+                        page = 0;
+                        fp = m_env->get_freelist_payload();
+                    }
+                    else {
+                        st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                        if (st)
+                            return (st);
+                        fp=page_get_freelist(page);
+                    }
+                    ham_assert(entry->allocated_bits == entry->max_bits, (0));
+                    ham_assert(freel_get_allocated_bits(fp)
+                                == freel_get_max_bits(fp), (0));
+
+                    if (start_idx == 0)
+                        addr = freel_get_start_address(fp);
+
+                    if (len >= entry->allocated_bits) 
+                        fl = entry->allocated_bits;
+                    else
+                        fl = len;
+                    set_bits(entry, fp, false, 0, fl, false, &hints);
+                    freel_set_allocated_bits(fp,
+                              (ham_u32_t)(freel_get_allocated_bits(fp) - fl));
+                    entry->allocated_bits = freel_get_allocated_bits(fp);
+                    len -= fl;
+
+                    if (page)
+                        __page_set_dirty(page);
+                    else
+                        __env_set_dirty(m_env);
+                }
+
+                ham_assert(addr != 0, (0));
+                *addr_ref = addr;
+                return HAM_SUCCESS;
+            }
+        }
+        else {
+            /*
+             * and this is the 'regular' free slot search, where we are
+             * looking for sizes which fit into a single freelist entry page
+             * in their entirety.
+             *
+             * Here we take the shortcut of not looking for edge solutions
+             * spanning two freelist entries (start in one, last few chunks
+             * in the next); this optimization costs little in space
+             * utilization losses and gains us a lot in execution speed.
+             * This particular optimization was already present in pre-v1.1.0
+             * hamsterdb, BTW.
+             */
+            ham_assert(entry->allocated_bits >= size/DB_CHUNKSIZE, (0));
+            ham_assert(hints.startpos + hints.size_bits
+                        <= hints.endpos, (0));
+
+            /*
+             * yes, load the payload structure
+             */
+            if (i == 0) {
+                fp = m_env->get_freelist_payload();
+            }
+            else {
+                st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                if (st)
+                    return (st);
+                fp=page_get_freelist(page);
+            }
+
+            /*
+             * now try to allocate from this payload
+             */
+            s = search_bits(entry, fp, size/DB_CHUNKSIZE, &hints);
+            if (s != -1) {
+                set_bits(entry, fp, false, s, size/DB_CHUNKSIZE, false, &hints);
+                if (page)
+                    __page_set_dirty(page);
+                else
+                    __env_set_dirty(m_env);
+                break;
+            }
+            else {
+                /* register the NO HIT */
+                freelist_globalhints_no_hit(this, entry, &hints);
+            }
+        }
+    }
+
+    ham_assert(s != -1 ? fp != NULL : 1, (0));
+
+    if (s != -1) {
+        freel_set_allocated_bits(fp,
+                (ham_u32_t)(freel_get_allocated_bits(fp)-size/DB_CHUNKSIZE));
+        entry->allocated_bits = freel_get_allocated_bits(fp);
+
+        *addr_ref = (freel_get_start_address(fp)+(s*DB_CHUNKSIZE));
+        return HAM_SUCCESS;
+    }
+
+    *addr_ref = 0;
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+Freelist::alloc_page(ham_offset_t *address, Database *db)
+{
+    return (alloc_area(address, db, m_env->get_pagesize(), true, 0));
+}
+
+ham_status_t
+Freelist::check_area_is_allocated(ham_offset_t address, ham_size_t size)
+{
+    ham_status_t st;
+    Page *page=0;
+    FreelistEntry *entry;
+    FreelistPayload *fp;
+    ham_size_t s;
+
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(address%DB_CHUNKSIZE==0, (0));
+
+    if (m_entries.empty()) {
+        st=initialize();
+        if (st)
+            return (st);
+    }
+
+    /* split the chunk if it doesn't fit in one freelist page */
+    while (size) {
+        /* get the cache entry of this address */
+        st=get_entry(&entry, address);
+        if (st)
+            return st;
+
+        /* allocate a page if necessary */
+        if (!entry->page_id) {
+            if (entry->start_address == m_env->get_pagesize()) {
+                fp=m_env->get_freelist_payload();
+                ham_assert(freel_get_start_address(fp)!=0, (0));
+            }
+            else {
+                st=alloc_page(&page, entry);
+                if (st)
+                    return (st);
+                fp=page_get_freelist(page);
+                ham_assert(freel_get_start_address(fp)!=0, (0));
+            }
+        }
+        /* otherwise just fetch the page from the cache or the disk */
+        else {
+            st=env_fetch_page(&page, m_env, entry->page_id, 0);
+            if (st)
+                return (st);
+            fp=page_get_freelist(page);
+            ham_assert(freel_get_start_address(fp)!=0, (0));
+        }
+
+        ham_assert(address>=freel_get_start_address(fp), (0));
+
+        /* check the bits */
+        s=size;
+        size-=s;
+        address+=s;
+    }
+
+    return (0);
+}
+
+/**
+ * setup / initialize the proper performance data for this freelist
+ * page.
+ *
+ * Yes, this data will (very probably) be lost once the page has been
+ * removed from the in-memory cache, unless the currently active
+ * freelist algorithm persists this data to disc.
+ */
+void
+Freelist::init_perf_data(FreelistEntry *entry, FreelistPayload *fp)
+{
+    freelist_page_statistics_t *entrystats = &entry->perf_data._persisted_stats;
+
+    /* we can assume all freelist FP data has been zeroed before we came
+     * in here */
+
+    if (fp && entrystats->persisted_bits == 0) {
+        ham_offset_t filesize;
+
+        /*
+         * now comes the hard part: when we don't have overflow, we
+         * know the ACTUAL end is in here somewhere, but definitely not
+         * at _max_bits.
+         *
+         * So we take the fastest road towards establishing the end: we
+         * request the file size and calculate how many chunks that
+         * would be and consequently how many chunks are in this
+         * [section of the] freelist.
+         */
+        m_env->get_device()->get_filesize(&filesize);
+
+        if (filesize > fp->_start_address) {
+            filesize -= fp->_start_address;
+            filesize /= DB_CHUNKSIZE;
+            if (filesize > fp->_max_bits) {
+                /* can happen when something (blob/test) causes an
+                 * allocation of multiple pages at once */
+                filesize = fp->_max_bits;
+            }
+        }
+        else {
+            /* overflow */
+            filesize = 0;
+        }
+
+        entrystats->persisted_bits = (ham_u32_t)filesize;
+    }
+}
+                                                                    
+#define DUMMY_LSN  1
+
+ham_status_t
+Freelist::flush_statistics()
+{
+    ham_status_t st;
+
+    /* do not update the statistics in a READ ONLY database!  */
+    if (!m_env)
+        return (0);
+    if ((m_env->get_flags()&HAM_READ_ONLY))
+        return (0);
+
+    if (m_entries.empty()) {
+        st=initialize();
+        if (st)
+            return (st);
+    }
+
+    if (m_entries.empty())
+        return (0);
+
+    for (ham_size_t i=0; i<m_entries.size(); i++) {
+        FreelistEntry *entry=&m_entries[i];
+
+        if (entry->perf_data._dirty) {
+            FreelistPayload *fp;
+            freelist_page_statistics_t *pers_stats;
+
+            /* header page */
+            if (!entry->page_id) {
+                fp=m_env->get_freelist_payload();
+                m_env->set_dirty(true);
+            }
+            /* otherwise just fetch the page from the cache or the disk */
+            else {
+                Page *page;
+                
+                st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                if (st)
+                    return (st);
+                fp=page_get_freelist(page);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
+                page->set_dirty(true);
+            }
+
+            ham_assert(fp->_zero == 0, (0));
+
+            pers_stats=freel_get_statistics(fp);
+
+            ham_assert(sizeof(*pers_stats) == 
+                    sizeof(entry->perf_data._persisted_stats), (0));
+            memcpy(pers_stats, &entry->perf_data._persisted_stats,
+                    sizeof(*pers_stats));
+
+            /* and we're done persisting/flushing this entry */
+            entry->perf_data._dirty = HAM_FALSE;
+        }
+    }
+
+    if (m_env->get_flags()&HAM_ENABLE_RECOVERY)
+        return (m_env->get_changeset().flush(DUMMY_LSN));
+
+    m_env->get_changeset().clear();
+
+    return (0);
+}
+
+ham_s32_t
+Freelist::search_bits(FreelistEntry *entry, FreelistPayload *f,
                 ham_size_t size_bits, freelist_hints_t *hints)
 {
     ham_u32_t end;
-    ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap32(f);
+    ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap(f);
     ham_u32_t start;
     ham_u32_t min_slice_width;
 
@@ -811,13 +1042,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
     /* as freelist pages are created, they should span a multiple of
      * 64(=QWORD bits) DB_CHUNKS! */
-    ham_assert(end <= freel_get_max_bits32(f), (0));
-    ham_assert(freel_get_max_bits32(f) % 64 == 0, (0));
+    ham_assert(end <= freel_get_max_bits(f), (0));
+    ham_assert(freel_get_max_bits(f) % 64 == 0, (0));
 
     /* sanity checks */
     ham_assert(end > start, (0));
     ham_assert(min_slice_width > 0, (0));
-    ham_assert(freel_get_max_bits32(f) >= freel_get_allocated_bits32(f), (0));
+    ham_assert(freel_get_max_bits(f) >= freel_get_allocated_bits(f), (0));
 
     /*
      * start-of-scan speedups:
@@ -842,11 +1073,11 @@ __freel_search_bits_ex(Device *device, Environment *env,
      * larger than this number.
      */
 
-    ham_assert(size_bits <= freel_get_max_bits32(f), (0));
+    ham_assert(size_bits <= freel_get_max_bits(f), (0));
 
     /* #2 */
-    ham_assert(size_bits <= freel_entry_get_allocated_bits(entry), (0));
-    ham_assert(size_bits <= freel_get_allocated_bits32(f), (0));
+    ham_assert(size_bits <= entry->allocated_bits, (0));
+    ham_assert(size_bits <= freel_get_allocated_bits(f), (0));
 
     /* #3: get a hint where to start searching for free space: DONE ALREADY */
 
@@ -856,14 +1087,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
      * anyway.
      */
     if (start + size_bits > end) {
-        db_update_freelist_stats_fail(device, env, entry, f, hints);
+        freelist_stats_fail(this, entry, f, hints);
         return (-1);
     }
 
     /* determine the first aligned starting point: */
-    if (hints->aligned)
-    {
-        ham_u32_t chunked_pagesize = env->get_pagesize() / DB_CHUNKSIZE;
+    if (hints->aligned) {
+        ham_u32_t chunked_pagesize = m_env->get_pagesize() / DB_CHUNKSIZE;
         ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / DB_CHUNKSIZE);
         offset %= chunked_pagesize;
         offset = chunked_pagesize - offset;
@@ -875,12 +1105,10 @@ __freel_search_bits_ex(Device *device, Environment *env,
          * as freelist pages are created, they should span a multiple
          * of 64 DB_CHUNKS!
          */
-        if (start < offset)
-        {
+        if (start < offset) {
             start = offset;
         }
-        else
-        {
+        else {
             start -= offset;
             start += chunked_pagesize - 1;
             start -= start % chunked_pagesize;
@@ -934,9 +1162,8 @@ __freel_search_bits_ex(Device *device, Environment *env,
          * Also, it's no use to go looking when we won't have a chance
          * for a hit anyway.
          */
-        if (start + size_bits > end)
-        {
-            db_update_freelist_stats_fail(device, env, entry, f, hints);
+        if (start + size_bits > end) {
+            freelist_stats_fail(this, entry, f, hints);
             return (-1);
         }
     }
@@ -964,10 +1191,8 @@ __freel_search_bits_ex(Device *device, Environment *env,
      * and as 'min_slice_width' is a rounded-up value, we'd better
      * check with the original: 'size_bits'
      */
-    if (hints->aligned)
-    {
-        if (start % 64 == 0 && end % 64 == 0)
-        {
+    if (hints->aligned) {
+        if (start % 64 == 0 && end % 64 == 0) {
             /*
              * The alignment is a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
              * so we'll be able to scan the freelist using QWORDs only,
@@ -990,8 +1215,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
             while (bm_l < bm_r) {
                 hints->cost++;
 
-                if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-                {
+                if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL) {
                     /*
                      * BM: a hit: see if we have a sufficiently large
                      * free zone here
@@ -1004,13 +1228,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
             /* report our failure to find a free slot */
             if (bm_l >= bm_r) {
-                db_update_freelist_stats_fail(device, env, entry, f, hints);
+                freelist_stats_fail(this, entry, f, hints);
                 return (-1);
             }
 
             /* BM search with a startup twist already done */
-            for (;;)
-            {
+            for (;;) {
                 ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
 
                 hints->cost++;
@@ -1046,12 +1269,10 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * round, until the END marker is hit. Any '0' bit in the
                  * inspected qwords will trigger a FAIL for this zone.
                  */
-                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
-                {
+                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD) {
                     ham_u32_t l = bm_l + 1; /* START qword is already checked */
                     ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
-                    while (l < r)
-                    {
+                    while (l < r) {
                         hints->cost++;
 
                         if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
@@ -1059,8 +1280,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         /* make sure we get at l==r at some point: */
                         l = (l + r + 1) / 2;
                     }
-                    if (l == r)
-                    {
+                    if (l == r) {
                         /*
                          * all guard checks have passed.
                          *
@@ -1075,23 +1295,21 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         r--; /* topmost all-1s qword of the acceptable range + 1 */
                         l = bm_l + 1; /* skip first qword */
 
-                        for ( ; l < r; l++)
-                        {
+                        for ( ; l < r; l++) {
                             hints->cost++;
 
                             if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
                                 break;
                         }
-                        if (r == l)
-                        {
+                        if (r == l) {
                             /* a perfect hit: report this one as a match! */
-                            db_update_freelist_stats(device, env, entry, f, bm_l * 64, hints);
+                            freelist_stats_update(this, 
+                                    entry, f, bm_l * 64, hints);
                             return bm_l * 64;
                         }
                     }
                 }
-                else
-                {
+                else {
                     /*
                      * simple scan only: tiny range
                      *
@@ -1102,17 +1320,16 @@ __freel_search_bits_ex(Device *device, Environment *env,
                     ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
 
                     /* linear forward validation scan */
-                    for ( ; l < r; l++)
-                    {
+                    for ( ; l < r; l++) {
                         hints->cost++;
 
                         if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
                             break;
                     }
-                    if (r == l)
-                    {
+                    if (r == l) {
                         /* a perfect hit: report this one as a match! */
-                        db_update_freelist_stats(device, env, entry, f, bm_l * 64, hints);
+                        freelist_stats_update(this, 
+                                    entry, f, bm_l * 64, hints);
                         return bm_l * 64;
                     }
                 }
@@ -1140,8 +1357,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 while (bm_l < bm_r) {
                     hints->cost++;
 
-                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-                    {
+                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL) {
                         /*
                          * BM: a hit: see if we have a sufficiently large
                          * free zone here
@@ -1155,14 +1371,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
             }
         }
-        else
-        {
-/*TODO is this code ever reached? or only with 1kb pages? */
+        else {
             /*
              * The alignment is NOT a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
              * so we'll have to contend ourselves with a BYTE-based scan
@@ -1177,17 +1391,16 @@ __freel_search_bits_ex(Device *device, Environment *env,
             ham_u32_t bm_r = end / 8 - min_slice_width8 + 1; /* EXCLUSIVE upper bound */
 
             /*
-            * we know which start positions are viable; we only
-            * inspect those.
-            *
-            * Besides, we assume ALIGNED searches require 1 all-1s
-            * byte at least; this improves our skipscan here.
-            */
+             * we know which start positions are viable; we only
+             * inspect those.
+             *
+             * Besides, we assume ALIGNED searches require 1 all-1s
+             * byte at least; this improves our skipscan here.
+             */
             while (bm_l < bm_r) {
                 hints->cost++;
 
-                if (p8[bm_l] == 0xFFU)
-                {
+                if (p8[bm_l] == 0xFFU) {
                     /*
                     * BM: a hit: see if we have a sufficiently large
                     * free zone here
@@ -1201,54 +1414,51 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(device, env, entry, f, hints);
+                freelist_stats_fail(this, entry, f, hints);
                 return (-1);
             }
 
             /* BM search with a startup twist already done */
-            for (;;)
-            {
+            for (;;) {
                 ham_assert(p8[bm_l] == 0xFFU, (0));
 
                 hints->cost++;
 
                 /*
-                * We also assume such aligned scans require all-1s bytes
-                * EXCLUSIVELY, i.e. no dangling bit tail for these, my
-                * friend. Just all-1s bytes all the way.
-                *
-                * we already know we're at the STARTING spot of this one:
-                * in our case it's just a forward scan, maybe with a
-                * little guard check, is all we're gonna need.
-                *
-                * However, since we happen to know the SIZE we're looking
-                * for is rather large, we perform a PRE-SCAN by binary
-                * searching the forward
-                * range (no need to scan backwards: we've been there in a
-                * previous round if there was anything interesting in
-                * there).
-                *
-                * To help the multi-level guard check succeed, we have to
-                * assume a few things:
-                *
-                * we know the START. It is fixed. So all we need to do is
-                * to find a '0' bit in the pre-scan of the SIZE range and
-                * we can be assured the current zone is toast.
-                *
-                * We assume in this locality: the '0' bit in there is most
-                * probably located near the start of the range, if any.
-                *
-                * the guard check only remotely looks like a bsearch: it
-                * starts at START and then divides the space in 2 on every
-                * round, until the END marker is hit. Any '0' bit in the
-                * inspected bytes will trigger a FAIL for this zone.
-                */
-                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
-                {
+                 * We also assume such aligned scans require all-1s bytes
+                 * EXCLUSIVELY, i.e. no dangling bit tail for these, my
+                 * friend. Just all-1s bytes all the way.
+                 *
+                 * we already know we're at the STARTING spot of this one:
+                 * in our case it's just a forward scan, maybe with a
+                 * little guard check, is all we're gonna need.
+                 *
+                 * However, since we happen to know the SIZE we're looking
+                 * for is rather large, we perform a PRE-SCAN by binary
+                 * searching the forward
+                 * range (no need to scan backwards: we've been there in a
+                 * previous round if there was anything interesting in
+                 * there).
+                 *
+                 * To help the multi-level guard check succeed, we have to
+                 * assume a few things:
+                 *
+                 * we know the START. It is fixed. So all we need to do is
+                 * to find a '0' bit in the pre-scan of the SIZE range and
+                 * we can be assured the current zone is toast.
+                 *
+                 * We assume in this locality: the '0' bit in there is most
+                 * probably located near the start of the range, if any.
+                 *
+                 * the guard check only remotely looks like a bsearch: it
+                 * starts at START and then divides the space in 2 on every
+                 * round, until the END marker is hit. Any '0' bit in the
+                 * inspected bytes will trigger a FAIL for this zone.
+                 */
+                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD) {
                     ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
                     ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
-                    while (l < r)
-                    {
+                    while (l < r) {
                         hints->cost++;
 
                         if (p8[l] != 0xFFU)
@@ -1256,93 +1466,87 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         /* make sure we get at l==r at some point: */
                         l = (l + r + 1) / 2;
                     }
-                    if (l == r)
-                    {
+                    if (l == r) {
                         /*
-                        * all guard checks have passed.
-                        *
-                        * WARNING: note that due to the way the guard
-                        * check loop was coded, we are now SURE the initial
-                        * BYTE
-                        * _and_ last BYTE are all-1s at least, so we
-                        * don't have to linear-scan those again.
-                        */
+                         * all guard checks have passed.
+                         *
+                         * WARNING: note that due to the way the guard
+                         * check loop was coded, we are now SURE the initial
+                         * BYTE
+                         * _and_ last BYTE are all-1s at least, so we
+                         * don't have to linear-scan those again.
+                         */
 
                         /* linear forward validation scan */
                         r--; /* topmost all-1s byte of the acceptable range + 1 */
                         l = bm_l + 1; /* skip first byte */
 
-                        for ( ; l < r; l++)
-                        {
+                        for ( ; l < r; l++) {
                             hints->cost++;
 
                             if (p8[l] != 0xFFU)
                                 break;
                         }
-                        if (r == l)
-                        {
+                        if (r == l) {
                             /* a perfect hit: report this one as a match! */
-                            db_update_freelist_stats(device, env, entry, f, bm_l * 8, hints);
+                            freelist_stats_update(this, 
+                                        entry, f, bm_l * 8, hints);
                             return bm_l * 8;
                         }
                     }
                 }
-                else
-                {
+                else {
                     /*
-                    * simple scan only: tiny range
-                    *
-                    * Nevertheless, we also have checked our first BYTE,
-                    * so we can skip that one
-                    */
+                     * simple scan only: tiny range
+                     *
+                     * Nevertheless, we also have checked our first BYTE,
+                     * so we can skip that one
+                     */
                     ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
                     ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
 
                     /* linear forward validation scan */
-                    for ( ; l < r; l++)
-                    {
+                    for ( ; l < r; l++) {
                         hints->cost++;
 
                         if (p8[l] != 0xFFU)
                             break;
                     }
-                    if (r == l)
-                    {
+                    if (r == l) {
                         /* a perfect hit: report this one as a match! */
-                        db_update_freelist_stats(device, env, entry, f, bm_l * 8, hints);
+                        freelist_stats_update(this, entry, f, bm_l * 8, hints);
                         return bm_l * 8;
                     }
                 }
 
                 /*
-                * when we get here, we've failed the inner sequence
-                * validation of an aligned search; all we can do now is try
-                * again at the next aligned scan location.
-                *
-                * This is the simplest post-backtrack skip of the bunch,
-                * Sunday/Hume-wise, but nothing improves upon this (unless
-                * we were scanning a size span in there which would've been
-                * larger than the skip step here, and that NEVER happens
-                * thanks to our prep work at the start of this function.
-                */
+                 * when we get here, we've failed the inner sequence
+                 * validation of an aligned search; all we can do now is try
+                 * again at the next aligned scan location.
+                 *
+                 * This is the simplest post-backtrack skip of the bunch,
+                 * Sunday/Hume-wise, but nothing improves upon this (unless
+                 * we were scanning a size span in there which would've been
+                 * larger than the skip step here, and that NEVER happens
+                 * thanks to our prep work at the start of this function.
+                 */
                 bm_l += min_slice_width8;
 
                 /*
-                * we know which start positions are viable; we only
-                * inspect those.
-                *
-                * Besides, we assume ALIGNED searches require 1 all-1s
-                * byte at least; this improves our skipscan here.
-                */
+                 * we know which start positions are viable; we only
+                 * inspect those.
+                 *
+                 * Besides, we assume ALIGNED searches require 1 all-1s
+                 * byte at least; this improves our skipscan here.
+                 */
                 while (bm_l < bm_r) {
                     hints->cost++;
 
-                    if (p8[bm_l] == 0xFFU)
-                    {
+                    if (p8[bm_l] == 0xFFU) {
                         /*
-                        * BM: a hit: see if we have a sufficiently large
-                        * free zone here
-                        */
+                         * BM: a hit: see if we have a sufficiently large
+                         * free zone here
+                         */
                         break;
                     }
 
@@ -1352,14 +1556,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
             }
         }
     } /* hints->aligned */
-    else
-    {
+    else {
         /*
          * UNALIGNED search:
          *
@@ -1374,8 +1577,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
          *
          * (3) a search for sizes even tinier than that
          */
-        if (size_bits >= 2 * 64)
-        {
+        if (size_bits >= 2 * 64) {
             /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
             ham_u32_t min_slice_width64 = min_slice_width / 64; /* roundDOWN */
             ham_u32_t bm_l = start / 64;
@@ -1394,8 +1596,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
             while (bm_l < bm_r) {
                 hints->cost++;
 
-                if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-                {
+                if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL) {
                     /*
                      * BM: a hit: see if we have a sufficiently
                      * large free zone here.
@@ -1409,7 +1610,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(device, env, entry, f, hints);
+                freelist_stats_fail(this, entry, f, hints);
                 return (-1);
             }
 
@@ -1439,32 +1640,28 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
-                {
+                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD) {
                     ham_u32_t d = 1;
-                    for (;;)
-                    {
+                    for (;;) {
                         hints->cost++;
     
-                        if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-                        {
+                        if (p64[r] != 0xFFFFFFFFFFFFFFFFULL) {
                             l = r + 1; /* lowest PROBABLY okay probe location */
                             break;
                         }
-                        if (r < l + d)
-                        {
-                            if (r < l + 1)
-                            {
+                        if (r < l + d) {
+                            if (r < l + 1) {
                                 /* l == lowest PROBABLY okay probe location */
                                 break;
                             }
-                            else
-                            {
+                            else {
                                 d = 1;
                             }
                         }
                         r -= d;
-                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                        /* increase step size by a power of 2;
+                         * inverted divide and conquer */
+                        d <<= 1;
                     }
                     /*
                      * the guard check adjusted our expected lower
@@ -1482,46 +1679,24 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * REV linear validation scan follows...
                      */
                 }
-                else
-                {
-                    /*
-                     * min_slice_width64 <= SIMPLE_SCAN_THRESHOLD
-                     *
-                     * we know, however, that we have the need for at
-                     * least 1 all-1s qword
-                     */
-#if 0
-                    r = bm_l - 1; /* we have checked the END qword already */
-                    l = bm_l - min_slice_width64 + 1; /* INCLUSIVE lower bound */
-#endif
-                    /*
-                     * REV linear validation scan follows...
-                     */
-                }
 
-                /*
-                 * REV linear validation scan:
-                 */
+                /* REV linear validation scan: */
                 ham_assert(bm_l > 0, (0));
-                for (r = bm_l - 1; r > l; r--)
-                {
+                for (r = bm_l - 1; r > l; r--) {
                     hints->cost++;
 
-                    if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-                    {
+                    if (p64[r] != 0xFFFFFFFFFFFFFFFFULL) {
                         l = r + 1; /* lowest (last) okay probe location */
                         break;
                     }
                 }
                 /* fringe case check: the lowest QWORD... */
-                if (r == l && p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-                {
+                if (r == l && p64[r] != 0xFFFFFFFFFFFFFFFFULL) {
                     l = r + 1; /* lowest (last) okay probe location */
                 }
 
                 /* do we need more 'good space' FWD? */
-                if ((++bm_l - l) * 64 < size_bits)
-                {
+                if ((++bm_l - l) * 64 < size_bits) {
                     /*
                      * FWD linear validation scan:
                      *
@@ -1532,18 +1707,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * adjust the next skip on failure anyway.
                      */
                     r = bm_l + min_slice_width64;
-                    if (r > bm_r)
-                    {
+                    if (r > bm_r) {
                         r = bm_r;
                     }
-                    for ( ; r > bm_l; bm_l++)
-                    {
+                    for ( ; r > bm_l; bm_l++) {
                         hints->cost++;
 
                         if (p64[bm_l] != 0xFFFFFFFFFFFFFFFFULL)
-                        {
                             break;
-                        }
                     }
                 }
 
@@ -1557,8 +1728,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * sitting on the lower boundary, then inspect the qword
                  * below that.
                  */
-                if (l > lb)
-                {
+                if (l > lb) {
                     /*
                      * get fancy: as we perform an unaligned scan, we
                      * MAY have some more bits sitting in this spot, as
@@ -1576,10 +1746,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                     /* do we have enough free space now? */
                     ham_assert(bm_l > 0, (0));
                     ham_assert((bm_l - 1) * 64 >= lpos, (0));
-                    if (size_bits <= (bm_l - 1) * 64 - lpos)
-                    {
+                    if (size_bits <= (bm_l - 1) * 64 - lpos) {
                         /* yeah! */
-                        db_update_freelist_stats(device, env, entry, f, lpos, hints);
+                        freelist_stats_update(this, entry, f, lpos, hints);
                         return lpos;
                     }
 
@@ -1592,14 +1761,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
-                    else /* if (size_bits <= bm_l * 64 - lpos) */
-                    {
+                    else { /* if (size_bits <= bm_l * 64 - lpos) */
                         ham_u32_t rpos = BITSCAN_LSBit(ham_db2h64(p64[bm_l]), bm_l * 64);
                         ham_assert(bm_l > 0, (0));
                         ham_assert(rpos >= lpos, (0));
@@ -1618,21 +1785,18 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         ham_assert(rpos >= lpos, (0));
 
                         /* again: do we have enough free space now? */
-                        if (size_bits <= rpos - lpos)
-                        {
+                        if (size_bits <= rpos - lpos) {
                             /* yeah! */
-                            db_update_freelist_stats(device, env, entry, f, lpos, hints);
+                            freelist_stats_update(this, entry, f, lpos, hints);
                             return lpos;
                         }
                     }
                 }
-                else
-                {
+                else {
                     /* do we have enough free space now? */
-                    if (size_bits <= (bm_l - l) * 64)
-                    {
+                    if (size_bits <= (bm_l - l) * 64) {
                         /* yeah! */
-                        db_update_freelist_stats(device, env, entry, f, l * 64, hints);
+                        freelist_stats_update(this, entry, f, l * 64, hints);
                         return l * 64;
                     }
 
@@ -1645,14 +1809,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
-                    else /* if (size_bits <= (bm_l - l) * 64) */
-                    {
+                    else { /* if (size_bits <= (bm_l - l) * 64) */
                         ham_u32_t rpos = BITSCAN_LSBit(ham_db2h64(p64[bm_l]),
                                 bm_l * 64);
                         ham_assert(bm_l > 0, (0));
@@ -1673,10 +1835,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                         /* again: do we have enough free space now? */
                         ham_assert(rpos >= l * 64, (0));
-                        if (size_bits <= rpos - l * 64)
-                        {
+                        if (size_bits <= rpos - l * 64) {
                             /* yeah! */
-                            db_update_freelist_stats(device, env, entry, f, l * 64, hints);
+                            freelist_stats_update(this, entry, f, l*64, hints);
                             return l * 64;
                         }
                     }
@@ -1692,8 +1853,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 while (bm_l < bm_r) {
                     hints->cost++;
 
-                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-                    {
+                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL) {
                         /*
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
@@ -1707,13 +1867,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
             }
         }
-        else if (size_bits >= 2 * 8)
-        {
+        else if (size_bits >= 2 * 8) {
             ham_u8_t *p8=(ham_u8_t *)p64;
 
             /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
@@ -1735,8 +1894,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
             while (bm_l < bm_r) {
                 hints->cost++;
 
-                if (p8[bm_l] == 0xFFU)
-                {
+                if (p8[bm_l] == 0xFFU) {
                     /*
                      * BM: a hit: see if we have a sufficiently
                      * large free zone here.
@@ -1750,7 +1908,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
             if (bm_l >= bm_r) {
                 /* report our failure to find a free slot */
-                db_update_freelist_stats_fail(device, env, entry, f, hints);
+                freelist_stats_fail(this, entry, f, hints);
                 return (-1);
             }
 
@@ -1778,32 +1936,28 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
-                {
+                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD) {
                     ham_u32_t d = 1;
-                    for (;;)
-                    {
+                    for (;;) {
                         hints->cost++;
 
-                        if (p8[r] != 0xFFU)
-                        {
+                        if (p8[r] != 0xFFU) {
                             l = r + 1; /* lowest PROBABLY okay probe location */
                             break;
                         }
-                        if (r < l + d)
-                        {
-                            if (r < l + 1)
-                            {
+                        if (r < l + d) {
+                            if (r < l + 1) {
                                 /* l == lowest PROBABLY okay probe location */
                                 break;
                             }
-                            else
-                            {
+                            else {
                                 d = 1;
                             }
                         }
                         r -= d;
-                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                        /* increase step size by a power of 2;
+                         * inverted divide and conquer */
+                        d <<= 1;
                     }
                     /*
                      * the guard check adjusted our expected lower
@@ -1821,46 +1975,24 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * REV linear validation scan follows...
                      */
                 }
-                else
-                {
-                    /*
-                     * min_slice_width8 <= SIMPLE_SCAN_THRESHOLD
-                     *
-                     * we know, however, that we have the need for at
-                     * least 1 all-1s byte
-                     */
-#if 0
-                    r = bm_l - 1; /* we have checked the END byte already */
-                    l = bm_l - min_slice_width8 + 1; /* INCLUSIVE lower bound */
-#endif
-                    /*
-                     * REV linear validation scan follows...
-                     */
-                }
 
-                /*
-                 * REV linear validation scan:
-                 */
+                /* REV linear validation scan: */
                 ham_assert(bm_l > 0, (0));
-                for (r = bm_l - 1; r > l; r--)
-                {
+                for (r = bm_l - 1; r > l; r--) {
                     hints->cost++;
 
-                    if (p8[r] != 0xFFU)
-                    {
+                    if (p8[r] != 0xFFU) {
                         l = r + 1; /* lowest (last) okay probe location */
                         break;
                     }
                 }
                 /* fringe case check: the lowest BYTE... */
-                if (r == l && p8[r] != 0xFFU)
-                {
+                if (r == l && p8[r] != 0xFFU) {
                     l = r + 1; /* lowest (last) okay probe location */
                 }
 
                 /* do we need more 'good space' FWD? */
-                if ((++bm_l - l) * 8 < size_bits)
-                {
+                if ((++bm_l - l) * 8 < size_bits) {
                     /*
                      * FWD linear validation scan:
                      *
@@ -1872,17 +2004,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      */
                     r = bm_l + min_slice_width8;
                     if (r > bm_r)
-                    {
                         r = bm_r;
-                    }
-                    for ( ; r > bm_l; bm_l++)
-                    {
+                    for ( ; r > bm_l; bm_l++) {
                         hints->cost++;
 
                         if (p8[bm_l] != 0xFFU)
-                        {
                             break;
-                        }
                     }
                 }
 
@@ -1896,8 +2023,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * sitting on the lower boundary, then inspect the byte
                  * below that.
                  */
-                if (l > lb)
-                {
+                if (l > lb) {
                     /*
                      * get fancy: as we perform an unaligned scan, we
                      * MAY have some more bits sitting in this spot, as
@@ -1915,10 +2041,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                     ham_assert((bm_l - 1) * 8 >= lpos, (0));
 
                     /* do we have enough free space now? */
-                    if (size_bits <= (bm_l - 1) * 8 - lpos)
-                    {
+                    if (size_bits <= (bm_l - 1) * 8 - lpos) {
                         /* yeah! */
-                        db_update_freelist_stats(device, env, entry, f, lpos, hints);
+                        freelist_stats_update(this, entry, f, lpos, hints);
                         return lpos;
                     }
 
@@ -1931,14 +2056,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
-                    else /* if (size_bits <= bm_l * 8 - lpos) */
-                    {
+                    else { /* if (size_bits <= bm_l * 8 - lpos) */
                         ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
                         ham_assert(bm_l > 0, (0));
                         ham_assert(rpos >= lpos, (0));
@@ -1957,21 +2080,18 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         ham_assert(rpos >= lpos, (0));
 
                         /* again: do we have enough free space now? */
-                        if (size_bits <= rpos - lpos)
-                        {
+                        if (size_bits <= rpos - lpos) {
                             /* yeah! */
-                            db_update_freelist_stats(device, env, entry, f, lpos, hints);
+                            freelist_stats_update(this, entry, f, lpos, hints);
                             return lpos;
                         }
                     }
                 }
-                else
-                {
+                else {
                     /* do we have enough free space now? */
-                    if (size_bits <= (bm_l - l) * 8)
-                    {
+                    if (size_bits <= (bm_l - l) * 8) {
                         /* yeah! */
-                        db_update_freelist_stats(device, env, entry, f, l * 8, hints);
+                        freelist_stats_update(this, entry, f, l * 8, hints);
                         return l * 8;
                     }
 
@@ -1984,14 +2104,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* upper bound hit: we won't be able to report a match. */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
-                    else /* if (size_bits <= (bm_l - l) * 8) */
-                    {
+                    else { /* if (size_bits <= (bm_l - l) * 8) */
                         ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
                         ham_assert(bm_l > 0, (0));
                         ham_assert(rpos >= l * 8, (0));
@@ -2010,10 +2128,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         ham_assert(rpos >= l * 8, (0));
 
                         /* again: do we have enough free space now? */
-                        if (size_bits <= rpos - l * 8)
-                        {
+                        if (size_bits <= rpos - l * 8) {
                             /* yeah! */
-                            db_update_freelist_stats(device, env, entry, f, l * 8, hints);
+                            freelist_stats_update(this, entry, f, l * 8, hints);
                             return l * 8;
                         }
                     }
@@ -2029,8 +2146,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 while (bm_l < bm_r) {
                     hints->cost++;
 
-                    if (p8[bm_l] == 0xFFU)
-                    {
+                    if (p8[bm_l] == 0xFFU) {
                         /*
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
@@ -2044,13 +2160,12 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 if (bm_l >= bm_r) {
                     /* report our failure to find a free slot */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
             }
         }
-        else if (size_bits > 1)
-        {
+        else if (size_bits > 1) {
             ham_u8_t *p=(ham_u8_t *)p64;
 
             /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
@@ -2069,8 +2184,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 /*
                  * the 'byte level front scanner':
                  */
-                if (!p[bm_l >> 3])
-                {
+                if (!p[bm_l >> 3]) {
                     /*
                      * all 0 bits in there. adjust skip
                      * accordingly. But first we scan further at
@@ -2079,15 +2193,11 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      */
                     ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
                     bm_l >>= 3;
-                    if (min_slice_width <= 8)
-                    {
+                    if (min_slice_width <= 8) {
                         for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
-                        {
                             hints->cost++;
-                        }
                     }
-                    else
-                    {
+                    else {
                         /*
                          * at a spacing of 9 bits or more, we can
                          * skip bytes in the scanner and still be
@@ -2095,9 +2205,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                          */
                         ham_assert(min_slice_width < 16, (0));
                         for (bm_l += 2; bm_l < ub && !p[bm_l]; bm_l += 2)
-                        {
                             hints->cost++;
-                        }
                     }
                     
                     /*
@@ -2116,32 +2224,28 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      */
                     bm_l += min_slice_width - 1;
 
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* report our failure to find a free slot */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
                     continue;
                 }
 
                 /* the regular BM scanloop */
-                if (p[bm_l >> 3] & (1 << (bm_l & 0x07)))
-                {
+                if (p[bm_l >> 3] & (1 << (bm_l & 0x07))) {
                     /*
                      * BM: a hit: see if we have a sufficiently
                      * large free zone here.
                      */
                     break;
                 }
-                else
-                {
+                else {
                     /* BM: a miss: skip to next opportunity sequentially */
                     bm_l += min_slice_width;
-                    if (bm_l >= bm_r)
-                    {
+                    if (bm_l >= bm_r) {
                         /* report our failure to find a free slot */
-                        db_update_freelist_stats_fail(device, env, entry, f, hints);
+                        freelist_stats_fail(this, entry, f, hints);
                         return (-1);
                     }
                 }
@@ -2173,32 +2277,27 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-                if (min_slice_width > SIMPLE_SCAN_THRESHOLD)
-                {
+                if (min_slice_width > SIMPLE_SCAN_THRESHOLD) {
                     ham_u32_t d = 1;
-                    for (;;)
-                    {
+                    for (;;) {
                         hints->cost++;
 
-                        if (!(p[r >> 3] & (1 << (r & 0x07))))
-                        {
+                        if (!(p[r >> 3] & (1 << (r & 0x07)))) {
                             l = r + 1; /* lowest PROBABLY okay probe location */
                             break;
                         }
-                        if (r < l + d)
-                        {
-                            if (r < l + 1)
-                            {
+                        if (r < l + d) {
+                            if (r < l + 1) {
                                 /* l == lowest PROBABLY okay probe location */
                                 break;
                             }
                             else
-                            {
                                 d = 1;
-                            }
                         }
                         r -= d;
-                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                        /* increase step size by a power of 2;
+                         * inverted divide and conquer */
+                        d <<= 1;
                     }
                     /*
                      * the guard check adjusted our expected lower
@@ -2216,60 +2315,33 @@ __freel_search_bits_ex(Device *device, Environment *env,
                      * REV linear validation scan follows...
                      */
                 }
-                else
-                {
-                    /*
-                     * min_slice_width8 <= SIMPLE_SCAN_THRESHOLD
-                     *
-                     * we know, however, that we have the need for at
-                     * least 1 all-1s BIT
-                     */
-#if 0
-                    r = bm_l - 1; /* we have checked the END bit already */
-                    l = bm_l - min_slice_width + 1; /* INCLUSIVE lower bound */
-#endif
-                    /*
-                     * REV linear validation scan follows...
-                     */
-                }
 
-                /*
-                 * REV linear validation scan:
-                 */
+                /* REV linear validation scan: */
                 ham_assert(bm_l > 0, (0));
-                for (r = bm_l - 1; r > l; r--)
-                {
+                for (r = bm_l - 1; r > l; r--) {
                     hints->cost++;
 
-                    if (!(p[r >> 3] & (1 << (r & 0x07))))
-                    {
+                    if (!(p[r >> 3] & (1 << (r & 0x07)))) {
                         l = r + 1; /* lowest (last) okay probe location */
                         break;
                     }
                 }
                 /* fringe case check: the lowest BIT... */
-                if (r == l && !(p[r >> 3] & (1 << (r & 0x07))))
-                {
+                if (r == l && !(p[r >> 3] & (1 << (r & 0x07)))) {
                     l = r + 1; /* lowest (last) okay probe location */
                 }
 
                 /* do we need more 'good space' FWD? */
-                if ((++bm_l - l) < size_bits)
-                {
-                    /*
-                     * FWD linear validation scan:
-                     */
+                if ((++bm_l - l) < size_bits) {
+                    /* FWD linear validation scan: */
                     r = bm_l + min_slice_width - 1;
-                    if (r > bm_r)
-                    {
+                    if (r > bm_r) {
                         r = bm_r;
                     }
-                    for ( ; r > bm_l; bm_l++)
-                    {
+                    for ( ; r > bm_l; bm_l++) {
                         hints->cost++;
 
-                        if (!(p[bm_l >> 3] & (1 << (bm_l & 0x07))))
-                        {
+                        if (!(p[bm_l >> 3] & (1 << (bm_l & 0x07)))) {
                             break;
                         }
                     }
@@ -2285,10 +2357,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  */
 
                 /* do we have enough free space now? */
-                if (size_bits <= (bm_l - l))
-                {
+                if (size_bits <= (bm_l - l)) {
                     /* yeah! */
-                    db_update_freelist_stats(device, env, entry, f, l, hints);
+                    freelist_stats_update(this, entry, f, l, hints);
                     return l;
                 }
 
@@ -2299,15 +2370,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 bm_l += min_slice_width;
 
                 /* BM skipscan */
-                while (bm_l < bm_r)
-                {
+                while (bm_l < bm_r) {
                     hints->cost++;
 
                     /*
                     the 'byte level front scanner':
                     */
-                    if (!p[bm_l >> 3])
-                    {
+                    if (!p[bm_l >> 3]) {
                         /*
                          * all 0 bits in there. adjust skip
                          * accordingly. But first we scan further at
@@ -2317,9 +2386,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
                         bm_l >>= 3;
                         for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
-                        {
                             hints->cost++;
-                        }
 
                         /*
                          * BM: a miss: skip to next opportunity
@@ -2339,16 +2406,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                         continue;
                     }
 
-                    if (p[bm_l >> 3] & (1 << (bm_l & 0x07)))
-                    {
+                    if (p[bm_l >> 3] & (1 << (bm_l & 0x07))) {
                         /*
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
                          */
                         break;
                     }
-                    else
-                    {
+                    else {
                         /* BM: a miss: skip to next opportunity sequentially */
                         bm_l += min_slice_width;
                     }
@@ -2359,16 +2424,14 @@ __freel_search_bits_ex(Device *device, Environment *env,
                  * already counted all the tail bits at [bm_l] -- if we
                  * haven't hit the upper bound already.
                  */
-                if (bm_l >= bm_r)
-                {
+                if (bm_l >= bm_r) {
                     /* upper bound hit: we won't be able to report a match. */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
             }
         }
-        else /* if (size_bits == 1) */
-        {
+        else { /* if (size_bits == 1) */
             ham_u8_t *p=(ham_u8_t *)p64;
 
             /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
@@ -2460,8 +2523,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
              * integers at odd-address boundaries (several of the
              * CPUs in the MC68K series, for example).
              */
-            if (min_slice_width <= 16)
-            {
+            if (min_slice_width <= 16) {
                 /* the usual; just step on it using Duff's Device (loop unrolling) */
                 ham_u32_t l = (bm_l >> 3);
                 ham_u32_t r = ((bm_r + 8 - 1) >> 3);
@@ -2472,36 +2534,33 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 /* cost is low as this is a cheap loop anyway */
                 hints->cost += (r - l + 8 - 1) / 8;
 
-                switch ((r - l)  & 0x07)
-                {
-                case 0:
-                    while (p != e)
-                    {
+                switch ((r - l)  & 0x07) {
+                  case 0:
+                    while (p != e) {
                     if (*p++) break;
-                case 7:
+                  case 7:
                     if (*p++) break;
-                case 6:
+                  case 6:
                     if (*p++) break;
-                case 5:
+                  case 5:
                     if (*p++) break;
-                case 4:
+                  case 4:
                     if (*p++) break;
-                case 3:
+                  case 3:
                     if (*p++) break;
-                case 2:
+                  case 2:
                     if (*p++) break;
-                case 1:
+                  case 1:
                     if (*p++) break;
                     }
                     break;
                 }
                 p--; /* correct p */
                 ham_assert(p < e, (0));
-                if (!p[0])
-                {
+                if (!p[0]) {
                     /* we struck end of loop without a hit!
                     report our failure to find a free slot */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
 
@@ -2513,11 +2572,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
 
-                for (r = 0;; r++)
-                {
+                for (r = 0;; r++) {
                     ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
-                    if (p[0] & (1 << r))
-                    {
+                    if (p[0] & (1 << r)) {
                         l += r; /* lowest (last) okay probe location */
                         break;
                     }
@@ -2526,11 +2583,10 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 ham_assert(bm_l <= l, (0));
                 ham_assert(size_bits == 1, (0));
                 /* found a slot! */
-                db_update_freelist_stats(device, env, entry, f, l, hints);
+                freelist_stats_update(this, entry, f, l, hints);
                 return l;
             }
-            else
-            {
+            else {
                 /*
                  * big skipsize; the same thing once more, but now
                  * without Duff, but that speed gain is compensated
@@ -2551,14 +2607,13 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 for (; !*p && p < e; p += step)
                     ;
-                if (p >= e)
-                {
+                if (p >= e) {
                     /*
                      * we struck end of loop without a hit!
                      *
                      * report our failure to find a free slot
                      */
-                    db_update_freelist_stats_fail(device, env, entry, f, hints);
+                    freelist_stats_fail(this, entry, f, hints);
                     return (-1);
                 }
 
@@ -2570,11 +2625,9 @@ __freel_search_bits_ex(Device *device, Environment *env,
 
                 ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
 
-                for (r = 0;; r++)
-                {
+                for (r = 0;; r++) {
                     ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
-                    if (p[0] & (1 << r))
-                    {
+                    if (p[0] & (1 << r)) {
                         l += r; /* lowest (last) okay probe location */
                         break;
                     }
@@ -2583,7 +2636,7 @@ __freel_search_bits_ex(Device *device, Environment *env,
                 ham_assert(bm_l <= l, (0));
                 ham_assert(size_bits == 1, (0));
                 /* found a slot! */
-                db_update_freelist_stats(device, env, entry, f, l, hints);
+                freelist_stats_update(this, entry, f, l, hints);
                 return l;
             }
             // should never get here
@@ -2591,182 +2644,19 @@ __freel_search_bits_ex(Device *device, Environment *env,
     }
 }
 
-static ham_status_t
-__freel_alloc_page32(Page **page_ref, Device *device, Environment *env,
-                freelist_cache_t *cache, freelist_entry_t *entry)
+ham_s32_t
+Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
+                freelist_global_hints_t *hints, ham_s32_t start_index)
 {
-    ham_size_t i;
-    freelist_entry_t *entries=freel_cache_get_entries(cache);
-    Page *page=0;
-    freelist_payload_t *fp;
-    ham_size_t size_bits = __freel_get_freelist_entry_maxspan(device, env, cache);
-
-    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0,
-            ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
-             "due to the scan algorithm"));
-
-    *page_ref = 0;
-
-    /*
-     * it's not enough just to allocate the page - we have to make sure
-     * that the freelist pages build a linked list; therefore we
-     * might have to allocate more than just one page...
-     *
-     * we can skip the first element - it's the root page and always exists
-     */
-    for (i=1; ; i++)
-    {
-        ham_assert(i < freel_cache_get_count(cache), (0));
-
-        if (!freel_entry_get_page_id(&entries[i]))
-        {
-            ham_status_t st;
-            Page *prev_page = 0;
-
-            /*
-             * load the previous page and the payload object;
-             * make the page dirty.
-
-             There's an interesting thing here about db_fetch_page() and
-             db_alloc_page() in relation to this code being invoked by
-             env_reserve_space():
-
-             when such is done BEFORE, i.e. WITHOUT having a live page
-             cache, then this routine will fail in a very NONOBVIOUS
-             manner on Win32 platforms at least:
-
-             no page cache means that db_fetch_page() and db_alloc_page()
-             are not 'aware' of each other and here it means they will
-             then independently alloc a page struct for the same page:
-             db_alloc_page() will create the first one on the first round
-             through this loop, attach the persisted mmap view of one(1)
-             disc page to it and set a few key persisted values.
-
-             Then, on the next round through this loop (and env_reserve_space()
-             will most probably result in many rounds here, if any at all),
-             it's the 'prev_page' db_fetch_page() alloc-ing ANOTHER page
-             struct for the same page: previous round's 'page' is identical
-             to this rounds 'prev_page'.
-
-             The dual alloc of a page struct isn't what we worry about, it's
-             the fact that Win32 at least does something truely wicked
-             alongside: being asked twice to provide a mmap area view to a
-             certain disc page N, both invocations will have the OS produce
-             two DIFFERENT view addresses. Which, to no surprise, will contain
-             different content: the db_fetch_page() produced mmap view to
-             the page does NOT contain the edits performed on said page in
-             the previous round.
-
-             That is issue #1 when we don't have a live page cache to take care
-             of it all; the second issue is that those page views are never
-             flushed to disc, because there's nobody around who actually
-             FLUSHES those 'dirty' pages, when there's no page cache around.
-
-             Lastly, but completely independently, there's the issue of a TINY
-             cache and/or arbitrary cache ageing algorithms: assuming the
-             cache will flush 'prev_page' from the cache when 'page' is
-             created (which can happen under certain ageing schemes where
-             previously fetched pages receive 'future' timestamps so as to make
-             them appear younger then they really are, most often done to
-             prolong the life expectancy of certain pages in a cache), then
-             'fp' will point to Nirvana by the time the overflow address
-             gets updated further below.
-
-             The solution for that little conundrum is to temporarily 'lock'
-             prev_page into the cache, which is done simply by bumping up
-             it's reference count, bumping down again once the update has been
-             done and there is no further need for anything related to
-             'prev_page'.
-
-             The former issue has a simple answer too: demand a live page
-             cache. Which is done, at least in debug builds, by the assert
-             at the top of this function's body.
-             */
-            if (i==1) {
-                fp=env->get_freelist();
-                __env_set_dirty(env);
-            }
-            else {
-                st=env_fetch_page(&prev_page, env,
-                        freel_entry_get_page_id(&entries[i-1]), 0);
-                if (st)
-                    return (st);
-                __page_set_dirty(prev_page);
-                fp=page_get_freelist(prev_page);
-            }
-
-            /*
-             * allocate a new page, fixed the linked list
-             */
-            st=env_alloc_page(&page, env, Page::TYPE_FREELIST,
-                    PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
-            if (!page)
-            {
-                ham_assert(st != 0, (0));
-                return st;
-            }
-            ham_assert(st == 0, (0));
-
-            freel_set_overflow(fp, page->get_self());
-            /* done editing /previous/ freelist page */
-
-            fp=page_get_freelist(page);
-            freel_set_start_address(fp,
-                    freel_entry_get_start_address(&entries[i]));
-            freel_set_max_bits32(fp, (ham_u32_t)(size_bits));
-            __page_set_dirty(page);
-            ham_assert(freel_entry_get_max_bits(&entries[i])==
-                    freel_get_max_bits32(fp), (0));
-            freel_entry_set_page_id(&entries[i], page->get_self());
-
-            ham_assert(cache->_init_perf_data, (0));
-            st = cache->_init_perf_data(cache, device, env, &entries[i], fp);
-            if (st) {
-                return st;
-            }
-        }
-
-        if (&entries[i]==entry)
-        {
-            *page_ref = page;
-            return HAM_SUCCESS;
-        }
-    }
-}
-
-
-/**
- * Report if the requested size can be obtained from the given freelist
- * page.
- *
- * Always make use of the collected statistics, but act upon it in
- * different ways, depending on our current 'mgt_mode' setting.
- *
- * Note: the answer is an ESTIMATE, _not_ a guarantee.
- *
- * Return the first cache entry index from now (start_index) where you
- * have a chance of finding a free slot.
- *
- * Note: the initial round with have start_index == -1 incoming.
- *
- * Return -1 to signal there's no chance at all.
- */
-static ham_s32_t
-__freel_locate_sufficient_free_space(freelist_hints_t *dst,
-        freelist_global_hints_t *hints,
-        Device *device, Environment *env, freelist_cache_t *cache,
-        ham_s32_t start_index)
-{
-    freelist_entry_t *entry;
+    FreelistEntry *entry;
 
     if (hints->max_rounds == 0
-        || freel_cache_get_count(cache) <
-                hints->start_entry + hints->page_span_width) {
+          || get_count() < hints->start_entry + hints->page_span_width) {
         /* it's the end of the road for this one */
         return -1;
     }
 
-    ham_assert(hints->max_rounds <= freel_cache_get_count(cache), (0));
+    ham_assert(hints->max_rounds <= get_count(), (0));
 
     for (;; hints->max_rounds--) {
         if (hints->max_rounds == 0) {
@@ -2798,13 +2688,11 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                  * the free space available in the current DB file,
                  * before we go off and require the DB file to be expanded.
                  */
-                if (start_index == -1)
-                {
+                if (start_index == -1) {
                     /* first round: position ourselves at the end of the list: */
-                    start_index = freel_cache_get_count(cache) - hints->page_span_width;
+                    start_index = get_count() - hints->page_span_width;
                 }
-                else
-                {
+                else {
                     start_index -= hints->skip_init_offset;
                     /* only apply the init_offset at the first increment
                      * cycle to break repetitiveness */
@@ -2823,7 +2711,8 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                          * list will ever get in this millenium ;-) */
                         start_index += 295075153;
                     }
-                    start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
+                    start_index %= (get_count() - hints->start_entry 
+                            - hints->page_span_width + 1);
                     start_index += hints->start_entry;
                 }
             }
@@ -2849,16 +2738,14 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * convervative style of SEQUENTIAL above, as it will scan
              * freelist pages in reverse order.
              */
-            if (hints->skip_init_offset)
-            {
+            if (hints->skip_init_offset) {
                 start_index += hints->skip_init_offset;
                 ham_assert(start_index >= 0, (0));
                 /* only apply the init_offset at the first increment
                  * cycle to break repetitiveness */
                 hints->skip_init_offset = 0;
             }
-            else
-            {
+            else {
                 start_index += hints->skip_step;
                 ham_assert(start_index >= 0, (0));
             }
@@ -2869,16 +2756,16 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * the 'start_index' limit are resolved in an (overly) simple
              * way:
              */
-            start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
+            start_index %= (get_count() - hints->start_entry
+                    - hints->page_span_width + 1);
             start_index += hints->start_entry;
         }
 
-        ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
+        ham_assert(start_index < (ham_s32_t)get_count(), (0));
         ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
-        entry = freel_cache_get_entries(cache) + start_index;
+        entry = &m_entries[start_index];
 
-        ham_assert(freel_entry_get_allocated_bits(entry)
-                        <= freel_entry_get_max_bits(entry), (0));
+        ham_assert(entry->allocated_bits <= entry->max_bits, (0));
 
         /*
          * the regular check: no way if there's not enough in there, lump sum
@@ -2918,10 +2805,8 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * free freelist entry per 'huge blob' --> fill
              * ratio = (1+.0000000001)/2 > 50%
              */
-            if (freel_entry_get_allocated_bits(entry)
-                    != freel_entry_get_max_bits(entry)) {
+            if (entry->allocated_bits != entry->max_bits)
                 continue;
-            }
         }
         else {
             /*
@@ -2929,9 +2814,8 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * boundary, i.e. must fit in the current freelist entry page
              * in their entirety.
              */
-            if (freel_entry_get_allocated_bits(entry) < hints->size_bits) {
+            if (entry->allocated_bits < hints->size_bits)
                 continue;
-            }
         }
 
         /*
@@ -2968,13 +2852,11 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
          * from there...
          */
         dst->startpos = 0;
-        if (freel_entry_get_start_address(entry) < hints->lower_bound_address) {
-            ham_assert(HAM_MAX_U32 >= ((hints->lower_bound_address
-                - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE), (0));
+        if (entry->start_address < hints->lower_bound_address) {
             dst->startpos = (ham_u32_t)((hints->lower_bound_address
-                - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE);
+                - entry->start_address) / DB_CHUNKSIZE);
         }
-        dst->endpos = freel_entry_get_max_bits(entry);
+        dst->endpos = entry->max_bits;
         dst->skip_distance = hints->size_bits;
         dst->mgt_mode = hints->mgt_mode;
         dst->aligned = hints->aligned;
@@ -2996,12 +2878,10 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
             dst->aligned = HAM_TRUE;
         }
         else {
-            db_get_freelist_entry_hints(dst, device, env, entry);
-
-            if (dst->startpos + dst->size_bits > dst->endpos) {
+            freelist_get_entry_hints(this, entry, dst);
+            if (dst->startpos + dst->size_bits > dst->endpos)
                 /* forget it: not enough space in there anyway! */
                 continue;
-            }
         }
 
         /* we've done all we could to pick a good freelist page; now
@@ -3015,983 +2895,345 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
 #if defined(HAM_DEBUG)
     ham_assert(start_index >= 0, (0));
-    ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
+    ham_assert(start_index < (ham_s32_t)get_count(), (0));
     ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
-    entry = freel_cache_get_entries(cache) + start_index;
+    entry = &m_entries[start_index];
     ham_assert(hints->page_span_width <= 1
-                ? freel_entry_get_allocated_bits(entry) >= hints->size_bits
-                : HAM_TRUE, (0));
+                ? entry->allocated_bits >= hints->size_bits
+                : true, (0));
     ham_assert(hints->page_span_width > 1
-                ? freel_entry_get_allocated_bits(entry)
-                        == freel_entry_get_max_bits(entry)
-                : HAM_TRUE, (0));
+                ? entry->allocated_bits == entry->max_bits
+                : true, (0));
 #endif
 
     return start_index;
 }
 
-
 ham_status_t
-__freel_alloc_area32(ham_offset_t *addr_ref, Device *device,
-                Environment *env, Database *db, ham_size_t size,
-                ham_bool_t aligned, ham_offset_t lower_bound_address)
-{
-    ham_status_t st;
-    ham_s32_t i;
-    freelist_entry_t *entry = NULL;
-    freelist_payload_t *fp = NULL;
-    freelist_cache_t *cache=device->get_freelist_cache();
-    Page *page=0;
-    ham_s32_t s=-1;
-    ham_u16_t mgt_mode = db ? db->get_data_access_mode() : 0;
-    freelist_global_hints_t global_hints =
-    {
-        0,
-        1,
-        0,
-        freel_cache_get_count(cache),
-        mgt_mode,
-        0, /* span_width will be set by the hinter */
-        aligned,
-        lower_bound_address,
-        size/DB_CHUNKSIZE,
-        __freel_get_freelist_entry_maxspan(device, env, cache)
-    };
-    freelist_hints_t hints = {0};
-
-    ham_assert(addr_ref != 0, (0));
-    *addr_ref = 0;
-
-    db_get_global_freelist_hints(&global_hints, device, env);
-
-    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device->get_freelist_cache(), (0));
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-
-    ham_assert(global_hints.page_span_width >= 1, (0));
-    /*
-     * __freel_locate_sufficient_free_space() is used to calculate the
-     * next freelist entry page to probe; as a side-effect it also
-     * delivers the hints for this entry - no use calculating those a
-     * second time for use in __freel_search_bits_ex() -- faster to pass
-     * them along.
-     */
-    for (i = -1;
-        0 <= (i = __freel_locate_sufficient_free_space(&hints,
-                            &global_hints, device, env, cache, i));
-        )
-    {
-        ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
-
-        entry = freel_cache_get_entries(cache) + i;
-            
-        /*
-         * when we look for a free slot for a multipage spanning blob
-         * ('huge blob'), we could, of course, play nice, and check every
-         * bit of freelist, but that takes time.
-         *
-         * The faster approach employed here is to look for a sufficiently
-         * large sequence of /completely free/ freelist pages; the worst
-         * case space utilization of this speedup is >50% as the worst case
-         * is looking for a chunk of space as large as one freelist page
-         * (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the second
-         * freelist page will not be checked against a subsequent huge size
-         * request as it is not 'completely free' any longer, thus effectively
-         * occupying 2 freelist page spans where 1 (and a bit) would have
-         * sufficed, resulting in a worst case space utilization of a little
-         * more than 50%.
-         *
-         * I can live with that.
-         */
-        if (global_hints.page_span_width > 1) {
-            /*
-             * we must employ a different freelist alloc system for requests
-             * spanning multiple freelist pages as the regular
-             * __freel_search_bits_ex() is not able to cope with such
-             * requests.
-             *
-             * hamsterdb versions prior to 1.1.0 would simply call that
-             * function and fail every time, resulting in a behaviour where
-             * 'huge blobs' could be added or overwritten in the database,
-             * but erased huge blobs' space would never be re-used for
-             * subsequently inserted 'huge blobs', thus resulting in an ever
-             * growing database file when hamsterdb would be subjected to a
-             * insert+erase use pattern for huge blobs.
-             *
-             * Note that the multipage spanning search employs a Boyer-Moore
-             * search mechanism, which is (at least partly) built into the
-             * __freel_locate_sufficient_free_space() function;
-             * all that's left for us here is to scan _backwards_ conform
-             * BM to see if we have a sufficiently large sequence of
-             * completely freed freelist entries.
-             */
-            ham_size_t pagecount_sought = hints.page_span_width;
-            ham_size_t start_idx;
-            ham_size_t end_idx;
-            ham_size_t available = freel_entry_get_allocated_bits(entry);
-
-            ham_assert(freel_entry_get_allocated_bits(entry)
-                        <= freel_entry_get_max_bits(entry), (0));
-            if (i < (ham_s32_t)hints.page_span_width)
-                return HAM_SUCCESS;
-            ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
-            /*
-             * entry points at a freelist entry in the possible sequence, scan
-             * back and forth to discover our actual sequence length. Scan
-             * back first, then forward when we need a tail.
-             */
-            for (start_idx = 0; ++start_idx < pagecount_sought; ) {
-                ham_assert(i >= (ham_s32_t)start_idx, (0));
-                ham_assert(i - start_idx >= global_hints.start_entry, (0));
-                if (freel_entry_get_allocated_bits(entry - start_idx)
-                        != freel_entry_get_max_bits(entry - start_idx)) {
-                    break;
-                }
-                available += freel_entry_get_allocated_bits(entry - start_idx);
-            }
-            start_idx--;
-
-            /*
-             * now see if we need (and have) a sufficiently large tail;
-             * we can't simply say
-             *
-             *      pagecount_sought -= start_idx;
-             *
-             * because our very first freelist entry in the sequence may have
-             * less maxbits than the others (as it may be the header page!)
-             * so we need to properly calculate the number of freelist
-             * entries that we need more:
-             */
-            ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1
-                            >= available, (0));
-            pagecount_sought = hints.size_bits - available;
-            /* round up: */
-            pagecount_sought += hints.freelist_pagesize_bits - 1;
-            pagecount_sought /= hints.freelist_pagesize_bits;
-            for (end_idx = 1;
-                    end_idx < pagecount_sought
-                    && i + end_idx < freel_cache_get_count(cache)
-                    && (freel_entry_get_allocated_bits(entry + end_idx)
-                        != freel_entry_get_max_bits(entry + end_idx));
-                    end_idx++) {
-                available += freel_entry_get_allocated_bits(entry + end_idx);
-            }
-            end_idx--;
-
-            /*
-             * we can move i forward to the first non-suitable entry and
-             * BM-skip from there, HOWEVER, we have two BM modes in here
-             * really: one that scans forward (DAM:RANDOM_ACCESS)
-             * and one that scans backwards (DAM:SEQUENTIAL) and moving 'i'
-             * _up_ would harm the latter.
-             *
-             * The way out of this is to add end_idx+1 as a skip_offset
-             * instead and let __freel_locate_sufficient_free_space()
-             * handle it from there.
-             */
-            global_hints.skip_init_offset = end_idx + 1;
-
-            if (available < hints.size_bits) {
-                /* register the NO HIT */
-                db_update_freelist_globalhints_no_hit(device, env, entry, &hints);
-            }
-            else {
-                ham_size_t len;
-                ham_offset_t addr = 0;
-
-                /* we have a hit! */
-                i -= start_idx;
-                end_idx += start_idx;
-                
-                start_idx = 0;
-                for (len = hints.size_bits; len > 0; i++, start_idx++) {
-                    ham_size_t fl;
-
-                    ham_assert(i < (ham_s32_t)freel_cache_get_count(cache),(0));
-
-                    entry = freel_cache_get_entries(cache) + i;
-                    if (i == 0) {
-                        page = 0;
-                        fp = env->get_freelist();
-                    }
-                    else {
-                        st = env_fetch_page(&page, env,
-                                     freel_entry_get_page_id(entry), 0);
-                        if (st)
-                            return (st);
-                        fp=page_get_freelist(page);
-                    }
-                    ham_assert(freel_entry_get_allocated_bits(entry)
-                                == freel_entry_get_max_bits(entry), (0));
-                    ham_assert(freel_get_allocated_bits32(fp)
-                                == freel_get_max_bits32(fp), (0));
-
-                    if (start_idx == 0) {
-                        addr = freel_get_start_address(fp);
-                    }
-
-                    if (len >= freel_entry_get_allocated_bits(entry)) {
-                        fl = freel_entry_get_allocated_bits(entry);
-                    }
-                    else {
-                        fl = len;
-                    }
-                    __freel_set_bits(device, env, entry, fp,
-                              HAM_FALSE, 0, fl, HAM_FALSE, &hints);
-                    freel_set_allocated_bits32(fp,
-                              (ham_u32_t)(freel_get_allocated_bits32(fp) - fl));
-                    freel_entry_set_allocated_bits(entry,
-                              freel_get_allocated_bits32(fp));
-                    len -= fl;
-
-                    if (page)
-                        __page_set_dirty(page);
-                    else
-                        __env_set_dirty(env);
-                }
-
-                ham_assert(addr != 0, (0));
-                *addr_ref = addr;
-                return HAM_SUCCESS;
-            }
-        }
-        else
-        {
-            /*
-             * and this is the 'regular' free slot search, where we are
-             * looking for sizes which fit into a single freelist entry page
-             * in their entirety.
-             *
-             * Here we take the shortcut of not looking for edge solutions
-             * spanning two freelist entries (start in one, last few chunks
-             * in the next); this optimization costs little in space
-             * utilization losses and gains us a lot in execution speed.
-             * This particular optimization was already present in pre-v1.1.0
-             * hamsterdb, BTW.
-             */
-            ham_assert(freel_entry_get_allocated_bits(entry)
-                        >= size/DB_CHUNKSIZE, (0));
-            ham_assert(hints.startpos + hints.size_bits
-                        <= hints.endpos, (0));
-
-            /*
-             * yes, load the payload structure
-             */
-            if (i == 0) {
-                fp = env->get_freelist();
-            }
-            else {
-                st = env_fetch_page(&page, env,
-                            freel_entry_get_page_id(entry), 0);
-                if (st)
-                    return (st);
-                fp=page_get_freelist(page);
-            }
-
-            /*
-             * now try to allocate from this payload
-             */
-            s = __freel_search_bits_ex(device, env, entry, fp,
-                            size/DB_CHUNKSIZE, &hints);
-            if (s != -1)
-            {
-                __freel_set_bits(device, env, entry, fp, HAM_FALSE,
-                            s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
-                if (page)
-                    __page_set_dirty(page);
-                else
-                    __env_set_dirty(env);
-                break;
-            }
-            else
-            {
-                /* register the NO HIT */
-                db_update_freelist_globalhints_no_hit(device, env, entry, &hints);
-            }
-        }
-    }
-
-    ham_assert(s != -1 ? fp != NULL : 1, (0));
-
-    if (s != -1)
-    {
-        freel_set_allocated_bits32(fp,
-                (ham_u32_t)(freel_get_allocated_bits32(fp)-size/DB_CHUNKSIZE));
-        freel_entry_set_allocated_bits(entry,
-                freel_get_allocated_bits32(fp));
-
-        *addr_ref = (freel_get_start_address(fp)+(s*DB_CHUNKSIZE));
-        return HAM_SUCCESS;
-    }
-
-    *addr_ref = 0;
-    return HAM_SUCCESS;
-}
-
-ham_status_t
-__freel_lazy_create32(freelist_cache_t *cache, Device *device,
-                Environment *env)
+Freelist::initialize()
 {
     ham_status_t st;
     ham_size_t size;
-    ham_size_t entry_pos;
-    freelist_entry_t *entry;
-    freelist_payload_t *fp=env->get_freelist();
+    FreelistEntry entry={0};
+    FreelistPayload *fp=m_env->get_freelist_payload();
     
-    ham_assert(device->get_freelist_cache() == 0, (0));
-    ham_assert(cache != 0, (0));
-    ham_assert(!freel_cache_get_entries(cache), (0));
+    ham_assert(m_entries.empty(), (""));
 
-    entry=(freelist_entry_t *)env->get_allocator()->calloc(sizeof(*entry)*1);
-    if (!entry)
-        return HAM_OUT_OF_MEMORY;
-
-    /*
-     * add the header page to the freelist
-     */
-    freel_entry_set_start_address(&entry[0], env->get_pagesize());
-    size = env->get_usable_pagesize();
-    size -= SIZEOF_FULL_HEADER(env);
-    size -= db_get_freelist_header_size32();
+    /* add the header page to the freelist */
+    entry.start_address = m_env->get_pagesize();
+    size = m_env->get_usable_pagesize();
+    size -= SIZEOF_FULL_HEADER(m_env);
+    size -= db_get_freelist_header_size();
     size -= size % sizeof(ham_u64_t);
 
-    ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist entry bitarray == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-    freel_entry_set_max_bits(&entry[0], (ham_u32_t)(size*8));
+    ham_assert((size % sizeof(ham_u64_t)) == 0, (""));
+    entry.max_bits = (ham_u32_t)(size*8);
+    entry.allocated_bits = freel_get_allocated_bits(fp);
 
-    /*
-     * initialize the header page, if we have read/write access
-     */
-    if (!(env->get_flags()&HAM_READ_ONLY))
-    {
-        freel_set_start_address(fp, env->get_pagesize());
-        ham_assert((size*8 % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-        freel_set_max_bits32(fp, (ham_u32_t)(size*8));
+    /* initialize the header page, if we have read/write access */
+    if (!(m_env->get_flags()&HAM_READ_ONLY)) {
+        freel_set_start_address(fp, m_env->get_pagesize());
+        ham_assert((size*8 % sizeof(ham_u64_t)) == 0, (""));
+        freel_set_max_bits(fp, (ham_u32_t)(size*8));
     }
 
-    ham_assert(cache->_init_perf_data, (0));
-    st = cache->_init_perf_data(cache, device, env, entry, fp);
-    if (st) {
-        return st;
-    }
+    init_perf_data(&entry, fp);
 
-    freel_cache_set_count(cache, 1);
-    freel_cache_set_entries(cache, entry);
-       
-    ham_assert(device, (0));
-    device->set_freelist_cache(cache);
-    ham_assert(device->get_freelist_cache() != 0, (0));
+    m_entries.push_back(entry);
 
-    /*
-     * now load all other freelist pages
-     */
-    for (entry_pos = 1;; entry_pos++)
-    {
+    /* now load all other freelist pages */
+    while (freel_get_overflow(fp)) {
         Page *page;
-        if (!freel_get_overflow(fp))
-            break;
 
-        st=__freel_cache_resize(device, env, cache, freel_cache_get_count(cache)+1);
+        st=resize(m_entries.size()+1);
         if (st)
             return st;
 
-        st=env_fetch_page(&page, env, freel_get_overflow(fp), 0);
+        st=env_fetch_page(&page, m_env, freel_get_overflow(fp), 0);
         if (st)
             return (st);
 
         fp=page_get_freelist(page);
-        ham_assert(entry_pos<freel_cache_get_count(cache), (0));
-        entry=freel_cache_get_entries(cache)+entry_pos;
-        ham_assert(freel_entry_get_start_address(entry) == freel_get_start_address(fp), (0));
-        freel_entry_set_allocated_bits(entry, freel_get_allocated_bits32(fp));
-        freel_entry_set_page_id(entry, page->get_self());
+        FreelistEntry *pentry=&m_entries[m_entries.size()-1];
+        ham_assert(pentry->start_address == freel_get_start_address(fp), (0));
+        pentry->allocated_bits = freel_get_allocated_bits(fp);
+        pentry->page_id = page->get_self();
 
-        ham_assert(cache->_init_perf_data, (0));
-        st = cache->_init_perf_data(cache, device, env, entry, fp);
-        if (st) {
-            return st;
-        }
+        init_perf_data(pentry, fp);
     }
 
     return (0);
-}
-
-ham_status_t
-__freel_destructor32(Device *device, Environment *env)
-{
-    freelist_cache_t *cache;
-    freelist_entry_t *entries;
-
-    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device->get_freelist_cache(), (0));
-
-    cache=device->get_freelist_cache();
-    ham_assert(cache, (0));
-
-    entries = freel_cache_get_entries(cache);
-    if (entries)
-        env->get_allocator()->free(entries);
-
-    memset(cache, 0, sizeof(*cache));
-
-    return (0);
-}
-
-
-ham_status_t
-__freel_mark_free32(Device *device, Environment *env, Database *db,
-                ham_offset_t address, ham_size_t size, ham_bool_t overwrite)
-{
-    ham_status_t st;
-    Page *page=0;
-    freelist_cache_t *cache;
-    freelist_entry_t *entry;
-    freelist_payload_t *fp;
-    ham_size_t s;
-    freelist_hints_t hints =
-    {
-    0,
-    0,
-    0,
-    db ? db->get_data_access_mode() : 0, /* mgt_mode */
-    HAM_FALSE,
-    0,
-    0,
-    0,
-    0,
-    0
-    };
-
-    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device->get_freelist_cache(), (0));
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-    ham_assert(address%DB_CHUNKSIZE==0, (0));
-
-    cache = device->get_freelist_cache();
-    ham_assert(cache, (0));
-
-    /*
-     * split the chunk if it doesn't fit in one freelist page
-     */
-    while (size)
-    {
-        /*
-         * get the cache entry of this address
-         */
-        st=__freel_cache_get_entry(&entry, device, env, cache, address);
-        /* [i_a] old code had a subtle out-of-mem crash failure which would not be caught as the error was not checked before 'entry' was used */
-        ham_assert(st ? entry == NULL : entry != NULL, (0));
-        if (st)
-            return st;
-
-        /*
-         * allocate a page if necessary
-         */
-        if (!freel_entry_get_page_id(entry)) {
-            if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
-                fp=env->get_freelist();
-                ham_assert(freel_get_start_address(fp) != 0, (0));
-            }
-            else {
-                st=__freel_alloc_page32(&page, device, env, cache, entry);
-                if (st)
-                    return (st);
-                fp=page_get_freelist(page);
-                ham_assert(freel_get_start_address(fp) != 0, (0));
-            }
-        }
-        /*
-         * otherwise just fetch the page from the cache or the disk
-         */
-        else {
-            st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
-            if (st)
-                return (st);
-            fp=page_get_freelist(page);
-            ham_assert(freel_get_start_address(fp) != 0, (0));
-        }
-
-        ham_assert(address>=freel_get_start_address(fp), (0));
-
-        /*
-         * set the bits and update the values in the cache and
-         * the fp
-         */
-        s = __freel_set_bits(device, env, entry, fp, overwrite,
-                (ham_size_t)(address-freel_get_start_address(fp))
-                        / DB_CHUNKSIZE,
-                size/DB_CHUNKSIZE,
-                HAM_TRUE, &hints);
-
-        freel_set_allocated_bits32(fp,
-                (ham_u32_t)(freel_get_allocated_bits32(fp)+s));
-        freel_entry_set_allocated_bits(entry,
-                freel_get_allocated_bits32(fp));
-
-        if (page)
-            __page_set_dirty(page);
-        else
-            __env_set_dirty(env);
-
-        size -= s * DB_CHUNKSIZE;
-        address += s * DB_CHUNKSIZE;
-    }
-
-    return HAM_SUCCESS;
-}
-
-
-ham_status_t
-__freel_check_area_is_allocated32(Device *device, Environment *env, ham_offset_t address, ham_size_t size)
-{
-    ham_status_t st;
-    Page *page=0;
-    freelist_cache_t *cache;
-    freelist_entry_t *entry;
-    freelist_payload_t *fp;
-    ham_size_t s;
-
-    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-    ham_assert(address%DB_CHUNKSIZE==0, (0));
-
-    cache = device->get_freelist_cache();
-    ham_assert(cache, (0));
-
-    /*
-    * split the chunk if it doesn't fit in one freelist page
-    */
-    while (size)
-    {
-        /*
-        * get the cache entry of this address
-        */
-        st=__freel_cache_get_entry(&entry, device, env, cache, address);
-        /* [i_a] old code had a subtle out-of-mem crash failure which would not be caught as the error was not checked before 'entry' was used */
-        ham_assert(st ? entry == NULL : entry != NULL, (0));
-        if (st)
-            return st;
-
-        /*
-        * allocate a page if necessary
-        */
-        if (!freel_entry_get_page_id(entry)) {
-            if (freel_entry_get_start_address(entry)==env->get_pagesize()) {
-                fp=env->get_freelist();
-                ham_assert(freel_get_start_address(fp) != 0, (0));
-            }
-            else {
-                st=__freel_alloc_page32(&page, device, env, cache, entry);
-                if (st)
-                    return (st);
-                fp=page_get_freelist(page);
-                ham_assert(freel_get_start_address(fp) != 0, (0));
-            }
-        }
-        /*
-        * otherwise just fetch the page from the cache or the disk
-        */
-        else {
-            st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
-            if (st)
-                return (st);
-            fp=page_get_freelist(page);
-            ham_assert(freel_get_start_address(fp) != 0, (0));
-        }
-
-        ham_assert(address>=freel_get_start_address(fp), (0));
-
-        /*
-        * check the bits
-        */
-        s=size;
-        size-=s;
-        address+=s;
-    }
-
-    return HAM_SUCCESS;
 }
 
 /**
- * setup / initialize the proper performance data for this freelist
- * page.
- *
- * Yes, this data will (very probably) be lost once the page has been
- * removed from the in-memory cache, unless the currently active
- * freelist algorithm persists this data to disc.
+ * Produce the @ref FreelistEntry record which stores the freelist bit 
+ * for the specified @a address.
  */
 ham_status_t
-__freel_init_perf_data32(freelist_cache_t *cache, Device *device, Environment *env,
-        freelist_entry_t *entry, freelist_payload_t *fp)
+Freelist::get_entry(FreelistEntry **entry_ref, ham_offset_t address)
 {
-    freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
+    ham_size_t i=0;
+    ham_status_t st=0;
+    
+    ham_assert(entry_ref != NULL, (0));
+    for (;;) {
+        ham_size_t add;
+        ham_size_t single_size_bits;
 
-    /* we can assume all freelist FP data has been zeroed before we came
-     * in here */
+        for (; i < m_entries.size(); i++) {
+            FreelistEntry *entry=&m_entries[i];
+    
+            ham_assert(address >= entry->start_address, (""));
 
-    if (fp && entrystats->persisted_bits == 0)
-    {
-        ham_status_t st;
-        ham_offset_t filesize;
-        Device *device;
+            if (address >= entry->start_address
+                    && address < entry->start_address +
+                            entry->max_bits * DB_CHUNKSIZE) {
+                *entry_ref = entry;
+                return (0);
+            }
+        }
 
         /*
-         * now comes the hard part: when we don't have overflow, we
-         * know the ACTUAL end is in here somewhere, but definitely not
-         * at _max_bits.
-         *
-         * So we take the fastest road towards establishing the end: we
-         * request the file size and calculate how many chunks that
-         * would be and consequently how many chunks are in this
-         * [section of the] freelist.
+         * not found? resize the table; we can guestimate where
+         * 'address' is going to land within the freelist...
          */
-        device = env->get_device();
-        ham_assert(device, (0));
-        st = device->get_filesize(&filesize);
-        if (st)
-            return st;
+        ham_assert(i == m_entries.size(), (0));
+        add = (ham_size_t)(address - m_entries[i - 1].start_address
+                            - m_entries[i - 1].max_bits);
+        add += DB_CHUNKSIZE - 1;
+        add /= DB_CHUNKSIZE;
 
-        ham_assert(filesize > 0, (0));
-        if (filesize > fp->_start_address)
-        {
-            filesize -= fp->_start_address;
-            filesize /= DB_CHUNKSIZE;
-            if (filesize > fp->_s._s32._max_bits) {
-                /* can happen when something (blob/test) causes an
-                 * allocation of multiple pages at once */
-                filesize = fp->_s._s32._max_bits;
-            }
+        single_size_bits=get_entry_maxspan();
+        ham_assert(((single_size_bits/8) % sizeof(ham_u64_t)) == 0,
+                ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
+                 "due to the scan algorithm"));
+
+        add += single_size_bits - 1;
+        add /= single_size_bits;
+        ham_assert(add >= 1, (0));
+        st=resize(i + add);
+        if (st) {
+            *entry_ref = 0;
+            return (st);
         }
-        else
-        {
-            /* overflow */
-            filesize = 0;
-        }
-
-        entrystats->persisted_bits = (ham_u32_t)filesize;
+        ham_assert(i<m_entries.size(), (0));
     }
-
-    return HAM_SUCCESS;
 }
-                                                                    
-/* ------------------------------------------------ */
 
-static ham_status_t
-__freel_constructor(Device *device, Environment *env, Database *db)
+/**
+ * @return the maximum number of chunks a freelist page entry can span;
+ * all freelist entry pages (except the first, as it has to share the
+ * db page with a (largish) database header) have this span, which is
+ * a little less than
+ *
+ * <pre>
+ * DB_CHUNKSIZE * env->get_pagesize()
+ * </pre>
+ */
+ham_size_t
+Freelist::get_entry_maxspan()
 {
-    ham_status_t st;
-    freelist_cache_t *cache;
-    
-    ham_assert(device->get_freelist_cache()==0, (0));
+    ham_size_t size=m_env->get_usable_pagesize()-db_get_freelist_header_size();
+    ham_assert((size % sizeof(ham_u64_t)) == 0, (""));
+    size -= size % sizeof(ham_u64_t);
 
-    ham_assert(env->get_header_page(), (0));
-    ham_assert(env->get_header(), (0));
-    //ham_assert(env_get_data_access_mode(env) == 0, (0));
-
-    st = freel_constructor_prepare32(&cache, device, env);
-    ham_assert(cache ? !st : 1, (0));
-    ham_assert(cache ? 1 : st, (0));
-
-    if (cache)
-    {
-        //cache = device_get_freelist_cache(device);
-        ham_assert(cache, (0));
-        ham_assert(cache->_constructor != 0, (0));
-        st = cache->_constructor(cache, device, env);
-    }
-
-    ham_assert(st ? 1 : device->get_freelist_cache()!=0, (0));
-    ham_assert(st ? 1 : device->get_freelist_cache()->_alloc_area != 0, (0));
-
-    return (st);
+    /* the multiplication is very important for pre-v1.1.0 databases as those 
+     * have an integer overflow issue right here. */
+    return (ham_size_t)(size*8);
 }
 
 ham_status_t
-freel_constructor_prepare32(freelist_cache_t **cache_ref, Device *device,
-                Environment *env)
+Freelist::resize(ham_size_t new_count)
 {
-    //ham_status_t st;
-    freelist_cache_t *cache;
-    
-    ham_assert(device->get_freelist_cache()==0, (0));
+    ham_size_t i;
+    ham_size_t size_bits = get_entry_maxspan();
+    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0,
+            ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
+             "due to the scan algorithm"));
 
-    *cache_ref = 0;
+    ham_assert(new_count > m_entries.size(), (0));
 
-    cache = (freelist_cache_t *)env->get_allocator()->calloc(sizeof(*cache));
-    if (!cache)
-        return (HAM_OUT_OF_MEMORY);
+    for (i=m_entries.size(); i<new_count; i++) {
+        FreelistEntry entry={0};
 
-    ham_assert(env->get_header_page(), (0));
-    ham_assert(env->get_header(), (0));
-    //ham_assert(env_get_data_access_mode(env) == 0, (0));
+        FreelistEntry *prev=&m_entries[m_entries.size()-1];
 
-    cache->_constructor = __freel_lazy_create32;
-    cache->_destructor = __freel_destructor32;
-    cache->_flush_stats = __freel_flush_stats32;
-    cache->_alloc_area = __freel_alloc_area32;
-    cache->_mark_free = __freel_mark_free32;
-    cache->_check_area_is_allocated = __freel_check_area_is_allocated32;
-    cache->_init_perf_data = __freel_init_perf_data32;
+        entry.start_address = prev->start_address
+                    + prev->max_bits * DB_CHUNKSIZE;
+        entry.max_bits = (ham_u32_t)(size_bits);
 
-    //st = cache->_constructor(cache, device, env, env_get_data_access_mode(env));
-    //
-    //ham_assert(st ? 1 : device->get_freelist_cache()!=0, (0));
-    //ham_assert(st ? 1 : device->get_freelist_cache()->_alloc_area != 0, (0));
-    //
-    //return (st);
+        init_perf_data(&entry, 0);
 
-    *cache_ref = cache;
-    return HAM_SUCCESS;
-}
-
-ham_status_t
-freel_shutdown(Environment *env)
-{
-    freelist_cache_t *cache;
-    Device *device;
-    ham_status_t st;
-
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
-        return (0);
-
-    /*
-     * if there's no device then most likely we're closing an Environment
-     * which was not fully initialized - that's ok, no need to return
-     * an error
-     */
-    device=env->get_device();
-    if (!device)
-        return (0);
-
-    cache=device->get_freelist_cache();
-    if (!cache)
-        return (0);
-
-    ham_assert(cache->_flush_stats, (0));
-    st = cache->_flush_stats(device, env);
-
-    ham_assert(cache->_destructor, (0));
-    st = cache->_destructor(device, env);
-
-    env->get_allocator()->free(cache);
-    if (env)
-        device->set_freelist_cache(0);
-    else
-        device->set_freelist_cache(0);
-
-    return (st);
-}
-
-ham_status_t
-freel_mark_free(Environment *env, Database *db, ham_offset_t address,
-                ham_size_t size, ham_bool_t overwrite)
-{
-    freelist_cache_t *cache;
-    Device *device;
-    ham_status_t st;
-
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
-        return (0);
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-    ham_assert(address%DB_CHUNKSIZE==0, (0));
-
-    device = env->get_device();
-
-    if (!device->get_freelist_cache()) {
-        st = __freel_constructor(env->get_device(), env, db);
-        if (st)
-            return st;
+        m_entries.push_back(entry);
     }
-    cache=device->get_freelist_cache();
-
-    ham_assert(cache, (0));
-    ham_assert(cache->_mark_free, (0));
-    st = cache->_mark_free(device, env, db, address, size, overwrite);
-
-    return (st);
-}
-
-ham_status_t
-freel_check_area_is_allocated(Environment *env, Database *db,
-                ham_offset_t address, ham_size_t size)
-{
-    freelist_cache_t *cache;
-    Device *device;
-    ham_status_t st;
-
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
-        return HAM_SUCCESS;
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-    ham_assert(address%DB_CHUNKSIZE==0, (0));
-
-    device=env->get_device();
-
-    if (!device->get_freelist_cache()) {
-        st = __freel_constructor(env->get_device(), env, db);
-        if (st)
-            return st;
-    }
-    cache=device->get_freelist_cache();
-
-    ham_assert(cache, (0));
-    ham_assert(cache->_check_area_is_allocated, (0));
-    st = cache->_check_area_is_allocated(device, env, address, size);
-
-    return st;
-}
-
-ham_status_t
-freel_alloc_area(ham_offset_t *addr_ref, Environment *env, Database *db,
-                ham_size_t size)
-{
-    return freel_alloc_area_ex(addr_ref, env, db, size, HAM_FALSE, 0);
-}
-
-ham_status_t
-freel_alloc_area_ex(ham_offset_t *addr_ref, Environment *env, Database *db,
-                ham_size_t size, ham_bool_t aligned,
-                ham_offset_t lower_bound_address)
-{
-    freelist_cache_t *cache;
-    Device *device;
-
-    ham_assert(addr_ref != 0, (0));
-    *addr_ref = 0;
-
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
-    {
-        return HAM_SUCCESS;
-    }
-
-    device=env->get_device();
-
-    if (!device->get_freelist_cache())
-    {
-        ham_status_t st = __freel_constructor(env->get_device(), env, db);
-        if (st)
-        {
-            return st;
-        }
-    }
-    cache=device->get_freelist_cache();
-
-    ham_assert(cache, (0));
-    ham_assert(cache->_alloc_area, (0));
-    return cache->_alloc_area(addr_ref, env->get_device(), env, db,
-                size, aligned, lower_bound_address);
-}
-
-ham_status_t
-freel_alloc_page(ham_offset_t *addr_ref, Environment *env, Database *db)
-{
-    ham_status_t st;
-    freelist_cache_t *cache;
-    Device *device;
-
-    *addr_ref = 0;
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
-        return HAM_SUCCESS;
-
-    device=env->get_device();
-
-    if (!device->get_freelist_cache()) {
-        ham_status_t st = __freel_constructor(env->get_device(), env, db);
-        if (st)
-            return st;
-    }
-    cache=device->get_freelist_cache();
-
-    ham_assert(cache, (0));
-    ham_assert(cache->_alloc_area, (0));
-    st = cache->_alloc_area(addr_ref, env->get_device(), env, db,
-                env->get_pagesize(), HAM_TRUE, 0);
-    return st;
-}
-
-#define DUMMY_LSN  1
-
-ham_status_t
-__freel_flush_stats32(Device *device, Environment *env)
-{
-    ham_status_t st;
-
-    ham_assert(!(env->get_flags()&HAM_IN_MEMORY_DB), (0));
-    ham_assert(device->get_freelist_cache(), (0));
-
-    /*
-     * do not update the statistics in a READ ONLY database!
-     */
-    if (!(env->get_flags() & HAM_READ_ONLY)) {
-        freelist_cache_t *cache;
-        freelist_entry_t *entries;
-
-        cache=device->get_freelist_cache();
-        ham_assert(cache, (0));
-
-        entries = freel_cache_get_entries(cache);
-
-        if (entries && freel_cache_get_count(cache) > 0) {
-            /*
-             * only persist the statistics when we're using a v1.1.0+ format DB 
-             *
-             * if freelist_v2 is used, the file is always 1.1.+ format.
-             */
-            ham_size_t i;
-            
-            for (i = freel_cache_get_count(cache); i-- > 0; ) {
-                freelist_entry_t *entry = entries + i;
-
-                if (freel_entry_statistics_is_dirty(entry)) {
-                    freelist_payload_t *fp;
-                    freelist_page_statistics_t *pers_stats;
-
-                    if (!freel_entry_get_page_id(entry)) {
-                        /* header page */
-                        fp = env->get_freelist();
-                        env->set_dirty(true);
-                    }
-                    else {
-                        /*
-                         * otherwise just fetch the page from the cache or the 
-                         * disk
-                         */
-                        Page *page;
-                        
-                        st = env_fetch_page(&page, env,
-                                freel_entry_get_page_id(entry), 0);
-                        if (st)
-                            return (st);
-                        fp = page_get_freelist(page);
-                        ham_assert(freel_get_start_address(fp) != 0, (0));
-                        page->set_dirty(true);
-                    }
-
-                    ham_assert(fp->_s._s32._zero == 0, (0));
-
-                    pers_stats = freel_get_statistics32(fp);
-
-                    ham_assert(sizeof(*pers_stats) == 
-                            sizeof(*freel_entry_get_statistics(entry)), (0));
-                    memcpy(pers_stats, freel_entry_get_statistics(entry), 
-                            sizeof(*pers_stats));
-
-                    /* and we're done persisting/flushing this entry */
-                    freel_entry_statistics_reset_dirty(entry);
-                }
-            }
-        }
-    }
-
-    if (env->get_flags()&HAM_ENABLE_RECOVERY)
-        return (env->get_changeset().flush(DUMMY_LSN));
-
-    env->get_changeset().clear();
 
     return (0);
 }
 
+ham_status_t
+Freelist::alloc_page(Page **page_ref, FreelistEntry *entry)
+{
+    ham_size_t i;
+    FreelistEntry *entries=&m_entries[0];
+    Page *page=0;
+    FreelistPayload *fp;
+    ham_size_t size_bits=get_entry_maxspan();
+
+    ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0,
+            ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) "
+             "due to the scan algorithm"));
+
+    *page_ref = 0;
+
+    if (m_entries.empty()) {
+        ham_status_t st=initialize();
+        if (st)
+            return (st);
+    }
+
+    /*
+     * it's not enough just to allocate the page - we have to make sure
+     * that the freelist pages build a linked list; therefore we
+     * might have to allocate more than just one page...
+     *
+     * we can skip the first element - it's the root page and always exists
+     */
+    for (i=1; ; i++) {
+        ham_assert(i < m_entries.size(), (0));
+
+        if (!entries[i].page_id) {
+            ham_status_t st;
+            Page *prev_page = 0;
+
+            /*
+             * load the previous page and the payload object;
+             * make the page dirty.
+             */
+            if (i==1) {
+                fp=m_env->get_freelist_payload();
+                __env_set_dirty(m_env);
+            }
+            else {
+                st=env_fetch_page(&prev_page, m_env, entries[i-1].page_id, 0);
+                if (st)
+                    return (st);
+                __page_set_dirty(prev_page);
+                fp=page_get_freelist(prev_page);
+            }
+
+            /* allocate a new page, fixed the linked list */
+            st=env_alloc_page(&page, m_env, Page::TYPE_FREELIST,
+                    PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+            if (!page) {
+                ham_assert(st != 0, (0));
+                return st;
+            }
+            ham_assert(st == 0, (0));
+
+            freel_set_overflow(fp, page->get_self());
+            /* done editing /previous/ freelist page */
+
+            fp=page_get_freelist(page);
+            freel_set_start_address(fp, m_entries[i].start_address);
+            freel_set_max_bits(fp, (ham_u32_t)(size_bits));
+            __page_set_dirty(page);
+            ham_assert(entries[i].max_bits == freel_get_max_bits(fp), (0));
+            m_entries[i].page_id = page->get_self();
+
+            init_perf_data(&m_entries[i], fp);
+        }
+
+        if (&entries[i]==entry) {
+            *page_ref = page;
+            return (0);
+        }
+    }
+}
+
+ham_size_t
+Freelist::set_bits(FreelistEntry *entry, FreelistPayload *fp,
+            bool overwrite, ham_size_t start_bit, ham_size_t size_bits,
+            bool set, freelist_hints_t *hints)
+{
+    ham_size_t i;
+    ham_u8_t *p=freel_get_bitmap(fp);
+
+    ham_size_t qw_offset = start_bit & (64 - 1);
+    ham_size_t qw_start = (start_bit + 64 - 1) >> 6;     /* ROUNDUP(S DIV 64) */
+    ham_size_t qw_end;
+
+    ham_assert(start_bit<freel_get_max_bits(fp), (0));
+
+    if (start_bit+size_bits>freel_get_max_bits(fp))
+        size_bits=freel_get_max_bits(fp)-start_bit;
+
+    qw_end = (start_bit + size_bits) >> 6;    /* one past the last full QWORD */
+
+    freelist_stats_edit(this, entry, fp, start_bit, size_bits, set, hints);
+
+    if (set) {
+        if (qw_end <= qw_start) {
+            for (i=0; i<size_bits; i++, start_bit++)
+                p[start_bit>>3] |= 1 << (start_bit&(8-1));
+        }
+        else {
+            ham_size_t n = size_bits;
+            ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap(fp);
+            p64 += qw_start;
+            
+            if (qw_offset) {
+                p = (ham_u8_t *)&p64[-1];
+
+                for (i = qw_offset; i < 64; i++)
+                    p[i>>3] |= 1 << (i&(8-1));
+                
+                n -= 64 - qw_offset;
+            }
+
+            qw_end -= qw_start;
+            for (i = 0; i < qw_end; i++)
+                p64[i] = 0xFFFFFFFFFFFFFFFFULL;
+
+            p = (ham_u8_t *)&p64[qw_end];
+
+            n -= qw_end << 6;
+
+            for (i = 0; i < n; i++)
+                p[i>>3] |= 1 << (i&(8-1));
+        }
+    }
+    else {
+        if (qw_end <= qw_start) {
+            for (i=0; i<size_bits; i++, start_bit++)
+                p[start_bit>>3] &= ~(1 << (start_bit&(8-1)));
+        }
+        else {
+            ham_size_t n = size_bits;
+            ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap(fp);
+            p64 += qw_start;
+
+            if (qw_offset) {
+                p = (ham_u8_t *)&p64[-1];
+
+                for (i = qw_offset; i < 64; i++)
+                    p[i>>3] &= ~(1 << (i&(8-1)));
+
+                n -= 64 - qw_offset;
+            }
+
+            qw_end -= qw_start;
+            for (i = 0; i < qw_end; i++)
+                p64[i] = 0;
+
+            p = (ham_u8_t *)&p64[qw_end];
+
+            n -= qw_end << 6;
+
+            for (i = 0; i < n; i++)
+                p[i>>3] &= ~(1 << (i&(8-1)));
+        }
+    }
+
+    return (size_bits);
+}
 

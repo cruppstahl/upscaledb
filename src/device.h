@@ -339,7 +339,7 @@ class Device {
   public:
     /** constructor */
     Device(Environment *env, ham_u32_t flags) 
-      : m_env(env), m_flags(flags), m_freelist_cache(0) { 
+      : m_env(env), m_flags(flags) { 
         if (flags&HAM_IN_MEMORY_DB)
             m_impl=new DeviceImplInMemory(this);
         else
@@ -499,20 +499,6 @@ class Device {
         return (m_impl->get_pagesize());
     }
 
-    /** set the freelist cache */
-    /** TODO should this move to the Env? */
-    void set_freelist_cache(freelist_cache_t *cache) {
-        ScopedLock lock(m_mutex);
-        m_freelist_cache=cache;
-    }
-
-    /** get the freelist cache */
-    /** TODO should this move to the Env? */
-    freelist_cache_t *get_freelist_cache() {
-        ScopedLock lock(m_mutex);
-        return (m_freelist_cache);
-    }
-
   protected:
     friend class DeviceImplDisk;
     friend class DeviceImplInMemory;
@@ -528,9 +514,6 @@ class Device {
 
     /** the device flags */
     ham_u32_t m_flags;
-
-    /** the freelist cache is managed by the device */
-    freelist_cache_t *m_freelist_cache;
 };
 
 

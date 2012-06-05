@@ -561,9 +561,10 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
     ham_assert(0==(flags&~(PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO)), (0));
 
     /* first, we ask the freelist for a page */
-    if (!(flags&PAGE_IGNORE_FREELIST)) {
-        st=freel_alloc_page(&tellpos, env, db);
-        ham_assert(st ? !tellpos : 1, (0));
+    if (!(flags&PAGE_IGNORE_FREELIST) && env->get_freelist()) {
+        st=env->get_freelist()->alloc_page(&tellpos, db);
+        if (st)
+            return (st);
         if (tellpos) {
             ham_assert(tellpos%env->get_pagesize()==0,
                     ("page id %llu is not aligned", tellpos));
@@ -580,8 +581,6 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
             }
             goto done;
         }
-        else if (st)
-            return (st);
     }
 
     if (!page) {

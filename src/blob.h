@@ -263,7 +263,7 @@ blob_duplicate_get(Environment *env, ham_offset_t table_id,
  */
 extern ham_status_t 
 blob_duplicate_get_table(Environment *env, ham_offset_t table_id, 
-                    dupe_table_t **ptable, ham_bool_t *needs_free);
+                    dupe_table_t **ptable, bool *needs_free);
 
 
 #endif /* HAM_BLOB_H__ */

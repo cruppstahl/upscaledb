@@ -266,7 +266,6 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-        //ham_assert(device_get_freelist_cache(dev), (0));
 #endif
 
         globalstats->query_count++;
@@ -288,7 +287,6 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-        //ham_assert(device_get_freelist_cache(dev), (0));
 #endif
 
         globalstats->insert_query_count++;
@@ -310,7 +308,6 @@ db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-        //ham_assert(device_get_freelist_cache(dev), (0));
 #endif
 
         globalstats->erase_query_count++;
@@ -1288,7 +1285,7 @@ ham_status_t
 btree_stats_fill_ham_statistics_t(Environment *env, Database *db, 
                     ham_statistics_t *dst)
 {
-    ham_status_t st;
+    ham_status_t st = 0;
     ham_bool_t collect_globdata;
     ham_bool_t collect_dbdata;
 
@@ -1302,8 +1299,7 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     memset(dst, 0, sizeof(*dst));
 
     /* then see if we can / should collect env/global and db-specific stats in there */
-    if (collect_globdata)
-    {
+    if (collect_globdata) {
         ham_runtime_statistics_globdata_t *globalstats;
 
         ham_assert(env, (0));
@@ -1312,8 +1308,7 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
 
         dst->global_stats = *globalstats;
     }
-    if (collect_dbdata)
-    {
+    if (collect_dbdata) {
         ham_runtime_statistics_dbdata_t *dbdata;
 
         ham_assert(db, (0));
@@ -1326,7 +1321,8 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     dst->dont_collect_freelist_stats = !0;
 
     /* now the tougher part: see if we should report the freelist statistics */
-    st = stats_fill_freel_statistics_t(env, dst);
+    if (env->get_freelist())
+        st = freelist_fill_statistics_t(env->get_freelist(), dst);
 
     /* and finally mark which sections have actually been fetched */
     dst->dont_collect_global_stats = !collect_globdata;
@@ -1334,5 +1330,4 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     
     return st;
 }
-
 

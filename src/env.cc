@@ -47,8 +47,9 @@ typedef struct free_cb_context_t
 Environment::Environment()
   : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
-    m_journal(0), m_flags(0), m_databases(0), m_pagesize(0), m_cachesize(0),
-    m_max_databases_cached(0), m_is_active(false), m_file_filters(0)
+    m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
+    m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
+    m_file_filters(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -116,10 +117,10 @@ Environment::get_indexdata_ptr(int i)
     return (dbi+i);
 }
 
-freelist_payload_t *
-Environment::get_freelist()
+FreelistPayload *
+Environment::get_freelist_payload()
 {
-    return ((freelist_payload_t *)(get_header_page()->get_payload()+
+    return ((FreelistPayload *)(get_header_page()->get_payload()+
                         SIZEOF_FULL_HEADER(this)));
 }
 
@@ -217,9 +218,13 @@ _local_fun_create(Environment *env, const char *filename,
         page->set_dirty(true);
     }
 
-    /*
-     * create a logfile and a journal (if requested)
-     */
+    /* create the freelist */
+    if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
+        Freelist *f=new Freelist(env);
+        env->set_freelist(f);
+    }
+
+    /* create a logfile and a journal (if requested) */
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
         Log *log=new Log(env);
         st=log->create();
@@ -494,6 +499,13 @@ fail_with_fake_cleansing:
      */
     env->set_cache(new Cache(env, env->get_cachesize()));
 
+    /* create the freelist */
+    if (!(env->get_flags()&HAM_IN_MEMORY_DB)
+            && !(env->get_flags()&HAM_READ_ONLY)) {
+        Freelist *f=new Freelist(env);
+        env->set_freelist(f);
+    }
+
     /*
      * open the logfile and check if we need recovery. first open the 
      * (physical) log and re-apply it. afterwards to the same with the
@@ -686,6 +698,12 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     Device *device;
     ham_file_filter_t *file_head;
 
+    /* flush the freelist */
+    if (env->get_freelist()) {
+        delete env->get_freelist();
+        env->set_freelist(0);
+    }
+
     /*
      * if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk
@@ -697,15 +715,6 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             && (!(env->get_flags()&HAM_READ_ONLY))) {
         st=env->get_header_page()->flush();
         if (!st2) st2 = st;
-    }
-
-    /*
-     * flush the freelist
-     */
-    st=freel_shutdown(env);
-    if (st) {
-        if (st2 == 0) 
-            st2 = st;
     }
 
     device=env->get_device();

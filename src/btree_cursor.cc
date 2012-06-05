@@ -887,7 +887,7 @@ btree_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
 
 ham_status_t
 btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
-                ham_bool_t *needs_free)
+                bool *needs_free)
 {
     ham_status_t st;
     Page *page;

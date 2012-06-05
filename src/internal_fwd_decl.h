@@ -64,11 +64,8 @@ typedef struct extkey_t extkey_t;
 
 class ExtKeyCache;
 
-struct freelist_entry_t;
-typedef struct freelist_entry_t freelist_entry_t;
-
-struct freelist_cache_t;
-typedef struct freelist_cache_t freelist_cache_t;
+class Freelist;
+struct FreelistEntry;
 
 struct freelist_hints_t;
 typedef struct freelist_hints_t freelist_hints_t;
@@ -91,8 +88,7 @@ typedef struct erase_hints_t erase_hints_t;
 
 #include "packstart.h"
 
-struct freelist_payload_t;
-typedef struct freelist_payload_t freelist_payload_t;
+struct FreelistPayload;
 
 #include "packstop.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,38 +25,34 @@
 #include "packstart.h"
 
 /**
-We keep track of VERY first free slot index + free slot index 
-pointing at last (~ supposed largest) free range + 'utilization' of the
-range between FIRST and LAST as a ratio of number of free slots in
-there vs. total number of slots in that range (giving us a 'fill'
-ratio) + a fragmentation indication, determined by counting the number
-of freelist slot searches that FAILed vs. SUCCEEDed within the
-first..last range, when the search begun at the 'first' position
-(a FAIL here meaning the freelist scan did not deliver a free slot
-WITHIN the first..last range, i.e. it has scanned this entire range
-without finding anything suitably large).
-
-Note that the free_fill in here is AN ESTIMATE.
+ * We keep track of VERY first free slot index + free slot index 
+ * pointing at last (~ supposed largest) free range + 'utilization' of the
+ * range between FIRST and LAST as a ratio of number of free slots in
+ * there vs. total number of slots in that range (giving us a 'fill'
+ * ratio) + a fragmentation indication, determined by counting the number
+ * of freelist slot searches that FAILed vs. SUCCEEDed within the
+ * first..last range, when the search begun at the 'first' position
+ * (a FAIL here meaning the freelist scan did not deliver a free slot
+ * WITHIN the first..last range, i.e. it has scanned this entire range
+ * without finding anything suitably large).
+ *
+ * Note that the free_fill in here is AN ESTIMATE.
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 freelist_slotsize_stats_t 
 {
-	ham_u32_t first_start;
-	/* reserved: */
-	ham_u32_t free_fill;
-	ham_u32_t epic_fail_midrange;
-	ham_u32_t epic_win_midrange;
+    ham_u32_t first_start;
+    /* reserved: */
+    ham_u32_t free_fill;
+    ham_u32_t epic_fail_midrange;
+    ham_u32_t epic_win_midrange;
 
-	/**
-	 * number of scans per size range
-	 */
-	ham_u32_t scan_count;
-	ham_u32_t ok_scan_count;
-	
-    /**
-     * summed cost ('duration') of all scans per size range.
-     */
-	ham_u32_t scan_cost;
-	ham_u32_t ok_scan_cost;
+    /** number of scans per size range */
+    ham_u32_t scan_count;
+    ham_u32_t ok_scan_count;
+    
+    /** summed cost ('duration') of all scans per size range.  */
+    ham_u32_t scan_cost;
+    ham_u32_t ok_scan_cost;
 
 } HAM_PACK_2 freelist_slotsize_stats_t;
 
@@ -76,18 +72,18 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_slotsize_stats_t
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
 {
-	/**
-	k-way statistics store which stores requested space slot size related data.
-
-	The data is stored in @ref HAM_FREELIST_SLOT_SPREAD different buckets
-	which partition the statistical info across the entire space request range
-	by using a logarithmic partitioning function.
-
-	That way, very accurate, independent statistics can be stores for both 
-	small, medium and large sized space requests, so that the freelist hinter
-	can deliver a high quality search hint for various requests.
-	*/
-	freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD]; 
+    /**
+     * k-way statistics which stores requested space slot size related data.
+     *
+     * The data is stored in @ref HAM_FREELIST_SLOT_SPREAD different buckets
+     * which partition the statistical info across the entire space request
+     * range by using a logarithmic partitioning function.
+     *
+     * That way, very accurate, independent statistics can be stores for both 
+     * small, medium and large sized space requests, so that the freelist hinter
+     * can deliver a high quality search hint for various requests.
+     */
+    freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD]; 
 
     /**
      * (bit) offset which tells us which free slot is the EVER LAST
@@ -98,7 +94,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
      *
      * 0: special case, meaning: not yet initialized...
      */
-	ham_u32_t last_start;
+    ham_u32_t last_start;
 
     /**
      * total number of available bits in the page ~ all the chunks which
@@ -110,59 +106,62 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
      * The number of chunks already in use in the database therefore ~
      * persisted_bits - _allocated_bits.
      */
-	ham_u32_t persisted_bits;
+    ham_u32_t persisted_bits;
 
     /**
      * count the number of insert operations where this freelist page
      * played a role
      */
-	ham_u32_t insert_count;
+    ham_u32_t insert_count;
     /**
      * count the number of delete operations where this freelist page
      * played a role
      */
-	ham_u32_t delete_count;
+    ham_u32_t delete_count;
     /**
-     * count the number of times the freelist size was adjusted as new storage space
-	 * was added to the database.
-	 *
-	 * This can occur in two situations: either when a new page is allocated and
-	 * a part of it is marked as 'free' as it is not used up in its entirety, or
-	 * when a page is released (freed) which was previously allocated without involvement
-	 * of the freelist manager (this can happen when new HUGE BOBs are inserted, then
-	 * erased again).
+     * count the number of times the freelist size was adjusted as new storage 
+     * space was added to the database.
+     *
+     * This can occur in two situations: either when a new page is allocated and
+     * a part of it is marked as 'free' as it is not used up in its entirety, or
+     * when a page is released (freed) which was previously allocated 
+     * without involvement of the freelist manager (this can happen when new 
+     * HUGE BOBs are inserted, then erased again).
      */
-	ham_u32_t extend_count;
+    ham_u32_t extend_count;
+
     /**
-     * count the number of times a freelist free space search (alloc operation) failed
-	 * to find any suitably large free space in this freelist page.
+     * count the number of times a freelist free space search (alloc
+     * operation) failed to find any suitably large free space in this
+     * freelist page.
      */
-	ham_u32_t fail_count;
+    ham_u32_t fail_count;
+
     /**
      * count the number of find operations where this freelist page
      * played a role
      */
-	ham_u32_t search_count;
+    ham_u32_t search_count;
 
-	/**
-	Tracks the ascent of the various statistical counters in here in order to prevent 
-	integer overflow.
-
-	This is accomplished by tracking the summed hinting costs over time in this variable
-	and when that number surpasses a predetermined 'high water mark', all statistics
-	counters are 'rescaled', which scales down all counters and related data so that new
-	data can be added again multiple times before the risk of integer overflow may occur
-	again.
-
-	The goal here is to balance usable statistical numerical data while assuring integer
-	overflows @e never happen for @e any of the statistics items.
-	*/
-	ham_u32_t rescale_monitor;
+    /**
+     * Tracks the ascent of the various statistical counters in here in order
+     * to prevent integer overflow.
+     *
+     * This is accomplished by tracking the summed hinting costs over time in
+     * this variable and when that number surpasses a predetermined 'high
+     * water mark', all statistics counters are 'rescaled', which scales
+     * down all counters and related data so that new data can be added again
+     * multiple times before the risk of integer overflow may occur again.
+     *
+     * The goal here is to balance usable statistical numerical data while
+     * assuring integer overflows @e never happen for @e any of the statistics
+     * items.
+     */
+    ham_u32_t rescale_monitor;
 
 } HAM_PACK_2 freelist_page_statistics_t;
 
 #include "packstop.h"
-
 
 
 /**
@@ -170,59 +169,58 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
  */
 struct runtime_statistics_pagedata_t
 {
-	freelist_page_statistics_t _persisted_stats;
+    freelist_page_statistics_t _persisted_stats;
 
-	ham_bool_t _dirty;
+    ham_bool_t _dirty;
 };
-
-
-
-
-
-
 
 
 struct freelist_hints_t
 {
-	/** [in/out] INCLUSIVE bound: where free slots start */
-	ham_u32_t startpos; 
-	/** [in/out] EXCLUSIVE bound: where free slots end */
-	ham_u32_t endpos;	
-	/** [in/out] suggested search/skip probe distance */
-	ham_u32_t skip_distance;
-	/** [in/out] suggested DAM mgt_mode for the remainder of this request */
-	ham_u16_t mgt_mode;
-	/** [input] whether or not we are looking for aligned storage */
-	ham_bool_t aligned;
-    /** [input] the lower bound address of the slot we're looking for. Usually zero(0). */
+    /** [in/out] INCLUSIVE bound: where free slots start */
+    ham_u32_t startpos; 
+
+    /** [in/out] EXCLUSIVE bound: where free slots end */
+    ham_u32_t endpos;    
+
+    /** [in/out] suggested search/skip probe distance */
+    ham_u32_t skip_distance;
+
+    /** [in/out] suggested DAM mgt_mode for the remainder of this request */
+    ham_u16_t mgt_mode;
+
+    /** [input] whether or not we are looking for aligned storage */
+    ham_bool_t aligned;
+
+    /** [input] the lower bound address of the slot we're looking for. Usually
+     * zero(0). */
     ham_offset_t lower_bound_address;
-	/** [input] the size of the slot we're looking for */
-	ham_size_t size_bits;
-	/** [input] the size of a freelist page (in chunks) */
-	ham_size_t freelist_pagesize_bits;
+
+    /** [input] the size of the slot we're looking for */
+    ham_size_t size_bits;
+
+    /** [input] the size of a freelist page (in chunks) */
+    ham_size_t freelist_pagesize_bits;
+
     /** 
-	[input] the number of (rounded up) pages we need to fulfill the request; 1 for
-			 'regular' (non-huge) requests. 
-			 
-			 Cannot be 0, as that is only correct for a zero-length request.
-	*/
+     * [input] the number of (rounded up) pages we need to fulfill the request;
+     * 1 for 'regular' (non-huge) requests. 
+     * Cannot be 0, as that is only correct for a zero-length request.
+     */
     ham_size_t page_span_width;
 
-	/** [feedback] cost tracking for our statistics */
-	ham_size_t cost; 
+    /** [feedback] cost tracking for our statistics */
+    ham_size_t cost; 
 };
 
 
 struct freelist_global_hints_t
 {
-    /**
-	[in/out] INCLUSIVE bound: at which freelist page entry to start
-             looking 
-	*/
+    /** INCLUSIVE bound: at which freelist page entry to start looking */
     ham_u32_t start_entry;
 
     /**
-	[in/out] how many entries to skip
+     * [in/out] how many entries to skip
      *
      * You'd expect this to be 1 all the time, but in some modes it is
      * expected that a 'semi-random' scan will yield better results;
@@ -239,86 +237,66 @@ struct freelist_global_hints_t
     ham_u32_t skip_init_offset;
 
     /**
-	[in/out] upper bound on number of rounds ~ entries to scan: when
-     to stop looking 
-	 */
+     * [in/out] upper bound on number of rounds ~ entries to scan: when
+     * to stop looking 
+     */
     ham_u32_t max_rounds;
 
-	/** [in/out] suggested DAM mgt_mode for the remainder of this request */
+    /** [in/out] suggested DAM mgt_mode for the remainder of this request */
     ham_u16_t mgt_mode;
 
     /** 
-	[output] whether or not we are looking for a chunk of storage 
-	         spanning multiple pages ('huge blobs'): lists the number 
-			 of (rounded up) pages we need to fulfill the request; 1 for
-			 'regular' (non-huge) requests. 
-			 
-			 Cannot be 0, as that is only correct for a zero-length request.
-	*/
+     * [output] whether or not we are looking for a chunk of storage 
+     * spanning multiple pages ('huge blobs'): lists the number 
+     * of (rounded up) pages we need to fulfill the request; 1 for
+     * 'regular' (non-huge) requests. 
+     * Cannot be 0, as that is only correct for a zero-length request.
+     */
     ham_size_t page_span_width;
 
     /** [input] whether or not we are looking for aligned storage */
     ham_bool_t aligned;
 
-    /** [input] the lower bound address of the slot we're looking for. Usually zero(0). */
+    /** [input] the lower bound address of the slot we're looking for.
+     * Usually zero(0). */
     ham_offset_t lower_bound_address;
 
     /** [input] the size of the slot we're looking for */
     ham_size_t size_bits;
 
-	/** [input] the size of a freelist page (in chunks) */
-	ham_size_t freelist_pagesize_bits;
+    /** [input] the size of a freelist page (in chunks) */
+    ham_size_t freelist_pagesize_bits;
 };
 
-
-
-
-
-
-
-
-
-
-
-
+struct FreelistEntry;
 
 extern void
-db_update_freelist_globalhints_no_hit(Device *dev, Environment *env, 
-					freelist_entry_t *entry, freelist_hints_t *hints);
-
-
+freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
+                freelist_hints_t *hints);
 
 extern void
-db_update_freelist_stats_edit(Device *dev, Environment *env, freelist_entry_t *entry, 
-					freelist_payload_t *f, 
-					ham_u32_t position, 
-					ham_size_t size_bits, 
-					ham_bool_t free_these, 
-					freelist_hints_t *hints);
+freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+                ham_u32_t position, ham_size_t size_bits, ham_bool_t free_these,
+                freelist_hints_t *hints);
 
 extern void
-db_update_freelist_stats_fail(Device *dev, Environment *env, freelist_entry_t *entry,
-					freelist_payload_t *f, 
-					freelist_hints_t *hints);
+freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f, 
+                freelist_hints_t *hints);
 
 extern void
-db_update_freelist_stats(Device *dev, Environment *env, freelist_entry_t *entry,
-					freelist_payload_t *f, 
-					ham_u32_t position, 
-					freelist_hints_t *hints);
+freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f, 
+                ham_u32_t position, freelist_hints_t *hints);
 
 extern void
-db_get_freelist_entry_hints(freelist_hints_t *dst, Device *dev, Environment *env, 
-						freelist_entry_t *entry);
+freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
+                freelist_hints_t *dst);
 
 extern void
-db_get_global_freelist_hints(freelist_global_hints_t *dst, Device *dev, Environment *env);
-
-
+freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst);
 
 
 extern ham_status_t
-stats_fill_freel_statistics_t(Environment *env, ham_statistics_t *dst);
+freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst);
 
 
 #endif /* HAM_FREELIST_H__ */

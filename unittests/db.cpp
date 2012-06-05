@@ -296,13 +296,13 @@ public:
         BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
         BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
-        BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 
+        BFC_ASSERT(compare_sizes(sizeof(FreelistPayload), 
                 16 + 13 + sizeof(freelist_page_statistics_t)));
         BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 
               4*8+sizeof(freelist_slotsize_stats_t)*HAM_FREELIST_SLOT_SPREAD));
         BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8*4));
         BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
-        BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 
+        BFC_ASSERT(compare_sizes(db_get_freelist_header_size(), 
                 16 + 12 + sizeof(freelist_page_statistics_t)));
         BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
         BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));

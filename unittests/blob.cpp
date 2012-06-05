@@ -275,8 +275,9 @@ public:
         /* make sure that at least 64bit are in the freelist */
         if (!m_inmemory) {
             ham_offset_t addr;
-            BFC_ASSERT_EQUAL(0, freel_alloc_area(&addr, 
-                            (Environment *)m_env, (Database *)m_db, 64));
+            Environment *e=(Environment *)m_env;
+            BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr, 
+                                        (Database *)m_db, 64));
             BFC_ASSERT(addr!=0);
         }
 
@@ -287,8 +288,9 @@ public:
         /* and now another 64bit should be in the freelist */
         if (!m_inmemory) {
             ham_offset_t addr;
-            BFC_ASSERT_EQUAL(0, freel_alloc_area(&addr, 
-                        (Environment *)m_env, (Database *)m_db, 64));
+            Environment *e=(Environment *)m_env;
+            BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr, 
+                                        (Database *)m_db, 64));
             BFC_ASSERT(addr!=0);
         }
     }

@@ -264,7 +264,7 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
  */
 extern ham_status_t
 btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
-                ham_bool_t *needs_free);
+                bool *needs_free);
 
 /**
  * retrieves the record size of the current record

@@ -346,6 +346,16 @@ class Environment
         m_journal=j;
     }
 
+    /** get the freelist */
+    Freelist *get_freelist() {
+        return (m_freelist);
+    }
+
+    /** set the freelist */
+    void set_freelist(Freelist *f) {
+        m_freelist=f;
+    }
+
     /** get the flags */
     ham_u32_t get_flags() {
         return (m_flags);
@@ -544,7 +554,7 @@ class Environment
     }
 
     /** get the freelist object of the database */
-    freelist_payload_t *get_freelist();
+    FreelistPayload *get_freelist_payload();
 
     /** set the logfile directory */
     void set_log_directory(const std::string &dir) {
@@ -600,6 +610,9 @@ class Environment
 
     /** the logical journal */
     Journal *m_journal;
+
+    /** the Freelist manages the free space in the file */
+    Freelist *m_freelist;
 
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */

@@ -82,14 +82,23 @@ x Mark reported an error after kill -9 (with Txn, 2.0.2)
     sudo pkill -9 lessfs
     sudo sh check.sh
 
-o support MS Visual Studio 2010
+o support MS Visual Studio 2010, send to Peter
+
+o is there a way to group all changeset flushes of a Transaction into one
+    changeset? that way we would avoid the frequent syncs
+    o would have to remove all of assert(changeset.is_empty())
+    o but we can use that assert prior to txn_begin
 
 o identify a set of 3 testfiles (long running) and let them run in different
     configurations; track the times. There should be few enough tests to be
     able to compare the times manually!
-
-
-
+    x collect all scripts, run them
+    x add to release process
+    x create perl script which compares the two latest revisions
+    x merge perftest.sh with perl script
+    x testfiles/4/300.tst is still too big
+    x --progress no longer works
+    o run it for 2.0.2
 
 
 
@@ -114,13 +123,25 @@ o more fine-grained locking
     x device
         x make sure it's perfectly abstracted
         x protect with mutex
-    o freelist
+    x freelist
         x remove HAM_DAM_ENFORCE_PRE110_FORMAT
         x remove legacy code (1.x)
         x remove freelist_v2.cc
-        o create c++ class
-        o freelist class takes ownership of freelist_cache (from device)
-        o protect with mutex
+        x freelist class takes ownership of freelist_cache (from device)
+        x what is the difference between alloc_area and alloc_area_ex??
+        x move call to lazy_create into class
+        x create c++ class
+        x rename lazy_create to "initialize"
+        x do not create a freelist when opening in read-only mode
+                or in-memory
+        x freelist functions do not need to check for in-memory!
+        x completely refactor/reformat the code
+        x get rid of static functions in freelist.cc
+        x freelist_entry_t -> Freelist::Entry
+        x freelist_payload_t -> Freelist::Payload
+        x also merge/refactor freelist_statistics.cc
+        x check with valgrind
+        x protect with mutex
     o backend
         o replace with C++ class and inheritance
         o BtreeBackend does not require to store in little/big-endian!
@@ -131,7 +152,7 @@ o more fine-grained locking
         o assert that the Database is locked
     o statistics
         o split into env/db/freelist
-        o remove unused code
+        o remove unused code - also from public interface?
         o protect env and freelist with mutex
         o in db: assert that the db is locked
     o db
@@ -161,6 +182,11 @@ o more fine-grained locking
             time
         o changeset::contains is not thread safe
             only used in Cache::purge
+    o blob manager
+    o introduce a buffer manager?
+        o i.e. holds the cache and manages the device
+        o i.e. for de-coupling freelist from env
+        o i.e. for de-coupling btree from db and env
 	o the pages are only used in the btree (with one exception: header
             page); should the cache therefore be limited to btree functions?
             then purge and other stuff can also move to the btree level and
@@ -180,25 +206,14 @@ o more fine-grained locking
     o make sure that the cache does not flush pages that are currently locked
         by any Transaction
 
+o is the recovery working if there's a crash during ham_close?
+
 o blob_allocate: remove writev when writing header and blob body
 
 o also remove locking from C# and Java APIs
 
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
-
-. look at ssb's clang output and try to integrate it into the build process
-
-. need a way to graphically display performance metrics
-    o output in a text file
-        version/configuration/test-id
-        each test is run in multiple threads
-            performance-metrics based on time(), not real duration
-            memory-metrics
-            disk size
-            same for berkeleydb
-    o skript that generates a static html page from this file, 
-        w/ graphs over the different versions
 
 o implementation of hamsterdb should move into a namespace; otherwise
     there are conflicts if users have a C++ class called Database or
@@ -211,12 +226,12 @@ o clean up the "close" functions
     o ~Environment: call close(), then simplify all code
     o Cursor::close: currently (nearly) empty; merge with ~Cursor and
         Database::close_cursor()
+    o do not have st2/st; just fail if there's a serious problem
 
 o python API - update and integrate
     o rewrite with boost::python??
     o also add to win32 package
 
-<<<<<<< Updated upstream
 o continue with c++-ification of db.h/db.cc
 
 o c++-ify the backend
@@ -224,8 +239,6 @@ o c++-ify the backend
     o BtreeBackend does not require to store in little/big-endian!
     o remove be_set_dirty, replace with be->_fun_flush()
     o btree has keydata1, keydata2 - why? better use DynamicArray?
-=======
->>>>>>> Stashed changes
 
 
 

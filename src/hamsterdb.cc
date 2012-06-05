@@ -934,7 +934,7 @@ default_case:
      */
     {
         ham_size_t l = pagesize - sizeof(env_header_t)
-                - db_get_freelist_header_size32() - 128;
+                - db_get_freelist_header_size() - 128;
 
         l /= sizeof(db_indexdata_t);
         if (dbs > l) {
@@ -1657,28 +1657,20 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         env->set_databases(0);
     }
 
-
-    /*
-     * flush all transactions
-     */
+    /* flush all transactions */
     st=env_flush_committed_txns(env);
     if (st)
         return (st);
     ham_assert(env->get_changeset().is_empty(), (""));
 
-    /*
-     * when all transactions have been properly closed... 
-     */
+    /* when all transactions have been properly closed... */
     if (env->is_active() && env->get_oldest_txn()) {
-        //st2 = HAM_TXN_STILL_OPEN;
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs", (0));
         return (HAM_INTERNAL_ERROR);
     }
 
-    /*
-     * close the environment
-     */
+    /* close the environment */
     st=env->_fun_close(env, flags);
     if (st)
         return (st);
