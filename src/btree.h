@@ -25,6 +25,7 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 #include "db.h"
+#include "util.h"
 
 /** a macro for getting the minimum number of keys */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
@@ -37,10 +38,7 @@ class BtreeBackend : public Backend
 {
   public:
     /** constructor; creates and initializes a new Backend */
-    BtreeBackend(Database *db, ham_u32_t flags=0) 
-      : Backend(db, flags), m_rootpage(0), m_maxkeys(0), m_keydata1(0),
-        m_keydata2(0) {
-    }
+    BtreeBackend(Database *db, ham_u32_t flags=0);
 
     virtual ~BtreeBackend() { }
 
@@ -51,10 +49,10 @@ class BtreeBackend : public Backend
     virtual ham_status_t open(ham_u32_t flags);
 
     /** close the backend */
-    virtual ham_status_t close();
+    virtual void close();
 
     /** flush the backend */
-    virtual ham_status_t flush();
+    virtual ham_status_t flush_indexdata();
 
     /** find a key in the index */
     virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
@@ -92,42 +90,32 @@ class BtreeBackend : public Backend
 
     /** get the address of the root node */
     ham_u64_t get_rootpage() {
-        return (ham_db2h_offset(m_rootpage));
+        return (m_rootpage);
     }
 
     /** set the address of the root node */
     void set_rootpage(ham_u64_t rp) {
-        m_rootpage=ham_h2db_offset(rp);
+        m_rootpage=rp;
     }
 
     /** get maximum number of keys per (internal) node */
     ham_u16_t get_maxkeys() {
-        return (ham_db2h16(m_maxkeys));
+        return (m_maxkeys);
     }
 
     /** set maximum number of keys per (internal) node */
-    void set_maxkeys(ham_u16_t s) {
-        m_maxkeys=ham_h2db16(s);
+    void set_maxkeys(ham_u16_t maxkeys) {
+        m_maxkeys=maxkeys; 
     }
 
     /** getter for keydata1 */
-    void *get_keydata1() {
-        return m_keydata1;
-    }
-
-    /** setter for keydata1 */
-    void set_keydata1(void *p) {
-        m_keydata1=p;
+    ByteArray *get_keyarena1() {
+        return &m_keydata1;
     }
 
     /** getter for keydata2 */
-    void *get_keydata2() {
-        return m_keydata2;
-    }
-
-    /** setter for keydata2 */
-    void set_keydata2(void *p) {
-        m_keydata2=p;
+    ByteArray *get_keyarena2() {
+        return &m_keydata2;
     }
 
   private:
@@ -141,8 +129,8 @@ class BtreeBackend : public Backend
      * two pointers for managing key data; these pointers are used to
      * avoid frequent mallocs in key_compare_pub_to_int() etc
      */
-    void *m_keydata1;
-    void *m_keydata2;
+    ByteArray m_keydata1;
+    ByteArray m_keydata2;
 };
 
 

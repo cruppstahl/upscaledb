@@ -1780,9 +1780,7 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
         if (!(flags&HAM_OVERWRITE)) {
             be->set_recno(recno);
-            be->set_dirty(true);
-            be->flush();
-            env->set_dirty(true);
+            be->flush_indexdata();
         }
     }
 
@@ -2144,9 +2142,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
         if (!(flags&HAM_OVERWRITE)) {
             be->set_recno(recno);
-            be->set_dirty(true);
-            be->flush();
-            env->set_dirty(true);
+            be->flush_indexdata();
         }
     }
 
@@ -2850,17 +2846,10 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         txn_free_optree(m_db->get_optree());
 
     /* close the backend */
-    if (be && be->is_active()) {
-        st=be->close();
-        if (st && st2==0)
-            st2=st;
-    }
-
     if (be) {
-        ham_assert(!be->is_active(), (0));
+        if (be->is_active())
+            be->close();
         delete be;
-        if (st2==0)
-            st2=st;
         m_db->set_backend(0);
     }
 

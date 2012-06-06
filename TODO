@@ -142,14 +142,15 @@ o more fine-grained locking
         x also merge/refactor freelist_statistics.cc
         x check with valgrind
         x protect with mutex
+        o store the last successful freelist page in the hinter of the database
     o backend
-        o replace with C++ class and inheritance
-        o BtreeBackend does not require to store in little/big-endian!
-            -- why not??
-        o remove be_set_dirty, replace with be->_fun_flush()
-        o btree has keydata1, keydata2 - why? better use DynamicArray?
+        x replace with C++ class and inheritance
+        x remove be_set_dirty, replace with be->_fun_flush()
+        x btree has keydata1, keydata2 - why? better use DynamicArray?
+        x BtreeBackend does not require to store in little/big-endian!
+        o btree.h declares many static functions - still used?
+        o include the functions in btree_insert.cc, btree_erase.cc etc
         o improve abstraction
-        o assert that the Database is locked
     o statistics
         o split into env/db/freelist
         o remove unused code - also from public interface?

@@ -377,9 +377,7 @@ __insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key,
          * root page to the changeset to make sure that the changes are logged
          */
         be->set_rootpage(newroot->get_self());
-        be->set_dirty(true);
-        env->set_dirty(true);
-        be->flush();
+        be->flush_indexdata();
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(env->get_header_page());
         root->set_type(Page::TYPE_B_INDEX);

@@ -409,8 +409,7 @@ __collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
     Environment *env;
 
     scratchpad->be->set_rootpage( newroot->get_self());
-    scratchpad->be->set_dirty(true);
-    scratchpad->be->flush();
+    scratchpad->be->flush_indexdata();
     ham_assert(newroot->get_db(), (0));
 
     env=newroot->get_db()->get_env();

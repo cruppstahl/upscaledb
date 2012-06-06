@@ -78,8 +78,7 @@ class Backend
 {
   public:
     Backend(Database *db, ham_u32_t flags)
-      : m_db(db), m_keysize(0), m_recno(0), m_is_dirty(false), 
-        m_is_active(false), m_flags(flags) {
+      : m_db(db), m_keysize(0), m_recno(0), m_is_active(false), m_flags(flags) {
     }
 
     /**
@@ -108,14 +107,13 @@ class Backend
      *
      * @remark this function is called before the file is closed
      */
-    virtual ham_status_t close() = 0;
+    virtual void close() = 0;
 
     /**
-     * flush the backend
-     *
-     * @remark this function is called during ham_flush
+     * flushes the backend's meta information to the index data;
+     * this does not flush the whole index!
      */
-    virtual ham_status_t flush() = 0;
+    virtual ham_status_t flush_indexdata() = 0;
 
     /**
      * find a key in the index
@@ -208,16 +206,6 @@ class Backend
         m_recno=recno;
     }
 
-    /** get the dirty-flag */
-    bool is_dirty() {
-        return m_is_dirty;
-    }
-
-    /** set the dirty-flag */
-    void set_dirty(bool b) {
-        m_is_dirty=b;
-    }
-
     /** check whether this backend is active */
     bool is_active() {
         return m_is_active;
@@ -237,9 +225,6 @@ class Backend
 
     /** the last used record number */
     ham_offset_t m_recno;
-
-    /** flag if this backend has to be written to disk */
-    bool m_is_dirty;
 
     /** flag if this backend has been fully initialized */
     bool m_is_active;

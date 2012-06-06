@@ -876,7 +876,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
 
         if (!be || !be->is_active())
             return HAM_NOT_INITIALIZED;
-        st=be->flush();
+        st = be->flush_indexdata();
         if (st)
             return st;
         db=db->get_next();
