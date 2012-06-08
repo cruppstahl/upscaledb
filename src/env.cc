@@ -1071,7 +1071,9 @@ _local_fun_create_db(Environment *env, Database *db,
 
 bail:
     /* if logging is enabled: flush the changeset and the header page */
-    if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
+    if (st==0
+            && env->get_flags()&HAM_ENABLE_RECOVERY
+            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         env->get_changeset().add_page(env->get_header_page());
         st=env_get_incremented_lsn(env, &lsn);

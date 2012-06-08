@@ -1,3 +1,7 @@
+Jun 8, 2012 - chris ---------------------------------------------------
+o fixed HAM_INTERNAL_ERROR when creating database with
+	HAM_ENABLE_RECOVERY but without HAM_ENABLE_TRANSACTIONS (thanks, Peter)
+
 Apr 23, 2012 - chris ---------------------------------------------------
 o configure.in now checking for pread and pwrite (for some reason the
 	previous test were missing)
