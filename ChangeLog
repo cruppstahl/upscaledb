@@ -1,4 +1,6 @@
 Jun 8, 2012 - chris ---------------------------------------------------
+o fixed linker error when libboost_thread-mt.lib is installed (instead of
+	libboost_thread.lib) (thanks, foxb)
 o issue #6: fixed compilation error in OSX Lion
 o fixed HAM_INTERNAL_ERROR when creating database with
 	HAM_ENABLE_RECOVERY but without HAM_ENABLE_TRANSACTIONS (thanks, Peter)
