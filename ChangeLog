@@ -1,4 +1,5 @@
 Jun 8, 2012 - chris ---------------------------------------------------
+o issue #6: fixed compilation error in OSX Lion
 o fixed HAM_INTERNAL_ERROR when creating database with
 	HAM_ENABLE_RECOVERY but without HAM_ENABLE_TRANSACTIONS (thanks, Peter)
 

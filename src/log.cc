@@ -13,6 +13,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <libgen.h>
 
 #include "db.h"
 #include "device.h"
@@ -369,7 +370,7 @@ Log::get_path()
 		path+=ext;
 #else
         path+="/";
-		path+=::basename(m_env->get_filename().c_str());
+		path+=::basename((char *)m_env->get_filename().c_str());
 #endif
     }
     path+=".log0";
