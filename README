@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.2               Sun Apr 22 14:47:02 CEST 2012
+hamsterdb Embedded Storage 2.0.3               Sat Jun  9 14:27:37 CEST 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,30 +12,35 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-With this release hamsterdb is now thread safe. Boost (http://www.boost.org)
-is now required for building the sources.
-Approximate matching is now enabled for ham_cursor_find.
+This release fixes several smaller issues, mostly compilation/linker errors
+on various platforms.
+It also added missing fsync's when recovery (HAM_ENABLE_RECOVERY) and
+write-through (HAM_WRITE_THROUGH) are enabled.
+The legacy file format from hamsterdb 1.0.9 (and older versions) is no longer
+supported.
 
 2. Changes
 
 New Features
-* Approximate matching now works with ham_cursor_find
-* hamsterdb is now thread safe
+* none
 
 Bugfixes
-* Fixed a buffer overrun in the freelist
+* Fixed linker error when libboost_thread-mt.lib is installed
+* Fixed compilation error in OSX Lion
+* Fixed HAM_INTERNAL_ERROR when creating database with
+    HAM_ENABLE_RECOVERY but without HAM_ENABLE_TRANSACTIONS
 
 Other Changes
 * Several code cleanups; more modules were converted to C++
-
+* The legacy file format of hamsterdb 1.0.9 and older is no longer supported
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
+- fine-grained locking for faster concurrent access
 - more transactional stuff (i.e. recreate pending transactions when 
     recovering from a crash)
-- fine-grained locking for faster concurrent access
 
 4. Features
 
@@ -59,7 +64,6 @@ To see a list of all changes, look in the file ChangeLog.
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
-- Remote access with embeddable server
 - Open source and released under the GPL 2.0 or later
 - Supports AES encryption and zlib compression
 - Wrappers for C++, Python, Java and .NET

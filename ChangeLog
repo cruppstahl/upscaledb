@@ -1,3 +1,6 @@
+Jun 10, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.3
+
 Jun 8, 2012 - chris ---------------------------------------------------
 o fixed linker error when libboost_thread-mt.lib is installed (instead of
 	libboost_thread.lib) (thanks, foxb)
