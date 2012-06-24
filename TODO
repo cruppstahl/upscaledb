@@ -82,14 +82,7 @@ x Mark reported an error after kill -9 (with Txn, 2.0.2)
     sudo pkill -9 lessfs
     sudo sh check.sh
 
-o support MS Visual Studio 2010, send to Peter
-
-o is there a way to group all changeset flushes of a Transaction into one
-    changeset? that way we would avoid the frequent syncs
-    o would have to remove all of assert(changeset.is_empty())
-    o but we can use that assert prior to txn_begin
-
-o identify a set of 3 testfiles (long running) and let them run in different
+x identify a set of 3 testfiles (long running) and let them run in different
     configurations; track the times. There should be few enough tests to be
     able to compare the times manually!
     x collect all scripts, run them
@@ -98,7 +91,14 @@ o identify a set of 3 testfiles (long running) and let them run in different
     x merge perftest.sh with perl script
     x testfiles/4/300.tst is still too big
     x --progress no longer works
-    o run it for 2.0.2
+    x run it for 2.0.2
+
+x support MS Visual Studio 2010
+
+o is there a way to group all changeset flushes of a Transaction into one
+    changeset? that way we would avoid the frequent syncs
+    o would have to remove all of assert(changeset.is_empty())
+    o but we can use that assert prior to txn_begin
 
 
 
@@ -142,7 +142,6 @@ o more fine-grained locking
         x also merge/refactor freelist_statistics.cc
         x check with valgrind
         x protect with mutex
-        o store the last successful freelist page in the hinter of the database
     o backend
         x replace with C++ class and inheritance
         x remove be_set_dirty, replace with be->_fun_flush()
@@ -206,6 +205,9 @@ o more fine-grained locking
     o any others?
     o make sure that the cache does not flush pages that are currently locked
         by any Transaction
+
+o freelist: store the last successful freelist page in the hinter of the
+    database
 
 o is the recovery working if there's a crash during ham_close?
 

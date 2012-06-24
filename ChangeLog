@@ -1,5 +1,8 @@
-Jun 10, 2012 - chris ---------------------------------------------------
+Jun 24, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.3
+
+Jun 20, 2012 - chris ---------------------------------------------------
+o Added project files for Windows MSVC 2010
 
 Jun 8, 2012 - chris ---------------------------------------------------
 o fixed linker error when libboost_thread-mt.lib is installed (instead of

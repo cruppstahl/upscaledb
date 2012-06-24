@@ -80,8 +80,8 @@ public:
     void negativeFetchTest(void)
     {
         ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
-        ham_u8_t *pbuffer, buffer[12]={0};
-        ham_size_t size;
+        ham_u8_t *pbuffer=0, buffer[12]={0};
+        ham_size_t size=0;
 
         c->insert(0x123, sizeof(buffer), buffer);
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, c->fetch(0x321, &size, &pbuffer));
@@ -97,8 +97,8 @@ public:
     void bigCacheTest(void)
     {
         ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
-        ham_u8_t *pbuffer, buffer[12]={0};
-        ham_size_t size;
+        ham_u8_t *pbuffer=0, buffer[12]={0};
+        ham_size_t size=0;
 
         for (ham_size_t i=0; i<10000; i++) {
             c->insert((ham_offset_t)i, sizeof(buffer), buffer);
