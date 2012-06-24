@@ -82,6 +82,7 @@ DeviceImplDisk::read_page(Page *page)
     ham_status_t st;
     ham_file_filter_t *head=0;
     ham_size_t size=m_pagesize;
+	bool alloc=false;
     
     head=m_device->m_env->get_file_filter();
 
@@ -112,13 +113,20 @@ fallback_rw:
                 return (HAM_OUT_OF_MEMORY);
             page->set_pers((page_data_t *)buffer);
             page->set_flags(page->get_flags()|Page::NPERS_MALLOC);
+			alloc=true;
         }
         else
             ham_assert(!(page->get_flags()&Page::NPERS_MALLOC), (0));
 
         st=read(page->get_self(), page->get_pers(), size);
-        if (st)
+		if (st) {
+			if (alloc) {
+                m_device->m_env->get_allocator()->free(buffer);
+                page->set_pers(0);
+                page->set_flags(page->get_flags()&~Page::NPERS_MALLOC);
+			}
             return (st);
+		}
     }
 
     /*

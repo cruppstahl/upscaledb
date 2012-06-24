@@ -197,7 +197,7 @@ main(int argc, char **argv)
     SetCurrentDirectoryA(UNITTEST_PATH);
 #else
 #   ifndef UNDER_CE
-    SetCurrentDirectoryA("../unittests");
+    SetCurrentDirectoryA("../../unittests");
 #   endif
 #endif
 #endif

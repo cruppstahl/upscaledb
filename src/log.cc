@@ -13,7 +13,9 @@
 #include "config.h"
 
 #include <string.h>
-#include <libgen.h>
+#ifndef HAM_OS_WIN32
+#  include <libgen.h>
+#endif
 
 #include "db.h"
 #include "device.h"

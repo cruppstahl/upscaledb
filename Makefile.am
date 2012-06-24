@@ -33,17 +33,12 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              unittests/recovery.pl                      \
              unittests/data/*                           \
              win32                                      \
-             win32/README.TXT                           \
-             win32/hamsterdb.sln                        \
-             win32/dll.vcproj                           \
-             win32/lib.vcproj                           \
-             win32/sample_db1.vcproj                    \
-             win32/sample_db2.vcproj                    \
-             win32/sample_db3.vcproj                    \
-             win32/sample_db4.vcproj                    \
-             win32/sample_env1.vcproj                   \
-             win32/sample_env2.vcproj                   \
-             win32/unittests.vcproj                     \
+             win32/msvc2008/README.TXT                  \
+             win32/msvc2008/hamsterdb.sln               \
+             win32/msvc2008/*.vcproj                    \
+             win32/msvc2010/README.TXT                  \
+             win32/msvc2010/hamsterdb.sln               \
+             win32/msvc2010/*.vcxproj                   \
              java                                       \
              dotnet                                     \
              contrib                                    \
