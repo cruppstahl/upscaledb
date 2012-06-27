@@ -722,7 +722,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     else if (!btree_cursor_is_uncoupled(c))
         return (HAM_CURSOR_IS_NIL);
 
-    return (btree_erase_cursor(be, txn,
+    return (be->erase_cursor(txn,
                 btree_cursor_get_uncoupled_key(c), c, flags));
 }
 

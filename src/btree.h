@@ -91,6 +91,10 @@ class BtreeBackend : public Backend
                         ham_record_t *record, btree_cursor_t *cursor,
                         ham_u32_t flags);
 
+    /** same as above, but with a coupled cursor */
+    virtual ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
+            			btree_cursor_t *cursor, ham_u32_t flags);
+
     /**
      * Remove all extended keys for the given @a page from the
      * extended key cache.
@@ -215,13 +219,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
 
 /** get a btree_node_t from a Page */
 #define page_get_btree_node(p)          ((btree_node_t *)p->get_payload())
-
-/**
- * same as above, but with a coupled cursor
- */
-extern ham_status_t
-btree_erase_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
-        btree_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * same as above, but assumes that the cursor is coupled to a leaf page 

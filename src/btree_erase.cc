@@ -1440,10 +1440,10 @@ btree_erase_duplicate(BtreeBackend *be, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-btree_erase_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
+BtreeBackend::erase_cursor(Transaction *txn, ham_key_t *key, 
         btree_cursor_t *cursor, ham_u32_t flags) 
 {
-    return (btree_erase_impl(be, txn, key, cursor, 0, flags));
+    return (btree_erase_impl(this, txn, key, cursor, 0, flags));
 }
 
 ham_status_t
