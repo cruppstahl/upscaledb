@@ -396,11 +396,11 @@ __insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-btree_insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
+BtreeBackend::insert_cursor(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    Database *db=be->get_db();
+    Database *db=get_db();
     insert_hints_t hints = {flags, flags, 
         cursor ? (ham_cursor_t *)btree_cursor_get_parent(cursor) : 0, 0, 
         HAM_FALSE, HAM_FALSE, HAM_FALSE, 0, NULL, -1};
@@ -411,16 +411,16 @@ btree_insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key,
      * append the key? __append_key() will try to append the key; if it 
      * fails because the key is NOT the highest key in the database or
      * because the current page is already full, it will remove the 
-     * HINT_APPEND flag and call btree_insert_cursor() again
+     * HINT_APPEND flag and call this function again
      */
     if (hints.force_append || hints.force_prepend) {
         ham_assert(hints.try_fast_track, (0));
-        st = __append_key(be, txn, key, record, cursor, &hints);
+        st = __append_key(this, txn, key, record, cursor, &hints);
     }
     else {
         hints.force_append = HAM_FALSE;
         hints.force_prepend = HAM_FALSE;
-        st = __insert_cursor(be, txn, key, record, cursor, &hints);
+        st = __insert_cursor(this, txn, key, record, cursor, &hints);
     }
 
      if (st) {
@@ -448,7 +448,7 @@ ham_status_t
 BtreeBackend::insert(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    return (btree_insert_cursor(this, txn, key, record, 0, flags));
+    return (insert_cursor(txn, key, record, 0, flags));
 }
 
 static ham_status_t

@@ -31,7 +31,7 @@
 
 
 ham_status_t 
-btree_find_cursor(BtreeBackend *be, Transaction *txn, btree_cursor_t *cursor, 
+BtreeBackend::find_cursor(Transaction *txn, btree_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
 	ham_status_t st;
@@ -39,7 +39,7 @@ btree_find_cursor(BtreeBackend *be, Transaction *txn, btree_cursor_t *cursor,
     btree_node_t *node = NULL;
     btree_key_t *entry;
     ham_s32_t idx = -1;
-    Database *db=be->get_db();
+    Database *db=get_db();
     find_hints_t hints = {flags, flags, 0, HAM_FALSE, HAM_FALSE, 1};
 
     btree_find_get_hints(&hints, db, key);
@@ -96,13 +96,13 @@ no_fast_track:
 
     if (idx == -1) {
         /* get the address of the root page */
-        if (!be->get_rootpage()) {
+        if (!get_rootpage()) {
             btree_stats_update_find_fail(db, &hints);
             return HAM_KEY_NOT_FOUND;
         }
 
         /* load the root page */
-        st=db_fetch_page(&page, db, be->get_rootpage(), 0);
+        st=db_fetch_page(&page, db, get_rootpage(), 0);
         if (st) {
             btree_stats_update_find_fail(db, &hints);
 			return (st);
@@ -452,6 +452,6 @@ ham_status_t
 BtreeBackend::find(Transaction *txn, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags)
 {
-    return (btree_find_cursor(this, txn, 0, key, record, flags));
+    return (find_cursor(txn, 0, key, record, flags));
 }
 

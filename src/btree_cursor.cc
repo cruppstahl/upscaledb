@@ -645,7 +645,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     ham_status_t st;
-    Backend *be=btree_cursor_get_db(c)->get_backend();
+    BtreeBackend *be=(BtreeBackend *)btree_cursor_get_db(c)->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
 
     if (!be)
@@ -656,7 +656,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
     if (st)
         return (st);
 
-    st=btree_find_cursor((BtreeBackend *)be, txn, c, key, record, flags);
+    st=be->find_cursor(txn, c, key, record, flags);
     if (st) {
         /* cursor is now NIL */
         return (st);
@@ -680,7 +680,7 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
     ham_assert(record, (0));
 
     /* call the btree insert function */
-    st=btree_insert_cursor(be, txn, key, record, c, flags);
+    st=be->insert_cursor(txn, key, record, c, flags);
     if (st)
         return (st);
 
