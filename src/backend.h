@@ -66,6 +66,8 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
  * of the key in the page */
 #define ENUM_EVENT_ITEM         4
 
+struct btree_cursor_t;
+
 /**
 * @}
 */
@@ -164,6 +166,19 @@ class Backend
      * becoming invalid
      */
     virtual ham_status_t uncouple_all_cursors(Page *page, ham_size_t start) = 0;
+
+    /**
+     * looks up a key, points cursor to this key
+     */
+    virtual ham_status_t find_cursor(Transaction *txn, btree_cursor_t *cursor, 
+           ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
+
+    /**
+     * inserts a key, points cursor to the new key
+     */
+    virtual ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
+                        ham_record_t *record, btree_cursor_t *cursor,
+                        ham_u32_t flags) = 0;
 
     /**
      * Remove all extended keys for the given @a page from the

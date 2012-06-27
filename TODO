@@ -230,6 +230,11 @@ o more fine-grained locking
 o freelist: store the last successful freelist page in the hinter of the
     database
 
+o is there a way to group all changeset flushes of a Transaction into one
+    changeset? that way we would avoid the frequent syncs
+    o would have to remove all of assert(changeset.is_empty())
+    o but we can use that assert prior to txn_begin
+
 o is the recovery working if there's a crash during ham_close?
 
 o blob_allocate: remove writev when writing header and blob body
