@@ -31,8 +31,8 @@
 
 
 ham_status_t 
-BtreeBackend::find_cursor(Transaction *txn, btree_cursor_t *cursor, 
-           ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+BtreeBackend::do_find(Transaction *txn, Cursor *hcursor, ham_key_t *key,
+           ham_record_t *record, ham_u32_t flags)
 {
 	ham_status_t st;
     Page *page = NULL;
@@ -41,12 +41,13 @@ BtreeBackend::find_cursor(Transaction *txn, btree_cursor_t *cursor,
     ham_s32_t idx = -1;
     Database *db=get_db();
     find_hints_t hints = {flags, flags, 0, HAM_FALSE, HAM_FALSE, 1};
+    btree_cursor_t *cursor=(btree_cursor_t *)hcursor;
 
     btree_find_get_hints(&hints, db, key);
 
     if (hints.key_is_out_of_bounds) {
         btree_stats_update_find_fail_oob(db, &hints);
-        return HAM_KEY_NOT_FOUND;
+        return (HAM_KEY_NOT_FOUND);
     }
 
     if (hints.try_fast_track) {
@@ -249,44 +250,31 @@ no_fast_track:
              * LEQ/GEQ logic in the section above when the key has been 
              * flagged with the KEY_IS_APPROXIMATE flag.
              */
-            if (hints.original_flags & HAM_FIND_LT_MATCH)
-            {
+            if (hints.original_flags & HAM_FIND_LT_MATCH) {
                 /*
                  * if the index-1 is still in the page, just decrement the
                  * index
                  */
-                if (idx > 0)
-                {
+                if (idx > 0) {
                     idx--;
 
                     ham_key_set_intflags(key, (ham_key_get_intflags(key) 
                             & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
                 }
-                else
-                {
-                    /*
-                     * otherwise load the left sibling page
-                     */
-                    if (!btree_node_get_left(node))
-                    {
+                else {
+                    /* otherwise load the left sibling page */
+                    if (!btree_node_get_left(node)) {
                         /* when an error is otherwise unavoidable, see if 
                            we have an escape route through GT? */
-
-                        if (hints.original_flags & HAM_FIND_GT_MATCH)
-                        {
+                        if (hints.original_flags & HAM_FIND_GT_MATCH) {
                             /*
                              * if the index+1 is still in the page, just 
                              * increment the index
                              */
                             if (idx + 1 < btree_node_get_count(node))
-                            {
                                 idx++;
-                            }
-                            else
-                            {
-                                /*
-                                 * otherwise load the right sibling page
-                                 */
+                            else {
+                                /* otherwise load the right sibling page */
                                 if (!btree_node_get_right(node)) {
                                     btree_stats_update_find_fail(db, &hints);
                                     ham_assert(node==page_get_btree_node(page),
@@ -310,8 +298,7 @@ no_fast_track:
                             ham_key_set_intflags(key, (ham_key_get_intflags(key) & 
                                             ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
                         }
-                        else
-                        {
+                        else {
                             btree_stats_update_find_fail(db, &hints);
                             ham_assert(node == page_get_btree_node(page), (0));
                             btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
@@ -319,56 +306,48 @@ no_fast_track:
                             return HAM_KEY_NOT_FOUND;
                         }
                     }
-                    else
-                    {
+                    else {
                         hints.cost++;
-                        st = db_fetch_page(&page, db,
+                        st=db_fetch_page(&page, db,
                                         btree_node_get_left(node), 0);
                         if (st) {
                             btree_stats_update_find_fail(db, &hints);
 							return (st);
                         }
-                        node = page_get_btree_node(page);
-                        idx = btree_node_get_count(node) - 1;
+                        node=page_get_btree_node(page);
+                        idx=btree_node_get_count(node)-1;
 
                         ham_key_set_intflags(key, (ham_key_get_intflags(key) 
                                         & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
                     }
                 }
             }
-            else if (hints.original_flags & HAM_FIND_GT_MATCH)
-            {
+            else if (hints.original_flags&HAM_FIND_GT_MATCH) {
                 /*
                  * if the index+1 is still in the page, just increment the
                  * index
                  */
                 if (idx + 1 < btree_node_get_count(node))
-                {
                     idx++;
-                }
-                else
-                {
-                    /*
-                     * otherwise load the right sibling page
-                     */
-                    if (!btree_node_get_right(node))
-                    {
+                else {
+                    /* otherwise load the right sibling page */
+                    if (!btree_node_get_right(node)) {
                         btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
                         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                 db, page, key, hints.original_flags, -1);
-                        return HAM_KEY_NOT_FOUND;
+                        return (HAM_KEY_NOT_FOUND);
                     }
 
                     hints.cost++;
-                    st = db_fetch_page(&page, db, 
+                    st=db_fetch_page(&page, db, 
                                 btree_node_get_right(node), 0);
                     if (st) {
                         btree_stats_update_find_fail(db, &hints);
 						return (st);
                     }
-                    node = page_get_btree_node(page);
-                    idx = 0;
+                    node=page_get_btree_node(page);
+                    idx=0;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key) 
                                         & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
@@ -383,7 +362,7 @@ no_fast_track:
         ham_assert(node == page_get_btree_node(page), (0));
         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                 db, page, key, hints.original_flags, -1);
-        return HAM_KEY_NOT_FOUND;
+        return (HAM_KEY_NOT_FOUND);
     }
 
     /* load the entry, and store record ID and key flags */
@@ -443,15 +422,4 @@ no_fast_track:
     return (0);
 }
 
-/**                                                                 
- * Find a key in the index.                                          
-
- @note This is a B+-tree 'backend' method.
- */                                                                 
-ham_status_t 
-BtreeBackend::find(Transaction *txn, ham_key_t *key,
-           ham_record_t *record, ham_u32_t flags)
-{
-    return (find_cursor(txn, 0, key, record, flags));
-}
 

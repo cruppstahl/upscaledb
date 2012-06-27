@@ -42,13 +42,8 @@ static ham_status_t
 _enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level, 
         ham_u32_t count, ham_enumerate_cb_t cb, void *context);
 
-/**                                                                 
- * iterate the whole tree and enumerate every item.
- *
- * @note This is a B+-tree 'backend' method.
- */                                                                 
 ham_status_t
-BtreeBackend::enumerate(ham_enumerate_cb_t cb, void *context)
+BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
 {
     Page *page;
     ham_u32_t level=0;

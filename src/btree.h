@@ -42,64 +42,21 @@ class BtreeBackend : public Backend
 
     virtual ~BtreeBackend() { }
 
-    /** creates a new backend */
-    virtual ham_status_t create(ham_u16_t keysize, ham_u32_t flags);
+    /** same as above, but only erases a single duplicate */
+    // TODO make this private
+    ham_status_t erase_duplicate(Transaction *txn, ham_key_t *key, 
+                        ham_u32_t dupe_id, ham_u32_t flags);
 
-    /** open and initialize a backend */
-    virtual ham_status_t open(ham_u32_t flags);
+    // TODO make this private
+    ham_status_t cursor_erase_fasttrack(Transaction *txn,
+                        btree_cursor_t *cursor);
 
-    /** close the backend */
-    virtual void close();
+    // TODO make this private
+    ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
 
     /** flush the backend */
-    virtual ham_status_t flush_indexdata();
-
-    /** find a key in the index */
-    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
-                    ham_record_t *record, ham_u32_t flags);
-
-    /** insert (or update) a key in the index */
-    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
-                    ham_record_t *record, ham_u32_t flags);
-
-    /** erase a key in the index */
-    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, 
-                    ham_u32_t flags);
-
-    /** iterate the whole tree and enumerate every item */
-    virtual ham_status_t enumerate(ham_enumerate_cb_t cb, void *context);
-
-    /** verify the whole tree */
-    virtual ham_status_t check_integrity();
-
-    /** estimate the number of keys per page, given the keysize */
-    virtual ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
-                    ham_u16_t keysize);
-
-    /** Close (and free) all cursors related to this database table.  */
-    virtual ham_status_t close_cursors(ham_u32_t flags);
-
-    /** uncouple all cursors from a page */
-    virtual ham_status_t uncouple_all_cursors(Page *page, ham_size_t start);
-
-    /** same as above, but sets the cursor to the position */
-    virtual ham_status_t find_cursor(Transaction *txn, btree_cursor_t *cursor, 
-                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /** same as above, but sets the cursor position to the new item */
-    virtual ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
-                        ham_record_t *record, btree_cursor_t *cursor,
-                        ham_u32_t flags);
-
-    /** same as above, but with a coupled cursor */
-    virtual ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
-            			btree_cursor_t *cursor, ham_u32_t flags);
-
-    /**
-     * Remove all extended keys for the given @a page from the
-     * extended key cache.
-     */
-    virtual ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
+    // TODO make this protected 
+    virtual ham_status_t do_flush_indexdata();
 
     /** get the address of the root node */
     ham_u64_t get_rootpage() {
@@ -130,6 +87,51 @@ class BtreeBackend : public Backend
     ByteArray *get_keyarena2() {
         return &m_keydata2;
     }
+
+    /** find a key in the index */
+    // TODO make this protected
+    virtual ham_status_t do_find(Transaction *txn, Cursor *cursor,
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+  protected:
+    /** creates a new backend */
+    virtual ham_status_t do_create(ham_u16_t keysize, ham_u32_t flags);
+
+    /** open and initialize a backend */
+    virtual ham_status_t do_open(ham_u32_t flags);
+
+    /** close the backend */
+    virtual void do_close(ham_u32_t flags);
+
+    /** insert (or update) a key in the index */
+    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /** erase a key in the index */
+    virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key, 
+                    ham_u32_t flags);
+
+    /** iterate the whole tree and enumerate every item */
+    virtual ham_status_t do_enumerate(ham_enumerate_cb_t cb, void *context);
+
+    /** verify the whole tree */
+    virtual ham_status_t do_check_integrity();
+
+    /** estimate the number of keys per page, given the keysize */
+    virtual ham_status_t do_calc_keycount_per_page(ham_size_t *keycount, 
+                    ham_u16_t keysize);
+
+    /** uncouple all cursors from a page */
+    virtual ham_status_t do_uncouple_all_cursors(Page *page, ham_size_t start);
+
+    /** same as above, but sets the cursor position to the new item */
+    virtual ham_status_t do_insert_cursor(Transaction *txn, ham_key_t *key, 
+                        ham_record_t *record, btree_cursor_t *cursor,
+                        ham_u32_t flags);
+
+    /** same as erase(), but with a coupled cursor */
+    virtual ham_status_t do_erase_cursor(Transaction *txn, ham_key_t *key, 
+                        btree_cursor_t *cursor, ham_u32_t flags);
 
   private:
     /** address of the root-page */
@@ -221,22 +223,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
 #define page_get_btree_node(p)          ((btree_node_t *)p->get_payload())
 
 /**
- * same as above, but assumes that the cursor is coupled to a leaf page 
- * and the key can be removed without rebalancing the tree
- */
-extern ham_status_t
-btree_cursor_erase_fasttrack(BtreeBackend *be, Transaction *txn,
-        btree_cursor_t *cursor);
-
-/**
- * same as above, but only erases a single duplicate
- */
-extern ham_status_t
-btree_erase_duplicate(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
-        ham_u32_t dupe_id, 
-        ham_u32_t flags);
-
-/**
  * find the child page for a key
  *
  * @return returns the child page in @a page_ref
@@ -292,12 +278,6 @@ btree_get_slot(Database *db, Page *page,
  */
 extern ham_size_t
 btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
-
-/**
- * close all cursors in this Database
- */
-extern ham_status_t 
-btree_close_cursors(Database *db, ham_u32_t flags);
 
 /**
  * compare a public key (ham_key_t, LHS) to an internal key indexed in a

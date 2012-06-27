@@ -377,7 +377,7 @@ __insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key,
          * root page to the changeset to make sure that the changes are logged
          */
         be->set_rootpage(newroot->get_self());
-        be->flush_indexdata();
+        be->do_flush_indexdata();
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
             env->get_changeset().add_page(env->get_header_page());
         root->set_type(Page::TYPE_B_INDEX);
@@ -396,7 +396,7 @@ __insert_cursor(BtreeBackend *be, Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-BtreeBackend::insert_cursor(Transaction *txn, ham_key_t *key, 
+BtreeBackend::do_insert_cursor(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, btree_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
@@ -445,10 +445,10 @@ BtreeBackend::insert_cursor(Transaction *txn, ham_key_t *key,
  * @note This is a B+-tree 'backend' method.
  */                                                                 
 ham_status_t
-BtreeBackend::insert(Transaction *txn, ham_key_t *key, 
+BtreeBackend::do_insert(Transaction *txn, ham_key_t *key, 
                 ham_record_t *record, ham_u32_t flags)
 {
-    return (insert_cursor(txn, key, record, 0, flags));
+    return (do_insert_cursor(txn, key, record, 0, flags));
 }
 
 static ham_status_t

@@ -168,9 +168,12 @@ o more fine-grained locking
         x remove be_set_dirty, replace with be->_fun_flush()
         x btree has keydata1, keydata2 - why? better use DynamicArray?
         x BtreeBackend does not require to store in little/big-endian!
-        o btree.h declares many static functions - still used?
-        o include the functions in btree_insert.cc, btree_erase.cc etc
-        o improve abstraction
+        x btree.h declares many static functions; rewrite them as methods
+            - no, will do that later
+        x include the functions in btree_insert.cc, btree_erase.cc etc
+            - no, will do that later
+        x improve abstraction
+        o protect with a mutex
     o statistics
         o split into env/db/freelist
         o remove unused code - also from public interface?

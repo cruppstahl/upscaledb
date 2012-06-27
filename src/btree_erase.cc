@@ -409,7 +409,7 @@ __collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
     Environment *env;
 
     scratchpad->be->set_rootpage( newroot->get_self());
-    scratchpad->be->flush_indexdata();
+    scratchpad->be->do_flush_indexdata();
     ham_assert(newroot->get_db(), (0));
 
     env=newroot->get_db()->get_env();
@@ -1427,27 +1427,27 @@ free_all:
 }
 
 ham_status_t
-BtreeBackend::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
+BtreeBackend::do_erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 {
     return (btree_erase_impl(this, txn, key, 0, 0, flags));
 }
 
 ham_status_t
-btree_erase_duplicate(BtreeBackend *be, Transaction *txn, ham_key_t *key, 
+BtreeBackend::erase_duplicate(Transaction *txn, ham_key_t *key, 
         ham_u32_t dupe_id, ham_u32_t flags)
 {
-    return (btree_erase_impl(be, txn, key, 0, dupe_id, flags));
+    return (btree_erase_impl(this, txn, key, 0, dupe_id, flags));
 }
 
 ham_status_t
-BtreeBackend::erase_cursor(Transaction *txn, ham_key_t *key, 
+BtreeBackend::do_erase_cursor(Transaction *txn, ham_key_t *key, 
         btree_cursor_t *cursor, ham_u32_t flags) 
 {
     return (btree_erase_impl(this, txn, key, cursor, 0, flags));
 }
 
 ham_status_t
-btree_cursor_erase_fasttrack(BtreeBackend *be, Transaction *txn,
+BtreeBackend::cursor_erase_fasttrack(Transaction *txn,
         btree_cursor_t *cursor)
 {
     erase_scratchpad_t scratchpad;
@@ -1456,7 +1456,7 @@ btree_cursor_erase_fasttrack(BtreeBackend *be, Transaction *txn,
 
     /* initialize the scratchpad */
     memset(&scratchpad, 0, sizeof(scratchpad));
-    scratchpad.be=be;
+    scratchpad.be=this;
     scratchpad.txn=txn;
     scratchpad.cursor=cursor;
 
