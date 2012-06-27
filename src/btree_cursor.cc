@@ -656,7 +656,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
     if (st)
         return (st);
 
-    st=be->find_cursor(txn, c, key, record, flags);
+    st=be->do_find(txn, (Cursor *)c, key, record, flags);
     if (st) {
         /* cursor is now NIL */
         return (st);
@@ -711,7 +711,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
         if (btree_cursor_get_coupled_index(c)>0 
                 && btree_node_get_count(node)>btree_get_minkeys(maxkeys)) {
             /* yes, we can remove the key */
-            return (btree_cursor_erase_fasttrack(be, txn, c));
+            return (be->cursor_erase_fasttrack(txn, c));
         }
         else {
             st=btree_cursor_uncouple(c, 0);
@@ -722,8 +722,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     else if (!btree_cursor_is_uncoupled(c))
         return (HAM_CURSOR_IS_NIL);
 
-    return (be->erase_cursor(txn,
-                btree_cursor_get_uncoupled_key(c), c, flags));
+    return (be->erase_cursor(txn, btree_cursor_get_uncoupled_key(c), c, flags));
 }
 
 bool 

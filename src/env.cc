@@ -871,16 +871,14 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
 
-    /*
-     * flush the open backends
-     */
-    db = env->get_databases();
+    /* flush the open backends */
+    db=env->get_databases();
     while (db) {
         Backend *be=db->get_backend();
 
         if (!be || !be->is_active())
             return HAM_NOT_INITIALIZED;
-        st = be->flush_indexdata();
+        st=be->flush_indexdata();
         if (st)
             return st;
         db=db->get_next();
@@ -1479,7 +1477,7 @@ __flush_txn(Environment *env, Transaction *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=btree_erase_duplicate((BtreeBackend *)be, txn,
+                st=((BtreeBackend *)be)->erase_duplicate(txn,
                         txn_opnode_get_key(node), 
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }

@@ -94,7 +94,10 @@ class Backend
      * @remark this function is called after the ham_db_t structure
      * was allocated and the file was opened
      */
-    virtual ham_status_t create(ham_u16_t keysize, ham_u32_t flags) = 0;
+    ham_status_t create(ham_u16_t keysize, ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_create(keysize, flags));
+    }
 
     /**
      * open and initialize a backend
@@ -102,26 +105,38 @@ class Backend
      * @remark this function is called after the ham_db_t structure
      * was allocated and the file was opened
      */
-    virtual ham_status_t open(ham_u32_t flags) = 0;
+    ham_status_t open(ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_open(flags));
+    }
 
     /**
      * close the backend
      *
      * @remark this function is called before the file is closed
      */
-    virtual void close() = 0;
+    void close(ham_u32_t flags = 0) {
+        ScopedLock lock(m_mutex);
+        return (do_close(flags));
+    }
 
     /**
      * flushes the backend's meta information to the index data;
      * this does not flush the whole index!
      */
-    virtual ham_status_t flush_indexdata() = 0;
+    ham_status_t flush_indexdata() {
+        ScopedLock lock(m_mutex);
+        return (do_flush_indexdata());
+    }
 
     /**
      * find a key in the index
      */
-    virtual ham_status_t find(Transaction *txn, ham_key_t *key, 
-                    ham_record_t *record, ham_u32_t flags) = 0;
+    ham_status_t find(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_find(txn, 0, key, record, flags));
+    }
 
     /**
      * insert (or update) a key in the index
@@ -129,35 +144,45 @@ class Backend
      * the backend is responsible for inserting or updating the
      * record. (see blob.h for blob management functions)
      */
-    virtual ham_status_t insert(Transaction *txn, ham_key_t *key, 
-                    ham_record_t *record, ham_u32_t flags) = 0;
+    ham_status_t insert(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_insert(txn, key, record, flags));
+    }
 
     /**
      * erase a key in the index
      */
-    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, 
-                    ham_u32_t flags) = 0;
+    ham_status_t erase(Transaction *txn, ham_key_t *key, 
+                    ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_erase(txn, key, flags));
+    }
 
     /**
      * iterate the whole tree and enumerate every item
      */
-    virtual ham_status_t enumerate(ham_enumerate_cb_t cb, void *context) = 0;
+    ham_status_t enumerate(ham_enumerate_cb_t cb, void *context) {
+        ScopedLock lock(m_mutex);
+        return (do_enumerate(cb, context));
+    }
 
     /**
      * verify the whole tree
      */
-    virtual ham_status_t check_integrity() = 0;
+    ham_status_t check_integrity() {
+        ScopedLock lock(m_mutex);
+        return (do_check_integrity());
+    }
 
     /**
      * estimate the number of keys per page, given the keysize
      */
-    virtual ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
-                    ham_u16_t keysize) = 0;
-
-    /**
-     * Close (and free) all cursors related to this database table.
-     */
-    virtual ham_status_t close_cursors(ham_u32_t flags) = 0;
+    ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
+                    ham_u16_t keysize) {
+        ScopedLock lock(m_mutex);
+        return (do_calc_keycount_per_page(keycount, keysize));
+    }
 
     /**
      * uncouple all cursors from a page
@@ -165,31 +190,42 @@ class Backend
      * @remark this is called whenever the page is deleted or
      * becoming invalid
      */
-    virtual ham_status_t uncouple_all_cursors(Page *page, ham_size_t start) = 0;
+    ham_status_t uncouple_all_cursors(Page *page, ham_size_t start) {
+        ScopedLock lock(m_mutex);
+        return (do_uncouple_all_cursors(page, start));
+    }
 
     /**
      * looks up a key, points cursor to this key
      */
-    virtual ham_status_t find_cursor(Transaction *txn, btree_cursor_t *cursor, 
-                        ham_key_t *key, ham_record_t *record,
-                        ham_u32_t flags) = 0;
+    ham_status_t find_cursor(Transaction *txn, Cursor *cursor, 
+                        ham_key_t *key, ham_record_t *record, ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_find(txn, cursor, key, record, flags));
+    }
 
     /**
      * inserts a key, points cursor to the new key
      */
-    virtual ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
+    ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
                         ham_record_t *record, btree_cursor_t *cursor,
-                        ham_u32_t flags) = 0;
-
-    /** same as above, but with a coupled cursor */
-    virtual ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
-                    	btree_cursor_t *cursor, ham_u32_t flags) = 0;
+                        ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_insert_cursor(txn, key, record, cursor, flags));
+    }
 
     /**
-     * Remove all extended keys for the given @a page from the
-     * extended key cache.
+     * erases the key that the cursor points to
      */
-    virtual ham_status_t free_page_extkeys(Page *page, ham_u32_t flags) = 0;
+    ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
+                        btree_cursor_t *cursor, ham_u32_t flags) {
+        ScopedLock lock(m_mutex);
+        return (do_erase_cursor(txn, key, cursor, flags));
+    }
+
+    /** implementation for flush_indexdata() */
+    // TODO make this protected
+    virtual ham_status_t do_flush_indexdata() = 0;
 
     /** get the database pointer */
     Database *get_db() {
@@ -236,7 +272,57 @@ class Backend
         m_is_active=b;
     }
 
+    /** implementation for find() */
+    // TODO make this protected
+    virtual ham_status_t do_find(Transaction *txn, Cursor *cursor,
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
+
+  protected:
+    /** implementation for create() */
+    virtual ham_status_t do_create(ham_u16_t keysize, ham_u32_t flags) = 0;
+
+    /** implementation for open() */
+    virtual ham_status_t do_open(ham_u32_t flags) = 0;
+
+    /** implementation for close() */
+    virtual void do_close(ham_u32_t flags) = 0;
+
+    /** implementation for insert() */
+    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /** implementation for erase() */
+    virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key, 
+                    ham_u32_t flags) = 0;
+
+    /** implementation for enumerate() */
+    virtual ham_status_t do_enumerate(ham_enumerate_cb_t cb, void *context) = 0;
+
+    /** implementation for check_integrity() */
+    virtual ham_status_t do_check_integrity() = 0;
+
+    /** implementation for calc_keycount_per_page */
+    // TODO this is btree-private??
+    virtual ham_status_t do_calc_keycount_per_page(ham_size_t *keycount, 
+                    ham_u16_t keysize) = 0;
+
+    /** implementation for uncouple_all_cursors() */
+    virtual ham_status_t do_uncouple_all_cursors(Page *page,
+                    ham_size_t start) = 0;
+
+    /** implementation for insert_cursor() */
+    virtual ham_status_t do_insert_cursor(Transaction *txn, ham_key_t *key, 
+                    ham_record_t *record, btree_cursor_t *cursor,
+                    ham_u32_t flags) = 0;
+
+    /** implementation for erase_cursor() */
+    virtual ham_status_t do_erase_cursor(Transaction *txn, ham_key_t *key, 
+                    btree_cursor_t *cursor, ham_u32_t flags) = 0;
+
   private:
+    /** a mutex for this index backend */
+    Mutex m_mutex;
+
     /** pointer to the database object */
     Database *m_db;
 

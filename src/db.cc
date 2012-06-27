@@ -2752,12 +2752,12 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
             (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&
                 (page->get_type()==Page::TYPE_B_ROOT ||
                     page->get_type()==Page::TYPE_B_INDEX)) {
-            Backend *be;
-        
             ham_assert(page->get_db(),
                 ("Must be set as page owner when this is a Btree page"));
-            be=page->get_db()->get_backend();
-            (void)be->free_page_extkeys(page, flags);
+            Backend *backend=page->get_db()->get_backend();
+            BtreeBackend *be=dynamic_cast<BtreeBackend *>(backend);
+            if (be)
+                (void)be->free_page_extkeys(page, flags);
         }
 
         /* free the page */
@@ -2794,16 +2794,9 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         }
     }
 
-    be=m_db->get_backend();
-
-    /* close all open cursors */
-    if (be) {
-        st=be->close_cursors(flags);
-        if (st)
-            return (st);
-    }
-    
     btree_stats_flush_dbdata(m_db, m_db->get_perf_data(), has_other_db);
+
+    be=m_db->get_backend();
 
     /*
      * if we're not in read-only mode, and not an in-memory-database,
