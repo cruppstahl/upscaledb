@@ -27,14 +27,14 @@
 #   include "../config.h"
 #else
 #	ifdef UNDER_CE
-#		define HAVE_MMAP                0
-#		define HAVE_UNMMAP              0
+#		define HAVE_MMAP        0
+#		define HAVE_UNMMAP        0
 #	else
-#		define HAVE_MMAP                1
-#		define HAVE_UNMMAP              1
+#		define HAVE_MMAP        1
+#		define HAVE_UNMMAP        1
 #	endif
-#   define HAVE_PREAD                   1
-#   define HAVE_PWRITE                  1
+#   define HAVE_PREAD           1
+#   define HAVE_PWRITE          1
 #endif
 
 /*
@@ -42,10 +42,10 @@
  */
 #if (!defined(HAM_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
-#       define HAM_DEBUG 1
+#     define HAM_DEBUG 1
 #		if !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-//#           define HAM_LEAN_AND_MEAN_FOR_PROFILING 1
-#       endif
+//#       define HAM_LEAN_AND_MEAN_FOR_PROFILING 1
+#     endif
 #   endif
 #endif
 
@@ -55,14 +55,14 @@
  */
 #ifndef HAM_LITTLE_ENDIAN
 #   ifndef HAM_BIG_ENDIAN
-#       error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
+#     error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
 #   endif
 #endif
 
 /*
  * the default cache size is 2 MB
  */
-#define HAM_DEFAULT_CACHESIZE      (2*1024*1024)
+#define HAM_DEFAULT_CACHESIZE    (2*1024*1024)
 
 
 #endif /* __HAM_CONFIG_H__ */

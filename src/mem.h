@@ -52,18 +52,18 @@ class Allocator
 
     /** a calloc function */
     void *calloc(ham_size_t size) {
-        void *p=alloc(size);
-        if (p)
-            memset(p, 0, size);
-        return (p);
+      void *p = alloc(size);
+      if (p)
+        memset(p, 0, size);
+      return (p);
     }
-};
 
-/**
- * a factory for creating the standard allocator (based on libc malloc 
- * and free)
- */
-Allocator *ham_default_allocator_new();
+    /**
+     * a factory for creating the standard allocator (based on libc malloc 
+     * and free)
+     */
+    static Allocator *create();
+};
 
 
 #endif /* HAM_MEM_H__ */

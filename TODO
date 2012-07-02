@@ -110,7 +110,10 @@ o clean up and refactor the code
     o cursor.cc
     o cursor.h
     o db.cc
+<<<<<<< HEAD
         should use arena for get_extended_key
+=======
+>>>>>>> more refactoring (wip)
     o db.h
     o env.cc
     o env.h
@@ -121,10 +124,13 @@ o clean up and refactor the code
     o txn.h
 
     o hamsterdb.cc
+<<<<<<< HEAD
 
     o unittests
 
 
+=======
+>>>>>>> more refactoring (wip)
 o more fine-grained locking
     x cache
         x make sure it's perfectly abstracted
