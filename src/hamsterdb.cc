@@ -1097,7 +1097,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
      * if we do not yet have an allocator: create a new one 
      */
     if (!env->get_allocator()) {
-        env->set_allocator(ham_default_allocator_new());
+        env->set_allocator(Allocator::create());
         if (!env->get_allocator())
             return (HAM_OUT_OF_MEMORY);
     }
@@ -1296,7 +1296,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
      * if we do not yet have an allocator: create a new one 
      */
     if (!env->get_allocator()) {
-        env->set_allocator(ham_default_allocator_new());
+        env->set_allocator(Allocator::create());
         if (!env->get_allocator())
             return (HAM_OUT_OF_MEMORY);
     }

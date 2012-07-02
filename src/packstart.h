@@ -19,12 +19,9 @@
  *
  *  #include "packstart.h"
  *
- *  typedef HAM_PACK_0 struct HAM_PACK_1 example_struct
- *  {
- *    oef_u16_t var1;
- *    oef_u8_t var2;
- *    oef_u32_t var3;
- *  } HAM_PACK_2 example_struct_t;
+ *  typedef HAM_PACK_0 struct HAM_PACK_1 foo {
+ *    int bar;
+ *  } HAM_PACK_2 foo_t;
  *
  *  #include "packstop.h"
  *
@@ -69,3 +66,4 @@
 #ifndef HAM_PACK_2
 #  define HAM_PACK_2
 #endif
+
