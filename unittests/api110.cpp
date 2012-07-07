@@ -46,6 +46,7 @@ public:
         BFC_REGISTER_TEST(APIv110Test, getInitializedDbParamsTest);
         BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyDbParamsTest);
         BFC_REGISTER_TEST(APIv110Test, negativeApproxMatchingTest);
+        BFC_REGISTER_TEST(APIv110Test, issue7Test);
     }
 
 protected:
@@ -390,6 +391,34 @@ public:
                     ham_cursor_find(cursor, &key, HAM_FIND_GEQ_MATCH));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void issue7Test(void)
+    {
+        ham_db_t *db;
+        ham_key_t key1={0};
+        ham_key_t key2={0};
+        ham_record_t rec1={0};
+        ham_record_t rec2={0};
+        ham_txn_t *txn;
+
+        key1.data=(void *)"FooBar";
+        key1.size=strlen("FooBar")+1;
+        key2.data=(void *)"Foo";
+        key2.size=strlen("Foo")+1;
+
+        ham_new(&db);
+        BFC_ASSERT_EQUAL(0,
+                ham_create(db, ".test.db", 
+                        HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, txn, &key1, &rec1, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
+        BFC_ASSERT_EQUAL(0, strcmp((const char *)key2.data, "FooBar"));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }

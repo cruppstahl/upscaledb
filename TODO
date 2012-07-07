@@ -15,93 +15,85 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-x update doxygen documentation on the webpage
+o clean up and refactor the code
+    x os.h
+    x os_posix.cc
+    x os_win32.cc
+    x packstart.h
+    x packstop.h
+    x rb.h
+    x serial.h
+    x version.h
+    x util.cc
+    x util.h
+    x config.h
+    x internal_fwd_decl.h
+    x errorinducer.h
+    x endianswap.h
+    x mem.cc
+    x mem.h
+    o error.cc
+        fill dbg_lock, dbg_unlock
+    o error.h
+        ham_assert/ham_verify: remove second parameter
+    o hash-table.h
+        replace this with a boost class
+    o cache.cc
+    o cache.h
+    o changeset.cc
+    o changeset.h
+    o device.cc
+    o device.h
+    o journal.cc
+    o journal_entries.h
+        find a decent way to handle endian-dependent structures
+    o journal.h
+    o log.cc
+    o log.h
+        find a decent way to handle endian-dependent structures
+    o page.cc
+    o page.h
+        find a decent way to handle endian-dependent structures
+    o remote.cc
+    o extkeys.h
+    o blob.cc
+    o blob.h
 
-x update prebuilt libraries on the webpage (include boost)
+    o backend.h
+    o btree.h
+    o btree_key.cc
+    o btree_key.h
+    o btree_stats.cc
+    o btree_stats.h
+    o btree.cc
+    o btree_check.cc
+    o btree_cursor.cc
+    o btree_cursor.h
+    o btree_enum.cc
+    o btree_erase.cc
+    o btree_find.cc
+    o btree_insert.cc
 
-x add Ger's freelist patch
+    o freelist.cc
+    o freelist.h
+    o freelist_statistics.cc
+    o freelist_statistics.h
 
-x unittest: valgrind reports leaks in the test
-    ==22694== 150 bytes in 5 blocks are definitely lost in loss record 1 of 6
-    ==22694==    at 0x4C28B35: operator new(unsigned long)
-    (vg_replace_malloc.c:261)
-    ==22694==    by 0x575B058: std::string::_Rep::_S_create(unsigned long, unsigned
-    long, std::allocator<char> const&) (in
-    /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
-    ==22694==    by 0x575B249: std::string::_M_mutate(unsigned long, unsigned long,
-    unsigned long) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
-    ==22694==    by 0x575B3EB: std::string::_M_replace_safe(unsigned long, unsigned
-    long, char const*, unsigned long) (in
-    /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16)
-    ==22694==    by 0x422671: LogEntry::LogEntry(unsigned long, unsigned long,
-    unsigned int, unsigned short, char const*) (journal.cpp:46)
-    ==22694==    by 0x42C809: JournalTest::iterateOverLogMultipleEntryTest()
-    (journal.cpp:587)
-    
-x email from Jason: Great product as usual. 20.2 seems to have broken the .NET
-    unit test "GetError" in DatabaseTest.cs. It ultimately calls 
-    ham_get_error which causes an exception
+    o cursor.cc
+    o cursor.h
+    o db.cc
+    o db.h
+    o env.cc
+    o env.h
 
-x btree_read_key: calls db->get_extended_key, which should use an
-    existing ByteArray to avoid memory allocations
-    - no, cannot because the pointer is cached
+    o txn.cc
+    o txn_cursor.cc
+    o txn_cursor.h
+    o txn.h
 
-x db_erase_txn: calls check_erase_conflict, which does a btree lookup.
-    but the lookup then happens again when doing the final erase, or not?
-    - no, everything is fine
+    o hamsterdb.cc
 
-x extend the FAQ and the tutorial
-    x thread safety
-    x rec.data scope
-
-x extend the documentation with information about the new Transactions
-
-x freelist: make sure that it allows to re-set bits that are already set
-    and to delete bits that are already deleted (to make operations
-    idempotent for recovery)
-    x add tests
-
-x look at Peter's mail - sometimes, ham_env_create_db returns
-    HAM_INTERNAL_ERROR (only win32, C++ API, Windows 7)
-    x replace HAM_INTERNAL_ERROR with asserts
-    x OR use the error logger to write additional information
-
-x a typical lessfs run has many many seeks - where do they come from?
-    -> pread/pwrite was not checked correctly in configure.in
-
-x Mark reported an error after kill -9 (with Txn, 2.0.2)
-    i managed to reproduce this twice; a blob-page is corrupt
-    x add instrumentation to Page::flush, Changeset::flush and Log::flush; 
-            write to stdout
-    x fsync's were missing; make flushing of changeset more robust
-    x then try to reproduce once more and see if that page was (or was not)
-        flushed
-    sudo ./mklessfs /etc/lessfs.cfg
-    sudo ./lessfs /etc/lessfs.cfg /home/chris/tmp/data/dir/ -f -d
-    sudo dd bs=1024 if=/dev/sda of=/home/chris/tmp/data/dir/test.img
-    sudo pkill -9 lessfs
-    sudo sh check.sh
-
-x identify a set of 3 testfiles (long running) and let them run in different
-    configurations; track the times. There should be few enough tests to be
-    able to compare the times manually!
-    x collect all scripts, run them
-    x add to release process
-    x create perl script which compares the two latest revisions
-    x merge perftest.sh with perl script
-    x testfiles/4/300.tst is still too big
-    x --progress no longer works
-    x run it for 2.0.2
-
-x support MS Visual Studio 2010
-
-o is there a way to group all changeset flushes of a Transaction into one
-    changeset? that way we would avoid the frequent syncs
-    o would have to remove all of assert(changeset.is_empty())
-    o but we can use that assert prior to txn_begin
-
-
-
+    o unittests
 
 
 o more fine-grained locking

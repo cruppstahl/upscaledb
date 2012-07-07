@@ -1430,10 +1430,17 @@ retry:
         // now lookup in the btree
         st=be->find(txn, key, record, flags);
         if (st==HAM_KEY_NOT_FOUND) {
-            if (txnkey.data)
+            if (!(key->flags&HAM_KEY_USER_ALLOC) && txnkey.data) {
+                arena->resize(txnkey.size);
+                key->data=arena->get_ptr();
+            }
+            if (txnkey.data) {
+                memcpy(key->data, txnkey.data, txnkey.size);
                 db->get_env()->get_allocator()->free(txnkey.data);
-            ham_key_set_intflags(key,
-                (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+            }
+            key->size=txnkey.size;
+            key->_flags=txnkey._flags;
+
             return (copy_record(db, txn, op, record));
         }
         else if (st)
@@ -1475,7 +1482,7 @@ retry:
             return (st);
         }
         else { // use txn
-            if (!key->flags&HAM_KEY_USER_ALLOC && txnkey.data) {
+            if (!(key->flags&HAM_KEY_USER_ALLOC) && txnkey.data) {
                 arena->resize(txnkey.size);
                 key->data=arena->get_ptr();
             }
