@@ -13,6 +13,9 @@
 #include "config.h"
 
 #include <string.h>
+#ifndef HAM_OS_WIN32
+#  include <libgen.h>
+#endif
 
 #include "db.h"
 #include "device.h"
@@ -747,7 +750,7 @@ Journal::get_path(int i)
 		path+=ext;
 #else
         path+="/";
-        path+=::basename(m_env->get_filename().c_str());
+		path+=::basename((char *)m_env->get_filename().c_str());
 #endif
     }
     if (i==0)
