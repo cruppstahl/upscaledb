@@ -1071,9 +1071,7 @@ _local_fun_create_db(Environment *env, Database *db,
 
 bail:
     /* if logging is enabled: flush the changeset and the header page */
-    if (st==0
-            && env->get_flags()&HAM_ENABLE_RECOVERY
-            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
+    if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
         ham_u64_t lsn;
         env->get_changeset().add_page(env->get_header_page());
         st=env_get_incremented_lsn(env, &lsn);
@@ -1575,10 +1573,9 @@ env_get_incremented_lsn(Environment *env, ham_u64_t *lsn)
         }
         return (0);
     }
-    else {
-        ham_assert(!"need lsn but have no journal!", (""));
-        return (HAM_INTERNAL_ERROR);
-    }
+
+    // otherwise return a dummy value
+    return (1);
 }
 
 static ham_status_t

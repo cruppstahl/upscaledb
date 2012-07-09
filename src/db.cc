@@ -41,9 +41,6 @@
 
 #define PURGE_THRESHOLD       (500 * 1024 * 1024) /* 500 mb */
 #define DUMMY_LSN                               1
-#define SHITTY_HACK_FIX_ME                    999
-#define SHITTY_HACK_DONT_MOVE_DUPLICATE 0xf000000
-#define SHITTY_HACK_REACHED_EOF         0xf100000
 
 typedef struct
 {

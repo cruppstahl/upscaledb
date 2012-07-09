@@ -64,6 +64,7 @@ o clean up and refactor the code
     o btree_key.cc
     o btree_key.h
     o btree_stats.cc
+        should use arena for lower/upper bounds
     o btree_stats.h
     o btree.cc
     o btree_check.cc
@@ -82,6 +83,7 @@ o clean up and refactor the code
     o cursor.cc
     o cursor.h
     o db.cc
+        should use arena for get_extended_key
     o db.h
     o env.cc
     o env.h

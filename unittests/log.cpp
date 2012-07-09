@@ -342,6 +342,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, createAndEraseDbTest);
     }
 
 protected:
@@ -994,6 +995,30 @@ public:
         BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
 #endif
+    }
+
+    void createAndEraseDbTest()
+    {
+        /* close m_db, otherwise ham_env_create fails on win32 */
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_RECOVERY, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 333, 444, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 444, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 };
 
