@@ -99,12 +99,12 @@ class DeviceImplementation {
 
     /** sets the pagesize */
     void set_pagesize(ham_size_t ps) {
-        m_pagesize=ps;
+      m_pagesize=ps;
     }
 
     /** gets the pagesize */
     ham_size_t get_pagesize() {
-        return (m_pagesize);
+      return (m_pagesize);
     }
 
   protected:
@@ -128,51 +128,51 @@ class DeviceImplDisk : public DeviceImplementation {
     /** Create a new device */
     virtual ham_status_t create(const char *filename, ham_u32_t flags, 
                 ham_u32_t mode) {
-        return (os_create(filename, flags, mode, &m_fd));
+      return (os_create(filename, flags, mode, &m_fd));
     }
 
     /** opens an existing device */
     virtual ham_status_t open(const char *filename, ham_u32_t flags) {
-        return (os_open(filename, flags, &m_fd));
+      return (os_open(filename, flags, &m_fd));
     }
 
     /** closes the device */
     virtual ham_status_t close() {
-        ham_status_t st=os_close(m_fd);
-        if (st==HAM_SUCCESS)
-            m_fd=HAM_INVALID_FD;
-        return (st);
+      ham_status_t st = os_close(m_fd);
+      if (st == HAM_SUCCESS)
+        m_fd = HAM_INVALID_FD;
+      return (st);
     }
 
     /** flushes the device */
     virtual ham_status_t flush() {
-        return (os_flush(m_fd));
+      return (os_flush(m_fd));
     }
 
     /** truncate/resize the device */
     virtual ham_status_t truncate(ham_offset_t newsize) {
-        return (os_truncate(m_fd, newsize));
+      return (os_truncate(m_fd, newsize));
     }
 
     /** returns true if the device is open */
     virtual bool is_open() {
-        return (HAM_INVALID_FD!=m_fd);
+      return (HAM_INVALID_FD != m_fd);
     }
 
     /** get the current file/storage size */
     virtual ham_status_t get_filesize(ham_offset_t *length) {
-        *length=0;
-        return (os_get_filesize(m_fd, length));
+      *length = 0;
+      return (os_get_filesize(m_fd, length));
     }
 
     /** seek position in a file */
     virtual ham_status_t seek(ham_offset_t offset, int whence) {
-	    return (os_seek(m_fd, offset, whence));
+      return (os_seek(m_fd, offset, whence));
     }
 
     /** tell the position in a file */
     virtual ham_status_t tell(ham_offset_t *offset) {
-	    return (os_tell(m_fd, offset));
+      return (os_tell(m_fd, offset));
     }
 
     /** reads from the device; this function does not use mmap */
@@ -194,10 +194,10 @@ class DeviceImplDisk : public DeviceImplementation {
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
-        ham_status_t st=os_get_filesize(m_fd, address);
-        if (st)
-            return (st);
-        return (os_truncate(m_fd, (*address)+size));
+      ham_status_t st = os_get_filesize(m_fd, address);
+      if (st)
+        return (st);
+      return (os_truncate(m_fd, (*address)+size));
     }
 
     /**
@@ -231,61 +231,61 @@ class DeviceImplInMemory : public DeviceImplementation {
     /** Create a new device */
     virtual ham_status_t create(const char *filename, ham_u32_t flags, 
                 ham_u32_t mode) {
-        m_is_open=true;
-        return (0);
+      m_is_open = true;
+      return (0);
     }
 
     /** opens an existing device */
     virtual ham_status_t open(const char *filename, ham_u32_t flags) {
-        ham_assert(!"can't open an in-memory-device");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"can't open an in-memory-device");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** closes the device */
     virtual ham_status_t close() {
-        ham_assert(m_is_open);
-        m_is_open=false;
-        return (HAM_SUCCESS);
+      ham_assert(m_is_open);
+      m_is_open = false;
+      return (HAM_SUCCESS);
     }
 
     /** flushes the device */
     virtual ham_status_t flush() {
-        return (HAM_SUCCESS);
+      return (HAM_SUCCESS);
     }
 
     /** truncate/resize the device */
     virtual ham_status_t truncate(ham_offset_t newsize) {
-        return (HAM_SUCCESS);
+      return (HAM_SUCCESS);
     }
 
     /** returns true if the device is open */
     virtual bool is_open() {
-        return (m_is_open);
+      return (m_is_open);
     }
 
     /** get the current file/storage size */
     virtual ham_status_t get_filesize(ham_offset_t *length) {
-        ham_assert(!"this operation is not possible for in-memory-databases");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"this operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** seek position in a file */
     virtual ham_status_t seek(ham_offset_t offset, int whence) {
-        ham_assert(!"can't seek in an in-memory-device");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"can't seek in an in-memory-device");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** tell the position in a file */
     virtual ham_status_t tell(ham_offset_t *offset) {
-        ham_assert(!"can't tell in an in-memory-device");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"can't tell in an in-memory-device");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** reads from the device; this function does not use mmap */
     virtual ham_status_t read(ham_offset_t offset, void *buffer, 
                 ham_offset_t size) {
-        ham_assert(!"operation is not possible for in-memory-databases");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes to the device; this function does not use mmap,
@@ -293,27 +293,27 @@ class DeviceImplInMemory : public DeviceImplementation {
      * filters */
     virtual ham_status_t write(ham_offset_t offset, void *buffer, 
                 ham_offset_t size) {
-        ham_assert(!"operation is not possible for in-memory-databases");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** reads a page from the device; this function CAN use mmap */
     virtual ham_status_t read_page(Page *page) {
-        ham_assert(!"operation is not possible for in-memory-databases");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes a page to the device */
     virtual ham_status_t write_page(Page *page) {
-        ham_assert(!"operation is not possible for in-memory-databases");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
-        ham_assert(!"can't alloc from an in-memory-device");
-        return (HAM_NOT_IMPLEMENTED);
+      ham_assert(!"can't alloc from an in-memory-device");
+      return (HAM_NOT_IMPLEMENTED);
     }
 
     /**
@@ -339,126 +339,126 @@ class Device {
     /** constructor */
     Device(Environment *env, ham_u32_t flags) 
       : m_env(env), m_flags(flags) { 
-        if (flags&HAM_IN_MEMORY_DB)
-            m_impl=new DeviceImplInMemory(this);
-        else
-            m_impl=new DeviceImplDisk(this);
+      if (flags & HAM_IN_MEMORY_DB)
+        m_impl = new DeviceImplInMemory(this);
+      else
+        m_impl = new DeviceImplDisk(this);
 
-        /*
-         * initialize the pagesize with a default value - this will be
-         * overwritten i.e. by ham_open, ham_create when the pagesize 
-         * of the file is known
-         */
-        set_pagesize(get_pagesize());
+      /*
+       * initialize the pagesize with a default value - this will be
+       * overwritten i.e. by ham_open, ham_create when the pagesize 
+       * of the file is known
+       */
+      set_pagesize(get_pagesize());
     }
 
     /** virtual destructor */
     ~Device() { 
-        ScopedLock lock(m_mutex);
-        delete m_impl;
-        m_impl=0;
+      ScopedLock lock(m_mutex);
+      delete m_impl;
+      m_impl = 0;
     }
 
     /** set the flags */
     void set_flags(ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
-        m_flags=flags;
+      ScopedLock lock(m_mutex);
+      m_flags = flags;
     }
 
     /** get the flags */
     ham_u32_t get_flags() {
-        ScopedLock lock(m_mutex);
-        return (m_flags);
+      ScopedLock lock(m_mutex);
+      return (m_flags);
     }
 
     /** Create a new device */
     ham_status_t create(const char *filename, ham_u32_t flags, 
                 ham_u32_t mode) {
-        ScopedLock lock(m_mutex);
-        m_flags=flags;
-        return (m_impl->create(filename, flags, mode));
+      ScopedLock lock(m_mutex);
+      m_flags = flags;
+      return (m_impl->create(filename, flags, mode));
     }
 
     /** opens an existing device */
     ham_status_t open(const char *filename, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
-        m_flags=flags;
-        return (m_impl->open(filename, flags));
+      ScopedLock lock(m_mutex);
+      m_flags = flags;
+      return (m_impl->open(filename, flags));
     }
 
     /** closes the device */
     ham_status_t close() {
-        ScopedLock lock(m_mutex);
-        return (m_impl->close());
+      ScopedLock lock(m_mutex);
+      return (m_impl->close());
     }
 
     /** flushes the device */
     ham_status_t flush() {
-        ScopedLock lock(m_mutex);
-        return (m_impl->flush());
+      ScopedLock lock(m_mutex);
+      return (m_impl->flush());
     }
 
     /** truncate/resize the device */
     ham_status_t truncate(ham_offset_t newsize) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->truncate(newsize));
+      ScopedLock lock(m_mutex);
+      return (m_impl->truncate(newsize));
     }
 
     /** returns true if the device is open */
     bool is_open() {
-        ScopedLock lock(m_mutex);
-        return (m_impl->is_open());
+      ScopedLock lock(m_mutex);
+      return (m_impl->is_open());
     }
 
     /** get the current file/storage size */
     ham_status_t get_filesize(ham_offset_t *length) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->get_filesize(length));
+      ScopedLock lock(m_mutex);
+      return (m_impl->get_filesize(length));
     }
 
     /** seek position in a file */
     ham_status_t seek(ham_offset_t offset, int whence) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->seek(offset, whence));
+      ScopedLock lock(m_mutex);
+      return (m_impl->seek(offset, whence));
     }
 
     /** tell the position in a file */
     ham_status_t tell(ham_offset_t *offset) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->tell(offset));
+      ScopedLock lock(m_mutex);
+      return (m_impl->tell(offset));
     }
 
     /** reads from the device; this function does not use mmap */
     ham_status_t read(ham_offset_t offset, void *buffer, ham_offset_t size) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->read(offset, buffer, size));
+      ScopedLock lock(m_mutex);
+      return (m_impl->read(offset, buffer, size));
     }
 
     /** writes to the device; this function does not use mmap,
      * and is responsible for writing the data is run through the file 
      * filters */
     ham_status_t write(ham_offset_t offset, void *buffer, ham_offset_t size) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->write(offset, buffer, size));
+      ScopedLock lock(m_mutex);
+      return (m_impl->write(offset, buffer, size));
     }
 
     /** reads a page from the device; this function CAN use mmap */
     ham_status_t read_page(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->read_page(page));
+      ScopedLock lock(m_mutex);
+      return (m_impl->read_page(page));
     }
 
     /** writes a page to the device */
     ham_status_t write_page(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->write_page(page));
+      ScopedLock lock(m_mutex);
+      return (m_impl->write_page(page));
     }
 
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
     ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->alloc(size, address));
+      ScopedLock lock(m_mutex);
+      return (m_impl->alloc(size, address));
     }
 
     /**
@@ -470,32 +470,32 @@ class Device {
      * function will assert that the page is not dirty.
      */
     ham_status_t alloc_page(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->alloc_page(page));
+      ScopedLock lock(m_mutex);
+      return (m_impl->alloc_page(page));
     }
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
     ham_status_t free_page(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (m_impl->free_page(page));
+      ScopedLock lock(m_mutex);
+      return (m_impl->free_page(page));
     }
 
     /** get the Environment */
     Environment *get_env() {
-        ScopedLock lock(m_mutex);
-        return (m_env);
+      ScopedLock lock(m_mutex);
+      return (m_env);
     }
 
     /** set the pagesize for this device */
     void set_pagesize(ham_size_t pagesize) {
-        ScopedLock lock(m_mutex);
-        m_impl->set_pagesize(pagesize);
+      ScopedLock lock(m_mutex);
+      m_impl->set_pagesize(pagesize);
     }
 
     /** get the pagesize for this device */
     ham_size_t get_pagesize() {
-        ScopedLock lock(m_mutex);
-        return (m_impl->get_pagesize());
+      ScopedLock lock(m_mutex);
+      return (m_impl->get_pagesize());
     }
 
   protected:
