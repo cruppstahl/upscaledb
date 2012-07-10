@@ -44,7 +44,7 @@ class ErrorInducer
     }
 
     ham_status_t induce(Action action) {
-      ham_assert(m_state[action].loops >= 0, (""));
+      ham_assert(m_state[action].loops >= 0);
       if (m_state[action].loops > 0 && --m_state[action].loops == 0)
         return (m_state[action].error);
       return (0);

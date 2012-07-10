@@ -265,7 +265,7 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
-        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 #endif
 
         globalstats->query_count++;
@@ -286,7 +286,7 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
-        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 #endif
 
         globalstats->insert_query_count++;
@@ -307,7 +307,7 @@ db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 
 #ifdef HAM_DEBUG
         ham_u16_t bucket = ham_bitcount2bucket_index(key_size / DB_CHUNKSIZE);
-        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+        ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 #endif
 
         globalstats->erase_query_count++;
@@ -372,7 +372,7 @@ stats_update_fail_oob(int op, Database *db, ham_size_t cost,
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
-                || op == HAM_OPERATION_STATS_ERASE, (0));
+                || op == HAM_OPERATION_STATS_ERASE);
 
     opstats->btree_last_page_sq_hits = 0; /* reset */
 }
@@ -386,7 +386,7 @@ stats_update_fail(int op, Database *db, ham_size_t cost,
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
                 || op == HAM_OPERATION_STATS_INSERT
-                || op == HAM_OPERATION_STATS_ERASE, (0));
+                || op == HAM_OPERATION_STATS_ERASE);
 
     /*
      * Again, cost is the fastest riser, so we check that one against a high 
@@ -421,8 +421,8 @@ stats_update(int op, Database *db, Page *page, ham_size_t cost,
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
                 || op == HAM_OPERATION_STATS_INSERT
-                || op == HAM_OPERATION_STATS_ERASE, (0));
-    ham_assert(page, (0));
+                || op == HAM_OPERATION_STATS_ERASE);
+    ham_assert(page);
 
     /*
      * Again, cost is the fastest riser, so we check that one against a high water mark
@@ -485,7 +485,7 @@ btree_stats_page_is_nuked(Database *db, Page *page,
 
         ham_assert(i == HAM_OPERATION_STATS_FIND
                     || i == HAM_OPERATION_STATS_INSERT
-                    || i == HAM_OPERATION_STATS_ERASE, (0));
+                    || i == HAM_OPERATION_STATS_ERASE);
 
         if (opstats->btree_last_page_addr == page->get_self())
         {
@@ -496,7 +496,7 @@ btree_stats_page_is_nuked(Database *db, Page *page,
 
     if (dbdata->lower_bound_page_address == page->get_self()) {
         if (dbdata->lower_bound.data) {
-            ham_assert(env->get_allocator() != 0, (0));
+            ham_assert(env->get_allocator() != 0);
             env->get_allocator()->free(dbdata->lower_bound.data);
         }
         memset(&dbdata->lower_bound, 0, sizeof(dbdata->lower_bound));
@@ -507,7 +507,7 @@ btree_stats_page_is_nuked(Database *db, Page *page,
 
 	if (dbdata->upper_bound_page_address == page->get_self()) {
         if (dbdata->upper_bound.data) {
-            ham_assert(env->get_allocator() != 0, (0));
+            ham_assert(env->get_allocator() != 0);
             env->get_allocator()->free(dbdata->upper_bound.data);
         }
         memset(&dbdata->upper_bound, 0, sizeof(dbdata->upper_bound));
@@ -531,11 +531,11 @@ btree_stats_update_any_bound(int op, Database *db, Page *page,
     dbdata->last_insert_was_prepend=0;
     dbdata->last_insert_was_append=0;
 
-    ham_assert(env->get_allocator() != 0, (0));
-    ham_assert(btree_node_is_leaf(node), (0));
+    ham_assert(env->get_allocator() != 0);
+    ham_assert(btree_node_is_leaf(node));
     if (!btree_node_get_left(node)) {
         /* this is the leaf page which carries the lower bound key */
-        ham_assert(btree_node_get_count(node) == 0 ? !btree_node_get_right(node) : 1, (0));
+        ham_assert(btree_node_get_count(node) == 0 ? !btree_node_get_right(node) : 1);
         if (btree_node_get_count(node) == 0)
         {
             /* range is empty 
@@ -575,8 +575,8 @@ btree_stats_update_any_bound(int op, Database *db, Page *page,
                 dbdata->upper_bound_page_address = 0; /* page->get_self(); */
                 dbdata->lower_bound_set = HAM_TRUE;
                 dbdata->upper_bound_set = HAM_FALSE; /* cannot be TRUE or subsequent updates for single record carrying tables may fail */
-                //ham_assert(dbdata->lower_bound.data != NULL, (0));
-                ham_assert(dbdata->lower_bound_page_address != 0, (0));
+                //ham_assert(dbdata->lower_bound.data != NULL);
+                ham_assert(dbdata->lower_bound_page_address != 0);
             }
         }
         else
@@ -622,8 +622,8 @@ btree_stats_update_any_bound(int op, Database *db, Page *page,
                 {
                     ham_assert(dbdata->lower_bound.data == NULL ?
                         dbdata->lower_bound.size == 0 : 
-                        dbdata->lower_bound.size > 0, (0));
-                    ham_assert(dbdata->lower_bound_page_address != 0, (0));
+                        dbdata->lower_bound.size > 0);
+                    ham_assert(dbdata->lower_bound_page_address != 0);
                 }
                 if (op==HAM_OPERATION_STATS_INSERT)
                     dbdata->last_insert_was_prepend=1;
@@ -635,7 +635,7 @@ btree_stats_update_any_bound(int op, Database *db, Page *page,
         /* this is the leaf page which carries the upper bound key */
         ham_assert(btree_node_get_count(node) == 0 
                 ? !btree_node_get_left(node) 
-                : 1, (0));
+                : 1);
         if (btree_node_get_count(node) != 0) {
             /* 
              * range is non-empty; the other case has already been handled 
@@ -701,8 +701,8 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_FIND);
     ham_u32_t flags = hints->flags;
 
-    ham_assert(hints->key_is_out_of_bounds == HAM_FALSE, (0));
-    ham_assert(hints->try_fast_track == HAM_FALSE, (0));
+    ham_assert(hints->key_is_out_of_bounds == HAM_FALSE);
+    ham_assert(hints->try_fast_track == HAM_FALSE);
 
     /*
     we can only give some possibly helpful hints, when we
@@ -854,7 +854,7 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
     been skipped so btree_find() will take the long (classic) route towards finding out that
     a lower or upper bound was hit.
     */
-    ham_assert(!(key->_flags & KEY_IS_EXTENDED), (0));
+    ham_assert(!(key->_flags & KEY_IS_EXTENDED));
     key->_flags &= ~KEY_IS_EXTENDED;
 
     if (!dam_is_set(flags, HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)
@@ -876,11 +876,11 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
             else {
                 int cmp;
             
-                ham_assert(dbdata->lower_bound_index == 0, (0));
+                ham_assert(dbdata->lower_bound_index == 0);
                 ham_assert(dbdata->lower_bound.data == NULL ?
                     dbdata->lower_bound.size == 0 : 
-                    dbdata->lower_bound.size > 0, (0));
-                ham_assert(dbdata->lower_bound_page_address != 0, (0));
+                    dbdata->lower_bound.size > 0);
+                ham_assert(dbdata->lower_bound_page_address != 0);
                 cmp = db->compare_keys(key, &dbdata->lower_bound);
 
                 if (cmp < 0) {
@@ -894,11 +894,11 @@ btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key)
                 && !dam_is_set(flags, HAM_FIND_LT_MATCH)) {
             int cmp;
             
-            ham_assert(dbdata->upper_bound_index >= 0, (0));
+            ham_assert(dbdata->upper_bound_index >= 0);
             ham_assert(dbdata->upper_bound.data == NULL ?
                 dbdata->upper_bound.size == 0 : 
-                dbdata->upper_bound.size > 0, (0));
-            ham_assert(dbdata->upper_bound_page_address != 0, (0));
+                dbdata->upper_bound.size > 0);
+            ham_assert(dbdata->upper_bound_page_address != 0);
             cmp = db->compare_keys(key, &dbdata->upper_bound);
 
             if (cmp > 0)
@@ -917,9 +917,9 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
     btree_cursor_t *cursor = hints->cursor ? 
         ((Cursor *)(hints->cursor))->get_btree_cursor() : 0;
 
-    ham_assert(hints->force_append == HAM_FALSE, (0));
-    ham_assert(hints->force_prepend == HAM_FALSE, (0));
-    ham_assert(hints->try_fast_track == HAM_FALSE, (0));
+    ham_assert(hints->force_append == HAM_FALSE);
+    ham_assert(hints->force_prepend == HAM_FALSE);
+    ham_assert(hints->try_fast_track == HAM_FALSE);
 
     /* if the previous insert-operation replaced the upper_bound (or 
      * lower_bound) key then it was actually an append (or prepend) operation.
@@ -933,7 +933,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
 
     if ((hints->flags & HAM_HINT_APPEND) && (cursor)) {
         if (!((Cursor *)hints->cursor)->is_nil(0)) {
-            ham_assert(db == btree_cursor_get_db(cursor), (0));
+            ham_assert(db == btree_cursor_get_db(cursor));
 
             /*
              fetch the page of the cursor. We deem the cost of an uncoupled cursor 
@@ -944,9 +944,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
             if (btree_cursor_is_coupled(cursor)) {
                 Page *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
-                ham_assert(btree_node_is_leaf(node), 
-                            ("cursor points to internal node"));
-                //ham_assert(!btree_node_get_right(node), ("cursor points to leaf node which is NOT the uppermost/last one"));
+                ham_assert(btree_node_is_leaf(node));
                 /*
                  * if cursor is not coupled to the LAST (right-most) leaf
                  * in the Database, it does not make sense to append
@@ -966,7 +964,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
     else if ((hints->flags & HAM_HINT_PREPEND) && (cursor))
     {
         if (!((Cursor *)hints->cursor)->is_nil(0)) {
-            ham_assert(db == btree_cursor_get_db(cursor), (0));
+            ham_assert(db == btree_cursor_get_db(cursor));
 
             /*
              fetch the page of the cursor. We deem the cost of an uncoupled cursor 
@@ -977,9 +975,7 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
             if (btree_cursor_is_coupled(cursor)) {
                 Page *page = btree_cursor_get_coupled_page(cursor);
                 btree_node_t *node = page_get_btree_node(page);
-                ham_assert(btree_node_is_leaf(node), 
-                        ("cursor points to internal node"));
-                //ham_assert(!btree_node_get_left(node), ("cursor points to leaf node which is NOT the lowest/first one"));
+                ham_assert(btree_node_is_leaf(node));
                 /*
                  * if cursor is not coupled to the FIRST (left-most) leaf
                  * in the Database, it does not make sense to prepend
@@ -1012,14 +1008,14 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
     The only advantage of manually specifying HAM_HINT_APPEND/_PREPEND is that it can save you
     two key comparisons in here.
     */
-    ham_assert(!(key->_flags & KEY_IS_EXTENDED), (0));
+    ham_assert(!(key->_flags & KEY_IS_EXTENDED));
     key->_flags &= ~KEY_IS_EXTENDED;
 
     if (!hints->try_fast_track)
     {
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_INSERT);
 
-        ham_assert(opstats != NULL, (0));
+        ham_assert(opstats != NULL);
 
         if (hints->flags & (HAM_HINT_APPEND | HAM_HINT_PREPEND))
         {
@@ -1122,11 +1118,11 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
                 {
                     int cmp;
                     
-                    ham_assert(dbdata->lower_bound_index == 0, (0));
+                    ham_assert(dbdata->lower_bound_index == 0);
                     ham_assert(dbdata->lower_bound.data == NULL ?
                         dbdata->lower_bound.size == 0 : 
-                        dbdata->lower_bound.size > 0, (0));
-                    ham_assert(dbdata->lower_bound_page_address != 0, (0));
+                        dbdata->lower_bound.size > 0);
+                    ham_assert(dbdata->lower_bound_page_address != 0);
                     cmp = db->compare_keys(key, &dbdata->lower_bound);
 
                     if (cmp < 0)
@@ -1143,11 +1139,11 @@ btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key)
             {
                 int cmp;
                 
-                ham_assert(dbdata->upper_bound_index >= 0, (0));
+                ham_assert(dbdata->upper_bound_index >= 0);
                 ham_assert(dbdata->upper_bound.data == NULL ?
                     dbdata->upper_bound.size == 0 : 
-                    dbdata->upper_bound.size > 0, (0));
-                ham_assert(dbdata->upper_bound_page_address != 0, (0));
+                    dbdata->upper_bound.size > 0);
+                ham_assert(dbdata->upper_bound_page_address != 0);
                 cmp = db->compare_keys(key, &dbdata->upper_bound);
 
                 if (cmp > 0)
@@ -1177,10 +1173,10 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db->get_perf_data();
 
-    ham_assert(hints->key_is_out_of_bounds == HAM_FALSE, (0));
-    ham_assert(hints->try_fast_track == HAM_FALSE, (0));
+    ham_assert(hints->key_is_out_of_bounds == HAM_FALSE);
+    ham_assert(hints->try_fast_track == HAM_FALSE);
 
-    ham_assert(!(key->_flags & KEY_IS_EXTENDED), (0));
+    ham_assert(!(key->_flags & KEY_IS_EXTENDED));
     key->_flags &= ~KEY_IS_EXTENDED;
 
     /* forget about deleting a key when it's out of bounds */
@@ -1199,11 +1195,11 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
         {
             int cmp;
             
-            ham_assert(dbdata->lower_bound_index == 0, (0));
+            ham_assert(dbdata->lower_bound_index == 0);
             ham_assert(dbdata->lower_bound.data == NULL ?
                 dbdata->lower_bound.size == 0 : 
-                dbdata->lower_bound.size > 0, (0));
-            ham_assert(dbdata->lower_bound_page_address != 0, (0));
+                dbdata->lower_bound.size > 0);
+            ham_assert(dbdata->lower_bound_page_address != 0);
             cmp = db->compare_keys(key, &dbdata->lower_bound);
 
             if (cmp < 0)
@@ -1218,11 +1214,11 @@ btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key)
     {
         int cmp;
         
-        ham_assert(dbdata->upper_bound_index >= 0, (0));
+        ham_assert(dbdata->upper_bound_index >= 0);
         ham_assert(dbdata->upper_bound.data == NULL ?
             dbdata->upper_bound.size == 0 : 
-            dbdata->upper_bound.size > 0, (0));
-        ham_assert(dbdata->upper_bound_page_address != 0, (0));
+            dbdata->upper_bound.size > 0);
+        ham_assert(dbdata->upper_bound_page_address != 0);
         cmp = db->compare_keys(key, &dbdata->upper_bound);
 
         if (cmp > 0)
@@ -1271,11 +1267,11 @@ btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata)
 
     /* trash the upper/lower bound keys, when set: */
     if (dbdata->upper_bound.data) {
-        ham_assert(env->get_allocator() != 0, (0));
+        ham_assert(env->get_allocator() != 0);
         env->get_allocator()->free(dbdata->upper_bound.data);
     }
     if (dbdata->lower_bound.data) {
-        ham_assert(env->get_allocator() != 0, (0));
+        ham_assert(env->get_allocator() != 0);
         env->get_allocator()->free(dbdata->lower_bound.data);
     }
     memset(dbdata, 0, sizeof(*dbdata));
@@ -1289,7 +1285,7 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     ham_bool_t collect_globdata;
     ham_bool_t collect_dbdata;
 
-    ham_assert(dst, (0));
+    ham_assert(dst);
 
     /* copy the user-specified selectors before we zero the whole darn thing */
     collect_globdata = (!dst->dont_collect_global_stats && env);
@@ -1302,18 +1298,18 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     if (collect_globdata) {
         ham_runtime_statistics_globdata_t *globalstats;
 
-        ham_assert(env, (0));
+        ham_assert(env);
         globalstats = env->get_global_perf_data();
-        ham_assert(globalstats, (0));
+        ham_assert(globalstats);
 
         dst->global_stats = *globalstats;
     }
     if (collect_dbdata) {
         ham_runtime_statistics_dbdata_t *dbdata;
 
-        ham_assert(db, (0));
+        ham_assert(db);
         dbdata = db->get_perf_data();
-        ham_assert(dbdata, (0));
+        ham_assert(dbdata);
 
         dst->db_stats = *dbdata;
     }

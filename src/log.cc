@@ -289,8 +289,8 @@ Log::recover()
                 goto bail;
         }
 
-        ham_assert(page->get_self()==entry.offset, (""));
-        ham_assert(m_env->get_pagesize()==entry.data_size, (""));
+        ham_assert(page->get_self()==entry.offset);
+        ham_assert(m_env->get_pagesize()==entry.data_size);
 
         /* overwrite the page data */
         memcpy(page->get_pers(), data, entry.data_size);

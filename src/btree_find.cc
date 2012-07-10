@@ -60,12 +60,11 @@ BtreeBackend::do_find(Transaction *txn, Cursor *hcursor, ham_key_t *key,
          * should be discarded.
          */
         st = db_fetch_page(&page, db, hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
-		ham_assert(st ? !page : 1, (0));
 		if (st)
 			return st;
         if (page) {
             node=page_get_btree_node(page);
-            ham_assert(btree_node_is_leaf(node), (0));
+            ham_assert(btree_node_is_leaf(node));
 
             /* we need at least 3 keys in the node: edges + middle match */
 			if (btree_node_get_count(node) < 3)
@@ -178,7 +177,7 @@ no_fast_track:
                      */
                     if (!btree_node_get_left(node)) {
                         btree_stats_update_find_fail(db, &hints);
-                        ham_assert(node == page_get_btree_node(page), (0));
+                        ham_assert(node == page_get_btree_node(page));
                         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                     db, page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
@@ -212,7 +211,7 @@ no_fast_track:
                     if (!btree_node_get_right(node))
                     {
                         btree_stats_update_find_fail(db, &hints);
-                        ham_assert(node == page_get_btree_node(page), (0));
+                        ham_assert(node == page_get_btree_node(page));
                         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                 db, page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
@@ -277,8 +276,7 @@ no_fast_track:
                                 /* otherwise load the right sibling page */
                                 if (!btree_node_get_right(node)) {
                                     btree_stats_update_find_fail(db, &hints);
-                                    ham_assert(node==page_get_btree_node(page),
-                                                    (0));
+                                    ham_assert(node==page_get_btree_node(page));
                                     btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                             db, page, key, 
                                             hints.original_flags, -1);
@@ -300,7 +298,7 @@ no_fast_track:
                         }
                         else {
                             btree_stats_update_find_fail(db, &hints);
-                            ham_assert(node == page_get_btree_node(page), (0));
+                            ham_assert(node == page_get_btree_node(page));
                             btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                     db, page, key, hints.original_flags, -1);
                             return HAM_KEY_NOT_FOUND;
@@ -333,7 +331,7 @@ no_fast_track:
                     /* otherwise load the right sibling page */
                     if (!btree_node_get_right(node)) {
                         btree_stats_update_find_fail(db, &hints);
-                        ham_assert(node == page_get_btree_node(page), (0));
+                        ham_assert(node == page_get_btree_node(page));
                         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                                 db, page, key, hints.original_flags, -1);
                         return (HAM_KEY_NOT_FOUND);
@@ -357,9 +355,9 @@ no_fast_track:
 
     if (idx<0) {
         btree_stats_update_find_fail(db, &hints);
-        ham_assert(node, (0));
-        ham_assert(page, (0));
-        ham_assert(node == page_get_btree_node(page), (0));
+        ham_assert(node);
+        ham_assert(page);
+        ham_assert(node == page_get_btree_node(page));
         btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
                 db, page, key, hints.original_flags, -1);
         return (HAM_KEY_NOT_FOUND);
@@ -370,10 +368,8 @@ no_fast_track:
 
     /* set the cursor-position to this key */
     if (cursor) {
-        ham_assert(!btree_cursor_is_uncoupled(cursor), 
-                ("coupling an uncoupled cursor, but need a nil-cursor"));
-        ham_assert(!btree_cursor_is_coupled(cursor),
-                ("coupling a coupled cursor, but need a nil-cursor"));
+        ham_assert(!btree_cursor_is_uncoupled(cursor));
+        ham_assert(!btree_cursor_is_coupled(cursor));
         page->add_cursor(btree_cursor_get_parent(cursor));
         btree_cursor_set_flags(cursor, 
                 btree_cursor_get_flags(cursor)|BTREE_CURSOR_FLAG_COUPLED);
@@ -388,7 +384,7 @@ no_fast_track:
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
      * the reference counter
      */
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
 
     /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
      * is set: */
@@ -415,7 +411,7 @@ no_fast_track:
     }
 
     btree_stats_update_find(db, page, &hints);
-    ham_assert(node == page_get_btree_node(page), (0));
+    ham_assert(node == page_get_btree_node(page));
     btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND, 
             db, page, key, hints.original_flags, idx);
 

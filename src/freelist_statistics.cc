@@ -240,7 +240,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 		ham_u32_t position = entrystats->persisted_bits;
 
 		// should NOT use freel_get_max_bitsXX(f) here!
-		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
         entry->perf_data._dirty = HAM_TRUE;
 
@@ -315,7 +315,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 				entrystats->last_start = position;
 			for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
 				ham_assert(entrystats->last_start
-                    >= entrystats->per_size[b].first_start, (0));
+                    >= entrystats->per_size[b].first_start);
 			}
 		}
 	}
@@ -339,7 +339,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
                     &entry->perf_data._persisted_stats;
 
 		ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
-		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
         entry->perf_data._dirty = HAM_TRUE;
 
@@ -396,13 +396,12 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 			entrystats->last_start = position;
 		for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
 			ham_assert(entrystats->last_start
-                    >= entrystats->per_size[b].first_start, (0));
+                    >= entrystats->per_size[b].first_start);
 		}
 
 		if (entrystats->persisted_bits < position) {
 			/* overflow? reset this marker! */
-			ham_assert(entrystats->persisted_bits == 0,
-                ("Should not get here when not invoked from the [unit]tests!"));
+			ham_assert(entrystats->persisted_bits == 0);
 			if (hints->size_bits > entry->allocated_bits)
 				entrystats->persisted_bits = position;
 			else
@@ -440,7 +439,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
                     = &entry->perf_data._persisted_stats;
 
 		ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
-		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
+		ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
         entry->perf_data._dirty = HAM_TRUE;
 
@@ -456,7 +455,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 			ham_u16_t b;
 
 			ham_assert(entrystats->last_start
-                    >= entrystats->per_size[bucket].first_start, (0));
+                    >= entrystats->per_size[bucket].first_start);
 			for (b = 0; b <= bucket; b++) {
 				if (entrystats->per_size[b].first_start > position)
 					entrystats->per_size[b].first_start = position;
@@ -479,7 +478,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 			}
 			for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
 				ham_assert(entrystats->last_start
-                        >= entrystats->per_size[b].first_start, (0));
+                        >= entrystats->per_size[b].first_start);
 			}
 
 			position += size_bits;
@@ -489,21 +488,21 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 			if (entrystats->persisted_bits < position) {
 				globalstats->extend_count++;
 
-				ham_assert(entrystats->last_start < position, (0));
+				ham_assert(entrystats->last_start < position);
 				entrystats->persisted_bits = position;
 			}
 			else {
-				//ham_assert(entrystats->last_start >= position, (0));
+				//ham_assert(entrystats->last_start >= position);
 				globalstats->delete_count++;
 			}
 
-			ham_assert(entrystats->persisted_bits >= position, (0));
+			ham_assert(entrystats->persisted_bits >= position);
 
 			{
 				ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
-				ham_assert(entry_index >= 0, (0));
-				ham_assert(entry_index < freel_cache_get_count(fl), (0));
+				ham_assert(entry_index >= 0);
+				ham_assert(entry_index < freel_cache_get_count(fl));
 
 				for (b = 0; b <= bucket; b++) {
 					if (globalstats->first_page_with_free_space[b] > entry_index)
@@ -533,7 +532,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 				entrystats->last_start = position;
 			for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
 				ham_assert(entrystats->last_start
-                        >= entrystats->per_size[b].first_start, (0));
+                        >= entrystats->per_size[b].first_start);
 			}
 
 			if (entrystats->persisted_bits < position) {
@@ -548,8 +547,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 				 */
 				//globalstats->extend_count++;
 
-				ham_assert(entrystats->persisted_bits == 0,
-                    ("Should not get here when not invoked from the [unit]tests!"));
+				ham_assert(entrystats->persisted_bits == 0);
 				entrystats->persisted_bits = position +
                     size_bits + entry->allocated_bits;
 			}
@@ -561,8 +559,8 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 			if (ham_bucket_index2bitcount(bucket) > entry->allocated_bits) {
 				ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
-				ham_assert(entry_index >= 0, (0));
-				ham_assert(entry_index < freel_cache_get_count(fl), (0));
+				ham_assert(entry_index >= 0);
+				ham_assert(entry_index < freel_cache_get_count(fl));
 
 				/*
 				 * We can update this number ONLY WHEN we have an
@@ -598,10 +596,10 @@ freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
     ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
     ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
-    ham_assert(entry_index >= 0, (0));
-    ham_assert(entry_index < freel_cache_get_count(fl), (0));
+    ham_assert(entry_index >= 0);
+    ham_assert(entry_index < freel_cache_get_count(fl));
 
-    ham_assert(hints->page_span_width >= 1, (0));
+    ham_assert(hints->page_span_width >= 1);
 
     /*
      * We can update this number ONLY WHEN we have an allocation in the
@@ -641,10 +639,10 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
     ham_u32_t offset;
     ham_size_t pos;
     ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);
-    ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-    ham_assert(dst, (0));
-    ham_assert(dst->skip_init_offset == 0, (0));
-    ham_assert(dst->skip_step == 1, (0));
+    ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
+    ham_assert(dst);
+    ham_assert(dst->skip_init_offset == 0);
+    ham_assert(dst->skip_step == 1);
 
 #if 0 /* disabled printing of statistics */
     {
@@ -706,7 +704,7 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
 	determine where the search range starts; usually this is at the first 
 	freelist page.
 	*/
-	ham_assert(HAM_MAX_U32 >= dst->lower_bound_address / (DB_CHUNKSIZE * dst->freelist_pagesize_bits), (0));
+	ham_assert(HAM_MAX_U32 >= dst->lower_bound_address / (DB_CHUNKSIZE * dst->freelist_pagesize_bits));
 	pos = (ham_size_t)(dst->lower_bound_address / (DB_CHUNKSIZE * dst->freelist_pagesize_bits));
 	if (dst->start_entry < pos)
 		dst->start_entry = pos;
@@ -727,7 +725,7 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
     dst->page_span_width = 
         (dst->size_bits + dst->freelist_pagesize_bits - 1) 
             / dst->freelist_pagesize_bits;
-    ham_assert(dst->page_span_width >= 1, (0));
+    ham_assert(dst->page_span_width >= 1);
 
     /*
      * NOW that we have the range and everything to say things we are
@@ -882,8 +880,8 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
 
     ham_u32_t offset;
     ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);
-    ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD, (0));
-    ham_assert(dst, (0));
+    ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
+    ham_assert(dst);
 
     /*
      * we can decide to 'up' the skip/probe_step size in the hints when
@@ -986,9 +984,9 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
 #endif
 
     ham_assert(entrystats->last_start 
-            >= entrystats->per_size[bucket].first_start, (0));
+            >= entrystats->per_size[bucket].first_start);
     ham_assert(entrystats->persisted_bits 
-            >= entrystats->last_start, (0));
+            >= entrystats->last_start);
 
     /*
      * improve our start position, when we know there's nothing to be
@@ -1112,7 +1110,7 @@ freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst)
 {
     ham_bool_t collect_freelistdata;
 
-    ham_assert(dst, (0));
+    ham_assert(dst);
 
     /* copy the user-specified selectors before we zero the whole darn thing */
     collect_freelistdata = (!dst->dont_collect_freelist_stats && fl->get_env());

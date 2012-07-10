@@ -692,9 +692,9 @@ class Database
                         source->size, source->_flags, dest);
             if (st)
                 return st;
-            ham_assert(dest->data!=0, ("invalid extended key"));
+            ham_assert(dest->data!=0);
             /* dest->size is set by db->get_extended_key() */
-            ham_assert(dest->size == source->size, (0)); 
+            ham_assert(dest->size == source->size);
             /* the extended flag is set later, when this key is inserted */
             dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
         }

@@ -34,7 +34,7 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page,
     ham_status_t st;
     ham_record_t rec={0};
 
-    ham_assert(key->size>db_get_keysize(db), ("invalid keysize"));
+    ham_assert(key->size>db_get_keysize(db));
 
     *rid_ref = 0;
 
@@ -177,7 +177,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                         |HAM_DUPLICATE_INSERT_AFTER
                         |HAM_DUPLICATE_INSERT_FIRST
                         |HAM_DUPLICATE_INSERT_LAST
-                        |HAM_OVERWRITE)), (""));
+                        |HAM_OVERWRITE)));
         memset(entries, 0, sizeof(entries));
         if (!(oldflags&KEY_HAS_DUPLICATES)) 
         {
@@ -185,7 +185,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                             |HAM_DUPLICATE_INSERT_BEFORE
                             |HAM_DUPLICATE_INSERT_AFTER
                             |HAM_DUPLICATE_INSERT_FIRST
-                            |HAM_DUPLICATE_INSERT_LAST)), (""));
+                            |HAM_DUPLICATE_INSERT_LAST)));
             dupe_entry_set_flags(&entries[i], 
                     oldflags&(KEY_BLOB_SIZE_SMALL
                         |KEY_BLOB_SIZE_TINY
@@ -228,7 +228,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                             & (KEY_BLOB_SIZE_SMALL
                                 | KEY_BLOB_SIZE_TINY
                                 | KEY_BLOB_SIZE_EMPTY)))
-                    == (record->size>sizeof(ham_offset_t)), (0));
+                    == (record->size>sizeof(ham_offset_t)));
 
             if (record->size > sizeof(ham_offset_t)) 
             {

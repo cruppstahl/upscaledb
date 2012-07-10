@@ -40,8 +40,7 @@ btree_cursor_couple(btree_cursor_t *c)
     Environment *env = db->get_env();
     ham_u32_t dupe_id;
 
-    ham_assert(btree_cursor_is_uncoupled(c),
-            ("coupling a cursor which is not uncoupled"));
+    ham_assert(btree_cursor_is_uncoupled(c));
 
     /*
      * make a 'find' on the cached key; if we succeed, the cursor
@@ -398,7 +397,7 @@ btree_cursor_set_to_nil(btree_cursor_t *c)
 void
 btree_cursor_couple_to_other(btree_cursor_t *cu, btree_cursor_t *other)
 {
-    ham_assert(btree_cursor_is_coupled(other), (""));
+    ham_assert(btree_cursor_is_coupled(other));
     btree_cursor_set_to_nil(cu);
 
     btree_cursor_set_coupled_page(cu, btree_cursor_get_coupled_page(other));
@@ -432,12 +431,11 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
     if (btree_cursor_is_uncoupled(c) || btree_cursor_is_nil(c))
         return (0);
 
-    ham_assert(btree_cursor_get_coupled_page(c)!=0,
-            ("uncoupling a cursor which has no coupled page"));
+    ham_assert(btree_cursor_get_coupled_page(c)!=0);
 
     /* get the btree-entry of this key */
     node=page_get_btree_node(btree_cursor_get_coupled_page(c));
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /* copy the key */
@@ -537,7 +535,7 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record, ham_u32_t flags)
 
     /* get the btree node entry */
     node=page_get_btree_node(btree_cursor_get_coupled_page(c));
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     key=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /* copy the key flags, and remove all flags concerning the key size */
@@ -599,10 +597,10 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
      * the reference counter
      */
-    ham_assert(btree_cursor_is_coupled(c), ("move: cursor is not coupled"));
+    ham_assert(btree_cursor_is_coupled(c));
     page=btree_cursor_get_coupled_page(c);
     node=page_get_btree_node(page);
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     if (key) {
@@ -650,7 +648,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
-    ham_assert(key, ("invalid parameter"));
+    ham_assert(key);
 
     st=btree_cursor_set_to_nil(c);
     if (st)
@@ -676,8 +674,8 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
-    ham_assert(key, (0));
-    ham_assert(record, (0));
+    ham_assert(key);
+    ham_assert(record);
 
     /* call the btree insert function */
     st=be->insert_cursor(txn, key, record, c, flags);
@@ -706,8 +704,7 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
         btree_node_t *node=page_get_btree_node(page);
         BtreeBackend *be=(BtreeBackend *)db->get_backend();
         ham_size_t maxkeys=be->get_maxkeys();
-        ham_assert(btree_node_is_leaf(node), 
-                ("iterator points to internal node"));
+        ham_assert(btree_node_is_leaf(node));
         if (btree_cursor_get_coupled_index(c)>0 
                 && btree_node_get_count(node)>btree_get_minkeys(maxkeys)) {
             /* yes, we can remove the key */
@@ -789,7 +786,7 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
     }
 
     else {
-        ham_assert(!"shouldn't be here", (""));
+        ham_assert(!"shouldn't be here");
     }
     
     return (ret);

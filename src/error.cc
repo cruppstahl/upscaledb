@@ -22,6 +22,7 @@
 #include "error.h"
 #include "mem.h"
 #include "util.h"
+#include "internal_fwd_decl.h"
 
 static int     g_level   =0;
 static const char *g_file  =0;
@@ -65,16 +66,18 @@ ham_set_errhandler(ham_errhandler_fun f)
     g_hand = dbg_errhandler;
 }
 
+static Mutex dbg_mutex;
+
 void 
 dbg_lock(void)
 {
-  /* not yet needed, we do not yet support multithreading */
+  dbg_mutex.lock();
 }
 
 void 
 dbg_unlock(void)
 {
-  /* not yet needed, we do not yet support multithreading */
+  dbg_mutex.unlock();
 }
 
 void 

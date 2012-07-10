@@ -474,7 +474,7 @@ __recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
         txn=txn_get_newer(txn);
     }
 
-    ham_assert(!"shouldn't be here", (""));
+    ham_assert(!"shouldn't be here");
     *ptxn=0;
     return (HAM_INTERNAL_ERROR);
 }
@@ -551,10 +551,10 @@ Journal::recover()
 
     /* make sure that there are no pending transactions - start with 
      * a clean state! */
-    ham_assert(m_env->get_oldest_txn()==0, (""));
+    ham_assert(m_env->get_oldest_txn()==0);
 
-    ham_assert(m_env->get_flags()&HAM_ENABLE_TRANSACTIONS, (""));
-    ham_assert(m_env->get_flags()&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(m_env->get_flags()&HAM_ENABLE_TRANSACTIONS);
+    ham_assert(m_env->get_flags()&HAM_ENABLE_RECOVERY);
 
     /* officially disable recovery - otherwise while recovering we log
      * more stuff */
@@ -763,6 +763,6 @@ Journal::get_path(int i)
     else if (i==1)
         path+=".jrn1";
     else
-        ham_assert(!"invalid index", (""));
+        ham_assert(!"invalid index");
     return (path);
 }

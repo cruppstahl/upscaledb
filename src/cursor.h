@@ -95,12 +95,12 @@ class DupeCacheLine
   public:
     DupeCacheLine(bool use_btree=HAM_TRUE, ham_u64_t btree_dupeidx=0)
     : m_use_btree(use_btree), m_btree_dupeidx(btree_dupeidx), m_op(0) {
-        ham_assert(use_btree==true, (""));
+        ham_assert(use_btree==true);
     }
 
     DupeCacheLine(bool use_btree, txn_op_t *op)
     : m_use_btree(use_btree), m_btree_dupeidx(0), m_op(op) {
-        ham_assert(use_btree==false, (""));
+        ham_assert(use_btree==false);
     }
 
     /** Returns true if this cache entry is a duplicate in the btree */
@@ -110,7 +110,7 @@ class DupeCacheLine
 
     /** Returns the btree duplicate index */
     ham_offset_t get_btree_dupe_idx(void) {
-        ham_assert(m_use_btree==true, (""));
+        ham_assert(m_use_btree==true);
         return (m_btree_dupeidx);
     }
 
@@ -123,7 +123,7 @@ class DupeCacheLine
 
     /** Returns the txn-op duplicate */
     txn_op_t *get_txn_op(void) {
-        ham_assert(m_use_btree==false, (""));
+        ham_assert(m_use_btree==false);
         return (m_op);
     }
 

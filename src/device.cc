@@ -116,7 +116,7 @@ fallback_rw:
 			alloc=true;
         }
         else
-            ham_assert(!(page->get_flags()&Page::NPERS_MALLOC), (0));
+            ham_assert(!(page->get_flags()&Page::NPERS_MALLOC));
 
         st=read(page->get_self(), page->get_pers(), size);
 		if (st) {
@@ -225,7 +225,7 @@ DeviceImplInMemory::alloc_page(Page *page)
     ham_u8_t *buffer;
     ham_size_t size=m_pagesize;
 
-    ham_assert(page->get_pers()==0, (0));
+    ham_assert(page->get_pers()==0);
 
     buffer=(ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
     if (!buffer)
@@ -240,8 +240,8 @@ DeviceImplInMemory::alloc_page(Page *page)
 ham_status_t
 DeviceImplInMemory::free_page(Page *page)
 {
-    ham_assert(page->get_pers()!=0, (0));
-    ham_assert(page->get_flags()|Page::NPERS_MALLOC, (0));
+    ham_assert(page->get_pers()!=0);
+    ham_assert(page->get_flags()|Page::NPERS_MALLOC);
 
     m_device->m_env->get_allocator()->free(page->get_pers());
     page->set_pers(0);

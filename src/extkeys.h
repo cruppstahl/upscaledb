@@ -137,7 +137,7 @@ class ExtKeyCache
         Environment *env=m_db->get_env();
 
         /* DEBUG build: make sure that the item is not inserted twice!  */
-        ham_assert(m_hash.get(blobid)==0, ("")); 
+        ham_assert(m_hash.get(blobid)==0);
 
         e=(ExtKey *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T+size);
         e->blobid=blobid;

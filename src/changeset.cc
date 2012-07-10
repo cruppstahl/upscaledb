@@ -35,10 +35,10 @@ Changeset::add_page(Page *page)
     if (page->is_in_list(m_head, Page::LIST_CHANGESET))
         return;
 
-    ham_assert(0==page->get_next(Page::LIST_CHANGESET), (""));
-    ham_assert(0==page->get_previous(Page::LIST_CHANGESET), (""));
+    ham_assert(0==page->get_next(Page::LIST_CHANGESET));
+    ham_assert(0==page->get_previous(Page::LIST_CHANGESET));
     ham_assert(page->get_device()->get_env()->get_flags()
-                &HAM_ENABLE_RECOVERY, (""));
+                &HAM_ENABLE_RECOVERY);
 
     page->set_next(Page::LIST_CHANGESET, m_head);
     if (m_head)
@@ -54,7 +54,7 @@ Changeset::get_page(ham_offset_t pageid)
 
     while (page) {
         ham_assert(page->get_device()->get_env()->get_flags()
-                &HAM_ENABLE_RECOVERY, (""));
+                &HAM_ENABLE_RECOVERY);
 
         if (page->get_self()==pageid)
             return (page);
@@ -82,14 +82,14 @@ Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
                       ham_u64_t lsn, ham_size_t &page_count) 
 {
     for (ham_size_t i=0; i<bucket_size; i++) {
-        ham_assert(bucket[i]->is_dirty(), (""));
+        ham_assert(bucket[i]->is_dirty());
 
         Environment *env=bucket[i]->get_device()->get_env();
         Log *log=env->get_log();
 
         induce(ErrorInducer::CHANGESET_FLUSH);
 
-        ham_assert(page_count>0, (""));
+        ham_assert(page_count>0);
 
         ham_status_t st=log->append_page(bucket[i], lsn, --page_count);
         if (st)
@@ -205,8 +205,8 @@ Changeset::flush(ham_u64_t lsn)
     induce(ErrorInducer::CHANGESET_FLUSH);
 
     // now flush all modified pages to disk
-    ham_assert(log!=0, (""));
-    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(log!=0);
+    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY);
 
     /* execute a post-log hook; this hook is set by the unittest framework
      * and can be used to make a backup copy of the logfile */

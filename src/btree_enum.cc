@@ -53,8 +53,8 @@ BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
     Database *db=get_db();
     ham_status_t cb_st = CB_CONTINUE;
 
-    ham_assert(get_rootpage()!=0, ("invalid root page"));
-    ham_assert(cb!=0, ("invalid parameter"));
+    ham_assert(get_rootpage()!=0);
+    ham_assert(cb!=0);
 
     /* get the root page of the tree */
     st=db_fetch_page(&page, db, get_rootpage(), 0);
@@ -102,7 +102,6 @@ BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
         if (ptr_left)
         {
             st = db_fetch_page(&page, db, ptr_left, 0);
-            ham_assert(st ? !page : 1, (0));
             if (st)
                 return st;
         }
@@ -137,7 +136,6 @@ _enumerate_level(BtreeBackend *be, Page *page, ham_u32_t level,
         if (btree_node_get_right(node)) {
             st=db_fetch_page(&page, be->get_db(), 
                     btree_node_get_right(node), 0);
-            ham_assert(st ? !page : 1, (0));
             if (st)
                 return st;
         }

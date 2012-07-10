@@ -167,7 +167,7 @@ _local_fun_create(Environment *env, const char *filename,
     /* reset all performance data */
     btree_stats_init_globdata(env, env->get_global_perf_data());
 
-    ham_assert(!env->get_header_page(), (0));
+    ham_assert(!env->get_header_page());
 
     /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
@@ -178,12 +178,12 @@ _local_fun_create(Environment *env, const char *filename,
         /* now make sure the pagesize is a multiple of 
          * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
         ham_assert(0 == (env->get_pagesize() 
-                    % DB_PAGESIZE_MIN_REQD_ALIGNMENT), (0));
+                    % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
     }
     else {
         device=env->get_device();
     }
-    ham_assert(device == env->get_device(), (0));
+    ham_assert(device == env->get_device());
 
     /* create the file */
     st=device->create(filename, flags, mode);
@@ -213,7 +213,7 @@ _local_fun_create(Environment *env, const char *filename,
         env->set_serialno(HAM_SERIALNO);
         env->set_persistent_pagesize(pagesize);
         env->set_max_databases(env->get_max_databases_cached());
-        ham_assert(env->get_max_databases() > 0, (0));
+        ham_assert(env->get_max_databases() > 0);
 
         page->set_dirty(true);
     }
@@ -262,7 +262,7 @@ __recover(Environment *env, ham_u32_t flags)
     Log *log=new Log(env);
     Journal *journal=new Journal(env);
 
-    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY, (""));
+    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY);
 
     /* open the log and the journal (if transactions are enabled) */
     st=log->open();
@@ -546,7 +546,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
      * for the database with the old name
      */
     slot=env->get_max_databases();
-    ham_assert(env->get_max_databases() > 0, (0));
+    ham_assert(env->get_max_databases() > 0);
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         ham_u16_t name=index_get_dbname(env->get_indexdata_ptr(dbi));
         if (name==newname)
@@ -613,8 +613,8 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_assert(env->get_changeset().is_empty(), (""));
-        ham_assert(env->get_log()->is_empty(), (""));
+        ham_assert(env->get_changeset().is_empty());
+        ham_assert(env->get_log()->is_empty());
     }
 #endif
 
@@ -675,7 +675,7 @@ _local_fun_get_database_names(Environment *env, ham_u16_t *names,
     /*
      * copy each database name in the array
      */
-    ham_assert(env->get_max_databases() > 0, (0));
+    ham_assert(env->get_max_databases() > 0);
     for (i=0; i<env->get_max_databases(); i++) {
         name = index_get_dbname(env->get_indexdata_ptr(i));
         if (name==0)
@@ -733,7 +733,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      */
     if (env->get_header_page()) {
         Page *page=env->get_header_page();
-        ham_assert(device, (0));
+        ham_assert(device);
         if (page->get_pers()) {
             st=device->free_page(page);
             if (!st2) 
@@ -958,12 +958,12 @@ _local_fun_create_db(Environment *env, Database *db,
      * transfer the ownership of the header page to this Database
      */
     env->get_header_page()->set_db(db);
-    ham_assert(env->get_header_page(), (0));
+    ham_assert(env->get_header_page());
 
     /*
      * check if this database name is unique
      */
-    ham_assert(env->get_max_databases() > 0, (0));
+    ham_assert(env->get_max_databases() > 0);
     for (i=0; i<env->get_max_databases(); i++) {
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(i));
         if (!name)
@@ -978,7 +978,7 @@ _local_fun_create_db(Environment *env, Database *db,
      * find a free slot in the indexdata array and store the 
      * database name
      */
-    ham_assert(env->get_max_databases() > 0, (0));
+    ham_assert(env->get_max_databases() > 0);
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(dbi));
         if (!name) {
@@ -995,8 +995,8 @@ _local_fun_create_db(Environment *env, Database *db,
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_assert(env->get_changeset().is_empty(), (""));
-        ham_assert(env->get_log()->is_empty(), (""));
+        ham_assert(env->get_changeset().is_empty());
+        ham_assert(env->get_log()->is_empty());
     }
 #endif
 
@@ -1020,7 +1020,7 @@ _local_fun_create_db(Environment *env, Database *db,
         goto bail;
     }
 
-    ham_assert(be->is_active()!=0, (0));
+    ham_assert(be->is_active()!=0);
 
     /*
      * initialize the remaining function pointers in Database
@@ -1123,10 +1123,10 @@ _local_fun_open_db(Environment *env, Database *db,
         head=head->get_next();
     }
 
-    ham_assert(env->get_allocator(), (""));
-    ham_assert(env->get_device(), (""));
-    ham_assert(0 != env->get_header_page(), (0));
-    ham_assert(env->get_max_databases() > 0, (0));
+    ham_assert(env->get_allocator());
+    ham_assert(env->get_device());
+    ham_assert(0 != env->get_header_page());
+    ham_assert(env->get_max_databases() > 0);
 
     /* store the env pointer in the database */
     db->set_env(env);
@@ -1172,7 +1172,7 @@ _local_fun_open_db(Environment *env, Database *db,
         return (st);
     }
 
-    ham_assert(be->is_active()!=0, (0));
+    ham_assert(be->is_active()!=0);
 
     /*
      * initialize the remaining function pointers in Database
@@ -1202,28 +1202,17 @@ _local_fun_open_db(Environment *env, Database *db,
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
     db->set_rt_flags(flags|be->get_flags());
-    ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_CACHE_STRICT), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_DISABLE_MMAP), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_WRITE_THROUGH), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_READ_ONLY), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_DISABLE_FREELIST_FLUSH), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
-    ham_assert(!(be->get_flags()&DB_USE_MMAP), 
-            ("invalid persistent database flags 0x%x", be->get_flags()));
+    ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
+    ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
+    ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED));
+    ham_assert(!(be->get_flags()&HAM_DISABLE_MMAP));
+    ham_assert(!(be->get_flags()&HAM_WRITE_THROUGH));
+    ham_assert(!(be->get_flags()&HAM_READ_ONLY));
+    ham_assert(!(be->get_flags()&HAM_DISABLE_FREELIST_FLUSH));
+    ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY));
+    ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
+    ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
+    ham_assert(!(be->get_flags()&DB_USE_MMAP));
 
     /*
      * SORT_DUPLICATES is only allowed if the Database was created
@@ -1372,7 +1361,7 @@ env_append_txn(Environment *env, Transaction *txn)
     txn_set_env(txn, env);
 
     if (!env->get_newest_txn()) {
-        ham_assert(env->get_oldest_txn()==0, (""));
+        ham_assert(env->get_oldest_txn()==0);
         env->set_oldest_txn(txn);
         env->set_newest_txn(txn);
     }
@@ -1402,7 +1391,7 @@ env_remove_txn(Environment *env, Transaction *txn)
             txn_set_older(n, 0);
     }
     else {
-        ham_assert(!"not yet implemented", (""));
+        ham_assert(!"not yet implemented");
     }
 }
 
@@ -1416,7 +1405,7 @@ __flush_txn(Environment *env, Transaction *txn)
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
         Backend *be=txn_opnode_get_db(node)->get_backend();
-        ham_assert(be!=0, (""));
+        ham_assert(be!=0);
 
         if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
             goto next_op;
@@ -1520,7 +1509,7 @@ __flush_txn(Environment *env, Transaction *txn)
 next_op:
         while ((cursor=txn_op_get_cursors(op))) {
             Cursor *pc=txn_cursor_get_parent(cursor);
-            ham_assert(pc->get_txn_cursor()==cursor, (""));
+            ham_assert(pc->get_txn_cursor()==cursor);
             pc->couple_to_btree();
             pc->set_to_nil(Cursor::CURSOR_TXN);
         }

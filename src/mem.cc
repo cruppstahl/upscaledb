@@ -96,7 +96,7 @@ class DefaultAllocator : public Allocator
       ham_u32_t size;
       void *p = 0;
 
-      ham_assert(ptr, ("freeing NULL pointer"));
+      ham_assert(ptr);
 
       p = (char *)ptr - sizeof(ham_u32_t);
       size = *(ham_u32_t *)p;
