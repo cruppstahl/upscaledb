@@ -1,3 +1,15 @@
+Jul 10, 2012 - chris ---------------------------------------------------
+o Fixed crash when reusing a page from the cache that was not correctly
+	initialized (thanks, Jason)
+o Fixed crash when HAM_ENABLE_RECOVERY w/o HAM_ENABLE_TRANSACTIONS (thanks,
+	Peter)
+
+Jul 08, 2012 - chris ---------------------------------------------------
+o Fixed issue 7: approximate matching did not return the correct key
+	(thanks, Artem)
+o Fixed MacOS compilation problem
+	(thanks, Jason P.)
+
 Jun 24, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.3
 

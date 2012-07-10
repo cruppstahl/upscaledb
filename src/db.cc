@@ -603,6 +603,7 @@ done:
     /* initialize the page; also set the 'dirty' flag to force logging */
     page->set_type(type);
     page->set_dirty(true);
+    page->set_db(db);
 
     /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO)
