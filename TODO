@@ -63,14 +63,12 @@ o clean up and refactor the code
         fill dbg_lock, dbg_unlock
     x error.h
         ham_assert/ham_verify: remove second parameter
-    o hash-table.h
-        replace this with a boost class
-    o cache.cc
-    o cache.h
-    o changeset.cc
-    o changeset.h
-    o device.cc
-    o device.h
+    x cache.cc
+    x cache.h
+    x changeset.cc
+    x changeset.h
+    x device.cc
+    x device.h
     o journal.cc
     o journal_entries.h
         find a decent way to handle endian-dependent structures
@@ -83,6 +81,7 @@ o clean up and refactor the code
         find a decent way to handle endian-dependent structures
     o remote.cc
     o extkeys.h
+        merge hash-table.h
     o blob.cc
     o blob.h
 

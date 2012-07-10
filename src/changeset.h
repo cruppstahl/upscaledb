@@ -43,23 +43,23 @@ class Changeset
     }
 
     ~Changeset() {
-        ScopedLock lock(m_mutex);
-        if (m_inducer)
-            delete m_inducer;
-        if (m_blobs)
-            ::free(m_blobs);
-        if (m_freelists)
-            ::free(m_freelists);
-        if (m_indices)
-            ::free(m_indices);
-        if (m_others)
-            ::free(m_others);
+      ScopedLock lock(m_mutex);
+      if (m_inducer)
+        delete m_inducer;
+      if (m_blobs)
+        ::free(m_blobs);
+      if (m_freelists)
+        ::free(m_freelists);
+      if (m_indices)
+        ::free(m_indices);
+      if (m_others)
+        ::free(m_others);
     }
 
     /** is the changeset empty? */
     bool is_empty() {
-        ScopedLock lock(m_mutex);
-        return (m_head==0);
+      ScopedLock lock(m_mutex);
+      return (m_head == 0);
     }
 
     /** append a new page to the changeset */
@@ -73,8 +73,8 @@ class Changeset
 
     /** removes all pages from the changeset */
     void clear() {
-        ScopedLock lock(m_mutex);
-        clear_nolock();
+      ScopedLock lock(m_mutex);
+      clear_nolock();
     }
 
     /**
@@ -87,8 +87,8 @@ class Changeset
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (page->is_in_list(m_head, Page::LIST_CHANGESET));
+      ScopedLock lock(m_mutex);
+      return (page->is_in_list(m_head, Page::LIST_CHANGESET));
     }
 
   private:
