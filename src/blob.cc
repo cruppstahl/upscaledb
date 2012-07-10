@@ -65,7 +65,7 @@ __write_chunks(Environment *env, Page *page, ham_offset_t addr,
     Device *device=env->get_device();
 	ham_size_t pagesize = env->get_pagesize();
 
-    ham_assert(freshly_created ? allocated : 1, (0));
+    ham_assert(freshly_created ? allocated : 1);
 
     /*
      * for each chunk...
@@ -472,7 +472,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
         }
     }
     else {
-		ham_assert(st==0, (0));
+		ham_assert(st==0);
         blob_set_alloc_size(&hdr, alloc_size);
     }
 
@@ -607,7 +607,7 @@ blob_allocate(Environment *env, Database *db, ham_record_t *record,
             }
             
             /* now write the remainder, which is less than a pagesize */
-            ham_assert(gapsize<env->get_pagesize(), (""));
+            ham_assert(gapsize<env->get_pagesize());
 
             chunk_size[0]=gapsize;
             ptr=chunk_data[0]=(ham_u8_t *)env->get_allocator()->calloc(gapsize);
@@ -696,7 +696,7 @@ blob_read(Database *db, Transaction *txn, ham_offset_t blobid,
         return (0);
     }
 
-    ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
+    ham_assert(blobid%DB_CHUNKSIZE==0);
 
     /* first step: read the blob header */
     st=__read_chunk(db->get_env(), 0, &page, blobid, db,
@@ -704,7 +704,7 @@ blob_read(Database *db, Transaction *txn, ham_offset_t blobid,
     if (st)
         return (st);
 
-    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
+    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0);
 
     /* sanity check */
     if (blob_get_self(&hdr)!=blobid) {
@@ -770,7 +770,7 @@ blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
         return (0);
     }
 
-    ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
+    ham_assert(blobid%DB_CHUNKSIZE==0);
 
     /* read the blob header */
     st=__read_chunk(db->get_env(), 0, &page, blobid, db,
@@ -841,7 +841,7 @@ blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
         return (HAM_SUCCESS);
     }
 
-    ham_assert(old_blobid%DB_CHUNKSIZE==0, (0));
+    ham_assert(old_blobid%DB_CHUNKSIZE==0);
 
     /*
      * blobs are CHUNKSIZE-allocated 
@@ -860,14 +860,12 @@ blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid,
     if (st)
         return (st);
 
-    ham_assert(blob_get_alloc_size(&old_hdr)%DB_CHUNKSIZE==0, (0));
+    ham_assert(blob_get_alloc_size(&old_hdr)%DB_CHUNKSIZE==0);
 
     /*
      * sanity check
      */
-    ham_assert(blob_get_self(&old_hdr)==old_blobid, 
-            ("invalid blobid %llu != %llu", blob_get_self(&old_hdr), 
-            old_blobid));
+    ham_assert(blob_get_self(&old_hdr)==old_blobid);
     if (blob_get_self(&old_hdr)!=old_blobid)
         return (HAM_BLOB_NOT_FOUND);
 
@@ -980,18 +978,17 @@ blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags)
         return (0);
     }
 
-    ham_assert(blobid%DB_CHUNKSIZE==0, (0));
+    ham_assert(blobid%DB_CHUNKSIZE==0);
 
     /* fetch the blob header */
     st=__read_chunk(env, 0, 0, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 
-    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
+    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0);
 
     /* sanity check */
-    ham_verify(blob_get_self(&hdr)==blobid, 
-            ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
+    ham_verify(blob_get_self(&hdr)==blobid);
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
@@ -1039,10 +1036,10 @@ __get_sorted_position(Database *db, Transaction *txn, dupe_table_t *table,
     else {
         m = (l + r) / 2;
     }
-    ham_assert(m <= r, (0));
+    ham_assert(m <= r);
         
     while (l <= r) {
-        ham_assert(m<dupe_table_get_count(table), (""));
+        ham_assert(m<dupe_table_get_count(table));
 
         e = dupe_table_get_entry(table, m);
 
@@ -1069,7 +1066,7 @@ __get_sorted_position(Database *db, Transaction *txn, dupe_table_t *table,
                 m++;
             }
             else /* if (cmp < 0) */ {
-                ham_assert(m == r, (0));
+                ham_assert(m == r);
             }
             break;
         }
@@ -1114,7 +1111,7 @@ blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id,
      * the first entry
      */
     if (!table_id) {
-        ham_assert(num_entries==2, (""));
+        ham_assert(num_entries==2);
         /* allocates space for 8 (!) entries */
         table=(dupe_table_t *)env->get_allocator()->calloc( 
                         sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
@@ -1139,7 +1136,7 @@ blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id,
             alloc_table=1;
     }
 
-    ham_assert(num_entries==1, (""));
+    ham_assert(num_entries==1);
 
     /*
      * resize the table, if necessary
@@ -1239,7 +1236,7 @@ blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id,
         page->set_dirty(true);
     }
     else {
-        ham_assert(!"shouldn't be here", (0));
+        ham_assert(!"shouldn't be here");
 	}
 
     if (alloc_table)

@@ -59,9 +59,9 @@ o clean up and refactor the code
     x endianswap.h
     x mem.cc
     x mem.h
-    o error.cc
+    x error.cc
         fill dbg_lock, dbg_unlock
-    o error.h
+    x error.h
         ham_assert/ham_verify: remove second parameter
     o hash-table.h
         replace this with a boost class

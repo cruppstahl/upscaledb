@@ -317,13 +317,11 @@ class Transaction
 
     /** Get the memory buffer for the key data */
     ByteArray &get_key_arena() {
-        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
         return (m_key_arena);
     }
 
     /** Get the memory buffer for the record data */
     ByteArray &get_record_arena() {
-        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
         return (m_record_arena);
     }
 

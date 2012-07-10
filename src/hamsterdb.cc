@@ -86,7 +86,7 @@ my_strncat_ex(char *buf, size_t buflen, const char *interject, const char *src)
         buf[buflen - 1] = 0;
         return (buf);
     }
-    ham_assert(!"shouldn't be here", (""));
+    ham_assert(!"shouldn't be here");
     return ((char *)"???");
 }
 
@@ -173,7 +173,7 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
                             (*buf ? "|" : ""), (unsigned int)flags);
         }
         else {
-            ham_assert(!"shouldn't be here", (""));
+            ham_assert(!"shouldn't be here");
             buf = (char *)"???";
         }
     }
@@ -232,7 +232,7 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
         break;
     }
 
-    ham_assert(!"shouldn't be here", (""));
+    ham_assert(!"shouldn't be here");
     return ("???");
 }
 
@@ -967,7 +967,7 @@ default_case:
                 dbs = DB_MAX_INDICES;
         }
     }
-    ham_assert(dbs != 0, (0));
+    ham_assert(dbs != 0);
 
     /*
      * return the fixed parameters
@@ -1492,7 +1492,7 @@ ham_env_remove_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
 
     if (head == filter) {
         if (head->_next) {
-            ham_assert(head->_prev != head, (0));
+            ham_assert(head->_prev != head);
             head->_next->_prev = head->_prev;
         }
         env->set_file_filter(head->_next);
@@ -1618,7 +1618,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (0);
 
     /* make sure that the changeset is empty */
-    ham_assert(env->get_changeset().is_empty(), (""));
+    ham_assert(env->get_changeset().is_empty());
 
     /* auto-abort (or commit) all pending transactions */
     if (env && env->get_newest_txn()) {
@@ -1661,12 +1661,12 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     st=env_flush_committed_txns(env);
     if (st)
         return (st);
-    ham_assert(env->get_changeset().is_empty(), (""));
+    ham_assert(env->get_changeset().is_empty());
 
     /* when all transactions have been properly closed... */
     if (env->is_active() && env->get_oldest_txn()) {
         ham_assert(!"Should never get here; the db close loop above "
-                    "should've taken care of all TXNs", (0));
+                    "should've taken care of all TXNs");
         return (HAM_INTERNAL_ERROR);
     }
 
@@ -2071,7 +2071,7 @@ __aes_after_read_cb(ham_env_t *henv, ham_file_filter_t *filter,
     ham_size_t i;
     ham_size_t blocks=page_size/16;
 
-    ham_assert(page_size%16==0, ("bogus pagesize"));
+    ham_assert(page_size%16==0);
 
     for (i = 0; i < blocks; i++) {
         aes_decrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
@@ -2087,7 +2087,7 @@ __aes_close_cb(ham_env_t *henv, ham_file_filter_t *filter)
     Environment *env=(Environment *)henv;
     Allocator *alloc=env->get_allocator();
 
-    ham_assert(alloc, (0));
+    ham_assert(alloc);
 
     if (filter) {
         if (filter->userdata) {
@@ -2327,7 +2327,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (zret==Z_DATA_ERROR)
         st=HAM_INTEGRITY_VIOLATED;
     else if (zret==Z_OK) {
-        ham_assert(origsize==newsize, (""));
+        ham_assert(origsize==newsize);
         st=0;
     }
     else {
@@ -3059,7 +3059,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     st=(*db)()->cursor_move(cursor, key, record, flags);
 
     /* make sure that the changeset is empty */
-    ham_assert(env->get_changeset().is_empty(), (""));
+    ham_assert(env->get_changeset().is_empty());
 
     return (db->set_error(st));
 }
@@ -3457,7 +3457,7 @@ ham_remove_record_filter(ham_db_t *hdb, ham_record_filter_t *filter)
 
     if (head == filter) {
         if (head->_next) {
-            ham_assert(head->_prev != head, (0));
+            ham_assert(head->_prev != head);
             head->_next->_prev = head->_prev;
         }
         db->set_record_filter(head->_next);
@@ -3600,8 +3600,7 @@ ham_clean_statistics_datarec(ham_statistics_t *s)
     if (s->_free_func)
         s->_free_func(s);
 
-    ham_assert(s->_free_func == 0, 
-        ("the cleanup function must eradicate itself from the struct"));
+    ham_assert(s->_free_func == 0);
 
     return (0);
 }

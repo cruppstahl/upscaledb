@@ -103,7 +103,7 @@ static void *
 __get_handle(struct env_t *envh, ham_u64_t handle)
 {
     srv_handle_t *h=&envh->handles[handle&0xffffffff];
-    ham_assert(h->handle==handle, (""));
+    ham_assert(h->handle==handle);
     if (h->handle!=handle)
         return (0);
     return h->ptr;

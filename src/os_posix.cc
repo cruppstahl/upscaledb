@@ -486,7 +486,7 @@ os_close(ham_fd_t fd)
   ham_status_t st;
 
   /* on posix, we most likely don't want to close descriptors 0 and 1 */
-  ham_assert(fd != 0 && fd != 1, (""));
+  ham_assert(fd != 0 && fd != 1);
 
   /* unlock the file - this is default behaviour since 1.1.0 */
   st=lock_exclusive(fd, false);

@@ -63,11 +63,11 @@ Cache::check_integrity_nolock()
     head=m_totallist;
     while (head) {
         if (tail && !head->get_next(Page::LIST_CACHED))
-            ham_assert(head==tail, (""));
+            ham_assert(head==tail);
         head=head->get_next(Page::LIST_CACHED);
     }
     if (tail)
-        ham_assert(tail->get_next(Page::LIST_CACHED)==0, (""));
+        ham_assert(tail->get_next(Page::LIST_CACHED)==0);
 
     return (0);
 }

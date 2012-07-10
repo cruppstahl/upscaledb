@@ -237,13 +237,13 @@ class DeviceImplInMemory : public DeviceImplementation {
 
     /** opens an existing device */
     virtual ham_status_t open(const char *filename, ham_u32_t flags) {
-        ham_assert(!"can't open an in-memory-device", (0));
+        ham_assert(!"can't open an in-memory-device");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** closes the device */
     virtual ham_status_t close() {
-        ham_assert(m_is_open, (0));
+        ham_assert(m_is_open);
         m_is_open=false;
         return (HAM_SUCCESS);
     }
@@ -265,27 +265,26 @@ class DeviceImplInMemory : public DeviceImplementation {
 
     /** get the current file/storage size */
     virtual ham_status_t get_filesize(ham_offset_t *length) {
-        ham_assert(!"this operation is not possible for in-memory-databases", 
-                    (0));
+        ham_assert(!"this operation is not possible for in-memory-databases");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** seek position in a file */
     virtual ham_status_t seek(ham_offset_t offset, int whence) {
-        ham_assert(!"can't seek in an in-memory-device", (0));
+        ham_assert(!"can't seek in an in-memory-device");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** tell the position in a file */
     virtual ham_status_t tell(ham_offset_t *offset) {
-        ham_assert(!"can't tell in an in-memory-device", (0));
+        ham_assert(!"can't tell in an in-memory-device");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** reads from the device; this function does not use mmap */
     virtual ham_status_t read(ham_offset_t offset, void *buffer, 
                 ham_offset_t size) {
-        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        ham_assert(!"operation is not possible for in-memory-databases");
         return (HAM_NOT_IMPLEMENTED);
     }
 
@@ -294,26 +293,26 @@ class DeviceImplInMemory : public DeviceImplementation {
      * filters */
     virtual ham_status_t write(ham_offset_t offset, void *buffer, 
                 ham_offset_t size) {
-        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        ham_assert(!"operation is not possible for in-memory-databases");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** reads a page from the device; this function CAN use mmap */
     virtual ham_status_t read_page(Page *page) {
-        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        ham_assert(!"operation is not possible for in-memory-databases");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes a page to the device */
     virtual ham_status_t write_page(Page *page) {
-        ham_assert(!"operation is not possible for in-memory-databases", (0));
+        ham_assert(!"operation is not possible for in-memory-databases");
         return (HAM_NOT_IMPLEMENTED);
     }
 
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
     virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
-        ham_assert(!"can't alloc from an in-memory-device", (0));
+        ham_assert(!"can't alloc from an in-memory-device");
         return (HAM_NOT_IMPLEMENTED);
     }
 

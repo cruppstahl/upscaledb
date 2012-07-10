@@ -42,7 +42,7 @@ class BtreeCheckAction
         ham_offset_t ptr_left;
         Database *db=m_backend->get_db();
 
-        ham_assert(m_backend->get_rootpage()!=0, ("invalid root page"));
+        ham_assert(m_backend->get_rootpage()!=0);
 
         /* get the root page of the tree */
         st=db_fetch_page(&page, db, m_backend->get_rootpage(), 0);
@@ -241,12 +241,12 @@ class BtreeCheckAction
 
 	    st=btree_prepare_key_for_compare(db, 0, l, &lhs);
 	    if (st) {
-		    ham_assert(st < -1, (0));
+		    ham_assert(st < -1);
 		    return (st);
 	    }
 	    st=btree_prepare_key_for_compare(db, 1, r, &rhs);
 	    if (st) {
-		    ham_assert(st < -1, (0));
+		    ham_assert(st < -1);
 		    return (st);
 	    }
 

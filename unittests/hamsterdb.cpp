@@ -567,8 +567,8 @@ static int HAM_CALLCONV my_prefix_compare_func_u32(ham_db_t *db,
     ham_s32_t *r = (ham_s32_t *)rhs;
     ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
 
-    ham_assert(lhs, (0));
-    ham_assert(rhs, (0));
+    ham_assert(lhs);
+    ham_assert(rhs);
 
     len /= 4;
     while (len > 0)
@@ -593,8 +593,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     ham_s32_t *r = (ham_s32_t *)rhs;
     ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
 
-    ham_assert(lhs, (0));
-    ham_assert(rhs, (0));
+    ham_assert(lhs);
+    ham_assert(rhs);
 
     len /= 4;
     while (len > 0)

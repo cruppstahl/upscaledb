@@ -96,11 +96,11 @@ proto_has_connect_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CONNECT_REQUEST) {
-        ham_assert(w->has_connect_request()==true, (""));
+        ham_assert(w->has_connect_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_connect_request()==false, (""));
+        ham_assert(w->has_connect_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -120,11 +120,11 @@ proto_has_connect_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CONNECT_REPLY) {
-        ham_assert(w->has_connect_reply()==true, (""));
+        ham_assert(w->has_connect_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_connect_reply()==false, (""));
+        ham_assert(w->has_connect_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -181,11 +181,11 @@ proto_has_env_rename_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_RENAME_REQUEST) {
-        ham_assert(w->has_env_rename_request()==true, (""));
+        ham_assert(w->has_env_rename_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_rename_request()==false, (""));
+        ham_assert(w->has_env_rename_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -204,11 +204,11 @@ proto_has_env_rename_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_RENAME_REPLY) {
-        ham_assert(w->has_env_rename_reply()==true, (""));
+        ham_assert(w->has_env_rename_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_rename_reply()==false, (""));
+        ham_assert(w->has_env_rename_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -235,11 +235,11 @@ proto_has_env_erase_db_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_ERASE_DB_REQUEST) {
-        ham_assert(w->has_env_erase_db_request()==true, (""));
+        ham_assert(w->has_env_erase_db_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_erase_db_request()==false, (""));
+        ham_assert(w->has_env_erase_db_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -272,11 +272,11 @@ proto_has_env_erase_db_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_ERASE_DB_REPLY) {
-        ham_assert(w->has_env_erase_db_reply()==true, (""));
+        ham_assert(w->has_env_erase_db_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_erase_db_reply()==false, (""));
+        ham_assert(w->has_env_erase_db_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -302,11 +302,11 @@ proto_has_env_get_database_names_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_GET_DATABASE_NAMES_REQUEST) {
-        ham_assert(w->has_env_get_database_names_request()==true, (""));
+        ham_assert(w->has_env_get_database_names_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_get_database_names_request()==false, (""));
+        ham_assert(w->has_env_get_database_names_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -328,11 +328,11 @@ proto_has_env_get_database_names_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_GET_DATABASE_NAMES_REPLY) {
-        ham_assert(w->has_env_get_database_names_reply()==true, (""));
+        ham_assert(w->has_env_get_database_names_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_get_database_names_reply()==false, (""));
+        ham_assert(w->has_env_get_database_names_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -387,11 +387,11 @@ proto_has_env_get_parameters_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_GET_PARAMETERS_REQUEST) {
-        ham_assert(w->has_env_get_parameters_request()==true, (""));
+        ham_assert(w->has_env_get_parameters_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_get_parameters_request()==false, (""));
+        ham_assert(w->has_env_get_parameters_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -410,11 +410,11 @@ proto_has_env_get_parameters_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_GET_PARAMETERS_REPLY) {
-        ham_assert(w->has_env_get_parameters_reply()==true, (""));
+        ham_assert(w->has_env_get_parameters_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_get_parameters_reply()==false, (""));
+        ham_assert(w->has_env_get_parameters_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -579,11 +579,11 @@ proto_has_env_flush_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_FLUSH_REQUEST) {
-        ham_assert(w->has_env_flush_request()==true, (""));
+        ham_assert(w->has_env_flush_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_flush_request()==false, (""));
+        ham_assert(w->has_env_flush_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -602,11 +602,11 @@ proto_has_env_flush_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_FLUSH_REPLY) {
-        ham_assert(w->has_env_flush_reply()==true, (""));
+        ham_assert(w->has_env_flush_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_flush_reply()==false, (""));
+        ham_assert(w->has_env_flush_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -638,11 +638,11 @@ proto_has_env_create_db_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_CREATE_DB_REQUEST) {
-        ham_assert(w->has_env_create_db_request()==true, (""));
+        ham_assert(w->has_env_create_db_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_create_db_request()==false, (""));
+        ham_assert(w->has_env_create_db_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -699,11 +699,11 @@ proto_has_env_create_db_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_CREATE_DB_REPLY) {
-        ham_assert(w->has_env_create_db_reply()==true, (""));
+        ham_assert(w->has_env_create_db_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_create_db_reply()==false, (""));
+        ham_assert(w->has_env_create_db_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -749,11 +749,11 @@ proto_has_env_open_db_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_OPEN_DB_REQUEST) {
-        ham_assert(w->has_env_open_db_request()==true, (""));
+        ham_assert(w->has_env_open_db_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_open_db_request()==false, (""));
+        ham_assert(w->has_env_open_db_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -810,11 +810,11 @@ proto_has_env_open_db_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::ENV_OPEN_DB_REPLY) {
-        ham_assert(w->has_env_open_db_reply()==true, (""));
+        ham_assert(w->has_env_open_db_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_env_open_db_reply()==false, (""));
+        ham_assert(w->has_env_open_db_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -856,11 +856,11 @@ proto_has_txn_begin_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_BEGIN_REQUEST) {
-        ham_assert(w->has_txn_begin_request()==true, (""));
+        ham_assert(w->has_txn_begin_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_begin_request()==false, (""));
+        ham_assert(w->has_txn_begin_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -897,11 +897,11 @@ proto_has_txn_begin_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_BEGIN_REPLY) {
-        ham_assert(w->has_txn_begin_reply()==true, (""));
+        ham_assert(w->has_txn_begin_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_begin_reply()==false, (""));
+        ham_assert(w->has_txn_begin_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -935,11 +935,11 @@ proto_has_txn_commit_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_COMMIT_REQUEST) {
-        ham_assert(w->has_txn_commit_request()==true, (""));
+        ham_assert(w->has_txn_commit_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_commit_request()==false, (""));
+        ham_assert(w->has_txn_commit_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -972,11 +972,11 @@ proto_has_txn_commit_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_COMMIT_REPLY) {
-        ham_assert(w->has_txn_commit_reply()==true, (""));
+        ham_assert(w->has_txn_commit_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_commit_reply()==false, (""));
+        ham_assert(w->has_txn_commit_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1003,11 +1003,11 @@ proto_has_txn_abort_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_ABORT_REQUEST) {
-        ham_assert(w->has_txn_abort_request()==true, (""));
+        ham_assert(w->has_txn_abort_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_abort_request()==false, (""));
+        ham_assert(w->has_txn_abort_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1040,11 +1040,11 @@ proto_has_txn_abort_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::TXN_ABORT_REPLY) {
-        ham_assert(w->has_txn_abort_reply()==true, (""));
+        ham_assert(w->has_txn_abort_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_txn_abort_reply()==false, (""));
+        ham_assert(w->has_txn_abort_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1071,11 +1071,11 @@ proto_has_db_close_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_CLOSE_REQUEST) {
-        ham_assert(w->has_db_close_request()==true, (""));
+        ham_assert(w->has_db_close_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_close_request()==false, (""));
+        ham_assert(w->has_db_close_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1108,11 +1108,11 @@ proto_has_db_close_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_CLOSE_REPLY) {
-        ham_assert(w->has_db_close_reply()==true, (""));
+        ham_assert(w->has_db_close_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_close_reply()==false, (""));
+        ham_assert(w->has_db_close_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1148,11 +1148,11 @@ proto_has_db_get_parameters_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_GET_PARAMETERS_REQUEST) {
-        ham_assert(w->has_db_get_parameters_request()==true, (""));
+        ham_assert(w->has_db_get_parameters_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_get_parameters_request()==false, (""));
+        ham_assert(w->has_db_get_parameters_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1185,11 +1185,11 @@ proto_has_db_get_parameters_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_GET_PARAMETERS_REPLY) {
-        ham_assert(w->has_db_get_parameters_reply()==true, (""));
+        ham_assert(w->has_db_get_parameters_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_get_parameters_reply()==false, (""));
+        ham_assert(w->has_db_get_parameters_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1436,11 +1436,11 @@ proto_has_check_integrity_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_CHECK_INTEGRITY_REQUEST) {
-        ham_assert(w->has_db_check_integrity_request()==true, (""));
+        ham_assert(w->has_db_check_integrity_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_check_integrity_request()==false, (""));
+        ham_assert(w->has_db_check_integrity_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1473,11 +1473,11 @@ proto_has_check_integrity_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_CHECK_INTEGRITY_REPLY) {
-        ham_assert(w->has_db_check_integrity_reply()==true, (""));
+        ham_assert(w->has_db_check_integrity_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_check_integrity_reply()==false, (""));
+        ham_assert(w->has_db_check_integrity_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1506,11 +1506,11 @@ proto_has_db_get_key_count_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_GET_KEY_COUNT_REQUEST) {
-        ham_assert(w->has_db_get_key_count_request()==true, (""));
+        ham_assert(w->has_db_get_key_count_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_get_key_count_request()==false, (""));
+        ham_assert(w->has_db_get_key_count_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1551,11 +1551,11 @@ proto_has_db_get_key_count_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_GET_KEY_COUNT_REPLY) {
-        ham_assert(w->has_db_get_key_count_reply()==true, (""));
+        ham_assert(w->has_db_get_key_count_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_get_key_count_reply()==false, (""));
+        ham_assert(w->has_db_get_key_count_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1612,11 +1612,11 @@ proto_has_db_insert_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_INSERT_REQUEST) {
-        ham_assert(w->has_db_insert_request()==true, (""));
+        ham_assert(w->has_db_insert_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_insert_request()==false, (""));
+        ham_assert(w->has_db_insert_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1734,11 +1734,11 @@ proto_has_db_insert_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_INSERT_REPLY) {
-        ham_assert(w->has_db_insert_reply()==true, (""));
+        ham_assert(w->has_db_insert_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_insert_reply()==false, (""));
+        ham_assert(w->has_db_insert_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1795,11 +1795,11 @@ proto_has_db_find_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_FIND_REQUEST) {
-        ham_assert(w->has_db_find_request()==true, (""));
+        ham_assert(w->has_db_find_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_find_request()==false, (""));
+        ham_assert(w->has_db_find_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -1906,11 +1906,11 @@ proto_has_db_find_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_FIND_REPLY) {
-        ham_assert(w->has_db_find_reply()==true, (""));
+        ham_assert(w->has_db_find_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_find_reply()==false, (""));
+        ham_assert(w->has_db_find_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -1996,11 +1996,11 @@ proto_has_db_erase_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_ERASE_REQUEST) {
-        ham_assert(w->has_db_erase_request()==true, (""));
+        ham_assert(w->has_db_erase_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_erase_request()==false, (""));
+        ham_assert(w->has_db_erase_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2064,11 +2064,11 @@ proto_has_db_erase_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::DB_ERASE_REPLY) {
-        ham_assert(w->has_db_erase_reply()==true, (""));
+        ham_assert(w->has_db_erase_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_db_erase_reply()==false, (""));
+        ham_assert(w->has_db_erase_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2097,11 +2097,11 @@ proto_has_cursor_create_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CREATE_REQUEST) {
-        ham_assert(w->has_cursor_create_request()==true, (""));
+        ham_assert(w->has_cursor_create_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_create_request()==false, (""));
+        ham_assert(w->has_cursor_create_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2142,11 +2142,11 @@ proto_has_cursor_create_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CREATE_REPLY) {
-        ham_assert(w->has_cursor_create_reply()==true, (""));
+        ham_assert(w->has_cursor_create_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_create_reply()==false, (""));
+        ham_assert(w->has_cursor_create_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2179,11 +2179,11 @@ proto_has_cursor_clone_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CLONE_REQUEST) {
-        ham_assert(w->has_cursor_clone_request()==true, (""));
+        ham_assert(w->has_cursor_clone_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_clone_request()==false, (""));
+        ham_assert(w->has_cursor_clone_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2210,11 +2210,11 @@ proto_has_cursor_clone_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CLONE_REPLY) {
-        ham_assert(w->has_cursor_clone_reply()==true, (""));
+        ham_assert(w->has_cursor_clone_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_clone_reply()==false, (""));
+        ham_assert(w->has_cursor_clone_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2247,11 +2247,11 @@ proto_has_cursor_close_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CLOSE_REQUEST) {
-        ham_assert(w->has_cursor_close_request()==true, (""));
+        ham_assert(w->has_cursor_close_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_close_request()==false, (""));
+        ham_assert(w->has_cursor_close_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2277,11 +2277,11 @@ proto_has_cursor_close_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_CLOSE_REPLY) {
-        ham_assert(w->has_cursor_close_reply()==true, (""));
+        ham_assert(w->has_cursor_close_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_close_reply()==false, (""));
+        ham_assert(w->has_cursor_close_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2315,11 +2315,11 @@ proto_has_cursor_insert_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_INSERT_REQUEST) {
-        ham_assert(w->has_cursor_insert_request()==true, (""));
+        ham_assert(w->has_cursor_insert_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_insert_request()==false, (""));
+        ham_assert(w->has_cursor_insert_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2430,11 +2430,11 @@ proto_has_cursor_insert_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_INSERT_REPLY) {
-        ham_assert(w->has_cursor_insert_reply()==true, (""));
+        ham_assert(w->has_cursor_insert_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_insert_reply()==false, (""));
+        ham_assert(w->has_cursor_insert_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2485,11 +2485,11 @@ proto_has_cursor_erase_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_ERASE_REQUEST) {
-        ham_assert(w->has_cursor_erase_request()==true, (""));
+        ham_assert(w->has_cursor_erase_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_erase_request()==false, (""));
+        ham_assert(w->has_cursor_erase_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2522,11 +2522,11 @@ proto_has_cursor_erase_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_ERASE_REPLY) {
-        ham_assert(w->has_cursor_erase_reply()==true, (""));
+        ham_assert(w->has_cursor_erase_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_erase_reply()==false, (""));
+        ham_assert(w->has_cursor_erase_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2560,11 +2560,11 @@ proto_has_cursor_find_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_FIND_REQUEST) {
-        ham_assert(w->has_cursor_find_request()==true, (""));
+        ham_assert(w->has_cursor_find_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_find_request()==false, (""));
+        ham_assert(w->has_cursor_find_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2671,11 +2671,11 @@ proto_has_cursor_find_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_FIND_REPLY) {
-        ham_assert(w->has_cursor_find_reply()==true, (""));
+        ham_assert(w->has_cursor_find_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_find_reply()==false, (""));
+        ham_assert(w->has_cursor_find_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2759,11 +2759,11 @@ proto_has_cursor_get_duplicate_count_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_GET_DUPLICATE_COUNT_REQUEST) {
-        ham_assert(w->has_cursor_get_duplicate_count_request()==true, (""));
+        ham_assert(w->has_cursor_get_duplicate_count_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_get_duplicate_count_request()==false, (""));
+        ham_assert(w->has_cursor_get_duplicate_count_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2798,11 +2798,11 @@ proto_has_cursor_get_duplicate_count_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_GET_DUPLICATE_COUNT_REPLY) {
-        ham_assert(w->has_cursor_get_duplicate_count_reply()==true, (""));
+        ham_assert(w->has_cursor_get_duplicate_count_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_get_duplicate_count_reply()==false, (""));
+        ham_assert(w->has_cursor_get_duplicate_count_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2840,11 +2840,11 @@ proto_has_cursor_overwrite_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_OVERWRITE_REQUEST) {
-        ham_assert(w->has_cursor_overwrite_request()==true, (""));
+        ham_assert(w->has_cursor_overwrite_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_overwrite_request()==false, (""));
+        ham_assert(w->has_cursor_overwrite_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -2915,11 +2915,11 @@ proto_has_cursor_overwrite_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_OVERWRITE_REPLY) {
-        ham_assert(w->has_cursor_overwrite_reply()==true, (""));
+        ham_assert(w->has_cursor_overwrite_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_overwrite_reply()==false, (""));
+        ham_assert(w->has_cursor_overwrite_reply()==false);
         return (HAM_FALSE);
     }
 }
@@ -2953,11 +2953,11 @@ proto_has_cursor_move_request(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_MOVE_REQUEST) {
-        ham_assert(w->has_cursor_move_request()==true, (""));
+        ham_assert(w->has_cursor_move_request()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_move_request()==false, (""));
+        ham_assert(w->has_cursor_move_request()==false);
         return (HAM_FALSE);
     }
 }
@@ -3071,11 +3071,11 @@ proto_has_cursor_move_reply(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     if (w->type()==Wrapper::CURSOR_MOVE_REPLY) {
-        ham_assert(w->has_cursor_move_reply()==true, (""));
+        ham_assert(w->has_cursor_move_reply()==true);
         return (HAM_TRUE);
     }
     else {
-        ham_assert(w->has_cursor_move_reply()==false, (""));
+        ham_assert(w->has_cursor_move_reply()==false);
         return (HAM_FALSE);
     }
 }

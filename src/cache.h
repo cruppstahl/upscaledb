@@ -179,7 +179,7 @@ class Cache
                 break;
         
             page=page->get_previous(Page::LIST_CACHED);
-            ham_assert(page!=oldest, (0));
+            ham_assert(page!=oldest);
         } while (page && page!=oldest);
     
         if (!page)
@@ -227,14 +227,14 @@ class Cache
         if (removed)
             m_cur_elements--;
 
-        ham_assert(check_integrity_nolock()==0, (""));
+        ham_assert(check_integrity_nolock()==0);
     }
 
     /** store a page in the cache (w/o mutex lock) */
     void put_page_nolock(Page *page) {
         ham_u64_t hash=calc_hash(page->get_self());
 
-        ham_assert(page->get_pers(), (""));
+        ham_assert(page->get_pers());
 
         /* first remove the page from the cache, if it's already cached
          *
@@ -247,7 +247,7 @@ class Cache
 
         /* now (re-)insert into the list of all cached pages, and increment
          * the counter */
-        ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED), (0));
+        ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED));
         m_totallist=page->list_insert(m_totallist, Page::LIST_CACHED);
 
         m_cur_elements++;
@@ -261,14 +261,14 @@ class Cache
         if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
             m_buckets[hash]=page->list_remove(m_buckets[hash], 
                             Page::LIST_BUCKET);
-        ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET), (0));
+        ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET));
         m_buckets[hash]=page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
 
         /* is this the chronologically oldest page? then set the pointer */
         if (!m_totallist_tail)
             m_totallist_tail=page;
 
-        ham_assert(check_integrity_nolock()==0, (""));
+        ham_assert(check_integrity_nolock()==0);
     }
     
     /** purges max. 20 pages (and not more to avoid I/O spikes) */

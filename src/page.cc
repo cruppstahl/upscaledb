@@ -44,8 +44,8 @@ Page::Page(Environment *env, Database *db)
 
 Page::~Page()
 {
-    ham_assert(get_pers()==0, (0));
-    ham_assert(get_cursors()==0, (0));
+    ham_assert(get_pers()==0);
+    ham_assert(get_cursors()==0);
 }
 
 ham_status_t
@@ -78,7 +78,7 @@ Page::flush()
 ham_status_t
 Page::free()
 {
-    ham_assert(get_cursors()==0, (0));
+    ham_assert(get_cursors()==0);
 
     return (get_device()->free_page(this));
 }

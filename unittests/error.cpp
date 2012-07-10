@@ -86,15 +86,15 @@ public:
         ham_test_abort=my_abort_handler;
 
         g_aborted=0;
-        ham_verify(0, ("ham_verify test 1"));
+        ham_verify(0);
         BFC_ASSERT_EQUAL(1, g_aborted);
         g_aborted=0;
-        ham_verify(1, ("ham_verify test 2"));
+        ham_verify(1);
         BFC_ASSERT_EQUAL(0, g_aborted);
         g_aborted=0;
-        ham_verify(!"expr", (0));
+        ham_verify(!"expr");
         BFC_ASSERT_EQUAL(1, g_aborted);
-        ham_verify(!"expr", ("hello world %d", 42));
+        ham_verify(!"expr");
         BFC_ASSERT_EQUAL(1, g_aborted);
 
         ham_test_abort=0;
