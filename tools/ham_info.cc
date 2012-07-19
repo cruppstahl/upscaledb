@@ -25,6 +25,9 @@
 #define ARG_HELP            1
 #define ARG_DBNAME          2
 #define ARG_FULL            3
+#define ARG_QUIET           4
+
+static bool quiet = false;
 
 /*
  * command line parameters
@@ -47,6 +50,12 @@ static option_t opts[]={
         "f",
         "full",
         "print full information",
+        0 },
+    {
+        ARG_QUIET,
+        "q",
+        "quiet",
+        "do not print information",
         0 },
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
@@ -75,18 +84,20 @@ print_environment(ham_env_t *env)
     if (st)
         error("ham_env_open_db", st);
 
-    printf("environment\n");
-    printf("    pagesize:                   %u\n", 
-                    ((Environment *)env)->get_pagesize());
-    printf("    version:                    %u.%u.%u.%u\n", 
-                    ((Environment *)env)->get_version(0),
-                    ((Environment *)env)->get_version(1),
-                    ((Environment *)env)->get_version(2),
-                    ((Environment *)env)->get_version(3));
-    printf("    serialno:                   %u\n", 
-                    ((Environment *)env)->get_serialno());
-    printf("    max databases:              %u\n", 
-                    ((Environment *)env)->get_max_databases());
+    if (!quiet) {
+      printf("environment\n");
+      printf("    pagesize:                   %u\n", 
+                      ((Environment *)env)->get_pagesize());
+      printf("    version:                    %u.%u.%u.%u\n", 
+                      ((Environment *)env)->get_version(0),
+                      ((Environment *)env)->get_version(1),
+                      ((Environment *)env)->get_version(2),
+                      ((Environment *)env)->get_version(3));
+      printf("    serialno:                   %u\n", 
+                      ((Environment *)env)->get_serialno());
+      printf("    max databases:              %u\n", 
+                      ((Environment *)env)->get_max_databases());
+    }
 
     st=ham_close(db, 0);
     if (st)
@@ -111,14 +122,16 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
 
-    printf("\n");
-    printf("    database %d (0x%x)\n", (int)dbname, (int)dbname);
-    printf("        max key size:           %u\n", be->get_keysize());
-    printf("        max keys per page:      %u\n", be->get_maxkeys());
-    printf("        address of root page:   %llu\n", 
-            (long long unsigned int)be->get_rootpage());
-    printf("        flags:                  0x%04x\n", 
-            ((Database *)db)->get_rt_flags());
+    if (!quiet) {
+        printf("\n");
+        printf("    database %d (0x%x)\n", (int)dbname, (int)dbname);
+        printf("        max key size:           %u\n", be->get_keysize());
+        printf("        max keys per page:      %u\n", be->get_maxkeys());
+        printf("        address of root page:   %llu\n", 
+                (long long unsigned int)be->get_rootpage());
+        printf("        flags:                  0x%04x\n", 
+                ((Database *)db)->get_rt_flags());
+    }
 
     if (!full)
         return;
@@ -158,18 +171,20 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
 
     ham_cursor_close(cursor);
 
-    printf("        number of items:        %u\n", num_items);
-    if (num_items==0)
-        return;
-    printf("        average key size:       %u\n", total_key_size/num_items);
-    printf("        minimum key size:       %u\n", min_key_size);
-    printf("        maximum key size:       %u\n", max_key_size);
-    printf("        number of extended keys:%u\n", ext_keys);
-    printf("        total keys (bytes):     %u\n", total_key_size);
-    printf("        average record size:    %u\n", total_rec_size/num_items);
-    printf("        minimum record size:    %u\n", min_rec_size);
-    printf("        maximum record size:    %u\n", min_rec_size);
-    printf("        total records (bytes):  %u\n", total_rec_size);
+    if (!quiet) {
+        printf("        number of items:        %u\n", num_items);
+        if (num_items==0)
+            return;
+        printf("        average key size:       %u\n", total_key_size/num_items);
+        printf("        minimum key size:       %u\n", min_key_size);
+        printf("        maximum key size:       %u\n", max_key_size);
+        printf("        number of extended keys:%u\n", ext_keys);
+        printf("        total keys (bytes):     %u\n", total_key_size);
+        printf("        average record size:    %u\n", total_rec_size/num_items);
+        printf("        minimum record size:    %u\n", min_rec_size);
+        printf("        maximum record size:    %u\n", min_rec_size);
+        printf("        total records (bytes):  %u\n", total_rec_size);
+    }
 }
 
 int
@@ -209,6 +224,9 @@ main(int argc, char **argv)
                 break;
             case ARG_FULL:
                 full=1;
+                break;
+            case ARG_QUIET:
+                quiet=true;
                 break;
             case GETOPTS_PARAMETER:
                 if (filename) {
@@ -262,7 +280,7 @@ main(int argc, char **argv)
     st=ham_env_new(&env);
     if (st!=HAM_SUCCESS)
         error("ham_env_new", st);
-    st=ham_env_open(env, filename, HAM_READ_ONLY);
+    st=ham_env_open(env, filename, HAM_READ_ONLY | HAM_ENABLE_TRANSACTIONS);
     if (st==HAM_FILE_NOT_FOUND) {
         printf("File `%s' not found or unable to open it\n", filename);
         return (-1);

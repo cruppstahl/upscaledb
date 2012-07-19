@@ -106,6 +106,9 @@ class Log
         ScopedLock lock(m_mutex);
         ham_offset_t size;
 
+        if (m_fd==HAM_INVALID_FD)
+            return (true);
+
         ham_status_t st=os_get_filesize(m_fd, &size);
         if (st)
 		    return (st ? false : true); /* TODO throw */

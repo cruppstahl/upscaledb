@@ -820,8 +820,10 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
                     || (kc->txn==optxn)) {
+            if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
+                ; /* nop */
             /* if key was erased then it doesn't exist */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+            else if (txn_op_get_flags(op)&TXN_OP_ERASE)
                 return;
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
@@ -904,7 +906,9 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
                     || (txn==optxn)) {
             /* if key was erased then it doesn't exist and can be
              * inserted without problems */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+            if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
+                ; /* nop */
+            else if (txn_op_get_flags(op)&TXN_OP_ERASE)
                 return (0);
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
@@ -973,9 +977,11 @@ db_check_erase_conflicts(Database *db, Transaction *txn,
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
+            if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
+                ; /* nop */
             /* if key was erased then it doesn't exist and we fail with
              * an error */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+            else if (txn_op_get_flags(op)&TXN_OP_ERASE)
                 return (HAM_KEY_NOT_FOUND);
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
@@ -1354,13 +1360,15 @@ retry:
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
+            if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
+                ; /* nop */
             /* if key was erased then it doesn't exist and we can return
              * immediately 
              *
              * if an approximate match is requested then move to the next
              * or previous node
              */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+            else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                 if (first_loop 
                         && !(ham_key_get_intflags(key)&KEY_IS_APPROXIMATE))
                     exact_is_erased=true;

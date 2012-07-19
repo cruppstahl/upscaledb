@@ -146,6 +146,9 @@ Log::close_nolock(ham_bool_t noclear)
     ham_status_t st=0;
     Log::Header header;
 
+    if (m_fd==HAM_INVALID_FD)
+        return (0);
+
     /* write the file header with the magic and the last used lsn */
     header.magic=HEADER_MAGIC;
     header.lsn=m_lsn;
@@ -157,11 +160,9 @@ Log::close_nolock(ham_bool_t noclear)
     if (!noclear)
         clear_nolock();
 
-    if (m_fd!=HAM_INVALID_FD) {
-        if ((st=os_close(m_fd)))
-            return (st);
-        m_fd=HAM_INVALID_FD;
-    }
+    if ((st=os_close(m_fd)))
+        return (st);
+    m_fd=HAM_INVALID_FD;
 
     return (0);
 }

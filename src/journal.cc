@@ -47,7 +47,6 @@ Journal::create()
     /* initialize the magic */
     memset(&header, 0, sizeof(header));
     header.magic=HEADER_MAGIC;
-    m_lsn=1;
 
     /* create the two files */
     for (i=0; i<2; i++) {
@@ -77,21 +76,26 @@ Journal::open()
     Header header;
     JournalEntry entry;
     ham_u64_t lsn[2];
-    ham_status_t st;
+    ham_status_t st, st1, st2;
 
     memset(&header, 0, sizeof(header));
-    m_lsn=0;
     m_current_fd=0;
 
-    /* open the two files */
-    for (i=0; i<2; i++) {
-        std::string path=get_path(i);
-        st=os_open(path.c_str(), 0, &m_fd[i]);
-        if (st) {
-            (void)close_nolock();
-            return (st);
-        }
+    /* open the two files; if the files do not exist then create them */
+    std::string path=get_path(0);
+    st1=os_open(path.c_str(), 0, &m_fd[0]);
+    path=get_path(1);
+    st2=os_open(path.c_str(), 0, &m_fd[1]);
 
+    if (st1==st2 && st2==HAM_FILE_NOT_FOUND)
+        return (st1);
+
+    if (st1 || st2) {
+        (void)close_nolock();
+        return (st1 ? st1 : st2);
+    }
+
+    for (i=0; i<2; i++) {
         /* check the magic */
         st=os_pread(m_fd[i], 0, &header, sizeof(header));
         if (st) {
@@ -413,7 +417,8 @@ Journal::close_nolock(ham_bool_t noclear)
         header.magic=HEADER_MAGIC;
         header.lsn=m_lsn;
 
-        st=os_pwrite(m_fd[0], 0, &header, sizeof(header));
+        if (m_fd[0]!=HAM_INVALID_FD)
+            st=os_pwrite(m_fd[0], 0, &header, sizeof(header));
     }
 
     for (i=0; i<2; i++) {

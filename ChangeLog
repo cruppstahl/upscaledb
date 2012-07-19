@@ -2,6 +2,10 @@ Jul 20, 2012 - chris ---------------------------------------------------
 o Fixed issue 8: Fixed data corruption when retrieving a record returns
 	HAM_BLOB_NOT_FOUND (thanks, Artem)
 
+Jul 18, 2012 - chris ---------------------------------------------------
+o Fixed several bugs (mainly related to misplaced asserts) when performing
+    recovery
+
 Jul 10, 2012 - chris ---------------------------------------------------
 o Fixed crash when reusing a page from the cache that was not correctly
 	initialized (thanks, Jason)

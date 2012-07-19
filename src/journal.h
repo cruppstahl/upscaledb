@@ -88,7 +88,7 @@ class Journal
 
     /** constructor */
     Journal(Environment *env)
-      : m_env(env), m_current_fd(0), m_lsn(0), m_last_cp_lsn(0), 
+      : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0), 
         m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
         m_fd[0]=HAM_INVALID_FD;
         m_fd[1]=HAM_INVALID_FD;
@@ -108,6 +108,9 @@ class Journal
     bool is_empty() {
         ScopedLock lock(m_mutex);
         ham_offset_t size;
+
+        if (m_fd[0]==m_fd[1] && m_fd[1]==HAM_INVALID_FD)
+            return (true);
 
         for (int i=0; i<2; i++) {
             ham_status_t st=os_get_filesize(m_fd[i], &size);

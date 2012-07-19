@@ -109,7 +109,7 @@ getopts(option_t *options, char **param)
     /*
      * check for a short option name
      */
-    else if (g_argv[g_a][0]=='-' || g_argv[g_a][0]=='/') {
+    else if (g_argv[g_a][0]=='-') {
         *param=&g_argv[g_a][1];
         for (; o->shortopt; o++) {
             if (!strcmp(o->shortopt, &g_argv[g_a][1])) {

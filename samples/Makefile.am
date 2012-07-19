@@ -3,7 +3,7 @@ INCLUDES		= -I$(top_builddir)/include
 
 noinst_PROGRAMS	= db1 db2 db3 db4 db5 db6 env1 env2 env3
 
-noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3 
+noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3
 
 if ENABLE_SERVER
 if ENABLE_REMOTE

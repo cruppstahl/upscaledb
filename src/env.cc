@@ -267,12 +267,16 @@ __recover(Environment *env, ham_u32_t flags)
     /* open the log and the journal (if transactions are enabled) */
     st=log->open();
     env->set_log(log);
-    if (st && st!=HAM_FILE_NOT_FOUND)
+    if (st==HAM_FILE_NOT_FOUND)
+        st=log->create();
+    if (st)
         goto bail;
     if (env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         st=journal->open();
         env->set_journal(journal);
-        if (st && st!=HAM_FILE_NOT_FOUND)
+        if (st==HAM_FILE_NOT_FOUND)
+            st=journal->create();
+        if (st)
             goto bail;
     }
 
@@ -1416,16 +1420,13 @@ __flush_txn(Environment *env, Transaction *txn)
         Backend *be=txn_opnode_get_db(node)->get_backend();
         ham_assert(be!=0, (""));
 
-        /* make sure that this op was not yet flushed - this would be
-         * a serious bug */
-        ham_assert(txn_op_get_flags(op)!=TXN_OP_FLUSHED, (""));
+        if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
+            goto next_op;
 
         /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
-        if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-            ham_assert(env->get_changeset().is_empty(), (""));
-            ham_assert(env->get_log()->is_empty(), (""));
-        }
+        if (env->get_flags()&HAM_ENABLE_RECOVERY)
+            ham_assert(env->get_changeset().is_empty());
 #endif
 
         /* 
@@ -1486,11 +1487,14 @@ __flush_txn(Environment *env, Transaction *txn)
                 st=be->erase(txn, txn_opnode_get_key(node), 
                         txn_op_get_flags(op));
             }
+            if (st==HAM_KEY_NOT_FOUND)
+                st=0;
         }
 
         if (st) {
             ham_trace(("failed to flush op: %d (%s)", 
                             (int)st, ham_strerror(st)));
+            env->get_changeset().clear();
             env->get_changeset().clear();
             return (st);
         }
@@ -1502,6 +1506,7 @@ __flush_txn(Environment *env, Transaction *txn)
             if (st) {
                 ham_trace(("failed to flush op: %d (%s)", 
                                 (int)st, ham_strerror(st)));
+                env->get_changeset().clear();
                 return (st);
             }
         }
@@ -1514,6 +1519,7 @@ __flush_txn(Environment *env, Transaction *txn)
          * already coupled to the btree item instead
          */
         txn_op_set_flags(op, TXN_OP_FLUSHED);
+next_op:
         while ((cursor=txn_op_get_cursors(op))) {
             Cursor *pc=txn_cursor_get_parent(cursor);
             ham_assert(pc->get_txn_cursor()==cursor, (""));

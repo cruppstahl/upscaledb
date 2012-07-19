@@ -120,13 +120,12 @@ main(int argc, char **argv)
         error("ham_env_open_ex", st);
 
     /* now start the recovery */
-    st=ham_env_open_ex(env, filename, HAM_AUTO_RECOVERY, 0);
+    st=ham_env_open_ex(env, filename,
+                HAM_AUTO_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0);
     if (st)
         error("ham_env_open_ex", st);
 
-    /*
-     * we're already done
-     */
+    /* we're already done */
     st=ham_env_close(env, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
