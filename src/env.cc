@@ -1413,7 +1413,7 @@ __flush_txn(Environment *env, Transaction *txn)
         /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
         if (env->get_flags()&HAM_ENABLE_RECOVERY)
-            ham_assert(env->get_changeset().is_empty(), (""));
+            ham_assert(env->get_changeset().is_empty());
 #endif
 
         /* 

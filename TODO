@@ -34,7 +34,6 @@ o involve everyone in decisions on the new interface
   Do you use sorted duplicates?
     If yes, would it be very problematic if I would remove this functionality?
 
-
 o clean up interface
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
     o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
