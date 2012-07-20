@@ -113,16 +113,6 @@ class Freelist
 
   private:
     /**
-     * check whether the given block is administrated in the freelist.
-     * If it isn't yet, make it so.
-     *
-     * @return one of @ref ham_status_codes on error, @ref HAM_SUCCESS
-     * when the given storage area is within the scope of the
-     * freelist.
-     */    
-    ham_status_t check_area_is_allocated(ham_offset_t address, ham_size_t size);
-
-    /**
      * setup / initialize the proper performance data for this
      * freelist page.
      *

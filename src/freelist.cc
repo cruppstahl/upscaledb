@@ -802,6 +802,7 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
              */
             if (i == 0) {
                 fp = m_env->get_freelist_payload();
+                page = 0;
             }
             else {
                 st = env_fetch_page(&page, m_env, entry->page_id, 0);
@@ -848,65 +849,6 @@ ham_status_t
 Freelist::alloc_page(ham_offset_t *address, Database *db)
 {
     return (alloc_area(address, db, m_env->get_pagesize(), true, 0));
-}
-
-ham_status_t
-Freelist::check_area_is_allocated(ham_offset_t address, ham_size_t size)
-{
-    ham_status_t st;
-    Page *page=0;
-    FreelistEntry *entry;
-    FreelistPayload *fp;
-    ham_size_t s;
-
-    ham_assert(size%DB_CHUNKSIZE==0, (0));
-    ham_assert(address%DB_CHUNKSIZE==0, (0));
-
-    if (m_entries.empty()) {
-        st=initialize();
-        if (st)
-            return (st);
-    }
-
-    /* split the chunk if it doesn't fit in one freelist page */
-    while (size) {
-        /* get the cache entry of this address */
-        st=get_entry(&entry, address);
-        if (st)
-            return st;
-
-        /* allocate a page if necessary */
-        if (!entry->page_id) {
-            if (entry->start_address == m_env->get_pagesize()) {
-                fp=m_env->get_freelist_payload();
-                ham_assert(freel_get_start_address(fp)!=0, (0));
-            }
-            else {
-                st=alloc_page(&page, entry);
-                if (st)
-                    return (st);
-                fp=page_get_freelist(page);
-                ham_assert(freel_get_start_address(fp)!=0, (0));
-            }
-        }
-        /* otherwise just fetch the page from the cache or the disk */
-        else {
-            st=env_fetch_page(&page, m_env, entry->page_id, 0);
-            if (st)
-                return (st);
-            fp=page_get_freelist(page);
-            ham_assert(freel_get_start_address(fp)!=0, (0));
-        }
-
-        ham_assert(address>=freel_get_start_address(fp), (0));
-
-        /* check the bits */
-        s=size;
-        size-=s;
-        address+=s;
-    }
-
-    return (0);
 }
 
 /**
