@@ -73,14 +73,6 @@ public class Cursor {
     }
     
     /**
-     * Destructor - automatically closes the Cursor
-     */
-    public void finalize()
-            throws DatabaseException {
-        close();
-    }
-    
-    /**
      * Creates a new Cursor
      * <p>
      * This method wraps the native ham_cursor_create function.
@@ -100,9 +92,10 @@ public class Cursor {
         synchronized (m_db) {
             m_handle=ham_cursor_create(db.getHandle(), 
                                 txn!=null ? txn.getHandle() : 0);
+            if (m_handle==0)
+                throw new DatabaseException(db.getError());
+            m_db.addCursor(this);
         }
-        if (m_handle==0)
-            throw new DatabaseException(db.getError());
     }
 
     /*
@@ -135,10 +128,12 @@ public class Cursor {
             throw new DatabaseException(Const.HAM_INV_PARAMETER);
         synchronized (m_db) {
             newhandle=ham_cursor_clone(m_handle);
+            if (newhandle==0)
+                throw new DatabaseException(m_db.getError());
+            Cursor c = new Cursor(m_db, newhandle);
+            m_db.addCursor(c);
+            return c;
         }
-        if (newhandle==0)
-            throw new DatabaseException(m_db.getError());
-        return new Cursor(m_db, newhandle);
     }
     
     /**
@@ -498,8 +493,14 @@ public class Cursor {
         if (m_handle==0)
             return;
         synchronized (m_db) {
-            status=ham_cursor_close(m_handle);
+            closeNoLock();
+            m_db.removeCursor(this);
         }
+    }
+
+    public void closeNoLock()
+            throws DatabaseException {
+        int status=ham_cursor_close(m_handle);
         if (status!=0)
             throw new DatabaseException(status);
         m_handle=0;

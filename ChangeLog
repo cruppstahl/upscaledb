@@ -1,3 +1,9 @@
+Jul 23, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.4
+
+Jul 21, 2012 - chris ---------------------------------------------------
+o (java) Fixed race condition when closing Cursors (thanks, Mark S.)
+
 Jul 20, 2012 - chris ---------------------------------------------------
 o Fixed issue 8: Fixed data corruption when retrieving a record returns
 	HAM_BLOB_NOT_FOUND (thanks, Artem)

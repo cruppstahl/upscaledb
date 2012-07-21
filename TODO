@@ -17,19 +17,12 @@ to scale with the number of cores.
 
 x bug report from jason: crash when inserting keys
 
-o bug report from Artem
+x bug report from Artem
     finally able to reproduce the crash!
     txn/recovery is not needed
-    --> warning - currently, moster test files are not with extended keys
-        (not sure if extkeys make a difference)
-    o test without transactions and recovery
-        o create monster test
-    o test without transactions but with recovery
-        o create monster test
-    o test with transactions
-        o create monster test
+    x fix and add tests
         
-o bug report from Mark: crash in java library because native cursor is freed
+x bug report from Mark: crash in java library because native cursor is freed
     too early
 
         

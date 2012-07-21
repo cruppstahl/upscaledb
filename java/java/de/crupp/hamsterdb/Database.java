@@ -12,6 +12,9 @@
 
 package de.crupp.hamsterdb;
 
+import java.util.HashSet;
+import java.util.Iterator;
+
 public class Database {
 
     private native static int ham_get_version(int which);
@@ -742,16 +745,53 @@ public class Database {
     public synchronized void close(int flags) {
         if (m_handle==0)
             return;
-        ham_close(m_handle, flags|Const.HAM_AUTO_CLEANUP);
+        closeCursors();
+        ham_close(m_handle, flags);
         ham_delete(m_handle);
         m_handle=0;
     }
+
+    private HashSet m_cursor_set;
 
     /**
      * Retrieves the database handle
      */
     public long getHandle() {
         return m_handle;
+    }
+
+    /**
+     * Adds a cursor - used by Cursor.java
+     */
+    public void addCursor(Cursor cursor) {
+        if (m_cursor_set == null)
+            m_cursor_set = new HashSet();
+        m_cursor_set.add(cursor);
+    }
+
+    /**
+     * Removes a cursor - used by Cursor.java
+     */
+    public void removeCursor(Cursor cursor) {
+        m_cursor_set.remove(cursor);
+    }
+
+    /**
+     * closes all cursors of this database
+     */
+    public void closeCursors() {
+        if (m_cursor_set == null)
+            return;
+        Iterator iterator = m_cursor_set.iterator();
+        while (iterator.hasNext()) {
+            Cursor c = (Cursor)iterator.next();
+            try {
+                c.closeNoLock();
+            }
+            catch (Exception e) {
+            }
+        }
+        m_cursor_set.clear();
     }
 
     /**
