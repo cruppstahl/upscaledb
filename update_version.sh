@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash
 
 OLD_VERSION=$1;
 NEW_VERSION=$2;

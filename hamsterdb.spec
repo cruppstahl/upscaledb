@@ -1,7 +1,7 @@
 
 Summary: hamsterdb Embedded Storage
 Name: hamsterdb
-Version: 2.0.3.rc3.rc3.rc3
+Version: 2.0.4.rc3.rc3.rc3
 Release: 1%{?dist}
 Source0: http://hamsterdb.com/public/dl/%{name}-%{version}.tar.gz
 URL: http://hamsterdb.com/

@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.3               Sat Jun  9 14:27:37 CEST 2012
+hamsterdb Embedded Storage 2.0.4               Sat Jul 21 20:07:04 CEST 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,12 +12,9 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes several smaller issues, mostly compilation/linker errors
-on various platforms.
-It also added missing fsync's when recovery (HAM_ENABLE_RECOVERY) and
-write-through (HAM_WRITE_THROUGH) are enabled.
-The legacy file format from hamsterdb 1.0.9 (and older versions) is no longer
-supported.
+This release fixes several issues including a segmentation fault, a few 
+misplaced asserts and data corruption. It is highly recommended to
+upgrade.
 
 2. Changes
 
@@ -25,19 +22,29 @@ New Features
 * none
 
 Bugfixes
-* Fixed linker error when libboost_thread-mt.lib is installed
-* Fixed compilation error in OSX Lion
-* Fixed HAM_INTERNAL_ERROR when creating database with
-    HAM_ENABLE_RECOVERY but without HAM_ENABLE_TRANSACTIONS
+Jul 21, 2012 - chris ---------------------------------------------------
+* (java) Fixed race condition when closing Cursors (thanks, Mark S.)
+* Fixed issue 8: Fixed data corruption when retrieving a record returns
+	HAM_BLOB_NOT_FOUND (thanks, Artem)
+* Fixed several bugs (mainly related to misplaced asserts) when performing
+    recovery
+* Fixed crash when reusing a page from the cache that was not correctly
+	initialized (thanks, Jason)
+* Fixed crash when HAM_ENABLE_RECOVERY w/o HAM_ENABLE_TRANSACTIONS (thanks,
+	Peter)
+* Fixed issue 7: approximate matching did not return the correct key
+	(thanks, Artem)
+* Fixed MacOS compilation problem
+	(thanks, Jason P.)
 
 Other Changes
-* Several code cleanups; more modules were converted to C++
-* The legacy file format of hamsterdb 1.0.9 and older is no longer supported
+* none
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
+- API cleanups, code refactoring
 - fine-grained locking for faster concurrent access
 - more transactional stuff (i.e. recreate pending transactions when 
     recovering from a crash)
