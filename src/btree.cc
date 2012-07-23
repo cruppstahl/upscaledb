@@ -195,7 +195,7 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
         return (st);
 
     memset(root->get_raw_payload(), 0, 
-            sizeof(btree_node_t)+sizeof(page_data_t));
+            sizeof(btree_node_t)+sizeof(PageData));
     root->set_type(Page::TYPE_B_ROOT);
     root->set_dirty(true);
 

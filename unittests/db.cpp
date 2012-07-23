@@ -307,8 +307,8 @@ public:
         BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
         BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));
         BFC_ASSERT(compare_sizes(sizeof(Log::Entry), 32));
-        BFC_ASSERT(compare_sizes(sizeof(page_data_t), 13));
-        page_data_t p;
+        BFC_ASSERT(compare_sizes(sizeof(PageData), 13));
+        PageData p;
         BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
         BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
 
@@ -332,11 +332,11 @@ public:
         // header page, then hack it...
         struct
         {
-            page_data_t drit;
+            PageData drit;
             env_header_t drat;
         } hdrpage_pers = {{{0}}};
         Page hdrpage;
-        hdrpage.set_pers((page_data_t *)&hdrpage_pers);
+        hdrpage.set_pers((PageData *)&hdrpage_pers);
         Page *hp = &hdrpage;
         ham_u8_t *pl1 = hp->get_payload();
         BFC_ASSERT(pl1);

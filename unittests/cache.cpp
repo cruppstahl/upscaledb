@@ -89,7 +89,7 @@ public:
     void putGetTest(void)
     {
         Page *page;
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
@@ -107,7 +107,7 @@ public:
     void putGetRemoveGetTest(void)
     {
         Page *page;
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
@@ -130,7 +130,7 @@ public:
     void putGetReplaceTest(void)
     {
         Page *page1, *page2;
-        page_data_t pers1, pers2;
+        PageData pers1, pers2;
         memset(&pers1, 0, sizeof(pers1));
         memset(&pers2, 0, sizeof(pers2));
         Cache *cache=new Cache((Environment *)m_env, 15);
@@ -163,7 +163,7 @@ public:
     void multiplePutTest(void)
     {
         Page *page[20];
-        page_data_t pers[20];
+        PageData pers[20];
         Cache *cache=new Cache((Environment *)m_env, 15);
 
         for (int i=0; i<20; i++) {
@@ -200,7 +200,7 @@ public:
     void overflowTest(void)
     {
         Cache *cache=new Cache((Environment *)m_env, 15*os_get_pagesize());
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         std::vector<Page *> v;
 

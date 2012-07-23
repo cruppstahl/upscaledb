@@ -68,21 +68,30 @@ o clean up and refactor the code
     x changeset.h
     x device.cc
     x device.h
-    o journal.cc
-    o journal_entries.h
-        find a decent way to handle endian-dependent structures
-    o journal.h
-    o log.cc
-    o log.h
-        find a decent way to handle endian-dependent structures
-    o page.cc
-    o page.h
-        find a decent way to handle endian-dependent structures
-    o remote.cc
+    x journal.cc
+    x journal.h
+    x journal_entries.h
+    x log.cc
+    x log.h
+    x page.cc
+    x page.h
+    x remote.cc
     o extkeys.h
-        merge hash-table.h
+        -> code beautification
+        -> fix TODO
+    o hash-table.h
+        -> code beautification
     o blob.cc
     o blob.h
+
+    o protocol - get rid of it
+    o hamserver.cc
+
+    o include/ham/hamsterdb.h
+    o include/ham/hamsterdb_int.h
+        remove everything that is not required
+    o include/ham/hamsterdb_stats.h
+        remove everything that is not required
 
     o backend.h
     o btree.h
@@ -91,27 +100,26 @@ o clean up and refactor the code
     o btree_stats.cc
         should use arena for lower/upper bounds
     o btree_stats.h
+        remove everything that is not required 
     o btree.cc
     o btree_check.cc
     o btree_cursor.cc
     o btree_cursor.h
     o btree_enum.cc
-    o btree_erase.cc
     o btree_find.cc
     o btree_insert.cc
+    o btree_erase.cc
 
-    o freelist.cc
     o freelist.h
-    o freelist_statistics.cc
+    o freelist.cc
     o freelist_statistics.h
+    o freelist_statistics.cc
+        remove everything that is not required 
 
     o cursor.cc
     o cursor.h
     o db.cc
-<<<<<<< HEAD
         should use arena for get_extended_key
-=======
->>>>>>> more refactoring (wip)
     o db.h
     o env.cc
     o env.h
@@ -122,13 +130,11 @@ o clean up and refactor the code
     o txn.h
 
     o hamsterdb.cc
-<<<<<<< HEAD
 
     o unittests
 
+    o get rid of ham_bool_t, replace with bool whenever possible
 
-=======
->>>>>>> more refactoring (wip)
 o more fine-grained locking
     x cache
         x make sure it's perfectly abstracted
