@@ -15,16 +15,32 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-x bug report from jason: crash when inserting keys
+o involve everyone in decisions on the new interface
+  Do you use any of the HAM_HINT_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use any of the HAM_DAM_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use AES encryption?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use zlib compression?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use to insert duplicate keys at exact positions (i.e. use one of
+        HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
+        HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
+        or HAM_ONLY_DUPLICATES?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use sorted duplicates?
+    If yes, would it be very problematic if I would remove this functionality?
 
-x bug report from Artem
-    finally able to reproduce the crash!
-    txn/recovery is not needed
-    x fix and add tests
-        
-x bug report from Mark: crash in java library because native cursor is freed
-    too early
 
+o clean up interface
+    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
+    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
+    o rename ham_cursor_find_ex to ham_cursor_find
+    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+    o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
         
 o clean up and refactor the code
     x os.h
