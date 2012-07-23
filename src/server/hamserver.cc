@@ -103,7 +103,7 @@ static void *
 __get_handle(struct env_t *envh, ham_u64_t handle)
 {
     srv_handle_t *h=&envh->handles[handle&0xffffffff];
-    ham_assert(h->handle==handle, (""));
+    ham_assert(h->handle==handle);
     if (h->handle!=handle)
         return (0);
     return h->ptr;
@@ -113,7 +113,7 @@ static void
 __remove_handle(struct env_t *envh, ham_u64_t handle)
 {
     srv_handle_t *h=&envh->handles[handle&0xffffffff];
-    ham_assert(h->handle==handle, (""));
+    ham_assert(h->handle==handle);
     if (h->handle!=handle)
         return;
     memset(h, 0, sizeof(*h));
@@ -144,8 +144,8 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
 {
     proto_wrapper_t *reply;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_connect_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_connect_request(request));
 
     reply=proto_init_connect_reply(HAM_SUCCESS, 
                     ((Environment *)env)->get_flags()); 
@@ -163,8 +163,8 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
     ham_status_t st=0;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_get_parameters_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_get_parameters_request(request));
 
     /* initialize the ham_parameters_t array */
     memset(&params[0], 0, sizeof(params));
@@ -232,8 +232,8 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
     ham_size_t i;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_get_parameters_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_get_parameters_request(request));
 
     /* initialize the ham_parameters_t array */
     memset(&params[0], 0, sizeof(params));
@@ -323,8 +323,8 @@ handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
     ham_size_t num_names=1024;
     ham_u16_t names[1024]; /* should be enough */
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_get_database_names_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_get_database_names_request(request));
 
     /* request the database names from the Environment */
     st=ham_env_get_database_names(env, &names[0], &num_names);
@@ -339,8 +339,8 @@ handle_env_flush(ham_env_t *env, struct mg_connection *conn,
 {
     proto_wrapper_t *reply;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_flush_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_flush_request(request));
 
     /* request the database names from the Environment */
     reply=proto_init_env_flush_reply(ham_env_flush(env, 
@@ -356,8 +356,8 @@ handle_env_rename(ham_env_t *env, struct mg_connection *conn,
 {
     proto_wrapper_t *reply;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_rename_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_rename_request(request));
 
     /* rename the databases */
     reply=proto_init_env_rename_reply(ham_env_rename_db(env, 
@@ -381,11 +381,11 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     proto_wrapper_t *reply;
     ham_parameter_t params[100]={{0, 0}};
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_create_db_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_create_db_request(request));
 
     /* convert parameters */
-    ham_assert(proto_env_create_db_request_get_num_params(request)<100, (""));
+    ham_assert(proto_env_create_db_request_get_num_params(request)<100);
     for (i=0; i<proto_env_create_db_request_get_num_params(request); i++) {
         params[i].name =proto_env_create_db_request_get_param_names(request)[i];
         params[i].value=proto_env_create_db_request_get_param_values(request)[i];
@@ -424,11 +424,11 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     ham_u16_t dbname=proto_env_open_db_request_get_dbname(request);
     ham_parameter_t params[100]={{0, 0}};
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_open_db_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_open_db_request(request));
 
     /* convert parameters */
-    ham_assert(proto_env_open_db_request_get_num_params(request)<100, (""));
+    ham_assert(proto_env_open_db_request_get_num_params(request)<100);
     for (i=0; i<proto_env_open_db_request_get_num_params(request); i++) {
         params[i].name =proto_env_open_db_request_get_param_names(request)[i];
         params[i].value=proto_env_open_db_request_get_param_values(request)[i];
@@ -475,8 +475,8 @@ handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
 {
     proto_wrapper_t *reply;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_env_erase_db_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_env_erase_db_request(request));
 
     reply=proto_init_env_erase_db_reply(ham_env_erase_db(env, 
                 proto_env_erase_db_request_get_dbname(request),
@@ -495,8 +495,8 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_env_t *env=envh->env;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_close_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_close_request(request));
 
     db=(ham_db_t *)__get_handle(envh, 
                 proto_db_close_request_get_db_handle(request));
@@ -529,8 +529,8 @@ handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
     ham_u64_t handle=0;
     ham_env_t *env=envh->env;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_txn_begin_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_txn_begin_request(request));
 
     st=ham_txn_begin(&txn, env, proto_txn_begin_request_get_name(request), 
                 0, proto_txn_begin_request_get_flags(request));
@@ -552,8 +552,8 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
     ham_env_t *env=envh->env;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_txn_commit_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_txn_commit_request(request));
 
     txn=(ham_txn_t *)__get_handle(envh, 
                 proto_txn_commit_request_get_txn_handle(request));
@@ -583,8 +583,8 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_env_t *env=envh->env;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_txn_abort_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_txn_abort_request(request));
 
     txn=(ham_txn_t *)__get_handle(envh, 
                 proto_txn_abort_request_get_txn_handle(request));
@@ -614,8 +614,8 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
     ham_db_t *db;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_check_integrity_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_check_integrity_request(request));
 
     if (proto_check_integrity_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -651,8 +651,8 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_u64_t keycount;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_get_key_count_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_get_key_count_request(request));
 
     if (proto_db_get_key_count_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -692,8 +692,8 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
     ham_key_t key;
     ham_record_t rec;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_insert_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_insert_request(request));
 
     if (proto_db_insert_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -734,7 +734,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
 
             /* recno: return the modified key */
             if ((st==0) && (ham_get_flags(db)&HAM_RECORD_NUMBER)) {
-                ham_assert(key.size==sizeof(ham_offset_t), (""));
+                ham_assert(key.size==sizeof(ham_offset_t));
                 send_key=HAM_TRUE;
             }
         }
@@ -757,8 +757,8 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
     ham_record_t rec;
     ham_bool_t send_key=HAM_FALSE;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_find_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_find_request(request));
 
     if (proto_db_find_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -815,8 +815,8 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
     ham_db_t *db;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_erase_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_db_erase_request(request));
 
     if (proto_db_erase_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -862,8 +862,8 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_u64_t handle=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_create_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_create_request(request));
 
     if (proto_cursor_create_request_get_txn_handle(request)) {
         txn=(ham_txn_t *)__get_handle(envh, 
@@ -906,8 +906,8 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_u64_t handle=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_clone_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_clone_request(request));
 
     src=(ham_cursor_t *)__get_handle(envh, 
             proto_cursor_clone_request_get_cursor_handle(request));
@@ -940,8 +940,8 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
     ham_status_t st=0;
     ham_bool_t send_key=HAM_FALSE;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_insert_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_insert_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
             proto_cursor_insert_request_get_cursor_handle(request));
@@ -977,7 +977,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
     if (st==0) {
         Cursor *c=(Cursor *)cursor;
         if (ham_get_flags((ham_db_t *)c->get_db())&HAM_RECORD_NUMBER) {
-            ham_assert(key.size==sizeof(ham_offset_t), (""));
+            ham_assert(key.size==sizeof(ham_offset_t));
             send_key=HAM_TRUE;
         }
     }
@@ -996,8 +996,8 @@ handle_cursor_erase(struct env_t *envh, struct mg_connection *conn,
     ham_cursor_t *cursor;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_erase_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_erase_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
             proto_cursor_erase_request_get_cursor_handle(request));
@@ -1027,8 +1027,8 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
     ham_bool_t send_key=HAM_FALSE;
     ham_bool_t send_rec=HAM_FALSE;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_find_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_find_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
             proto_cursor_find_request_get_cursor_handle(request));
@@ -1084,8 +1084,8 @@ handle_cursor_get_duplicate_count(struct env_t *envh,
     ham_status_t st=0;
     ham_size_t count=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_get_duplicate_count_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_get_duplicate_count_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
            proto_cursor_get_duplicate_count_request_get_cursor_handle(request));
@@ -1112,8 +1112,8 @@ handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
     ham_record_t rec;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_overwrite_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_overwrite_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
            proto_cursor_overwrite_request_get_cursor_handle(request));
@@ -1151,8 +1151,8 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
     ham_bool_t send_key=HAM_FALSE;
     ham_bool_t send_rec=HAM_FALSE;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_move_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_move_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
            proto_cursor_move_request_get_cursor_handle(request));
@@ -1204,8 +1204,8 @@ handle_cursor_close(struct env_t *envh, struct mg_connection *conn,
     ham_cursor_t *cursor;
     ham_status_t st=0;
 
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_cursor_close_request(request), (""));
+    ham_assert(request!=0);
+    ham_assert(proto_has_cursor_close_request(request));
 
     cursor=(ham_cursor_t *)__get_handle(envh,
            proto_cursor_close_request_get_cursor_handle(request));

@@ -401,7 +401,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
          * at the end of this section or we'll be in BIG trouble!
          */
         hdrpage_faked = HAM_TRUE;
-        fakepage.set_pers((page_data_t *)hdrbuf);
+        fakepage.set_pers((PageData *)hdrbuf);
         env->set_header_page(&fakepage);
 
         /*

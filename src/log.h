@@ -42,23 +42,24 @@ class Log
 {
   public:
     /** the magic of the header */
-    static const ham_u32_t HEADER_MAGIC=(('h'<<24)|('l'<<16)|('o'<<8)|'g');
+    static const ham_u32_t HEADER_MAGIC = (('h' << 24) | ('l' << 16)
+                                         | ('o' << 8) | 'g');
 
     /**
      * the header structure of a log file
      */
     HAM_PACK_0 struct HAM_PACK_1 Header
     {
-        Header() : magic(0), _reserved(0), lsn(0) { };
-    
-        /* the magic */
-        ham_u32_t magic;
+      Header() : magic(0), _reserved(0), lsn(0) { }
 
-        /* a reserved field */
-        ham_u32_t _reserved;
+      /* the magic */
+      ham_u32_t magic;
 
-        /* the last used lsn */
-        ham_u64_t lsn;
+      /* a reserved field */
+      ham_u32_t _reserved;
+
+      /* the last used lsn */
+      ham_u64_t lsn;
     } HAM_PACK_2;
 
     /**
@@ -66,22 +67,22 @@ class Log
      */
     HAM_PACK_0 struct HAM_PACK_1 Entry
     {
-        Entry() : lsn(0), flags(0), _reserved(0), offset(0), data_size(0) { };
+      Entry() : lsn(0), flags(0), _reserved(0), offset(0), data_size(0) { }
 
-        /** the lsn of this entry */
-        ham_u64_t lsn;
-    
-        /** the flags of this entry, see below */
-        ham_u32_t flags;
-    
-        /** a reserved value */
-        ham_u32_t _reserved;
+      /** the lsn of this entry */
+      ham_u64_t lsn;
+  
+      /** the flags of this entry, see below */
+      ham_u32_t flags;
+  
+      /** a reserved value */
+      ham_u32_t _reserved;
 
-        /** the offset of this operation */
-        ham_u64_t offset;
+      /** the offset of this operation */
+      ham_u64_t offset;
 
-        /** the size of the data */
-        ham_u64_t data_size;
+      /** the size of the data */
+      ham_u64_t data_size;
     } HAM_PACK_2;
 
     /** flags for Entry::flags */
@@ -91,7 +92,7 @@ class Log
     typedef ham_offset_t Iterator;
 
     /** constructor */
-    Log(Environment *env, ham_u32_t flags=0)
+    Log(Environment *env, ham_u32_t flags = 0)
       : m_env(env), m_flags(flags), m_lsn(0), m_fd(HAM_INVALID_FD) {
     }
 
@@ -103,34 +104,34 @@ class Log
 
     /** checks if the log is empty */
     bool is_empty() {
-        ScopedLock lock(m_mutex);
-        ham_offset_t size;
+      ScopedLock lock(m_mutex);
+      ham_offset_t size;
 
-        if (m_fd==HAM_INVALID_FD)
-            return (true);
-
-        ham_status_t st=os_get_filesize(m_fd, &size);
-        if (st)
-		    return (st ? false : true); /* TODO throw */
-        if (size && size!=sizeof(Log::Header))
-            return (false);
-
+      if (m_fd == HAM_INVALID_FD)
         return (true);
+
+      ham_status_t st = os_get_filesize(m_fd, &size);
+      if (st)
+        return (st ? false : true); /* TODO throw */
+      if (size && size != sizeof(Log::Header))
+        return (false);
+
+      return (true);
     }
 
     /** adds an AFTER-image of a page */
     ham_status_t append_page(Page *page, ham_u64_t lsn, ham_size_t page_count);
 
     /** retrieves the current lsn */
-    ham_u64_t get_lsn(void) {
-        ScopedLock lock(m_mutex);
-        return (m_lsn);
+    ham_u64_t get_lsn() {
+      ScopedLock lock(m_mutex);
+      return (m_lsn);
     }
 
     /** retrieves the file handle (for unittests) */
-    ham_fd_t get_fd(void) {
-        ScopedLock lock(m_mutex);
-        return (m_fd);
+    ham_fd_t get_fd() {
+      ScopedLock lock(m_mutex);
+      return (m_fd);
     }
 
     /** 
@@ -140,14 +141,14 @@ class Log
      * txn_commit or txn_abort) 
      */
     ham_status_t clear() {
-        ScopedLock lock(m_mutex);
-        return (clear_nolock());
+      ScopedLock lock(m_mutex);
+      return (clear_nolock());
     }
 
     /** flush the logfile to disk */
     ham_status_t flush() {
-        ScopedLock lock(m_mutex);
-        return (os_flush(m_fd));
+      ScopedLock lock(m_mutex);
+      return (os_flush(m_fd));
     }
 
     /** 
@@ -156,9 +157,9 @@ class Log
      * if @a noclear is true then the log will not be clear()ed. This is 
      * useful for debugging.
      */
-    ham_status_t close(ham_bool_t noclear=false) {
-        ScopedLock lock(m_mutex);
-        return (close_nolock(noclear));
+    ham_status_t close(bool noclear = false) {
+      ScopedLock lock(m_mutex);
+      return (close_nolock(noclear));
     }
 
     /** do the recovery */
@@ -179,21 +180,21 @@ class Log
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
      */
     ham_status_t get_entry(Log::Iterator *iter, Log::Entry *entry,
-                ham_u8_t **data);
+                         ham_u8_t **data);
 
     /** closes the log (w/o mutex) */
-    ham_status_t close_nolock(ham_bool_t noclear=false);
+    ham_status_t close_nolock(bool noclear = false);
 
     /** clears the logfile (w/o mutex) */
     ham_status_t clear_nolock() {
-        ham_status_t st=os_truncate(m_fd, sizeof(Log::Header));
-        if (st)
-            return (st);
-
-        /* after truncate, the file pointer is far beyond the new end of file;
-         * reset the file pointer, or the next write will resize the file to
-         * the original size */
-        return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
+      ham_status_t st = os_truncate(m_fd, sizeof(Log::Header));
+      if (st)
+        return (st);
+  
+      /* after truncate, the file pointer is far beyond the new end of file;
+       * reset the file pointer, or the next write will resize the file to
+       * the original size */
+      return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
     }
 
     /**

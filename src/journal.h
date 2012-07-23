@@ -42,60 +42,60 @@ class Journal
     static const ham_u32_t HEADER_MAGIC=('h'<<24)|('j'<<16)|('o'<<8)|'1';
 
     enum {
-        /** mark the start of a new transaction */
-        ENTRY_TYPE_TXN_BEGIN  = 1,
-        /** mark the end of an aborted transaction */
-        ENTRY_TYPE_TXN_ABORT  = 2,
-        /** mark the end of an committed transaction */
-        ENTRY_TYPE_TXN_COMMIT = 3,
-        /** mark an insert operation */
-        ENTRY_TYPE_INSERT     = 4,
-        /** mark an erase operation */
-        ENTRY_TYPE_ERASE      = 5
+      /** mark the start of a new transaction */
+      ENTRY_TYPE_TXN_BEGIN  = 1,
+      /** mark the end of an aborted transaction */
+      ENTRY_TYPE_TXN_ABORT  = 2,
+      /** mark the end of an committed transaction */
+      ENTRY_TYPE_TXN_COMMIT = 3,
+      /** mark an insert operation */
+      ENTRY_TYPE_INSERT     = 4,
+      /** mark an erase operation */
+      ENTRY_TYPE_ERASE      = 5
     };
 
     /**
      * the header structure of a journal file
      */
     HAM_PACK_0 struct HAM_PACK_1 Header {
-        Header() : magic(0), _reserved(0), lsn(0) { }
+      Header() : magic(0), _reserved(0), lsn(0) { }
 
-        /** the magic */
-        ham_u32_t magic;
+      /** the magic */
+      ham_u32_t magic;
     
-        /* a reserved field */
-        ham_u32_t _reserved;
+      /* a reserved field */
+      ham_u32_t _reserved;
     
-        /** the last used lsn */
-        ham_u64_t lsn;
+      /** the last used lsn */
+      ham_u64_t lsn;
     } HAM_PACK_2;
 
     /**
      * An "iterator" structure for traversing the journal files
      */
     struct Iterator {
-        Iterator() : fdidx(0), fdstart(0), offset(0) { }
+      Iterator() : fdidx(0), fdstart(0), offset(0) { }
 
-        /** selects the file descriptor [0..1] */
-        int fdidx;
+      /** selects the file descriptor [0..1] */
+      int fdidx;
 
-        /** which file descriptor did we start with? [0..1] */
-        int fdstart;
+      /** which file descriptor did we start with? [0..1] */
+      int fdstart;
 
-        /** the offset in the file of the NEXT entry */
-        ham_offset_t offset;
+      /** the offset in the file of the NEXT entry */
+      ham_offset_t offset;
     };
 
     /** constructor */
     Journal(Environment *env)
       : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0), 
-        m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
-        m_fd[0]=HAM_INVALID_FD;
-        m_fd[1]=HAM_INVALID_FD;
-        m_open_txn[0]=0;
-        m_open_txn[1]=0;
-        m_closed_txn[0]=0;
-        m_closed_txn[1]=0;
+      m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
+      m_fd[0] = HAM_INVALID_FD;
+      m_fd[1] = HAM_INVALID_FD;
+      m_open_txn[0] = 0;
+      m_open_txn[1] = 0;
+      m_closed_txn[0] = 0;
+      m_closed_txn[1] = 0;
     }
 
     /** creates a new journal */
@@ -106,21 +106,21 @@ class Journal
 
     /** checks if the journal is empty */
     bool is_empty() {
-        ScopedLock lock(m_mutex);
-        ham_offset_t size;
+      ScopedLock lock(m_mutex);
+      ham_offset_t size;
 
-        if (m_fd[0]==m_fd[1] && m_fd[1]==HAM_INVALID_FD)
-            return (true);
-
-        for (int i=0; i<2; i++) {
-            ham_status_t st=os_get_filesize(m_fd[i], &size);
-            if (st)
-                return (false); /* TODO throw exception */
-            if (size && size!=sizeof(Header))
-                return (false);
-        }
-
+      if (m_fd[0] == m_fd[1] && m_fd[1] == HAM_INVALID_FD)
         return (true);
+
+      for (int i = 0; i < 2; i++) {
+        ham_status_t st = os_get_filesize(m_fd[i], &size);
+        if (st)
+          return (false); /* TODO throw exception */
+        if (size && size != sizeof(Header))
+          return (false);
+      }
+
+      return (true);
     }
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
@@ -146,26 +146,26 @@ class Journal
 
     /** empties the journal, removes all entries */
     ham_status_t clear() {
-        ScopedLock lock(m_mutex);
-        return (clear_nolock());
+      ScopedLock lock(m_mutex);
+      return (clear_nolock());
     }
 
     /** Closes the journal, frees all allocated resources */
-    ham_status_t close(ham_bool_t noclear=false) {
-        ScopedLock lock(m_mutex);
-        return (close_nolock(noclear));
+    ham_status_t close(bool noclear = false) {
+      ScopedLock lock(m_mutex);
+      return (close_nolock(noclear));
     }
 
     /**
-     * Recovers! All committed Transactions will be re-applied, all others
+     * Recovery! All committed Transactions will be re-applied, all others
      * are automatically aborted
      */
     ham_status_t recover();
 
     /** get the lsn and increment it */
     ham_u64_t get_incremented_lsn() {
-        ScopedLock lock(m_mutex);
-        return (m_lsn++);
+      ScopedLock lock(m_mutex);
+      return (m_lsn++);
     }
 
   private:
@@ -173,27 +173,26 @@ class Journal
 
     /** gets the lsn; only required for unittests */
     ham_u64_t get_lsn() {
-        ScopedLock lock(m_mutex);
-        return (m_lsn);
+      ScopedLock lock(m_mutex);
+      return (m_lsn);
     }
 
     /** empties the journal, removes all entries (w/o mutex) */
     ham_status_t clear_nolock() {
-        ham_status_t st; 
+      ham_status_t st; 
 
-        for (int i=0; i<2; i++) {
-            if ((st=clear_file(i)))
-                return (st);
-        }
-
-        return (0);
+      for (int i = 0; i < 2; i++) {
+        if ((st = clear_file(i)))
+          return (st);
+      }
+      return (0);
     }
 
     /** returns the path of the journal file */
     std::string get_path(int i);
 
     /** Closes the journal (w/o mutex) */
-    ham_status_t close_nolock(ham_bool_t noclear=false);
+    ham_status_t close_nolock(bool noclear = false);
 
     /**
      * Sequentially returns the next journal entry, starting with 
@@ -208,16 +207,15 @@ class Journal
      *
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
      */
-    ham_status_t get_entry(Iterator *iter, 
-                JournalEntry *entry, void **aux);
+    ham_status_t get_entry(Iterator *iter, JournalEntry *entry, void **aux);
 
     /** appends an entry to the journal */
     ham_status_t append_entry(int fdidx,
-                void *ptr1=0, ham_size_t ptr1_size=0,
-                void *ptr2=0, ham_size_t ptr2_size=0,
-                void *ptr3=0, ham_size_t ptr3_size=0,
-                void *ptr4=0, ham_size_t ptr4_size=0,
-                void *ptr5=0, ham_size_t ptr5_size=0) {
+                void *ptr1 = 0, ham_size_t ptr1_size = 0,
+                void *ptr2 = 0, ham_size_t ptr2_size = 0,
+                void *ptr3 = 0, ham_size_t ptr3_size = 0,
+                void *ptr4 = 0, ham_size_t ptr4_size = 0,
+                void *ptr5 = 0, ham_size_t ptr5_size = 0) {
         return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
                     ptr2, ptr2_size, ptr3, ptr3_size, 
                     ptr4, ptr4_size, ptr5, ptr5_size));
@@ -228,12 +226,12 @@ class Journal
 
     /** helper function for the allocator */
     void *allocate(ham_size_t size) {
-        return (m_env->get_allocator()->alloc(size));
+      return (m_env->get_allocator()->alloc(size));
     }
 
     /** helper function for the allocator */
     void alloc_free(void *ptr) {
-        return (m_env->get_allocator()->free(ptr));
+      return (m_env->get_allocator()->free(ptr));
     }
 
     /** a mutex to protect the journal */

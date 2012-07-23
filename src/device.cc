@@ -108,7 +108,7 @@ fallback_rw:
       buffer = (ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
       if (!buffer)
         return (HAM_OUT_OF_MEMORY);
-      page->set_pers((page_data_t *)buffer);
+      page->set_pers((PageData *)buffer);
       page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
       alloc = true;
     }
@@ -131,7 +131,7 @@ fallback_rw:
    * header page - the header page is not filtered)
    */
   if (!head || page->is_header()) {
-    page->set_pers((page_data_t *)buffer);
+    page->set_pers((PageData *)buffer);
     return (0);
   }
 
@@ -146,7 +146,7 @@ fallback_rw:
     head = head->_next;
   }
 
-  page->set_pers((page_data_t *)buffer);
+  page->set_pers((PageData *)buffer);
   return (0);
 }
 
@@ -223,7 +223,7 @@ DeviceImplInMemory::alloc_page(Page *page)
   buffer = (ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
   if (!buffer)
     return (HAM_OUT_OF_MEMORY);
-  page->set_pers((page_data_t *)buffer);
+  page->set_pers((PageData *)buffer);
   page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
   page->set_self((ham_offset_t)PTR_TO_U64(buffer));
 
