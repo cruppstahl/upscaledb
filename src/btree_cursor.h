@@ -33,6 +33,7 @@
 
 #include "internal_fwd_decl.h"
 #include "blob.h"
+#include "duplicates.h"
 
 
 /**

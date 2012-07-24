@@ -147,7 +147,7 @@ __move_next(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_status_t st;
         btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(c)+1);
-        st=blob_duplicate_get(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         btree_cursor_get_dupe_cache(c));
         if (st) {
@@ -230,7 +230,7 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && btree_cursor_get_dupe_id(c)>0) {
         ham_status_t st;
         btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(c)-1);
-        st=blob_duplicate_get(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c), 
                         btree_cursor_get_dupe_cache(c));
         if (st) {
@@ -285,7 +285,7 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        st=blob_duplicate_get_count(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry),
                         &count, btree_cursor_get_dupe_cache(c));
         if (st)
             return st;
@@ -356,7 +356,7 @@ __move_last(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        st=blob_duplicate_get_count(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry),
                         &count, btree_cursor_get_dupe_cache(c));
         if (st)
             return (st);
@@ -615,7 +615,7 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
                 && btree_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=btree_cursor_get_dupe_cache(c);
             if (!dupe_entry_get_rid(e)) {
-                st=blob_duplicate_get(env, key_get_ptr(entry),
+                st=env->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         btree_cursor_get_dupe_cache(c));
                 if (st)
@@ -825,7 +825,7 @@ btree_cursor_get_duplicate_count(btree_cursor_t *c,
         *count=1;
     }
     else {
-        st=blob_duplicate_get_count(env, key_get_ptr(entry), count, 0);
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry), count, 0);
         if (st)
             return (st);
     }
@@ -924,7 +924,7 @@ btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
         return (0);
     }
 
-    return (blob_duplicate_get_table(env, key_get_ptr(entry), 
+    return (env->get_duplicate_manager()->get_table(key_get_ptr(entry), 
                     ptable, needs_free));
 }
 
@@ -961,7 +961,7 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES) {
-        st=blob_duplicate_get(db->get_env(), key_get_ptr(entry),
+        st=db->get_env()->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         &dupeentry);
         if (st)
@@ -990,7 +990,7 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
         *size=0;
     }
     else {
-        st=blob_get_datasize(db, rid, size);
+        st=db->get_env()->get_blob_manager()->get_datasize(db, rid, size);
         if (st)
             return (st);
     }

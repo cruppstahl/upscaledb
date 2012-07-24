@@ -25,6 +25,7 @@ libhamsterdb_la_SOURCES = log.cc \
 			btree_key.cc \
 			cache.cc \
 			db.cc \
+			duplicates.cc \
 			env.cc \
 			error.cc \
 			freelist.cc \

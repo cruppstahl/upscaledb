@@ -83,7 +83,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 
             if (!(c->flags&HAM_SKIP_DUPLICATES)
                     && (key_get_flags(key)&KEY_HAS_DUPLICATES)) {
-                ham_status_t st=blob_duplicate_get_count(c->db->get_env(), 
+                ham_status_t st=c->db->get_env()->get_duplicate_manager()->get_count(
                             key_get_ptr(key), &dupcount, 0);
                 if (st)
                     return (st);
@@ -153,7 +153,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
             /* delete the extended key */
-            st=extkey_remove(c->db, blobid);
+            st=c->db->remove_extkey(blobid);
             if (st)
                 return (st);
         }
@@ -287,6 +287,14 @@ Database::get_name(void)
 {
     db_indexdata_t *idx=get_env()->get_indexdata_ptr(get_indexdata_offset());
     return (index_get_dbname(idx));
+}
+
+ham_status_t
+Database::remove_extkey(ham_offset_t blobid)
+{
+  if (get_extkey_cache())
+    get_extkey_cache()->remove(blobid);
+  return (get_env()->get_blob_manager()->free(this, blobid, 0));
 }
 
 Database::~Database()
@@ -531,7 +539,7 @@ Database::get_extended_key(ham_u8_t *key_data,
     record.size=key_length-(db_get_keysize(this)-sizeof(ham_offset_t));
     record.flags=HAM_RECORD_USER_ALLOC;
 
-    st=blob_read(this, 0, blobid, &record, 0);
+    st=get_env()->get_blob_manager()->read(this, 0, blobid, &record, 0);
     if (st)
         return (st);
 

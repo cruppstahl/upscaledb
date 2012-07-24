@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -48,7 +48,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 
     /** additional flags */
     ham_u32_t _flags;
-
 } HAM_PACK_2 blob_t;
 
 #include "packstop.h"
@@ -78,192 +77,90 @@ typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 
-#include "packstart.h"
+#if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
+#  undef alloc
+#  undef free
+#  undef realloc
+#  undef calloc
+#endif
 
 /**
- * a structure for a duplicate - used in a duplicate table
+ * The BlobManager manages blobs (not a surprise)
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
+class BlobManager
 {
-    /** reserved, for padding */
-    ham_u8_t _padding[7];
+  public:
+    BlobManager(Environment *env)
+      : m_env(env) {
+    }
 
     /**
-     * the flags - same as @ref KEY_BLOB_SIZE_SMALL,
-	 *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
+     * allocate/create a blob
+     * returns the blob-id (the start address of the blob header) in @a blobid
      */
-    ham_u8_t _flags;
+    ham_status_t allocate(Database *db, ham_record_t *record, ham_u32_t flags,
+                    ham_offset_t *blobid);
 
-    /** the record id (unless it's TINY, SMALL or NULL) */
-    ham_u64_t _rid;
+    /**
+     * reads a blob and stores the data in @a record
+     * flags: either 0 or HAM_DIRECT_ACCESS
+     */
+    ham_status_t read(Database *db, Transaction *txn, ham_offset_t blobid, 
+                    ham_record_t *record, ham_u32_t flags);
 
-} HAM_PACK_2 dupe_entry_t;
+    /**
+     * retrieves a blob size
+     */
+    ham_status_t get_datasize(Database *db, ham_offset_t blobid,
+                    ham_offset_t *size);
 
-#include "packstop.h"
+    /**
+     * overwrite an existing blob
+     *
+     * will return an error if the blob does not exist
+     * returns the blob-id (the start address of the blob header) in @a blobid
+     */
+    ham_status_t overwrite(Database *db, ham_offset_t old_blobid, 
+                    ham_record_t *record, ham_u32_t flags,
+                    ham_offset_t *new_blobid);
 
-/* get the flags of a duplicate entry */
-#define dupe_entry_get_flags(e)         (e)->_flags
+    /**
+     * delete an existing blob
+     */
+    ham_status_t free(Database *db, ham_offset_t blobid, ham_u32_t flags);
 
-/* set the flags of a duplicate entry */
-#define dupe_entry_set_flags(e, f)      (e)->_flags=(f)
+  private:
+    friend class DuplicateManager;
 
-/*
- * get the record id of a duplicate entry
- * 
- * !!!
- * if TINY or SMALL is set, the rid is actually a char*-pointer;
- * in this case, we must not use endian-conversion!
- */
-#define dupe_entry_get_rid(e)                                                 \
-         (((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)                       \
-          || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))                   \
-           ? (e)->_rid                                                        \
-           : ham_db2h_offset((e)->_rid))
+    /**
+     * write a series of data chunks to storage at file offset 'addr'.
+     * 
+     * The chunks are assumed to be stored in sequential order, adjacent
+     * to each other, i.e. as one long data strip.
+     * 
+     * Writing is performed on a per-page basis, where special conditions
+     * will decide whether or not the write operation is performed
+     * through the page cache or directly to device; such is determined 
+     * on a per-page basis.
+     */
+    ham_status_t write_chunks(Page *page, ham_offset_t addr, bool allocated,
+                    bool freshly_created, ham_u8_t **chunk_data,
+                    ham_size_t *chunk_size, ham_size_t chunks);
 
-/* same as above, but without endian conversion */
-#define dupe_entry_get_ridptr(e)        (e)->_rid
+    /**
+     * same as above, but for reading chunks from the file
+     */
+    ham_status_t read_chunk(Page *page, Page **fpage, ham_offset_t addr,
+                    Database *db, ham_u8_t *data, ham_size_t size);
 
-/*
- * set the record id of a duplicate entry
- *
- * !!! same problems as with get_rid():
- * if TINY or SMALL is set, the rid is actually a char*-pointer;
- * in this case, we must not use endian-conversion!
- */
-#define dupe_entry_set_rid(e, r)                                              \
-         (e)->_rid=(((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)             \
-                    || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))         \
-                     ? (r)                                                    \
-                       : ham_h2db_offset(r))
+    /* 
+     * if the blob is small enough (or if logging is enabled) then go through
+     * the cache. otherwise use direct I/O
+     */
+    bool blob_from_cache(ham_size_t size);
 
-#include "packstart.h"
-
-/**
- * a structure for duplicates (dupe_table_t)
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
-{
-    /** the number of duplicates (used entries in this table) */
-    ham_u32_t _count;
-
-    /** the capacity of entries in this table */
-    ham_u32_t _capacity;
-
-    /** a dynamic array of duplicate entries */
-    dupe_entry_t _entries[1];
-
-} HAM_PACK_2 dupe_table_t;
-
-#include "packstop.h"
-
-/** get the number of duplicates */
-#define dupe_table_get_count(t)         (ham_db2h32((t)->_count))
-
-/** set the number of duplicates */
-#define dupe_table_set_count(t, c)      (t)->_count=ham_h2db32(c)
-
-/** get the maximum number of duplicates */
-#define dupe_table_get_capacity(t)      (ham_db2h32((t)->_capacity))
-
-/** set the maximum number of duplicates */
-#define dupe_table_set_capacity(t, c)   (t)->_capacity=ham_h2db32(c)
-
-/** get a pointer to a duplicate entry @a i */
-#define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
-
-/**
- * allocate/create a blob
- *
- * returns the blob-id (the start address of the blob header) in @a blobid
- */
-extern ham_status_t
-blob_allocate(Environment *env, Database *db, ham_record_t *record,
-        ham_u32_t flags, ham_offset_t *blobid);
-
-/**
- * read a blob
- *
- * stores the data in @a record
- *
- * flags: either 0 or HAM_DIRECT_ACCESS
- */
-extern ham_status_t
-blob_read(Database *db, Transaction *txn, ham_offset_t blobid, 
-        ham_record_t *record, ham_u32_t flags);
-
-/**
- * retrieves a blob size
- *
- * stores the size in @a size
- */
-extern ham_status_t
-blob_get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size);
-
-/**
- * overwrite an existing blob
- *
- * will return an error if the blob does not exist
- * returns the blob-id (the start address of the blob header) in @a blobid
- */
-extern ham_status_t
-blob_overwrite(Environment *env, Database *db, ham_offset_t old_blobid, 
-        ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
-
-/**
- * delete an existing blob
- */
-extern ham_status_t
-blob_free(Environment *env, Database *db, ham_offset_t blobid, ham_u32_t flags);
-
-/**
- * create a duplicate table and insert all entries in the duplicate
- * (max. two entries are allowed; first entry will be at the first position,
- * second entry will be set depending on the flags)
- *
- * OR, if the table already exists (i.e. table_id != 0), insert the 
- * entry depending on the flags (only one entry is allowed in this case)
- */
-extern ham_status_t
-blob_duplicate_insert(Database *db, Transaction *txn, ham_offset_t table_id, 
-        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
-        dupe_entry_t *entries, ham_size_t num_entries, 
-        ham_offset_t *rid, ham_size_t *new_position);
-
-/**
- * delete a duplicate
- *
- * if flags == HAM_ERASE_ALL_DUPLICATES: all duplicates and the dupe table
- * are deleted
- *
- * sets new_table_id to 0 if the table is empty
- */
-extern ham_status_t
-blob_duplicate_erase(Database *db, Transaction *txn, ham_offset_t table_id,
-        ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
-
-/**
- * get the number of duplicates
- */
-extern ham_status_t
-blob_duplicate_get_count(Environment *env, ham_offset_t table_id,
-        ham_size_t *count, dupe_entry_t *entry);
-
-/**
- * get a duplicate
- */
-extern ham_status_t 
-blob_duplicate_get(Environment *env, ham_offset_t table_id,
-        ham_size_t position, dupe_entry_t *entry);
-
-/**
- * retrieve the whole table of duplicates
- *
- * @warning will return garbage if the key has no dupes!!
- * @warning memory has to be freed by the caller IF needs_free is true!
- */
-extern ham_status_t 
-blob_duplicate_get_table(Environment *env, ham_offset_t table_id, 
-                    dupe_table_t **ptable, bool *needs_free);
-
+    /** the Environment which created this BlobManager */   
+    Environment *m_env;
+};
 
 #endif /* HAM_BLOB_H__ */

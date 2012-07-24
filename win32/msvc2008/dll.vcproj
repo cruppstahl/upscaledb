@@ -440,6 +440,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\duplicates.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\duplicates.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\device.cc"
 			>
 		</File>

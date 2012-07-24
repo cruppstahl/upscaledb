@@ -1104,7 +1104,7 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
                 ham_offset_t blobid=key_get_extended_rid(db, bte_lhs);
                 ham_assert(blobid);
 
-                st=extkey_remove(db, blobid);
+                st=db->remove_extkey(blobid);
                 if (st)
                     return st;
             }
@@ -1172,11 +1172,13 @@ my_copy_key(Database *db, Transaction *txn, btree_key_t *lhs, btree_key_t *rhs)
         memset(&record, 0, sizeof(record));
 
         rhsblobid=key_get_extended_rid(db, rhs);
-        st=blob_read(db, txn, rhsblobid, &record, 0);
+        st=db->get_env()->get_blob_manager()->read(db, txn, rhsblobid,
+                                &record, 0);
         if (st)
             return (st);
 
-        st=blob_allocate(db->get_env(), db, &record, 0, &lhsblobid);
+        st=db->get_env()->get_blob_manager()->allocate(db, &record,
+                                0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1211,7 +1213,7 @@ my_replace_key(Page *page, ham_s32_t slot, btree_key_t *rhs,
         ham_offset_t blobid=key_get_extended_rid(db, lhs);
         ham_assert(blobid);
 
-        st=extkey_remove(db, blobid);
+        st=db->remove_extkey(blobid);
         if (st)
             return (st);
     }
@@ -1244,11 +1246,13 @@ my_replace_key(Page *page, ham_s32_t slot, btree_key_t *rhs,
         memset(&record, 0, sizeof(record));
 
         rhsblobid=key_get_extended_rid(db, rhs);
-        st=blob_read(db, scratchpad->txn, rhsblobid, &record, 0);
+        st=db->get_env()->get_blob_manager()->read(db, scratchpad->txn,
+                                rhsblobid, &record, 0);
         if (st)
             return (st);
 
-        st=blob_allocate(db->get_env(), db, &record, 0, &lhsblobid);
+        st=db->get_env()->get_blob_manager()->allocate(db, &record, 0,
+                                &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1399,7 +1403,7 @@ free_all:
         ham_offset_t blobid=key_get_extended_rid(db, bte);
         ham_assert(blobid);
 
-        st=extkey_remove(db, blobid);
+        st=db->remove_extkey(blobid);
         if (st)
             return (st);
     }

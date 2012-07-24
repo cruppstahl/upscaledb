@@ -783,8 +783,7 @@ btree_read_record(Database *db, Transaction *txn, ham_record_t *record,
      */
     if (record->_intflags&KEY_HAS_DUPLICATES) {
         dupe_entry_t entry;
-        ham_status_t st=blob_duplicate_get(db->get_env(), record->_rid, 
-                                            0, &entry);
+        ham_status_t st=db->get_env()->get_duplicate_manager()->get(record->_rid, 0, &entry);
         if (st)
             return st;
         record->_intflags=dupe_entry_get_flags(&entry);
@@ -845,7 +844,8 @@ btree_read_record(Database *db, Transaction *txn, ham_record_t *record,
         }
     }
     else if (!noblob && blobsize != 0) {
-        return (blob_read(db, txn, record->_rid, record, flags));
+        return (db->get_env()->get_blob_manager()->read(db, txn,
+                    record->_rid, record, flags));
     }
 
     return (HAM_SUCCESS);
