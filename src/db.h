@@ -550,7 +550,7 @@ class Database
     }
 
     /** check whether this database has been opened/created */
-    bool is_active(void) {
+    bool is_active() {
         return (m_is_active);
     }
 
@@ -586,7 +586,7 @@ class Database
 
 #if HAM_ENABLE_REMOTE
     /** get the remote database handle */
-    ham_u64_t get_remote_handle(void) {
+    ham_u64_t get_remote_handle() {
         return (m_remote_handle);
     }
 
@@ -597,12 +597,15 @@ class Database
 #endif
 
     /** get the transaction tree */
-    struct txn_optree_t *get_optree(void) {
+    struct txn_optree_t *get_optree() {
         return (&m_optree);
     }
 
     /** get the database name */
-    ham_u16_t get_name(void);
+    ham_u16_t get_name();
+
+    /** remove an extendex key from the cache and the blob */
+    ham_status_t remove_extkey(ham_offset_t blobid);
 
     /**
      * function which compares two keys

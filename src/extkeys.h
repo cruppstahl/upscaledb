@@ -49,7 +49,7 @@ class ExtKeyCache
     };
 
     /** the size of the ExtKey structure (without room for the key data) */
-    static const int SIZEOF_EXTKEY_T = sizeof(ExtKey)-1;
+    static const int SIZEOF_EXTKEY_T = sizeof(ExtKey) - 1;
 
     class ExtKeyHelper
     {
@@ -65,7 +65,7 @@ class ExtKeyCache
         }
 
         bool matches(const ExtKey *lhs, ham_offset_t key) {
-          return (lhs->blobid==key);
+          return (lhs->blobid == key);
         }
 
         ExtKey *next(const ExtKey *node) {
@@ -73,7 +73,7 @@ class ExtKeyCache
         }
 
         void set_next(ExtKey *node, ExtKey *other) {
-          node->next=other;
+          node->next = other;
         }
 
         bool remove_if(const ExtKey *node) {
@@ -81,7 +81,7 @@ class ExtKeyCache
             m_env->get_allocator()->free(node);
             return (true);
           }
-          if (m_env->get_txn_id()-node->age>EXTKEY_MAX_AGE) {
+          if (m_env->get_txn_id()-node->age > EXTKEY_MAX_AGE) {
             m_env->get_allocator()->free(node);
             return (true);
           }
@@ -116,18 +116,19 @@ class ExtKeyCache
      * will assert that there's no duplicate key! 
      */
     void insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data) {
-      ScopedLock lock(m_mutex);
       ExtKey *e;
       Environment *env=m_db->get_env();
 
-      /* DEBUG build: make sure that the item is not inserted twice!  */
-      ham_assert(m_hash.get(blobid)==0);
+      ScopedLock lock(m_mutex);
 
-      e=(ExtKey *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T+size);
-      e->blobid=blobid;
+      /* DEBUG build: make sure that the item is not inserted twice!  */
+      ham_assert(m_hash.get(blobid) == 0);
+
+      e = (ExtKey *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T + size);
+      e->blobid = blobid;
       /* TODO do not use txn id but lsn for age */
-      e->age=env->get_txn_id();
-      e->size=size;
+      e->age = env->get_txn_id();
+      e->size = size;
       memcpy(e->data, data, size);
 
       m_hash.put(e);
@@ -139,9 +140,9 @@ class ExtKeyCache
      */
     void remove(ham_offset_t blobid) {
       ScopedLock lock(m_mutex);
-      ExtKey *e=m_hash.remove(blobid);
+      ExtKey *e = m_hash.remove(blobid);
       if (e) {
-        m_usedsize-=e->size;
+        m_usedsize -= e->size;
         m_db->get_env()->get_allocator()->free(e);
       }
     }
@@ -152,12 +153,12 @@ class ExtKeyCache
      */
     ham_status_t fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data) {
       ScopedLock lock(m_mutex);
-      ExtKey *e=m_hash.get(blobid);
+      ExtKey *e = m_hash.get(blobid);
       if (e) {
-        *size=e->size;
-        *data=e->data;
+        *size = e->size;
+        *data = e->data;
         /* TODO do not use txn id but lsn for age */
-        e->age=m_db->get_env()->get_txn_id();
+        e->age = m_db->get_env()->get_txn_id();
         return (0);
       }
       else
@@ -167,7 +168,7 @@ class ExtKeyCache
     /** removes all OLD keys from the cache */
     void purge() {
       ScopedLock lock(m_mutex);
-      m_extkeyhelper->m_removeall=false;
+      m_extkeyhelper->m_removeall = false;
       m_hash.remove_if();
     }
     
@@ -180,7 +181,7 @@ class ExtKeyCache
   private:
     /** removes ALL keys from the cache (w/o mutex) */
     void purge_all_nolock() {
-      m_extkeyhelper->m_removeall=true;
+      m_extkeyhelper->m_removeall = true;
       m_hash.remove_if();
     }
 
@@ -199,19 +200,6 @@ class ExtKeyCache
     /** the buckets - a list of ExtKey pointers */
     hash_table<ExtKey, ham_offset_t, ExtKeyHelper> m_hash;
 };
-
-/**
- * a combination of extkey_cache_remove and blob_free
- * TODO move this to Database.cc (DatabaseImplementationLocal)
- */
-inline ham_status_t 
-extkey_remove(Database *db, ham_offset_t blobid)
-{
-  if (db->get_extkey_cache())
-    db->get_extkey_cache()->remove(blobid);
-
-  return (blob_free(db->get_env(), db, blobid, 0));
-}
 
 
 #endif /* HAM_EXTKEYS_H__ */

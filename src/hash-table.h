@@ -34,7 +34,7 @@ class hash_table
 
   public:
     /** constructor */
-    hash_table(Helper &h, int bucket_size=10317)
+    hash_table(Helper &h, int bucket_size = 10317)
       : m_helper(h), m_buckets(bucket_size) {
     }
 
@@ -43,41 +43,42 @@ class hash_table
      * complexity: O(1)
      */
     void put(T *p) {
-      unsigned h=hash(p);
+      unsigned h = hash(p);
       m_helper.set_next(p, m_buckets[h]);
-      m_buckets[h]=p;
+      m_buckets[h] = p;
     }
 
     /** 
-     * fetches a key
+     * fetches a key; returns NULL if the key is not available
      */
     T *get(const Key &key) const {
-      unsigned h=hash(key);
-      T *p=m_buckets[h];
+      unsigned h = hash(key);
+      T *p = m_buckets[h];
       while (p) {
         if  (m_helper.matches(p, key))
           return (p);
-        p=m_helper.next(p);
+        p = m_helper.next(p);
       }
       return (p);
     }
 
     /** 
-     * removes all matching objects
+     * removes an object from the hash and returns the object (or NULL if
+     * it was not found)
      */
     T *remove(const Key &key) {
-      unsigned h=hash(key);
-      T *last=0, *p=m_buckets[h];
+      unsigned h = hash(key);
+      T *last = 0, *p = m_buckets[h];
       while (p) {
         if  (m_helper.matches(p, key)) {
           if (last)
             m_helper.set_next(last, m_helper.next(p));
           else
-            m_buckets[h]=m_helper.next(p);
+            m_buckets[h] = m_helper.next(p);
           return p;
         }
-        last=p;
-        p=m_helper.next(p);
+        last = p;
+        p = m_helper.next(p);
       }
       return 0;
     }
@@ -88,30 +89,30 @@ class hash_table
      */
     void remove_if() {
       bucket_iterator it;
-      for (size_t i=0; i<m_buckets.size(); i++) {
-        T *previous=0, *next=0, *p=m_buckets[i];
+      for (size_t i = 0; i < m_buckets.size(); i++) {
+        T *previous = 0, *next = 0, *p = m_buckets[i];
         while (p) {
-          next=m_helper.next(p);
+          next = m_helper.next(p);
           if (m_helper.remove_if(p)) {
             if (previous)
               m_helper.set_next(previous, next);
             else
-              m_buckets[i]=next;
+              m_buckets[i] = next;
           }
           else
-            previous=p;
-          p=next;
+            previous = p;
+          p = next;
         }
       }
     }
 
   private:
     unsigned hash(const Key &key) const {
-      return (m_helper.hash(key)%m_buckets.size()); 
+      return (m_helper.hash(key) % m_buckets.size()); 
     }
 
     unsigned hash(const T *p) const {
-      return (m_helper.hash(p)%m_buckets.size()); 
+      return (m_helper.hash(p) % m_buckets.size()); 
     }
 
     Helper &m_helper;

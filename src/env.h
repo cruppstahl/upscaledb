@@ -27,6 +27,8 @@
 #include "error.h"
 #include "page.h"
 #include "changeset.h"
+#include "blob.h"
+#include "duplicates.h"
 
 /**
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
@@ -566,6 +568,16 @@ class Environment
         return (m_log_directory);
     }
 
+    /** get the blob manager */
+    BlobManager *get_blob_manager() {
+        return (&m_blob_manager);
+    }
+
+    /** get the duplicate manager */
+    DuplicateManager *get_duplicate_manager() {
+        return (&m_duplicate_manager);
+    }
+
     /** get the mutex */
     Mutex &get_mutex() {
         return (m_mutex);
@@ -651,6 +663,12 @@ class Environment
 
     /** the directory of the log file and journal files */
     std::string m_log_directory;
+
+    /** the BlobManager */
+    BlobManager m_blob_manager;
+
+    /** the DuplicateManager */
+    DuplicateManager m_duplicate_manager;
 };
 
 /**

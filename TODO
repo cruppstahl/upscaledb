@@ -76,15 +76,16 @@ o clean up and refactor the code
     x page.cc
     x page.h
     x remote.cc
-    o extkeys.h
-        -> code beautification
-        -> fix TODO
-    o hash-table.h
-        -> code beautification
-    o blob.cc
-    o blob.h
+    x extkeys.h
+    x hash-table.h
+    x blob.h
+    x blob.cc
+        x use os_writev when writing blob header/body - not possible
+        x move duplicate stuff into btree_dupes.*, refactor
+            replace __duplicate_get_table with BlobManager::read (needs to
+                dynamically resize the buffer)
 
-    o protocol - get rid of it
+    o protocol - finally get rid of it
     o hamserver.cc
 
     o include/ham/hamsterdb.h
@@ -135,7 +136,10 @@ o clean up and refactor the code
 
     o get rid of ham_bool_t, replace with bool whenever possible
 
-o more fine-grained locking
+o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
+
+o more fine-grained locking - or rather move commits into background
+    and leave everything as is?
     x cache
         x make sure it's perfectly abstracted
         x protect with mutex

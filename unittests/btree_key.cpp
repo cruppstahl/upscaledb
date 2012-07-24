@@ -397,9 +397,9 @@ public:
         BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
 
         dupe_entry_t entry;
+        DuplicateManager *dm = ((Environment *)m_env)->get_duplicate_manager();
         BFC_ASSERT_EQUAL(0, 
-                    blob_duplicate_get((Environment *)m_env, key_get_ptr(key),
-                            (ham_size_t)position, &entry));
+                    dm->get(key_get_ptr(key), (ham_size_t)position, &entry));
 
         ham_record_t rec;
         memset(&rec, 0, sizeof(rec));

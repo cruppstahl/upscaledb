@@ -191,6 +191,8 @@
     <ClInclude Include="..\..\src\config.h" />
     <ClInclude Include="..\..\src\cursor.h" />
     <ClInclude Include="..\..\src\db.h" />
+    <ClInclude Include="..\..\src\duplicates.h" />
+    <ClInclude Include="..\..\src\duplicates.cc" />
     <ClInclude Include="..\..\src\device.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />

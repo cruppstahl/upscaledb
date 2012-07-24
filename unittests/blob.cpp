@@ -61,6 +61,7 @@ protected:
     ham_bool_t m_use_txn;
     ham_size_t m_cachesize;
     ham_size_t m_pagesize;
+    BlobManager *m_blob_manager;
 
 public:
     virtual void setup() 
@@ -88,6 +89,7 @@ public:
                             : 0)), 
                         0644, &params[0]));
         m_env=ham_get_env(m_db);
+        m_blob_manager=((Environment *)m_env)->get_blob_manager();
     }
     
     virtual void teardown() 
@@ -152,17 +154,18 @@ public:
         record.size=sizeof(buffer);
         record.data=buffer;
         BFC_ASSERT_EQUAL(0, 
-                blob_allocate((Environment *)m_env, (Database *)m_db, 
+                m_blob_manager->allocate((Database *)m_db, 
                                 &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
-        BFC_ASSERT_EQUAL(0, blob_read((Database *)m_db, 0, blobid, &record, 0));
+        BFC_ASSERT_EQUAL(0,
+                m_blob_manager->read((Database *)m_db,
+                                0, blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
         BFC_ASSERT_EQUAL(0, 
-                blob_free((Environment *)m_env, 
-                                (Database *)m_db, blobid, 0));
+                m_blob_manager->free((Database *)m_db, blobid, 0));
     }
 
     void replaceTest(void)
@@ -177,29 +180,30 @@ public:
         record.size=sizeof(buffer);
         record.data=buffer;
         BFC_ASSERT_EQUAL(0, 
-                blob_allocate((Environment *)m_env, (Database *)m_db, 
+                m_blob_manager->allocate((Database *)m_db, 
                                 &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
-        BFC_ASSERT_EQUAL(0, blob_read((Database *)m_db, 0, blobid, &record, 0));
+        BFC_ASSERT_EQUAL(0,
+                m_blob_manager->read((Database *)m_db, 0,
+                                blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
         record.size=sizeof(buffer2);
         record.data=buffer2;
         BFC_ASSERT_EQUAL(0, 
-                blob_overwrite((Environment *)m_env, (Database *)m_db, 
+                m_blob_manager->overwrite((Database *)m_db, 
                                 blobid, &record, 0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, 
-                blob_read((Database *)m_db, 0, blobid2, &record, 0));
+                m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
         BFC_ASSERT(0==::memcmp(buffer2, record.data, record.size));
 
         BFC_ASSERT_EQUAL(0, 
-                blob_free((Environment *)m_env, (Database *)m_db, 
-                                blobid2, 0));
+                m_blob_manager->free((Database *)m_db, blobid2, 0));
     }
 
     void replaceWithBigTest(void)
@@ -214,29 +218,29 @@ public:
         record.data=buffer;
         record.size=sizeof(buffer);
         BFC_ASSERT_EQUAL(0, 
-                blob_allocate((Environment *)m_env, (Database *)m_db, 
+                m_blob_manager->allocate((Database *)m_db, 
                                 &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, 
-                blob_read((Database *)m_db, 0, blobid, &record, 0));
+                m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
         record.size=sizeof(buffer2);
         record.data=buffer2;
         BFC_ASSERT_EQUAL(0, 
-                blob_overwrite((Environment *)m_env, (Database *)m_db, blobid, 
-                    &record, 0, &blobid2));
+                m_blob_manager->overwrite((Database *)m_db, blobid,
+                        &record, 0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, 
-                blob_read((Database *)m_db, 0, blobid2, &record, 0));
+                m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
         BFC_ASSERT(0==::memcmp(buffer2, record.data, record.size));
 
         BFC_ASSERT_EQUAL(0, 
-                blob_free((Environment *)m_env, (Database *)m_db, blobid2, 0));
+                m_blob_manager->free((Database *)m_db, blobid2, 0));
     }
 
     void replaceWithSmallTest(void)
@@ -251,24 +255,24 @@ public:
         record.data=buffer;
         record.size=sizeof(buffer);
         BFC_ASSERT_EQUAL(0, 
-                blob_allocate((Environment *)m_env, (Database *)m_db, &record, 
+                m_blob_manager->allocate((Database *)m_db, &record, 
                                 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, 
-                blob_read((Database *)m_db, 0, blobid, &record, 0));
+                m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
         record.size=sizeof(buffer2);
         record.data=buffer2;
         BFC_ASSERT_EQUAL(0, 
-                blob_overwrite((Environment *)m_env, (Database *)m_db, 
+                m_blob_manager->overwrite((Database *)m_db,
                                 blobid, &record, 0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, 
-                blob_read((Database *)m_db, 0, blobid2, &record, 0));
+                m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
         BFC_ASSERT(0==::memcmp(buffer2, record.data, record.size));
 
@@ -282,8 +286,7 @@ public:
         }
 
         BFC_ASSERT_EQUAL(0, 
-                blob_free((Environment *)m_env, 
-                                (Database *)m_db, blobid2, 0));
+                m_blob_manager->free((Database *)m_db, blobid2, 0));
 
         /* and now another 64bit should be in the freelist */
         if (!m_inmemory) {
@@ -310,15 +313,18 @@ public:
         record.data=buffer;
         record.size=ps*BLOCKS*2;
         BFC_ASSERT_EQUAL(0, 
-                blob_allocate((Environment *)m_env, (Database *)m_db, &record, 0, &blobid));
+                m_blob_manager->allocate((Database *)m_db, &record,
+                                0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         /* verify it */
-        BFC_ASSERT_EQUAL(0, blob_read((Database *)m_db, 0, blobid, &record, 0));
+        BFC_ASSERT_EQUAL(0, 
+                m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)ps*BLOCKS*2);
 
         /* and erase it */
-        BFC_ASSERT_EQUAL(0, blob_free((Environment *)m_env, (Database *)m_db, blobid, 0));
+        BFC_ASSERT_EQUAL(0,
+                m_blob_manager->free((Database *)m_db, blobid, 0));
 
         /* now use a loop to allocate the buffer, and make it bigger and 
          * bigger */
@@ -328,18 +334,19 @@ public:
             ::memset(buffer, i, record.size);
             if (i==1) {
                 BFC_ASSERT_EQUAL(0, 
-                        blob_allocate((Environment *)m_env, 
-                            (Database *)m_db, &record, 0, &blobid2));
+                        m_blob_manager->allocate((Database *)m_db, &record,
+                                0, &blobid2));
             }
             else {
                 BFC_ASSERT_EQUAL(0, 
-                        blob_overwrite((Environment *)m_env, (Database *)m_db, blobid, 
+                m_blob_manager->overwrite((Database *)m_db, blobid,
                                     &record, 0, &blobid2));
             }
             blobid=blobid2;
             BFC_ASSERT(blobid!=0);
         }
-        BFC_ASSERT_EQUAL(0, blob_free((Environment *)m_env, (Database *)m_db, blobid, 0));
+        BFC_ASSERT_EQUAL(0,
+                m_blob_manager->free((Database *)m_db, blobid, 0));
         ::free(buffer);
     }
 
@@ -366,8 +373,8 @@ public:
             rec.data=buffer;
             rec.size=(ham_size_t)((i+1)*factor);
             BFC_ASSERT_EQUAL(0, 
-                        blob_allocate((Environment *)m_env, (Database *)m_db, &rec, 
-                            0, &blobid[i]));
+                        m_blob_manager->allocate((Database *)m_db, &rec,
+                                    0, &blobid[i]));
             BFC_ASSERT_I(blobid[i]!=0, i);
 
             ::free(buffer);
@@ -379,7 +386,8 @@ public:
             ::memset(buffer, (char)i, (i+1)*factor);
 
             BFC_ASSERT_EQUAL_I(0, 
-                    blob_read((Database *)m_db, 0, blobid[i], &record, 0), i);
+                    m_blob_manager->read((Database *)m_db, 0, blobid[i],
+                            &record, 0), i);
             BFC_ASSERT_EQUAL_I(record.size, (ham_size_t)(i+1)*factor, i);
             BFC_ASSERT_I(0==::memcmp(buffer, record.data, record.size), i);
 
@@ -388,7 +396,7 @@ public:
 
         for (int i=0; i<loops; i++) {
             BFC_ASSERT_EQUAL_I(0, 
-                    blob_free((Environment *)m_env, (Database *)m_db, blobid[i], 0), i);
+                m_blob_manager->free((Database *)m_db, blobid[i], 0), i);
         }
 
         ::free(blobid);

@@ -52,24 +52,6 @@
 }
 
 {
-   supp4
-   Memcheck:Param
-   pwrite64(buf)
-   fun:pwrite
-   fun:os_pwrite
-   fun:__f_write
-   fun:__f_write_page
-   fun:page_flush
-   fun:db_write_page_and_delete
-   fun:my_purge_cache
-   fun:db_fetch_page
-   fun:__write_chunks
-   fun:blob_allocate
-   fun:key_insert_extended
-   fun:my_insert_nosplit
-}
-
-{
    leak_gnutls1
    Memcheck:Leak
    fun:malloc
