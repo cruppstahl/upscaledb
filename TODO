@@ -75,7 +75,6 @@ o clean up and refactor the code
     x log.h
     x page.cc
     x page.h
-    x remote.cc
     x extkeys.h
     x hash-table.h
     x blob.h
@@ -86,7 +85,11 @@ o clean up and refactor the code
                 dynamically resize the buffer)
 
     o protocol - finally get rid of it
+        Protocol: default constructor should assign type
+        create Protocol objects on the stack whenever possible!
+        remote.cc: can 
     o hamserver.cc
+    o remote.cc (once more)
 
     o include/ham/hamsterdb.h
     o include/ham/hamsterdb_int.h
