@@ -19,7 +19,7 @@ using Hamster;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
+    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
     public class DatabaseTest
     {
         private static int errorCounter;
@@ -42,6 +42,32 @@ namespace Unittests
                 Assert.AreEqual(1, errorCounter);
             }
             Database.SetErrorHandler(null);
+        }
+
+        [TestMethod()]
+        public void CreateWithParameters()
+        {
+            using (Hamster.Environment env = new Hamster.Environment())
+            {
+                env.Create("ntest.db");
+
+                Parameter[] param = new Parameter[] { 
+                    new Parameter { 
+                        name = HamConst.HAM_PARAM_KEYSIZE, value = 32 
+                    } 
+                };
+                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, param)) { }
+            }
+        }
+
+        [TestMethod()]
+        public void CreateWithParameters2()
+        {
+            using (Hamster.Environment env = new Hamster.Environment())
+            {
+                env.Create("ntest.db");
+                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, new Parameter[0])) { }
+            }
         }
 
         [TestMethod()]

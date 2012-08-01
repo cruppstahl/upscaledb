@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -414,7 +414,10 @@ namespace Hamster
                 Parameter[] parameters) {
             int st;
             IntPtr dbh;
-            lock (this) {
+            if (parameters != null)
+                parameters = AppendNullParameter(parameters);
+            lock (this)
+            {
                 st = NativeMethods.NewDatabaseHandle(out dbh);
                 if (st != 0)
                     throw new DatabaseException(st);
@@ -500,7 +503,10 @@ namespace Hamster
                 Parameter[] parameters) {
             int st;
             IntPtr dbh;
-            lock (this) {
+            if (parameters != null)
+                parameters = AppendNullParameter(parameters);
+            lock (this)
+            {
                 st = NativeMethods.NewDatabaseHandle(out dbh);
                 if (st != 0)
                     throw new DatabaseException(st);
