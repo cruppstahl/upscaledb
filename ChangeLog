@@ -1,3 +1,7 @@
+Aug 01, 2012 - chris ---------------------------------------------------
+o (dotnet) Fixed invalid memory access when using Parameter[] in
+        env.CreateDatabase or env.OpenDatabase (Thanks, Jason)
+
 Jul 23, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.4
 

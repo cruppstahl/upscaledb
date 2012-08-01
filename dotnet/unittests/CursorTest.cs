@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,7 +19,7 @@ using Hamster;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
+    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
     public class CursorTest
     {
         private int counter;
