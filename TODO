@@ -91,6 +91,9 @@ o clean up and refactor the code
     o hamserver.cc
     o remote.cc (once more)
 
+    o rb.h
+        try to get rid of it; can it be replaced with std::map?
+
     o include/ham/hamsterdb.h
     o include/ham/hamsterdb_int.h
         remove everything that is not required
@@ -209,6 +212,8 @@ o more fine-grained locking - or rather move commits into background
         o convert to clean c++ code
         o protect with a mutex
         o when changing the transaction queue: assert that the env is locked
+        o avoid single code allocations; use an arena allocator based
+            on a ByteArray
     o configuration/env-header-page
         o create configuration object
         o protect with mutex
