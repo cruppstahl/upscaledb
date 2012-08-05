@@ -50,7 +50,7 @@ test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 CFLAGS         += -DHAM_ENABLE_REMOTE
-test_LDADD     += $(top_builddir)/src/server/libhamserver.la
+test_LDADD     += $(top_builddir)/src/server/libhamserver.la -lprotobuf
 endif
 
 bfc_sample_SOURCES = bfc-sample.cpp \

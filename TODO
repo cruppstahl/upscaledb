@@ -85,10 +85,10 @@ o clean up and refactor the code
                 dynamically resize the buffer)
 
     o protocol - finally get rid of it
-        Protocol: default constructor should assign type
-        create Protocol objects on the stack whenever possible!
-        remote.cc: can 
+      o Protocol: default constructor should assign type
+      o create Protocol objects on the stack whenever possible!
     o hamserver.cc
+      o create Protocol objects on the stack whenever possible!
     o remote.cc (once more)
 
     o rb.h

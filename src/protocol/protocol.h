@@ -18,7 +18,12 @@
 
 #include <ham/hamsterdb.h>
 #include "../mem.h"
+#include "../error.h"
+#include "../endianswap.h"
 #include "messages.pb.h"
+
+/** a magic and version indicator for the remote protocol */
+#define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
 
 /**
  * the Protocol class maps a single message that is exchanged between
@@ -46,347 +51,52 @@ class Protocol : public ham::ProtoWrapper
      * Factory function; creates a new Protocol structure from a serialized
      * buffer
      */
-    static Protocol *unpack(const ham_u8_t *buf, ham_size_t size);
+    static Protocol *unpack(const ham_u8_t *buf, ham_size_t size) {
+      if (*(ham_u32_t *)&buf[0] != ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
+        ham_trace(("invalid protocol version"));
+        return (0);
+      }
+
+      Protocol *p = new Protocol;
+      if (!p->ParseFromArray(buf + 8, size - 8)) {
+        delete p;
+        return (0);
+      }
+      return (p);
+    }
 
     /* 
      * Packs the Protocol structure into a memory buffer and returns
      * a pointer to the buffer and the buffer size 
      */
-    bool pack(Allocator *alloc, ham_u8_t **data, ham_size_t *size);
+    bool pack(Allocator *alloc, ham_u8_t **data, ham_size_t *size) {
+      ham_size_t packed_size = ByteSize();
+      /* we need 8 more bytes for magic and size */
+      ham_u8_t *p = (ham_u8_t *)alloc->alloc(packed_size + 8);
+      if (!p)
+        return (false);
+
+      /* write the magic and the payload size of the packed structure */
+      *(ham_u32_t *)&p[0] = ham_h2db32(HAM_TRANSFER_MAGIC_V1);
+      *(ham_u32_t *)&p[4] = ham_h2db32(packed_size);
+
+      /* now write the packed structure */
+      if (!SerializeToArray(&p[8], packed_size)) {
+        alloc->free(p);
+        return (false);
+      }
+    
+      *data = p;
+      *size = packed_size + 8;
+      return (true);
+    }
+
+    /**
+     * shutdown/free globally allocated memory
+     */
+    static void shutdown() {
+      google::protobuf::ShutdownProtobufLibrary();
+    }
 };
-
-/**
- * shutdown/free globally allocated memory
- */
-extern void
-proto_shutdown(void);
-
-
-/*
- * cursor_insert request
- */
-extern Protocol *
-proto_init_cursor_insert_request(ham_u64_t cursorhandle, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_insert_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_insert_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_insert_request_get_flags(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_insert_request_has_key(Protocol *wrapper);
-
-extern void *
-proto_cursor_insert_request_get_key_data(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_insert_request_get_key_flags(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_insert_request_get_key_size(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_insert_request_has_record(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_insert_request_get_record_flags(Protocol *wrapper);
-
-extern void *
-proto_cursor_insert_request_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_insert_request_get_record_size(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_insert_request_get_record_partial_offset(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_insert_request_get_record_partial_size(Protocol *wrapper);
-
-/*
- * cursor_insert reply
- */
-extern Protocol *
-proto_init_cursor_insert_reply(ham_status_t status, ham_key_t *key);
-
-extern ham_bool_t
-proto_has_cursor_insert_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_insert_reply_get_status(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_insert_reply_has_key(Protocol *wrapper);
-
-extern void *
-proto_cursor_insert_reply_get_key_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_insert_reply_get_key_size(Protocol *wrapper);
-
-/*
- * cursor_erase request
- */
-extern Protocol *
-proto_init_cursor_erase_request(ham_u64_t cursorhandle, ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_erase_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_erase_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_erase_request_get_flags(Protocol *wrapper);
-
-/*
- * cursor_erase reply
- */
-extern Protocol *
-proto_init_cursor_erase_reply(ham_status_t status);
-
-extern ham_bool_t
-proto_has_cursor_erase_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_erase_reply_get_status(Protocol *wrapper);
-
-/*
- * cursor_find request
- */
-extern Protocol *
-proto_init_cursor_find_request(ham_u64_t cursorhandle, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_find_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_find_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_request_get_flags(Protocol *wrapper);
-
-extern void *
-proto_cursor_find_request_get_key_data(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_request_get_key_flags(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_find_request_get_key_size(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_find_request_has_record(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_request_get_record_flags(Protocol *wrapper);
-
-extern void *
-proto_cursor_find_request_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_find_request_get_record_size(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_request_get_record_partial_offset(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_find_request_get_record_partial_size(Protocol *wrapper);
-
-/*
- * cursor_find reply
- */
-extern Protocol *
-proto_init_cursor_find_reply(ham_status_t status, ham_key_t *key,
-        ham_record_t *record);
-
-extern ham_bool_t
-proto_has_cursor_find_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_reply_get_status(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_find_reply_has_key(Protocol *wrapper);
-
-extern void *
-proto_cursor_find_reply_get_key_data(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_find_reply_get_key_intflags(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_find_reply_get_key_size(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_find_reply_has_record(Protocol *wrapper);
-
-extern void *
-proto_cursor_find_reply_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_find_reply_get_record_size(Protocol *wrapper);
-
-/*
- * cursor_get_duplicate_count request
- */
-extern Protocol *
-proto_init_cursor_get_duplicate_count_request(ham_u64_t cursorhandle, 
-                ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_get_duplicate_count_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_get_duplicate_count_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_get_duplicate_count_request_get_flags(Protocol *wrapper);
-
-/*
- * cursor_get_duplicate_count reply
- */
-extern Protocol *
-proto_init_cursor_get_duplicate_count_reply(ham_status_t status,
-                ham_u32_t count);
-
-extern ham_bool_t
-proto_has_cursor_get_duplicate_count_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_get_duplicate_count_reply_get_status(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_get_duplicate_count_reply_get_count(Protocol *wrapper);
-
-/*
- * cursor_overwrite request
- */
-extern Protocol *
-proto_init_cursor_overwrite_request(ham_u64_t cursorhandle, 
-                ham_record_t *record, ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_overwrite_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_overwrite_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_overwrite_request_get_flags(Protocol *wrapper);
-
-extern void *
-proto_cursor_overwrite_request_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_overwrite_request_get_record_size(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_overwrite_request_get_record_flags(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_overwrite_request_get_record_partial_offset(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_overwrite_request_get_record_partial_size(Protocol *wrapper);
-
-/*
- * cursor_overwrite reply
- */
-extern Protocol *
-proto_init_cursor_overwrite_reply(ham_status_t status);
-
-extern ham_bool_t
-proto_has_cursor_overwrite_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_overwrite_reply_get_status(Protocol *wrapper);
-
-/*
- * cursor_move request
- */
-extern Protocol *
-proto_init_cursor_move_request(ham_u64_t cursorhandle, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags);
-
-extern ham_bool_t
-proto_has_cursor_move_request(Protocol *wrapper);
-
-extern ham_u64_t
-proto_cursor_move_request_get_cursor_handle(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_request_get_flags(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_move_request_has_key(Protocol *wrapper);
-
-extern void *
-proto_cursor_move_request_get_key_data(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_request_get_key_flags(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_move_request_get_key_size(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_move_request_has_record(Protocol *wrapper);
-
-extern void *
-proto_cursor_move_request_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_move_request_get_record_size(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_request_get_record_flags(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_request_get_record_partial_offset(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_move_request_get_record_partial_size(Protocol *wrapper);
-
-/*
- * cursor_move reply
- */
-extern Protocol *
-proto_init_cursor_move_reply(ham_status_t status, ham_key_t *key,
-        ham_record_t *record);
-
-extern ham_bool_t
-proto_has_cursor_move_reply(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_reply_get_status(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_move_reply_has_key(Protocol *wrapper);
-
-extern void *
-proto_cursor_move_reply_get_key_data(Protocol *wrapper);
-
-extern ham_u32_t
-proto_cursor_move_reply_get_key_intflags(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_move_reply_get_key_size(Protocol *wrapper);
-
-extern ham_bool_t
-proto_cursor_move_reply_has_record(Protocol *wrapper);
-
-extern void *
-proto_cursor_move_reply_get_record_data(Protocol *wrapper);
-
-extern ham_size_t
-proto_cursor_move_reply_get_record_size(Protocol *wrapper);
-
 
 #endif /* HAM_PROTOCOL_H__ */

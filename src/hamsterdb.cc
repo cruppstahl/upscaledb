@@ -1069,7 +1069,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
-    atexit(proto_shutdown);
+    atexit(Protocol::shutdown);
 #endif
 
     /*
@@ -1263,7 +1263,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
-    atexit(proto_shutdown);
+    atexit(Protocol::shutdown);
 #endif
 
     /* make sure that this environment is not yet open/created */

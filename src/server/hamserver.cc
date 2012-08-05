@@ -989,57 +989,60 @@ static void
 handle_cursor_insert(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri, Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_key_t key;
     ham_record_t rec;
-    ham_status_t st=0;
-    ham_bool_t send_key=HAM_FALSE;
+    ham_status_t st = 0;
+    bool send_key = false;
 
-    ham_assert(request!=0);
-    ham_assert(proto_has_cursor_insert_request(request));
+    ham_assert(request != 0);
+    ham_assert(request->has_cursor_insert_request());
 
-    cursor=(ham_cursor_t *)__get_handle(envh,
-            proto_cursor_insert_request_get_cursor_handle(request));
+    cursor = (ham_cursor_t *)__get_handle(envh,
+            request->cursor_insert_request().cursor_handle());
     if (!cursor) {
-        st=HAM_INV_PARAMETER;
+        st = HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&key, 0, sizeof(key));
-    if (proto_cursor_insert_request_has_key(request)) {
-        key.size=proto_cursor_insert_request_get_key_size(request);
+    if (request->cursor_insert_request().has_key()) {
+        key.size=request->cursor_insert_request().key().data().size();
         if (key.size)
-            key.data=proto_cursor_insert_request_get_key_data(request);
-        key.flags=proto_cursor_insert_request_get_key_flags(request) 
+            key.data=(void *)&request->cursor_insert_request().key().data()[0];
+        key.flags=request->cursor_insert_request().key().flags()
                 & (~HAM_KEY_USER_ALLOC);
     }
 
     memset(&rec, 0, sizeof(rec));
-    if (proto_cursor_insert_request_has_record(request)) {
-        rec.size=proto_cursor_insert_request_get_record_size(request);
+    if (request->cursor_insert_request().has_record()) {
+        rec.size=request->cursor_insert_request().record().data().size();
         if (rec.size)
-            rec.data=proto_cursor_insert_request_get_record_data(request);
-        rec.partial_size=proto_cursor_insert_request_get_record_partial_size(request);
-        rec.partial_offset=proto_cursor_insert_request_get_record_partial_offset(request);
-        rec.flags=proto_cursor_insert_request_get_record_flags(request) 
+            rec.data=(void *)&request->cursor_insert_request().record().data()[0];
+        rec.partial_size=request->cursor_insert_request().record().partial_size();
+        rec.partial_offset=request->cursor_insert_request().record().partial_offset();
+        rec.flags=request->cursor_insert_request().record().flags()
                         & (~HAM_RECORD_USER_ALLOC);
     }
 
     st=ham_cursor_insert(cursor, &key, &rec, 
-                    proto_cursor_insert_request_get_flags(request));
+                    request->cursor_insert_request().flags());
 
     /* recno: return the modified key */
     if (st==0) {
         Cursor *c=(Cursor *)cursor;
         if (ham_get_flags((ham_db_t *)c->get_db())&HAM_RECORD_NUMBER) {
             ham_assert(key.size==sizeof(ham_offset_t));
-            send_key=HAM_TRUE;
+            send_key=true;
         }
     }
 
 bail:
-    reply=proto_init_cursor_insert_reply(st, send_key ? &key : 0);
+    Protocol *reply=new Protocol();
+    reply->set_type(Protocol::CURSOR_INSERT_REPLY);
+    reply->mutable_cursor_insert_reply()->set_status(st);
+    if (send_key)
+        Protocol::assign_key(reply->mutable_cursor_insert_reply()->mutable_key(), &key);
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1048,25 +1051,26 @@ static void
 handle_cursor_erase(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri, Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_status_t st=0;
 
     ham_assert(request!=0);
-    ham_assert(proto_has_cursor_erase_request(request));
+    ham_assert(request->has_cursor_erase_request());
 
     cursor=(ham_cursor_t *)__get_handle(envh,
-            proto_cursor_erase_request_get_cursor_handle(request));
+            request->cursor_erase_request().cursor_handle());
     if (!cursor) {
         st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     st=ham_cursor_erase(cursor,
-            proto_cursor_erase_request_get_flags(request));
+            request->cursor_erase_request().flags());
 
 bail:
-    reply=proto_init_cursor_erase_reply(st);
+    Protocol *reply=new Protocol();
+    reply->set_type(Protocol::CURSOR_ERASE_REPLY);
+    reply->mutable_cursor_erase_reply()->set_status(st);
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1075,7 +1079,6 @@ static void
 handle_cursor_find(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri, Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
@@ -1084,36 +1087,36 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
     ham_bool_t send_rec=HAM_FALSE;
 
     ham_assert(request!=0);
-    ham_assert(proto_has_cursor_find_request(request));
+    ham_assert(request->has_cursor_find_request());
 
     cursor=(ham_cursor_t *)__get_handle(envh,
-            proto_cursor_find_request_get_cursor_handle(request));
+            request->cursor_find_request().cursor_handle());
     if (!cursor) {
         st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&key, 0, sizeof(key));
-    key.data=proto_cursor_find_request_get_key_data(request);
-    key.size=proto_cursor_find_request_get_key_size(request);
-    key.flags=proto_cursor_find_request_get_key_flags(request) 
+    key.data=(void *)&request->cursor_find_request().key().data()[0];
+    key.size=request->cursor_find_request().key().data().size();
+    key.flags=request->cursor_find_request().key().flags()
                 & (~HAM_KEY_USER_ALLOC);
 
-    if (proto_cursor_find_request_has_record(request)) {
+    if (request->cursor_find_request().has_record()) {
         send_rec=HAM_TRUE;
 
         memset(&rec, 0, sizeof(rec));
-        rec.data=proto_cursor_find_request_get_record_data(request);
-        rec.size=proto_cursor_find_request_get_record_size(request);
-        rec.partial_size=proto_cursor_find_request_get_record_partial_size(request);
-        rec.partial_offset=proto_cursor_find_request_get_record_partial_offset(request);
-        rec.flags=proto_cursor_find_request_get_record_flags(request) 
+        rec.data=(void *)&request->cursor_find_request().record().data()[0];
+        rec.size=request->cursor_find_request().record().data().size();
+        rec.partial_size=request->cursor_find_request().record().partial_size();
+        rec.partial_offset=request->cursor_find_request().record().partial_offset();
+        rec.flags=request->cursor_find_request().record().flags() 
                         & (~HAM_RECORD_USER_ALLOC);
     }
 
     st=ham_cursor_find_ex(cursor, &key, 
                     send_rec ? &rec : 0,
-                    proto_cursor_find_request_get_flags(request));
+                    request->cursor_find_request().flags());
 
     if (st==0) {
         /* approx matching: key->_flags was modified! */
@@ -1123,9 +1126,14 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
     }
 
 bail:
-    reply=proto_init_cursor_find_reply(st, 
-                    send_key ? &key : 0,
-                    send_rec ? &rec : 0);
+    Protocol *reply = new Protocol();
+    reply->set_type(Protocol::CURSOR_FIND_REPLY);
+    reply->mutable_cursor_find_reply()->set_status(st);
+    if (send_key)
+        Protocol::assign_key(reply->mutable_cursor_find_reply()->mutable_key(), &key);
+    if (send_rec)
+        Protocol::assign_record(reply->mutable_cursor_find_reply()->mutable_record(), &rec);
+
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1135,26 +1143,28 @@ handle_cursor_get_duplicate_count(struct env_t *envh,
                 struct mg_connection *conn, const struct mg_request_info *ri,
                 Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_status_t st=0;
     ham_size_t count=0;
 
     ham_assert(request!=0);
-    ham_assert(proto_has_cursor_get_duplicate_count_request(request));
+    ham_assert(request->has_cursor_get_duplicate_count_request());
 
     cursor=(ham_cursor_t *)__get_handle(envh,
-           proto_cursor_get_duplicate_count_request_get_cursor_handle(request));
+           request->cursor_get_duplicate_count_request().cursor_handle());
     if (!cursor) {
         st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     st=ham_cursor_get_duplicate_count(cursor, &count, 
-                proto_cursor_get_duplicate_count_request_get_flags(request));
+                request->cursor_get_duplicate_count_request().flags());
 
 bail:
-    reply=proto_init_cursor_get_duplicate_count_reply(st, count);
+    Protocol *reply=new Protocol();
+    reply->set_type(Protocol::CURSOR_GET_DUPLICATE_COUNT_REPLY);
+    reply->mutable_cursor_get_duplicate_count_reply()->set_status(st);
+    reply->mutable_cursor_get_duplicate_count_reply()->set_count(count);
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1163,34 +1173,35 @@ static void
 handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri, Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_record_t rec;
     ham_status_t st=0;
 
     ham_assert(request!=0);
-    ham_assert(proto_has_cursor_overwrite_request(request));
+    ham_assert(request->has_cursor_overwrite_request());
 
     cursor=(ham_cursor_t *)__get_handle(envh,
-           proto_cursor_overwrite_request_get_cursor_handle(request));
+           request->cursor_overwrite_request().cursor_handle());
     if (!cursor) {
         st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&rec, 0, sizeof(rec));
-    rec.data=proto_cursor_overwrite_request_get_record_data(request);
-    rec.size=proto_cursor_overwrite_request_get_record_size(request);
-    rec.partial_size=proto_cursor_overwrite_request_get_record_partial_size(request);
-    rec.partial_offset=proto_cursor_overwrite_request_get_record_partial_offset(request);
-    rec.flags=proto_cursor_overwrite_request_get_record_flags(request) 
+    rec.data=(void *)&request->cursor_overwrite_request().record().data()[0];
+    rec.size=request->cursor_overwrite_request().record().data().size();
+    rec.partial_size=request->cursor_overwrite_request().record().partial_size();
+    rec.partial_offset=request->cursor_overwrite_request().record().partial_offset();
+    rec.flags=request->cursor_overwrite_request().record().flags() 
                     & (~HAM_RECORD_USER_ALLOC);
 
     st=ham_cursor_overwrite(cursor, &rec,
-           proto_cursor_overwrite_request_get_flags(request));
+           request->cursor_overwrite_request().flags());
 
 bail:
-    reply=proto_init_cursor_overwrite_reply(st);
+    Protocol *reply=new Protocol();
+    reply->set_type(Protocol::CURSOR_OVERWRITE_REPLY);
+    reply->mutable_cursor_overwrite_reply()->set_status(st);
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1199,7 +1210,6 @@ static void
 handle_cursor_move(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri, Protocol *request)
 {
-    Protocol *reply;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
@@ -1208,46 +1218,50 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
     ham_bool_t send_rec=HAM_FALSE;
 
     ham_assert(request!=0);
-    ham_assert(proto_has_cursor_move_request(request));
+    ham_assert(request->has_cursor_move_request());
 
     cursor=(ham_cursor_t *)__get_handle(envh,
-           proto_cursor_move_request_get_cursor_handle(request));
+           request->cursor_move_request().cursor_handle());
     if (!cursor) {
         st=HAM_INV_PARAMETER;
         goto bail;
     }
 
-    if (proto_cursor_move_request_has_key(request)) {
+    if (request->cursor_move_request().has_key()) {
         send_key=HAM_TRUE;
 
         memset(&key, 0, sizeof(key));
-        key.data=proto_cursor_move_request_get_key_data(request);
-        key.size=proto_cursor_move_request_get_key_size(request);
-        key.flags=proto_cursor_move_request_get_key_flags(request) 
+        key.data=(void *)&request->cursor_move_request().key().data()[0];
+        key.size=request->cursor_move_request().key().data().size();
+        key.flags=request->cursor_move_request().key().flags()
                 & (~HAM_KEY_USER_ALLOC);
     }
 
-    if (proto_cursor_move_request_has_record(request)) {
+    if (request->cursor_move_request().has_record()) {
         send_rec=HAM_TRUE;
 
         memset(&rec, 0, sizeof(rec));
-        rec.data=proto_cursor_move_request_get_record_data(request);
-        rec.size=proto_cursor_move_request_get_record_size(request);
-        rec.partial_size=proto_cursor_move_request_get_record_partial_size(request);
-        rec.partial_offset=proto_cursor_move_request_get_record_partial_offset(request);
-        rec.flags=proto_cursor_move_request_get_record_flags(request) 
+        rec.data=(void *)&request->cursor_move_request().record().data()[0];
+        rec.size=request->cursor_move_request().record().data().size();
+        rec.partial_size=request->cursor_move_request().record().partial_size();
+        rec.partial_offset=request->cursor_move_request().record().partial_offset();
+        rec.flags=request->cursor_move_request().record().flags() 
                     & (~HAM_RECORD_USER_ALLOC);
     }
 
     st=ham_cursor_move(cursor,
                     send_key ? &key : 0,
                     send_rec ? &rec : 0, 
-                    proto_cursor_move_request_get_flags(request));
+                    request->cursor_move_request().flags());
 
 bail:
-    reply=proto_init_cursor_move_reply(st, 
-            (st==0 && send_key) ? &key : 0,
-            (st==0 && send_rec) ? &rec : 0);
+    Protocol *reply=new Protocol();
+    reply->set_type(Protocol::CURSOR_MOVE_REPLY);
+    reply->mutable_cursor_move_reply()->set_status(st);
+    if (send_key)
+        Protocol::assign_key(reply->mutable_cursor_move_reply()->mutable_key(), &key);
+    if (send_rec)
+        Protocol::assign_record(reply->mutable_cursor_move_reply()->mutable_record(), &rec);
     send_wrapper(envh->env, conn, reply);
     delete reply;
 }
@@ -1531,6 +1545,6 @@ ham_srv_close(ham_srv_t *srv)
     free(srv);
 
     /* free libprotocol static data */
-    proto_shutdown();
+    Protocol::shutdown();
 }
 

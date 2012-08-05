@@ -223,7 +223,7 @@ main(int argc, char **argv)
 
 #ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
-    atexit(proto_shutdown);
+    atexit(Protocol::shutdown);
 #endif
 
 	// as we wish to print all collected errors at the very end, we act

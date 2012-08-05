@@ -1116,7 +1116,7 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply = 0;
   ham_bool_t send_key = true;
   Transaction *txn = cursor->get_txn();
 
@@ -1136,8 +1136,15 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
     }
   }
   
-  request = proto_init_cursor_insert_request(cursor->get_remote_handle(), 
-                   send_key ? key : 0, record, flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_INSERT_REQUEST);
+  request->mutable_cursor_insert_request()->set_cursor_handle(cursor->get_remote_handle());
+  request->mutable_cursor_insert_request()->set_flags(flags);
+  if (send_key)
+    Protocol::assign_key(request->mutable_cursor_insert_request()->mutable_key(), 
+              key);
+  Protocol::assign_record(request->mutable_cursor_insert_request()->mutable_record(), 
+              record);
 
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1148,17 +1155,16 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_insert_reply(reply) != 0);
+  ham_assert(reply->has_cursor_insert_reply() != 0);
 
-  st = proto_cursor_insert_reply_get_status(reply);
+  st = reply->cursor_insert_reply().status();
 
   /* recno: the key was modified! */
-  if (st == 0 && proto_cursor_insert_reply_has_key(reply)) {
-    if (proto_cursor_insert_reply_get_key_size(reply)
-        == sizeof(ham_offset_t)) {
+  if (st == 0 && reply->cursor_insert_reply().has_key()) {
+    if (reply->cursor_insert_reply().key().data().size() == sizeof(ham_offset_t)) {
       ham_assert(key->data != 0);
       ham_assert(key->size == sizeof(ham_offset_t));
-      memcpy(key->data, proto_cursor_insert_reply_get_key_data(reply),
+      memcpy(key->data, (void *)&reply->cursor_insert_reply().key().data()[0],
             sizeof(ham_offset_t));
     }
   }
@@ -1173,10 +1179,12 @@ DatabaseImplementationRemote::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply = 0;
   
-  request = proto_init_cursor_erase_request(cursor->get_remote_handle(), 
-                    flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_ERASE_REQUEST);
+  request->mutable_cursor_erase_request()->set_cursor_handle(cursor->get_remote_handle());
+  request->mutable_cursor_erase_request()->set_flags(flags);
 
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1187,9 +1195,9 @@ DatabaseImplementationRemote::cursor_erase(Cursor *cursor, ham_u32_t flags)
   }
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_erase_reply(reply) != 0);
+  ham_assert(reply->has_cursor_erase_reply() != 0);
 
-  st = proto_cursor_erase_reply_get_status(reply);
+  st = reply->cursor_erase_reply().status();
 
   delete reply;
 
@@ -1202,10 +1210,18 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply = 0;
 
-  request = proto_init_cursor_find_request(cursor->get_remote_handle(), 
-                    key, record, flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_FIND_REQUEST);
+  request->mutable_cursor_find_request()->set_cursor_handle(cursor->get_remote_handle());
+  request->mutable_cursor_find_request()->set_flags(flags);
+  if (key)
+    Protocol::assign_key(request->mutable_cursor_find_request()->mutable_key(), 
+                key);
+  if (record)
+    Protocol::assign_record(request->mutable_cursor_find_request()->mutable_record(), 
+                record);
   
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1222,23 +1238,23 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
                 : &txn->get_record_arena();
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_find_reply(reply) != 0);
+  ham_assert(reply->has_cursor_find_reply() != 0);
 
-  st = proto_cursor_find_reply_get_status(reply);
+  st = reply->cursor_find_reply().status();
   if (st) 
     goto bail;
 
   /* approx. matching: need to copy the _flags! */
-  if (proto_cursor_find_reply_has_key(reply))
-    key->_flags = proto_cursor_find_reply_get_key_intflags(reply);
-  if (proto_cursor_find_reply_has_record(reply)) {
+  if (reply->cursor_find_reply().has_key())
+    key->_flags = reply->cursor_find_reply().key().intflags();
+  if (reply->cursor_find_reply().has_record()) {
     ham_assert(record);
-    record->size = proto_cursor_find_reply_get_record_size(reply);
+    record->size = reply->cursor_find_reply().record().data().size();
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
       arena->resize(record->size);
       record->data = arena->get_ptr();
     }
-    memcpy(record->data, proto_cursor_find_reply_get_record_data(reply),
+    memcpy(record->data, (void *)&reply->cursor_find_reply().record().data()[0],
             record->size);
   }
 
@@ -1253,10 +1269,13 @@ DatabaseImplementationRemote::cursor_get_duplicate_count(Cursor *cursor,
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply;
   
-  request = proto_init_cursor_get_duplicate_count_request(
-                    cursor->get_remote_handle(), flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_GET_DUPLICATE_COUNT_REQUEST);
+  request->mutable_cursor_get_duplicate_count_request()->set_cursor_handle(
+                  cursor->get_remote_handle());
+  request->mutable_cursor_get_duplicate_count_request()->set_flags(flags);
 
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1267,13 +1286,13 @@ DatabaseImplementationRemote::cursor_get_duplicate_count(Cursor *cursor,
   }
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_get_duplicate_count_reply(reply) != 0);
+  ham_assert(reply->has_cursor_get_duplicate_count_reply() != 0);
 
-  st = proto_cursor_get_duplicate_count_reply_get_status(reply);
+  st = reply->cursor_get_duplicate_count_reply().status();
   if (st) 
     goto bail;
 
-  *count = proto_cursor_get_duplicate_count_reply_get_count(reply);
+  *count = reply->cursor_get_duplicate_count_reply().count();
 
 bail:
   delete reply;
@@ -1297,10 +1316,14 @@ DatabaseImplementationRemote::cursor_overwrite(Cursor *cursor,
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply;
   
-  request = proto_init_cursor_overwrite_request(
-                    cursor->get_remote_handle(), record, flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_OVERWRITE_REQUEST);
+  request->mutable_cursor_overwrite_request()->set_cursor_handle(cursor->get_remote_handle());
+  request->mutable_cursor_overwrite_request()->set_flags(flags);
+  Protocol::assign_record(request->mutable_cursor_overwrite_request()->mutable_record(),
+                    record);
 
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1311,9 +1334,9 @@ DatabaseImplementationRemote::cursor_overwrite(Cursor *cursor,
   }
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_overwrite_reply(reply) != 0);
+  ham_assert(reply->has_cursor_overwrite_reply() != 0);
 
-  st = proto_cursor_overwrite_reply_get_status(reply);
+  st = reply->cursor_overwrite_reply().status();
 
   delete reply;
 
@@ -1326,7 +1349,7 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
 {
   ham_status_t st;
   Environment *env = m_db->get_env();
-  Protocol *request, *reply;
+  Protocol *reply = 0;
   
   Transaction *txn = cursor->get_txn();
   ByteArray *key_arena = (txn == 0 || (txn_get_flags(txn) & HAM_TXN_TEMPORARY))
@@ -1336,8 +1359,16 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
                 ? &m_db->get_record_arena()
                 : &txn->get_record_arena();
 
-  request = proto_init_cursor_move_request(cursor->get_remote_handle(), 
-                key, record, flags);
+  Protocol *request=new Protocol();
+  request->set_type(Protocol::CURSOR_MOVE_REQUEST);
+  request->mutable_cursor_move_request()->set_cursor_handle(cursor->get_remote_handle());
+  request->mutable_cursor_move_request()->set_flags(flags);
+  if (key)
+    Protocol::assign_key(request->mutable_cursor_move_request()->mutable_key(),
+                  key);
+  if (record)
+    Protocol::assign_record(request->mutable_cursor_move_request()->mutable_record(),
+                  record);
 
   st = _perform_request(env, env->get_curl(), request, &reply);
   delete request;
@@ -1348,34 +1379,34 @@ DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
   }
 
   ham_assert(reply != 0);
-  ham_assert(proto_has_cursor_move_reply(reply) != 0);
+  ham_assert(reply->has_cursor_move_reply() != 0);
 
-  st = proto_cursor_move_reply_get_status(reply);
+  st = reply->cursor_move_reply().status();
   if (st) 
     goto bail;
 
   /* modify key/record, but make sure that USER_ALLOC is respected! */
-  if (proto_cursor_move_reply_has_key(reply)) {
+  if (reply->cursor_move_reply().has_key()) {
     ham_assert(key);
-    key->_flags = proto_cursor_move_reply_get_key_intflags(reply);
-    key->size = proto_cursor_move_reply_get_key_size(reply);
+    key->_flags = reply->cursor_move_reply().key().intflags();
+    key->size = reply->cursor_move_reply().key().data().size();
     if (!(key->flags & HAM_KEY_USER_ALLOC)) {
       key_arena->resize(key->size);
       key->data = key_arena->get_ptr();
     }
-    memcpy(key->data, proto_cursor_move_reply_get_key_data(reply),
+    memcpy(key->data, (void *)&reply->cursor_move_reply().key().data()[0],
             key->size);
   }
 
   /* same for the record */
-  if (proto_cursor_move_reply_has_record(reply)) {
+  if (reply->cursor_move_reply().has_record()) {
     ham_assert(record);
-    record->size = proto_cursor_move_reply_get_record_size(reply);
+    record->size = reply->cursor_move_reply().record().data().size();
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
       rec_arena->resize(record->size);
       record->data = rec_arena->get_ptr();
     }
-    memcpy(record->data, proto_cursor_move_reply_get_record_data(reply),
+    memcpy(record->data, (void *)&reply->cursor_move_reply().record().data()[0],
             record->size);
   }
 
