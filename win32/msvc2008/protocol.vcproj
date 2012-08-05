@@ -344,10 +344,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\src\protocol\protocol.cc"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\protocol\protocol.h"
 			>
 		</File>

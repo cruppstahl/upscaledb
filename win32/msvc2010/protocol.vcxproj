@@ -180,7 +180,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\protocol\messages.pb.cc" />
-    <ClCompile Include="..\..\src\protocol\protocol.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\protocol\messages.pb.h" />

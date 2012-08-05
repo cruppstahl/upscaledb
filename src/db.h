@@ -42,9 +42,6 @@
 #   define PTR_TO_U64(p)  p
 #endif
 
-/** a magic and version indicator for the remote protocol */
-#define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
-
 /**
  * the maximum number of indices (if this file is an environment with 
  * multiple indices)

@@ -11,7 +11,7 @@ AM_CPPFLAGS 	= -I$(top_builddir)/include
 
 noinst_LTLIBRARIES     = libprotocol.la
 
-libprotocol_la_SOURCES = protocol.cc messages.pb.cc
+libprotocol_la_SOURCES = messages.pb.cc
 libprotocol_la_LDFLAGS = -lprotobuf
 
 messages.pb.cc proto: messages.proto
