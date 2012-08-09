@@ -50,8 +50,6 @@ class Cache
      * @return 0 if the page was not cached
      */
     Page *get_page(ham_offset_t address, ham_u32_t flags=0) {
-      ScopedLock lock(m_mutex);
-
       ham_u64_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
@@ -65,7 +63,7 @@ class Cache
         return (0);
 
       /* otherwise remove the page from the cache */
-      remove_page_nolock(page);
+      remove_page(page);
 
       /* if the flag NOREMOVE is set, then re-insert the page. 
        *
@@ -74,125 +72,52 @@ class Cache
        * far away from the tail. And the pages at the tail are highest 
        * candidates to be deleted when the cache is purged. */
       if (flags&Cache::NOREMOVE)
-          put_page_nolock(page);
+          put_page(page);
       return (page);
     }
 
     /** store a page in the cache */
     void put_page(Page *page) {
-      ScopedLock lock(m_mutex);
-      put_page_nolock(page);
+      ham_u64_t hash = calc_hash(page->get_self());
+
+      ham_assert(page->get_pers());
+
+      /* first remove the page from the cache, if it's already cached
+       *
+       * we re-insert the page because we want to make sure that the 
+       * cache->_totallist_tail pointer is updated and that the page
+       * is inserted at the HEAD of the list
+       */
+      if (page->is_in_list(m_totallist, Page::LIST_CACHED))
+        remove_page(page);
+
+      /* now (re-)insert into the list of all cached pages, and increment
+       * the counter */
+      ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED));
+      m_totallist = page->list_insert(m_totallist, Page::LIST_CACHED);
+
+      m_cur_elements++;
+
+      /*
+       * insert it in the cache buckets
+       * !!!
+       * to avoid inserting the page twice, we first remove it from the 
+       * bucket
+       */
+      if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
+        m_buckets[hash] = page->list_remove(m_buckets[hash], Page::LIST_BUCKET);
+      ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET));
+      m_buckets[hash] = page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
+
+      /* is this the chronologically oldest page? then set the pointer */
+      if (!m_totallist_tail)
+        m_totallist_tail = page;
+
+      ham_assert(check_integrity() == 0);
     }
 
     /** remove a page from the cache */
     void remove_page(Page *page) {
-      ScopedLock lock(m_mutex);
-      remove_page_nolock(page);
-    }
-
-    typedef ham_status_t (*PurgeCallback)(Page *page);
-
-    /** purges the cache; the callback is called for every page that needs
-     * to be purged */
-    ham_status_t purge(PurgeCallback cb, bool strict) {
-      ham_status_t st;
-      ScopedLock lock(m_mutex);
-      do {
-        st = purge_max20(cb, strict);
-        if (st && st != HAM_LIMITS_REACHED)
-          return (st);
-      } while (st == HAM_LIMITS_REACHED && is_too_big_nolock());
-
-      return (0);
-    }
-
-    /** the visitor callback returns true if the page should be removed from
-     * the cache and deleted */
-    typedef bool (*VisitCallback)(Page *page, Database *db, ham_u32_t flags);
-
-    /** visits all pages in the "totallist"; this is used by the Environment
-     * to flush (and delete) pages */
-    ham_status_t visit(VisitCallback cb, Database *db, ham_u32_t flags) {
-      ScopedLock lock(m_mutex);
-      Page *head = m_totallist;
-      while (head) {
-        Page *next = head->get_next(Page::LIST_CACHED);
-
-        if (cb(head, db, flags)) {
-          remove_page_nolock(head);
-          delete head;
-        }
-        head = next;
-      }
-      return (0);
-    }
-
-    /** returns true if the caller should purge the cache */
-    bool is_too_big() {
-      ScopedLock lock(m_mutex);
-      return (is_too_big_nolock());
-    }
-
-    /** get number of currently stored pages */
-    ham_u64_t get_cur_elements() {
-      ScopedLock lock(m_mutex);
-      return (m_cur_elements);
-    }
-
-    /** get the capacity (in bytes) */
-    ham_u64_t get_capacity() { 
-      ScopedLock lock(m_mutex);
-      return (m_capacity); 
-    }
-
-    /** check the cache integrity */
-    ham_status_t check_integrity() {
-      ScopedLock lock(m_mutex);
-      return (check_integrity_nolock()); 
-    }
-
-  private:
-    /**
-     * get an unused page (or an unreferenced page, if no unused page
-     * was available (w/o mutex)
-     */
-    Page *get_unused_page_nolock() {
-      /* get the chronologically oldest page */
-      Page *oldest = m_totallist_tail;
-      if (!oldest)
-          return (0);
-
-      /* now iterate through all pages, starting from the oldest
-       * (which is the tail of the "totallist", the list of ALL cached 
-       * pages) */
-      Page *page = oldest;
-      do {
-        /* pick the first unused page (not in a changeset) */
-        if (!m_env->get_changeset().contains(page))
-            break;
-        
-        page = page->get_previous(Page::LIST_CACHED);
-        ham_assert(page != oldest);
-      } while (page && page != oldest);
-    
-      if (!page)
-        return (0);
-
-      /* remove the page from the cache and return it */
-      remove_page_nolock(page);
-      return (page);
-    }
-
-    /** returns true if the caller should purge the cache (w/o mutex) */
-    bool is_too_big_nolock() {
-      return (m_cur_elements * m_env->get_pagesize() > m_capacity);
-    }
-
-    /** check the cache integrity (w/o mutex) */
-    ham_status_t check_integrity_nolock();
-
-    /** remove a page from the cache (w/o mutex) */
-    void remove_page_nolock(Page *page) {
       bool removed = false;
 
       /* are we removing the chronologically oldest page? then 
@@ -218,56 +143,101 @@ class Cache
       if (removed)
         m_cur_elements--;
 
-      ham_assert(check_integrity_nolock() == 0);
+      ham_assert(check_integrity() == 0);
     }
 
-    /** store a page in the cache (w/o mutex lock) */
-    void put_page_nolock(Page *page) {
-      ham_u64_t hash = calc_hash(page->get_self());
+    typedef ham_status_t (*PurgeCallback)(Page *page);
 
-      ham_assert(page->get_pers());
+    /** purges the cache; the callback is called for every page that needs
+     * to be purged */
+    ham_status_t purge(PurgeCallback cb, bool strict) {
+      ham_status_t st;
+      do {
+        st = purge_max20(cb, strict);
+        if (st && st != HAM_LIMITS_REACHED)
+          return (st);
+      } while (st == HAM_LIMITS_REACHED && is_too_big());
 
-      /* first remove the page from the cache, if it's already cached
-       *
-       * we re-insert the page because we want to make sure that the 
-       * cache->_totallist_tail pointer is updated and that the page
-       * is inserted at the HEAD of the list
-       */
-      if (page->is_in_list(m_totallist, Page::LIST_CACHED))
-        remove_page_nolock(page);
-
-      /* now (re-)insert into the list of all cached pages, and increment
-       * the counter */
-      ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED));
-      m_totallist = page->list_insert(m_totallist, Page::LIST_CACHED);
-
-      m_cur_elements++;
-
-      /*
-       * insert it in the cache buckets
-       * !!!
-       * to avoid inserting the page twice, we first remove it from the 
-       * bucket
-       */
-      if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
-        m_buckets[hash] = page->list_remove(m_buckets[hash], Page::LIST_BUCKET);
-      ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET));
-      m_buckets[hash] = page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
-
-      /* is this the chronologically oldest page? then set the pointer */
-      if (!m_totallist_tail)
-        m_totallist_tail = page;
-
-      ham_assert(check_integrity_nolock() == 0);
+      return (0);
     }
+
+    /** the visitor callback returns true if the page should be removed from
+     * the cache and deleted */
+    typedef bool (*VisitCallback)(Page *page, Database *db, ham_u32_t flags);
+
+    /** visits all pages in the "totallist"; this is used by the Environment
+     * to flush (and delete) pages */
+    ham_status_t visit(VisitCallback cb, Database *db, ham_u32_t flags) {
+      Page *head = m_totallist;
+      while (head) {
+        Page *next = head->get_next(Page::LIST_CACHED);
+
+        if (cb(head, db, flags)) {
+          remove_page(head);
+          delete head;
+        }
+        head = next;
+      }
+      return (0);
+    }
+
+    /** returns true if the caller should purge the cache */
+    bool is_too_big() {
+      return (m_cur_elements * m_env->get_pagesize() > m_capacity);
+    }
+
+    /** get number of currently stored pages */
+    ham_u64_t get_cur_elements() {
+      return (m_cur_elements);
+    }
+
+    /** get the capacity (in bytes) */
+    ham_u64_t get_capacity() { 
+      return (m_capacity); 
+    }
+
+    /** check the cache integrity */
+    ham_status_t check_integrity();
+
+  private:
+    /**
+     * get an unused page (or an unreferenced page, if no unused page
+     * was available (w/o mutex)
+     */
+    Page *get_unused_page() {
+      /* get the chronologically oldest page */
+      Page *oldest = m_totallist_tail;
+      if (!oldest)
+          return (0);
+
+      /* now iterate through all pages, starting from the oldest
+       * (which is the tail of the "totallist", the list of ALL cached 
+       * pages) */
+      Page *page = oldest;
+      do {
+        /* pick the first unused page (not in a changeset) */
+        if (!m_env->get_changeset().contains(page))
+            break;
+        
+        page = page->get_previous(Page::LIST_CACHED);
+        ham_assert(page != oldest);
+      } while (page && page != oldest);
     
+      if (!page)
+        return (0);
+
+      /* remove the page from the cache and return it */
+      remove_page(page);
+      return (page);
+    }
+
     /** purges max. 20 pages (and not more to avoid I/O spikes) */
     ham_status_t purge_max20(PurgeCallback cb, bool strict) {
       ham_status_t st;
       Page *page;
       unsigned i, max_pages = (unsigned)m_cur_elements;
 
-      if (!is_too_big_nolock())
+      if (!is_too_big())
         return (0);
 
       /* 
@@ -287,7 +257,7 @@ class Cache
 
       /* now free those pages */
       for (i = 0; i < max_pages; i++) {
-        page = get_unused_page_nolock();
+        page = get_unused_page();
         if (!page) {
           if (i == 0 && strict)
             return (HAM_CACHE_FULL);
@@ -314,9 +284,6 @@ class Cache
     void set_totallist(Page *l) { 
       m_totallist = l; 
     }
-
-    /** a mutex for this Environment */
-    Mutex m_mutex;
 
     /** the current Environment */
     Environment *m_env;

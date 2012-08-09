@@ -104,7 +104,6 @@ class Log
 
     /** checks if the log is empty */
     bool is_empty() {
-      ScopedLock lock(m_mutex);
       ham_offset_t size;
 
       if (m_fd == HAM_INVALID_FD)
@@ -124,13 +123,11 @@ class Log
 
     /** retrieves the current lsn */
     ham_u64_t get_lsn() {
-      ScopedLock lock(m_mutex);
       return (m_lsn);
     }
 
     /** retrieves the file handle (for unittests) */
     ham_fd_t get_fd() {
-      ScopedLock lock(m_mutex);
       return (m_fd);
     }
 
@@ -141,13 +138,18 @@ class Log
      * txn_commit or txn_abort) 
      */
     ham_status_t clear() {
-      ScopedLock lock(m_mutex);
-      return (clear_nolock());
+      ham_status_t st = os_truncate(m_fd, sizeof(Log::Header));
+      if (st)
+        return (st);
+  
+      /* after truncate, the file pointer is far beyond the new end of file;
+       * reset the file pointer, or the next write will resize the file to
+       * the original size */
+      return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
     }
 
     /** flush the logfile to disk */
     ham_status_t flush() {
-      ScopedLock lock(m_mutex);
       return (os_flush(m_fd));
     }
 
@@ -157,10 +159,7 @@ class Log
      * if @a noclear is true then the log will not be clear()ed. This is 
      * useful for debugging.
      */
-    ham_status_t close(bool noclear = false) {
-      ScopedLock lock(m_mutex);
-      return (close_nolock(noclear));
-    }
+    ham_status_t close(bool noclear = false);
 
     /** do the recovery */
     ham_status_t recover();
@@ -182,21 +181,6 @@ class Log
     ham_status_t get_entry(Log::Iterator *iter, Log::Entry *entry,
                          ham_u8_t **data);
 
-    /** closes the log (w/o mutex) */
-    ham_status_t close_nolock(bool noclear = false);
-
-    /** clears the logfile (w/o mutex) */
-    ham_status_t clear_nolock() {
-      ham_status_t st = os_truncate(m_fd, sizeof(Log::Header));
-      if (st)
-        return (st);
-  
-      /* after truncate, the file pointer is far beyond the new end of file;
-       * reset the file pointer, or the next write will resize the file to
-       * the original size */
-      return (os_seek(m_fd, sizeof(Log::Header), HAM_OS_SEEK_SET));
-    }
-
     /**
      * append a log entry for a page modification
      *
@@ -213,9 +197,6 @@ class Log
 
     /** writes a byte buffer to the logfile */
     ham_status_t append_entry(Log::Entry *entry, ham_size_t size);
-
-    /** a mutex to protect the log */
-    Mutex m_mutex;
 
     /** references the Environment this log file is for */
     Environment *m_env;

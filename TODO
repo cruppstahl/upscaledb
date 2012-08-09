@@ -24,6 +24,8 @@ o involve everyone in decisions on the new interface
     If yes, would it be very problematic if I would remove this functionality?
   Do you use zlib compression?
     If yes, would it be very problematic if I would remove this functionality?
+  Do you use other file filters/record filters?
+  Do you use any of the functions/structures in hamsterdb_stats.h?
   Do you use to insert duplicate keys at exact positions (i.e. use one of
         HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
         HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
@@ -84,22 +86,40 @@ o clean up and refactor the code
             replace __duplicate_get_table with BlobManager::read (needs to
                 dynamically resize the buffer)
 
-    o protocol - finally get rid of it
-      o Protocol: default constructor should assign type
-      o create Protocol objects on the stack whenever possible!
-    o hamserver.cc
-      o create Protocol objects on the stack whenever possible!
-    o remote.cc (once more)
+    x protocol - finally get rid of it
+      x Protocol: default constructor should assign type
 
-    o rb.h
-        try to get rid of it; can it be replaced with std::map?
+    x remote.cc
+      x create Protocol objects on the stack whenever possible!
+      x once more check for indention, spaces etc
+    x hamserver.cc
+      x create Protocol objects on the stack whenever possible!
 
-    o include/ham/hamsterdb.h
-    o include/ham/hamsterdb_int.h
-        remove everything that is not required
-    o include/ham/hamsterdb_stats.h
-        remove everything that is not required
+    x include/ham/hamsterdb.h
+    x include/ham/hamsterdb_int.h
+    x include/ham/hamsterdb_stats.h
 
+x remove the mutex code - for now we leave it as is
+    x cache
+    x extkey-cache
+    x log
+    x journal
+    x changeset
+    x device
+    x freelist
+    x backend
+
+o flush in background (asynchronously)
+    o support several policies: DISABLED, DEFERRED
+    o do "group commits" make sense?
+    o how to improve performance?
+    o need a background thread
+    o whenever a txn is committed and the oldest txn can be flushed:
+        signal the thread; it locks the env and flushes a txn (or only
+        a part of it)
+    o extend monster tests
+
+o continue with refacoring - indention, coding style, ...
     o backend.h
     o btree.h
     o btree_key.cc
@@ -120,137 +140,51 @@ o clean up and refactor the code
     o freelist.h
     o freelist.cc
     o freelist_statistics.h
+        o split into env/db/freelist
+        o remove unused code - also from public interface?
+        o protect env and freelist with mutex
+        o in db: assert that the db is locked
     o freelist_statistics.cc
         remove everything that is not required 
 
     o cursor.cc
     o cursor.h
     o db.cc
-        should use arena for get_extended_key
+        o should use arena for get_extended_key
+        o completely hide the local/remote implementation in the database
+        o move more members from Database to the Implementation classes
+        o improve abstraction
     o db.h
     o env.cc
+        o completely hide the local/remote implementation in the Environment
+        o move more members from Environment to the Implementation classes
+        o improve abstraction
     o env.h
 
     o txn.cc
+        o convert to clean c++ code
+        o avoid single code allocations; use an arena allocator based
+            on a ByteArray
+        use an arena allocator for everything that's stored in a transaction
+        the arena should allocate pages with dynamic sizes; if a page is 
+        no longer used it will be stored in a lookaside list
     o txn_cursor.cc
     o txn_cursor.h
     o txn.h
 
     o hamsterdb.cc
+    o configuration: move into separate file
+    o blob manager
+    o introduce a buffer manager?
+        o i.e. holds the cache and manages the device
+        o i.e. for de-coupling freelist from env
+        o i.e. for de-coupling btree from db and env
 
     o unittests
 
     o get rid of ham_bool_t, replace with bool whenever possible
 
 o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
-
-o more fine-grained locking - or rather move commits into background
-    and leave everything as is?
-    x cache
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x extkey-cache
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x log
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x journal
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x changeset
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x device
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x freelist
-        x remove HAM_DAM_ENFORCE_PRE110_FORMAT
-        x remove legacy code (1.x)
-        x remove freelist_v2.cc
-        x freelist class takes ownership of freelist_cache (from device)
-        x what is the difference between alloc_area and alloc_area_ex??
-        x move call to lazy_create into class
-        x create c++ class
-        x rename lazy_create to "initialize"
-        x do not create a freelist when opening in read-only mode
-                or in-memory
-        x freelist functions do not need to check for in-memory!
-        x completely refactor/reformat the code
-        x get rid of static functions in freelist.cc
-        x freelist_entry_t -> Freelist::Entry
-        x freelist_payload_t -> Freelist::Payload
-        x also merge/refactor freelist_statistics.cc
-        x check with valgrind
-        x protect with mutex
-    o backend
-        x replace with C++ class and inheritance
-        x remove be_set_dirty, replace with be->_fun_flush()
-        x btree has keydata1, keydata2 - why? better use DynamicArray?
-        x BtreeBackend does not require to store in little/big-endian!
-        x btree.h declares many static functions; rewrite them as methods
-            - no, will do that later
-        x include the functions in btree_insert.cc, btree_erase.cc etc
-            - no, will do that later
-        x improve abstraction
-        o protect with a mutex
-    o statistics
-        o split into env/db/freelist
-        o remove unused code - also from public interface?
-        o protect env and freelist with mutex
-        o in db: assert that the db is locked
-    o db
-        o completely hide the local/remote implementation in the database
-        o move more members from Database to the Implementation classes
-        o improve abstraction
-        o protect with mutex
-    o env
-        o completely hide the local/remote implementation in the Environment
-        o move more members from Environment to the Implementation classes
-        o improve abstraction
-    o txn
-        o convert to clean c++ code
-        o protect with a mutex
-        o when changing the transaction queue: assert that the env is locked
-        o avoid single code allocations; use an arena allocator based
-            on a ByteArray
-    o configuration/env-header-page
-        o create configuration object
-        o protect with mutex
-    o file filters -- why? the filter list is not modified in the selected
-        functions; but it needs to be documented that it has to be
-        threadsafe, therefore verify that the AES filter *is* threadsafe
-        o convert to C++ visitor pattern?
-    o page
-        o do we also need to lock pages?? or are they locked implicitly by
-            adding them to the changeset? if yes then make sure that this is
-            failsafe! and assert that there can be only one changeset at a
-            time
-        o changeset::contains is not thread safe
-            only used in Cache::purge
-    o blob manager
-    o introduce a buffer manager?
-        o i.e. holds the cache and manages the device
-        o i.e. for de-coupling freelist from env
-        o i.e. for de-coupling btree from db and env
-	o the pages are only used in the btree (with one exception: header
-            page); should the cache therefore be limited to btree functions?
-            then purge and other stuff can also move to the btree level and
-            everything gets simplified     
-
-    o all other functions/modules: assert that the env-mutex is locked!
-
-    o use read/write lock for Environment
-    o introduce a new lock in the Database
-    o the following functions lock the Environment for reading, but the
-        Database for writing:
-        o ham_insert
-        o ham_find
-        o ham_erase
-        o ham_cursor_*
-    o any others?
-    o make sure that the cache does not flush pages that are currently locked
-        by any Transaction
 
 o freelist: store the last successful freelist page in the hinter of the
     database
@@ -261,8 +195,6 @@ o is there a way to group all changeset flushes of a Transaction into one
     o but we can use that assert prior to txn_begin
 
 o is the recovery working if there's a crash during ham_close?
-
-o blob_allocate: remove writev when writing header and blob body
 
 o also remove locking from C# and Java APIs
 

@@ -39,7 +39,7 @@ class Journal
     static const int JOURNAL_DEFAULT_THRESHOLD = 16;
 
   public:
-    static const ham_u32_t HEADER_MAGIC=('h'<<24)|('j'<<16)|('o'<<8)|'1';
+    static const ham_u32_t HEADER_MAGIC = ('h'<<24)|('j'<<16)|('o'<<8)|'1';
 
     enum {
       /** mark the start of a new transaction */
@@ -89,7 +89,7 @@ class Journal
     /** constructor */
     Journal(Environment *env)
       : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0), 
-      m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
+        m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
       m_fd[0] = HAM_INVALID_FD;
       m_fd[1] = HAM_INVALID_FD;
       m_open_txn[0] = 0;
@@ -106,7 +106,6 @@ class Journal
 
     /** checks if the journal is empty */
     bool is_empty() {
-      ScopedLock lock(m_mutex);
       ham_offset_t size;
 
       if (m_fd[0] == m_fd[1] && m_fd[1] == HAM_INVALID_FD)
@@ -146,39 +145,6 @@ class Journal
 
     /** empties the journal, removes all entries */
     ham_status_t clear() {
-      ScopedLock lock(m_mutex);
-      return (clear_nolock());
-    }
-
-    /** Closes the journal, frees all allocated resources */
-    ham_status_t close(bool noclear = false) {
-      ScopedLock lock(m_mutex);
-      return (close_nolock(noclear));
-    }
-
-    /**
-     * Recovery! All committed Transactions will be re-applied, all others
-     * are automatically aborted
-     */
-    ham_status_t recover();
-
-    /** get the lsn and increment it */
-    ham_u64_t get_incremented_lsn() {
-      ScopedLock lock(m_mutex);
-      return (m_lsn++);
-    }
-
-  private:
-    friend class JournalTest;
-
-    /** gets the lsn; only required for unittests */
-    ham_u64_t get_lsn() {
-      ScopedLock lock(m_mutex);
-      return (m_lsn);
-    }
-
-    /** empties the journal, removes all entries (w/o mutex) */
-    ham_status_t clear_nolock() {
       ham_status_t st; 
 
       for (int i = 0; i < 2; i++) {
@@ -188,11 +154,30 @@ class Journal
       return (0);
     }
 
+    /** Closes the journal, frees all allocated resources */
+    ham_status_t close(bool noclear = false);
+
+    /**
+     * Recovery! All committed Transactions will be re-applied, all others
+     * are automatically aborted
+     */
+    ham_status_t recover();
+
+    /** get the lsn and increment it */
+    ham_u64_t get_incremented_lsn() {
+      return (m_lsn++);
+    }
+
+  private:
+    friend class JournalTest;
+
+    /** gets the lsn; only required for unittests */
+    ham_u64_t get_lsn() {
+      return (m_lsn);
+    }
+
     /** returns the path of the journal file */
     std::string get_path(int i);
-
-    /** Closes the journal (w/o mutex) */
-    ham_status_t close_nolock(bool noclear = false);
 
     /**
      * Sequentially returns the next journal entry, starting with 
@@ -233,9 +218,6 @@ class Journal
     void alloc_free(void *ptr) {
       return (m_env->get_allocator()->free(ptr));
     }
-
-    /** a mutex to protect the journal */
-    Mutex m_mutex;
 
 	/** references the Environment this journal file is for */
 	Environment *m_env;

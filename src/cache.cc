@@ -38,7 +38,7 @@ Cache::Cache(Environment *env, ham_u64_t capacity_bytes)
 }
 
 ham_status_t
-Cache::check_integrity_nolock()
+Cache::check_integrity()
 {
   ham_size_t elements = 0;
   Page *head;

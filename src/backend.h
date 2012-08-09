@@ -95,7 +95,6 @@ class Backend
      * was allocated and the file was opened
      */
     ham_status_t create(ham_u16_t keysize, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_create(keysize, flags));
     }
 
@@ -106,7 +105,6 @@ class Backend
      * was allocated and the file was opened
      */
     ham_status_t open(ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_open(flags));
     }
 
@@ -116,7 +114,6 @@ class Backend
      * @remark this function is called before the file is closed
      */
     void close(ham_u32_t flags = 0) {
-        ScopedLock lock(m_mutex);
         return (do_close(flags));
     }
 
@@ -125,7 +122,6 @@ class Backend
      * this does not flush the whole index!
      */
     ham_status_t flush_indexdata() {
-        ScopedLock lock(m_mutex);
         return (do_flush_indexdata());
     }
 
@@ -134,7 +130,6 @@ class Backend
      */
     ham_status_t find(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_find(txn, 0, key, record, flags));
     }
 
@@ -146,7 +141,6 @@ class Backend
      */
     ham_status_t insert(Transaction *txn, ham_key_t *key, 
                     ham_record_t *record, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_insert(txn, key, record, flags));
     }
 
@@ -155,7 +149,6 @@ class Backend
      */
     ham_status_t erase(Transaction *txn, ham_key_t *key, 
                     ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_erase(txn, key, flags));
     }
 
@@ -163,7 +156,6 @@ class Backend
      * iterate the whole tree and enumerate every item
      */
     ham_status_t enumerate(ham_enumerate_cb_t cb, void *context) {
-        ScopedLock lock(m_mutex);
         return (do_enumerate(cb, context));
     }
 
@@ -171,7 +163,6 @@ class Backend
      * verify the whole tree
      */
     ham_status_t check_integrity() {
-        ScopedLock lock(m_mutex);
         return (do_check_integrity());
     }
 
@@ -180,7 +171,6 @@ class Backend
      */
     ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
                     ham_u16_t keysize) {
-        ScopedLock lock(m_mutex);
         return (do_calc_keycount_per_page(keycount, keysize));
     }
 
@@ -191,7 +181,6 @@ class Backend
      * becoming invalid
      */
     ham_status_t uncouple_all_cursors(Page *page, ham_size_t start) {
-        ScopedLock lock(m_mutex);
         return (do_uncouple_all_cursors(page, start));
     }
 
@@ -200,7 +189,6 @@ class Backend
      */
     ham_status_t find_cursor(Transaction *txn, Cursor *cursor, 
                         ham_key_t *key, ham_record_t *record, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_find(txn, cursor, key, record, flags));
     }
 
@@ -210,7 +198,6 @@ class Backend
     ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
                         ham_record_t *record, btree_cursor_t *cursor,
                         ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_insert_cursor(txn, key, record, cursor, flags));
     }
 
@@ -219,7 +206,6 @@ class Backend
      */
     ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
                         btree_cursor_t *cursor, ham_u32_t flags) {
-        ScopedLock lock(m_mutex);
         return (do_erase_cursor(txn, key, cursor, flags));
     }
 
@@ -320,9 +306,6 @@ class Backend
                     btree_cursor_t *cursor, ham_u32_t flags) = 0;
 
   private:
-    /** a mutex for this index backend */
-    Mutex m_mutex;
-
     /** pointer to the database object */
     Database *m_db;
 

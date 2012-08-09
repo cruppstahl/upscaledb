@@ -500,8 +500,6 @@ Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
         0
     };
 
-    ScopedLock lock(m_mutex);
-
     ham_assert(size%DB_CHUNKSIZE==0);
     ham_assert(address%DB_CHUNKSIZE==0);
 
@@ -590,8 +588,6 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
         get_entry_maxspan()
     };
     freelist_hints_t hints = {0};
-
-    ScopedLock lock(m_mutex);
 
     ham_assert(addr_ref != 0);
     *addr_ref = 0;

@@ -106,8 +106,7 @@ class ExtKeyCache
 
     /** the destructor */
     ~ExtKeyCache() {
-      ScopedLock lock(m_mutex);
-      purge_all_nolock();
+      purge_all();
       delete m_extkeyhelper;
     }
 
@@ -118,8 +117,6 @@ class ExtKeyCache
     void insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data) {
       ExtKey *e;
       Environment *env=m_db->get_env();
-
-      ScopedLock lock(m_mutex);
 
       /* DEBUG build: make sure that the item is not inserted twice!  */
       ham_assert(m_hash.get(blobid) == 0);
@@ -139,7 +136,6 @@ class ExtKeyCache
      * returns HAM_KEY_NOT_FOUND if the extkey was not found
      */
     void remove(ham_offset_t blobid) {
-      ScopedLock lock(m_mutex);
       ExtKey *e = m_hash.remove(blobid);
       if (e) {
         m_usedsize -= e->size;
@@ -152,7 +148,6 @@ class ExtKeyCache
      * returns HAM_KEY_NOT_FOUND if the extkey was not found
      */
     ham_status_t fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data) {
-      ScopedLock lock(m_mutex);
       ExtKey *e = m_hash.get(blobid);
       if (e) {
         *size = e->size;
@@ -167,27 +162,17 @@ class ExtKeyCache
     
     /** removes all OLD keys from the cache */
     void purge() {
-      ScopedLock lock(m_mutex);
       m_extkeyhelper->m_removeall = false;
       m_hash.remove_if();
     }
     
     /** removes ALL keys from the cache */
     void purge_all() {
-      ScopedLock lock(m_mutex);
-      purge_all_nolock();
-    }
-
-  private:
-    /** removes ALL keys from the cache (w/o mutex) */
-    void purge_all_nolock() {
       m_extkeyhelper->m_removeall = true;
       m_hash.remove_if();
     }
 
-    /** a mutex for this cache */
-    Mutex m_mutex;
-
+  private:
     /** the owner of the cache */
     Database *m_db;
 

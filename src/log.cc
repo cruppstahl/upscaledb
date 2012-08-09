@@ -31,7 +31,6 @@
 ham_status_t
 Log::create()
 {
-  ScopedLock lock(m_mutex);
   Log::Header header;
   ham_status_t st;
   std::string path = get_path();
@@ -46,7 +45,7 @@ Log::create()
 
   st = os_write(m_fd, &header, sizeof(header));
   if (st) {
-    close_nolock();
+    close();
     return (st);
   }
 
@@ -56,7 +55,6 @@ Log::create()
 ham_status_t
 Log::open()
 {
-  ScopedLock lock(m_mutex);
   Log::Header header;
   std::string path = get_path();
   ham_status_t st;
@@ -64,19 +62,19 @@ Log::open()
   /* open the file */
   st = os_open(path.c_str(), 0, &m_fd);
   if (st) {
-    close_nolock();
+    close();
     return (st);
   }
 
   /* check the file header with the magic */
   st = os_pread(m_fd, 0, &header, sizeof(header));
   if (st) {
-    close_nolock();
+    close();
     return (st);
   }
   if (header.magic != HEADER_MAGIC) {
     ham_trace(("logfile has unknown magic or is corrupt"));
-    close_nolock();
+    close();
     return (HAM_LOG_INV_FILE_HEADER);
   }
 
@@ -141,7 +139,7 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
 }
 
 ham_status_t
-Log::close_nolock(bool noclear)
+Log::close(bool noclear)
 {
   ham_status_t st = 0;
   Log::Header header;
@@ -158,7 +156,7 @@ Log::close_nolock(bool noclear)
     return (st);
 
   if (!noclear)
-    clear_nolock();
+    clear();
 
   if ((st = os_close(m_fd)))
     return (st);
@@ -170,7 +168,6 @@ Log::close_nolock(bool noclear)
 ham_status_t
 Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 {
-  ScopedLock lock(m_mutex);
   ham_status_t st = 0;
   ham_file_filter_t *head = m_env->get_file_filter();
   ham_u8_t *p;
@@ -211,7 +208,6 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 ham_status_t
 Log::recover()
 {
-  ScopedLock lock(m_mutex);
   ham_status_t st;
   Page *page;
   Device *device = m_env->get_device();
@@ -312,7 +308,7 @@ Log::recover()
 
 clear:
   /* and finally clear the log */
-  st = clear_nolock();
+  st = clear();
   if (st) {
     ham_log(("unable to clear logfiles; please manually delete the "
              ".log0 file of this Database, then open again."));
