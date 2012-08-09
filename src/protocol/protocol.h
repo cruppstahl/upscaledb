@@ -32,6 +32,13 @@
 class Protocol : public ham::ProtoWrapper
 {
   public:
+    Protocol() { }
+
+    /** constructor - assigns a type */
+    Protocol(ham::ProtoWrapper_Type type) {
+      set_type(type);
+    }
+
     /** helper function which copies a ham_key_t into a ProtoBuf key */
     static void assign_key(ham::Key *protokey, ham_key_t *hamkey) {
       protokey->set_data(hamkey->data, hamkey->size);

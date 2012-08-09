@@ -354,83 +354,70 @@ class Device {
 
     /** virtual destructor */
     ~Device() { 
-      ScopedLock lock(m_mutex);
       delete m_impl;
       m_impl = 0;
     }
 
     /** set the flags */
     void set_flags(ham_u32_t flags) {
-      ScopedLock lock(m_mutex);
       m_flags = flags;
     }
 
     /** get the flags */
     ham_u32_t get_flags() {
-      ScopedLock lock(m_mutex);
       return (m_flags);
     }
 
     /** Create a new device */
     ham_status_t create(const char *filename, ham_u32_t flags, 
                 ham_u32_t mode) {
-      ScopedLock lock(m_mutex);
       m_flags = flags;
       return (m_impl->create(filename, flags, mode));
     }
 
     /** opens an existing device */
     ham_status_t open(const char *filename, ham_u32_t flags) {
-      ScopedLock lock(m_mutex);
       m_flags = flags;
       return (m_impl->open(filename, flags));
     }
 
     /** closes the device */
     ham_status_t close() {
-      ScopedLock lock(m_mutex);
       return (m_impl->close());
     }
 
     /** flushes the device */
     ham_status_t flush() {
-      ScopedLock lock(m_mutex);
       return (m_impl->flush());
     }
 
     /** truncate/resize the device */
     ham_status_t truncate(ham_offset_t newsize) {
-      ScopedLock lock(m_mutex);
       return (m_impl->truncate(newsize));
     }
 
     /** returns true if the device is open */
     bool is_open() {
-      ScopedLock lock(m_mutex);
       return (m_impl->is_open());
     }
 
     /** get the current file/storage size */
     ham_status_t get_filesize(ham_offset_t *length) {
-      ScopedLock lock(m_mutex);
       return (m_impl->get_filesize(length));
     }
 
     /** seek position in a file */
     ham_status_t seek(ham_offset_t offset, int whence) {
-      ScopedLock lock(m_mutex);
       return (m_impl->seek(offset, whence));
     }
 
     /** tell the position in a file */
     ham_status_t tell(ham_offset_t *offset) {
-      ScopedLock lock(m_mutex);
       return (m_impl->tell(offset));
     }
 
     /** reads from the device; this function does not use mmap */
     ham_status_t read(ham_offset_t offset, void *buffer, ham_offset_t size) {
-      ScopedLock lock(m_mutex);
       return (m_impl->read(offset, buffer, size));
     }
 
@@ -438,26 +425,22 @@ class Device {
      * and is responsible for writing the data is run through the file 
      * filters */
     ham_status_t write(ham_offset_t offset, void *buffer, ham_offset_t size) {
-      ScopedLock lock(m_mutex);
       return (m_impl->write(offset, buffer, size));
     }
 
     /** reads a page from the device; this function CAN use mmap */
     ham_status_t read_page(Page *page) {
-      ScopedLock lock(m_mutex);
       return (m_impl->read_page(page));
     }
 
     /** writes a page to the device */
     ham_status_t write_page(Page *page) {
-      ScopedLock lock(m_mutex);
       return (m_impl->write_page(page));
     }
 
     /** allocate storage from this device; this function 
      * will *NOT* use mmap.  */
     ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
-      ScopedLock lock(m_mutex);
       return (m_impl->alloc(size, address));
     }
 
@@ -470,40 +453,32 @@ class Device {
      * function will assert that the page is not dirty.
      */
     ham_status_t alloc_page(Page *page) {
-      ScopedLock lock(m_mutex);
       return (m_impl->alloc_page(page));
     }
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
     ham_status_t free_page(Page *page) {
-      ScopedLock lock(m_mutex);
       return (m_impl->free_page(page));
     }
 
     /** get the Environment */
     Environment *get_env() {
-      ScopedLock lock(m_mutex);
       return (m_env);
     }
 
     /** set the pagesize for this device */
     void set_pagesize(ham_size_t pagesize) {
-      ScopedLock lock(m_mutex);
       m_impl->set_pagesize(pagesize);
     }
 
     /** get the pagesize for this device */
     ham_size_t get_pagesize() {
-      ScopedLock lock(m_mutex);
       return (m_impl->get_pagesize());
     }
 
   protected:
     friend class DeviceImplDisk;
     friend class DeviceImplInMemory;
-
-    /** a mutex to protect the device */
-    Mutex m_mutex;
 
     /** The actual implementation */
     DeviceImplementation *m_impl;

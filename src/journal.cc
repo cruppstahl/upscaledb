@@ -39,7 +39,6 @@ __get_aligned_entry_size(ham_size_t s)
 ham_status_t
 Journal::create()
 {
-  ScopedLock lock(m_mutex);
   int i;
   Header header;
   ham_status_t st;
@@ -53,14 +52,14 @@ Journal::create()
     std::string path = get_path(i);
     st = os_create(path.c_str(), 0, 0644, &m_fd[i]);
     if (st) {
-      (void)close_nolock();
+      (void)close();
       return (st);
     }
 
     /* and write the magic */
     st = os_write(m_fd[i], &header, sizeof(header));
     if (st) {
-      (void)close_nolock();
+      (void)close();
       return (st);
     }
   }
@@ -70,7 +69,6 @@ Journal::create()
 ham_status_t
 Journal::open()
 {
-  ScopedLock lock(m_mutex);
   int i;
   Header header;
   JournalEntry entry;
@@ -90,7 +88,7 @@ Journal::open()
     return (st1);
 
   if (st1 || st2) {
-    (void)close_nolock();
+    (void)close();
     return (st1 ? st1 : st2);
   }
 
@@ -98,12 +96,12 @@ Journal::open()
     /* check the magic */
     st = os_pread(m_fd[i], 0, &header, sizeof(header));
     if (st) {
-      (void)close_nolock();
+      (void)close();
       return (st);
     }
     if (header.magic != HEADER_MAGIC) {
       ham_trace(("journal has unknown magic or is corrupt"));
-      (void)close_nolock();
+      (void)close();
       return (HAM_LOG_INV_FILE_HEADER);
     }
 
@@ -120,7 +118,7 @@ Journal::open()
     ham_offset_t size;
     st = os_get_filesize(m_fd[i], &size);
     if (st) {
-      (void)close_nolock();
+      (void)close();
       return (st);
     }
 
@@ -128,7 +126,7 @@ Journal::open()
       st = os_pread(m_fd[i], size - sizeof(JournalEntry),
                     &entry, sizeof(entry));
       if (st) {
-        (void)close_nolock();
+        (void)close();
         return (st);
       }
       lsn[i] = entry.lsn;
@@ -177,13 +175,14 @@ Journal::switch_files_maybe(Transaction *txn)
     m_current_fd = cur;
     txn_set_log_desc(txn, cur);
   }
+
+  return (0);
 }
 
 ham_status_t
 Journal::append_txn_begin(Transaction *txn, Environment *env, 
                 const char *name, ham_u64_t lsn)
 {
-  ScopedLock lock(m_mutex);
   ham_status_t st;
   JournalEntry entry;
 
@@ -221,7 +220,6 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
 ham_status_t
 Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
 {
-  ScopedLock lock(m_mutex);
   int idx;
   ham_status_t st;
   JournalEntry entry;
@@ -245,7 +243,6 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
 ham_status_t
 Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
 {
-  ScopedLock lock(m_mutex);
   int idx;
   ham_status_t st;
   JournalEntry entry;
@@ -271,37 +268,6 @@ Journal::append_insert(Database *db, Transaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 ham_u64_t lsn)
 {
-<<<<<<< HEAD
-    ScopedLock lock(m_mutex);
-    char padding[16]={0};
-    JournalEntry entry;
-    JournalEntryInsert insert;
-    ham_size_t size=sizeof(JournalEntryInsert)+key->size+record->size-1;
-    ham_size_t padding_size=__get_aligned_entry_size(size)-size;
-
-    entry.lsn=lsn;
-    entry.dbname=db->get_name();
-    entry.txn_id=txn_get_id(txn);
-    entry.type=ENTRY_TYPE_INSERT;
-    entry.followup_size=size+padding_size;
-
-    if (txn_get_flags(txn) & HAM_TXN_TEMPORARY) {
-        ham_status_t st=switch_files_maybe(txn);
-        if (st)
-            return (st);
-        m_closed_txn[txn_get_log_desc(txn)]++;
-    }
-
-    insert.key_size=key->size;
-    insert.record_size=record->size;
-    insert.record_partial_size=record->partial_size;
-    insert.record_partial_offset=record->partial_offset;
-    insert.insert_flags=flags;
-
-    /* append the entry to the logfile */
-    return (append_entry(txn_get_log_desc(txn), 
-=======
-  ScopedLock lock(m_mutex);
   char padding[16] = {0};
   JournalEntry entry;
   JournalEntryInsert insert;
@@ -322,7 +288,6 @@ Journal::append_insert(Database *db, Transaction *txn,
 
   /* append the entry to the logfile */
   return (append_entry(txn_get_log_desc(txn), 
->>>>>>> code beautification
                 &entry, sizeof(entry),
                 &insert, sizeof(JournalEntryInsert) - 1,
                 key->data, key->size,
@@ -334,34 +299,6 @@ ham_status_t
 Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key, 
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
-<<<<<<< HEAD
-    ScopedLock lock(m_mutex);
-    char padding[16]={0};
-    JournalEntry entry;
-    JournalEntryErase erase;
-    ham_size_t size=sizeof(JournalEntryErase)+key->size-1;
-    ham_size_t padding_size=__get_aligned_entry_size(size)-size;
-
-    if (txn_get_flags(txn) & HAM_TXN_TEMPORARY) {
-        ham_status_t st=switch_files_maybe(txn);
-        if (st)
-            return (st);
-        m_closed_txn[txn_get_log_desc(txn)]++;
-    }
-
-    entry.lsn=lsn;
-    entry.dbname=db->get_name();
-    entry.txn_id=txn_get_id(txn);
-    entry.type=ENTRY_TYPE_ERASE;
-    entry.followup_size=size+padding_size;
-    erase.key_size=key->size;
-    erase.erase_flags=flags;
-    erase.duplicate=dupe;
-
-    /* append the entry to the logfile */
-    return (append_entry(txn_get_log_desc(txn), 
-=======
-  ScopedLock lock(m_mutex);
   char padding[16] = {0};
   JournalEntry entry;
   JournalEntryErase erase;
@@ -379,7 +316,6 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
 
   /* append the entry to the logfile */
   return (append_entry(txn_get_log_desc(txn), 
->>>>>>> code beautification
                 &entry, sizeof(entry),
                 (JournalEntry *)&erase, sizeof(JournalEntryErase) - 1,
                 key->data, key->size,
@@ -461,7 +397,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
 }
 
 ham_status_t
-Journal::close_nolock(bool noclear)
+Journal::close(bool noclear)
 {
   int i;
   ham_status_t st = 0;
@@ -469,7 +405,7 @@ Journal::close_nolock(bool noclear)
   if (!noclear) {
     Header header;
 
-    (void)clear_nolock();
+    (void)clear();
 
     /* update the header page of file 0 to store the lsn */
     header.magic = HEADER_MAGIC;
@@ -523,32 +459,16 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 static void
 recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
 {
-<<<<<<< HEAD
-    Transaction *txn=env->get_oldest_txn();
-    while (txn) {
-        if (txn_get_id(txn)==txn_id) {
-            *ptxn=txn;
-            return;
-        }
-        txn=txn_get_newer(txn);
-=======
   Transaction *txn = env->get_oldest_txn();
   while (txn) {
     if (txn_get_id(txn) == txn_id) {
       *ptxn = txn;
-      return (0);
->>>>>>> code beautification
+      return;
     }
     txn = txn_get_newer(txn);
   }
 
-<<<<<<< HEAD
-    *ptxn=0;
-=======
-  ham_assert(!"shouldn't be here");
   *ptxn = 0;
-  return (HAM_INTERNAL_ERROR);
->>>>>>> code beautification
 }
 
 static ham_status_t
@@ -592,7 +512,6 @@ __abort_uncommitted_txns(Environment *env)
 ham_status_t
 Journal::recover()
 {
-  ScopedLock lock(m_mutex);
   ham_status_t st = 0;
   ham_u64_t start_lsn = m_env->get_log()->get_lsn();
   Iterator it;
@@ -626,8 +545,7 @@ Journal::recover()
   ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
-  /* officially disable recovery - otherwise while recovering we log
-   * more stuff */
+  /* officially disable recovery to avoid recursive logging during recovery */
   m_env->set_flags(m_env->get_flags() & ~HAM_ENABLE_RECOVERY);
 
   do {
@@ -647,129 +565,28 @@ Journal::recover()
     if (!entry.lsn)
       break;
 
-      /* re-apply this operation */
-      switch (entry.type) {
+    /* re-apply this operation */
+    switch (entry.type) {
       case ENTRY_TYPE_TXN_BEGIN: {
-        Transaction *txn;
+        Transaction *txn = 0;
         st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env, 
                 (const char *)aux, 0, HAM_DONT_LOCK);
         /* on success: patch the txn ID */
         if (st == 0) {
-            txn_set_id(txn, entry.txn_id);
-            m_env->set_txn_id(entry.txn_id);
+          txn_set_id(txn, entry.txn_id);
+          m_env->set_txn_id(entry.txn_id);
         }
         break;
       }
       case ENTRY_TYPE_TXN_ABORT: {
-        Transaction *txn;
-        st=__recover_get_txn(m_env, entry.txn_id, &txn);
-        if (st)
-<<<<<<< HEAD
-            goto bail;
-
-        /* reached end of logfile? */
-        if (!entry.lsn)
-            break;
-
-        /* re-apply this operation */
-        switch (entry.type) {
-        case ENTRY_TYPE_TXN_BEGIN: {
-            Transaction *txn;
-            st=ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env, 
-                    (const char *)aux, 0, HAM_DONT_LOCK);
-            /* on success: patch the txn ID */
-            if (st==0) {
-                txn_set_id(txn, entry.txn_id);
-                m_env->set_txn_id(entry.txn_id);
-            }
-            break;
-        }
-        case ENTRY_TYPE_TXN_ABORT: {
-            Transaction *txn;
-            recover_get_txn(m_env, entry.txn_id, &txn);
-            st=ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
-            break;
-        }
-        case ENTRY_TYPE_TXN_COMMIT: {
-            Transaction *txn;
-            recover_get_txn(m_env, entry.txn_id, &txn);
-            st=ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
-            break;
-        }
-        case ENTRY_TYPE_INSERT: {
-            JournalEntryInsert *ins=(JournalEntryInsert *)aux;
-            Transaction *txn;
-            Database *db;
-            ham_key_t key={0};
-            ham_record_t record={0};
-            if (!ins) {
-                st=HAM_IO_ERROR;
-                goto bail;
-            }
-
-            /* do not insert if the key was already flushed to disk */
-            if (entry.lsn<=start_lsn)
-                continue;
-
-            key.data=ins->get_key_data();
-            key.size=ins->key_size;
-            record.data=ins->get_record_data();
-            record.size=ins->record_size;
-            record.partial_size=ins->record_partial_size;
-            record.partial_offset=ins->record_partial_offset;
-            recover_get_txn(m_env, entry.txn_id, &txn);
-            st=__recover_get_db(m_env, entry.dbname, &db);
-            if (st)
-                break;
-            lock.unlock();
-            st=ham_insert((ham_db_t *)db, (ham_txn_t *)txn, 
-                    &key, &record, ins->insert_flags|HAM_DONT_LOCK);
-            lock.lock();
-            break;
-        }
-        case ENTRY_TYPE_ERASE: {
-            JournalEntryErase *e=(JournalEntryErase *)aux;
-            Transaction *txn;
-            Database *db;
-            ham_key_t key={0};
-            if (!e) {
-                st=HAM_IO_ERROR;
-                goto bail;
-            }
-
-            /* do not erase if the key was already erased from disk */
-            if (entry.lsn<=start_lsn)
-                continue;
-
-            recover_get_txn(m_env, entry.txn_id, &txn);
-            st=__recover_get_db(m_env, entry.dbname, &db);
-            if (st)
-                break;
-            key.data=e->get_key_data();
-            key.size=e->key_size;
-            lock.unlock();
-            st=ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key, 
-                            e->erase_flags|HAM_DONT_LOCK);
-            lock.lock();
-            // key might have already been erased when the changeset
-            // was flushed
-            if (st==HAM_KEY_NOT_FOUND)
-                st=0;
-            break;
-        }
-        default:
-            ham_log(("invalid journal entry type or journal is corrupt"));
-            st=HAM_IO_ERROR;
-=======
-            break;
-        st=ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
+        Transaction *txn = 0;
+        recover_get_txn(m_env, entry.txn_id, &txn);
+        st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
       case ENTRY_TYPE_TXN_COMMIT: {
-        Transaction *txn;
-        st = __recover_get_txn(m_env, entry.txn_id, &txn);
-        if (st)
-          break;
+        Transaction *txn = 0;
+        recover_get_txn(m_env, entry.txn_id, &txn);
         st = ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
         break;
       }
@@ -782,7 +599,6 @@ Journal::recover()
         if (!ins) {
           st = HAM_IO_ERROR;
           goto bail;
->>>>>>> code beautification
         }
 
         /* do not insert if the key was already flushed to disk */
@@ -795,16 +611,12 @@ Journal::recover()
         record.size = ins->record_size;
         record.partial_size = ins->record_partial_size;
         record.partial_offset = ins->record_partial_offset;
-        st = __recover_get_txn(m_env, entry.txn_id, &txn);
-        if (st)
-          break;
+        recover_get_txn(m_env, entry.txn_id, &txn);
         st = __recover_get_db(m_env, entry.dbname, &db);
         if (st)
           break;
-        lock.unlock();
-        st = ham_insert((ham_db_t *)db, (ham_txn_t *)txn, &key, &record,
-                        ins->insert_flags | HAM_DONT_LOCK);
-        lock.lock();
+        st = ham_insert((ham_db_t *)db, (ham_txn_t *)txn, 
+                    &key, &record, ins->insert_flags|HAM_DONT_LOCK);
         break;
       }
       case ENTRY_TYPE_ERASE: {
@@ -821,18 +633,14 @@ Journal::recover()
         if (entry.lsn <= start_lsn)
           continue;
 
-        st = __recover_get_txn(m_env, entry.txn_id, &txn);
-        if (st)
-          break;
+        recover_get_txn(m_env, entry.txn_id, &txn);
         st = __recover_get_db(m_env, entry.dbname, &db);
         if (st)
           break;
         key.data = e->get_key_data();
         key.size = e->key_size;
-        lock.unlock();
-        st = ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key, 
-                      e->erase_flags|HAM_DONT_LOCK);
-        lock.lock();
+        st=ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key, 
+                        e->erase_flags | HAM_DONT_LOCK);
         // key might have already been erased when the changeset
         // was flushed
         if (st == HAM_KEY_NOT_FOUND)
@@ -870,7 +678,7 @@ bail:
     return (st);
 
   /* clear the journal files */
-  st = clear_nolock();
+  st = clear();
   if (st) {
     ham_log(("unable to clear journal; please manually delete the "
               "journal files before re-opening the Database"));

@@ -169,9 +169,6 @@ class Freelist
                     freelist_global_hints_t *hints, ham_s32_t start_index);
 
   private:
-    /** a mutex to protect the freelist */
-    Mutex m_mutex;
-
     /** the Environment */
     Environment *m_env;
 

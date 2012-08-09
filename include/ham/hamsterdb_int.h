@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -46,19 +46,19 @@ extern "C" {
  * user specified Database names as passed to @a ham_env_create_db 
  * or @a ham_env_open_db.
  */
-#define HAM_DEFAULT_DATABASE_NAME     (0xf000)
+#define HAM_DEFAULT_DATABASE_NAME       (0xf000)
 
 /** 
  * A reserved Database name which automatically picks the first Database 
  * in an Environment 
  */
-#define HAM_FIRST_DATABASE_NAME       (0xf001)
+#define HAM_FIRST_DATABASE_NAME         (0xf001)
 
 /** 
  * A reserved Database name for a dummy Database which only reads/writes 
  * the header page 
  */
-#define HAM_DUMMY_DATABASE_NAME       (0xf002)
+#define HAM_DUMMY_DATABASE_NAME         (0xf002)
 
 /**
 @}
@@ -79,7 +79,7 @@ extern "C" {
  * @sa ham_get_parameters
  * @sa ham_env_get_parameters
  */
-#define HAM_PARAM_GET_STATISTICS        0x00000206
+#define HAM_PARAM_GET_STATISTICS            0x00000206
 
 /** 
  * Verifies the integrity of the Database
@@ -181,24 +181,23 @@ typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env,
  */
 struct ham_file_filter_t
 {
-    /** The user data */
-    void *userdata;
+  /** The user data */
+  void *userdata;
 
-    /** The function which is called before the page is written */
-    ham_file_filter_before_write_cb_t before_write_cb;
+  /** The function which is called before the page is written */
+  ham_file_filter_before_write_cb_t before_write_cb;
 
-    /** The function which is called after the page is read */
-    ham_file_filter_after_read_cb_t after_read_cb;
+  /** The function which is called after the page is read */
+  ham_file_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the Database is closed */
-    ham_file_filter_close_cb_t close_cb;
+  /** The function which is when the Database is closed */
+  ham_file_filter_close_cb_t close_cb;
 
-    /** For internal use */
-    ham_u32_t _flags;
+  /** For internal use */
+  ham_u32_t _flags;
 
-    /** For internal use */
-    ham_file_filter_t *_next, *_prev;
-
+  /** For internal use */
+  ham_file_filter_t *_next, *_prev;
 };
 
 /**
@@ -273,24 +272,23 @@ typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db,
  */
 struct ham_record_filter_t
 {
-    /** The user data */
-    void *userdata;
+  /** The user data */
+  void *userdata;
 
-    /** The function which is called before the record is inserted */
-    ham_record_filter_before_insert_cb_t before_write_cb;
+  /** The function which is called before the record is inserted */
+  ham_record_filter_before_insert_cb_t before_write_cb;
 
-    /** The function which is called after the record is read from disk */
-    ham_record_filter_after_read_cb_t after_read_cb;
+  /** The function which is called after the record is read from disk */
+  ham_record_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the Database is closed */
-    ham_record_filter_close_cb_t close_cb;
+  /** The function which is when the Database is closed */
+  ham_record_filter_close_cb_t close_cb;
 
-    /** For internal use */
-    ham_u32_t _flags;
+  /** For internal use */
+  ham_u32_t _flags;
 
-    /** For internal use */
-    ham_record_filter_t *_next, *_prev;
-
+  /** For internal use */
+  ham_record_filter_t *_next, *_prev;
 };
 
 /**
@@ -349,6 +347,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  */
 struct ham_device_t;
 typedef struct ham_device_t ham_device_t;
+
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_set_device(ham_env_t *env, ham_device_t *device);
 
@@ -399,11 +398,13 @@ ham_env_set_allocator(ham_env_t *env, void *alloc);
  */
 
 /* internal flag - do not use!! */
-#define HAM_HINT_UBER_FAST_ACCESS     0x00040000
+#define HAM_HINT_UBER_FAST_ACCESS       0x00040000
+
 /* internal flag - do not use!! */
-#define HAM_HINT_RANDOM_ACCESS        0x00020000
+#define HAM_HINT_RANDOM_ACCESS          0x00020000
+
 /* internal flag - do not use!! */
-#define HAM_HINT_SEQUENTIAL           0x00010000
+#define HAM_HINT_SEQUENTIAL             0x00010000
 
 #ifdef __cplusplus
 } // extern "C"
