@@ -26,6 +26,8 @@ o involve everyone in decisions on the new interface
     If yes, would it be very problematic if I would remove this functionality?
   Do you use other file filters/record filters?
   Do you use any of the functions/structures in hamsterdb_stats.h?
+  Do you use any of the functions/structures in hamsterdb_int.h?
+    TODO @@@ - be more specific
   Do you use to insert duplicate keys at exact positions (i.e. use one of
         HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
         HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
@@ -109,33 +111,51 @@ x remove the mutex code - for now we leave it as is
     x freelist
     x backend
 
+o implementation of hamsterdb should move into namespace ham; otherwise
+    there are conflicts if users have a C++ class called Database or
+    Environment etc
+
 o flush in background (asynchronously)
-    o support several policies: DISABLED, DEFERRED
-    o do "group commits" make sense?
-    o how to improve performance?
-    o need a background thread
+    o support several policies: HAM_ASYNC_FLUSH_DISABLE, -ENABLE (default)
+    o if enabled: need a background thread
     o whenever a txn is committed and the oldest txn can be flushed:
         signal the thread; it locks the env and flushes a txn (or only
         a part of it)
     o extend monster tests
+    o do "group commits" make sense? run some tests
+    o unlock global mutex after each single btree operation?
+    o how to improve performance when flushing? use database cursors?
 
 o continue with refacoring - indention, coding style, ...
-    o backend.h
+    x backend.h
+
     o btree.h
-    o btree_key.cc
-    o btree_key.h
-    o btree_stats.cc
-        should use arena for lower/upper bounds
-    o btree_stats.h
-        remove everything that is not required 
     o btree.cc
+        - introduce namespace Btree
+
+    o btree_key.h
+    o btree_key.cc
+        - rewrite into Btree::Key
+        - constructors get "(const) ham_u8_t *" pointer to the key data
+        - provide getters/setters
+
+    o btree_stats.h
+        - remove everything that is not required 
+        - namespace Btree::Statistics
+    o btree_stats.cc
+        - should use arena for lower/upper bounds
+
     o btree_check.cc
-    o btree_cursor.cc
-    o btree_cursor.h
+        - improve BtreeCheckAction; use it as template for enum, find, etc
+
     o btree_enum.cc
+
     o btree_find.cc
     o btree_insert.cc
     o btree_erase.cc
+
+    o btree_cursor.cc
+    o btree_cursor.h
 
     o freelist.h
     o freelist.cc
@@ -200,10 +220,6 @@ o also remove locking from C# and Java APIs
 
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
-
-o implementation of hamsterdb should move into a namespace; otherwise
-    there are conflicts if users have a C++ class called Database or
-    Environment etc
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close

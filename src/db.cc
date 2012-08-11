@@ -64,17 +64,17 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
     c=(calckeys_context_t *)context;
 
     switch (event) {
-    case ENUM_EVENT_DESCEND:
+    case HAM_ENUM_EVENT_DESCEND:
         break;
 
-    case ENUM_EVENT_PAGE_START:
+    case HAM_ENUM_EVENT_PAGE_START:
         c->is_leaf=*(ham_bool_t *)param2;
         break;
 
-    case ENUM_EVENT_PAGE_STOP:
+    case HAM_ENUM_EVENT_PAGE_STOP:
         break;
 
-    case ENUM_EVENT_ITEM:
+    case HAM_ENUM_EVENT_ITEM:
         key=(btree_key_t *)param1;
         count=*(ham_size_t *)param2;
 
@@ -102,7 +102,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
                  * of dupes (=1 if no dupes)
                  */
                 c->total_count+=(count-1)*dupcount;
-                return (CB_DO_NOT_DESCEND);
+                return (HAM_ENUM_DO_NOT_DESCEND);
             }
         }
         break;
@@ -112,7 +112,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
         break;
     }
 
-    return (CB_CONTINUE);
+    return (HAM_ENUM_CONTINUE);
 }
 
 
@@ -136,18 +136,18 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
     c=(free_cb_context_t *)context;
 
     switch (event) {
-    case ENUM_EVENT_DESCEND:
+    case HAM_ENUM_EVENT_DESCEND:
         break;
 
-    case ENUM_EVENT_PAGE_START:
+    case HAM_ENUM_EVENT_PAGE_START:
         c->is_leaf=*(ham_bool_t *)param2;
         break;
 
-    case ENUM_EVENT_PAGE_STOP:
+    case HAM_ENUM_EVENT_PAGE_STOP:
         /* nop */
         break;
 
-    case ENUM_EVENT_ITEM:
+    case HAM_ENUM_EVENT_ITEM:
         key=(btree_key_t *)param1;
 
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
@@ -175,10 +175,10 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 
     default:
         ham_assert(!"unknown callback event");
-        return (CB_STOP);
+        return (HAM_ENUM_STOP);
     }
 
-    return (CB_CONTINUE);
+    return (HAM_ENUM_CONTINUE);
 }
 
 inline ham_bool_t
