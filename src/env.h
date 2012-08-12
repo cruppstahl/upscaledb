@@ -120,6 +120,8 @@ typedef struct db_indexdata_t db_indexdata_t;
 	(sizeof(env_header_t)+													\
 	 (env)->get_max_databases()*sizeof(db_indexdata_t))
 
+class Worker;
+
 /**
  * the Environment structure
  */
@@ -580,33 +582,30 @@ class Environment
         return (&m_duplicate_manager);
     }
 
-    /** locks the Environment and flushes the committed transactions to disk;
-     * this is the worker function for the background thread
-     */
-    ham_status_t flush_committed_txns();
+    /** flushes the committed transactions to disk */
+    ham_status_t flush_committed_txns(bool dontlock);
 
     /** get the mutex */
     Mutex &get_mutex() {
         return (m_mutex);
     }
 
-    /** worker function for the background thread */
-    void async_flush_thread();
-
-    /** signal a commit of a transaction; this will either start
-     * the worker thread or immediately flush to disk
-     */
+    /** either flush committed Transaction to disk or, if available,
+     * signal the worker thread (TODO - if there's a commit, then there's
+     * ALWAYS a worker thread, right?) */
     ham_status_t signal_commit();
 
-    /** async background flusher */
-    // TODO make this private
-    boost::thread *m_async_thread;
-    boost::condition m_async_cond;
-    Mutex m_async_mutex;
+    /** set the worker thread 
+     * TODO move this into an implementation class */
+    void set_worker_thread(Worker *thread) {
+        m_worker_thread = thread;
+    }
 
-    /** ask async thread to exit */
-    // TODO make this private
-    bool m_exit_async;
+    /** get the worker thread 
+     * TODO move this into an implementation class */
+    Worker *get_worker_thread() {
+        return (m_worker_thread);
+    }
 
   private:
     /** a mutex for this Environment */
@@ -694,6 +693,9 @@ class Environment
 
     /** the DuplicateManager */
     DuplicateManager m_duplicate_manager;
+
+    /** the worker thread for flushing committed Transactions */
+    Worker *m_worker_thread;
 };
 
 /**
