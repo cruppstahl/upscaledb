@@ -21,6 +21,7 @@
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
+#include "worker.h"
 #include "device.h"
 #include "btree.h"
 #include "mem.h"
@@ -62,7 +63,8 @@ Environment::Environment()
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
-    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this)
+    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this),
+    m_worker_thread(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -248,6 +250,14 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* initialize the cache */
     env->set_cache(new Cache(env, env->get_cachesize()));
+
+    /* disable async flush if transactions are disabled or if it's an
+     * in-memory database */
+    if (flags&HAM_ENABLE_TRANSACTIONS
+            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_IN_MEMORY_DB)) {
+        env->set_worker_thread(new Worker(env));
+    }
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -526,6 +536,14 @@ fail_with_fake_cleansing:
         }
     }
 
+    /* disable async flush if transactions are disabled or if it's an
+     * in-memory database */
+    if (flags&HAM_ENABLE_TRANSACTIONS
+            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_IN_MEMORY_DB)) {
+        env->set_worker_thread(new Worker(env));
+    }
+
     return (HAM_SUCCESS);
 }
 
@@ -704,6 +722,9 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     Device *device;
     ham_file_filter_t *file_head;
 
+    /* flush all committed transactions */
+    env->flush_committed_txns(true);
+
     /* flush the freelist */
     if (env->get_freelist()) {
         delete env->get_freelist();
@@ -872,6 +893,11 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     /* never flush an in-memory-database */
     if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
+
+    /* flush all committed transactions */
+    st=env->flush_committed_txns(true);
+    if (st)
+        return (st);
 
     /* flush the open backends */
     db=env->get_databases();
@@ -1523,8 +1549,8 @@ next_op:
     return (0);
 }
 
-ham_status_t
-env_flush_committed_txns(Environment *env)
+static ham_status_t
+env_flush_committed_txns_nolock(Environment *env)
 {
     Transaction *oldest;
 
@@ -1553,6 +1579,26 @@ env_flush_committed_txns(Environment *env)
      * transaction was empty then it may still contain pages */
     env->get_changeset().clear();
 
+    return (0);
+}
+
+ham_status_t
+Environment::flush_committed_txns(bool dontlock)
+{
+    ScopedLock lock;
+    if (!dontlock)
+        lock=ScopedLock(m_mutex);
+
+    return (env_flush_committed_txns_nolock(this));
+}
+
+ham_status_t
+Environment::signal_commit()
+{
+    if (!m_worker_thread)
+        return (env_flush_committed_txns_nolock(this));
+
+    m_worker_thread->signal_commit();
     return (0);
 }
 

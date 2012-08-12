@@ -134,6 +134,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
         BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
         BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
+        BFC_REGISTER_TEST(HamsterdbTest, disableAsyncFlushTest);
     }
 
 protected:
@@ -2280,6 +2281,39 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &ps[0]));
         BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
 
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
+    }
+
+    void disableAsyncFlushTest()
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, "test.db",
+                        HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, "test.db",
+                        HAM_DISABLE_ASYNCHRONOUS_FLUSH|HAM_ENABLE_TRANSACTIONS,
+                        0, 0));
+        BFC_ASSERT_EQUAL((Worker *)0,
+                ((Database *)db)->get_env()->get_worker_thread());
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, "test.db",
+                        HAM_IN_MEMORY_DB, 0, 0));
+        BFC_ASSERT_EQUAL((Worker *)0,
+                ((Database *)db)->get_env()->get_worker_thread());
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, "test.db",
+                        HAM_ENABLE_TRANSACTIONS,
+                        0, 0));
+        BFC_ASSERT(((Database *)db)->get_env()->get_worker_thread() != 0);
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
