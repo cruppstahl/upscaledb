@@ -321,7 +321,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
         lock=ScopedLock(env->get_mutex());
 
     /* mark this transaction as committed; will also call
-     * env_flush_committed_txns() to write committed transactions
+     * env->signal_commit() to write committed transactions
      * to disk */
     return (env->_fun_txn_commit(env, txn, flags));
 }
@@ -1641,7 +1641,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
             t=n;
         }
         // make sure all Transactions are flushed
-        env_flush_committed_txns(env);
+        env->signal_commit();
     }
 
     /* close all databases?  */
@@ -1658,10 +1658,15 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     }
 
     /* flush all transactions */
-    st=env_flush_committed_txns(env);
+    st=env->signal_commit();
     if (st)
         return (st);
     ham_assert(env->get_changeset().is_empty());
+
+    /* close the environment */
+    st=env->_fun_close(env, flags);
+    if (st)
+        return (st);
 
     /* when all transactions have been properly closed... */
     if (env->is_active() && env->get_oldest_txn()) {
@@ -1669,11 +1674,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
                     "should've taken care of all TXNs");
         return (HAM_INTERNAL_ERROR);
     }
-
-    /* close the environment */
-    st=env->_fun_close(env, flags);
-    if (st)
-        return (st);
 
     /* delete all performance data */
     btree_stats_trash_globdata(env, env->get_global_perf_data());
@@ -2776,9 +2776,8 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (!env || !(*db)())
         return (0);
 
-    /* don't lock the env if it's private */
     ScopedLock lock;
-    if (!(flags&HAM_DONT_LOCK) && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE))
+    if (!(flags&HAM_DONT_LOCK))// && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE))
         lock=ScopedLock(env->get_mutex());
 
     /* check if this database is modified by an active transaction */
@@ -2834,7 +2833,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         }
     }
     // make sure all Transactions are flushed
-    env_flush_committed_txns(env);
+    env->signal_commit();
 
     db->set_error(0);
     

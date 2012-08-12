@@ -580,10 +580,33 @@ class Environment
         return (&m_duplicate_manager);
     }
 
+    /** locks the Environment and flushes the committed transactions to disk;
+     * this is the worker function for the background thread
+     */
+    ham_status_t flush_committed_txns();
+
     /** get the mutex */
     Mutex &get_mutex() {
         return (m_mutex);
     }
+
+    /** worker function for the background thread */
+    void async_flush_thread();
+
+    /** signal a commit of a transaction; this will either start
+     * the worker thread or immediately flush to disk
+     */
+    ham_status_t signal_commit();
+
+    /** async background flusher */
+    // TODO make this private
+    boost::thread *m_async_thread;
+    boost::condition m_async_cond;
+    Mutex m_async_mutex;
+
+    /** ask async thread to exit */
+    // TODO make this private
+    bool m_exit_async;
 
   private:
     /** a mutex for this Environment */
@@ -745,12 +768,6 @@ env_append_txn(Environment *env, Transaction *txn);
  */
 extern void
 env_remove_txn(Environment *env, Transaction *txn);
-
-/*
- * flush all committed Transactions to disk
- */
-extern ham_status_t
-env_flush_committed_txns(Environment *env);
 
 /*
  * increments the lsn and returns the incremended value; if the lsn

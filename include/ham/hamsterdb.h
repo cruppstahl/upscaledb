@@ -331,79 +331,79 @@ typedef struct {
  */
 
 /** Operation completed successfully */
-#define HAM_SUCCESS          (  0)
+#define HAM_SUCCESS                     (  0)
 /** Invalid key size */
-#define HAM_INV_KEYSIZE        ( -3)
+#define HAM_INV_KEYSIZE                 ( -3)
 /** Invalid page size (must be 1024 or a multiple of 2048) */
-#define HAM_INV_PAGESIZE       ( -4)
+#define HAM_INV_PAGESIZE                ( -4)
 /** Memory allocation failed - out of memory */
-#define HAM_OUT_OF_MEMORY      ( -6)
+#define HAM_OUT_OF_MEMORY               ( -6)
 /** Object not initialized */
-#define HAM_NOT_INITIALIZED      ( -7)
+#define HAM_NOT_INITIALIZED             ( -7)
 /** Invalid function parameter */
-#define HAM_INV_PARAMETER      ( -8)
+#define HAM_INV_PARAMETER               ( -8)
 /** Invalid file header */
-#define HAM_INV_FILE_HEADER      ( -9)
+#define HAM_INV_FILE_HEADER             ( -9)
 /** Invalid file version */
-#define HAM_INV_FILE_VERSION     (-10)
+#define HAM_INV_FILE_VERSION            (-10)
 /** Key was not found */
-#define HAM_KEY_NOT_FOUND      (-11)
+#define HAM_KEY_NOT_FOUND               (-11)
 /** Tried to insert a key which already exists */
-#define HAM_DUPLICATE_KEY      (-12)
+#define HAM_DUPLICATE_KEY               (-12)
 /** Internal Database integrity violated */
-#define HAM_INTEGRITY_VIOLATED     (-13)
+#define HAM_INTEGRITY_VIOLATED          (-13)
 /** Internal hamsterdb error */
-#define HAM_INTERNAL_ERROR       (-14)
+#define HAM_INTERNAL_ERROR              (-14)
 /** Tried to modify the Database, but the file was opened as read-only */
-#define HAM_DB_READ_ONLY       (-15)
+#define HAM_DB_READ_ONLY                (-15)
 /** Database record not found */
-#define HAM_BLOB_NOT_FOUND       (-16)
+#define HAM_BLOB_NOT_FOUND              (-16)
 /** Prefix comparison function needs more data */
-#define HAM_PREFIX_REQUEST_FULLKEY   (-17)
+#define HAM_PREFIX_REQUEST_FULLKEY      (-17)
 /** Generic file I/O error */
-#define HAM_IO_ERROR         (-18)
+#define HAM_IO_ERROR                    (-18)
 /** Database cache is full */
-#define HAM_CACHE_FULL         (-19)
+#define HAM_CACHE_FULL                  (-19)
 /** Function is not yet implemented */
-#define HAM_NOT_IMPLEMENTED      (-20)
+#define HAM_NOT_IMPLEMENTED             (-20)
 /** File not found */
-#define HAM_FILE_NOT_FOUND       (-21)
+#define HAM_FILE_NOT_FOUND              (-21)
 /** Operation would block */
-#define HAM_WOULD_BLOCK        (-22)
+#define HAM_WOULD_BLOCK                 (-22)
 /** Object was not initialized correctly */
-#define HAM_NOT_READY        (-23)
+#define HAM_NOT_READY                   (-23)
 /** Database limits reached */
-#define HAM_LIMITS_REACHED       (-24)
+#define HAM_LIMITS_REACHED              (-24)
 /** AES encryption key is wrong */
-#define HAM_ACCESS_DENIED      (-25)
+#define HAM_ACCESS_DENIED               (-25)
 /** Object was already initialized */
-#define HAM_ALREADY_INITIALIZED    (-27)
+#define HAM_ALREADY_INITIALIZED         (-27)
 /** Database needs recovery */
-#define HAM_NEED_RECOVERY      (-28)
+#define HAM_NEED_RECOVERY               (-28)
 /** Cursor must be closed prior to Transaction abort/commit */
-#define HAM_CURSOR_STILL_OPEN    (-29)
+#define HAM_CURSOR_STILL_OPEN           (-29)
 /** Record filter or file filter not found */
-#define HAM_FILTER_NOT_FOUND     (-30)
+#define HAM_FILTER_NOT_FOUND            (-30)
 /** Operation conflicts with another Transaction */
-#define HAM_TXN_CONFLICT       (-31)
+#define HAM_TXN_CONFLICT                (-31)
 /* internal use: key was erased in a Transaction */
-#define HAM_KEY_ERASED_IN_TXN    (-32)
+#define HAM_KEY_ERASED_IN_TXN           (-32)
 /** Database cannot be closed because it is modified in a Transaction */
-#define HAM_TXN_STILL_OPEN       (-33)
+#define HAM_TXN_STILL_OPEN              (-33)
 /** Cursor does not point to a valid item */
-#define HAM_CURSOR_IS_NIL       (-100)
+#define HAM_CURSOR_IS_NIL               (-100)
 /** Database not found */
-#define HAM_DATABASE_NOT_FOUND    (-200)
+#define HAM_DATABASE_NOT_FOUND          (-200)
 /** Database name already exists */
-#define HAM_DATABASE_ALREADY_EXISTS (-201)
+#define HAM_DATABASE_ALREADY_EXISTS     (-201)
 /** Database already open, or: Database handle is already initialized */
-#define HAM_DATABASE_ALREADY_OPEN   (-202)
+#define HAM_DATABASE_ALREADY_OPEN       (-202)
 /** Environment already open, or: Environment handle is already initialized */
-#define HAM_ENVIRONMENT_ALREADY_OPEN   (-203)
+#define HAM_ENVIRONMENT_ALREADY_OPEN    (-203)
 /** Invalid log file header */
-#define HAM_LOG_INV_FILE_HEADER   (-300)
+#define HAM_LOG_INV_FILE_HEADER         (-300)
 /** Remote I/O error/Network error */
-#define HAM_NETWORK_ERROR       (-400)
+#define HAM_NETWORK_ERROR               (-400)
 
 /**
  * @}
@@ -595,10 +595,10 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Database. 
- *      <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *      but with certain limitations. Please read the README file 
- *      for details.<br>
  *      This flag implies @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_DISABLE_ASYNCHRONOUS_FLUSH</li> Disable asynchronous
+ *      flush of committed Transactions. Enabled by default. Only
+ *      if Transactions are enabled.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -717,11 +717,10 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database. 
- *      <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *      but with certain limitations (which will be removed in later
- *      version). Please read the README file and the Release Notes
- *      for details.<br>
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
+ *     <li>@ref HAM_DISABLE_ASYNCHRONOUS_FLUSH</li> Disable asynchronous
+ *      flush of committed Transactions. Enabled by default. Only
+ *      if Transactions are enabled.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
@@ -1338,10 +1337,6 @@ ham_create(ham_db_t *db, const char *filename,
  *      and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database. 
- *      <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *      but with certain limitations (which will be removed in later
- *      version). Please read the README file and the Release Notes
- *      for details.<br>
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
  *    </ul>
  *
@@ -1457,9 +1452,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database. 
- *      <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *      but with certain limitations. Please read the README file
- *      for details.<br>
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_SORT_DUPLICATES </li> Sort duplicate keys for this
  *      Database. Only allowed if the Database was created with the flag
@@ -1506,88 +1498,93 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_WRITE_THROUGH              0x00000001
+#define HAM_WRITE_THROUGH                           0x00000001
 
-/* unused                              0x00000002 */
+/* unused                                           0x00000002 */
 
 /** Flag for @ref ham_open, @ref ham_open_ex.
  * This flag is non persistent. */
-#define HAM_READ_ONLY                  0x00000004
+#define HAM_READ_ONLY                               0x00000004
 
-/* unused                              0x00000008 */
+/* unused                                           0x00000008 */
 
 /** Flag for @ref ham_create, @ref ham_create_ex.
  * This flag is persisted in the Database. */
-#define HAM_USE_BTREE                  0x00000010
+#define HAM_USE_BTREE                               0x00000010
 
-/* reserved                            0x00000020 */
-
-/** Flag for @ref ham_create, @ref ham_create_ex.
- * This flag is non persistent. */
-#define HAM_DISABLE_VAR_KEYLEN         0x00000040
+/* reserved                                         0x00000020 */
 
 /** Flag for @ref ham_create, @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_IN_MEMORY_DB               0x00000080
+#define HAM_DISABLE_VAR_KEYLEN                      0x00000040
 
-/* reserved: DB_USE_MMAP (not persistent)    0x00000100 */
+/** Flag for @ref ham_create, @ref ham_create_ex.
+ * This flag is non persistent. */
+#define HAM_IN_MEMORY_DB                            0x00000080
+
+/* reserved: DB_USE_MMAP (not persistent)           0x00000100 */
 
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_DISABLE_MMAP               0x00000200
+#define HAM_DISABLE_MMAP                            0x00000200
 
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_CACHE_STRICT               0x00000400
+#define HAM_CACHE_STRICT                            0x00000400
 
 /** @deprecated Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_DISABLE_FREELIST_FLUSH     0x00000800
+#define HAM_DISABLE_FREELIST_FLUSH                  0x00000800
 
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex */
-#define HAM_LOCK_EXCLUSIVE             0x00001000
+#define HAM_LOCK_EXCLUSIVE                          0x00001000
 
 /** Flag for @ref ham_create, @ref ham_create_ex, @ref ham_env_create_db.
  * This flag is persisted in the Database. */
-#define HAM_RECORD_NUMBER              0x00002000
+#define HAM_RECORD_NUMBER                           0x00002000
 
 /** Flag for @ref ham_create, @ref ham_create_ex.
  * This flag is persisted in the Database. */
-#define HAM_ENABLE_DUPLICATES          0x00004000
+#define HAM_ENABLE_DUPLICATES                       0x00004000
 
 /** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create_ex, 
  * @ref ham_env_open_ex.
  * This flag is non persistent. */
-#define HAM_ENABLE_RECOVERY            0x00008000
+#define HAM_ENABLE_RECOVERY                         0x00008000
 
 /** Flag for @ref ham_open_ex, @ref ham_env_open_ex.
  * This flag is non persistent. */
-#define HAM_AUTO_RECOVERY              0x00010000
+#define HAM_AUTO_RECOVERY                           0x00010000
 
 /** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create_ex, 
  * @ref ham_env_open_ex.
  * This flag is non persistent. */
-#define HAM_ENABLE_TRANSACTIONS        0x00020000
+#define HAM_ENABLE_TRANSACTIONS                     0x00020000
 
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create, 
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_CACHE_UNLIMITED            0x00040000
+#define HAM_CACHE_UNLIMITED                         0x00040000
 
-/* reserved: DB_ENV_IS_PRIVATE (not persistent)    0x00080000 */
+/* reserved: DB_ENV_IS_PRIVATE (not persistent)     0x00080000 */
 
 /** Flag for @ref ham_create, @ref ham_create_ex, @ref ham_env_create_db,
  * @ref ham_open, @ref ham_open_ex, @ref ham_env_open_db
  * This flag is non persistent. */
-#define HAM_SORT_DUPLICATES            0x00100000
+#define HAM_SORT_DUPLICATES                         0x00100000
 
-/* reserved: DB_IS_REMOTE   (not persistent)     0x00200000 */
+/* reserved: DB_IS_REMOTE   (not persistent)        0x00200000 */
 
-/* reserved: DB_DISABLE_AUTO_FLUSH (not persistent)  0x00400000 */
+/* reserved: DB_DISABLE_AUTO_FLUSH (not persistent) 0x00400000 */
+
+/** Flag for @ref ham_create, @ref ham_create_ex,
+ * @ref ham_open, @ref ham_open_ex
+ * This flag is non persistent. */
+#define HAM_DISABLE_ASYNCHRONOUS_FLUSH              0x00800000
 
 /**
  * Returns the last error code
