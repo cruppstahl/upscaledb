@@ -117,10 +117,12 @@ x implementation of hamsterdb should move into namespace ham; otherwise
 
 o flush in background (asynchronously)
     o support several policies: HAM_ASYNC_FLUSH_DISABLE, -ENABLE (default)
-    o if enabled: need a background thread
+    o if enabled: background thread waits for signal; if signal is triggered
+        then it will try to flush
     o whenever a txn is committed and the oldest txn can be flushed:
         signal the thread; it locks the env and flushes a txn (or only
         a part of it)
+    o ham_env_flush: trigger signal, wait till thread finishes
     o extend monster tests
     o do "group commits" make sense? run some tests
     o unlock global mutex after each single btree operation?
