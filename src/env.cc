@@ -58,7 +58,8 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
+  : m_async_thread(0), m_exit_async(false),
+    m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
@@ -248,6 +249,14 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* initialize the cache */
     env->set_cache(new Cache(env, env->get_cachesize()));
+
+    /* disable async flush if transactions are disabled or if it's an
+     * in-memory database */
+    if (flags&HAM_ENABLE_TRANSACTIONS
+            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_IN_MEMORY_DB)) {
+        env->m_async_thread=new boost::thread(boost::bind(&Environment::async_flush_thread, env));
+    }
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -526,6 +535,14 @@ fail_with_fake_cleansing:
         }
     }
 
+    /* disable async flush if transactions are disabled or if it's an
+     * in-memory database */
+    if (flags&HAM_ENABLE_TRANSACTIONS
+            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_IN_MEMORY_DB)) {
+        env->m_async_thread=new boost::thread(boost::bind(&Environment::async_flush_thread, env));
+    }
+
     return (HAM_SUCCESS);
 }
 
@@ -704,6 +721,14 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     Device *device;
     ham_file_filter_t *file_head;
 
+    if (env->m_async_thread) {
+        env->m_exit_async = true;
+        env->signal_commit();
+        env->m_async_thread->join();
+        delete env->m_async_thread;
+        env->m_async_thread = 0;
+    }
+
     /* flush the freelist */
     if (env->get_freelist()) {
         delete env->get_freelist();
@@ -872,6 +897,11 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     /* never flush an in-memory-database */
     if (env->get_flags()&HAM_IN_MEMORY_DB)
         return (0);
+
+    /* flush all committed transactions */
+    st=env->signal_commit();
+    if (st)
+        return (st);
 
     /* flush the open backends */
     db=env->get_databases();
@@ -1523,8 +1553,8 @@ next_op:
     return (0);
 }
 
-ham_status_t
-env_flush_committed_txns(Environment *env)
+static ham_status_t
+env_flush_committed_txns_nolock(Environment *env)
 {
     Transaction *oldest;
 
@@ -1553,6 +1583,36 @@ env_flush_committed_txns(Environment *env)
      * transaction was empty then it may still contain pages */
     env->get_changeset().clear();
 
+    return (0);
+}
+
+ham_status_t
+Environment::flush_committed_txns()
+{
+    ScopedLock lock=ScopedLock(m_mutex);
+
+    return (env_flush_committed_txns_nolock(this));
+}
+
+void
+Environment::async_flush_thread()
+{
+    ScopedLock lock(m_async_mutex);
+
+    while (!m_exit_async) {
+        m_async_cond.wait(lock);
+        flush_committed_txns();
+    }
+}
+
+ham_status_t
+Environment::signal_commit()
+{
+    if (!m_async_thread)
+        return (env_flush_committed_txns_nolock(this));
+
+    //ScopedLock lock(m_async_mutex);
+    m_async_cond.notify_all();
     return (0);
 }
 

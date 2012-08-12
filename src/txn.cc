@@ -370,7 +370,7 @@ txn_commit(Transaction *txn, ham_u32_t flags)
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
     /* now flush all committed Transactions to disk */
-    return (env_flush_committed_txns(env));
+    return (env->signal_commit());
 }
 
 ham_status_t

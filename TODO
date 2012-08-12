@@ -116,15 +116,36 @@ x implementation of hamsterdb should move into namespace ham; otherwise
     Environment etc
 
 o flush in background (asynchronously)
-    o support several policies: HAM_ASYNC_FLUSH_DISABLE, -ENABLE (default)
-    o if enabled: background thread waits for signal; if signal is triggered
-        then it will try to flush
-    o whenever a txn is committed and the oldest txn can be flushed:
-        signal the thread; it locks the env and flushes a txn (or only
-        a part of it)
-    o ham_env_flush: trigger signal, wait till thread finishes
+    x need new flag in header file HAM_DISABLE_ASYNCHRONOUS_FLUSH
+    x if in-memory database: disable async flush
+    x if transactions are disabled: disable async flush
+    x if enabled: create background thread, wait for signal
+    x ham_env_flush: if txn are enabled then try to flush them to disk
+
+    o if disabled: use current code path
+    o if enabled: trigger a signal
+    o if signalled: lock env, flush transactions (same as ham_env_flush)
+===========
+    in tests, the thread is not created and therefore not executed
+    -> move the whole thread into a separate worker class
+    -> have a separate function to do the final flushes and exit the thread
+        attn: env->m_mutex is locked!
+===========
+
+    o verify that the logging/recovery works if we're group committing
+
+    ??? how to deal with an error in the background thread???
+    -> store in Environment, then return in every exported function
+
+    o add tests
+        o if in-memory database: disable async flush
+        o if transactions are disabled: disable async flush
+        o for the correct error propagation
+    o run with valgrind
     o extend monster tests
+
     o do "group commits" make sense? run some tests
+        o but ham_env_flush and database::close must commit ALL
     o unlock global mutex after each single btree operation?
     o how to improve performance when flushing? use database cursors?
 
