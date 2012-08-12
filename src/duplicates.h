@@ -20,6 +20,7 @@
 #include "internal_fwd_decl.h"
 #include "endianswap.h"
 
+namespace ham {
 
 #include "packstart.h"
 
@@ -192,6 +193,7 @@ class DuplicateManager
     /** the Environment which created this BlobManager */   
     Environment *m_env;
 };
-
+ 
+} // namespace ham
 
 #endif /* HAM_DUPLICATES_H__ */

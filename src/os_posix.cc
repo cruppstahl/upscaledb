@@ -32,6 +32,8 @@
 #include "error.h"
 #include "os.h"
 
+namespace ham {
+
 #if 0
 #  define os_log(x)      ham_log(x)
 #else
@@ -499,3 +501,5 @@ os_close(ham_fd_t fd)
 
   return (HAM_SUCCESS);
 }
+
+} // namespace ham

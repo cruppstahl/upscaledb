@@ -26,6 +26,7 @@
 #include "mem.h"
 #include "util.h"
 
+namespace ham {
  
 /**
  * statistics gatherer/hinter:
@@ -1159,3 +1160,4 @@ freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst)
     return 0;
 }
 
+} // namespace ham

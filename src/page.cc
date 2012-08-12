@@ -26,6 +26,7 @@
 #include "os.h"
 #include "page.h"
 
+namespace ham {
 
 int Page::sizeof_persistent_header=(OFFSETOF(PageData, _s._payload));
 
@@ -135,3 +136,4 @@ Page::uncouple_all_cursors(ham_size_t start)
   return (HAM_SUCCESS);
 }
 
+} // namespace ham

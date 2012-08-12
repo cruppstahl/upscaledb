@@ -541,7 +541,7 @@ public:
      * debugger instead.
      */
     virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, 
-            bfc_state_t state, error &ex)
+            bfc_state_t state, bfc::error &ex)
     {
         if (me->catch_exceptions() || me->catch_coredumps())
         {
@@ -552,7 +552,7 @@ public:
             }
             catch (ham::error &e)
             {
-                ex = error(__FILE__, __LINE__, get_name(), funcname, 
+                ex = bfc::error(__FILE__, __LINE__, get_name(), funcname, 
                     "HAM C++ exception occurred within the "
                     "Function-Under-Test (%s); error code %d: %s", 
                     funcname, (int)e.get_errno(), e.get_string());

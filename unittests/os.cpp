@@ -20,6 +20,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 #if WIN32
 #   include <windows.h>

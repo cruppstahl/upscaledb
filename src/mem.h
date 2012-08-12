@@ -19,6 +19,8 @@
 
 #include <string.h>
 
+namespace ham {
+
 #if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
 #  undef alloc
 #  undef free
@@ -65,5 +67,6 @@ class Allocator
     static Allocator *create();
 };
 
+} // namespace ham
 
 #endif /* HAM_MEM_H__ */

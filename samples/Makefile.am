@@ -1,7 +1,7 @@
 
 INCLUDES		= -I$(top_builddir)/include
 
-noinst_PROGRAMS	= db1 db2 db3 db4 db5 db6 env1 env2 env3 artem
+noinst_PROGRAMS	= db1 db2 db3 db4 db5 db6 env1 env2 env3
 
 noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3
 
@@ -11,9 +11,6 @@ noinst_PROGRAMS += server1 client1
 noinst_BIN      += server1 client1
 endif
 endif
-
-artem_SOURCES  	= artem.cpp
-artem_LDADD    	= $(top_builddir)/src/libhamsterdb.la
 
 db1_SOURCES  	= db1.c
 db1_LDADD    	= $(top_builddir)/src/libhamsterdb.la

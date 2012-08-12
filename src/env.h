@@ -31,6 +31,17 @@
 #include "duplicates.h"
 
 /**
+ * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_env_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_env_t {
+    int dummy;
+};
+
+namespace ham {
+
+/**
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
  * to this size. 
  *
@@ -101,15 +112,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 #define envheader_get_version(hdr, i)  ((hdr))->_version[i]
 
-
-/**
- * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
- * opaque C structure, but internally we use a C++ class. The ham_env_t
- * struct satisfies the C compiler, and internally we just cast the pointers.
- */
-struct ham_env_t {
-    int dummy;
-};
 
 struct db_indexdata_t;
 typedef struct db_indexdata_t db_indexdata_t;
@@ -765,5 +767,6 @@ env_get_incremented_lsn(Environment *env, ham_u64_t *lsn);
 extern ham_status_t
 env_purge_cache(Environment *env);
 
+} // namespace ham
 
 #endif /* HAM_ENV_H__ */

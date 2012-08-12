@@ -85,6 +85,17 @@
 #include "env.h"
 #include "db.h"
 
+/**
+ * a helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_cursor_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_cursor_t
+{
+    bool _dummy;
+};
+
+namespace ham {
 
 /**
  * A single line in the dupecache structure - can reference a btree
@@ -206,16 +217,6 @@ class DupeCache {
 
 };
 
-
-/**
- * a helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
- * opaque C structure, but internally we use a C++ class. The ham_cursor_t
- * struct satisfies the C compiler, and internally we just cast the pointers.
- */
-struct ham_cursor_t
-{
-    bool _dummy;
-};
 
 /**
  * the Database Cursor
@@ -614,5 +615,6 @@ class Cursor
     bool m_is_first_use;
 };
 
+} // namespace ham
 
 #endif /* HAM_CURSORS_H__ */

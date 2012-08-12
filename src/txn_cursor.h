@@ -30,6 +30,7 @@
 #include "internal_fwd_decl.h"
 #include "txn.h"
 
+namespace ham {
 
 /*
  * An cursor which can iterate over Transaction nodes
@@ -206,5 +207,6 @@ txn_cursor_get_record_size(txn_cursor_t *cursor, ham_offset_t *psize);
 extern ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor);
 
+} // namespace ham
 
 #endif /* HAM_TXN_CURSOR_H__ */

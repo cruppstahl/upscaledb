@@ -22,11 +22,11 @@
 #include "internal_fwd_decl.h"
 #include "env.h"
 
+namespace ham {
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
 #define CACHE_BUCKET_SIZE    10317
-
 
 /**
  * the cache manager
@@ -304,5 +304,7 @@ class Cache
     /** the buckets - a linked list of Page pointers */
     std::vector<Page *> m_buckets;
 };
+
+} // namespace ham
 
 #endif /* HAM_CACHE_H__ */

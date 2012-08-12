@@ -31,6 +31,8 @@
 #include "btree_stats.h"
 #include "util.h"
 
+namespace ham {
+
 /*
  *  TODO statistics gatherer/hinter:
  *
@@ -1327,3 +1329,4 @@ btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
     return st;
 }
 
+} // namespace ham

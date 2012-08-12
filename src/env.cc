@@ -37,6 +37,19 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
+/* 
+ * forward decl - implemented in hamsterdb.cc
+ */
+extern ham_status_t 
+__check_create_parameters(Environment *env, Database *db, const char *filename, 
+        ham_u32_t *pflags, const ham_parameter_t *param, 
+        ham_size_t *ppagesize, ham_u16_t *pkeysize, 
+        ham_u64_t *pcachesize, ham_u16_t *pdbname,
+        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, 
+        std::string &logdir, bool create);
+
+namespace ham {
+
 typedef struct free_cb_context_t
 {
     Database *db;
@@ -123,17 +136,6 @@ Environment::get_freelist_payload()
     return ((FreelistPayload *)(get_header_page()->get_payload()+
                         SIZEOF_FULL_HEADER(this)));
 }
-
-/* 
- * forward decl - implemented in hamsterdb.cc
- */
-extern ham_status_t 
-__check_create_parameters(Environment *env, Database *db, const char *filename, 
-        ham_u32_t *pflags, const ham_parameter_t *param, 
-        ham_size_t *ppagesize, ham_u16_t *pkeysize, 
-        ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, 
-        std::string &logdir, bool create);
 
 /*
  * callback function for freeing blobs of an in-memory-database, implemented 
@@ -226,7 +228,7 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* create a logfile and a journal (if requested) */
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        Log *log=new Log(env);
+        ham::Log *log=new ham::Log(env);
         st=log->create();
         if (st) { 
             delete log;
@@ -1601,3 +1603,5 @@ env_purge_cache(Environment *env)
     return (cache->purge(purge_callback,
                 (env->get_flags()&HAM_CACHE_STRICT) != 0));
 }
+
+} // namespace ham

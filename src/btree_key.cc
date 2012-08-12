@@ -24,6 +24,7 @@
 #include "mem.h"
 #include "page.h"
 
+namespace ham {
 
 ham_status_t
 key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page, 
@@ -310,3 +311,4 @@ key_set_extended_rid(Database *db, btree_key_t *key, ham_offset_t rid)
             &rid, sizeof(rid));
 }
 
+} // namespace ham

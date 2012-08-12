@@ -19,6 +19,7 @@
 
 #include "internal_fwd_decl.h"
 
+namespace ham {
 
 #include "packstart.h"
 
@@ -177,5 +178,6 @@ extern ham_status_t
 key_erase_record(Database *db, Transaction *txn, btree_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
+} // namespace ham
 
 #endif /* HAM_KEY_H__ */

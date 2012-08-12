@@ -25,6 +25,7 @@
 #include "page.h"
 #include "changeset.h"
 
+namespace ham {
 
 Cache::Cache(Environment *env, ham_u64_t capacity_bytes)
   : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0), m_totallist(0),
@@ -72,3 +73,4 @@ Cache::check_integrity()
   return (0);
 }
 
+} // namespace ham

@@ -27,6 +27,8 @@
 #include "txn_cursor.h"
 #include "cursor.h"
 
+namespace ham {
+
 /* stuff for rb.h */
 #ifndef __ssize_t_defined
 typedef signed ssize_t;
@@ -504,3 +506,4 @@ txn_free(Transaction *txn)
     delete txn;
 }
 
+} // namespace ham

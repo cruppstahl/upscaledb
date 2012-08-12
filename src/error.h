@@ -19,6 +19,7 @@
 
 #include <ham/hamsterdb.h>
 
+namespace ham {
 
 /** function prototypes */
 extern void dbg_lock(void);
@@ -79,5 +80,7 @@ extern void (*ham_test_abort)();
                 dbg_verify_failed(0);                                   \
                 dbg_unlock();                                           \
                }
+
+} // namespace ham
 
 #endif /* HAM_ERROR_H__ */

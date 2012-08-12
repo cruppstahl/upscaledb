@@ -33,6 +33,8 @@
 
 #include "os.h"
 
+namespace ham {
+
 #include "packstart.h"
 
 /**
@@ -213,5 +215,6 @@ class Log
 
 #include "packstop.h"
 
+} // namespace ham
 
 #endif /* HAM_LOG_H__ */

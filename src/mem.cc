@@ -26,6 +26,8 @@
 #include "mem.h"
 #include "txn.h"
 
+namespace ham {
+
 class DefaultAllocator : public Allocator
 {
     struct Lookasides
@@ -142,3 +144,4 @@ Allocator::create()
   return (new DefaultAllocator());
 }
 
+} // namespace ham

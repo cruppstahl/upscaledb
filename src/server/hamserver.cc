@@ -27,7 +27,7 @@
 #include "mem.h"
 #include "env.h"
 
-using namespace ham;
+namespace ham {
 
 /* max. number of open hamsterdb Environments - if you change this, also change
  * MAX_CALLBACKS in 3rdparty/mongoose/mongoose.c! */
@@ -50,22 +50,13 @@ typedef struct srv_handle_t
 } srv_handle_t;
 
 struct env_t {
-  ham_env_t *env;
+  ::ham_env_t *env;
   os_critsec_t cs;
   char *urlname;
   srv_handle_t *handles;
   ham_u32_t handles_ctr;
   ham_u32_t handles_size;
 } env_t;
-
-struct ham_srv_t
-{
-  /* the mongoose context structure */
-  struct mg_context *mg_ctxt;
-
-  /* handlers for each Environment */
-  struct env_t environments[MAX_ENVIRONMENTS];
-};
 
 static ham_u64_t
 __store_handle(struct env_t *envh, void *ptr, int type)
@@ -1372,6 +1363,18 @@ bail:
 
   os_critsec_leave(&env->cs);
 }
+
+} // namespace ham
+
+// global namespace is below
+
+struct ham_srv_t {
+  /* the mongoose context structure */
+  struct mg_context *mg_ctxt;
+
+  /* handlers for each Environment */
+  struct ham::env_t environments[MAX_ENVIRONMENTS];
+};
 
 ham_status_t 
 ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)

@@ -22,6 +22,8 @@
 #include "../endianswap.h"
 #include "messages.pb.h"
 
+using namespace ham;
+
 /** a magic and version indicator for the remote protocol */
 #define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
 

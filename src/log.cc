@@ -27,6 +27,7 @@
 #include "txn.h"
 #include "util.h"
 
+namespace ham {
 
 ham_status_t
 Log::create()
@@ -376,3 +377,4 @@ Log::get_path()
   return (path);
 }
 
+} // namespace ham

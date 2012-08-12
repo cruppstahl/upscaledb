@@ -27,6 +27,8 @@
 #include "mem.h"
 #include "page.h"
 
+namespace ham {
+
 class BtreeCheckAction
 {
   public:
@@ -262,3 +264,5 @@ BtreeBackend::do_check_integrity()
     BtreeCheckAction bta(this);
     return (bta.run());
 }
+
+} // namespace ham

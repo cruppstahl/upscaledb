@@ -28,6 +28,8 @@
 #include "util.h"
 #include "journal.h"
 
+namespace ham {
+
 static ham_size_t 
 __get_aligned_entry_size(ham_size_t s)
 {
@@ -744,3 +746,5 @@ Journal::get_path(int i)
       ham_assert(!"invalid index");
     return (path);
 }
+
+} // namespace ham

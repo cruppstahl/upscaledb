@@ -18,6 +18,8 @@
 
 #include "util.h"
 
+namespace ham {
+
 int
 util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 {
@@ -31,3 +33,4 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 #endif
 }
 
+} // namespace ham

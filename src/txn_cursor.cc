@@ -18,6 +18,8 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
+namespace ham {
+
 ham_status_t
 txn_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 txn_cursor_t *cursor, Cursor *parent)
@@ -485,3 +487,4 @@ txn_cursor_erase(txn_cursor_t *cursor)
     return (0);
 }
 
+} // namespace ham
