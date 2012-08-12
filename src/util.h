@@ -23,6 +23,8 @@
 
 #include "mem.h"
 
+namespace ham {
+
 class ByteArray
 {
   public:
@@ -92,5 +94,6 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #define util_snprintf snprintf
 #endif
 
+} // namespace ham
 
 #endif /* HAM_UTIL_H__ */

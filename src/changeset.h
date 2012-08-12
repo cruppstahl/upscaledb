@@ -28,6 +28,7 @@
 #include "errorinducer.h"
 #include "page.h"
 
+namespace ham {
 
 /**
  * The changeset class
@@ -119,5 +120,7 @@ class Changeset
     /* an error inducer */
     ErrorInducer *m_inducer;
 };
+
+} // namespace ham
 
 #endif /* HAM_CHANGESET_H__ */

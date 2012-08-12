@@ -25,6 +25,8 @@
 #include "error.h"
 #include "mem.h"
 
+namespace ham {
+
 #include "packstart.h"
 
 /*
@@ -375,5 +377,6 @@ class Page {
     PageData *m_pers;
 };
 
+} // namespace ham
 
 #endif /* HAM_PAGE_H__ */

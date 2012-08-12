@@ -28,6 +28,7 @@
 
 #ifdef __cplusplus
 extern "C" {
+namespace ham {
 #endif 
 
 struct ham_statistics_t;
@@ -536,6 +537,7 @@ ham_clean_statistics_datarec(ham_statistics_t *stats);
 
 
 #ifdef __cplusplus
+} // namespace ham
 } // extern "C"
 #endif 
 

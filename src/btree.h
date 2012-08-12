@@ -27,6 +27,8 @@
 #include "db.h"
 #include "util.h"
 
+namespace ham {
+
 /** a macro for getting the minimum number of keys */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
 
@@ -369,5 +371,6 @@ extern ham_status_t
 btree_copy_key_int2pub(Database *db, const btree_key_t *source, 
         ham_key_t *dest);
 
+} // namespace ham
 
 #endif /* HAM_BTREE_H__ */

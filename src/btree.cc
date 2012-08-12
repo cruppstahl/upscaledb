@@ -29,6 +29,7 @@
 #include "txn.h"
 #include "cursor.h"
 
+namespace ham {
 
 /**
  * perform a binary search for the *smallest* element, which is >= the
@@ -899,3 +900,4 @@ btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
     return (HAM_SUCCESS);
 }
 
+} // namespace ham

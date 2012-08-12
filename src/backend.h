@@ -19,6 +19,8 @@
 
 #include "internal_fwd_decl.h"
 
+namespace ham {
+
 /**
 * @defgroup ham_cb_status hamsterdb Backend Node/Page Enumerator Status Codes
 * @{
@@ -327,6 +329,8 @@ class Backend
     /** the persistent flags of this backend index */
     ham_u32_t m_flags;
 };
+
+} // namespace ham
 
 #endif /* HAM_BACKEND_H__ */
 

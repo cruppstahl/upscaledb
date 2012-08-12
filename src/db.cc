@@ -38,6 +38,7 @@
 #include "txn_cursor.h"
 #include "version.h"
 
+namespace ham {
 
 #define PURGE_THRESHOLD       (500 * 1024 * 1024) /* 500 mb */
 #define DUMMY_LSN                               1
@@ -2911,3 +2912,4 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     return (st2);
 }
 
+} // namespace ham

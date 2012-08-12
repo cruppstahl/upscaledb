@@ -111,7 +111,7 @@ x remove the mutex code - for now we leave it as is
     x freelist
     x backend
 
-o implementation of hamsterdb should move into namespace ham; otherwise
+x implementation of hamsterdb should move into namespace ham; otherwise
     there are conflicts if users have a C++ class called Database or
     Environment etc
 
@@ -201,6 +201,9 @@ o continue with refacoring - indention, coding style, ...
         o i.e. for de-coupling btree from db and env
 
     o unittests
+        o code formatting
+        o reduce bfc to a single header file, or use boost unittest framework
+            http://www.boost.org/doc/libs/1_35_0/libs/test/doc/components/utf/index.html
 
     o get rid of ham_bool_t, replace with bool whenever possible
 

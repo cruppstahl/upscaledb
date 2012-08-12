@@ -18,6 +18,8 @@
 #include <ham/hamsterdb.h>
 #include "error.h"
 
+using namespace ham;
+
 class ErrorInducer
 {
   struct State {

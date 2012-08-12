@@ -33,6 +33,8 @@
 
 using namespace bfc;
 
+namespace ham {
+
 struct LogEntry
 {
     LogEntry()
@@ -1066,6 +1068,7 @@ public:
 
 };
 
+} // namespace ham
 
 BFC_REGISTER_FIXTURE(JournalTest);
 

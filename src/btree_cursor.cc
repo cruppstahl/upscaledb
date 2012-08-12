@@ -31,6 +31,8 @@
 #include "util.h"
 #include "cursor.h"
 
+namespace ham {
+
 static ham_status_t
 btree_cursor_couple(btree_cursor_t *c)
 {
@@ -998,3 +1000,4 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
     return (0);
 }
 
+} // namespace ham

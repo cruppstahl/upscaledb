@@ -21,6 +21,7 @@
 
 #include <ham/hamsterdb_stats.h>
 
+namespace ham {
 
 #include "packstart.h"
 
@@ -298,5 +299,6 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst);
 extern ham_status_t
 freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst);
 
+} // namespace ham
 
 #endif /* HAM_FREELIST_H__ */

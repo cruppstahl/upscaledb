@@ -35,6 +35,7 @@
 #include "util.h"
 #include "cursor.h"
 
+namespace ham {
 
 /*
  * the erase_scratchpad_t structure helps us to propagate return values
@@ -1467,3 +1468,5 @@ BtreeBackend::cursor_erase_fasttrack(Transaction *txn,
                 btree_cursor_get_coupled_index(cursor), 
                 &scratchpad, 0));
 }
+
+} // namespace ham

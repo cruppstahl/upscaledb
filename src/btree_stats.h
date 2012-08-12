@@ -18,6 +18,7 @@
 
 #include "internal_fwd_decl.h"
 
+namespace ham {
 
 /**
  * get a reference to the statistics data of the given operation 
@@ -207,5 +208,6 @@ extern ham_status_t
 btree_stats_fill_ham_statistics_t(Environment *env, Database *db, 
                     ham_statistics_t *dst);
 
+} // namespace ham
 
 #endif /* HAM_FREELIST_H__ */

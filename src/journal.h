@@ -25,9 +25,9 @@
 #include "mem.h"
 #include "env.h"
 #include "os.h"
-
-
 #include "journal_entries.h"
+
+namespace ham {
 
 #include "packstart.h"
 
@@ -251,5 +251,6 @@ class Journal
 
 #include "packstop.h"
 
+} // namespace ham
 
 #endif /* HAM_JOURNAL_H__ */

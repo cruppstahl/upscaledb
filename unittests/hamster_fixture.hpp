@@ -15,7 +15,6 @@
 #include "bfc-testsuite.hpp"
 #include <ham/hamsterdb.h>
 
-
 /*
  * While this is a hamsterdb specific extension of the BFC fixture class, 
  * park it in the BFC namespace nevertheless.

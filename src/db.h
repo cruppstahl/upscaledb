@@ -31,6 +31,17 @@
 #include "mem.h"
 
 /**
+ * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_db_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_db_t {
+    int dummy;
+};
+
+namespace ham {
+
+/**
  * a macro to cast pointers to u64 and vice versa to avoid compiler
  * warnings if the sizes of ptr and u64 are not equal
  */
@@ -123,6 +134,7 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 
 #define index_clear_reserved(p)           { (p)->_reserved1=0;            \
                                             (p)->_reserved2=0; }
+class Database;
 
 /** 
  * This helper class provides the actual implementation of the 
@@ -131,7 +143,7 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 class DatabaseImplementation
 {
   public:
-    DatabaseImplementation(Database *db) 
+    DatabaseImplementation(ham::Database *db) 
       : m_db(db) {
     }
 
@@ -200,7 +212,7 @@ class DatabaseImplementation
     virtual ham_status_t close(ham_u32_t flags) = 0;
 
   protected:
-    Database *m_db;
+    ham::Database *m_db;
 };
 
 /** 
@@ -351,15 +363,6 @@ class DatabaseImplementationRemote : public DatabaseImplementation
 
 
 /**
- * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
- * opaque C structure, but internally we use a C++ class. The ham_db_t
- * struct satisfies the C compiler, and internally we just cast the pointers.
- */
-struct ham_db_t {
-    int dummy;
-};
-
-/**
  * The Database object
  */
 class Database
@@ -372,7 +375,7 @@ class Database
     ~Database();
 
     /** initialize the database for local use */
-    ham_status_t initialize_local(void) {
+    ham_status_t initialize_local() {
         if (m_impl)
             delete m_impl;
         m_impl=new DatabaseImplementationLocal(this);
@@ -621,7 +624,7 @@ class Database
         /* need prefix compare? if no key is extended we can just call the
          * normal compare function */
         if (!(lhs->_flags&KEY_IS_EXTENDED) && !(rhs->_flags&KEY_IS_EXTENDED)) {
-            return (foo((ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
+            return (foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
                             (ham_u8_t *)rhs->data, rhs->size));
         }
     
@@ -637,7 +640,7 @@ class Database
             else
                 rhsprefixlen=rhs->size;
     
-            cmp=prefoo((ham_db_t *)this, 
+            cmp=prefoo((::ham_db_t *)this, 
                         (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size, 
                         (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
             if (cmp<-1 && cmp!=HAM_PREFIX_REQUEST_FULLKEY)
@@ -664,7 +667,7 @@ class Database
             }
 
             /* 3. run the comparison function */
-            cmp=foo((ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
+            cmp=foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size, 
                             (ham_u8_t *)rhs->data, rhs->size);
         }
         return (cmp);
@@ -1020,5 +1023,6 @@ extern ham_status_t
 db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
                 struct txn_cursor_t *cursor);
 
+} // namespace ham
 
 #endif /* HAM_DB_H__ */

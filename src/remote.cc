@@ -28,6 +28,8 @@
 
 #include "protocol/protocol.h"
 
+namespace ham {
+
 typedef struct curl_buffer_t
 {
   ham_size_t packed_size;
@@ -1377,6 +1379,8 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
   delete reply;
   return (st);
 }
+
+} // namespace ham
 
 #endif // HAM_ENABLE_REMOTE
 

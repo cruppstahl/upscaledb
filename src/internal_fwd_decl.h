@@ -35,6 +35,8 @@
 
 #include "config.h"
 
+namespace ham {
+
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 class Allocator;
@@ -100,6 +102,8 @@ typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
 
+} // namespace ham
+
 #include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -120,7 +124,6 @@ public:
   void unlock() { Ops::unlock(*this); }
 #endif
 };
-
 
 #endif
 

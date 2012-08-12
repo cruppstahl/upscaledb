@@ -23,6 +23,8 @@
 #include "mem.h"
 #include "db.h"
 
+namespace ham {
+
 class Page;
 class Device;
 class DeviceImplInMemory;
@@ -490,5 +492,6 @@ class Device {
     ham_u32_t m_flags;
 };
 
+} // namespace ham
 
 #endif /* HAM_DEVICE_H__ */

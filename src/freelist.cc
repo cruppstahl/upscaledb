@@ -24,6 +24,8 @@
 #include "btree_stats.h"
 #include "txn.h"
 
+namespace ham {
+
 /**
  * replacement for env->set_dirty(); will call the macro, but also
  * add the header page to the changeset
@@ -3169,3 +3171,4 @@ Freelist::set_bits(FreelistEntry *entry, FreelistPayload *fp,
     return (size_bits);
 }
 
+} // namespace ham
