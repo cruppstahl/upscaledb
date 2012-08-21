@@ -21,6 +21,7 @@
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
+#include "worker.h"
 #include "device.h"
 #include "btree.h"
 #include "mem.h"
@@ -63,7 +64,8 @@ Environment::Environment()
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
-    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this)
+    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this),
+    m_worker_thread(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -255,7 +257,7 @@ _local_fun_create(Environment *env, const char *filename,
     if (flags&HAM_ENABLE_TRANSACTIONS
             && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
             && !(flags&HAM_IN_MEMORY_DB)) {
-        env->m_async_thread=new boost::thread(boost::bind(&Environment::async_flush_thread, env));
+        env->set_worker_thread(new Worker(env));
     }
 
     /* flush the header page - this will write through disk if logging is
@@ -543,6 +545,14 @@ fail_with_fake_cleansing:
         env->m_async_thread=new boost::thread(boost::bind(&Environment::async_flush_thread, env));
     }
 
+    /* disable async flush if transactions are disabled or if it's an
+     * in-memory database */
+    if (flags&HAM_ENABLE_TRANSACTIONS
+            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_IN_MEMORY_DB)) {
+        env->set_worker_thread(new Worker(env));
+    }
+
     return (HAM_SUCCESS);
 }
 
@@ -721,13 +731,8 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     Device *device;
     ham_file_filter_t *file_head;
 
-    if (env->m_async_thread) {
-        env->m_exit_async = true;
-        env->signal_commit();
-        env->m_async_thread->join();
-        delete env->m_async_thread;
-        env->m_async_thread = 0;
-    }
+    /* flush all committed transactions */
+    env->flush_committed_txns(true);
 
     /* flush the freelist */
     if (env->get_freelist()) {
@@ -899,7 +904,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
         return (0);
 
     /* flush all committed transactions */
-    st=env->signal_commit();
+    st=env->flush_committed_txns(true);
     if (st)
         return (st);
 
@@ -1587,32 +1592,22 @@ env_flush_committed_txns_nolock(Environment *env)
 }
 
 ham_status_t
-Environment::flush_committed_txns()
+Environment::flush_committed_txns(bool dontlock)
 {
-    ScopedLock lock=ScopedLock(m_mutex);
+    ScopedLock lock;
+    if (!dontlock)
+        lock=ScopedLock(m_mutex);
 
     return (env_flush_committed_txns_nolock(this));
-}
-
-void
-Environment::async_flush_thread()
-{
-    ScopedLock lock(m_async_mutex);
-
-    while (!m_exit_async) {
-        m_async_cond.wait(lock);
-        flush_committed_txns();
-    }
 }
 
 ham_status_t
 Environment::signal_commit()
 {
-    if (!m_async_thread)
+    if (!m_worker_thread)
         return (env_flush_committed_txns_nolock(this));
 
-    //ScopedLock lock(m_async_mutex);
-    m_async_cond.notify_all();
+    m_worker_thread->signal_commit();
     return (0);
 }
 

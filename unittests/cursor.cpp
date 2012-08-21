@@ -65,8 +65,9 @@ public:
                 ham_env_create(m_env, BFC_OPATH(".test"),
                     HAM_ENABLE_DUPLICATES
                         |HAM_ENABLE_RECOVERY
-                        |HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0,
+                        |HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0664));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
         BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }

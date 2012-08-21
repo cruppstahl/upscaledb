@@ -15,37 +15,7 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-o involve everyone in decisions on the new interface
-  Do you use any of the HAM_HINT_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use any of the HAM_DAM_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use AES encryption?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use zlib compression?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use other file filters/record filters?
-  Do you use any of the functions/structures in hamsterdb_stats.h?
-  Do you use any of the functions/structures in hamsterdb_int.h?
-    TODO @@@ - be more specific
-  Do you use to insert duplicate keys at exact positions (i.e. use one of
-        HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
-        HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
-        or HAM_ONLY_DUPLICATES?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use sorted duplicates?
-    If yes, would it be very problematic if I would remove this functionality?
-
-o clean up interface
-    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
-    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
-    o rename ham_cursor_find_ex to ham_cursor_find
-    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
-    o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
-
-o clean up and refactor the code
+x clean up and refactor the code
     x os.h
     x os_posix.cc
     x os_win32.cc
@@ -115,6 +85,37 @@ x implementation of hamsterdb should move into namespace ham; otherwise
     there are conflicts if users have a C++ class called Database or
     Environment etc
 
+o involve everyone in decisions on the new interface
+  Do you use any of the HAM_HINT_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use any of the HAM_DAM_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use AES encryption?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use zlib compression?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use other file filters/record filters?
+  Do you use any of the functions/structures in hamsterdb_stats.h?
+  Do you use any of the functions/structures in hamsterdb_int.h?
+    TODO @@@ - be more specific
+  Do you use to insert duplicate keys at exact positions (i.e. use one of
+        HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
+        HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
+        or HAM_ONLY_DUPLICATES?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use sorted duplicates?
+    If yes, would it be very problematic if I would remove this functionality?
+
+o clean up interface
+    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
+    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
+    o rename ham_cursor_find_ex to ham_cursor_find
+    o clean up ham_flush, ham_env_flush
+    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+    o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
+        
 o flush in background (asynchronously)
     x need new flag in header file HAM_DISABLE_ASYNCHRONOUS_FLUSH
     x if in-memory database: disable async flush
@@ -122,34 +123,50 @@ o flush in background (asynchronously)
     x if enabled: create background thread, wait for signal
     x ham_env_flush: if txn are enabled then try to flush them to disk
 
-    o if disabled: use current code path
-    o if enabled: trigger a signal
-    o if signalled: lock env, flush transactions (same as ham_env_flush)
-===========
-    in tests, the thread is not created and therefore not executed
-    -> move the whole thread into a separate worker class
-    -> have a separate function to do the final flushes and exit the thread
+    x if disabled: use current code path
+    x if enabled: trigger a signal
+    x if signalled: lock env, flush transactions (same as ham_env_flush)
+    x move the whole thread into a separate worker class
+    x have a separate function to do the final flushes and exit the thread
         attn: env->m_mutex is locked!
-===========
 
-    o verify that the logging/recovery works if we're group committing
+    x check unittests; there are still race conditions, i guess when
+        closing the Environment -> no, but when circumventing the exported
+        ham_* functions (because there's no lock in place)
+        x starting TempTxnCursorTest::cloneUncoupledBtreeCursorTest
+        x starting TempTxnCursorTest::closeCoupledBtreeCursorTest
 
-    ??? how to deal with an error in the background thread???
-    -> store in Environment, then return in every exported function
+    x add tests
+        x if in-memory database: disable async flush
+        x if transactions are disabled: disable async flush
 
-    o add tests
-        o if in-memory database: disable async flush
-        o if transactions are disabled: disable async flush
-        o for the correct error propagation
-    o run with valgrind
+    o how to deal with an error in the background thread???
+        -> store in Environment, then return in every exported function
+        o add unittests
+
     o extend monster tests
+        o with async flush
+        o without async flush
+        o extend performance test
+        o run performance test against master branch
 
     o do "group commits" make sense? run some tests
+        o verify that the logging/recovery works if we're group committing
         o but ham_env_flush and database::close must commit ALL
-    o unlock global mutex after each single btree operation?
+    o unlock global mutex after each single btree operation, to get a higher
+        degree of concurrency? (unless we come from ham_env_flush)
     o how to improve performance when flushing? use database cursors?
 
-o continue with refacoring - indention, coding style, ...
+o see Laurent's email on the mailing list
+    o 30 million keys (with Transactions)
+    o group 2 million inserts into a single Transaction
+    o then commit; the commit requires about 100 seconds
+    -> do profiling on "master" and "v2"!
+
+o rename HAM_INV_PARAMETER to HAM_INVALID_PARAMETER
+o rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
+
+o continue with refacoring - indention, coding style, better design etc...
     x backend.h
 
     o btree.h

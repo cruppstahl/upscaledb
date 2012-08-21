@@ -14,6 +14,7 @@
 
 #include "bfc-testsuite.hpp"
 #include <ham/hamsterdb.h>
+#include <assert.h>
 
 /*
  * While this is a hamsterdb specific extension of the BFC fixture class,
@@ -68,6 +69,7 @@ private:
         std::cout << message << std::endl;
         if (level == HAM_DEBUG_LEVEL_FATAL)
         {
+            assert(!message);
             throw bfc::error(__FILE__, __LINE__, NULL, NULL, "%s", message);
         }
     }

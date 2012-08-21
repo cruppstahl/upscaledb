@@ -21,12 +21,12 @@ goto end
 
 :start
 for %%F in (CursorTest DatabaseTest DatabaseExceptionTest TransactionTest EnvironmentTest) do (
-    echo Compiling %%F.java...
-    "%JDK%\bin\javac" -cp %CP% %%F.java
-    if errorlevel 1 goto error1
-    echo Running %%F:
-    "%JDK%\bin\java" -cp %CP% org.junit.runner.JUnitCore %%F
-    if errorlevel 1 goto error1
+	echo Compiling %%F.java...
+	"%JDK%\bin\javac" -cp %CP% %%F.java
+	if errorlevel 1 goto error1
+	echo Running %%F:
+	"%JDK%\bin\java" -cp %CP% org.junit.runner.JUnitCore %%F
+	if errorlevel 1 goto error1
 )
 
 echo Done! Deleting temporary database files

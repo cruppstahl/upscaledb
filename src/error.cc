@@ -127,9 +127,8 @@ dbg_verify_failed(const char *format, ...)
 
   g_hand(g_level, buffer);
 
-  if (ham_test_abort) {
+  if (ham_test_abort)
     ham_test_abort();
-  }
   else {
 #ifndef HAM_OS_WINCE
     abort();
