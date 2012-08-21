@@ -1,4 +1,4 @@
- 
+
 I Am Legend:
 
 Items are sorted by priority (highest on top).
@@ -15,34 +15,7 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-o involve everyone in decisions on the new interface
-  Do you use any of the HAM_HINT_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use any of the HAM_DAM_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use AES encryption?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use zlib compression?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use to insert duplicate keys at exact positions (i.e. use one of
-        HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
-        HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
-        or HAM_ONLY_DUPLICATES?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use sorted duplicates?
-    If yes, would it be very problematic if I would remove this functionality?
-
-
-o clean up interface
-    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
-    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
-    o rename ham_cursor_find_ex to ham_cursor_find
-    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
-    o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
-        
-o clean up and refactor the code
+x clean up and refactor the code
     x os.h
     x os_posix.cc
     x os_win32.cc
@@ -59,189 +32,237 @@ o clean up and refactor the code
     x endianswap.h
     x mem.cc
     x mem.h
-    o error.cc
+    x error.cc
         fill dbg_lock, dbg_unlock
-    o error.h
+    x error.h
         ham_assert/ham_verify: remove second parameter
-    o hash-table.h
-        replace this with a boost class
-    o cache.cc
-    o cache.h
-    o changeset.cc
-    o changeset.h
-    o device.cc
-    o device.h
-    o journal.cc
-    o journal_entries.h
-        find a decent way to handle endian-dependent structures
-    o journal.h
-    o log.cc
-    o log.h
-        find a decent way to handle endian-dependent structures
-    o page.cc
-    o page.h
-        find a decent way to handle endian-dependent structures
-    o remote.cc
-    o extkeys.h
-    o blob.cc
-    o blob.h
+    x cache.cc
+    x cache.h
+    x changeset.cc
+    x changeset.h
+    x device.cc
+    x device.h
+    x journal.cc
+    x journal.h
+    x journal_entries.h
+    x log.cc
+    x log.h
+    x page.cc
+    x page.h
+    x extkeys.h
+    x hash-table.h
+    x blob.h
+    x blob.cc
+        x use os_writev when writing blob header/body - not possible
+        x move duplicate stuff into btree_dupes.*, refactor
+            replace __duplicate_get_table with BlobManager::read (needs to
+                dynamically resize the buffer)
 
-    o backend.h
+    x protocol - finally get rid of it
+      x Protocol: default constructor should assign type
+
+    x remote.cc
+      x create Protocol objects on the stack whenever possible!
+      x once more check for indention, spaces etc
+    x hamserver.cc
+      x create Protocol objects on the stack whenever possible!
+
+    x include/ham/hamsterdb.h
+    x include/ham/hamsterdb_int.h
+    x include/ham/hamsterdb_stats.h
+
+x remove the mutex code - for now we leave it as is
+    x cache
+    x extkey-cache
+    x log
+    x journal
+    x changeset
+    x device
+    x freelist
+    x backend
+
+x implementation of hamsterdb should move into namespace ham; otherwise
+    there are conflicts if users have a C++ class called Database or
+    Environment etc
+
+o involve everyone in decisions on the new interface
+  Do you use any of the HAM_HINT_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use any of the HAM_DAM_* flags?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use AES encryption?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use zlib compression?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use other file filters/record filters?
+  Do you use any of the functions/structures in hamsterdb_stats.h?
+  Do you use any of the functions/structures in hamsterdb_int.h?
+    TODO @@@ - be more specific
+  Do you use to insert duplicate keys at exact positions (i.e. use one of
+        HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
+        HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
+        or HAM_ONLY_DUPLICATES?
+    If yes, would it be very problematic if I would remove this functionality?
+  Do you use sorted duplicates?
+    If yes, would it be very problematic if I would remove this functionality?
+
+o clean up interface
+    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
+    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
+    o rename ham_cursor_find_ex to ham_cursor_find
+    o clean up ham_flush, ham_env_flush
+    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+    o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
+        
+o flush in background (asynchronously)
+    x need new flag in header file HAM_DISABLE_ASYNCHRONOUS_FLUSH
+    x if in-memory database: disable async flush
+    x if transactions are disabled: disable async flush
+    x if enabled: create background thread, wait for signal
+    x ham_env_flush: if txn are enabled then try to flush them to disk
+
+    x if disabled: use current code path
+    x if enabled: trigger a signal
+    x if signalled: lock env, flush transactions (same as ham_env_flush)
+    x move the whole thread into a separate worker class
+    x have a separate function to do the final flushes and exit the thread
+        attn: env->m_mutex is locked!
+
+    x check unittests; there are still race conditions, i guess when
+        closing the Environment -> no, but when circumventing the exported
+        ham_* functions (because there's no lock in place)
+        x starting TempTxnCursorTest::cloneUncoupledBtreeCursorTest
+        x starting TempTxnCursorTest::closeCoupledBtreeCursorTest
+
+    x add tests
+        x if in-memory database: disable async flush
+        x if transactions are disabled: disable async flush
+
+    o how to deal with an error in the background thread???
+        -> store in Environment, then return in every exported function
+        o add unittests
+
+    o extend monster tests
+        o with async flush
+        o without async flush
+        o extend performance test
+        o run performance test against master branch
+
+    o do "group commits" make sense? run some tests
+        o verify that the logging/recovery works if we're group committing
+        o but ham_env_flush and database::close must commit ALL
+    o unlock global mutex after each single btree operation, to get a higher
+        degree of concurrency? (unless we come from ham_env_flush)
+    o how to improve performance when flushing? use database cursors?
+
+o see Laurent's email on the mailing list
+    o 30 million keys (with Transactions)
+    o group 2 million inserts into a single Transaction
+    o then commit; the commit requires about 100 seconds
+    -> do profiling on "master" and "v2"!
+
+o rename HAM_INV_PARAMETER to HAM_INVALID_PARAMETER
+o rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
+
+o continue with refacoring - indention, coding style, better design etc...
+    x backend.h
+
     o btree.h
-    o btree_key.cc
-    o btree_key.h
-    o btree_stats.cc
-        should use arena for lower/upper bounds
-    o btree_stats.h
     o btree.cc
+        - introduce namespace Btree
+
+    o btree_key.h
+    o btree_key.cc
+        - rewrite into Btree::Key
+        - constructors get "(const) ham_u8_t *" pointer to the key data
+        - provide getters/setters
+
+    o btree_stats.h
+        - remove everything that is not required
+        - namespace Btree::Statistics
+    o btree_stats.cc
+        - should use arena for lower/upper bounds
+
     o btree_check.cc
-    o btree_cursor.cc
-    o btree_cursor.h
+        - improve BtreeCheckAction; use it as template for enum, find, etc
+
     o btree_enum.cc
-    o btree_erase.cc
+
     o btree_find.cc
     o btree_insert.cc
+    o btree_erase.cc
 
-    o freelist.cc
+    o btree_cursor.cc
+    o btree_cursor.h
+
     o freelist.h
-    o freelist_statistics.cc
+    o freelist.cc
     o freelist_statistics.h
+        o split into env/db/freelist
+        o remove unused code - also from public interface?
+        o protect env and freelist with mutex
+        o in db: assert that the db is locked
+    o freelist_statistics.cc
+        remove everything that is not required
 
     o cursor.cc
     o cursor.h
     o db.cc
-        should use arena for get_extended_key
+        o should use arena for get_extended_key
+        o completely hide the local/remote implementation in the database
+        o move more members from Database to the Implementation classes
+        o improve abstraction
     o db.h
     o env.cc
+        o completely hide the local/remote implementation in the Environment
+        o move more members from Environment to the Implementation classes
+        o improve abstraction
     o env.h
 
     o txn.cc
+        o convert to clean c++ code
+        o avoid single code allocations; use an arena allocator based
+            on a ByteArray
+        use an arena allocator for everything that's stored in a transaction
+        the arena should allocate pages with dynamic sizes; if a page is
+        no longer used it will be stored in a lookaside list
     o txn_cursor.cc
     o txn_cursor.h
     o txn.h
 
     o hamsterdb.cc
-
-    o unittests
-
-
-o more fine-grained locking
-    x cache
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x extkey-cache
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x log
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x journal
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x changeset
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x device
-        x make sure it's perfectly abstracted
-        x protect with mutex
-    x freelist
-        x remove HAM_DAM_ENFORCE_PRE110_FORMAT
-        x remove legacy code (1.x)
-        x remove freelist_v2.cc
-        x freelist class takes ownership of freelist_cache (from device)
-        x what is the difference between alloc_area and alloc_area_ex??
-        x move call to lazy_create into class
-        x create c++ class
-        x rename lazy_create to "initialize"
-        x do not create a freelist when opening in read-only mode
-                or in-memory
-        x freelist functions do not need to check for in-memory!
-        x completely refactor/reformat the code
-        x get rid of static functions in freelist.cc
-        x freelist_entry_t -> Freelist::Entry
-        x freelist_payload_t -> Freelist::Payload
-        x also merge/refactor freelist_statistics.cc
-        x check with valgrind
-        x protect with mutex
-    o backend
-        x replace with C++ class and inheritance
-        x remove be_set_dirty, replace with be->_fun_flush()
-        x btree has keydata1, keydata2 - why? better use DynamicArray?
-        x BtreeBackend does not require to store in little/big-endian!
-        o btree.h declares many static functions - still used?
-        o include the functions in btree_insert.cc, btree_erase.cc etc
-        o improve abstraction
-    o statistics
-        o split into env/db/freelist
-        o remove unused code - also from public interface?
-        o protect env and freelist with mutex
-        o in db: assert that the db is locked
-    o db
-        o completely hide the local/remote implementation in the database
-        o move more members from Database to the Implementation classes
-        o improve abstraction
-        o protect with mutex
-    o env
-        o completely hide the local/remote implementation in the Environment
-        o move more members from Environment to the Implementation classes
-        o improve abstraction
-    o txn
-        o convert to clean c++ code
-        o protect with a mutex
-        o when changing the transaction queue: assert that the env is locked
-    o configuration/env-header-page
-        o create configuration object
-        o protect with mutex
-    o file filters -- why? the filter list is not modified in the selected
-        functions; but it needs to be documented that it has to be
-        threadsafe, therefore verify that the AES filter *is* threadsafe
-        o convert to C++ visitor pattern?
-    o page
-        o do we also need to lock pages?? or are they locked implicitly by
-            adding them to the changeset? if yes then make sure that this is
-            failsafe! and assert that there can be only one changeset at a
-            time
-        o changeset::contains is not thread safe
-            only used in Cache::purge
+    o configuration: move into separate file
     o blob manager
     o introduce a buffer manager?
         o i.e. holds the cache and manages the device
         o i.e. for de-coupling freelist from env
         o i.e. for de-coupling btree from db and env
-	o the pages are only used in the btree (with one exception: header
-            page); should the cache therefore be limited to btree functions?
-            then purge and other stuff can also move to the btree level and
-            everything gets simplified     
 
-    o all other functions/modules: assert that the env-mutex is locked!
+    o unittests
+        o code formatting
+        o reduce bfc to a single header file, or use boost unittest framework
+            http://www.boost.org/doc/libs/1_35_0/libs/test/doc/components/utf/index.html
 
-    o use read/write lock for Environment
-    o introduce a new lock in the Database
-    o the following functions lock the Environment for reading, but the
-        Database for writing:
-        o ham_insert
-        o ham_find
-        o ham_erase
-        o ham_cursor_*
-    o any others?
-    o make sure that the cache does not flush pages that are currently locked
-        by any Transaction
+    o get rid of ham_bool_t, replace with bool whenever possible
+
+o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
 
 o freelist: store the last successful freelist page in the hinter of the
     database
 
-o is the recovery working if there's a crash during ham_close?
+o is there a way to group all changeset flushes of a Transaction into one
+    changeset? that way we would avoid the frequent syncs
+    o would have to remove all of assert(changeset.is_empty())
+    o but we can use that assert prior to txn_begin
 
-o blob_allocate: remove writev when writing header and blob body
+o is the recovery working if there's a crash during ham_close?
 
 o also remove locking from C# and Java APIs
 
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
-
-o implementation of hamsterdb should move into a namespace; otherwise
-    there are conflicts if users have a C++ class called Database or
-    Environment etc
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close
@@ -312,7 +333,7 @@ o new node format:
     records are compressed; will be multiplied by BLOCKSIZE (32)
     each key consists of { char flag; short record_id; char data[1]; }
         where record_id is an offset into rrrrrrrrr
-    keys are sorted lazily (i.e. inserted at the end and only sorted 
+    keys are sorted lazily (i.e. inserted at the end and only sorted
         when flushed to disk or when searched
 
 . android port (needs new java api) in /contrib directory (it's on a separate
@@ -332,7 +353,7 @@ o new node format:
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly
 
-. there are a couple of areas where a btree cursor is uncoupled, just to 
+. there are a couple of areas where a btree cursor is uncoupled, just to
     retrieve the key and to couple the txn-key. that's not efficient
         db.c:__btree_cursor_points_to
         db.c:__compare_cursors
@@ -341,7 +362,7 @@ o new node format:
     o move to a separate function
     o try to optimize
 
-. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
+. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use
     functor or class w/ operator() instead
 . changeset: use a generic hash table for fast lookup (but leave list in place
     for everything else)
@@ -353,15 +374,15 @@ o new node format:
 
 . the whole c++ protocol should be c++-ified
 
-. move the whole configuration (key sizes, parameters, page size, etc) into a 
+. move the whole configuration (key sizes, parameters, page size, etc) into a
     separate class which is instantiated by the env
 
-. c++-ify the btree node representation; 
+. c++-ify the btree node representation;
     o include duplicates as well! disentangle duplicates from blob-handling
 
 . c++-ify the blob handling and split off the duplicates
 
-. cleanup db.h/db.cc - move functions into Database or 
+. cleanup db.h/db.cc - move functions into Database or
     DatabaseImplementationLocal namespace - but take care b/c these functions
     are also used by Cursor or other modules which don't necessarily have
     access to the Local stuff
@@ -384,9 +405,9 @@ XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 . new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
     to the log. the log will only contain the rid.
-    o document this (and also the drawback - that an abort will lose the 
+    o document this (and also the drawback - that an abort will lose the
         blobs and they cannot be reused
-    -> this affects all temporary ham_insert-transactions 
+    -> this affects all temporary ham_insert-transactions
     (not sure if this should get high priority)
 
 o hamsterdb.com
@@ -436,7 +457,7 @@ o when recovering, give users the choice if active transactions should be
 o extkeys: don't use txn_id for the 'age', use lsn instead
 
 o the DatabaseImplementation subclass is not neccessary; all subclasses
-    can directly derive from Database. 
+    can directly derive from Database.
 
 . allow use of transactions without a log/journal
 
@@ -452,7 +473,7 @@ o add concurrency (on a high level)
 
 o flush transactions in background
 
-. have a flag to disable flushing of logfiles/journal files (or flush them 
+. have a flag to disable flushing of logfiles/journal files (or flush them
     async.)
 
 o continue as described in integrate-ham2.txt...

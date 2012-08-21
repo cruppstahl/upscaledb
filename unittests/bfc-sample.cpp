@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -26,7 +26,7 @@ using namespace bfc;
 
 
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
-	&& defined(_DEBUG)
+    && defined(_DEBUG)
 
 _CrtMemState crm_memdbg_state_snapshot1;
 int trigger_memdump = 0;
@@ -37,7 +37,7 @@ int trigger_debugger = 0;
  * We'll hook it into the debug reporting
  * process later using _CrtSetReportHook.
  */
-static int 
+static int
 crm_dbg_report_function(int report_type, char *usermsg, int *retval)
 {
     /*
@@ -72,12 +72,12 @@ crm_dbg_report_function(int report_type, char *usermsg, int *retval)
     case _CRT_ASSERT:
         fwrite(usermsg, 1, strlen(usermsg), stderr);
         fflush(stderr);
-		break;
+        break;
     }
     return TRUE;
 }
 
-static void 
+static void
 crm_report_mem_analysis(void)
 {
     _CrtMemState msNow;
@@ -99,20 +99,20 @@ crm_report_mem_analysis(void)
         /* difference detected: dump objects since start. */
         _RPT0(_CRT_WARN, "============== Detected memory leaks! ====================\n");
 
-	    _CrtMemState diff;
-		if (_CrtMemDifference(&diff, &crm_memdbg_state_snapshot1, &msNow))
-		{
-	        //_CrtMemDumpAllObjectsSince(&crm_memdbg_state_snapshot1);
+        _CrtMemState diff;
+        if (_CrtMemDifference(&diff, &crm_memdbg_state_snapshot1, &msNow))
+        {
+            //_CrtMemDumpAllObjectsSince(&crm_memdbg_state_snapshot1);
 
-			_CrtMemDumpStatistics(&diff);
-		}
+            _CrtMemDumpStatistics(&diff);
+        }
     }
 }
 
 
 #endif
 
-int 
+int
 main(int argc, char **argv)
 {
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
@@ -147,7 +147,7 @@ main(int argc, char **argv)
     // Get the current bits
     int i = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 
-	i |= _CRTDBG_ALLOC_MEM_DF;
+    i |= _CRTDBG_ALLOC_MEM_DF;
 
     // Set the debug-heap flag so that freed blocks are kept on the
     // linked list, to catch any inadvertent use of freed memory
@@ -163,13 +163,13 @@ main(int argc, char **argv)
     i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
 
 #if 0
-	i |= _CRTDBG_CHECK_ALWAYS_DF;
+    i |= _CRTDBG_CHECK_ALWAYS_DF;
 #endif
 
     // Set the new bits
     _CrtSetDbgFlag(i);
 
-      // set a malloc marker we can use it in the leak dump at the end of 
+      // set a malloc marker we can use it in the leak dump at the end of
       // the program:
 //    (void)_calloc_dbg(1, 1, _CLIENT_BLOCK, __FILE__, __LINE__);
 #endif
@@ -177,7 +177,7 @@ main(int argc, char **argv)
     /*
      * when running in visual studio, the working directory is different
      * from the unix/cygwin environment. this can be changed, but the
-     * working directory setting is not stored in the unittests.vcproj file, 
+     * working directory setting is not stored in the unittests.vcproj file,
      * but in unittests.vcproj.<hostname><username>; and this file is not
      * distributed.
      *
@@ -188,95 +188,95 @@ main(int argc, char **argv)
 #if 0 // [i_a] given my own build env, this directory changes as well
     SetCurrentDirectoryA("../unittests"); /* [i_a] */
 #else
-	// .\win32\msvc2008\bin\Win32_MSVC2008.Debug -> .\unittests
+    // .\win32\msvc2008\bin\Win32_MSVC2008.Debug -> .\unittests
     SetCurrentDirectoryA("../../../../unittests"); /* [i_a] */
 #endif
 #endif
 
-	// set up the testrunner rig:
-#if 0 // turn this on (--> #if 01) to assist with debugging testcases: 
+    // set up the testrunner rig:
+#if 0 // turn this on (--> #if 01) to assist with debugging testcases:
     // exceptions, etc. will pass through to your debugger
-	testrunner::get_instance()->catch_coredumps(0);
-	testrunner::get_instance()->catch_exceptions(0);
+    testrunner::get_instance()->catch_coredumps(0);
+    testrunner::get_instance()->catch_exceptions(0);
 #else
-	testrunner::get_instance()->catch_coredumps(0);
-	testrunner::get_instance()->catch_exceptions(1);
+    testrunner::get_instance()->catch_coredumps(0);
+    testrunner::get_instance()->catch_exceptions(1);
 #endif
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64))
-	testrunner::get_instance()->outputdir("m:/");
-	testrunner::get_instance()->inputdir("./");
+    testrunner::get_instance()->outputdir("m:/");
+    testrunner::get_instance()->inputdir("./");
 #endif
 
-	// as we wish to print all collected errors at the very end, we act
-	// as if we don't want the default built-in reporting, hence we MUST
-	// call init_run() here.
-	testrunner::get_instance()->init_run();
-	unsigned int r;
-	if (argc > 1)
-	{
-		std::string lead_fixture;
-		std::string lead_test;
-		bool lead = false;
-		bool inclusive_begin = true;
+    // as we wish to print all collected errors at the very end, we act
+    // as if we don't want the default built-in reporting, hence we MUST
+    // call init_run() here.
+    testrunner::get_instance()->init_run();
+    unsigned int r;
+    if (argc > 1)
+    {
+        std::string lead_fixture;
+        std::string lead_test;
+        bool lead = false;
+        bool inclusive_begin = true;
 
-		r = 0;
-		for (int i = 1; i <= argc; i++)
-		{
-			std::string fixture_name;
-			if (i < argc)
-			{
-				fixture_name = argv[i];
-			}
+        r = 0;
+        for (int i = 1; i <= argc; i++)
+        {
+            std::string fixture_name;
+            if (i < argc)
+            {
+                fixture_name = argv[i];
+            }
 
-			if (fixture_name == "*")
-			{
-				// lead or tail or chain?
-				lead = true;
-			}
-			else
-			{
-				size_t pos = fixture_name.find(':');
-				std::string test_name;
-				if (pos != std::string::npos)
-				{
-					test_name = fixture_name.substr(pos + 1);
-					fixture_name = fixture_name.substr(0, pos);
-					while ((pos = test_name.find(':')) != std::string::npos)
-					{
-						test_name.erase(pos, 1);
-					}
-				}
+            if (fixture_name == "*")
+            {
+                // lead or tail or chain?
+                lead = true;
+            }
+            else
+            {
+                size_t pos = fixture_name.find(':');
+                std::string test_name;
+                if (pos != std::string::npos)
+                {
+                    test_name = fixture_name.substr(pos + 1);
+                    fixture_name = fixture_name.substr(0, pos);
+                    while ((pos = test_name.find(':')) != std::string::npos)
+                    {
+                        test_name.erase(pos, 1);
+                    }
+                }
 
-				if (!lead && (i < argc)
-					&& (i+1 >= argc || std::string(argv[i+1]) != "*"))
-				{
-					// single case:
-					r = testrunner::get_instance()->run(
-							fixture_name.c_str(), test_name.c_str(),
-							false);
-					inclusive_begin = true;
-				}
-				else if (lead)
-				{
-					r = testrunner::get_instance()->run(
-							lead_fixture, lead_test,
-							fixture_name, test_name,
-							inclusive_begin,
-							false);
-					inclusive_begin = false;
-				}
-				lead_fixture = fixture_name;
-				lead_test = test_name;
-				lead = false;
-			}
-		}
-	}
-	else
-	{
-		r = testrunner::get_instance()->run(false);
-	}
-	testrunner::get_instance()->print_errors();
-	testrunner::delete_instance();
+                if (!lead && (i < argc)
+                    && (i+1 >= argc || std::string(argv[i+1]) != "*"))
+                {
+                    // single case:
+                    r = testrunner::get_instance()->run(
+                            fixture_name.c_str(), test_name.c_str(),
+                            false);
+                    inclusive_begin = true;
+                }
+                else if (lead)
+                {
+                    r = testrunner::get_instance()->run(
+                            lead_fixture, lead_test,
+                            fixture_name, test_name,
+                            inclusive_begin,
+                            false);
+                    inclusive_begin = false;
+                }
+                lead_fixture = fixture_name;
+                lead_test = test_name;
+                lead = false;
+            }
+        }
+    }
+    else
+    {
+        r = testrunner::get_instance()->run(false);
+    }
+    testrunner::get_instance()->print_errors();
+    testrunner::delete_instance();
 
     return (r);
 }

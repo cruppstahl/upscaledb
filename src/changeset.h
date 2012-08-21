@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -28,38 +28,37 @@
 #include "errorinducer.h"
 #include "page.h"
 
+namespace ham {
 
 /**
  * The changeset class
  */
-class Changeset 
+class Changeset
 {
   public:
     Changeset()
     : m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
-      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0), 
-      m_indices(0), m_indices_size(0), m_indices_capacity(0), 
+      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0),
+      m_indices(0), m_indices_size(0), m_indices_capacity(0),
       m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
     }
 
     ~Changeset() {
-        ScopedLock lock(m_mutex);
-        if (m_inducer)
-            delete m_inducer;
-        if (m_blobs)
-            ::free(m_blobs);
-        if (m_freelists)
-            ::free(m_freelists);
-        if (m_indices)
-            ::free(m_indices);
-        if (m_others)
-            ::free(m_others);
+      if (m_inducer)
+        delete m_inducer;
+      if (m_blobs)
+        ::free(m_blobs);
+      if (m_freelists)
+        ::free(m_freelists);
+      if (m_indices)
+        ::free(m_indices);
+      if (m_others)
+        ::free(m_others);
     }
 
     /** is the changeset empty? */
     bool is_empty() {
-        ScopedLock lock(m_mutex);
-        return (m_head==0);
+      return (m_head == 0);
     }
 
     /** append a new page to the changeset */
@@ -72,35 +71,25 @@ class Changeset
     Page *get_page(ham_offset_t pageid);
 
     /** removes all pages from the changeset */
-    void clear() {
-        ScopedLock lock(m_mutex);
-        clear_nolock();
-    }
+    void clear();
 
     /**
-     * flush all pages in the changeset - first write them to the log, then 
+     * flush all pages in the changeset - first write them to the log, then
      * write them to the disk
      *
-     * on success: will clear the changeset and the log 
+     * on success: will clear the changeset and the log
      */
     ham_status_t flush(ham_u64_t lsn);
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {
-        ScopedLock lock(m_mutex);
-        return (page->is_in_list(m_head, Page::LIST_CHANGESET));
+      return (page->is_in_list(m_head, Page::LIST_CHANGESET));
     }
 
   private:
-    /** removes all pages from the changeset (w/o mutex) */
-    void clear_nolock();
-
     /* write all pages in a bucket to the log file */
     ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,
                             ham_u64_t lsn, ham_size_t &page_count) ;
-
-    /* a mutex to protect the changeset */
-    Mutex m_mutex;
 
     /* the head of our linked list */
     Page *m_head;
@@ -131,5 +120,7 @@ class Changeset
     /* an error inducer */
     ErrorInducer *m_inducer;
 };
+
+} // namespace ham
 
 #endif /* HAM_CHANGESET_H__ */

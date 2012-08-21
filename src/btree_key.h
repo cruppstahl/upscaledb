@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -19,14 +19,15 @@
 
 #include "internal_fwd_decl.h"
 
+namespace ham {
 
 #include "packstart.h"
 
 /**
  * the internal representation of a key
  *
- * Note: the names of the fields have changed in 1.1.0 to ensure the compiler 
- * barfs on misuse of some macros, e.g. key_get_flags(): here flags are 8-bit, 
+ * Note: the names of the fields have changed in 1.1.0 to ensure the compiler
+ * barfs on misuse of some macros, e.g. key_get_flags(): here flags are 8-bit,
  * while ham_key_t flags are 32-bit!
  */
 HAM_PACK_0 struct HAM_PACK_1 btree_key_t
@@ -53,7 +54,7 @@ HAM_PACK_0 struct HAM_PACK_1 btree_key_t
 
 /**
  * get the pointer of an btree-entry
- * 
+ *
  * !!!
  * if TINY or SMALL is set, the key is actually a char*-pointer;
  * in this case, we must not use endian-conversion!
@@ -102,20 +103,20 @@ key_set_extended_rid(Database *db, btree_key_t *key, ham_offset_t rid);
 
 /**
  * set the flags of a key
- * 
- * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be 
- * defined such that those can peacefully co-exist with these; that's why 
+ *
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
+ * defined such that those can peacefully co-exist with these; that's why
  * those public flags start at the value 0x1000 (4096).
  */
 #define key_set_flags(bte, f)      (bte)->_flags8=(f)
 
 /**
- * persisted btree_key_t flags; also used with ham_key_t._flags 
- * 
- * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 
+ * persisted btree_key_t flags; also used with ham_key_t._flags
+ *
+ * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
  *  0x000000FF
  */
-#define KEY_BLOB_SIZE_TINY           0x01  /* size < 8; len encoded at 
+#define KEY_BLOB_SIZE_TINY           0x01  /* size < 8; len encoded at
                                             * byte[7] of key->ptr */
 #define KEY_BLOB_SIZE_SMALL          0x02  /* size == 8; encoded in key->ptr */
 #define KEY_BLOB_SIZE_EMPTY          0x04  /* size == 0; key->ptr == 0 */
@@ -129,11 +130,11 @@ key_set_extended_rid(Database *db, btree_key_t *key, ham_offset_t rid);
 /** set the key data */
 #define key_set_key(bte, ptr, len)      memcpy(bte->_key, ptr, len)
 
-/* 
+/*
  * flags used with the ham_key_t INTERNAL USE field _flags.
- * 
+ *
  * Note: these flags should NOT overlap with the persisted flags for btree_key_t
- * 
+ *
  * As these flags NEVER will be persisted, they should be located outside
  * the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
  */
@@ -147,25 +148,25 @@ key_set_extended_rid(Database *db, btree_key_t *key, ham_offset_t rid);
  * @return the blob-id of this key in @a rid_ref
  */
 extern ham_status_t
-key_insert_extended(ham_offset_t *rid_ref, Database *db, 
+key_insert_extended(ham_offset_t *rid_ref, Database *db,
                 Page *page, ham_key_t *key);
 
 /**
  * inserts and sets a record
  *
- * flags can be 
+ * flags can be
  * - HAM_OVERWRITE
  * - HAM_DUPLICATE_INSERT_BEFORE
  * - HAM_DUPLICATE_INSERT_AFTER
  * - HAM_DUPLICATE_INSERT_FIRST
- * - HAM_DUPLICATE_INSERT_LAST 
+ * - HAM_DUPLICATE_INSERT_LAST
  * - HAM_DUPLICATE
  *
  * a previously existing blob will be deleted if necessary
  */
 extern ham_status_t
-key_set_record(Database *db, Transaction *txn, btree_key_t *key, 
-        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+key_set_record(Database *db, Transaction *txn, btree_key_t *key,
+        ham_record_t *record, ham_size_t position, ham_u32_t flags,
         ham_size_t *new_position);
 
 /*
@@ -174,8 +175,9 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
  * flag can be HAM_ERASE_ALL_DUPLICATES
  */
 extern ham_status_t
-key_erase_record(Database *db, Transaction *txn, btree_key_t *key, 
+key_erase_record(Database *db, Transaction *txn, btree_key_t *key,
                 ham_size_t dupe_id, ham_u32_t flags);
 
+} // namespace ham
 
 #endif /* HAM_KEY_H__ */

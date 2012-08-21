@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -40,7 +40,7 @@ namespace Hamster
         /// This method wraps the native ham_txn_commit function.
         /// <br />
         /// Note that the function will fail with HAM_CURSOR_STILL_OPEN if
-        /// a Cursor was attached to this Transaction, and the Cursor was 
+        /// a Cursor was attached to this Transaction, and the Cursor was
         /// not closed.
         /// </remarks>
         public void Commit()
@@ -63,7 +63,7 @@ namespace Hamster
         /// This method wraps the native ham_txn_abort function.
         /// <br />
         /// Note that the function will fail with HAM_CURSOR_STILL_OPEN if
-        /// a Cursor was attached to this Transaction, and the Cursor was 
+        /// a Cursor was attached to this Transaction, and the Cursor was
         /// not closed.
         /// </remarks>
         public void Abort()

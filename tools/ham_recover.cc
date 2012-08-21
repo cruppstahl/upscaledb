@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -26,14 +26,14 @@
 static option_t opts[]={
     {
         ARG_HELP,               // symbolic name of this option
-        "h",                    // short option 
-        "help",                 // long option 
+        "h",                    // short option
+        "help",                 // long option
         "this help screen",     // help string
         0 },                    // no flags
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
 
-static void 
+static void
 error(const char *foo, ham_status_t st)
 {
     printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
@@ -106,7 +106,7 @@ main(int argc, char **argv)
     st=ham_env_new(&env);
     if (st!=HAM_SUCCESS)
         error("ham_env_new", st);
-    st=ham_env_open_ex(env, filename, 
+    st=ham_env_open_ex(env, filename,
                 HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0);
     if (st==HAM_FILE_NOT_FOUND) {
         printf("File `%s' not found or unable to open it\n", filename);

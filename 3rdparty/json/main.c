@@ -23,17 +23,17 @@ static int s_IsKey = 0;
 static void print_indention()
 {
     size_t i;
-    
+
     for (i = 0; i < s_Level; ++i) {
         printf(s_pIndention);
     }
 }
- 
+
 
 static int print(void* ctx, int type, const JSON_value* value)
 {
     switch(type) {
-    case JSON_T_ARRAY_BEGIN:    
+    case JSON_T_ARRAY_BEGIN:
         if (!s_IsKey) print_indention();
         s_IsKey = 0;
         printf("[\n");
@@ -86,7 +86,7 @@ static int print(void* ctx, int type, const JSON_value* value)
         s_IsKey = 1;
         print_indention();
         printf("key = '%s', value = ", value->vu.str.value);
-        break;   
+        break;
     case JSON_T_STRING:
         if (!s_IsKey) print_indention();
         s_IsKey = 0;
@@ -96,9 +96,10 @@ static int print(void* ctx, int type, const JSON_value* value)
         assert(0);
         break;
     }
-    
+
     return 1;
 }
+
 
 int main(int argc, char* argv[]) {
     int count = 0;
@@ -111,16 +112,16 @@ int main(int argc, char* argv[]) {
     JSON_config config;
 
     struct JSON_parser_struct* jc = NULL;
-    
+
     init_JSON_config(&config);
-    
+
     config.depth                  = 20;
     config.callback               = &print;
     config.allow_comments         = 1;
     config.handle_floats_manually = 1;
-    
+
     jc = new_JSON_parser(&config);
-    
+
     FILE* input = stdin;
     for (; input ; ++count) {
         int next_char = fgetc(input);
@@ -138,6 +139,7 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "JSON_parser_end: syntax error\n");
         return 1;
     }
-    
+
     return 0;
 }
+

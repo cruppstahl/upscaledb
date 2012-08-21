@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -55,22 +55,22 @@ protected:
     ham_env_t *m_env;
 
 public:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(m_env, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create(m_env, BFC_OPATH(".test"),
                         HAM_ENABLE_TRANSACTIONS
                         | HAM_ENABLE_RECOVERY, 0644));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(m_env, m_db, 13, 
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create_db(m_env, m_db, 13,
                         HAM_ENABLE_DUPLICATES, 0));
     }
-    
-    virtual void teardown() { 
+
+    virtual void teardown() {
         __super::teardown();
 
         ham_env_close(m_env, 0);
@@ -89,7 +89,7 @@ public:
     void putGetTest(void)
     {
         Page *page;
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
@@ -107,7 +107,7 @@ public:
     void putGetRemoveGetTest(void)
     {
         Page *page;
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         Cache *cache=new Cache((Environment *)m_env, 15);
         BFC_ASSERT(cache!=0);
@@ -126,11 +126,11 @@ public:
         page->set_pers(0);
         delete page;
     }
-    
+
     void putGetReplaceTest(void)
     {
         Page *page1, *page2;
-        page_data_t pers1, pers2;
+        PageData pers1, pers2;
         memset(&pers1, 0, sizeof(pers1));
         memset(&pers2, 0, sizeof(pers2));
         Cache *cache=new Cache((Environment *)m_env, 15);
@@ -159,11 +159,11 @@ public:
         page2->set_pers(0);
         delete page2;
     }
-    
+
     void multiplePutTest(void)
     {
         Page *page[20];
-        page_data_t pers[20];
+        PageData pers[20];
         Cache *cache=new Cache((Environment *)m_env, 15);
 
         for (int i=0; i<20; i++) {
@@ -187,7 +187,7 @@ public:
         }
         delete cache;
     }
-    
+
     void negativeGetTest(void)
     {
         Cache *cache=new Cache((Environment *)m_env, 15);
@@ -196,11 +196,11 @@ public:
         }
         delete cache;
     }
-    
+
     void overflowTest(void)
     {
         Cache *cache=new Cache((Environment *)m_env, 15*os_get_pagesize());
-        page_data_t pers;
+        PageData pers;
         memset(&pers, 0, sizeof(pers));
         std::vector<Page *> v;
 
@@ -254,13 +254,13 @@ public:
         ham_close(m_db, 0);
 
         ham_parameter_t param[]={
-            {HAM_PARAM_PAGESIZE,  1024*128}, 
+            {HAM_PARAM_PAGESIZE,  1024*128},
             {0, 0}};
 
         Page *p[1024];
         ham_db_t *db;
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_create_ex(db, ".test", HAM_CACHE_STRICT, 0644, &param[0]));
         ham_env_t *env=ham_get_env(db);
         Cache *cache=((Environment *)env)->get_cache();
@@ -284,12 +284,12 @@ public:
     {
         ham_env_t *env;
         ham_parameter_t param[]={
-            {HAM_PARAM_CACHESIZE, 100*1024}, 
-            {HAM_PARAM_PAGESIZE,  1024}, 
+            {HAM_PARAM_CACHESIZE, 100*1024},
+            {HAM_PARAM_PAGESIZE,  1024},
             {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
         Cache *cache=((Environment *)env)->get_cache();
 
@@ -303,14 +303,14 @@ public:
     {
         ham_env_t *env;
         ham_parameter_t param[]={
-            {HAM_PARAM_CACHESIZE, 100*1024}, 
+            {HAM_PARAM_CACHESIZE, 100*1024},
             {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
         ham_env_close(env, 0);
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_env_open_ex(env, ".test.db", 0, &param[0]));
         Cache *cache=((Environment *)env)->get_cache();
 
@@ -324,8 +324,8 @@ public:
     {
         ham_db_t *db;
         ham_parameter_t param[]={
-            {HAM_PARAM_CACHESIZE, 100*1024}, 
-            {HAM_PARAM_PAGESIZE,  1024}, 
+            {HAM_PARAM_CACHESIZE, 100*1024},
+            {HAM_PARAM_PAGESIZE,  1024},
             {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
@@ -343,7 +343,7 @@ public:
     {
         ham_db_t *db;
         ham_parameter_t param[]={
-            {HAM_PARAM_CACHESIZE, 100*1024}, 
+            {HAM_PARAM_CACHESIZE, 100*1024},
             {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));

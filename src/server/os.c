@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -11,7 +11,7 @@
 
 #include "os.h"
 
-void 
+void
 os_critsec_init(os_critsec_t *cs)
 {
 #ifdef WIN32
@@ -21,7 +21,7 @@ os_critsec_init(os_critsec_t *cs)
 #endif
 }
 
-void 
+void
 os_critsec_enter(os_critsec_t *cs)
 {
 #ifdef WIN32
@@ -31,7 +31,7 @@ os_critsec_enter(os_critsec_t *cs)
 #endif
 }
 
-void 
+void
 os_critsec_leave(os_critsec_t *cs)
 {
 #ifdef WIN32

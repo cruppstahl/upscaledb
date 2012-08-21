@@ -1,190 +1,189 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
+	<ProjectConfiguration Include="Debug|Win32">
+	  <Configuration>Debug</Configuration>
+	  <Platform>Win32</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Debug|x64">
+	  <Configuration>Debug</Configuration>
+	  <Platform>x64</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Release|Win32">
+	  <Configuration>Release</Configuration>
+	  <Platform>Win32</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Release|x64">
+	  <Configuration>Release</Configuration>
+	  <Platform>x64</Platform>
+	</ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{10DCD767-DFBE-4096-9258-111D4CF899B1}</ProjectGuid>
-    <RootNamespace>lib</RootNamespace>
-    <Keyword>Win32Proj</Keyword>
-    <ProjectName>protocol</ProjectName>
+	<ProjectGuid>{10DCD767-DFBE-4096-9258-111D4CF899B1}</ProjectGuid>
+	<RootNamespace>lib</RootNamespace>
+	<Keyword>Win32Proj</Keyword>
+	<ProjectName>protocol</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+	<ConfigurationType>StaticLibrary</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
+	<WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
+	<ConfigurationType>StaticLibrary</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+	<ConfigurationType>StaticLibrary</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
+	<WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
+	<ConfigurationType>StaticLibrary</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</IntDir>
+	<_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\protocol_debug\</IntDir>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\protocol_debug_x64\</IntDir>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\protocol\</IntDir>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protocol_x64\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-    </ClCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
-    <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
-      <TargetMachine>MachineX86</TargetMachine>
-    </Lib>
+	<PreBuildEvent>
+	  <Command>
+	  </Command>
+	</PreBuildEvent>
+	<ClCompile>
+	  <Optimization>Disabled</Optimization>
+	  <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <MinimalRebuild>true</MinimalRebuild>
+	  <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+	  <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+	</ClCompile>
+	<ProjectReference>
+	  <LinkLibraryDependencies>true</LinkLibraryDependencies>
+	</ProjectReference>
+	<Lib>
+	  <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+	  <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+	  <TargetMachine>MachineX86</TargetMachine>
+	</Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\hamsterdb-alien\boost;..\..\include;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-    </ClCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
-    <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
-      <TargetMachine>MachineX64</TargetMachine>
-    </Lib>
+	<PreBuildEvent>
+	  <Command>
+	  </Command>
+	</PreBuildEvent>
+	<Midl>
+	  <TargetEnvironment>X64</TargetEnvironment>
+	</Midl>
+	<ClCompile>
+	  <Optimization>Disabled</Optimization>
+	  <AdditionalIncludeDirectories>..\..\..\hamsterdb-alien\boost;..\..\include;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <MinimalRebuild>true</MinimalRebuild>
+	  <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+	  <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <ProgramDataBaseFileName>$(OutDir)vc80.pdb</ProgramDataBaseFileName>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+	</ClCompile>
+	<ProjectReference>
+	  <LinkLibraryDependencies>true</LinkLibraryDependencies>
+	</ProjectReference>
+	<Lib>
+	  <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+	  <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+	  <TargetMachine>MachineX64</TargetMachine>
+	</Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>
-      </DebugInformationFormat>
-    </ClCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
-    <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
-      <TargetMachine>MachineX86</TargetMachine>
-    </Lib>
+	<PreBuildEvent>
+	  <Command>
+	  </Command>
+	</PreBuildEvent>
+	<ClCompile>
+	  <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>
+	  </DebugInformationFormat>
+	</ClCompile>
+	<ProjectReference>
+	  <LinkLibraryDependencies>true</LinkLibraryDependencies>
+	</ProjectReference>
+	<Lib>
+	  <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
+	  <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+	  <TargetMachine>MachineX86</TargetMachine>
+	</Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>
-      </DebugInformationFormat>
-    </ClCompile>
-    <ProjectReference>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-    </ProjectReference>
-    <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
-      <TargetMachine>MachineX64</TargetMachine>
-    </Lib>
+	<PreBuildEvent>
+	  <Command>
+	  </Command>
+	</PreBuildEvent>
+	<Midl>
+	  <TargetEnvironment>X64</TargetEnvironment>
+	</Midl>
+	<ClCompile>
+	  <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protobuf\msvc2010\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>
+	  </DebugInformationFormat>
+	</ClCompile>
+	<ProjectReference>
+	  <LinkLibraryDependencies>true</LinkLibraryDependencies>
+	</ProjectReference>
+	<Lib>
+	  <AdditionalDependencies>..\..\..\hamsterdb-alien\protobuf\msvc2010\libprotobuf-lite_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+	  <OutputFile>$(OutDir)libprotocol.lib</OutputFile>
+	  <TargetMachine>MachineX64</TargetMachine>
+	</Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\protocol\messages.pb.cc" />
-    <ClCompile Include="..\..\src\protocol\protocol.cc" />
+	<ClCompile Include="..\..\src\protocol\messages.pb.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\protocol\messages.pb.h" />
-    <ClInclude Include="..\..\src\protocol\protocol.h" />
+	<ClInclude Include="..\..\src\protocol\messages.pb.h" />
+	<ClInclude Include="..\..\src\protocol\protocol.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

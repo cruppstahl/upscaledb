@@ -1,4 +1,4 @@
-/* 
+/*
  * bfc-testsuite
  *
  * Copyright (C) 2005-2011 Christoph Rupp, www.crupp.de
@@ -24,21 +24,21 @@
 
 /*
  * The BFC unit test suite comes as a set of one header file, which you must
- * include in each test source file defining tests / test fixtures, plus a 
+ * include in each test source file defining tests / test fixtures, plus a
  * few support files, which must be compiled into the test binary.
- * 
+ *
  * This is the global header file (bfc-testsuite.hpp).
- * 
+ *
  * The support source files are:
- * 
+ *
  *   bfc-testsuite.cpp  (implements all BFC core methods; compile-time speedup)
- * 
- *   bfc-signal.c       (implements a portable signal function, 
+ *
+ *   bfc-signal.c       (implements a portable signal function,
  *                       used by the BFC kernel)
- * 
- *   bfc_signal.h       (header file which exports the relevant content 
+ *
+ *   bfc_signal.h       (header file which exports the relevant content
  *                       of bfc_signal.c)
- * 
+ *
  *   empty_sample.cpp   (an example BFC test fixture and (nil) test case: Test1
  */
 
@@ -58,9 +58,9 @@
 #include <iostream>
 #include <stdarg.h>
 #ifndef UNDER_CE
-/* the signal catching / hardware exception catching stuff 
+/* the signal catching / hardware exception catching stuff
  * for UNIX (and a bit for Win32/64 too) */
-#   include <signal.h> 
+#   include <signal.h>
 #endif
 #include <setjmp.h>
 #include <stdlib.h>
@@ -221,14 +221,14 @@ struct test
 class error
 {
 public:
-    error(const char *f, int l, const char *fix, const char *t, 
+    error(const char *f, int l, const char *fix, const char *t,
             const char *m, ...);
-    error(const char *f, int l, const std::string &fix, 
+    error(const char *f, int l, const std::string &fix,
             const std::string &t, const char *m, ...);
-    error(const std::string &f, int l, const std::string &fix, 
+    error(const std::string &f, int l, const std::string &fix,
             const std::string &t, const char *m, ...);
     error(const error &base, const char *m, ...);
-    error(const char *f, int l, fixture &fix, const char *t, 
+    error(const char *f, int l, fixture &fix, const char *t,
             const char *m, va_list args);
     error(const error &src);
     ~error();
@@ -250,10 +250,10 @@ public:
  * on/off the signal, ahem, 'stack'.
  *
  * On Win32/64, using MSVC, most of this burden is taken up by the
- * MSVC-specific __try/__except mechanism, but UNIX/GCC doesn't have 
+ * MSVC-specific __try/__except mechanism, but UNIX/GCC doesn't have
  * such a mechanism; there, it's signals galore.
  */
-typedef enum 
+typedef enum
 {
     // 'major' states:
     BFC_STATE_NONE             = 0,
@@ -273,20 +273,20 @@ typedef enum
 
 /**
  * functor/callback class which can be registered with BFC to be invoked when a
- * unittest assertion (@ref BFC_ASSERT et al) fires.  
+ * unittest assertion (@ref BFC_ASSERT et al) fires.
  *
  * @note Once an assertion has fired and this functor/callback has been invoked,
- * it will be removed from the BFC assertion monitor stack; this is done so 
- * that monitors instantiated in local scoped storage (i.e. instantiated in 
- * the stack) are never invoked after the stack is unwound and the instance 
- * becomes invalid. Such a scenario could otherwise happen when 
- * @ref BFC_ASSERT checks are part of the @ref teardown() process and any of 
- * those assertions fire while the stack-instantiated monitors have not 
- * been popped off the stack, because @ref teardown() was invoked after the 
- * unittest it cleans up after had fired an assertion itself.  
+ * it will be removed from the BFC assertion monitor stack; this is done so
+ * that monitors instantiated in local scoped storage (i.e. instantiated in
+ * the stack) are never invoked after the stack is unwound and the instance
+ * becomes invalid. Such a scenario could otherwise happen when
+ * @ref BFC_ASSERT checks are part of the @ref teardown() process and any of
+ * those assertions fire while the stack-instantiated monitors have not
+ * been popped off the stack, because @ref teardown() was invoked after the
+ * unittest it cleans up after had fired an assertion itself.
  *
- * This implies that monitors must re-registered in @ref teardown() when 
- * you wish to have them active in there when they have been invoked by a 
+ * This implies that monitors must re-registered in @ref teardown() when
+ * you wish to have them active in there when they have been invoked by a
  * previous @ref BFC_ASSERT in the unittest method proper.
  */
 class bfc_assert_monitor
@@ -630,7 +630,7 @@ public:
      * Invoke the Function Under Test
      *
      * implement this one when you want to catch custom C++ exceptions;
-     * these must be converted to bfc::error class throwing exceptions 
+     * these must be converted to bfc::error class throwing exceptions
      * to work best with BFC.
      *
      * If you don't do this, your exceptions may be either caught by the
@@ -642,13 +642,13 @@ public:
      *  Return TRUE when an exception occurred and the bfc::error ex
      *  instance is filled accordingly, FALSE otherwise (~ successful test).
      **/
-    virtual bool FUT_invoker(testrunner *me, method m, 
+    virtual bool FUT_invoker(testrunner *me, method m,
             const char *funcname, bfc_state_t state, error &ex) {
         (this->*m)();
         return false;
     }
 
-    virtual void throw_bfc_error(const char *file, int line, 
+    virtual void throw_bfc_error(const char *file, int line,
             const char *function, const char *message, ...);
 
     // clear all tests
@@ -790,7 +790,7 @@ extern "C" {
      * WARNING: some systems have 'int' returning signal handlers, others
      * have 'void' returning signal handlers. Since the ones, which expect
      * a 'void' return type, will silently ignore the return value
-     * at run-time anyhow, we can keep things simple here and just 
+     * at run-time anyhow, we can keep things simple here and just
      * specify 'int'.
      *
      * However, this will cause a set of compiler warnings to appear;
@@ -815,20 +815,20 @@ protected:
 
 protected:
     /*
-     * This function must be 'static' because otherwise MSVC will 
-     * complain loudly: 
+     * This function must be 'static' because otherwise MSVC will
+     * complain loudly:
      * error C2712: Cannot use __try in functions that require object unwinding
      */
-    static bool exec_testfun(testrunner *me, fixture *f, method m, 
+    static bool exec_testfun(testrunner *me, fixture *f, method m,
             const char *funcname, bfc_state_t state, error &ex);
-    static bool cpp_eh_run(testrunner *me, fixture *f, method m, 
+    static bool cpp_eh_run(testrunner *me, fixture *f, method m,
             const char *funcname, bfc_state_t state, error &ex);
 
 #if defined(_MSC_VER)
-    static void cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e, 
-            testrunner *me, const fixture *f, method m, 
+    static void cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e,
+            testrunner *me, const fixture *f, method m,
             const char *funcname, error &err);
-    static int is_hw_exception(unsigned int code, 
+    static int is_hw_exception(unsigned int code,
             struct _EXCEPTION_POINTERS *ep, EXCEPTION_RECORD *dst);
 #endif
 
@@ -842,12 +842,12 @@ protected:
         struct {
             signal_handler_f handler;
 #ifdef UNDER_CE
-        } old_sig_handlers[1]; 
+        } old_sig_handlers[1];
 #else
-        } old_sig_handlers[NSIG + 1]; 
+        } old_sig_handlers[NSIG + 1];
 #endif
         /*
-         * ^^^ most systems include signal 0 in the NSIG count, but we should 
+         * ^^^ most systems include signal 0 in the NSIG count, but we should
          * dimension this one conservatively.
          *
          * (see also [APitUE, pp. 292])
@@ -859,7 +859,7 @@ protected:
         std::string active_funcname;
         jmp_buf signal_return_point;
 
-        // things that may get changed inside the signal handler 
+        // things that may get changed inside the signal handler
         // (~ will change asynchronously):
         volatile bfc_state_t active_state;
         volatile bfc_error_report_mode_t print_err_report;
@@ -871,7 +871,7 @@ protected:
 
     static bfc_signal_context_t m_current_signal_context;
 
-    static bool setup_signal_handlers(testrunner *me, const fixture *f, 
+    static bool setup_signal_handlers(testrunner *me, const fixture *f,
             method m, const char *funcname, bfc_state_t sub_state, error &err);
     static int BFC_universal_signal_handler(int signal_code, int sub_code);
     static const char *bfc_sigdescr(int signal_code);
@@ -906,35 +906,35 @@ public:
     void print_errors(bool panic_flush = false);
 
     /**
-     * run all tests - returns number of errors 
+     * run all tests - returns number of errors
      */
     unsigned int run(bool print_err_report = true);
 
     /**
-     * run all tests (optional fixture and/or test selection) - 
+     * run all tests (optional fixture and/or test selection) -
      * returns number of errors
      */
-    unsigned int run(const char *fixture_name, const char *test_name = NULL, 
+    unsigned int run(const char *fixture_name, const char *test_name = NULL,
             bool print_err_report = true);
 
     /**
      * run all tests in a given range (start in/exclusive, end inclusive)
-     * 
+     *
      * @return number of errors
      */
     unsigned int run(
             const std::string &begin_fixture, const std::string &begin_test,
             const std::string &end_fixture, const std::string &end_test,
-            bool inclusive_begin, 
+            bool inclusive_begin,
             bool is_not_a_series = false,
             bool print_err_report = true);
 
     // run all tests of a fixture
-    unsigned int run(fixture *f, const char *test_name = NULL, 
+    unsigned int run(fixture *f, const char *test_name = NULL,
             bool print_err_report = true);
 
     // run a single test of a fixture
-    bool run(fixture *f, const test *test, bfc_error_report_mode_t 
+    bool run(fixture *f, const test *test, bfc_error_report_mode_t
             print_err_report = BFC_REPORT_IN_HERE);
 
 protected:

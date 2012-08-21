@@ -4,12 +4,12 @@ OLD_VERSION=$1;
 NEW_VERSION=$2;
 
 if [ -z $OLD_VERSION ]
-then 
+then
     echo "usage: update_version.sh OLD_VERSION NEW_VERSION"
     exit
 fi
 if [ -z $NEW_VERSION ]
-then 
+then
     echo "usage: update_version.sh OLD_VERSION NEW_VERSION"
     exit
 fi

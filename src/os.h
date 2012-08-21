@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <limits.h>
 
+namespace ham {
+
 /**
  * read data from a file with mmap
  *
@@ -32,34 +34,26 @@
  * @remark win32 needs a second handle for CreateFileMapping
  */
 extern ham_status_t
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
-		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer);
+os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
+            ham_offset_t size, bool readonly, ham_u8_t **buffer);
 
 /**
- * unmap a buffer 
- *
- * @remark win32 needs a second handle for CreateFileMapping
+ * unmap a buffer
  */
 extern ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size);
 
-/**
- * read data from a file
- */
+/** read data from a file */
 extern ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
-        ham_offset_t bufferlen);
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
+            ham_offset_t bufferlen);
 
-/**
- * write data to a file
- */
+/** write data to a file */
 extern ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
-        ham_offset_t bufferlen);
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
+           ham_offset_t bufferlen);
 
-/**
- * append data to a file
- */
+/** append data to a file */
 extern ham_status_t
 os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
 
@@ -68,82 +62,63 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
  */
 extern ham_status_t
 os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
-                void *buffer2=0, ham_offset_t buffer2_len=0,
-                void *buffer3=0, ham_offset_t buffer3_len=0,
-                void *buffer4=0, ham_offset_t buffer4_len=0,
-                void *buffer5=0, ham_offset_t buffer5_len=0);
+            void *buffer2 = 0, ham_offset_t buffer2_len = 0,
+            void *buffer3 = 0, ham_offset_t buffer3_len = 0,
+            void *buffer4 = 0, ham_offset_t buffer4_len = 0,
+            void *buffer5 = 0, ham_offset_t buffer5_len = 0);
 
 #ifdef HAM_OS_POSIX
-#    define HAM_OS_SEEK_SET     SEEK_SET
-#    define HAM_OS_SEEK_END     SEEK_END
-#    define HAM_OS_SEEK_CUR     SEEK_CUR
-#    define HAM_OS_MAX_PATH     PATH_MAX
+#  define HAM_OS_SEEK_SET   SEEK_SET
+#  define HAM_OS_SEEK_END   SEEK_END
+#  define HAM_OS_SEEK_CUR   SEEK_CUR
+#  define HAM_OS_MAX_PATH   PATH_MAX
 #else
-#    define HAM_OS_SEEK_SET     FILE_BEGIN
-#    define HAM_OS_SEEK_END     FILE_END
-#    define HAM_OS_SEEK_CUR     FILE_CURRENT
-#    define HAM_OS_MAX_PATH     MAX_PATH
+#  define HAM_OS_SEEK_SET   FILE_BEGIN
+#  define HAM_OS_SEEK_END   FILE_END
+#  define HAM_OS_SEEK_CUR   FILE_CURRENT
+#  define HAM_OS_MAX_PATH   MAX_PATH
 #endif
 
-/**
- * get the preferred pagesize of the operating system
- */
+/** get the preferred pagesize of the operating system */
 extern ham_size_t
 os_get_pagesize(void);
 
-/**
- * get the page allocation granularity of the operating system
- */
+/** get the page allocation granularity of the operating system */
 extern ham_size_t
 os_get_granularity(void);
 
-/**
- * seek position in a file
- */
+/** seek position in a file */
 extern ham_status_t
 os_seek(ham_fd_t fd, ham_offset_t offset, int whence);
 
-/**
- * tell the position in a file
- */
+/** tell the position in a file */
 extern ham_status_t
 os_tell(ham_fd_t fd, ham_offset_t *offset);
 
-/**
- * get the size of the database file
- */
+/** get the size of the database file */
 extern ham_status_t
 os_get_filesize(ham_fd_t fd, ham_offset_t *size);
 
-/**
- * truncate/resize the file
- */
+/** truncate/resize the file */
 extern ham_status_t
 os_truncate(ham_fd_t fd, ham_offset_t newsize);
 
-/**
- * create a new file
- */
+/** create a new file */
 extern ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd);
 
-/**
- * open an existing file
- */
+/** open an existing file */
 extern ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd);
 
-/**
- * flush a file
- */
+/** flush a file */
 extern ham_status_t
 os_flush(ham_fd_t fd);
 
-/**
- * close a filedescriptor
- */
+/** close a file descriptor */
 extern ham_status_t
 os_close(ham_fd_t fd);
 
+} // namespace ham
 
 #endif /* HAM_OS_H__ */

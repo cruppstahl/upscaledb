@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -46,6 +46,7 @@
 #include "txn.h"
 #include "util.h"
 #include "version.h"
+#include "worker.h"
 
 #ifndef HAM_DISABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
@@ -86,7 +87,7 @@ my_strncat_ex(char *buf, size_t buflen, const char *interject, const char *src)
         buf[buflen - 1] = 0;
         return (buf);
     }
-    ham_assert(!"shouldn't be here", (""));
+    ham_assert(!"shouldn't be here");
     return ((char *)"???");
 }
 
@@ -97,7 +98,7 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         buflen = 0;
         buf = NULL;
     }
-    else 
+    else
         buf[0] = 0;
 
     if (flags & HAM_WRITE_THROUGH) {
@@ -115,6 +116,10 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
     if (flags & HAM_DISABLE_VAR_KEYLEN) {
         flags &= ~HAM_DISABLE_VAR_KEYLEN;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_VAR_KEYLEN");
+    }
+    if (flags & HAM_DISABLE_ASYNCHRONOUS_FLUSH) {
+        flags &= ~HAM_DISABLE_ASYNCHRONOUS_FLUSH;
+        buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_ASYNCHRONOUS_FLUSH");
     }
     if (flags & HAM_IN_MEMORY_DB)
     {
@@ -169,11 +174,11 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
 
     if (flags) {
         if (buf && buflen > 13 && buflen > strlen(buf) + 13 + 1 + 9) {
-            util_snprintf(buf, buflen, "%sHAM_FLAGS(reserved: 0x%x)", 
+            util_snprintf(buf, buflen, "%sHAM_FLAGS(reserved: 0x%x)",
                             (*buf ? "|" : ""), (unsigned int)flags);
         }
         else {
-            ham_assert(!"shouldn't be here", (""));
+            ham_assert(!"shouldn't be here");
             buf = (char *)"???";
         }
     }
@@ -232,7 +237,7 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
         break;
     }
 
-    ham_assert(!"shouldn't be here", (""));
+    ham_assert(!"shouldn't be here");
     return ("???");
 }
 
@@ -255,7 +260,7 @@ __check_recovery_flags(ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name, 
+ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
                 void *reserved, ham_u32_t flags)
 {
     Transaction **txn=(Transaction **)htxn;
@@ -321,7 +326,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
         lock=ScopedLock(env->get_mutex());
 
     /* mark this transaction as committed; will also call
-     * env_flush_committed_txns() to write committed transactions
+     * env->signal_commit() to write committed transactions
      * to disk */
     return (env->_fun_txn_commit(env, txn, flags));
 }
@@ -434,14 +439,14 @@ ham_strerror(ham_status_t result)
 
 /**
  * Prepares a @ref ham_key_t structure for returning key data in.
- * 
- * This function checks whether the @ref ham_key_t structure has been 
+ *
+ * This function checks whether the @ref ham_key_t structure has been
  * properly initialized by the user and resets all internal used elements.
- * 
- * @return HAM_TRUE when the @a key structure has been initialized correctly 
+ *
+ * @return HAM_TRUE when the @a key structure has been initialized correctly
  * before.
- * 
- * @return HAM_FALSE when the @a key structure has @e not been initialized 
+ *
+ * @return HAM_FALSE when the @a key structure has @e not been initialized
  * correctly before.
  */
 static inline ham_bool_t
@@ -461,14 +466,14 @@ __prepare_key(ham_key_t *key)
 
 /**
  * Prepares a @ref ham_record_t structure for returning record data in.
- * 
- * This function checks whether the @ref ham_record_t structure has been 
+ *
+ * This function checks whether the @ref ham_record_t structure has been
  * properly initialized by the user and resets all internal used elements.
- * 
- * @return HAM_TRUE when the @a record structure has been initialized 
+ *
+ * @return HAM_TRUE when the @a record structure has been initialized
  * correctly before.
- * 
- * @return HAM_FALSE when the @a record structure has @e not been 
+ *
+ * @return HAM_FALSE when the @a record structure has @e not been
  * initialized correctly before.
  */
 static inline ham_bool_t
@@ -489,12 +494,12 @@ __prepare_record(ham_record_t *record)
     return HAM_TRUE;
 }
 
-ham_status_t 
-__check_create_parameters(Environment *env, Database *db, const char *filename, 
-        ham_u32_t *pflags, const ham_parameter_t *param, 
-        ham_size_t *ppagesize, ham_u16_t *pkeysize, 
+ham_status_t
+__check_create_parameters(Environment *env, Database *db, const char *filename,
+        ham_u32_t *pflags, const ham_parameter_t *param,
+        ham_size_t *ppagesize, ham_u16_t *pkeysize,
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, 
+        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode,
         std::string &logdir, bool create)
 {
     ham_size_t pagesize=0;
@@ -525,15 +530,15 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         keysize = *pkeysize;
     if (ppagesize)
         pagesize = *ppagesize;
-    if (pdbname && *pdbname) 
+    if (pdbname && *pdbname)
         dbname = *pdbname;
     if (pdata_access_mode && *pdata_access_mode)
         dam = *pdata_access_mode;
     if (pmaxdbs && *pmaxdbs)
         dbs = *pmaxdbs;
 
-    /* 
-     * cannot open an in-memory-db 
+    /*
+     * cannot open an in-memory-db
      */
     if (!create && (flags & HAM_IN_MEMORY_DB)) {
         ham_trace(("cannot open an in-memory database"));
@@ -553,8 +558,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     }
 
     /*
-     * HAM_ENABLE_DUPLICATES has to be specified in ham_create, not 
-     * ham_open 
+     * HAM_ENABLE_DUPLICATES has to be specified in ham_create, not
+     * ham_open
      */
     if (!create && (flags & HAM_ENABLE_DUPLICATES)) {
         ham_trace(("invalid flag HAM_ENABLE_DUPLICATES (only allowed when "
@@ -584,8 +589,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
      */
     if (db && (flags & ~((!create ? HAM_READ_ONLY : 0)
                         |(create ? HAM_IN_MEMORY_DB : 0)
-                        |(!env ? (HAM_WRITE_THROUGH 
-                                |HAM_DISABLE_MMAP 
+                        |(!env ? (HAM_WRITE_THROUGH
+                                |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
                                 |HAM_DONT_LOCK
@@ -597,17 +602,18 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |HAM_USE_BTREE
                         |HAM_DONT_LOCK
                         |HAM_DISABLE_VAR_KEYLEN
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         |HAM_RECORD_NUMBER
                         |HAM_SORT_DUPLICATES
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))
     {
         char msgbuf[2048];
-        ham_trace(("invalid flags specified: %s", 
-                ham_create_flags2str(msgbuf, sizeof(msgbuf), 
+        ham_trace(("invalid flags specified: %s",
+                ham_create_flags2str(msgbuf, sizeof(msgbuf),
                 (flags & ~((!create ? HAM_READ_ONLY : 0)
                         |(create ? HAM_IN_MEMORY_DB : 0)
-                        |(!env ? (HAM_WRITE_THROUGH 
-                                |HAM_DISABLE_MMAP 
+                        |(!env ? (HAM_WRITE_THROUGH
+                                |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
                                 |HAM_LOCK_EXCLUSIVE
@@ -618,6 +624,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |HAM_USE_BTREE
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))));
         return (HAM_INV_PARAMETER);
     }
@@ -625,8 +632,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     if (env)
         flags |= env->get_flags();
 
-    /* 
-     * parse parameters 
+    /*
+     * parse parameters
      */
     if (param) {
         for (; param->name; param++) {
@@ -675,7 +682,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                     ham_trace(("invalid parameter HAM_PARAM_DATA_ACCESS_MODE"));
                     return (HAM_INV_PARAMETER);
                 }
-                if (pdata_access_mode) { 
+                if (pdata_access_mode) {
                     switch (param->value) {
                     case 0: /* ignore 0 */
                         break;
@@ -685,7 +692,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         break;
                     default:
                         ham_trace(("invalid value 0x%04x specified for "
-                                "parameter HAM_PARAM_DATA_ACCESS_MODE", 
+                                "parameter HAM_PARAM_DATA_ACCESS_MODE",
                                 (unsigned)param->value));
                         return (HAM_INV_PARAMETER);
                     }
@@ -716,9 +723,9 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         dbname=(ham_u16_t)param->value;
 
                         if (!dbname
-                            || (dbname != HAM_FIRST_DATABASE_NAME 
-                                && dbname != HAM_DUMMY_DATABASE_NAME 
-                                && dbname > HAM_DEFAULT_DATABASE_NAME)) 
+                            || (dbname != HAM_FIRST_DATABASE_NAME
+                                && dbname != HAM_DUMMY_DATABASE_NAME
+                                && dbname > HAM_DEFAULT_DATABASE_NAME))
                         {
                             ham_trace(("parameter 'HAM_PARAM_GET_DATABASE_NAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
                             return (HAM_INV_PARAMETER);
@@ -736,8 +743,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
             case HAM_PARAM_GET_STATISTICS:
             default:
 default_case:
-                ham_trace(("unsupported/unknown parameter %d (%s)", 
-                            (int)param->name, 
+                ham_trace(("unsupported/unknown parameter %d (%s)",
+                            (int)param->name,
                             ham_param2str(NULL, 0, param->name)));
                 return (HAM_INV_PARAMETER);
             }
@@ -751,7 +758,7 @@ default_case:
      */
     if (!dam && create) {
         dam=(flags & HAM_RECORD_NUMBER)
-            ? HAM_DAM_SEQUENTIAL_INSERT 
+            ? HAM_DAM_SEQUENTIAL_INSERT
             : HAM_DAM_RANDOM_WRITE;
     }
 
@@ -797,8 +804,8 @@ default_case:
     if (flags&HAM_ENABLE_TRANSACTIONS)
         flags|=HAM_ENABLE_RECOVERY;
 
-    /* 
-     * flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY 
+    /*
+     * flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY
      */
     if (flags&HAM_AUTO_RECOVERY)
         flags|=HAM_ENABLE_RECOVERY;
@@ -837,7 +844,7 @@ default_case:
     }
 
     /*
-     * if this is not the first database we're creating (or opening), 
+     * if this is not the first database we're creating (or opening),
      * we'd better copy the pagesize values from the env / device
      */
     if (env)
@@ -939,13 +946,13 @@ default_case:
         l /= sizeof(db_indexdata_t);
         if (dbs > l) {
             ham_trace(("parameter HAM_PARAM_MAX_ENV_DATABASES too high for "
-                        "this pagesize; the maximum allowed is %u", 
+                        "this pagesize; the maximum allowed is %u",
                         (unsigned)l));
             return (HAM_INV_PARAMETER);
         }
-        /* override assignment when 'env' already has been configured with a 
+        /* override assignment when 'env' already has been configured with a
          * non-default maxdbs value of its own */
-        if (env && !db && env->get_header_page() 
+        if (env && !db && env->get_header_page()
                 && env->get_max_databases()>0) {
             dbs = env->get_max_databases();
         }
@@ -967,7 +974,7 @@ default_case:
                 dbs = DB_MAX_INDICES;
         }
     }
-    ham_assert(dbs != 0, (0));
+    ham_assert(dbs != 0);
 
     /*
      * return the fixed parameters
@@ -1065,11 +1072,18 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
+    if ((flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_DISABLE_ASYNCHRONOUS_FLUSH only allowed if "
+                "Transactions are enabled"));
+        return (HAM_INV_PARAMETER);
+    }
+
     ScopedLock lock(env->get_mutex());
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
-    atexit(proto_shutdown);
+    atexit(Protocol::shutdown);
 #endif
 
     /*
@@ -1083,7 +1097,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
     env->set_flags(0);
 
     /* check (and modify) the parameters */
-    st=__check_create_parameters(env, 0, filename, &flags, param, 
+    st=__check_create_parameters(env, 0, filename, &flags, param,
             &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, logdir, true);
     if (st)
         return (st);
@@ -1093,11 +1107,11 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
     if (logdir.size())
         env->set_log_directory(logdir);
 
-    /* 
-     * if we do not yet have an allocator: create a new one 
+    /*
+     * if we do not yet have an allocator: create a new one
      */
     if (!env->get_allocator()) {
-        env->set_allocator(ham_default_allocator_new());
+        env->set_allocator(Allocator::create());
         if (!env->get_allocator())
             return (HAM_OUT_OF_MEMORY);
     }
@@ -1128,7 +1142,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     env->set_active(true);
 
-    /* flush the environment to make sure that the header page is written 
+    /* flush the environment to make sure that the header page is written
      * to disk */
     return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
 }
@@ -1162,7 +1176,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'db' is already initialized"));
         return (db->set_error(HAM_DATABASE_ALREADY_OPEN));
     }
-    if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME 
+    if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME
             && dbname!=HAM_DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -1177,7 +1191,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
 
     db->set_active(HAM_TRUE);
 
-    /* flush the environment to make sure that the header page is written 
+    /* flush the environment to make sure that the header page is written
      * to disk */
     return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
 }
@@ -1212,8 +1226,8 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("parameter 'dbname' must not be 0"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (dbname!=HAM_FIRST_DATABASE_NAME 
-          && (dbname!=HAM_DUMMY_DATABASE_NAME 
+    if (dbname!=HAM_FIRST_DATABASE_NAME
+          && (dbname!=HAM_DUMMY_DATABASE_NAME
                 && dbname>HAM_DEFAULT_DATABASE_NAME)) {
         ham_trace(("database name must be lower than 0xf000"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -1222,7 +1236,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("cannot open a Database in an In-Memory Environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (flags&HAM_SORT_DUPLICATES 
+    if (flags&HAM_SORT_DUPLICATES
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
                     "with HAM_ENABLE_TRANSACTIONS"));
@@ -1259,11 +1273,18 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
+    if ((flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && !(flags&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_DISABLE_ASYNCHRONOUS_FLUSH only allowed if "
+                "Transactions are enabled"));
+        return (HAM_INV_PARAMETER);
+    }
+
     ScopedLock lock(env->get_mutex());
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
-    atexit(proto_shutdown);
+    atexit(Protocol::shutdown);
 #endif
 
     /* make sure that this environment is not yet open/created */
@@ -1284,7 +1305,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
     env->set_flags(0);
 
     /* parse parameters */
-    st=__check_create_parameters(env, 0, filename, &flags, param, 
+    st=__check_create_parameters(env, 0, filename, &flags, param,
             0, 0, &cachesize, 0, 0, 0, logdir, false);
     if (st)
         return (st);
@@ -1292,11 +1313,11 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
     if (logdir.size())
         env->set_log_directory(logdir);
 
-    /* 
-     * if we do not yet have an allocator: create a new one 
+    /*
+     * if we do not yet have an allocator: create a new one
      */
     if (!env->get_allocator()) {
-        env->set_allocator(ham_default_allocator_new());
+        env->set_allocator(Allocator::create());
         if (!env->get_allocator())
             return (HAM_OUT_OF_MEMORY);
     }
@@ -1336,7 +1357,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname, 
+ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname,
                 ham_u16_t newname, ham_u32_t flags)
 {
     Environment *env=(Environment *)henv;
@@ -1440,13 +1461,13 @@ ham_env_add_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
      * later in the same order as the insertion.
      *
      *
-     * Because we must process filters IN REVERSE ORDER when WRITING to 
-     * disc (going from 'cooked' to 'raw' data), we've created a cyclic 
+     * Because we must process filters IN REVERSE ORDER when WRITING to
+     * disc (going from 'cooked' to 'raw' data), we've created a cyclic
      * -> prev chain: no need to first traverse to the end, then traverse back.
-     * 
-     * This means that the -> next forward chain is terminating (last->next 
-     * == NULL), while the ->prev chain is cyclic (head->prev = last 
-     * wrap-around). Therefor, the fastest way to check if the REVERSE 
+     *
+     * This means that the -> next forward chain is terminating (last->next
+     * == NULL), while the ->prev chain is cyclic (head->prev = last
+     * wrap-around). Therefor, the fastest way to check if the REVERSE
      * (= ->prev) traversal is done, is by checking node->prev->next==NULL.
      */
     if (!head) {
@@ -1492,7 +1513,7 @@ ham_env_remove_file_filter(ham_env_t *henv, ham_file_filter_t *filter)
 
     if (head == filter) {
         if (head->_next) {
-            ham_assert(head->_prev != head, (0));
+            ham_assert(head->_prev != head);
             head->_next->_prev = head->_prev;
         }
         env->set_file_filter(head->_next);
@@ -1610,23 +1631,32 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     }
 
     ScopedLock lock;
-    if (!(flags&HAM_DONT_LOCK))
+    if (!(flags&HAM_DONT_LOCK)) {
+        // join the worker thread before the mutex is locked
+        if (env->get_worker_thread())
+            env->get_worker_thread()->join();
         lock=ScopedLock(env->get_mutex());
+    }
+
+    if (env->get_worker_thread()) {
+        delete env->get_worker_thread();
+        env->set_worker_thread(0);
+    }
 
     /* it's ok to close an uninitialized Environment */
     if (!env->_fun_close)
         return (0);
 
     /* make sure that the changeset is empty */
-    ham_assert(env->get_changeset().is_empty(), (""));
+    ham_assert(env->get_changeset().is_empty());
 
     /* auto-abort (or commit) all pending transactions */
     if (env && env->get_newest_txn()) {
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=txn_get_older(t);
-            if ((txn_get_flags(t)&TXN_STATE_ABORTED) 
-                    || (txn_get_flags(t)&TXN_STATE_COMMITTED)) 
+            if ((txn_get_flags(t)&TXN_STATE_ABORTED)
+                    || (txn_get_flags(t)&TXN_STATE_COMMITTED))
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
@@ -1640,9 +1670,12 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
             }
             t=n;
         }
-        // make sure all Transactions are flushed
-        env_flush_committed_txns(env);
     }
+
+    /* flush all committed transactions */
+    st=env->flush_committed_txns(true);
+    if (st)
+        return (st);
 
     /* close all databases?  */
     if (env->get_databases()) {
@@ -1657,29 +1690,24 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         env->set_databases(0);
     }
 
-    /* flush all transactions */
-    st=env_flush_committed_txns(env);
-    if (st)
-        return (st);
-    ham_assert(env->get_changeset().is_empty(), (""));
-
-    /* when all transactions have been properly closed... */
-    if (env->is_active() && env->get_oldest_txn()) {
-        ham_assert(!"Should never get here; the db close loop above "
-                    "should've taken care of all TXNs", (0));
-        return (HAM_INTERNAL_ERROR);
-    }
+    ham_assert(env->get_changeset().is_empty());
 
     /* close the environment */
     st=env->_fun_close(env, flags);
     if (st)
         return (st);
 
+    /* when all transactions have been properly closed... */
+    if (env->is_active() && env->get_oldest_txn()) {
+        ham_assert(!"Should never get here; the db close loop above "
+                    "should've taken care of all TXNs");
+        return (HAM_INTERNAL_ERROR);
+    }
     /* delete all performance data */
     btree_stats_trash_globdata(env, env->get_global_perf_data());
 
-    /* 
-     * finally, close the memory allocator 
+    /*
+     * finally, close the memory allocator
      */
     if (env->get_allocator()) {
         delete env->get_allocator();
@@ -1753,7 +1781,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     }
 
     /* parse parameters */
-    st=__check_create_parameters(db->get_env(), db, filename, &flags, param, 
+    st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
             0, 0, &cachesize, &dbname, 0, &dam, logdir, false);
     if (st)
         return (st);
@@ -1783,12 +1811,12 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     /*
      * now open the Database in this Environment
      *
-     * for this, we first strip off flags which are not allowed/needed 
+     * for this, we first strip off flags which are not allowed/needed
      * in ham_env_open_db; then set up the parameter list
      */
-    flags &= ~(HAM_WRITE_THROUGH 
-            |HAM_READ_ONLY 
-            |HAM_DISABLE_MMAP 
+    flags &= ~(HAM_WRITE_THROUGH
+            |HAM_READ_ONLY
+            |HAM_DISABLE_MMAP
             |HAM_DISABLE_FREELIST_FLUSH
             |HAM_CACHE_UNLIMITED
             |HAM_CACHE_STRICT
@@ -1819,7 +1847,7 @@ bail:
         if (db)
             (void)ham_close((ham_db_t *)db, 0);
         if (env) {
-            /* despite the IS_PRIVATE the env will destroy the DB, 
+            /* despite the IS_PRIVATE the env will destroy the DB,
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
@@ -1842,7 +1870,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
 {
     ham_status_t st;
     ham_u16_t dam=(flags & HAM_RECORD_NUMBER)
-        ? HAM_DAM_SEQUENTIAL_INSERT 
+        ? HAM_DAM_SEQUENTIAL_INSERT
         : HAM_DAM_RANDOM_WRITE;
     Database *db=(Database *)hdb;
 
@@ -1873,8 +1901,8 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     /*
      * check (and modify) the parameters
      */
-    st=__check_create_parameters(db->get_env(), db, filename, &flags, param, 
-            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, &dam, 
+    st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
+            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, &dam,
             logdir, true);
     if (st)
         return (db->set_error(st));
@@ -1911,12 +1939,12 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     /*
      * now create the Database in this Environment
      *
-     * for this, we first strip off flags which are not allowed/needed 
+     * for this, we first strip off flags which are not allowed/needed
      * in ham_env_create_db; then set up the parameter list
      */
-    flags &= ~(HAM_WRITE_THROUGH 
-            |HAM_IN_MEMORY_DB 
-            |HAM_DISABLE_MMAP 
+    flags &= ~(HAM_WRITE_THROUGH
+            |HAM_IN_MEMORY_DB
+            |HAM_DISABLE_MMAP
             |HAM_DISABLE_FREELIST_FLUSH
             |HAM_CACHE_UNLIMITED
             |HAM_CACHE_STRICT
@@ -1934,7 +1962,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     db_param[2].name=0;
 
     /* now create the Database */
-    st=ham_env_create_db(env, (ham_db_t *)db, 
+    st=ham_env_create_db(env, (ham_db_t *)db,
             HAM_DEFAULT_DATABASE_NAME, flags, db_param);
     if (st)
         goto bail;
@@ -1951,7 +1979,7 @@ bail:
             (void)ham_close((ham_db_t *)db, 0);
         }
         if (env) {
-            /* despite the IS_PRIVATE the env will destroy the DB, 
+            /* despite the IS_PRIVATE the env will destroy the DB,
             which is the responsibility of the caller: detach the DB now. */
             ((Environment *)env)->set_databases(0);
             (void)ham_env_close(env, 0);
@@ -1993,7 +2021,7 @@ ham_get_error(ham_db_t *hdb)
 
     ScopedLock lock;
     if (db->get_env())
-		lock=ScopedLock(db->get_env()->get_mutex());
+        lock=ScopedLock(db->get_env()->get_mutex());
 
     return (db->get_error());
 }
@@ -2049,15 +2077,15 @@ ham_set_duplicate_compare_func(ham_db_t *hdb, ham_duplicate_compare_func_t foo)
 }
 
 #ifndef HAM_DISABLE_ENCRYPTION
-static ham_status_t 
-__aes_before_write_cb(ham_env_t *henv, ham_file_filter_t *filter, 
+static ham_status_t
+__aes_before_write_cb(ham_env_t *henv, ham_file_filter_t *filter,
         ham_u8_t *page_data, ham_size_t page_size)
 {
     ham_size_t i;
     ham_size_t blocks=page_size/16;
 
     for (i=0; i<blocks; i++) {
-        aes_encrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
+        aes_encrypt(&page_data[i*16], (ham_u8_t *)filter->userdata,
                 &page_data[i*16]);
     }
 
@@ -2065,16 +2093,16 @@ __aes_before_write_cb(ham_env_t *henv, ham_file_filter_t *filter,
 }
 
 static ham_status_t
-__aes_after_read_cb(ham_env_t *henv, ham_file_filter_t *filter, 
+__aes_after_read_cb(ham_env_t *henv, ham_file_filter_t *filter,
         ham_u8_t *page_data, ham_size_t page_size)
 {
     ham_size_t i;
     ham_size_t blocks=page_size/16;
 
-    ham_assert(page_size%16==0, ("bogus pagesize"));
+    ham_assert(page_size%16==0);
 
     for (i = 0; i < blocks; i++) {
-        aes_decrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
+        aes_decrypt(&page_data[i*16], (ham_u8_t *)filter->userdata,
                 &page_data[i*16]);
     }
 
@@ -2087,13 +2115,13 @@ __aes_close_cb(ham_env_t *henv, ham_file_filter_t *filter)
     Environment *env=(Environment *)henv;
     Allocator *alloc=env->get_allocator();
 
-    ham_assert(alloc, (0));
+    ham_assert(alloc);
 
     if (filter) {
         if (filter->userdata) {
             /*
-             * destroy the secret key in RAM (free() won't do that, 
-             * so NIL the key space first! 
+             * destroy the secret key in RAM (free() won't do that,
+             * so NIL the key space first!
              */
             memset(filter->userdata, 0, sizeof(ham_u8_t)*16);
             alloc->free(filter->userdata);
@@ -2171,7 +2199,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
     st=ham_new(&db);
     if (st)
         return (st);
-    st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME, 
+    st=ham_env_open_db((ham_env_t *)env, db, HAM_FIRST_DATABASE_NAME,
                         HAM_DONT_LOCK, 0);
     if (st) {
         delete (Database *)db;
@@ -2189,15 +2217,15 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
      * it; if it's garbage, the key is wrong and we return an error
      */
     if (db) {
-        page_header_t *ph;
+        PageHeader *ph;
 
         st=device->read(env->get_pagesize(), buffer, sizeof(buffer));
         if (st==0) {
-            st=__aes_after_read_cb((ham_env_t *)env, filter, 
+            st=__aes_after_read_cb((ham_env_t *)env, filter,
                                 buffer, sizeof(buffer));
             if (st)
                 goto bail;
-            ph=(page_header_t *)buffer;
+            ph=(PageHeader *)buffer;
             if (ph->_reserved1 || ph->_reserved2) {
                 st=HAM_ACCESS_DENIED;
                 goto bail;
@@ -2229,8 +2257,8 @@ bail:
 }
 
 #ifndef HAM_DISABLE_COMPRESSION
-static ham_status_t 
-__zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter, 
+static ham_status_t
+__zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
         ham_record_t *record)
 {
     Database *db=(Database *)hdb;
@@ -2243,8 +2271,8 @@ __zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (!record->size)
         return (0);
 
-    /* 
-     * we work in a temporary copy of the original data 
+    /*
+     * we work in a temporary copy of the original data
      *
      * the first 4 bytes in the record are used for storing the original,
      * uncompressed size; this makes the decompression easier
@@ -2284,8 +2312,8 @@ __zlib_before_write_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     return (db->set_error(0));
 }
 
-static ham_status_t 
-__zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter, 
+static ham_status_t
+__zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
         ham_record_t *record)
 {
     Database *db=(Database *)hdb;
@@ -2327,7 +2355,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     if (zret==Z_DATA_ERROR)
         st=HAM_INTEGRITY_VIOLATED;
     else if (zret==Z_OK) {
-        ham_assert(origsize==newsize, (""));
+        ham_assert(origsize==newsize);
         st=0;
     }
     else {
@@ -2342,7 +2370,7 @@ __zlib_after_read_cb(ham_db_t *hdb, ham_record_filter_t *filter,
     return (db->set_error(st));
 }
 
-static void 
+static void
 __zlib_close_cb(ham_db_t *hdb, ham_record_filter_t *filter)
 {
     Database *db=(Database *)hdb;
@@ -2457,13 +2485,13 @@ ham_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                     "ham_cursor_insert"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                     "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
                     "combination with Transactions"));
@@ -2582,7 +2610,7 @@ ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                     "see ham_cursor_insert"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) 
+    if ((flags&HAM_PARTIAL)
             && (record->partial_size+record->partial_offset>record->size)) {
         ham_trace(("partial offset+size is greater than the total "
                     "record size"));
@@ -2685,7 +2713,7 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
 }
 
 ham_status_t HAM_CALLCONV
-ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount, 
+ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
                 ham_u16_t keysize)
 {
     Database *db=(Database *)hdb;
@@ -2749,7 +2777,7 @@ ham_flush(ham_db_t *hdb, ham_u32_t flags)
 }
 
 /*
- * always shut down entirely, even when a page flush or other 
+ * always shut down entirely, even when a page flush or other
  * 'non-essential' element of the process fails.
  */
 ham_status_t HAM_CALLCONV
@@ -2776,10 +2804,13 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (!env || !(*db)())
         return (0);
 
-    /* don't lock the env if it's private */
     ScopedLock lock;
-    if (!(flags&HAM_DONT_LOCK) && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE))
+    if (!(flags&HAM_DONT_LOCK)) {
+        // join the worker thread before the mutex is locked
+        if (env->get_worker_thread())
+            env->get_worker_thread()->join();
         lock=ScopedLock(env->get_mutex());
+    }
 
     /* check if this database is modified by an active transaction */
     txn_optree_t *tree=db->get_optree();
@@ -2812,21 +2843,21 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     }
 
     /* auto-abort (or commit) all pending transactions */
-    if (env && env->get_newest_txn() 
+    if (env && env->get_newest_txn()
             && db->get_rt_flags(true)&DB_ENV_IS_PRIVATE) {
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=txn_get_older(t);
-            if ((txn_get_flags(t)&TXN_STATE_ABORTED) 
-                    || (txn_get_flags(t)&TXN_STATE_COMMITTED)) 
+            if ((txn_get_flags(t)&TXN_STATE_ABORTED)
+                    || (txn_get_flags(t)&TXN_STATE_COMMITTED))
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
-                    if ((st=ham_txn_commit((ham_txn_t *)t, 0)))
+                    if ((st=ham_txn_commit((ham_txn_t *)t, HAM_DONT_LOCK)))
                         return (st);
                 }
                 else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-                    if ((st=ham_txn_abort((ham_txn_t *)t, 0)))
+                    if ((st=ham_txn_abort((ham_txn_t *)t, HAM_DONT_LOCK)))
                         return (st);
                 }
             }
@@ -2834,10 +2865,12 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         }
     }
     // make sure all Transactions are flushed
-    env_flush_committed_txns(env);
+    st=env->flush_committed_txns(true);
+    if (st)
+        return (st);
 
     db->set_error(0);
-    
+
     /* the function pointer will do the actual implementation */
     st=(*db)()->close(flags);
     if (st)
@@ -2859,7 +2892,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             head=head->get_next();
         }
         if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
-            (void)ham_env_close((ham_env_t *)db->get_env(), 
+            (void)ham_env_close((ham_env_t *)db->get_env(),
                             flags|HAM_DONT_LOCK);
             delete (Environment *)db->get_env();
         }
@@ -2879,7 +2912,7 @@ ham_cursor_create(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
     Transaction *txn=(Transaction *)htxn;
     Environment *env;
     Cursor **cursor=0;
-    
+
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return HAM_INV_PARAMETER;
@@ -3033,13 +3066,13 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
 
     env=db->get_env();
 
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
                     "combination with Transactions"));
@@ -3059,7 +3092,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     st=(*db)()->cursor_move(cursor, key, record, flags);
 
     /* make sure that the changeset is empty */
-    ham_assert(env->get_changeset().is_empty(), (""));
+    ham_assert(env->get_changeset().is_empty());
 
     return (db->set_error(st));
 }
@@ -3071,7 +3104,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_u32_t flags)
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key, 
+ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     Database *db;
@@ -3099,19 +3132,19 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
         ham_trace(("parameter 'key' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_FIND_NEAR_MATCH) 
+    if ((flags&HAM_FIND_NEAR_MATCH)
             && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("approx. matching is not allowed if Transactions "
                    "are enabled"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_DIRECT_ACCESS) 
+    if ((flags&HAM_DIRECT_ACCESS)
             && (env->get_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
                     "combination with Transactions"));
@@ -3206,7 +3239,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                     "are sorted"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) 
+    if ((flags&HAM_PARTIAL)
             && (record->partial_size+record->partial_offset>record->size)) {
         ham_trace(("partial offset+size is greater than the total "
                     "record size"));
@@ -3302,7 +3335,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_duplicate_count(ham_cursor_t *hcursor, 
+ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
                 ham_size_t *count, ham_u32_t flags)
 {
     Database *db;
@@ -3457,7 +3490,7 @@ ham_remove_record_filter(ham_db_t *hdb, ham_record_filter_t *filter)
 
     if (head == filter) {
         if (head->_next) {
-            ham_assert(head->_prev != head, (0));
+            ham_assert(head->_prev != head);
             head->_next->_prev = head->_prev;
         }
         db->set_record_filter(head->_next);
@@ -3577,7 +3610,7 @@ ham_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    
+
     if (!keycount) {
         ham_trace(("parameter 'keycount' must not be NULL"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -3600,8 +3633,7 @@ ham_clean_statistics_datarec(ham_statistics_t *s)
     if (s->_free_func)
         s->_free_func(s);
 
-    ham_assert(s->_free_func == 0, 
-        ("the cleanup function must eradicate itself from the struct"));
+    ham_assert(s->_free_func == 0);
 
     return (0);
 }

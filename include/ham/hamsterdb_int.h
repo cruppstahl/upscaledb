@@ -1,9 +1,9 @@
 /**
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -26,7 +26,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 /**
  * @defgroup ham_extended_api hamsterdb Enhanced API
@@ -38,27 +38,27 @@ extern "C" {
  * @{
  */
 
-/** 
+/**
  * A reserved Database name for those Databases, who are created without
  * an Environment (and therefore do not have a name).
  *
- * Note that this value also serves as the upper bound for allowed 
- * user specified Database names as passed to @a ham_env_create_db 
+ * Note that this value also serves as the upper bound for allowed
+ * user specified Database names as passed to @a ham_env_create_db
  * or @a ham_env_open_db.
  */
-#define HAM_DEFAULT_DATABASE_NAME     (0xf000)
+#define HAM_DEFAULT_DATABASE_NAME       (0xf000)
 
-/** 
- * A reserved Database name which automatically picks the first Database 
- * in an Environment 
+/**
+ * A reserved Database name which automatically picks the first Database
+ * in an Environment
  */
-#define HAM_FIRST_DATABASE_NAME       (0xf001)
+#define HAM_FIRST_DATABASE_NAME         (0xf001)
 
-/** 
- * A reserved Database name for a dummy Database which only reads/writes 
- * the header page 
+/**
+ * A reserved Database name for a dummy Database which only reads/writes
+ * the header page
  */
-#define HAM_DUMMY_DATABASE_NAME       (0xf002)
+#define HAM_DUMMY_DATABASE_NAME         (0xf002)
 
 /**
 @}
@@ -66,24 +66,24 @@ extern "C" {
 
 /**
  * Retrieve a @ref ham_statistics_t structure with the current statistics.
- * 
+ *
  * @warning
- * Please, heed the warnings and notes listed in the @ref ham_statistics_t 
- * documentation section and follow the advice given there to the letter. 
- * Not adhering to these adminishions introduces the risk of hamsterdb 
- * becoming unstable and exhibiting unreliable and downright faulty 
- * behaviour over time. This includes, but is not limited to, core dumps or 
+ * Please, heed the warnings and notes listed in the @ref ham_statistics_t
+ * documentation section and follow the advice given there to the letter.
+ * Not adhering to these adminishions introduces the risk of hamsterdb
+ * becoming unstable and exhibiting unreliable and downright faulty
+ * behaviour over time. This includes, but is not limited to, core dumps or
  * comparable system crashes.
- * 
+ *
  * @sa ham_statistics_t
  * @sa ham_get_parameters
  * @sa ham_env_get_parameters
  */
-#define HAM_PARAM_GET_STATISTICS        0x00000206
+#define HAM_PARAM_GET_STATISTICS            0x00000206
 
-/** 
+/**
  * Verifies the integrity of the Database
- * 
+ *
  * This function is only interesting if you want to debug hamsterdb.
  *
  * @param db A valid Database handle
@@ -106,12 +106,12 @@ ham_check_integrity(ham_db_t *db, ham_txn_t *txn);
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db or @a keycount is NULL
  * @return @ref HAM_INV_KEYSIZE if the @a keycount turns out to be huge (i.e.
- *         larger than 65535); in this case @a keycount still contains a 
+ *         larger than 65535); in this case @a keycount still contains a
  *         valid value, but this error indicates this keysize won't be
  *         usable with the given Database.
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, 
+ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount,
             ham_u16_t keysize);
 
 /**
@@ -145,34 +145,34 @@ struct ham_file_filter_t;
 typedef struct ham_file_filter_t ham_file_filter_t;
 
 /**
- * A callback function for a file-level filter; called before the 
+ * A callback function for a file-level filter; called before the
  * data is written to disk
  */
-typedef ham_status_t (*ham_file_filter_before_write_cb_t)(ham_env_t *env, 
+typedef ham_status_t (*ham_file_filter_before_write_cb_t)(ham_env_t *env,
         ham_file_filter_t *filter, ham_u8_t *file_data, ham_size_t file_size);
 
 /**
- * A callback function for a file-level filter; called immediately after the 
+ * A callback function for a file-level filter; called immediately after the
  * data is read from disk
  */
-typedef ham_status_t (*ham_file_filter_after_read_cb_t)(ham_env_t *env, 
+typedef ham_status_t (*ham_file_filter_after_read_cb_t)(ham_env_t *env,
         ham_file_filter_t *filter, ham_u8_t *file_data, ham_size_t file_size);
 
 /**
  * A callback function for a file-level filter; called immediately before the
  * Environment is closed. Can be used to avoid memory leaks.
  */
-typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env, 
+typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env,
         ham_file_filter_t *filter);
 
 /**
  * A handle for file-level filtering
  *
- * File-level filters can modify the page data before some data is 
+ * File-level filters can modify the page data before some data is
  * written to disk, and immediately after it's read from disk.
  *
- * File-level filters can be used for example for writing encryption filters. 
- * See @a ham_env_enable_encryption() to create a filter for AES-based 
+ * File-level filters can be used for example for writing encryption filters.
+ * See @a ham_env_enable_encryption() to create a filter for AES-based
  * encryption.
  *
  * Each of the three callback functions can be NULL.
@@ -181,28 +181,27 @@ typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env,
  */
 struct ham_file_filter_t
 {
-    /** The user data */
-    void *userdata;
+  /** The user data */
+  void *userdata;
 
-    /** The function which is called before the page is written */
-    ham_file_filter_before_write_cb_t before_write_cb;
+  /** The function which is called before the page is written */
+  ham_file_filter_before_write_cb_t before_write_cb;
 
-    /** The function which is called after the page is read */
-    ham_file_filter_after_read_cb_t after_read_cb;
+  /** The function which is called after the page is read */
+  ham_file_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the Database is closed */
-    ham_file_filter_close_cb_t close_cb;
+  /** The function which is when the Database is closed */
+  ham_file_filter_close_cb_t close_cb;
 
-    /** For internal use */
-    ham_u32_t _flags;
+  /** For internal use */
+  ham_u32_t _flags;
 
-    /** For internal use */
-    ham_file_filter_t *_next, *_prev;
-
+  /** For internal use */
+  ham_file_filter_t *_next, *_prev;
 };
 
 /**
- * A function to install a file-level filter. 
+ * A function to install a file-level filter.
  *
  * File-level filters are usually installed immediately after the Environment
  * is created with @a ham_env_create[_ex] or opened with @a ham_env_open[_ex].
@@ -237,33 +236,33 @@ struct ham_record_filter_t;
 typedef struct ham_record_filter_t ham_record_filter_t;
 
 /**
- * A callback function for a record-level filter; called before the 
+ * A callback function for a record-level filter; called before the
  * record is inserted
  */
-typedef ham_status_t (*ham_record_filter_before_insert_cb_t)(ham_db_t *db, 
+typedef ham_status_t (*ham_record_filter_before_insert_cb_t)(ham_db_t *db,
         ham_record_filter_t *filter, ham_record_t *record);
 
 /**
- * A callback function for a record-level filter; called immediately after the 
+ * A callback function for a record-level filter; called immediately after the
  * record is read from disk, and before it is returned to the user.
  */
-typedef ham_status_t (*ham_record_filter_after_read_cb_t)(ham_db_t *db, 
+typedef ham_status_t (*ham_record_filter_after_read_cb_t)(ham_db_t *db,
         ham_record_filter_t *filter, ham_record_t *record);
 
 /**
  * A callback function for a record-level filter; called immediately before the
  * Database is closed. Can be used to avoid memory leaks.
  */
-typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db, 
+typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db,
         ham_record_filter_t *filter);
 
 /**
  * A handle for record-level filtering
  *
- * Record-level filters can modify and resize the record data before 
+ * Record-level filters can modify and resize the record data before
  * the record is inserted, and before it is returned to the user.
  *
- * Record-level filters can be used for example for writing compression 
+ * Record-level filters can be used for example for writing compression
  * filters.  See @a ham_enable_compression() to create a filter for zlib-based
  * compression.
  *
@@ -273,24 +272,23 @@ typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db,
  */
 struct ham_record_filter_t
 {
-    /** The user data */
-    void *userdata;
+  /** The user data */
+  void *userdata;
 
-    /** The function which is called before the record is inserted */
-    ham_record_filter_before_insert_cb_t before_write_cb;
+  /** The function which is called before the record is inserted */
+  ham_record_filter_before_insert_cb_t before_write_cb;
 
-    /** The function which is called after the record is read from disk */
-    ham_record_filter_after_read_cb_t after_read_cb;
+  /** The function which is called after the record is read from disk */
+  ham_record_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the Database is closed */
-    ham_record_filter_close_cb_t close_cb;
+  /** The function which is when the Database is closed */
+  ham_record_filter_close_cb_t close_cb;
 
-    /** For internal use */
-    ham_u32_t _flags;
+  /** For internal use */
+  ham_u32_t _flags;
 
-    /** For internal use */
-    ham_record_filter_t *_next, *_prev;
-
+  /** For internal use */
+  ham_record_filter_t *_next, *_prev;
 };
 
 /**
@@ -329,7 +327,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * Install a custom device object
  *
  * Custom device objects can be used to overwrite the functions which
- * open, create, read, write etc. to/from the file. 
+ * open, create, read, write etc. to/from the file.
  *
  * The device structure is defined in src/device.h. The default device
  * objects (for file-based access and for in-memory access) are implemented
@@ -349,6 +347,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  */
 struct ham_device_t;
 typedef struct ham_device_t ham_device_t;
+
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_set_device(ham_env_t *env, ham_device_t *device);
 
@@ -356,7 +355,7 @@ ham_env_set_device(ham_env_t *env, ham_device_t *device);
  * Retrieves the current device object
  *
  * Custom device objects can be used to overwrite the functions which
- * open, create, read, write etc. to/from the file. 
+ * open, create, read, write etc. to/from the file.
  *
  * The device structure is defined in src/device.h. The default device
  * objects (for file-based access and for in-memory access) are implemented
@@ -399,14 +398,16 @@ ham_env_set_allocator(ham_env_t *env, void *alloc);
  */
 
 /* internal flag - do not use!! */
-#define HAM_HINT_UBER_FAST_ACCESS     0x00040000
+#define HAM_HINT_UBER_FAST_ACCESS       0x00040000
+
 /* internal flag - do not use!! */
-#define HAM_HINT_RANDOM_ACCESS        0x00020000
+#define HAM_HINT_RANDOM_ACCESS          0x00020000
+
 /* internal flag - do not use!! */
-#define HAM_HINT_SEQUENTIAL           0x00010000
+#define HAM_HINT_SEQUENTIAL             0x00010000
 
 #ifdef __cplusplus
 } // extern "C"
-#endif 
+#endif
 
 #endif /* HAM_HAMSTERDB_INT_H__ */

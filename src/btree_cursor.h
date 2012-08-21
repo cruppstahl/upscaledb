@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -12,20 +12,20 @@
 /**
  * @brief btree cursors
  *
- * A Btree-Cursor is an object which is used to traverse a Btree. 
+ * A Btree-Cursor is an object which is used to traverse a Btree.
  *
- * Btree-Cursors are used in Cursor structures as defined in cursor.h. But 
- * some routines still use them directly. Over time these layers will be 
+ * Btree-Cursors are used in Cursor structures as defined in cursor.h. But
+ * some routines still use them directly. Over time these layers will be
  * cleaned up and the separation will be improved.
  *
  * The cursor implementation is very fast. Most of the operations (i.e.
- * move previous/next) will not cause any disk access but are O(1) and 
- * in-memory only. That's because a cursor is directly "coupled" to a 
+ * move previous/next) will not cause any disk access but are O(1) and
+ * in-memory only. That's because a cursor is directly "coupled" to a
  * btree page (Page) that resides in memory. If the page is removed
  * from memory (i.e. because the cache decides that it needs to purge the
- * cache, or if there's a page split) then the page is "uncoupled", and a 
- * copy of the current key is stored in the cursor. On first access, the 
- * cursor is "coupled" again and basically performs a normal lookup of the key. 
+ * cache, or if there's a page split) then the page is "uncoupled", and a
+ * copy of the current key is stored in the cursor. On first access, the
+ * cursor is "coupled" again and basically performs a normal lookup of the key.
  */
 
 #ifndef HAM_BTREE_CURSORS_H__
@@ -33,7 +33,9 @@
 
 #include "internal_fwd_decl.h"
 #include "blob.h"
+#include "duplicates.h"
 
+namespace ham {
 
 /**
  * the Cursor structure for a b+tree cursor
@@ -62,7 +64,7 @@ typedef struct btree_cursor_t
      * "coupled" or "uncoupled" states; coupled means that the
      * cursor points into a Page object, which is in
      * memory. "uncoupled" means that the cursor has a copy
-     * of the key on which it points (i.e. because the coupled page was 
+     * of the key on which it points (i.e. because the coupled page was
      * flushed to disk and removed from the cache)
      */
     union btree_cursor_union_t {
@@ -148,10 +150,10 @@ extern void
 btree_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
                 btree_cursor_t *cursor, Cursor *parent);
 
-/**                                                                 
- * Clone an existing cursor                                         
+/**
+ * Clone an existing cursor
  * the dest structure is already allocated
- */                                                                 
+ */
 extern ham_status_t
 btree_cursor_clone(btree_cursor_t *src, btree_cursor_t *dest,
                 Cursor *parent);
@@ -194,13 +196,13 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags);
 /**
  * returns true if a cursor points to this btree key, otherwise false
  */
-extern bool 
+extern bool
 btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key);
 
 /**
  * returns true if a cursor points to this external key, otherwise false
  */
-extern bool 
+extern bool
 btree_cursor_points_to_key(btree_cursor_t *cursor, ham_key_t *key);
 
 /**
@@ -223,12 +225,12 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
  * is a valid pointer)
  */
 extern ham_status_t
-btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record, 
+btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags);
 
-/**                                                                 
+/**
  * Erases the key from the index; afterwards, the cursor points to NIL
- */                                                                 
+ */
 extern ham_status_t
 btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags);
 
@@ -239,17 +241,17 @@ extern ham_status_t
 btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags);
 
-/**                                                                    
+/**
  * Count the number of records stored with the referenced key, i.e.
- * count the number of duplicates for the current key.        
- */                                                                    
+ * count the number of duplicates for the current key.
+ */
 extern ham_status_t
-btree_cursor_get_duplicate_count(btree_cursor_t *c, ham_size_t *count, 
+btree_cursor_get_duplicate_count(btree_cursor_t *c, ham_size_t *count,
                 ham_u32_t flags);
 
-/**                                                                 
- * Overwrite the record of this cursor                              
- */                                                                 
+/**
+ * Overwrite the record of this cursor
+ */
 extern ham_status_t
 btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record,
                 ham_u32_t flags);
@@ -278,5 +280,6 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size);
 extern void
 btree_cursor_close(btree_cursor_t *cursor);
 
+} // namespace ham
 
 #endif /* HAM_BTREE_CURSORS_H__ */

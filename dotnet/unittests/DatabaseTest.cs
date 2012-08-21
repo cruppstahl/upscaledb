@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -19,7 +19,7 @@ using Hamster;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
+    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.0.4.dll")]
     public class DatabaseTest
     {
         private static int errorCounter;
@@ -42,6 +42,32 @@ namespace Unittests
                 Assert.AreEqual(1, errorCounter);
             }
             Database.SetErrorHandler(null);
+        }
+
+        [TestMethod()]
+        public void CreateWithParameters()
+        {
+            using (Hamster.Environment env = new Hamster.Environment())
+            {
+                env.Create("ntest.db");
+
+                Parameter[] param = new Parameter[] {
+                    new Parameter {
+                        name = HamConst.HAM_PARAM_KEYSIZE, value = 32
+                    }
+                };
+                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, param)) { }
+            }
+        }
+
+        [TestMethod()]
+        public void CreateWithParameters2()
+        {
+            using (Hamster.Environment env = new Hamster.Environment())
+            {
+                env.Create("ntest.db");
+                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, new Parameter[0])) { }
+            }
         }
 
         [TestMethod()]
@@ -186,7 +212,7 @@ namespace Unittests
             compareCounter = 0;
             try {
                 db.Create("ntest.db");
-                db.SetPrefixCompareFunc(new 
+                db.SetPrefixCompareFunc(new
                     PrefixCompareFunc(MyPrefixCompareFunc));
                 db.Insert(k, r);
                 k[0] = 1;
@@ -236,7 +262,7 @@ namespace Unittests
             db.EnableCompression();
             db.Close();
         }
-    
+
         [TestMethod()]
         public void EnableCompressionInt() {
             Database db = new Database();
@@ -310,7 +336,7 @@ namespace Unittests
             try {
                 db.Create("ntest.db");
                 k[0] = 1;
-                r1[0] = 1; 
+                r1[0] = 1;
                 db.Insert(k, r1);
                 r2 = db.Find(k);
                 checkEqual(r1, r2);
@@ -474,7 +500,7 @@ namespace Unittests
         public void Recovery() {
             Database db = new Database();
             db.Create("ntest.db", HamConst.HAM_ENABLE_RECOVERY);
-            
+
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             db.Insert(k, r);
@@ -551,7 +577,7 @@ namespace Unittests
             db.Open(file, 0, list.ToArray());
             db.SetCompareFunc(new CompareFunc(NumericalCompareFunc));
             return db;
-        } 
+        }
 
         [TestMethod()]
         public void Cursor10000Test()

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -22,6 +22,19 @@
 #include "util.h"
 #include "error.h"
 
+/**
+ * A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
+ * opaque C structure, but internally we use a C++ class. The ham_txn_t
+ * struct satisfies the C compiler, and internally we just cast the pointers.
+ */
+struct ham_txn_t
+{
+    int dummy;
+};
+
+
+namespace ham {
+
 class Transaction;
 
 /**
@@ -35,9 +48,9 @@ typedef struct txn_op_t
     /** the original flags of this operation */
     ham_u32_t _orig_flags;
 
-    /** the referenced duplicate id (if neccessary) - used if this is 
+    /** the referenced duplicate id (if neccessary) - used if this is
      * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
-     * with a DUPLICATE_AFTER/BEFORE flag 
+     * with a DUPLICATE_AFTER/BEFORE flag
      * this is 1-based (like dupecache-index, which is also 1-based) */
     ham_u32_t _referenced_dupe;
 
@@ -187,7 +200,7 @@ extern ham_bool_t
 txn_op_conflicts(txn_op_t *op, Transaction *current_txn);
 
 /*
- * a node in the red-black Transaction tree (implemented in rb.h); 
+ * a node in the red-black Transaction tree (implemented in rb.h);
  * a group of Transaction operations which modify the same key
  */
 typedef struct txn_opnode_t
@@ -265,16 +278,6 @@ typedef struct txn_optree_t
 #define txn_optree_set_db(t, d)     (t)->_db=d
 
 /**
- * A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
- * opaque C structure, but internally we use a C++ class. The ham_txn_t
- * struct satisfies the C compiler, and internally we just cast the pointers.
- */
-struct ham_txn_t
-{
-    int dummy;
-};
-
-/**
  * a Transaction structure
  */
 class Transaction
@@ -317,22 +320,20 @@ class Transaction
 
     /** Get the memory buffer for the key data */
     ByteArray &get_key_arena() {
-        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
         return (m_key_arena);
     }
 
     /** Get the memory buffer for the record data */
     ByteArray &get_record_arena() {
-        ham_assert(!(_flags&HAM_TXN_TEMPORARY), (""));
         return (m_record_arena);
     }
 
   private:
-    /** this is where key->data points to when returning a 
+    /** this is where key->data points to when returning a
      * key to the user */
     ByteArray m_key_arena;
 
-    /** this is where record->data points to when returning a 
+    /** this is where record->data points to when returning a
      * record to the user */
     ByteArray m_record_arena;
 };
@@ -450,7 +451,7 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags);
  * creates an opnode for an optree; asserts that a node with this
  * key does not yet exist
  *
- * returns NULL if out of memory 
+ * returns NULL if out of memory
  */
 extern txn_opnode_t *
 txn_opnode_create(Database *db, ham_key_t *key);
@@ -488,7 +489,7 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(Transaction **ptxn, Environment *env, const char *name, 
+txn_begin(Transaction **ptxn, Environment *env, const char *name,
                 ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
@@ -525,6 +526,8 @@ txn_free_ops(Transaction *txn);
  */
 extern void
 txn_free(Transaction *txn);
+
+} // namespace ham
 
 
 #endif /* HAM_TXN_H__ */

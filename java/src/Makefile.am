@@ -1,5 +1,5 @@
 
-INCLUDES		= -I$(top_builddir)/include
+INCLUDES        = -I$(top_builddir)/include
 
 CFLAGS         += -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 

@@ -3,7 +3,7 @@
 
 copy ..\..\win32\out\java_dll_debug\hamsterdb-java.dll .
 
-set CP=.;../java/hamsterdb-2.0.4.jar;junit-4.4.jar 
+set CP=.;../java/hamsterdb-2.0.4.jar;junit-4.4.jar
 echo 1
 if ["%JDK%"] == [] goto l1
 goto start
@@ -21,12 +21,12 @@ goto end
 
 :start
 for %%F in (CursorTest DatabaseTest DatabaseExceptionTest TransactionTest EnvironmentTest) do (
-    echo Compiling %%F.java...
-    "%JDK%\bin\javac" -cp %CP% %%F.java
-    if errorlevel 1 goto error1
-    echo Running %%F:
-    "%JDK%\bin\java" -cp %CP% org.junit.runner.JUnitCore %%F
-    if errorlevel 1 goto error1
+	echo Compiling %%F.java...
+	"%JDK%\bin\javac" -cp %CP% %%F.java
+	if errorlevel 1 goto error1
+	echo Running %%F:
+	"%JDK%\bin\java" -cp %CP% org.junit.runner.JUnitCore %%F
+	if errorlevel 1 goto error1
 )
 
 echo Done! Deleting temporary database files

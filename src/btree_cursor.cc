@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -31,6 +31,8 @@
 #include "util.h"
 #include "cursor.h"
 
+namespace ham {
+
 static ham_status_t
 btree_cursor_couple(btree_cursor_t *c)
 {
@@ -40,8 +42,7 @@ btree_cursor_couple(btree_cursor_t *c)
     Environment *env = db->get_env();
     ham_u32_t dupe_id;
 
-    ham_assert(btree_cursor_is_uncoupled(c),
-            ("coupling a cursor which is not uncoupled"));
+    ham_assert(btree_cursor_is_uncoupled(c));
 
     /*
      * make a 'find' on the cached key; if we succeed, the cursor
@@ -141,14 +142,14 @@ __move_next(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /*
-     * if this key has duplicates: get the next duplicate; otherwise 
+     * if this key has duplicates: get the next duplicate; otherwise
      * (and if there's no duplicate): fall through
      */
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_status_t st;
         btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(c)+1);
-        st=blob_duplicate_get(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         btree_cursor_get_dupe_cache(c));
         if (st) {
@@ -181,7 +182,7 @@ __move_next(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
         return (HAM_KEY_NOT_FOUND);
 
     page->remove_cursor(btree_cursor_get_parent(c));
-    btree_cursor_set_flags(c, 
+    btree_cursor_set_flags(c,
                     btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
 
     st=db_fetch_page(&page, db, btree_node_get_right(node), 0);
@@ -223,7 +224,7 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /*
-     * if this key has duplicates: get the previous duplicate; otherwise 
+     * if this key has duplicates: get the previous duplicate; otherwise
      * (and if there's no duplicate): fall through
      */
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
@@ -231,8 +232,8 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && btree_cursor_get_dupe_id(c)>0) {
         ham_status_t st;
         btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(c)-1);
-        st=blob_duplicate_get(env, key_get_ptr(entry),
-                        btree_cursor_get_dupe_id(c), 
+        st=env->get_duplicate_manager()->get(key_get_ptr(entry),
+                        btree_cursor_get_dupe_id(c),
                         btree_cursor_get_dupe_cache(c));
         if (st) {
             btree_cursor_set_dupe_id(c, btree_cursor_get_dupe_id(c)+1);
@@ -263,7 +264,7 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             return (HAM_KEY_NOT_FOUND);
 
         page->remove_cursor(btree_cursor_get_parent(c));
-        btree_cursor_set_flags(c, 
+        btree_cursor_set_flags(c,
                 btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
 
         st=db_fetch_page(&page, db, btree_node_get_left(node), 0);
@@ -286,7 +287,7 @@ __move_previous(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        st=blob_duplicate_get_count(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry),
                         &count, btree_cursor_get_dupe_cache(c));
         if (st)
             return st;
@@ -357,7 +358,7 @@ __move_last(BtreeBackend *be, btree_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        st=blob_duplicate_get_count(env, key_get_ptr(entry),
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry),
                         &count, btree_cursor_get_dupe_cache(c));
         if (st)
             return (st);
@@ -398,7 +399,7 @@ btree_cursor_set_to_nil(btree_cursor_t *c)
 void
 btree_cursor_couple_to_other(btree_cursor_t *cu, btree_cursor_t *other)
 {
-    ham_assert(btree_cursor_is_coupled(other), (""));
+    ham_assert(btree_cursor_is_coupled(other));
     btree_cursor_set_to_nil(cu);
 
     btree_cursor_set_coupled_page(cu, btree_cursor_get_coupled_page(other));
@@ -432,12 +433,11 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
     if (btree_cursor_is_uncoupled(c) || btree_cursor_is_nil(c))
         return (0);
 
-    ham_assert(btree_cursor_get_coupled_page(c)!=0,
-            ("uncoupling a cursor which has no coupled page"));
+    ham_assert(btree_cursor_get_coupled_page(c)!=0);
 
     /* get the btree-entry of this key */
     node=page_get_btree_node(btree_cursor_get_coupled_page(c));
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /* copy the key */
@@ -457,9 +457,9 @@ btree_cursor_uncouple(btree_cursor_t *c, ham_u32_t flags)
         btree_cursor_get_coupled_page(c)->remove_cursor(btree_cursor_get_parent(c));
 
     /* set the flags and the uncoupled key */
-    btree_cursor_set_flags(c, 
+    btree_cursor_set_flags(c,
                     btree_cursor_get_flags(c)&(~BTREE_CURSOR_FLAG_COUPLED));
-    btree_cursor_set_flags(c, 
+    btree_cursor_set_flags(c,
                     btree_cursor_get_flags(c)|BTREE_CURSOR_FLAG_UNCOUPLED);
     btree_cursor_set_uncoupled_key(c, key);
 
@@ -537,11 +537,11 @@ btree_cursor_overwrite(btree_cursor_t *c, ham_record_t *record, ham_u32_t flags)
 
     /* get the btree node entry */
     node=page_get_btree_node(btree_cursor_get_coupled_page(c));
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     key=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     /* copy the key flags, and remove all flags concerning the key size */
-    st=key_set_record(db, txn, key, record, 
+    st=key_set_record(db, txn, key, record,
             btree_cursor_get_dupe_id(c), flags|HAM_OVERWRITE, 0);
     if (st)
         return (st);
@@ -580,13 +580,13 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
         st=__move_previous(be, c, flags);
     /* no move, but cursor is nil? return error */
     else if (btree_cursor_is_nil(c)) {
-        if (key || record) 
+        if (key || record)
             return (HAM_CURSOR_IS_NIL);
         else
             return (0);
     }
     /* no move, but cursor is not coupled? couple it */
-    else if (btree_cursor_is_uncoupled(c)) 
+    else if (btree_cursor_is_uncoupled(c))
         st=btree_cursor_couple(c);
 
     if (st)
@@ -594,15 +594,15 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
 
     /*
      * during btree_read_key and btree_read_record, new pages might be needed,
-     * and the page at which we're pointing could be moved out of memory; 
+     * and the page at which we're pointing could be moved out of memory;
      * that would mean that the cursor would be uncoupled, and we're losing
-     * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
+     * the 'entry'-pointer. therefore we 'lock' the page by incrementing
      * the reference counter
      */
-    ham_assert(btree_cursor_is_coupled(c), ("move: cursor is not coupled"));
+    ham_assert(btree_cursor_is_coupled(c));
     page=btree_cursor_get_coupled_page(c);
     node=page_get_btree_node(page);
-    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    ham_assert(btree_node_is_leaf(node));
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     if (key) {
@@ -617,7 +617,7 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
                 && btree_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=btree_cursor_get_dupe_cache(c);
             if (!dupe_entry_get_rid(e)) {
-                st=blob_duplicate_get(env, key_get_ptr(entry),
+                st=env->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         btree_cursor_get_dupe_cache(c));
                 if (st)
@@ -641,22 +641,22 @@ btree_cursor_move(btree_cursor_t *c, ham_key_t *key,
 }
 
 ham_status_t
-btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record, 
+btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
     ham_status_t st;
-    Backend *be=btree_cursor_get_db(c)->get_backend();
+    BtreeBackend *be=(BtreeBackend *)btree_cursor_get_db(c)->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
-    ham_assert(key, ("invalid parameter"));
+    ham_assert(key);
 
     st=btree_cursor_set_to_nil(c);
     if (st)
         return (st);
 
-    st=btree_find_cursor((BtreeBackend *)be, txn, c, key, record, flags);
+    st=be->do_find(txn, (Cursor *)c, key, record, flags);
     if (st) {
         /* cursor is now NIL */
         return (st);
@@ -676,11 +676,11 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
-    ham_assert(key, (0));
-    ham_assert(record, (0));
+    ham_assert(key);
+    ham_assert(record);
 
     /* call the btree insert function */
-    st=btree_insert_cursor(be, txn, key, record, c, flags);
+    st=be->insert_cursor(txn, key, record, c, flags);
     if (st)
         return (st);
 
@@ -699,19 +699,18 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
         return (HAM_NOT_INITIALIZED);
 
     /* coupled cursor: try to remove the key directly from the page.
-     * if that's not possible (i.e. because of underflow): uncouple 
+     * if that's not possible (i.e. because of underflow): uncouple
      * the cursor and process the normal erase algorithm */
     if (btree_cursor_is_coupled(c)) {
         Page *page=btree_cursor_get_coupled_page(c);
         btree_node_t *node=page_get_btree_node(page);
         BtreeBackend *be=(BtreeBackend *)db->get_backend();
         ham_size_t maxkeys=be->get_maxkeys();
-        ham_assert(btree_node_is_leaf(node), 
-                ("iterator points to internal node"));
-        if (btree_cursor_get_coupled_index(c)>0 
+        ham_assert(btree_node_is_leaf(node));
+        if (btree_cursor_get_coupled_index(c)>0
                 && btree_node_get_count(node)>btree_get_minkeys(maxkeys)) {
             /* yes, we can remove the key */
-            return (btree_cursor_erase_fasttrack(be, txn, c));
+            return (be->cursor_erase_fasttrack(txn, c));
         }
         else {
             st=btree_cursor_uncouple(c, 0);
@@ -722,11 +721,10 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     else if (!btree_cursor_is_uncoupled(c))
         return (HAM_CURSOR_IS_NIL);
 
-    return (btree_erase_cursor(be, txn,
-                btree_cursor_get_uncoupled_key(c), c, flags));
+    return (be->erase_cursor(txn, btree_cursor_get_uncoupled_key(c), c, flags));
 }
 
-bool 
+bool
 btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
 {
     ham_status_t st;
@@ -741,7 +739,7 @@ btree_cursor_points_to(btree_cursor_t *cursor, btree_key_t *key)
     if (btree_cursor_is_coupled(cursor)) {
         Page *page=btree_cursor_get_coupled_page(cursor);
         btree_node_t *node=page_get_btree_node(page);
-        btree_key_t *entry=btree_node_get_key(db, node, 
+        btree_key_t *entry=btree_node_get_key(db, node,
                         btree_cursor_get_coupled_index(cursor));
 
         if (entry==key)
@@ -768,7 +766,7 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
     if (btree_cursor_is_coupled(btc)) {
         Page *page=btree_cursor_get_coupled_page(btc);
         btree_node_t *node=page_get_btree_node(page);
-        btree_key_t *entry=btree_node_get_key(db, node, 
+        btree_key_t *entry=btree_node_get_key(db, node,
                         btree_cursor_get_coupled_index(btc));
 
         if (key_get_size(entry)!=key->size)
@@ -782,7 +780,7 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
             db->close_cursor(clone);
             return (false);
         }
-        if (0==db->compare_keys(key, 
+        if (0==db->compare_keys(key,
                btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
             ret=true;
         db->close_cursor(clone);
@@ -790,15 +788,15 @@ btree_cursor_points_to_key(btree_cursor_t *btc, ham_key_t *key)
     }
 
     else {
-        ham_assert(!"shouldn't be here", (""));
+        ham_assert(!"shouldn't be here");
     }
-    
+
     return (ret);
 }
 
 
 ham_status_t
-btree_cursor_get_duplicate_count(btree_cursor_t *c, 
+btree_cursor_get_duplicate_count(btree_cursor_t *c,
                 ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
@@ -829,7 +827,7 @@ btree_cursor_get_duplicate_count(btree_cursor_t *c,
         *count=1;
     }
     else {
-        st=blob_duplicate_get_count(env, key_get_ptr(entry), count, 0);
+        st=env->get_duplicate_manager()->get_count(key_get_ptr(entry), count, 0);
         if (st)
             return (st);
     }
@@ -928,7 +926,7 @@ btree_cursor_get_duplicate_table(btree_cursor_t *c, dupe_table_t **ptable,
         return (0);
     }
 
-    return (blob_duplicate_get_table(env, key_get_ptr(entry), 
+    return (env->get_duplicate_manager()->get_table(key_get_ptr(entry),
                     ptable, needs_free));
 }
 
@@ -965,7 +963,7 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
     entry=btree_node_get_key(db, node, btree_cursor_get_coupled_index(c));
 
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES) {
-        st=blob_duplicate_get(db->get_env(), key_get_ptr(entry),
+        st=db->get_env()->get_duplicate_manager()->get(key_get_ptr(entry),
                         btree_cursor_get_dupe_id(c),
                         &dupeentry);
         if (st)
@@ -994,7 +992,7 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
         *size=0;
     }
     else {
-        st=blob_get_datasize(db, rid, size);
+        st=db->get_env()->get_blob_manager()->get_datasize(db, rid, size);
         if (st)
             return (st);
     }
@@ -1002,3 +1000,4 @@ btree_cursor_get_record_size(btree_cursor_t *c, ham_offset_t *size)
     return (0);
 }
 
+} // namespace ham

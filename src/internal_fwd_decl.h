@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -12,14 +12,14 @@
 /**
  * @brief provides forward declarations of internally used types
  *
- * This header file provides these forward declarations to prevent several 
- * cyclic dependencies; in particular, the @ref Page is a type used 
- * throughout, but a @ref Page contains several other types, which 
+ * This header file provides these forward declarations to prevent several
+ * cyclic dependencies; in particular, the @ref Page is a type used
+ * throughout, but a @ref Page contains several other types, which
  * again reference @ref Page pointers either directly or indirectly.
  *
- * To solve this self-referential issue once and for all, all major hamster 
- * internal types are forward declared here; when the code requires the actual 
- * implementation of a type it can include the related header file any time it 
+ * To solve this self-referential issue once and for all, all major hamster
+ * internal types are forward declared here; when the code requires the actual
+ * implementation of a type it can include the related header file any time it
  * wishes.
  *
  * @remark This way of solving the cyclic dependency conundrum has the added
@@ -34,6 +34,8 @@
 #include <ham/hamsterdb_int.h>
 
 #include "config.h"
+
+namespace ham {
 
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
@@ -100,6 +102,8 @@ typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
 
+} // namespace ham
+
 #include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -121,5 +125,5 @@ public:
 #endif
 };
 
-
 #endif
+

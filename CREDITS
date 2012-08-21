@@ -1,6 +1,6 @@
 
-Jul 20, 2009 
-ham_env_get_parameters, ham_db_get_parameters and functions for approximate 
-matching, minor bugfixes and performance improvements plus documentation 
-improvements were written by Ger Hobbelt, http://www.hobbelt.com, 
+Jul 20, 2009
+ham_env_get_parameters, ham_db_get_parameters and functions for approximate
+matching, minor bugfixes and performance improvements plus documentation
+improvements were written by Ger Hobbelt, http://www.hobbelt.com,
 http://www.hebbut.net - THANKS!

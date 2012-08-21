@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -20,67 +20,67 @@ public class Database {
     private native static int ham_get_version(int which);
 
     private native static String ham_get_license(int which);
-    
+
     private native static void ham_set_errhandler(ErrorHandler eh);
-    
+
     private native long ham_new();
-    
+
     private native void ham_delete(long handle);
-            
+
     private native int ham_create_ex(long handle, String filename, int flags,
             int mode, Parameter[] params);
-    
-    private native int ham_open_ex(long handle, String filename, int flags, 
+
+    private native int ham_open_ex(long handle, String filename, int flags,
             Parameter[] params);
 
     private native int ham_get_error(long handle);
 
-    private native void ham_set_compare_func(long handle, 
+    private native void ham_set_compare_func(long handle,
             CompareCallback cmp);
-    
-    private native void ham_set_prefix_compare_func(long handle, 
+
+    private native void ham_set_prefix_compare_func(long handle,
             PrefixCompareCallback cmp);
 
-    private native void ham_set_duplicate_compare_func(long handle, 
+    private native void ham_set_duplicate_compare_func(long handle,
             DuplicateCompareCallback cmp);
-    
-    private native int ham_enable_compression(long handle, int level, 
+
+    private native int ham_enable_compression(long handle, int level,
             int flags);
-    
+
     private native Environment ham_get_env(long handle);
-    
-    private native byte[] ham_find(long handle, long txnhandle, 
+
+    private native byte[] ham_find(long handle, long txnhandle,
             byte[] key, int flags);
-    
+
     private native int ham_flush(long handle, int flags);
 
     private native int ham_get_parameters(long handle, Parameter[] params);
-    
-    private native int ham_insert(long handle, long txnhandle, 
+
+    private native int ham_insert(long handle, long txnhandle,
             byte[] key, byte[] record, int flags);
 
-    private native int ham_erase(long handle, long txnhandle, 
+    private native int ham_erase(long handle, long txnhandle,
             byte[] key, int flags);
 
-    private native long ham_get_key_count(long handle, long txnhandle, 
-            int flags); 
+    private native long ham_get_key_count(long handle, long txnhandle,
+            int flags);
 
-    private native int ham_close(long handle, int flags); 
-    
+    private native int ham_close(long handle, int flags);
+
     /**
      * Sets the global error handler.
      * <p>
      * This handler will receive all debug messages that are emitted
-     * by hamsterdb. You can install the default handler by setting 
+     * by hamsterdb. You can install the default handler by setting
      * <code>f</code> to null.
      * <p>
      * The default error handler prints all messages to stderr. To install a
      * different logging facility, you can provide your own error handler.
      * <p>
      * This method wraps the native ham_set_errhandler function.
-	 * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
-     * 
+     * <p>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
+     *
      * @param eh ErrorHandler object which is called whenever an error message
      *          is emitted; use null to set the default error handler.
      */
@@ -94,8 +94,8 @@ public class Database {
      * Returns the version of the hamsterdb library.
      * <p>
      * This method wraps the native ham_get_version function.
-	 * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gafdbeaa3c3be6812d1b5d5470f7e984ca">C documentation</a>
+     * <p>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gafdbeaa3c3be6812d1b5d5470f7e984ca">C documentation</a>
      *
      * @return the hamsterdb version tuple
      */
@@ -106,16 +106,16 @@ public class Database {
         v.revision=ham_get_version(2);
         return v;
     }
-    
+
     /**
      * Returns the name of the licensee and the name of the licensed product.
      * <p>
      * The licensee name will be empty for non-commercial versions.
      * <p>
      * This method wraps the native ham_get_license function.
-	 * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gaf4067983dbb50dc2f8127bc90d1bc09f">C documentation</a>
-     * 
+     * <p>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gaf4067983dbb50dc2f8127bc90d1bc09f">C documentation</a>
+     *
      * @return the hamsterdb licensee information
      */
     public static License getLicense() {
@@ -124,13 +124,13 @@ public class Database {
         l.product=ham_get_license(1);
         return l;
     }
-    
+
     /**
      * Constructor - creates a Database object
      */
     public Database() {
     }
-    
+
     /**
      * Constructor - creates a Database object and binds it to a
      * native hamsterdb handle.
@@ -138,11 +138,11 @@ public class Database {
     public Database(long handle) {
         m_handle=handle;
     }
-    
+
     /**
      * Destructor - closes the Database, if it is still open.
      */
-    protected void finalize() 
+    protected void finalize()
             throws DatabaseException {
         close();
     }
@@ -156,23 +156,23 @@ public class Database {
             throws DatabaseException {
         create(filename, 0, 0644, null);
     }
-    
+
     /**
      * Creates a Database
      *
      * @see Database#create(String, int, int, Parameter[])
      */
-    public void create(String filename, int flags) 
+    public void create(String filename, int flags)
             throws DatabaseException {
         create(filename, flags, 0644, null);
     }
-    
+
     /**
      * Creates a Database
      *
      * @see Database#create(String, int, int, Parameter[])
      */
-    public void create(String filename, int flags, int mode) 
+    public void create(String filename, int flags, int mode)
             throws DatabaseException {
         create(filename, flags, mode, null);
     }
@@ -188,84 +188,84 @@ public class Database {
      * @param flags Optional flags for this operation, combined with
      *        bitwise OR. Possible flags are:
      *      <ul>
-     *       <li><code>Const.HAM_WRITE_THROUGH</code></li> 
-     *            Immediately write modified pages to 
+     *       <li><code>Const.HAM_WRITE_THROUGH</code></li>
+     *            Immediately write modified pages to
      *            the disk. This slows down all Database operations, but may
      *            save the Database integrity in case of a system crash.
-     *       <li><code>Const.HAM_USE_BTREE</code></li> 
-     *            Use a B+Tree for the index structure. Currently enabled 
-     *            by default, but future releases of hamsterdb will 
+     *       <li><code>Const.HAM_USE_BTREE</code></li>
+     *            Use a B+Tree for the index structure. Currently enabled
+     *            by default, but future releases of hamsterdb will
      *            offer additional index structures, i.e. hash tables.
-     *       <li><code>Const.HAM_DISABLE_VAR_KEYLEN</const></li> 
-     *            Do not allow the use of variable length keys. 
-     *            Inserting a key, which is larger than the B+Tree index 
+     *       <li><code>Const.HAM_DISABLE_VAR_KEYLEN</const></li>
+     *            Do not allow the use of variable length keys.
+     *            Inserting a key, which is larger than the B+Tree index
      *            key size, returns <code>Const.HAM_INV_KEYSIZE</code>.
-     *       <li><code>Const.HAM_IN_MEMORY_DB</code></li> 
-     *            Creates an In-Memory Database. No file will be created, 
-     *            and the Database contents are lost after the Database 
+     *       <li><code>Const.HAM_IN_MEMORY_DB</code></li>
+     *            Creates an In-Memory Database. No file will be created,
+     *            and the Database contents are lost after the Database
      *            is closed. The <code>filename</code> parameter can
      *            be null. Do <b>NOT</b> use in combination with
-     *            <code>Const.HAM_CACHE_STRICT</code> and do <b>NOT</b> 
+     *            <code>Const.HAM_CACHE_STRICT</code> and do <b>NOT</b>
      *            specify a cache size other than 0.
-     *       <li><code>Const.HAM_RECORD_NUMBER</code></li> 
-     *            Creates an "auto-increment" Database. Keys in Record 
-     *            Number Databases are automatically assigned an incrementing 
-     *            64bit value. 
-     *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li> 
-     *            Enable duplicate keys for this Database. By default, 
+     *       <li><code>Const.HAM_RECORD_NUMBER</code></li>
+     *            Creates an "auto-increment" Database. Keys in Record
+     *            Number Databases are automatically assigned an incrementing
+     *            64bit value.
+     *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
+     *            Enable duplicate keys for this Database. By default,
      *            duplicate keys are disabled.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li> 
+     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
      *            Sort duplicate keys for this Database. Only allowed in
-     *            combination with <code>Const.HAM_ENABLE_DUPLICATES</code>. 
-     *            A compare function can be set with 
-     *            ham_set_duplicate_compare_func. This flag is not persistent. 
-     *       <li><code>Const.HAM_DISABLE_MMAP</code></li> 
-     *            Do not use memory mapped files for I/O. By default, 
-     *            hamsterdb checks if it can use mmap, since mmap is 
-     *            faster than read/write. For performance reasons, this 
+     *            combination with <code>Const.HAM_ENABLE_DUPLICATES</code>.
+     *            A compare function can be set with
+     *            ham_set_duplicate_compare_func. This flag is not persistent.
+     *       <li><code>Const.HAM_DISABLE_MMAP</code></li>
+     *            Do not use memory mapped files for I/O. By default,
+     *            hamsterdb checks if it can use mmap, since mmap is
+     *            faster than read/write. For performance reasons, this
      *            flag should not be used.
-     *       <li><code>Const.HAM_CACHE_STRICT</code></li> 
+     *       <li><code>Const.HAM_CACHE_STRICT</code></li>
      *            Do not allow the cache to grow larger than the size specified
-     *            with <code>Const.HAM_PARAM_CACHESIZE</code>. If a 
-     *            Database operation needs to resize the cache, it will 
+     *            with <code>Const.HAM_PARAM_CACHESIZE</code>. If a
+     *            Database operation needs to resize the cache, it will
      *            fail and return <code>Const.HAM_CACHE_FULL</code>.
      *            If the flag is not set, the cache is allowed to allocate
      *            more pages than the maximum cache size, but only if it's
      *            necessary and only for a short time.
-     *       <li><code>Const.HAM_CACHE_UNLIMITED</code></li> 
-     *       <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li> 
+     *       <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
+     *       <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
      *            This flag is deprecated.
-     *       <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li> 
+     *       <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li>
      *            This flag is deprecated.
-     *       <li><code>Const.HAM_ENABLE_RECOVERY</code></li> 
+     *       <li><code>Const.HAM_ENABLE_RECOVERY</code></li>
      *            Enables logging/recovery for this Database. Not allowed in
-     *            combination with <code>Const.HAM_IN_MEMORY_DB</code>, 
+     *            combination with <code>Const.HAM_IN_MEMORY_DB</code>,
      *            <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
      *            <code>Const.HAM_WRITE_THROUGH</code>.
-     *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li> 
+     *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
      *            Enables Transactions for this Database.
      *      </ul>
-     * 
-     * @param mode File access rights for the new file. This is the 
+     *
+     * @param mode File access rights for the new file. This is the
      *        <code>mode</code>
      *        parameter for creat(2). Ignored on Microsoft Windows.
-     * @param params An array of <code>Parameter</code> structures. 
+     * @param params An array of <code>Parameter</code> structures.
      *        The following parameters are available:
      *      <ul>
      *        <li><code>Const.HAM_DEFAULT_CACHESIZE</code></li>
-     *        <li><code>Const.HAM_PARAM_PAGESIZE</code></li> 
-     *        <li><code>Const.HAM_PARAM_KEYSIZE</code></li> 
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li> 
+     *        <li><code>Const.HAM_PARAM_PAGESIZE</code></li>
+     *        <li><code>Const.HAM_PARAM_KEYSIZE</code></li>
+     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
      *      </ul>
-	 * <p>
-	 * More information about flags, parameters and possible exceptions: 
+     * <p>
+     * More information about flags, parameters and possible exceptions:
      * <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__database.html#ga24245a31681e5987a0d71c04ff953ea3">C documentation</a>
      */
     public synchronized void create(String filename, int flags, int mode,
             Parameter[] params) throws DatabaseException {
         // make sure that the parameters don't have a NULL-element
         if (params!=null) {
-            for (int i=0; i<params.length; i++) 
+            for (int i=0; i<params.length; i++)
                 if (params[i]==null)
                     throw new NullPointerException();
         }
@@ -275,27 +275,27 @@ public class Database {
         if (status!=0)
             throw new DatabaseException(status);
     }
-    
+
     /**
      * Opens an existing Database
-     * 
+     *
      * @see Database#open(String, int, Parameter[])
      */
     public void open(String filename)
             throws DatabaseException {
         open(filename, 0, null);
     }
-    
+
     /**
      * Opens an existing Database
-     * 
+     *
      * @see Database#open(String, int, Parameter[])
      */
     public void open(String filename, int flags)
             throws DatabaseException {
         open(filename, flags, null);
     }
-    
+
     /**
      * Opens an existing Database
      * <p>
@@ -306,62 +306,62 @@ public class Database {
      *        bitwise OR. Possible flags are:
      *      <ul>
      *       <li><code>Const.HAM_READ_ONLY</code></li>
-     *            Opens the file for reading only. Operations which need 
-     *            write access (i.e. <code>Database.insert</code>) will return 
+     *            Opens the file for reading only. Operations which need
+     *            write access (i.e. <code>Database.insert</code>) will return
      *            <code>Const.HAM_DB_READ_ONLY</code>.
      *       <li><code>Const.HAM_WRITE_THROUGH</code></li>
-     *            Immediately write modified pages to the disk. 
-     *            This slows down all Database operations, but could save 
+     *            Immediately write modified pages to the disk.
+     *            This slows down all Database operations, but could save
      *            the Database integrity in case of a system crash.
-     *       <li><code>Const.HAM_DISABLE_VAR_KEYLEN</code></li> 
-     *            Do not allow the use of variable length keys. Inserting 
-     *            a key, which is larger than the B+Tree index key size, 
+     *       <li><code>Const.HAM_DISABLE_VAR_KEYLEN</code></li>
+     *            Do not allow the use of variable length keys. Inserting
+     *            a key, which is larger than the B+Tree index key size,
      *            returns <code>Const.HAM_INV_KEYSIZE</code>.
      *       <li><code>Const.HAM_DISABLE_MMAP</code></li>
-     *            Do not use memory mapped files for I/O. By default, 
-     *            hamsterdb checks if it can use mmap, since mmap is 
-     *            faster than read/write. For performance reasons, this 
+     *            Do not use memory mapped files for I/O. By default,
+     *            hamsterdb checks if it can use mmap, since mmap is
+     *            faster than read/write. For performance reasons, this
      *            flag should not be used.
      *       <li><code>Const.HAM_CACHE_STRICT</code></li>
-     *            Do not allow the cache to grow larger than the cache size. 
-     *            If a Database operation needs to resize the cache, 
+     *            Do not allow the cache to grow larger than the cache size.
+     *            If a Database operation needs to resize the cache,
      *            it will fail and return <code>Const.HAM_CACHE_FULL</code>.
      *            If the flag is not set, the cache is allowed to allocate
      *            more pages than the maximum cache size, but only if it's
      *            necessary and only for a short time.
-     *       <li><code>Const.HAM_CACHE_UNLIMITED</code></li> 
+     *       <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
      *       <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
      *            This flag is deprecated.
-     *       <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li> 
+     *       <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li>
      *            This is enabled by default.
-     *       <li><code>Const.HAM_ENABLE_RECOVERY</code></li> 
+     *       <li><code>Const.HAM_ENABLE_RECOVERY</code></li>
      *            Enables logging/recovery for this Database. Will return
      *            <code>Const.HAM_NEED_RECOVERY</code>, if the Database
      *            is in an inconsistent state. Not allowed in combination
      *            with <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
      *            <code>Const.HAM_WRITE_THROUGH</code>.
-     *       <li><code>Const.HAM_AUTO_RECOVERY</code></li> 
+     *       <li><code>Const.HAM_AUTO_RECOVERY</code></li>
      *            Automatically recover the Database, if necessary. This
      *            flag implies <code>Const.HAM_ENABLE_RECOVERY</code>.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li> 
-     *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li> 
-     *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li> 
+     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
+     *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
+     *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
      *      </ul>
-     * @param params An array of <code>Parameter</code> structures. The 
+     * @param params An array of <code>Parameter</code> structures. The
      *        following parameters are available:
      *      <ul>
-     *        <li><code>Const.HAM_PARAM_CACHESIZE</code></li> 
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li> 
+     *        <li><code>Const.HAM_PARAM_CACHESIZE</code></li>
+     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
      *      </ul>
-	 * <p>
-	 * More information about flags, parameters and possible exceptions: 
+     * <p>
+     * More information about flags, parameters and possible exceptions:
      * <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__database.html#ga7b1ae31472d71ae215249295457d23f9">C documentation</a>
      */
-    public synchronized void open(String filename, int flags, 
+    public synchronized void open(String filename, int flags,
             Parameter[] params) throws DatabaseException {
         // make sure that the parameters don't have a NULL-element
         if (params!=null) {
-            for (int i=0; i<params.length; i++) 
+            for (int i=0; i<params.length; i++)
                 if (params[i]==null)
                     throw new NullPointerException();
         }
@@ -371,27 +371,27 @@ public class Database {
         if (status!=0)
             throw new DatabaseException(status);
     }
-    
+
     /**
      * Returns the last error code
      * <p>
      * This method wraps the native ham_get_error function.
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
      *
      * @return the error code of the last operation
      */
     public synchronized int getError() {
         return ham_get_error(m_handle);
     }
-    
+
     /**
      * Sets the comparison function
      * <p>
      * This method wraps the native ham_set_compare_func function.
      * <p>
-     * The <code>CompareCallback.compare</code> method compares two index 
-     * keys. It returns -1 if the first key is smaller, +1 if the second 
+     * The <code>CompareCallback.compare</code> method compares two index
+     * keys. It returns -1 if the first key is smaller, +1 if the second
      * key is smaller or 0 if both keys are equal.
      * <p>
      * If <code>cmp</code> is null, hamsterdb will use the default compare
@@ -402,7 +402,7 @@ public class Database {
      * which is based on memcmp(3). See <code>setPrefixComparator</code> for
      * details.
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42e161d07075cbfa157834d">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42e161d07075cbfa157834d">C documentation</a>
      * <p>
      * @param cmp an object implementing the CompareCallback interface, or null
      * <p>
@@ -412,7 +412,7 @@ public class Database {
         m_cmp=cmp;
         ham_set_compare_func(m_handle, cmp);
     }
-     
+
     /**
      * Sets the prefix comparison function
      * <p>
@@ -425,9 +425,9 @@ public class Database {
      * If <code>cmp</code> is null, hamsterdb will use the default prefix
      * compare function (which is based on memcmp(3)).
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga6d2b05b0c8581a75ae2d45b52b2f04d2">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga6d2b05b0c8581a75ae2d45b52b2f04d2">C documentation</a>
      * <p>
-     * @param cmp an object implementing the PrefixCompareCallback interface, 
+     * @param cmp an object implementing the PrefixCompareCallback interface,
      *          or null
      * <p>
      * @see Database#setComparator
@@ -442,14 +442,14 @@ public class Database {
      * <p>
      * This method wraps the native ham_set_duplicate_compare_func function.
      * <p>
-     * @param cmp an object implementing the DuplicateCompareCallback 
+     * @param cmp an object implementing the DuplicateCompareCallback
      *          interface, or null
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga7d8cd9266c8e802685ee467d3bb35b3b">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga7d8cd9266c8e802685ee467d3bb35b3b">C documentation</a>
      * <p>
      * @see Database#setComparator
      */
-    public synchronized void setDuplicateComparator(DuplicateCompareCallback 
+    public synchronized void setDuplicateComparator(DuplicateCompareCallback
             cmp) {
         m_dupe_cmp=cmp;
         ham_set_duplicate_compare_func(m_handle, cmp);
@@ -461,19 +461,19 @@ public class Database {
      * This method wraps the native ham_find function.
      * <p>
      * This function searches the Database for a key. If the key
-     * is found, the method will return the record of this item. 
+     * is found, the method will return the record of this item.
      * <p>
      * <code>Database.find</code> can not search for duplicate keys. If the
      * key has multiple duplicates, only the first duplicate is returned.
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
      * <p>
      * @param txn the (optional) Transaction
      * @param key the key of the item
      * <p>
      * @return the record of the item
      */
-    public byte[] find(Transaction txn, byte[] key) 
+    public byte[] find(Transaction txn, byte[] key)
             throws DatabaseException {
         if (key==null)
             throw new NullPointerException();
@@ -493,7 +493,7 @@ public class Database {
             throws DatabaseException {
         return find(null, key);
     }
-    
+
     /**
      * Inserts a Database item
      *
@@ -503,7 +503,7 @@ public class Database {
             throws DatabaseException {
         insert(key, record, 0);
     }
-    
+
     /**
      * Inserts a Database item
      *
@@ -519,7 +519,7 @@ public class Database {
      *
      * @see Database#insert(Transaction, byte[], byte[], int)
      */
-    public synchronized void insert(Transaction txn, byte[] key, 
+    public synchronized void insert(Transaction txn, byte[] key,
         byte[] record)
             throws DatabaseException {
         insert(txn, key, record, 0);
@@ -532,15 +532,15 @@ public class Database {
      * <p>
      * This function inserts a key/record pair as a new Database item.
      * <p>
-     * If the key already exists in the Database, error code 
+     * If the key already exists in the Database, error code
      * <code>Const.HAM_DUPLICATE_KEY</code> is thrown.
      * <p>
-     * If you wish to overwrite an existing entry specify the 
+     * If you wish to overwrite an existing entry specify the
      * flag <code>Const.HAM_OVERWRITE</code>.
      * <p>
-     * If you wish to insert a duplicate key specify the flag 
-     * <code>Const.HAM_DUPLICATE</code>. (Note that the Database has to 
-     * be created with <code>Const.HAM_ENABLE_DUPLICATES</code> in order 
+     * If you wish to insert a duplicate key specify the flag
+     * <code>Const.HAM_DUPLICATE</code>. (Note that the Database has to
+     * be created with <code>Const.HAM_ENABLE_DUPLICATES</code> in order
      * to use duplicate keys.) <br>
      * The duplicate key is inserted after all other duplicate keys (see
      * <code>Const.HAM_DUPLICATE_INSERT_LAST</code>).
@@ -550,27 +550,27 @@ public class Database {
      * @param record the record of the new item
      * @param flags optional flags for inserting. Possible flags are:
      *      <ul>
-     *        <li><code>Const.HAM_OVERWRITE</code>. If the key already 
-     *          exists, the record is overwritten. Otherwise, the key is 
+     *        <li><code>Const.HAM_OVERWRITE</code>. If the key already
+     *          exists, the record is overwritten. Otherwise, the key is
      *          inserted.
-     *        <li><code>Const.HAM_DUPLICATE</code>. If the key already 
-     *          exists, a duplicate key is inserted. The key is inserted 
+     *        <li><code>Const.HAM_DUPLICATE</code>. If the key already
+     *          exists, a duplicate key is inserted. The key is inserted
      *          before the already existing duplicates.
      *      </ul>
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
      */
-    public synchronized void insert(Transaction txn, byte[] key, 
+    public synchronized void insert(Transaction txn, byte[] key,
             byte[] record, int flags)
             throws DatabaseException {
         if (key==null || record==null)
             throw new NullPointerException();
-        int status=ham_insert(m_handle, txn!=null ? txn.getHandle() : 0, 
+        int status=ham_insert(m_handle, txn!=null ? txn.getHandle() : 0,
                                 key, record, flags);
         if (status!=0)
             throw new DatabaseException(status);
     }
-    
+
     /**
      * Erases a Database item
      *
@@ -580,7 +580,7 @@ public class Database {
             throws DatabaseException {
         erase(null, key);
     }
-    
+
     /**
      * Erases a Database item
      * <p>
@@ -589,14 +589,14 @@ public class Database {
      * This function erases a Database item. If the item with the specified key
      * does not exist, <code>Const.HAM_KEY_NOT_FOUND</code> is thrown.
      * <p>
-     * Note that this method can not erase a single duplicate key. If the key 
+     * Note that this method can not erase a single duplicate key. If the key
      * has multiple duplicates, all duplicates of this key will be erased.
      * Use <code>Cursor.erase</code> to erase a specific duplicate key.
      * <p>
      * @param txn the (optional) Transaction
      * @param key the key to delete
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
      *
      * @see Cursor#erase
      */
@@ -621,7 +621,7 @@ public class Database {
      * Since In-Memory Databases do not have a file on disk, the
      * function will have no effect and will return successfully.
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad4db2642d606577e23808ed8e35b7d30">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad4db2642d606577e23808ed8e35b7d30">C documentation</a>
      */
     public synchronized void flush()
             throws DatabaseException {
@@ -639,7 +639,7 @@ public class Database {
             throws DatabaseException {
         enableCompression(0);
     }
-    
+
     /**
      * Enables zlib compression for all inserted records
      * <p>
@@ -648,8 +648,8 @@ public class Database {
      * This function enables zlib compression for all inserted Database
      * records.
      * <p>
-     * The compression will be active till <code>Database.close</code> is 
-     * called. This method should be called immediately after 
+     * The compression will be active till <code>Database.close</code> is
+     * called. This method should be called immediately after
      * <code>Database.create</code> or <code>Database.open</code>.
      * <p>
      * Note that zlib usually has an overhead and often is not effective if the
@@ -659,7 +659,7 @@ public class Database {
      * @param level The compression level; set 0 for the zlib default, 1 for
      *          best speed and 9 for minimum size
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga88bae903616e46c42cd492141b0bd7f4">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga88bae903616e46c42cd492141b0bd7f4">C documentation</a>
      */
     public synchronized void enableCompression(int level)
             throws DatabaseException {
@@ -675,7 +675,7 @@ public class Database {
      * <p>
      * @param params A Parameter list of all values that should be retrieved
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
      */
     public synchronized void getParameters(Parameter[] params)
             throws DatabaseException {
@@ -717,12 +717,12 @@ public class Database {
     /**
      * Calculates the number of keys stored in the Database
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
      */
     public synchronized long getKeyCount(Transaction txn, int flags)
             throws DatabaseException {
         // native function will throw exception
-        return ham_get_key_count(m_handle, txn!=null ? txn.getHandle() : 0, 
+        return ham_get_key_count(m_handle, txn!=null ? txn.getHandle() : 0,
                                 flags);
     }
 
@@ -732,7 +732,7 @@ public class Database {
     public void close() {
         close(0);
     }
-    
+
     /**
      * Closes the Database
      * <p>
@@ -740,7 +740,7 @@ public class Database {
      * <p>
      * This function flushes the Database and then closes the file handle.
      * <p>
-	 * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
+     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
      */
     public synchronized void close(int flags) {
         if (m_handle==0)
@@ -807,7 +807,7 @@ public class Database {
     private PrefixCompareCallback m_prefix_cmp;
     private DuplicateCompareCallback m_dupe_cmp;
     private static ErrorHandler m_eh;
-    
+
     static {
         System.loadLibrary("hamsterdb-java");
     }

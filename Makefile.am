@@ -1,12 +1,12 @@
-ACLOCAL_AMFLAGS	= -I m4 
+ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = 3rdparty src include samples tools unittests java
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \
              documentation/hamsterdb-main.jpg           \
-             documentation/*.doc	              	    \
+             documentation/*.doc                        \
              documentation/html
-             
+
 
 EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              ChangeLog                                  \
@@ -17,7 +17,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
              3rdparty                                   \
-             src/*.cc src/*.h src/Makefile.am   		\
+             src/*.cc src/*.h src/Makefile.am           \
              src/Makefile.in                            \
              src/protocol/messages.proto                \
              src/protocol                               \
