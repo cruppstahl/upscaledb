@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -43,7 +43,7 @@ dbg_snprintf(char *str, size_t size, const char *format, ...)
   va_start(ap, format);
   s=util_vsnprintf(str, size, format, ap);
   va_end(ap);
-  
+
   return (s);
 }
 
@@ -61,19 +61,19 @@ static ham_errhandler_fun g_hand = dbg_errhandler;
 
 static Mutex dbg_mutex;
 
-void 
+void
 dbg_lock(void)
 {
   dbg_mutex.lock();
 }
 
-void 
+void
 dbg_unlock(void)
 {
   dbg_mutex.unlock();
 }
 
-void 
+void
 dbg_prepare(int level, const char *file, int line, const char *function,
             const char *expr)
 {
@@ -84,7 +84,7 @@ dbg_prepare(int level, const char *file, int line, const char *function,
   g_function = function;
 }
 
-void 
+void
 dbg_log(const char *format, ...)
 {
   int s = 0;
@@ -103,9 +103,9 @@ dbg_log(const char *format, ...)
   va_end(ap);
 
   g_hand(g_level, buffer);
-} 
+}
 
-void 
+void
 dbg_verify_failed(const char *format, ...)
 {
   int s;
@@ -115,8 +115,8 @@ dbg_verify_failed(const char *format, ...)
   if (!g_expr)
     g_expr = "(none)";
 
-  s = dbg_snprintf(buffer, sizeof(buffer), 
-      "ASSERT FAILED in file %s, line %d:\n\t\"%s\"\n", 
+  s = dbg_snprintf(buffer, sizeof(buffer),
+      "ASSERT FAILED in file %s, line %d:\n\t\"%s\"\n",
       g_file, g_line, g_expr);
 
   if (format) {
@@ -124,7 +124,7 @@ dbg_verify_failed(const char *format, ...)
     util_vsnprintf(buffer + s, sizeof(buffer) - s, format, ap);
     va_end(ap);
   }
-  
+
   g_hand(g_level, buffer);
 
   if (ham_test_abort)

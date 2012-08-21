@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -74,9 +74,9 @@ class Protocol : public ham::ProtoWrapper
       return (p);
     }
 
-    /* 
+    /*
      * Packs the Protocol structure into a memory buffer and returns
-     * a pointer to the buffer and the buffer size 
+     * a pointer to the buffer and the buffer size
      */
     bool pack(Allocator *alloc, ham_u8_t **data, ham_size_t *size) {
       ham_size_t packed_size = ByteSize();
@@ -94,7 +94,7 @@ class Protocol : public ham::ProtoWrapper
         alloc->free(p);
         return (false);
       }
-    
+
       *data = p;
       *size = packed_size + 8;
       return (true);

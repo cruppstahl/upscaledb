@@ -3,13 +3,13 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
  *
  *
- * This example copies one database into another. this works also for 
+ * This example copies one database into another. this works also for
  * copying in-memory-databases to on-disk-databases and vice versa.
  */
 
@@ -18,7 +18,7 @@
 #include <stdlib.h> /* for exit() */
 #include <ham/hamsterdb.h>
 
-void 
+void
 error(const char *foo, ham_status_t st)
 {
     printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
@@ -44,7 +44,7 @@ copy_db(ham_db_t *source, ham_db_t *dest)
     memset(&rec, 0, sizeof(rec));
 
     /* create a new cursor */
-    st=ham_cursor_create(source, 0, 0, &cursor); 
+    st=ham_cursor_create(source, 0, 0, &cursor);
     if (st)
         error("ham_cursor_create", st);
 
@@ -78,7 +78,7 @@ copy_db(ham_db_t *source, ham_db_t *dest)
     ham_cursor_close(cursor);
 }
 
-int 
+int
 main(int argc, char **argv)
 {
     ham_status_t st;

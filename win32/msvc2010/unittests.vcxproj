@@ -1,225 +1,225 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
+	<ProjectConfiguration Include="Debug|Win32">
+	  <Configuration>Debug</Configuration>
+	  <Platform>Win32</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Debug|x64">
+	  <Configuration>Debug</Configuration>
+	  <Platform>x64</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Release|Win32">
+	  <Configuration>Release</Configuration>
+	  <Platform>Win32</Platform>
+	</ProjectConfiguration>
+	<ProjectConfiguration Include="Release|x64">
+	  <Configuration>Release</Configuration>
+	  <Platform>x64</Platform>
+	</ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}</ProjectGuid>
-    <RootNamespace>unittests</RootNamespace>
-    <Keyword>Win32Proj</Keyword>
+	<ProjectGuid>{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}</ProjectGuid>
+	<RootNamespace>unittests</RootNamespace>
+	<Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+	<ConfigurationType>Application</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
+	<WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
+	<ConfigurationType>Application</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+	<ConfigurationType>Application</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
+	<WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
+	<ConfigurationType>Application</ConfigurationType>
+	<CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+	<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">out\unittests_debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\unittests_debug\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">out\unittests_debug_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\unittests_debug_x64\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
-    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">out\unittests\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\unittests\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\unittests_x64\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\unittests_x64\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+	<_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">out\unittests_debug\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">tmp\unittests_debug\</IntDir>
+	<LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+	<GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateManifest>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">out\unittests_debug_x64\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">tmp\unittests_debug_x64\</IntDir>
+	<LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+	<GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">out\unittests\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\unittests\</IntDir>
+	<LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+	<OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\unittests_x64\</OutDir>
+	<IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\unittests_x64\</IntDir>
+	<LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
-    </Link>
+	<ClCompile>
+	  <Optimization>Disabled</Optimization>
+	  <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <MinimalRebuild>true</MinimalRebuild>
+	  <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+	  <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+	</ClCompile>
+	<Link>
+	  <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+	  <GenerateDebugInformation>true</GenerateDebugInformation>
+	  <SubSystem>Console</SubSystem>
+	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+	  <DataExecutionPrevention>
+	  </DataExecutionPrevention>
+	</Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
-    </Link>
+	<Midl>
+	  <TargetEnvironment>X64</TargetEnvironment>
+	</Midl>
+	<ClCompile>
+	  <Optimization>Disabled</Optimization>
+	  <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <MinimalRebuild>true</MinimalRebuild>
+	  <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+	  <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+	</ClCompile>
+	<Link>
+	  <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+	  <GenerateDebugInformation>true</GenerateDebugInformation>
+	  <SubSystem>Console</SubSystem>
+	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+	  <DataExecutionPrevention>
+	  </DataExecutionPrevention>
+	</Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
-    </Link>
+	<ClCompile>
+	  <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+	</ClCompile>
+	<Link>
+	  <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+	  <GenerateDebugInformation>true</GenerateDebugInformation>
+	  <SubSystem>Console</SubSystem>
+	  <OptimizeReferences>true</OptimizeReferences>
+	  <EnableCOMDATFolding>true</EnableCOMDATFolding>
+	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+	  <DataExecutionPrevention>
+	  </DataExecutionPrevention>
+	</Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-    </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
-    </Link>
+	<Midl>
+	  <TargetEnvironment>X64</TargetEnvironment>
+	</Midl>
+	<ClCompile>
+	  <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+	  <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+	  <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+	  <PrecompiledHeader>
+	  </PrecompiledHeader>
+	  <WarningLevel>Level3</WarningLevel>
+	  <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+	</ClCompile>
+	<Link>
+	  <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+	  <GenerateDebugInformation>true</GenerateDebugInformation>
+	  <SubSystem>Console</SubSystem>
+	  <OptimizeReferences>true</OptimizeReferences>
+	  <EnableCOMDATFolding>true</EnableCOMDATFolding>
+	  <RandomizedBaseAddress>false</RandomizedBaseAddress>
+	  <DataExecutionPrevention>
+	  </DataExecutionPrevention>
+	</Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\unittests\api110.cpp" />
-    <ClCompile Include="..\..\unittests\approx.cpp" />
-    <ClCompile Include="..\..\unittests\bfc-signal.c" />
-    <ClCompile Include="..\..\unittests\bfc-testsuite.cpp" />
-    <ClCompile Include="..\..\unittests\blob.cpp" />
-    <ClCompile Include="..\..\unittests\btree_cursor.cpp" />
-    <ClCompile Include="..\..\unittests\btree_erase.cpp" />
-    <ClCompile Include="..\..\unittests\btree_insert.cpp" />
-    <ClCompile Include="..\..\unittests\btree_key.cpp" />
-    <ClCompile Include="..\..\unittests\cache.cpp" />
-    <ClCompile Include="..\..\unittests\changeset.cpp" />
-    <ClCompile Include="..\..\unittests\check.cpp" />
-    <ClCompile Include="..\..\unittests\cppapi.cpp" />
-    <ClCompile Include="..\..\unittests\cursor.cpp" />
-    <ClCompile Include="..\..\unittests\db.cpp" />
-    <ClCompile Include="..\..\unittests\device.cpp" />
-    <ClCompile Include="..\..\unittests\duplicates.cpp" />
-    <ClCompile Include="..\..\unittests\empty_sample.cpp" />
-    <ClCompile Include="..\..\unittests\endian.cpp" />
-    <ClCompile Include="..\..\unittests\env.cpp" />
-    <ClCompile Include="..\..\unittests\error.cpp" />
-    <ClCompile Include="..\..\unittests\extkeys.cpp" />
-    <ClCompile Include="..\..\unittests\filter.cpp" />
-    <ClCompile Include="..\..\unittests\freelist.cpp" />
-    <ClCompile Include="..\..\unittests\hamsterdb.cpp" />
-    <ClCompile Include="..\..\unittests\journal.cpp" />
-    <ClCompile Include="..\..\unittests\log.cpp" />
-    <ClCompile Include="..\..\unittests\main.cpp" />
-    <ClCompile Include="..\..\unittests\misc.cpp" />
-    <ClCompile Include="..\..\unittests\os.cpp" />
-    <ClCompile Include="..\..\unittests\page.cpp" />
-    <ClCompile Include="..\..\unittests\partial.cpp" />
-    <ClCompile Include="..\..\unittests\recno.cpp" />
-    <ClCompile Include="..\..\unittests\remote.cpp" />
-    <ClCompile Include="..\..\unittests\txn.cpp" />
-    <ClCompile Include="..\..\unittests\txn_cursor.cpp" />
+	<ClCompile Include="..\..\unittests\api110.cpp" />
+	<ClCompile Include="..\..\unittests\approx.cpp" />
+	<ClCompile Include="..\..\unittests\bfc-signal.c" />
+	<ClCompile Include="..\..\unittests\bfc-testsuite.cpp" />
+	<ClCompile Include="..\..\unittests\blob.cpp" />
+	<ClCompile Include="..\..\unittests\btree_cursor.cpp" />
+	<ClCompile Include="..\..\unittests\btree_erase.cpp" />
+	<ClCompile Include="..\..\unittests\btree_insert.cpp" />
+	<ClCompile Include="..\..\unittests\btree_key.cpp" />
+	<ClCompile Include="..\..\unittests\cache.cpp" />
+	<ClCompile Include="..\..\unittests\changeset.cpp" />
+	<ClCompile Include="..\..\unittests\check.cpp" />
+	<ClCompile Include="..\..\unittests\cppapi.cpp" />
+	<ClCompile Include="..\..\unittests\cursor.cpp" />
+	<ClCompile Include="..\..\unittests\db.cpp" />
+	<ClCompile Include="..\..\unittests\device.cpp" />
+	<ClCompile Include="..\..\unittests\duplicates.cpp" />
+	<ClCompile Include="..\..\unittests\empty_sample.cpp" />
+	<ClCompile Include="..\..\unittests\endian.cpp" />
+	<ClCompile Include="..\..\unittests\env.cpp" />
+	<ClCompile Include="..\..\unittests\error.cpp" />
+	<ClCompile Include="..\..\unittests\extkeys.cpp" />
+	<ClCompile Include="..\..\unittests\filter.cpp" />
+	<ClCompile Include="..\..\unittests\freelist.cpp" />
+	<ClCompile Include="..\..\unittests\hamsterdb.cpp" />
+	<ClCompile Include="..\..\unittests\journal.cpp" />
+	<ClCompile Include="..\..\unittests\log.cpp" />
+	<ClCompile Include="..\..\unittests\main.cpp" />
+	<ClCompile Include="..\..\unittests\misc.cpp" />
+	<ClCompile Include="..\..\unittests\os.cpp" />
+	<ClCompile Include="..\..\unittests\page.cpp" />
+	<ClCompile Include="..\..\unittests\partial.cpp" />
+	<ClCompile Include="..\..\unittests\recno.cpp" />
+	<ClCompile Include="..\..\unittests\remote.cpp" />
+	<ClCompile Include="..\..\unittests\txn.cpp" />
+	<ClCompile Include="..\..\unittests\txn_cursor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\unittests\bfc-signal.h" />
-    <ClInclude Include="..\..\unittests\bfc-testsuite.hpp" />
-    <ClInclude Include="..\..\unittests\hamster_fixture.hpp" />
-    <ClInclude Include="..\..\unittests\os.hpp" />
+	<ClInclude Include="..\..\unittests\bfc-signal.h" />
+	<ClInclude Include="..\..\unittests\bfc-testsuite.hpp" />
+	<ClInclude Include="..\..\unittests\hamster_fixture.hpp" />
+	<ClInclude Include="..\..\unittests\os.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="lib.vcxproj">
-      <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="server_lib.vcxproj">
-      <Project>{11dcd767-dfbe-4196-9258-111d4caf09b0}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+	<ProjectReference Include="lib.vcxproj">
+	  <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
+	  <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	</ProjectReference>
+	<ProjectReference Include="server_lib.vcxproj">
+	  <Project>{11dcd767-dfbe-4196-9258-111d4caf09b0}</Project>
+	  <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	</ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

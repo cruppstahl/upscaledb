@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -32,7 +32,7 @@ class ByteArray
   : m_alloc(alloc), m_ptr(0), m_size(0) {
     resize(size);
   }
-  
+
   ~ByteArray() {
     clear();
   }
@@ -77,7 +77,7 @@ class ByteArray
 
 /**
  * vsnprintf replacement/wrapper
- * 
+ *
  * uses sprintf on platforms which do not define snprintf
  */
 extern int
@@ -85,7 +85,7 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
 /**
  * snprintf replacement/wrapper
- * 
+ *
  * uses sprintf on platforms which do not define snprintf
  */
 #ifndef HAM_OS_POSIX

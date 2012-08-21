@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -23,7 +23,7 @@ namespace ham {
 
 /**
  * A journal entry for all txn related operations (begin, commit, abort)
- * 
+ *
  * This structure can be followed by one of the structures below
  * (journal_entry_insert_t or journal_entry_erase_t); the field 'followup_size'
  * is the structure size of this follow-up structure.
@@ -31,7 +31,7 @@ namespace ham {
 HAM_PACK_0 struct HAM_PACK_1 JournalEntry
 {
   /** constructor - sets all fields to 0 */
-  JournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0), 
+  JournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0),
         dbname(0), _reserved(0) { }
 
   /** the lsn of this entry */
@@ -59,7 +59,7 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntry
 #include "packstart.h"
 
 /**
- * a journal entry for insert 
+ * a journal entry for insert
  */
 HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
 {
@@ -82,7 +82,7 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
   /** flags of ham_insert(), ham_cursor_insert() */
   ham_u32_t insert_flags;
 
-  /** data follows here - first 'key_size' bytes for the key, then 
+  /** data follows here - first 'key_size' bytes for the key, then
    * 'record_size' bytes for the record (and maybe some padding) */
   ham_u8_t data[1];
 
@@ -103,12 +103,12 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
 #include "packstart.h"
 
 /**
- * a journal entry for erase 
+ * a journal entry for erase
  */
 HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
 {
   /** constructor - sets all fields to 0 */
-  JournalEntryErase() : key_size(0), erase_flags(0), duplicate(0) 
+  JournalEntryErase() : key_size(0), erase_flags(0), duplicate(0)
     { data[0]=0; }
 
   /** key size */

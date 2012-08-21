@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -30,7 +30,7 @@ class DeviceTest : public hamsterDB_fixture
 
 public:
     DeviceTest(bool inmemory=false, const char *name="DeviceTest")
-    : hamsterDB_fixture(name), 
+    : hamsterDB_fixture(name),
         m_db(0), m_inmemory(inmemory), m_dev(0)
     {
         testrunner::get_instance()->register_fixture(this);
@@ -53,22 +53,22 @@ protected:
     Device *m_dev;
 
 public:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create(m_db, BFC_OPATH(".test"),
                         m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
         m_env=ham_get_env(m_db);
         m_dev=((Environment *)m_env)->get_device();
     }
-    
-    virtual void teardown() 
-    { 
+
+    virtual void teardown()
+    {
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -202,11 +202,11 @@ public:
         for (i=0; i<10; i++)
             memset(buffer[i], i, ps);
         for (i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                     m_dev->write(i*ps, buffer[i], ps));
         }
         for (i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                     m_dev->read(i*ps, buffer[i], ps));
             memset(temp, i, ps);
             BFC_ASSERT_EQUAL(0, memcmp(buffer[i], temp, ps));
@@ -244,7 +244,7 @@ public:
             BFC_ASSERT((pages[i]=new Page((Environment *)m_env)));
             pages[i]->set_self(ps*i);
             BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
-            BFC_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0,
                     memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
             BFC_ASSERT_EQUAL(0, pages[i]->free());
             delete pages[i];

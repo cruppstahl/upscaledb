@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -15,8 +15,8 @@
  * The physical logging stores modifications on page level. It is required
  * since several logical operations are not atomic - i.e. SMOs (Btree structure
  * modification operations). The physical log only stores "redo" information
- * of the last operation that was written to the Btree (either an 
- * insert or an erase). We do not need "undo" information - all "undo" 
+ * of the last operation that was written to the Btree (either an
+ * insert or an erase). We do not need "undo" information - all "undo"
  * related logic is part of the journal, not of the log, and only committed
  * operations are written to the log.
  *
@@ -40,7 +40,7 @@ namespace ham {
 /**
  * a Log object
  */
-class Log 
+class Log
 {
   public:
     /** the magic of the header */
@@ -73,10 +73,10 @@ class Log
 
       /** the lsn of this entry */
       ham_u64_t lsn;
-  
+
       /** the flags of this entry, see below */
       ham_u32_t flags;
-  
+
       /** a reserved value */
       ham_u32_t _reserved;
 
@@ -133,17 +133,17 @@ class Log
       return (m_fd);
     }
 
-    /** 
-     * clears the logfile 
+    /**
+     * clears the logfile
      *
-     * invoked after every checkpoint (which is immediately after each 
-     * txn_commit or txn_abort) 
+     * invoked after every checkpoint (which is immediately after each
+     * txn_commit or txn_abort)
      */
     ham_status_t clear() {
       ham_status_t st = os_truncate(m_fd, sizeof(Log::Header));
       if (st)
         return (st);
-  
+
       /* after truncate, the file pointer is far beyond the new end of file;
        * reset the file pointer, or the next write will resize the file to
        * the original size */
@@ -155,10 +155,10 @@ class Log
       return (os_flush(m_fd));
     }
 
-    /** 
-     * closes the log, frees all allocated resources. 
+    /**
+     * closes the log, frees all allocated resources.
      *
-     * if @a noclear is true then the log will not be clear()ed. This is 
+     * if @a noclear is true then the log will not be clear()ed. This is
      * useful for debugging.
      */
     ham_status_t close(bool noclear = false);
@@ -175,7 +175,7 @@ class Log
      *
      * iter must be initialized with zeroes for the first call
      *
-     * 'data' returns the data of the entry, or NULL if there is no data. 
+     * 'data' returns the data of the entry, or NULL if there is no data.
      * The memory has to be freed by the caller.
      *
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
@@ -186,12 +186,12 @@ class Log
     /**
      * append a log entry for a page modification
      *
-     * @note invoked by @ref Log::append_page() to save the new 
+     * @note invoked by @ref Log::append_page() to save the new
      * content of the specified page.
      *
      * @sa Log::append_page
      */
-    ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags, 
+    ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags,
                     ham_offset_t offset, ham_u8_t *data, ham_size_t size);
 
     /** returns the path of the log file */

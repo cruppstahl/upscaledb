@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -29,30 +29,30 @@
 #define MAX_CUSTOMERS       4
 #define MAX_ORDERS          8
 
-/* 
+/*
  * a structure for the "customer" database
  */
 typedef struct
 {
-    int id;                 /* customer id - will be the key of the 
+    int id;                 /* customer id - will be the key of the
                                customer table */
     char name[32];          /* customer name */
     /* ... additional information could follow here */
 } customer_t;
 
-/* 
+/*
  * a structure for the "orders" database
  */
 typedef struct
 {
-    int id;                 /* order id - will be the key of the 
+    int id;                 /* order id - will be the key of the
                                order table */
     int customer_id;        /* customer id */
     char assignee[32];      /* assigned to whom? */
     /* ... additional information could follow here */
 } order_t;
 
-int 
+int
 run_demo(void)
 {
     int i;
@@ -87,7 +87,7 @@ run_demo(void)
 
     /*
      * then create the two databases in this environment; each database
-     * has a name - the first is our "customer" database, the second 
+     * has a name - the first is our "customer" database, the second
      * is for the "orders"; the third manages our 1:n relation and
      * therefore needs to enable duplicate keys
      */
@@ -95,7 +95,7 @@ run_demo(void)
     db[DBIDX_ORDER]   =env.create_db(DBNAME_ORDER);
     db[DBIDX_C2O]     =env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATES);
 
-    /* 
+    /*
      * create a cursor for each database
      */
     for (i=0; i<MAX_DBS; i++) {
@@ -120,7 +120,7 @@ run_demo(void)
     }
 
     /*
-     * and now the orders in the second database; contrary to env1, 
+     * and now the orders in the second database; contrary to env1,
      * we only store the assignee, not the whole structure
      *
      * INSERT INTO orders VALUES (1, "Joe");
@@ -162,7 +162,7 @@ run_demo(void)
      * and pick those orders with the customer id. then load the order
      * and print it
      *
-     * the outer loop is similar to 
+     * the outer loop is similar to
      * SELECT * FROM customers WHERE 1;
      */
     while (1) {
@@ -185,7 +185,7 @@ run_demo(void)
         customer=(customer_t *)cust_record.get_data();
 
         /* print the customer id and name */
-        std::cout << "customer " << customer->id << " ('" 
+        std::cout << "customer " << customer->id << " ('"
                   << customer->name << "')" << std::endl;
 
         /*
@@ -194,7 +194,7 @@ run_demo(void)
          * before we start the loop, we move the cursor to the
          * first duplicate key
          *
-         * SELECT * FROM customers, orders, c2o 
+         * SELECT * FROM customers, orders, c2o
          *   WHERE c2o.customer_id=customers.id AND
          *      c2o.order_id=orders.id;
          */
@@ -224,8 +224,8 @@ run_demo(void)
             ord_key.set_data(&order_id);
             ord_key.set_size(sizeof(int));
 
-            /* 
-             * load the order 
+            /*
+             * load the order
              * SELECT * FROM orders WHERE id = order_id;
              */
             ord_record=db[1].find(&ord_key);
@@ -238,7 +238,7 @@ run_demo(void)
              * movement to the duplicate list.
              */
             try {
-                cursor[2].move(&c2o_key, &c2o_record, 
+                cursor[2].move(&c2o_key, &c2o_record,
                             HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES);
             }
             catch (ham::error &e) {
@@ -261,10 +261,10 @@ run_demo(void)
      */
 
     std::cout << "success!" << std::endl;
-	return (0);
+    return (0);
 }
 
-int 
+int
 main(int argc, char **argv)
 {
     try {

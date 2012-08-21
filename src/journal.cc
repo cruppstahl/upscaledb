@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -30,7 +30,7 @@
 
 namespace ham {
 
-static ham_size_t 
+static ham_size_t
 __get_aligned_entry_size(ham_size_t s)
 {
   s += 8 - 1;
@@ -152,7 +152,7 @@ Journal::open()
 }
 
 ham_status_t
-Journal::append_txn_begin(Transaction *txn, Environment *env, 
+Journal::append_txn_begin(Transaction *txn, Environment *env,
                 const char *name, ham_u64_t lsn)
 {
   ham_status_t st;
@@ -166,8 +166,8 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
   if (name)
     entry.followup_size = strlen(name) + 1;
 
-  /* 
-   * determine the journal file which is used for this transaction 
+  /*
+   * determine the journal file which is used for this transaction
    *
    * if the "current" file is not yet full, continue to write to this file
    */
@@ -204,7 +204,7 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
   m_open_txn[cur]++;
 
   /* store the fp-index in the journal structure; it's needed for
-   * journal_append_checkpoint() to quickly find out which file is 
+   * journal_append_checkpoint() to quickly find out which file is
    * the newest */
   m_current_fd = cur;
 
@@ -258,8 +258,8 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
 }
 
 ham_status_t
-Journal::append_insert(Database *db, Transaction *txn, 
-                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+Journal::append_insert(Database *db, Transaction *txn,
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags,
                 ham_u64_t lsn)
 {
   char padding[16] = {0};
@@ -281,7 +281,7 @@ Journal::append_insert(Database *db, Transaction *txn,
   insert.insert_flags = flags;
 
   /* append the entry to the logfile */
-  return (append_entry(txn_get_log_desc(txn), 
+  return (append_entry(txn_get_log_desc(txn),
                 &entry, sizeof(entry),
                 &insert, sizeof(JournalEntryInsert) - 1,
                 key->data, key->size,
@@ -290,7 +290,7 @@ Journal::append_insert(Database *db, Transaction *txn,
 }
 
 ham_status_t
-Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key, 
+Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
   char padding[16] = {0};
@@ -309,7 +309,7 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
   erase.duplicate = dupe;
 
   /* append the entry to the logfile */
-  return (append_entry(txn_get_log_desc(txn), 
+  return (append_entry(txn_get_log_desc(txn),
                 &entry, sizeof(entry),
                 (JournalEntry *)&erase, sizeof(JournalEntryErase) - 1,
                 key->data, key->size,
@@ -441,7 +441,7 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
   if (st)
     return (st);
 
-  st = ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname, 
+  st = ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname,
                     HAM_DONT_LOCK, 0);
   if (st)
     return (st);
@@ -513,19 +513,19 @@ Journal::recover()
   Iterator it;
   void *aux = 0;
 
-  /* recovering the journal is rather simple - we iterate over the 
+  /* recovering the journal is rather simple - we iterate over the
    * files and re-apply EVERY operation (incl. txn_begin and txn_abort).
    *
    * in hamsterdb 1.x this routine just skipped all journal entries that were
    * already flushed to disk (i.e. everything with a lsn <= start_lsn
    * was ignored). However, if we also skip the txn_begin entries, then
    * some scenarios will fail:
-   * 
+   *
    *  --- time -------------------------->
    *  BEGIN,    INSERT,    COMMIT
-   *  flush(1), flush(2), ^crash  
+   *  flush(1), flush(2), ^crash
    *
-   * if the application crashes BEFORE the commit is flushed, then 
+   * if the application crashes BEFORE the commit is flushed, then
    * start_lsn will be 2, and the txn_begin will be skipped. During recovery
    * we'd then end up in a situation where we want to commit a transaction
    * which was not created. Therefore start_lsn is ignored for txn_begin/
@@ -535,7 +535,7 @@ Journal::recover()
    * committed
    */
 
-  /* make sure that there are no pending transactions - start with 
+  /* make sure that there are no pending transactions - start with
    * a clean state! */
   ham_assert(m_env->get_oldest_txn() == 0);
   ham_assert(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS);
@@ -566,7 +566,7 @@ Journal::recover()
       switch (entry.type) {
       case ENTRY_TYPE_TXN_BEGIN: {
         Transaction *txn;
-        st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env, 
+        st = ham_txn_begin((ham_txn_t **)&txn, (ham_env_t *)m_env,
                 (const char *)aux, 0, HAM_DONT_LOCK);
         /* on success: patch the txn ID */
         if (st == 0) {
@@ -644,7 +644,7 @@ Journal::recover()
           break;
         key.data = e->get_key_data();
         key.size = e->key_size;
-        st = ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key, 
+        st = ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
                       e->erase_flags|HAM_DONT_LOCK);
         // key might have already been erased when the changeset
         // was flushed

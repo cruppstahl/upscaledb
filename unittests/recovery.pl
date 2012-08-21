@@ -13,7 +13,7 @@ sub simple_test {
         unlink("recovery.db.log0");
         unlink("recovery.db.jrn0");
         unlink("recovery.db.jrn1");
-    
+
         print "============================================================\n";
         print "inserting $max keys...\n";
         for ($k=0; $k<$max; $k++) {
@@ -25,7 +25,7 @@ sub simple_test {
             check(system("./recovery recover $txn"));
             check(system("./recovery verify 8 8 $k 0 $txn 1"));
         }
-    
+
         print "erasing $max keys...\n";
         for ($k=$max-1; $k>=0; $k--) {
             check(system("./recovery erase 8 $k 0 $txn $i"));
@@ -42,7 +42,7 @@ sub extended_test {
         unlink("recovery.db.log0");
         unlink("recovery.db.jrn0");
         unlink("recovery.db.jrn1");
-    
+
         print "============================================================\n";
         print "inserting $max keys...\n";
         for ($k=0; $k<$max; $k++) {
@@ -54,7 +54,7 @@ sub extended_test {
             check(system("./recovery recover $txn"));
             check(system("./recovery verify 1024 1024 $k 0 $txn 1"));
         }
-    
+
         print "erasing $max keys...\n";
         for ($k=$max-1; $k>=0; $k--) {
             check(system("./recovery erase 1024 $k 0 $txn $i"));
@@ -71,7 +71,7 @@ sub duplicate_test {
         unlink("recovery.db.log0");
         unlink("recovery.db.jrn0");
         unlink("recovery.db.jrn1");
-    
+
         print "============================================================\n";
         print "inserting $max keys...\n";
         for ($k=0; $k<$max; $k++) {
@@ -83,7 +83,7 @@ sub duplicate_test {
             check(system("./recovery recover $txn"));
             check(system("./recovery verify 8 8 $k 1 $txn 1"));
         }
-    
+
         print "erasing $max keys...\n";
         for ($k=$max-1; $k>=0; $k--) {
             check(system("./recovery erase 8 $k 1 $txn $i"));
@@ -100,7 +100,7 @@ sub extended_duplicate_test {
         unlink("recovery.db.log0");
         unlink("recovery.db.jrn0");
         unlink("recovery.db.jrn1");
-    
+
         print "inserting $max keys...\n";
         for ($k=0; $k<$max; $k++) {
             check(system("./recovery insert 1024 1024 $k 1 $txn $i"));
@@ -111,7 +111,7 @@ sub extended_duplicate_test {
             check(system("./recovery recover $txn"));
             check(system("./recovery verify 1024 1024 $k 1 $txn 1"));
         }
-    
+
         print "erasing $max keys...\n";
         for ($k=$max-1; $k>=0; $k--) {
             check(system("./recovery erase 1024 $k 1 $txn $i"));
