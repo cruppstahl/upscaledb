@@ -11,9 +11,9 @@ BuildRequires: protobuf-devel, libtool, curl-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
-hamsterdb Embedded Storage is a lightweight embedded "NoSQL" 
-key-value store. It is in development for more than six years 
-and concentrates on ease of use, high performance, stability 
+hamsterdb Embedded Storage is a lightweight embedded "NoSQL"
+key-value store. It is in development for more than six years
+and concentrates on ease of use, high performance, stability
 and scalability.
 
 %package devel
@@ -22,9 +22,9 @@ Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-hamsterdb Embedded Storage is a lightweight embedded "NoSQL" 
-key-value store. It is in development for more than five years 
-and concentrates on ease of use, high performance, stability 
+hamsterdb Embedded Storage is a lightweight embedded "NoSQL"
+key-value store. It is in development for more than five years
+and concentrates on ease of use, high performance, stability
 and scalability.
 
 %package static
@@ -34,21 +34,21 @@ Requires: %{name} = %{version}-%{release}
 Requires: %{name}-devel = %{version}-%{release}
 
 %description static
-hamsterdb Embedded Storage is a lightweight embedded "NoSQL" 
-key-value store. It is in development for more than five years 
-and concentrates on ease of use, high performance, stability 
+hamsterdb Embedded Storage is a lightweight embedded "NoSQL"
+key-value store. It is in development for more than five years
+and concentrates on ease of use, high performance, stability
 and scalability.
 
 
 %prep
-%setup -q 
+%setup -q
 
 
 %build
 #autoconf
 export CFLAGS="-ggdb2 -O2"
 CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"; export CFLAGS
-%configure 
+%configure
 make %{?_smp_mflags}
 
 
@@ -82,7 +82,7 @@ rm -rf %{buildroot}
 
 %files devel
 %defattr(-,root,root,-)
-%doc	documentation/*
+%doc    documentation/*
 %{_libdir}/*.so
 %{_includedir}/ham
 

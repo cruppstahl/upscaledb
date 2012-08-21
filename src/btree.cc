@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -35,8 +35,8 @@ namespace ham {
  * perform a binary search for the *smallest* element, which is >= the
  * key
  */
-ham_status_t 
-btree_get_slot(Database *db, Page *page, 
+ham_status_t
+btree_get_slot(Database *db, Page *page,
                 ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
     int cmp = -1;
@@ -69,7 +69,7 @@ btree_get_slot(Database *db, Page *page,
             ham_assert(i<(int)MAX_KEYS_PER_NODE+1);
             break;
         }
-        
+
         /* compare it against the key */
         cmp=btree_compare_keys(db, page, key, (ham_u16_t)i);
         if (cmp < -1)
@@ -95,7 +95,7 @@ btree_get_slot(Database *db, Page *page,
             l=i+1;
         }
     }
-    
+
 bail:
     if (pcmp)
         *pcmp=cmp;
@@ -108,9 +108,9 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 {
     ham_size_t p, k, max;
 
-    /* 
-     * a btree page is always P bytes long, where P is the pagesize of 
-     * the database. 
+    /*
+     * a btree page is always P bytes long, where P is the pagesize of
+     * the database.
      */
     p=pagesize;
 
@@ -123,7 +123,7 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
     /* compute the size of a key, k.  */
     k=keysize+db_get_int_key_header_size();
 
-    /* 
+    /*
      * make sure that MAX is an even number, otherwise we can't calculate
      * MIN (which is MAX/2)
      */
@@ -138,9 +138,9 @@ BtreeBackend::BtreeBackend(Database *db, ham_u32_t flags)
 {
 }
 
-/**                                                                 
- * estimate the number of keys per page, given the keysize          
- */                                                                 
+/**
+ * estimate the number of keys per page, given the keysize
+ */
 ham_status_t
 BtreeBackend::do_calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
 {
@@ -165,7 +165,7 @@ BtreeBackend::do_calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
     return (0);
 }
 
-ham_status_t 
+ham_status_t
 BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
 {
     ham_status_t st;
@@ -176,7 +176,7 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
                                 db->get_indexdata_offset());
     if (is_active()) {
         ham_trace(("backend has alread been initialized before!"));
-        return (HAM_ALREADY_INITIALIZED); 
+        return (HAM_ALREADY_INITIALIZED);
     }
 
     /* prevent overflow - maxkeys only has 16 bit! */
@@ -195,13 +195,13 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
     if (st)
         return (st);
 
-    memset(root->get_raw_payload(), 0, 
+    memset(root->get_raw_payload(), 0,
             sizeof(btree_node_t)+sizeof(PageData));
     root->set_type(Page::TYPE_B_ROOT);
     root->set_dirty(true);
 
     /*
-     * calculate the maximum number of keys for this page, 
+     * calculate the maximum number of keys for this page,
      * and make sure that this number is even
      */
     set_maxkeys((ham_u16_t)maxkeys);
@@ -224,7 +224,7 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
     return (0);
 }
 
-ham_status_t 
+ham_status_t
 BtreeBackend::do_open(ham_u32_t flags)
 {
     ham_offset_t rootadd;
@@ -293,7 +293,7 @@ BtreeBackend::do_close(ham_u32_t flags)
         }
         db->set_cursors(0);
     }
-    
+
     /* even when an error occurred, the backend has now been de-activated */
     set_active(false);
 }
@@ -312,13 +312,13 @@ BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
     ham_assert(page->get_db() == db);
 
     /*
-     * if this page has a header, and it's either a B-Tree root page or 
-     * a B-Tree index page: remove all extended keys from the cache, 
+     * if this page has a header, and it's either a B-Tree root page or
+     * a B-Tree index page: remove all extended keys from the cache,
      * and/or free their blobs
      */
-    if (page->get_pers() 
+    if (page->get_pers()
             && (!(page->get_flags()&Page::NPERS_NO_HEADER))
-            && (page->get_type()==Page::TYPE_B_ROOT 
+            && (page->get_type()==Page::TYPE_B_ROOT
                 || page->get_type()==Page::TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
@@ -349,7 +349,7 @@ BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
 }
 
 ham_status_t
-btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr, 
+btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr,
                     Database *db, Page *page, ham_key_t *key)
 {
     ham_status_t st;
@@ -358,7 +358,7 @@ btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr,
     btree_node_t *node=page_get_btree_node(page);
 
     /*
-     * make sure that we're not in a leaf page, and that the 
+     * make sure that we're not in a leaf page, and that the
      * page is not empty
      */
     ham_assert(btree_node_get_count(node)>0);
@@ -382,8 +382,8 @@ btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr,
     }
 }
 
-ham_s32_t 
-btree_node_search_by_key(Database *db, Page *page, ham_key_t *key, 
+ham_s32_t
+btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
                     ham_u32_t flags)
 {
     int cmp;
@@ -406,44 +406,44 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
     /*
        'approximate matching'
 
-        When we get here and cmp != 0 and we're looking for LT/GT/LEQ/GEQ 
+        When we get here and cmp != 0 and we're looking for LT/GT/LEQ/GEQ
         key matches, this is where we need to do our prep work.
 
-        Yes, due to the flag tweak in a caller when we have (the usual) 
-        multi-page DB table B+tree, both LT and GT flags are 'ON' here, 
+        Yes, due to the flag tweak in a caller when we have (the usual)
+        multi-page DB table B+tree, both LT and GT flags are 'ON' here,
         but let's not get carried way and assume that is always
-        like that. To elaborate a bit here: it may seem like doing something 
-        simple the hard way, but in here, we do NOT know if there are 
-        adjacent pages, so 'edge cases' like the scenarios 1, 2, and 5 below 
-        should NOT return an error KEY_NOT_FOUND but instead produce a 
-        valid slot AND, most important, the accompanying 'sign' (LT/GT) flags 
-        for that slot, so that the outer call can analyze our response and 
-        shift the key index into the left or right adjacent page, when such 
-        is available. We CANNOT see that here, so we always should work with 
+        like that. To elaborate a bit here: it may seem like doing something
+        simple the hard way, but in here, we do NOT know if there are
+        adjacent pages, so 'edge cases' like the scenarios 1, 2, and 5 below
+        should NOT return an error KEY_NOT_FOUND but instead produce a
+        valid slot AND, most important, the accompanying 'sign' (LT/GT) flags
+        for that slot, so that the outer call can analyze our response and
+        shift the key index into the left or right adjacent page, when such
+        is available. We CANNOT see that here, so we always should work with
         both LT+GT enabled here.
-        And to make matters a wee bit more complex still: the one exception 
-        to the above is when we have a single-page table: then we get 
-        the actual GT/LT flags in here, as we're SURE there won't be any 
-        left or right neighbour pages for us to shift into when the need 
+        And to make matters a wee bit more complex still: the one exception
+        to the above is when we have a single-page table: then we get
+        the actual GT/LT flags in here, as we're SURE there won't be any
+        left or right neighbour pages for us to shift into when the need
         arrises.
 
-        Anyway, the purpose of the next section is to see if we have a 
-        matching 'approximate' key AND feed the 'sign' (i.e. LT(-1) or 
+        Anyway, the purpose of the next section is to see if we have a
+        matching 'approximate' key AND feed the 'sign' (i.e. LT(-1) or
         GT(+1)) back to the caller, who knows _exactly_ what the
         user asked for and can thus take the proper action there.
 
-        Here, we are only concerned about determining which key index we 
+        Here, we are only concerned about determining which key index we
         should produce, IFF we should produce a matching key.
 
         Assume the following page layout, with two keys (values 2 and 4):
 
       * index:
-      *    [0]   [1]  
+      *    [0]   [1]
       * +-+---+-+---+-+
       * | | 2 | | 4 | |
       * +-+---+-+---+-+
 
-        Various scenarios apply. For the key search (key ~ 1) i.e. (key=1, 
+        Various scenarios apply. For the key search (key ~ 1) i.e. (key=1,
         flags=NEAR), we get this:
 
         cmp = -1;
@@ -457,8 +457,8 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
       * | | 2 | | 4 | |
       * +-+---+-+---+-+
 
-        which is not a valid spot. Should we return a key? YES, since no key 
-        is less than '1', but there exists a key '2' which fits as NEAR allows 
+        which is not a valid spot. Should we return a key? YES, since no key
+        is less than '1', but there exists a key '2' which fits as NEAR allows
         for both LT and GT. Hence, this should be modified to become
 
         slot=0
@@ -485,16 +485,16 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
       * | | 2 | | 4 | |
       * +-+---+-+---+-+
 
-        Should we return a valid slot by adjusting? Your common sense says 
-        NO, but the correct answer is YES, since (a) we do not know if the 
-        user asked this, as _we_ see it in here as 'key ~ 1' anyway and 
-        we must allow the caller to adjust the slot by moving it into the 
-        left neighbour page -- an action we cannot do as we do not know, 
-        in here, whether there's more pages adjacent to this one we're 
+        Should we return a valid slot by adjusting? Your common sense says
+        NO, but the correct answer is YES, since (a) we do not know if the
+        user asked this, as _we_ see it in here as 'key ~ 1' anyway and
+        we must allow the caller to adjust the slot by moving it into the
+        left neighbour page -- an action we cannot do as we do not know,
+        in here, whether there's more pages adjacent to this one we're
         currently looking at.
 
-        EXCEPT... the common sense answer 'NO' is CORRECT when we have a 
-        single-page db table in our hands; see the remark at the top of this 
+        EXCEPT... the common sense answer 'NO' is CORRECT when we have a
+        single-page db table in our hands; see the remark at the top of this
         comment section; in that case, we can safely say 'NO' after all.
 
         Third scenario: key ~ 3
@@ -508,12 +508,12 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
        cmp = 1;
        slot = 0;
 
-         As we check for NEAR instead of just LT or GT, both are okay like 
+         As we check for NEAR instead of just LT or GT, both are okay like
          that, no adjustment needed.
-         All we need to do is make sure sure we pass along the proper LT/GT 
+         All we need to do is make sure sure we pass along the proper LT/GT
          'sign' flags for outer level result processing.
 
-      
+
         Fourth scenario: key < 3
 
         again, we get either:
@@ -526,10 +526,10 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
        cmp = 1;
        slot = 0;
 
-        but this time around, since we are looking for LT, we'll need to 
-        adjust the second result, when that happens by slot++ and sending 
+        but this time around, since we are looking for LT, we'll need to
+        adjust the second result, when that happens by slot++ and sending
         the appropriate 'sign' flags.
-    
+
       Fifth scenario: key ~ 5
 
         which given us:
@@ -545,27 +545,27 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
       * | | 2 | | 4 | |
       * +-+---+-+---+-+
 
-        Should we return this valid slot? Yup, as long as we mention that 
-        it's an LT(less than) key; the caller can see that we returned the 
+        Should we return this valid slot? Yup, as long as we mention that
+        it's an LT(less than) key; the caller can see that we returned the
         slot as the upper bound of this page and adjust accordingly when
-        the actual query was 'key > 5' instead of 'key ~ 5' which is how we 
+        the actual query was 'key > 5' instead of 'key ~ 5' which is how we
         get to see it.
     */
     /*
-      Note that we have a 'preference' for LT answers in here; IFF the user'd 
-        asked NEAR questions, most of the time that would give him LT answers, 
-        i.e. the answers to NEAR ~ LT questions -- mark the word 'most' in 
-        there: this is not happening when we're ending up at a page's lower 
+      Note that we have a 'preference' for LT answers in here; IFF the user'd
+        asked NEAR questions, most of the time that would give him LT answers,
+        i.e. the answers to NEAR ~ LT questions -- mark the word 'most' in
+        there: this is not happening when we're ending up at a page's lower
         bound.
      */
     if (cmp) {
         /*
-         * When slot == -1, you're in a special situation: you do NOT know what 
-         * the comparison with slot[-1] delivers, because there _is_ _no_ slot 
+         * When slot == -1, you're in a special situation: you do NOT know what
+         * the comparison with slot[-1] delivers, because there _is_ _no_ slot
          * -1, but you _do_ know what slot[0] delivered: 'cmp' is the
          * value for that one then.
          */
-        if (slot < 0) 
+        if (slot < 0)
             slot = 0;
 
         ham_assert(slot <= btree_node_get_count(node) - 1);
@@ -575,13 +575,13 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
                 /* key @ slot is LARGER than the key we search for ... */
                 if (slot > 0) {
                     slot--;
-                    ham_key_set_intflags(key, ham_key_get_intflags(key) 
+                    ham_key_set_intflags(key, ham_key_get_intflags(key)
                                         | KEY_IS_LT);
                     cmp = 0;
                 }
                 else if (flags & HAM_FIND_GT_MATCH) {
                     ham_assert(slot == 0);
-                    ham_key_set_intflags(key, ham_key_get_intflags(key) 
+                    ham_key_set_intflags(key, ham_key_get_intflags(key)
                                         | KEY_IS_GT);
                     cmp = 0;
                 }
@@ -589,18 +589,18 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
             else {
                 /* key @ slot is SMALLER than the key we search for */
                 ham_assert(cmp > 0);
-                ham_key_set_intflags(key, ham_key_get_intflags(key) 
+                ham_key_set_intflags(key, ham_key_get_intflags(key)
                                         | KEY_IS_LT);
                 cmp = 0;
             }
-        } 
+        }
         else if (flags&HAM_FIND_GT_MATCH)   {
             /* When we get here, we're sure HAM_FIND_LT_MATCH is NOT set... */
             ham_assert(!(flags&HAM_FIND_LT_MATCH));
 
             if (cmp < 0) {
                 /* key @ slot is LARGER than the key we search for ... */
-                ham_key_set_intflags(key, ham_key_get_intflags(key) 
+                ham_key_set_intflags(key, ham_key_get_intflags(key)
                                         | KEY_IS_GT);
                 cmp = 0;
             }
@@ -610,7 +610,7 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
                 ham_assert(cmp > 0);
                 if (slot < btree_node_get_count(node) - 1) {
                     slot++;
-                    ham_key_set_intflags(key, ham_key_get_intflags(key)     
+                    ham_key_set_intflags(key, ham_key_get_intflags(key)
                                         | KEY_IS_GT);
                     cmp = 0;
                 }
@@ -626,8 +626,8 @@ btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,
 }
 
 
-ham_status_t 
-btree_prepare_key_for_compare(Database *db, int which, 
+ham_status_t
+btree_prepare_key_for_compare(Database *db, int which,
                 btree_key_t *src, ham_key_t *dest)
 {
     BtreeBackend *be=(BtreeBackend *)db->get_backend();
@@ -659,7 +659,7 @@ btree_prepare_key_for_compare(Database *db, int which,
 }
 
 int
-btree_compare_keys(Database *db, Page *page, 
+btree_compare_keys(Database *db, Page *page,
         ham_key_t *lhs, ham_u16_t rhs_int)
 {
     btree_key_t *r;
@@ -667,7 +667,7 @@ btree_compare_keys(Database *db, Page *page,
     ham_key_t rhs={0};
     ham_status_t st;
 
-	ham_assert(db==page->get_db());
+    ham_assert(db==page->get_db());
 
     r=btree_node_get_key(db, node, rhs_int);
 
@@ -693,7 +693,7 @@ btree_compare_keys(Database *db, Page *page,
 }
 
 ham_status_t
-btree_read_key(Database *db, Transaction *txn, btree_key_t *source, 
+btree_read_key(Database *db, Transaction *txn, btree_key_t *source,
         ham_key_t *dest)
 {
     Allocator *alloc=db->get_env()->get_allocator();
@@ -769,7 +769,7 @@ btree_read_key(Database *db, Transaction *txn, btree_key_t *source,
 }
 
 ham_status_t
-btree_read_record(Database *db, Transaction *txn, ham_record_t *record, 
+btree_read_record(Database *db, Transaction *txn, ham_record_t *record,
                 ham_u64_t *ridptr, ham_u32_t flags)
 {
     ham_bool_t noblob=HAM_FALSE;
@@ -872,14 +872,14 @@ btree_copy_key_int2pub(Database *db, const btree_key_t *source, ham_key_t *dest)
     }
     else if (key_get_size(source)) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-			if (!dest->data || dest->size < key_get_size(source)) {
-				if (dest->data)
-					alloc->free(dest->data);
-				dest->data = (ham_u8_t *)alloc->alloc(key_get_size(source));
-				if (!dest->data) 
-					return HAM_OUT_OF_MEMORY;
-			}
-		}
+            if (!dest->data || dest->size < key_get_size(source)) {
+                if (dest->data)
+                    alloc->free(dest->data);
+                dest->data = (ham_u8_t *)alloc->alloc(key_get_size(source));
+                if (!dest->data)
+                    return HAM_OUT_OF_MEMORY;
+            }
+        }
 
         memcpy(dest->data, key_get_key(source), key_get_size(source));
         dest->size=key_get_size(source);

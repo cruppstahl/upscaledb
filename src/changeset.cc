@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -76,8 +76,8 @@ Changeset::clear()
 }
 
 ham_status_t
-Changeset::log_bucket(Page **bucket, ham_size_t bucket_size, 
-            ham_u64_t lsn, ham_size_t &page_count) 
+Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
+            ham_u64_t lsn, ham_size_t &page_count)
 {
   for (ham_size_t i = 0; i < bucket_size; i++) {
     ham_assert(bucket[i]->is_dirty());
@@ -175,7 +175,7 @@ Changeset::flush(ham_u64_t lsn)
   //
   // - if there's more than one freelist page modified then the freelist
   //   operation would be huge and we rather not risk to lose that much space
-  // - if there's more than one index operation then the operation must 
+  // - if there's more than one index operation then the operation must
   //   be atomic
   if (m_others_size || m_indices_size > 1 || m_freelists_size > 1) {
     if ((st = log_bucket(m_blobs, m_blobs_size, lsn, page_count)))
@@ -208,8 +208,8 @@ Changeset::flush(ham_u64_t lsn)
    * and can be used to make a backup copy of the logfile */
   if (g_CHANGESET_POST_LOG_HOOK)
     g_CHANGESET_POST_LOG_HOOK();
-  
-  /* now write all the pages to the file; if any of these writes fail, 
+
+  /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
   while (p) {
     st = p->flush();

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -34,13 +34,13 @@ bool
 BlobManager::blob_from_cache(ham_size_t size)
 {
   if (m_env->get_log())
-    return (size < (m_env->get_usable_pagesize()));  
+    return (size < (m_env->get_usable_pagesize()));
   return (size < (ham_size_t)(m_env->get_pagesize() >> 3));
 }
 
 ham_status_t
 BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
-        bool freshly_created, ham_u8_t **chunk_data, ham_size_t *chunk_size, 
+        bool freshly_created, ham_u8_t **chunk_data, ham_size_t *chunk_size,
         ham_size_t chunks)
 {
   ham_status_t st;
@@ -66,21 +66,21 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
        */
       if (!page) {
         /*
-         * keep pages in cache when they are located at the 'edges' of 
+         * keep pages in cache when they are located at the 'edges' of
          * the blob, as they MAY be accessed for different data.
-         * Of course, when a blob is small, there's only one (partial) 
-         * page accessed anyhow, so that one should end up in cache 
+         * Of course, when a blob is small, there's only one (partial)
+         * page accessed anyhow, so that one should end up in cache
          * then.
          */
         bool at_blob_edge = (blob_from_cache(chunk_size[i])
-                            || (addr % pagesize) != 0 
+                            || (addr % pagesize) != 0
                             || chunk_size[i] < pagesize);
-        bool cacheonly = (!at_blob_edge 
+        bool cacheonly = (!at_blob_edge
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = env_fetch_page(&page, m_env, pageid, 
-                cacheonly ? DB_ONLY_FROM_CACHE : 
+        st = env_fetch_page(&page, m_env, pageid,
+                cacheonly ? DB_ONLY_FROM_CACHE :
                     at_blob_edge ? 0 : 0/*DB_NEW_PAGE_DOES_THRASH_CACHE*/);
         /* blob pages don't have a page header */
         if (page)
@@ -105,17 +105,17 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
         chunk_size[i] -= writesize;
       }
       else {
-          ham_size_t s = chunk_size[i];
-          /* limit to the next page boundary */
-          if (s > pageid + pagesize - addr)
-            s = (ham_size_t)(pageid + pagesize - addr);
+        ham_size_t s = chunk_size[i];
+        /* limit to the next page boundary */
+        if (s > pageid + pagesize - addr)
+          s = (ham_size_t)(pageid + pagesize - addr);
 
-          st = device->write(addr, chunk_data[i], s);
-          if (st)
-            return st;
-          addr += s;
-          chunk_data[i] += s;
-          chunk_size[i] -= s;
+        st = device->write(addr, chunk_data[i], s);
+        if (st)
+          return st;
+        addr += s;
+        chunk_data[i] += s;
+        chunk_size[i] -= s;
       }
     }
   }
@@ -140,15 +140,15 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
 
     /*
      * is it the current page? if not, try to fetch the page from
-     * the cache - but only read the page from disk, if the 
+     * the cache - but only read the page from disk, if the
      * chunk is small
      */
     if (!page) {
       if (db)
-        st = db_fetch_page(&page, db, pageid, 
+        st = db_fetch_page(&page, db, pageid,
                 blob_from_cache(size) ? 0 : DB_ONLY_FROM_CACHE);
       else
-        st = env_fetch_page(&page, m_env, pageid, 
+        st = env_fetch_page(&page, m_env, pageid,
                 blob_from_cache(size) ? 0 : DB_ONLY_FROM_CACHE);
       if (st)
         return st;
@@ -180,7 +180,7 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
         s = (ham_size_t)(pageid + pagesize - addr);
 
       st = device->read(addr, data, s);
-      if (st) 
+      if (st)
         return st;
       addr += s;
       data += s;
@@ -197,12 +197,12 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
 /**
  * Allocate space in storage for and write the content references by 'data'
  * (and length 'size') to storage.
- * 
+ *
  * Conditions will apply whether the data is written through cache or direct
  * to device.
- * 
+ *
  * The content is, of course, prefixed by a BLOB header.
- * 
+ *
  * Partial writes are handled in this function.
  */
 ham_status_t
@@ -218,18 +218,18 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   ham_size_t chunk_size[2];
   Device *device = m_env->get_device();
   bool freshly_created = false;
- 
+
   *blobid = 0;
 
   /*
    * PARTIAL WRITE
-   * 
-   * if offset+partial_size equals the full record size, then we won't 
+   *
+   * if offset+partial_size equals the full record size, then we won't
    * have any gaps. In this case we just write the full record and ignore
    * the partial parameters.
    */
   if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 
+    if (record->partial_offset == 0
         && record->partial_offset + record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }
@@ -240,7 +240,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
    */
   if (m_env->get_flags() & HAM_IN_MEMORY_DB) {
     blob_t *hdr;
-    ham_u8_t *p = (ham_u8_t *)m_env->get_allocator()->alloc( 
+    ham_u8_t *p = (ham_u8_t *)m_env->get_allocator()->alloc(
                                 record->size + sizeof(blob_t));
     if (!p)
       return (HAM_OUT_OF_MEMORY);
@@ -259,7 +259,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
         memset(s, 0, record->partial_offset);
       memcpy(s + record->partial_offset, record->data, record->partial_size);
       if (record->partial_offset + record->partial_size < record->size)
-        memset(s + record->partial_offset + record->partial_size, 0, 
+        memset(s + record->partial_offset + record->partial_size, 0,
                 record->size - (record->partial_offset + record->partial_size));
     }
     else {
@@ -286,7 +286,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 
   if (!addr) {
     /*
-     * if the blob is small AND if logging is disabled: load the page 
+     * if the blob is small AND if logging is disabled: load the page
      * through the cache
      */
     if (blob_from_cache(alloc_size)) {
@@ -309,7 +309,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       aligned -= aligned % m_env->get_pagesize();
 
       st = device->alloc(aligned, &addr);
-      if (st) 
+      if (st)
           return (st);
 
       /* if aligned!=size, and the remaining chunk is large enough:
@@ -346,7 +346,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     ham_u8_t *ptr;
     ham_size_t gapsize = record->partial_offset;
 
-    ptr = (ham_u8_t *)m_env->get_allocator()->calloc( 
+    ptr = (ham_u8_t *)m_env->get_allocator()->calloc(
                                 gapsize > m_env->get_pagesize()
                                     ? m_env->get_pagesize()
                                     : gapsize);
@@ -356,7 +356,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     /* first: write the header */
     chunk_data[0] = (ham_u8_t *)&hdr;
     chunk_size[0] = sizeof(hdr);
-    st=write_chunks(page, addr, true, freshly_created, 
+    st=write_chunks(page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
     if (st)
       return (st);
@@ -364,7 +364,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     addr += sizeof(hdr);
 
     /* now fill the gap; if the gap is bigger than a pagesize we'll
-     * split the gap into smaller chunks 
+     * split the gap into smaller chunks
      */
     while (gapsize>=m_env->get_pagesize()) {
       chunk_data[0] = ptr;
@@ -382,7 +382,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       chunk_data[0] = ptr;
       chunk_size[0] = gapsize;
 
-      st = write_chunks(page, addr, true, freshly_created, 
+      st = write_chunks(page, addr, true, freshly_created,
                       chunk_data, chunk_size, 1);
       if (st)
         return (st);
@@ -395,7 +395,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     chunk_data[0] = (ham_u8_t *)record->data;
     chunk_size[0] = record->partial_size;
 
-    st = write_chunks(page, addr, true, freshly_created, 
+    st = write_chunks(page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
     if (st)
       return (st);
@@ -406,11 +406,11 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     chunk_data[0] = (ham_u8_t *)&hdr;
     chunk_size[0] = sizeof(hdr);
     chunk_data[1] = (ham_u8_t *)record->data;
-    chunk_size[1] = (flags&HAM_PARTIAL) 
-                        ? record->partial_size 
+    chunk_size[1] = (flags&HAM_PARTIAL)
+                        ? record->partial_size
                         : record->size;
 
-    st = write_chunks(page, addr, true, freshly_created, 
+    st = write_chunks(page, addr, true, freshly_created,
                     chunk_data, chunk_size, 2);
     if (st)
       return (st);
@@ -436,20 +436,20 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
                         - (record->partial_offset + record->partial_size);
 
         /* now fill the gap; if the gap is bigger than a pagesize we'll
-         * split the gap into smaller chunks 
+         * split the gap into smaller chunks
          *
          * we split this loop in two - the outer loop will allocate the
          * memory buffer, thus saving some allocations
          */
         while (gapsize > m_env->get_pagesize()) {
-            ham_u8_t *ptr = (ham_u8_t *)m_env->get_allocator()->calloc( 
+            ham_u8_t *ptr = (ham_u8_t *)m_env->get_allocator()->calloc(
                                         m_env->get_pagesize());
             if (!ptr)
               return (HAM_OUT_OF_MEMORY);
             while (gapsize > m_env->get_pagesize()) {
               chunk_data[0] = ptr;
               chunk_size[0] = m_env->get_pagesize();
-              st = write_chunks(page, addr, true, 
+              st = write_chunks(page, addr, true,
                             freshly_created, chunk_data, chunk_size, 1);
               if (st)
                 break;
@@ -460,7 +460,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
             if (st)
               return (st);
         }
-        
+
         /* now write the remainder, which is less than a pagesize */
         ham_assert(gapsize < m_env->get_pagesize());
 
@@ -469,7 +469,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
         if (!ptr)
           return (HAM_OUT_OF_MEMORY);
 
-        st = write_chunks(page, addr, true, freshly_created, 
+        st = write_chunks(page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
         m_env->get_allocator()->free(ptr);
         if (st)
@@ -481,7 +481,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 }
 
 ham_status_t
-BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid, 
+BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
                 ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
@@ -530,7 +530,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
       if (flags & HAM_PARTIAL)
         d += record->partial_offset;
 
-      if ((flags & HAM_DIRECT_ACCESS) 
+      if ((flags & HAM_DIRECT_ACCESS)
             && !(record->flags & HAM_RECORD_USER_ALLOC)) {
         record->size = blobsize;
         record->data = d;
@@ -593,9 +593,9 @@ BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
   }
 
   /* third step: read the blob data */
-  st=read_chunk(page, 0, 
-                  blobid + sizeof(blob_t) + (flags & HAM_PARTIAL 
-                          ? record->partial_offset 
+  st=read_chunk(page, 0,
+                  blobid + sizeof(blob_t) + (flags & HAM_PARTIAL
+                          ? record->partial_offset
                           : 0),
                   db, (ham_u8_t *)record->data, blobsize);
   if (st)
@@ -629,7 +629,7 @@ BlobManager::get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
   st=read_chunk(0, &page, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
   if (st)
     return (st);
-    
+
   if (blob_get_self(&hdr) != blobid)
     return (HAM_BLOB_NOT_FOUND);
 
@@ -638,7 +638,7 @@ BlobManager::get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
 }
 
 ham_status_t
-BlobManager::overwrite(Database *db, ham_offset_t old_blobid, 
+BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
                 ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid)
 {
   ham_status_t st;
@@ -648,19 +648,19 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
 
   /*
    * PARTIAL WRITE
-   * 
-   * if offset+partial_size equals the full record size, then we won't 
+   *
+   * if offset+partial_size equals the full record size, then we won't
    * have any gaps. In this case we just write the full record and ignore
    * the partial parameters.
    */
   if (flags & HAM_PARTIAL) {
-    if (record->partial_offset == 0 
+    if (record->partial_offset == 0
           && record->partial_offset + record->partial_size == record->size)
       flags &= ~HAM_PARTIAL;
   }
 
   /*
-   * inmemory-databases: free the old blob, 
+   * inmemory-databases: free the old blob,
    * allocate a new blob (but if both sizes are equal, just overwrite
    * the data)
    */
@@ -699,7 +699,7 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
   alloc_size -= alloc_size % DB_CHUNKSIZE;
 
   /*
-   * first, read the blob header; if the new blob fits into the 
+   * first, read the blob header; if the new blob fits into the
    * old blob, we overwrite the old blob (and add the remaining
    * space to the freelist, if there is any)
    */
@@ -759,8 +759,8 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
       chunk_data[0] = (ham_u8_t *)&new_hdr;
       chunk_size[0] = sizeof(new_hdr);
       chunk_data[1] = (ham_u8_t *)record->data;
-      chunk_size[1] = (flags & HAM_PARTIAL) 
-                          ? record->partial_size 
+      chunk_size[1] = (flags & HAM_PARTIAL)
+                          ? record->partial_size
                           : record->size;
 
       st = write_chunks(page, blob_get_self(&new_hdr), false,
@@ -772,8 +772,8 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
     /* move remaining data to the freelist */
     if (blob_get_alloc_size(&old_hdr) != blob_get_alloc_size(&new_hdr)) {
       if (m_env->get_freelist())
-        m_env->get_freelist()->mark_free(db, 
-                    blob_get_self(&new_hdr) + blob_get_alloc_size(&new_hdr), 
+        m_env->get_freelist()->mark_free(db,
+                    blob_get_self(&new_hdr) + blob_get_alloc_size(&new_hdr),
                     (ham_size_t)(blob_get_alloc_size(&old_hdr) -
                         blob_get_alloc_size(&new_hdr)), false);
     }
@@ -784,8 +784,8 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
     return (HAM_SUCCESS);
   }
   else {
-    /* 
-     * when the new data is larger, allocate a fresh space for it 
+    /*
+     * when the new data is larger, allocate a fresh space for it
      * and discard the old; 'overwrite' has become (delete + insert) now.
      */
     st = m_env->get_blob_manager()->allocate(db, record, flags, new_blobid);
@@ -793,7 +793,7 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
       return (st);
 
     if (m_env->get_freelist())
-      m_env->get_freelist()->mark_free(db, old_blobid, 
+      m_env->get_freelist()->mark_free(db, old_blobid,
                     (ham_size_t)blob_get_alloc_size(&old_hdr), false);
   }
 
@@ -831,7 +831,7 @@ BlobManager::free(Database *db, ham_offset_t blobid, ham_u32_t flags)
 
   /* move the blob to the freelist */
   if (m_env->get_freelist())
-    st = m_env->get_freelist()->mark_free(db, blobid, 
+    st = m_env->get_freelist()->mark_free(db, blobid,
                   (ham_size_t)blob_get_alloc_size(&hdr), false);
 
   return st;

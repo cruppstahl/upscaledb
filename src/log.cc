@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -106,7 +106,7 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
     return (0);
   }
 
-  /* otherwise read the Log::Entry header (without extended data) 
+  /* otherwise read the Log::Entry header (without extended data)
    * from the file */
   *iter -= sizeof(Log::Entry);
 
@@ -175,7 +175,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
   ham_size_t size = m_env->get_pagesize();
 
   /*
-   * run page through page-level filters, but not for the 
+   * run page through page-level filters, but not for the
    * root-page!
    */
   if (head && !page->is_header()) {
@@ -187,7 +187,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
     while (head) {
       if (head->before_write_cb) {
         st = head->before_write_cb((ham_env_t *)m_env, head, p, size);
-        if (st) 
+        if (st)
           break;
       }
       head = head->_next;
@@ -197,7 +197,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
     p = (ham_u8_t *)page->get_raw_payload();
 
   if (st == 0)
-    st = append_write(lsn, page_count == 0 ? CHANGESET_IS_COMPLETE : 0, 
+    st = append_write(lsn, page_count == 0 ? CHANGESET_IS_COMPLETE : 0,
             page->get_self(), p, size);
 
   if (p != page->get_raw_payload())
@@ -260,13 +260,13 @@ Log::recover()
     if (entry.lsn == 0)
       break;
 
-    /* 
-     * Was the page appended or overwritten? 
+    /*
+     * Was the page appended or overwritten?
      *
      * Either way we have to bypass the cache and all upper layers. We
      * cannot call db_alloc_page() or db_fetch_page() since we do not have
      * a Database handle. env_alloc_page()/env_fetch_page() would work,
-     * but then the page ownership is not set correctly (the 
+     * but then the page ownership is not set correctly (the
      * ownership is verified later, and this would fail).
      */
     if (entry.offset == filesize) {
@@ -321,9 +321,9 @@ bail:
   m_env->set_flags(m_env->get_flags() | HAM_ENABLE_RECOVERY);
 
   /* restore the file filters */
-  if (head) 
+  if (head)
     m_env->set_file_filter(head);
-  
+
   /* clean up memory */
   if (data) {
     m_env->get_allocator()->free(data);
@@ -334,7 +334,7 @@ bail:
 }
 
 ham_status_t
-Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_offset_t offset, 
+Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
   Log::Entry entry;

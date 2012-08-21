@@ -17,11 +17,11 @@ On Linux/Unix, type
     make test
     make install
 
-For Win32, open the hamsterdb.sln file in the win32 folder in the root 
+For Win32, open the hamsterdb.sln file in the win32 folder in the root
 directory. The Java API is a sub project.
 
 3. Usage
 
 For usage instructions, either generate the documentation with javadoc
-or look at the unittests. 
+or look at the unittests.
 

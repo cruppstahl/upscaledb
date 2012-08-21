@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -42,15 +42,15 @@ enum {
 
 
 /**
- * a callback function for enumerating the index nodes/pages using the 
+ * a callback function for enumerating the index nodes/pages using the
  * @ref Backend::enumerate callback/method.
  *
  * @param event one of the @ref ham_cb_event state codes
  *
- * @return one of the @ref ham_cb_status values or a @ref ham_status_codes 
+ * @return one of the @ref ham_cb_status values or a @ref ham_status_codes
  *     error code when an error occurred.
  */
-typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, 
+typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
           void *param2, void *context);
 
 /**
@@ -68,7 +68,7 @@ enum {
   /** end of a new page; param1 points to the page */
   HAM_ENUM_EVENT_PAGE_STOP          = 3,
 
-  /** an item in the page; param1 points to the key; param2 is the index 
+  /** an item in the page; param1 points to the key; param2 is the index
    * of the key in the page */
   HAM_ENUM_EVENT_ITEM               = 4
 };
@@ -81,7 +81,7 @@ struct btree_cursor_t;
 
 /**
  * the backend structure - these functions and members are inherited
- * by every other backend (i.e. btree, hashdb etc). 
+ * by every other backend (i.e. btree, hashdb etc).
  */
 class Backend
 {
@@ -135,7 +135,7 @@ class Backend
     /**
      * find a key in the index
      */
-    ham_status_t find(Transaction *txn, ham_key_t *key, 
+    ham_status_t find(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags) {
       return (do_find(txn, 0, key, record, flags));
     }
@@ -146,15 +146,15 @@ class Backend
      * the backend is responsible for inserting or updating the
      * record. (see blob.h for blob management functions)
      */
-    ham_status_t insert(Transaction *txn, ham_key_t *key, 
+    ham_status_t insert(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags) {
       return (do_insert(txn, key, record, flags));
     }
-  
+
     /**
      * erase a key in the index
      */
-    ham_status_t erase(Transaction *txn, ham_key_t *key, 
+    ham_status_t erase(Transaction *txn, ham_key_t *key,
                     ham_u32_t flags) {
       return (do_erase(txn, key, flags));
     }
@@ -176,7 +176,7 @@ class Backend
     /**
      * estimate the number of keys per page, given the keysize
      */
-    ham_status_t calc_keycount_per_page(ham_size_t *keycount, 
+    ham_status_t calc_keycount_per_page(ham_size_t *keycount,
                     ham_u16_t keysize) {
       return (do_calc_keycount_per_page(keycount, keysize));
     }
@@ -194,7 +194,7 @@ class Backend
     /**
      * looks up a key, points cursor to this key
      */
-    ham_status_t find_cursor(Transaction *txn, Cursor *cursor, 
+    ham_status_t find_cursor(Transaction *txn, Cursor *cursor,
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags) {
       return (do_find(txn, cursor, key, record, flags));
     }
@@ -202,7 +202,7 @@ class Backend
     /**
      * inserts a key, points cursor to the new key
      */
-    ham_status_t insert_cursor(Transaction *txn, ham_key_t *key, 
+    ham_status_t insert_cursor(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, btree_cursor_t *cursor,
                     ham_u32_t flags) {
       return (do_insert_cursor(txn, key, record, cursor, flags));
@@ -211,7 +211,7 @@ class Backend
     /**
      * erases the key that the cursor points to
      */
-    ham_status_t erase_cursor(Transaction *txn, ham_key_t *key, 
+    ham_status_t erase_cursor(Transaction *txn, ham_key_t *key,
                     btree_cursor_t *cursor, ham_u32_t flags) {
       return (do_erase_cursor(txn, key, cursor, flags));
     }
@@ -282,11 +282,11 @@ class Backend
     virtual void do_close(ham_u32_t flags) = 0;
 
     /** implementation for insert() */
-    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key, 
+    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key,
                             ham_record_t *record, ham_u32_t flags) = 0;
 
     /** implementation for erase() */
-    virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key, 
+    virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key,
                             ham_u32_t flags) = 0;
 
     /** implementation for enumerate() */
@@ -297,7 +297,7 @@ class Backend
 
     /** implementation for calc_keycount_per_page */
     // TODO this is btree-private??
-    virtual ham_status_t do_calc_keycount_per_page(ham_size_t *keycount, 
+    virtual ham_status_t do_calc_keycount_per_page(ham_size_t *keycount,
                             ham_u16_t keysize) = 0;
 
     /** implementation for uncouple_all_cursors() */
@@ -305,12 +305,12 @@ class Backend
                             ham_size_t start) = 0;
 
     /** implementation for insert_cursor() */
-    virtual ham_status_t do_insert_cursor(Transaction *txn, ham_key_t *key, 
+    virtual ham_status_t do_insert_cursor(Transaction *txn, ham_key_t *key,
                             ham_record_t *record, btree_cursor_t *cursor,
                             ham_u32_t flags) = 0;
 
     /** implementation for erase_cursor() */
-    virtual ham_status_t do_erase_cursor(Transaction *txn, ham_key_t *key, 
+    virtual ham_status_t do_erase_cursor(Transaction *txn, ham_key_t *key,
                             btree_cursor_t *cursor, ham_u32_t flags) = 0;
 
   private:

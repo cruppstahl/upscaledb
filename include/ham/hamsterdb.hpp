@@ -15,9 +15,9 @@
  * @version 2.0.4
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
- * not attempt to be STL compatible. 
+ * not attempt to be STL compatible.
  *
- * All functions throw exceptions of class @sa ham::error in case of an error. 
+ * All functions throw exceptions of class @sa ham::error in case of an error.
  * Please refer to the C API documentation for more information. You can find
  * it here: http://hamsterdb.com/?page=doxygen&module=globals.html
  *
@@ -91,7 +91,7 @@ public:
         m_key.data=data;
         m_key.size=(ham_u16_t)size;
         m_key.flags=flags;
-		if (m_key.size != size) // check for overflow
+        if (m_key.size != size) // check for overflow
             throw error(HAM_INV_KEYSIZE);
     }
 
@@ -101,8 +101,8 @@ public:
 
     /** Assignment operator. */
     key &operator=(const key &other) {
-		if (&other != this)
-			m_key=other.m_key;
+        if (&other != this)
+            m_key=other.m_key;
         return (*this);
     }
 
@@ -124,7 +124,7 @@ public:
     /** Sets the size of the key. */
     void set_size(ham_size_t size) {
         m_key.size=(ham_u16_t)size;
-		if (m_key.size != size)
+        if (m_key.size != size)
             throw error(HAM_INV_KEYSIZE);
     }
 
@@ -281,13 +281,13 @@ public:
         ham_set_errhandler(f);
     }
 
-    /** Retrieves the hamsterdb library version. */ 
+    /** Retrieves the hamsterdb library version. */
     static void get_version(ham_u32_t *major, ham_u32_t *minor,
                     ham_u32_t *revision) {
         ham_get_version(major, minor, revision);
     }
 
-    /** Retrieves hamsterdb library license information. */ 
+    /** Retrieves hamsterdb library license information. */
     static void get_license(const char **licensee, const char **product) {
         ham_get_license(licensee, product);
     }
@@ -301,19 +301,19 @@ public:
         close();
     }
 
-    /** 
+    /**
      * Assignment operator.
      *
-     * <b>Important!</b> This operator transfers the ownership of the 
+     * <b>Important!</b> This operator transfers the ownership of the
      * Database handle.
      */
     db &operator=(const db &other) {
-		db &rhs=(db &)other;
+        db &rhs=(db &)other;
         if (this==&other)
             return (*this);
         close();
         m_db=rhs.m_db;
-        rhs.m_db=0; 
+        rhs.m_db=0;
         return (*this);
     }
 
@@ -348,7 +348,7 @@ public:
     /** Returns the last Database error. */
     ham_status_t get_error() {
         if (!m_db)
-			return (HAM_NOT_INITIALIZED);
+            return (HAM_NOT_INITIALIZED);
         return (ham_get_error(m_db));
     }
 
@@ -376,8 +376,8 @@ public:
     /** Finds a record by looking up the key. */
     record find(txn *t, key *k, ham_u32_t flags=0) {
         record r;
-        ham_status_t st=ham_find(m_db, 
-                t ? t->get_handle() : 0, 
+        ham_status_t st=ham_find(m_db,
+                t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
                 r.get_handle(), flags);
         if (st)
@@ -392,9 +392,9 @@ public:
 
     /** Inserts a key/record pair. */
     void insert(txn *t, key *k, record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_insert(m_db, 
-                t ? t->get_handle() : 0, 
-                k ? k->get_handle() : 0, 
+        ham_status_t st=ham_insert(m_db,
+                t ? t->get_handle() : 0,
+                k ? k->get_handle() : 0,
                 r ? r->get_handle() : 0, flags);
         if (st)
             throw error(st);
@@ -412,8 +412,8 @@ public:
 
     /** Erases a key/record pair. */
     void erase(txn *t, key *k, ham_u32_t flags=0) {
-        ham_status_t st=ham_erase(m_db, 
-                t ? t->get_handle() : 0, 
+        ham_status_t st=ham_erase(m_db,
+                t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0, flags);
         if (st)
             throw error(st);
@@ -502,8 +502,8 @@ public:
         if (m_cursor)
             close();
         if (db) {
-            ham_status_t st=ham_cursor_create(db->get_handle(), 
-                    t ? t->get_handle() : 0, 
+            ham_status_t st=ham_cursor_create(db->get_handle(),
+                    t ? t->get_handle() : 0,
                     flags, &m_cursor);
             if (st)
                 throw error(st);
@@ -549,7 +549,7 @@ public:
 
     /** Overwrites the current record. */
     void overwrite(record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_overwrite(m_cursor, 
+        ham_status_t st=ham_cursor_overwrite(m_cursor,
                         r ? r->get_handle() : 0, flags);
         if (st)
             throw error(st);
@@ -564,7 +564,7 @@ public:
 
     /** Finds a key. */
     void find_ex(key *k, record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_find_ex(m_cursor, k->get_handle(), 
+        ham_status_t st=ham_cursor_find_ex(m_cursor, k->get_handle(),
                         (r ? r->get_handle() : 0), flags);
         if (st)
             throw error(st);
@@ -669,7 +669,7 @@ public:
     }
 
     /** Creates a new Database in the Environment. */
-    db create_db(ham_u16_t name, ham_u32_t flags=0, 
+    db create_db(ham_u16_t name, ham_u32_t flags=0,
             const ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
@@ -683,11 +683,11 @@ public:
             throw error(st);
         }
 
-		return (ham::db(dbh));
+        return (ham::db(dbh));
     }
 
     /** Opens an existing Database in the Environment. */
-    db open_db(ham_u16_t name, ham_u32_t flags=0, 
+    db open_db(ham_u16_t name, ham_u32_t flags=0,
             const ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
@@ -701,7 +701,7 @@ public:
             throw error(st);
         }
 
-		return (ham::db(dbh));
+        return (ham::db(dbh));
     }
 
     /** Renames an existing Database in the Environment. */

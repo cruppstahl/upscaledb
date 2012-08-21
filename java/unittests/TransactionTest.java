@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -47,7 +47,7 @@ public class TransactionTest extends TestCase {
             }
             catch (DatabaseException err) {
                 assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
-            }    
+            }
             db.close();
             env.close();
         }
@@ -69,7 +69,7 @@ public class TransactionTest extends TestCase {
             // db.find(k); // ok, but why? -> LIMITS_REACHED???
             db.erase(txn, k);
             txn.abort();
-            //db.find(k); // XXX throws KEY_NOT_FOUND - why??? 
+            //db.find(k); // XXX throws KEY_NOT_FOUND - why???
             env.close();
         }
         catch (DatabaseException err) {

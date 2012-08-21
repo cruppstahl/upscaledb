@@ -5,7 +5,7 @@ package ham;
 option optimize_for = LITE_RUNTIME;
 
 message ProtoWrapper {
-    enum Type { 
+    enum Type {
             CONNECT_REQUEST = 10;
             CONNECT_REPLY   = 11;
             ENV_RENAME_REQUEST  = 20;
@@ -114,9 +114,9 @@ message ProtoWrapper {
     optional CursorEraseReply cursor_erase_reply = 241;
     optional CursorFindRequest cursor_find_request = 250;
     optional CursorFindReply cursor_find_reply = 251;
-    optional CursorGetDuplicateCountRequest 
+    optional CursorGetDuplicateCountRequest
                 cursor_get_duplicate_count_request = 260;
-    optional CursorGetDuplicateCountReply 
+    optional CursorGetDuplicateCountReply
                 cursor_get_duplicate_count_reply = 261;
     optional CursorOverwriteRequest cursor_overwrite_request = 270;
     optional CursorOverwriteReply cursor_overwrite_reply = 271;

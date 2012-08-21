@@ -1,4 +1,4 @@
- 
+
 I Am Legend:
 
 Items are sorted by priority (highest on top).
@@ -206,7 +206,7 @@ o continue with refacoring - indention, coding style, better design etc...
         - provide getters/setters
 
     o btree_stats.h
-        - remove everything that is not required 
+        - remove everything that is not required
         - namespace Btree::Statistics
     o btree_stats.cc
         - should use arena for lower/upper bounds
@@ -231,7 +231,7 @@ o continue with refacoring - indention, coding style, better design etc...
         o protect env and freelist with mutex
         o in db: assert that the db is locked
     o freelist_statistics.cc
-        remove everything that is not required 
+        remove everything that is not required
 
     o cursor.cc
     o cursor.h
@@ -252,7 +252,7 @@ o continue with refacoring - indention, coding style, better design etc...
         o avoid single code allocations; use an arena allocator based
             on a ByteArray
         use an arena allocator for everything that's stored in a transaction
-        the arena should allocate pages with dynamic sizes; if a page is 
+        the arena should allocate pages with dynamic sizes; if a page is
         no longer used it will be stored in a lookaside list
     o txn_cursor.cc
     o txn_cursor.h
@@ -359,7 +359,7 @@ o new node format:
     records are compressed; will be multiplied by BLOCKSIZE (32)
     each key consists of { char flag; short record_id; char data[1]; }
         where record_id is an offset into rrrrrrrrr
-    keys are sorted lazily (i.e. inserted at the end and only sorted 
+    keys are sorted lazily (i.e. inserted at the end and only sorted
         when flushed to disk or when searched
 
 . android port (needs new java api) in /contrib directory (it's on a separate
@@ -379,7 +379,7 @@ o new node format:
 . test with tcmalloc; if it works then also use it in the master branch, but
     make sure that memory consumption does not increase significantly
 
-. there are a couple of areas where a btree cursor is uncoupled, just to 
+. there are a couple of areas where a btree cursor is uncoupled, just to
     retrieve the key and to couple the txn-key. that's not efficient
         db.c:__btree_cursor_points_to
         db.c:__compare_cursors
@@ -388,7 +388,7 @@ o new node format:
     o move to a separate function
     o try to optimize
 
-. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use 
+. hash-table.h: the foreach/remove_if/visitor pattern is clumsy. use
     functor or class w/ operator() instead
 . changeset: use a generic hash table for fast lookup (but leave list in place
     for everything else)
@@ -400,15 +400,15 @@ o new node format:
 
 . the whole c++ protocol should be c++-ified
 
-. move the whole configuration (key sizes, parameters, page size, etc) into a 
+. move the whole configuration (key sizes, parameters, page size, etc) into a
     separate class which is instantiated by the env
 
-. c++-ify the btree node representation; 
+. c++-ify the btree node representation;
     o include duplicates as well! disentangle duplicates from blob-handling
 
 . c++-ify the blob handling and split off the duplicates
 
-. cleanup db.h/db.cc - move functions into Database or 
+. cleanup db.h/db.cc - move functions into Database or
     DatabaseImplementationLocal namespace - but take care b/c these functions
     are also used by Cursor or other modules which don't necessarily have
     access to the Local stuff
@@ -431,9 +431,9 @@ XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE !!! XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 . new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the blob, not
     to the log. the log will only contain the rid.
-    o document this (and also the drawback - that an abort will lose the 
+    o document this (and also the drawback - that an abort will lose the
         blobs and they cannot be reused
-    -> this affects all temporary ham_insert-transactions 
+    -> this affects all temporary ham_insert-transactions
     (not sure if this should get high priority)
 
 o hamsterdb.com
@@ -483,7 +483,7 @@ o when recovering, give users the choice if active transactions should be
 o extkeys: don't use txn_id for the 'age', use lsn instead
 
 o the DatabaseImplementation subclass is not neccessary; all subclasses
-    can directly derive from Database. 
+    can directly derive from Database.
 
 . allow use of transactions without a log/journal
 
@@ -499,7 +499,7 @@ o add concurrency (on a high level)
 
 o flush transactions in background
 
-. have a flag to disable flushing of logfiles/journal files (or flush them 
+. have a flag to disable flushing of logfiles/journal files (or flush them
     async.)
 
 o continue as described in integrate-ham2.txt...

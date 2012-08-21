@@ -40,8 +40,8 @@ test_SOURCES    = log.cpp \
                   empty_sample.cpp \
                   bfc-testsuite.cpp \
                   bfc-testsuite.hpp \
-		          os.hpp \
-		          hamster_fixture.hpp \
+                  os.hpp \
+                  hamster_fixture.hpp \
                   bfc-signal.h \
                   bfc-signal.c
 
@@ -57,7 +57,7 @@ bfc_sample_SOURCES = bfc-sample.cpp \
                   empty_sample.cpp \
                   bfc-testsuite.cpp \
                   bfc-testsuite.hpp \
-		  		  os.hpp \
+                  os.hpp \
                   bfc-signal.h \
                   bfc-signal.c
 

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -29,7 +29,7 @@ class ChangesetTest : public hamsterDB_fixture
 
 public:
     ChangesetTest()
-    :   hamsterDB_fixture("ChangesetTest") 
+    :   hamsterDB_fixture("ChangesetTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(ChangesetTest, addPagesTest);
@@ -42,19 +42,19 @@ protected:
     ham_env_t *m_env;
 
 public:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create_ex(m_db, BFC_OPATH(".test"),
                 HAM_ENABLE_RECOVERY, 0644, 0));
         m_env=ham_get_env(m_db);
     }
-    
-    virtual void teardown() 
-    { 
+
+    virtual void teardown()
+    {
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

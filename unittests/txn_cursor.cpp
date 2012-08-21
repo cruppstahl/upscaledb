@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -86,25 +86,25 @@ protected:
     ham_env_t *m_env;
 
 public:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(m_env, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create(m_env, BFC_OPATH(".test"),
                     HAM_ENABLE_DUPLICATES
                         |HAM_ENABLE_RECOVERY
                         |HAM_ENABLE_TRANSACTIONS, 0664));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
     }
-    
-    virtual void teardown() 
-    { 
+
+    virtual void teardown()
+    {
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
@@ -124,14 +124,14 @@ public:
         BFC_ASSERT_EQUAL(&op, txn_cursor_get_coupled_op(&cursor));
         txn_cursor_set_coupled_op(&cursor, 0);
 
-        BFC_ASSERT_EQUAL((txn_cursor_t *)0, 
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0,
                     txn_cursor_get_coupled_next(&cursor));
         txn_cursor_set_coupled_next(&cursor, (txn_cursor_t *)0x12);
         BFC_ASSERT_EQUAL((txn_cursor_t *)0x12,
                     txn_cursor_get_coupled_next(&cursor));
         txn_cursor_set_coupled_next(&cursor, 0);
 
-        BFC_ASSERT_EQUAL((txn_cursor_t *)0, 
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0,
                     txn_cursor_get_coupled_previous(&cursor));
         txn_cursor_set_coupled_previous(&cursor, (txn_cursor_t *)0x21);
         BFC_ASSERT_EQUAL((txn_cursor_t *)0x21,
@@ -160,7 +160,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
-        op=txn_opnode_append((Transaction *)txn, node, 
+        op=txn_opnode_append((Transaction *)txn, node,
                 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -168,14 +168,14 @@ public:
         txn_cursor_set_coupled_op(&c1, op);
         txn_cursor_t c2=c1;
         txn_cursor_t c3=c1;
-        
+
         BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
 
         txn_op_add_cursor(op, &c1);
         BFC_ASSERT_EQUAL(&c1, txn_op_get_cursors(op));
-        BFC_ASSERT_EQUAL((txn_cursor_t *)0, 
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0,
                     txn_cursor_get_coupled_previous(&c1));
-        BFC_ASSERT_EQUAL((txn_cursor_t *)0, 
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0,
                     txn_cursor_get_coupled_next(&c1));
 
         txn_op_add_cursor(op, &c2);
@@ -232,7 +232,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
-        op=txn_opnode_append((Transaction *)txn, node, 
+        op=txn_opnode_append((Transaction *)txn, node,
                 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -265,7 +265,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
-        op=txn_opnode_append((Transaction *)txn, node, 
+        op=txn_opnode_append((Transaction *)txn, node,
                 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -292,7 +292,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         node=txn_opnode_create((Database *)m_db, &key);
-        op=txn_opnode_append((Transaction *)txn, node, 
+        op=txn_opnode_append((Transaction *)txn, node,
                 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
@@ -458,7 +458,7 @@ public:
         return (ham_insert(m_db, txn, &k, &r, flags));
     }
 
-    ham_status_t insertCursor(txn_cursor_t *cursor, const char *key, 
+    ham_status_t insertCursor(txn_cursor_t *cursor, const char *key,
                     const char *record=0, ham_u32_t flags=0)
     {
         ham_key_t k={0};
@@ -494,7 +494,7 @@ public:
         return (ham_erase(m_db, txn, &k, 0));
     }
 
-    ham_status_t findCursor(txn_cursor_t *cursor, const char *key, 
+    ham_status_t findCursor(txn_cursor_t *cursor, const char *key,
                     const char *record=0)
     {
         ham_key_t k={0};
@@ -514,7 +514,7 @@ public:
         return (0);
     }
 
-    ham_status_t moveCursor(txn_cursor_t *cursor, const char *key, 
+    ham_status_t moveCursor(txn_cursor_t *cursor, const char *key,
                     ham_u32_t flags)
     {
         ham_status_t st=0;
@@ -686,7 +686,7 @@ public:
         ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
 
         /* find the first key */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key1", HAM_CURSOR_FIRST));
 
         /* now the cursor is nil */
@@ -735,7 +735,7 @@ public:
         /* make sure that the cursor is nil */
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
 
-        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
                     moveCursor(cursor, 0, HAM_CURSOR_NEXT));
 
         /* reset cursor hack */
@@ -807,7 +807,7 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* move next */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key2", HAM_CURSOR_NEXT));
 
         /* reset cursor hack */
@@ -837,14 +837,14 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* move next */
-        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN,
                     moveCursor(cursor, 0, HAM_CURSOR_NEXT));
 
         /* move next */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* reached the end */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* reset cursor hack */
@@ -878,14 +878,14 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* move next */
-        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN,
                     moveCursor(cursor, 0, HAM_CURSOR_NEXT));
 
         /* move next */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* reached the end */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
         /* reset cursor hack */
@@ -941,7 +941,7 @@ public:
         ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
 
         /* find the first key */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key1", HAM_CURSOR_LAST));
 
         /* now the cursor is nil */
@@ -967,7 +967,7 @@ public:
         /* make sure that the cursor is nil */
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
 
-        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
                     moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
 
         /* reset cursor hack */
@@ -1039,7 +1039,7 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
         /* move previous */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key2", HAM_CURSOR_PREVIOUS));
 
         /* reset cursor hack */
@@ -1069,14 +1069,14 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key3"));
 
         /* move previous */
-        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN,
                     moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
 
         /* move previous */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* reached the end */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* reset cursor hack */
@@ -1110,14 +1110,14 @@ public:
         BFC_ASSERT_EQUAL(0, findCursor(cursor, "key3"));
 
         /* move previous */
-        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, 
+        BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN,
                     moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
 
         /* move previous */
         BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* reached the end */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
         /* reset cursor hack */

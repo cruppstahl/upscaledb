@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -18,7 +18,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #include "../../include/ham/types.h"
 
@@ -35,7 +35,7 @@ extern void HAM_CALLCONV
 aes_decrypt(unsigned char *in, unsigned char *key, unsigned char *out);
 
 /*
- * produce 4 bytes for each round 
+ * produce 4 bytes for each round
  *
  * usage:
  *
@@ -48,6 +48,6 @@ aes_expand_key(unsigned char *key, unsigned char *expkey);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif 
+#endif
 
 #endif /* HAM_AES_H__ */

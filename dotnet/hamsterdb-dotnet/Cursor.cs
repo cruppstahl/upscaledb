@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -67,12 +67,12 @@ namespace Hamster
         /// <remarks>
         /// This method wraps the native ham_cursor_create function.
         /// <br />
-        /// Creates a new Database Cursor. Cursors can be used to traverse 
-        /// the Database from start to end or vice versa. Cursors can also 
+        /// Creates a new Database Cursor. Cursors can be used to traverse
+        /// the Database from start to end or vice versa. Cursors can also
         /// be used to insert, delete or search Database items.
-        /// 
+        ///
         /// A newly created Cursor does not point to any item in the Database.
-        /// 
+        ///
         /// The application should close all Database Cursors before closing
         /// the Database.
         /// </remarks>
@@ -88,7 +88,7 @@ namespace Hamster
             this.db = db;
             int st;
             lock (this.db) {
-                st = NativeMethods.CursorCreate(db.Handle, txn != null ? txn.Handle : IntPtr.Zero, 
+                st = NativeMethods.CursorCreate(db.Handle, txn != null ? txn.Handle : IntPtr.Zero,
                     0, out handle);
             }
             if (st != 0)
@@ -106,7 +106,7 @@ namespace Hamster
         /// same item as the old Cursor. If the old Cursor did not point
         /// to any item, so will the new Cursor.
         ///
-        /// If the old Cursor is bound to a Transaction, then the new 
+        /// If the old Cursor is bound to a Transaction, then the new
         /// Cursor will also be bound to this Transaction.
         /// </remarks>
         /// <returns>The new Cursor object</returns>
@@ -133,11 +133,11 @@ namespace Hamster
         /// </summary>
         /// <remarks>
         /// This method wraps the native ham_cursor_move function.
-        /// 
+        ///
         /// Moves the Cursor. Use the flags to specify the direction.
-        /// After the move, use Cursor.GetKey and Cursor.GetRecord to 
-        /// retrieve key and record of the item. 
-        /// 
+        /// After the move, use Cursor.GetKey and Cursor.GetRecord to
+        /// retrieve key and record of the item.
+        ///
         /// If the direction is not specified, the Cursor will not move.
         /// </remarks>
         /// <param name="flags">The direction for the move. If no direction
@@ -160,15 +160,15 @@ namespace Hamster
         ///         duplicate keys of the current key. Not allowed in combination
         ///         with <see cref="HamConst.HAM_ONLY_DUPLICATES" />.</item>
         ///     <item><see cref="HamConst.HAM_ONLY_DUPLICATES" /> only
-        ///         moves through duplicate keys of the current key. Not allowed 
-        ///         in combination with 
+        ///         moves through duplicate keys of the current key. Not allowed
+        ///         in combination with
         ///         <see cref="HamConst.HAM_SKIP_DUPLICATES" />.</item>
         ///   </list>
         /// </param>
         /// <exception cref="DatabaseException">
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
-        ///         if the Cursor points to the first (or last) item, and a 
+        ///         if the Cursor points to the first (or last) item, and a
         ///         move to the previous (or next) item was requested</item>
         ///   </list>
         /// </exception>
@@ -237,7 +237,7 @@ namespace Hamster
         /// This method wraps the native ham_cursor_move function.
         /// <br />
         /// Returns the key of the current Database item. Throws
-        /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does 
+        /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does
         /// not point to any item.
         /// </remarks>
         /// <returns>The key of the current item</returns>
@@ -264,7 +264,7 @@ namespace Hamster
         /// This method wraps the native ham_cursor_move function.
         /// <br />
         /// Returns the record of the current Database item. Throws
-        /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does 
+        /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does
         /// not point to any item.
         /// </remarks>
         /// <returns>The record of the current item</returns>
@@ -292,9 +292,9 @@ namespace Hamster
         /// <br />
         /// This function overwrites the record of the current item.
         ///
-        /// The use of this function is not allowed if the item has duplicate 
-        /// keys and the duplicate sorting is enabled (see 
-        /// HamConst.HAM_SORT_DUPLICATES). In this case, 
+        /// The use of this function is not allowed if the item has duplicate
+        /// keys and the duplicate sorting is enabled (see
+        /// HamConst.HAM_SORT_DUPLICATES). In this case,
         /// HamConst.HAM_INV_PARAMETER is thrown.
         /// </remarks>
         /// <exception cref="DatabaseException">
@@ -359,45 +359,45 @@ namespace Hamster
         /// This method wraps the native ham_cursor_insert function.
         /// <br />
         /// This function inserts a key/record pair as a new Database item.
-        /// If the key already exists in the Database, error 
+        /// If the key already exists in the Database, error
         /// <see cref="HamConst.HAM_DUPLICATE_KEY" /> is thrown.
         /// <br />
         /// If you wish to overwrite an existing entry specify the flag
         /// <see cref="HamConst.HAM_OVERWRITE"/>
         /// <br />
-        /// If you wish to insert a duplicate key specify the flag 
-        /// <see cref="HamConst.HAM_DUPLICATE" />. (Note that 
-        /// the Database has to be created with the flag 
+        /// If you wish to insert a duplicate key specify the flag
+        /// <see cref="HamConst.HAM_DUPLICATE" />. (Note that
+        /// the Database has to be created with the flag
         /// <see cref="HamConst.HAM_ENABLE_DUPLICATES" /> in order
-        /// to use duplicate keys.) 
+        /// to use duplicate keys.)
         /// By default, the duplicate key is inserted after all other duplicate
-        /// keys (<see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>). This 
-        /// behaviour can be overwritten by specifying 
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>, 
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> or 
+        /// keys (<see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>). This
+        /// behaviour can be overwritten by specifying
+        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>,
+        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> or
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER"/>.
         /// <br />
-        /// However, if a sort order is specified (<see 
+        /// However, if a sort order is specified (<see
         /// cref="HamConst.HAM_SORT_DUPLICATES"/>) then
-        /// the key is inserted in sorted order. In this case, the use of 
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>, 
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>, 
+        /// the key is inserted in sorted order. In this case, the use of
+        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>,
+        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>,
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> and
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER"/> is
-        /// not allowed and will throw 
+        /// not allowed and will throw
         /// <see cref="HamConst.HAM_INV_PARAMETER"/>.
         /// <br />
-        /// Specify the flag <see cref="HamConst.HAM_HINT_APPEND"/> if you 
-        /// insert sequential data and the current key is higher than any 
-        /// other key in this Database. In this case hamsterdb will optimize 
-        /// the insert algorithm. hamsterdb will verify that this key is 
-        /// the highest; if not, it will perform a normal insert. This is 
+        /// Specify the flag <see cref="HamConst.HAM_HINT_APPEND"/> if you
+        /// insert sequential data and the current key is higher than any
+        /// other key in this Database. In this case hamsterdb will optimize
+        /// the insert algorithm. hamsterdb will verify that this key is
+        /// the highest; if not, it will perform a normal insert. This is
         /// the default for Record Number Databases.
         /// <br />
-        /// Specify the flag <see cref="HamConst.HAM_HINT_PREPEND"/> if you 
-        /// insert sequential data and the current key is lower than any 
-        /// other key in this Database. In this case hamsterdb will optimize 
-        /// the insert algorithm. hamsterdb will verify that this key is 
+        /// Specify the flag <see cref="HamConst.HAM_HINT_PREPEND"/> if you
+        /// insert sequential data and the current key is lower than any
+        /// other key in this Database. In this case hamsterdb will optimize
+        /// the insert algorithm. hamsterdb will verify that this key is
         /// the lowest; if not, it will perform a normal insert.
         /// <br />
         /// After inserting, the Cursor will point to the new item. If inserting
@@ -408,11 +408,11 @@ namespace Hamster
         /// <param name="flags">Optional flags for this operation, combined
         /// with bitwise OR. Possible flags are:
         /// <list type="bullet">
-        ///   <item><see cref="HamConst.HAM_OVERWRITE"/> 
-        ///         If the key already exists, the record is overwritten. 
+        ///   <item><see cref="HamConst.HAM_OVERWRITE"/>
+        ///         If the key already exists, the record is overwritten.
         ///         Otherwise, the key is inserted.</item>
-        ///   <item><see cref="HamConst.HAM_DUPLICATE"/> 
-        ///         If the key already exists, a duplicate key is inserted. 
+        ///   <item><see cref="HamConst.HAM_DUPLICATE"/>
+        ///         If the key already exists, a duplicate key is inserted.
         ///         The key is inserted after the already existing duplicates.
         ///         Same as <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST" />.
         ///         </item>
@@ -433,15 +433,15 @@ namespace Hamster
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
         ///         if the flags HamConst.HAM_DUPLICATE <b>AND</b>
-        ///         HamConst.HAM_OVERWRITE were specified, or if 
+        ///         HamConst.HAM_OVERWRITE were specified, or if
         ///         HamConst.HAM_DUPLICATE was specified but the Database
         ///         was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
         ///     <item><see cref="HamConst.HAM_DB_READ_ONLY"/>
         ///         if you tried to insert a key in a read-only Database</item>
         ///     <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
-        ///         if key size is larger than the key size parameter 
+        ///         if key size is larger than the key size parameter
         ///         specified for Database.Create, and variable
-        ///         length keys are disabled (see 
+        ///         length keys are disabled (see
         ///         <see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />).</item>
         ///   </list>
         /// </exception>
@@ -465,7 +465,7 @@ namespace Hamster
         /// In case of an error, the Cursor is not modified.
         /// <br />
         /// If the Database was opened with the flag
-        /// <see cref="HamConst.HAM_ENABLE_DUPLICATES" />, this function erases 
+        /// <see cref="HamConst.HAM_ENABLE_DUPLICATES" />, this function erases
         /// only the duplicate item to which the Cursor refers.
         /// </remarks>
         /// <exception cref="DatabaseException">
@@ -519,7 +519,7 @@ namespace Hamster
         /// <remarks>
         /// This method wraps the native ham_cursor_close function.
         /// <br />
-        /// Closes this Cursor and frees allocated memory. All Cursors should 
+        /// Closes this Cursor and frees allocated memory. All Cursors should
         /// be closed before closing the Database.
         /// </remarks>
         public void Close() {
