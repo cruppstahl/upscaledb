@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -27,7 +27,7 @@
 namespace ham {
 
 ham_status_t
-key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page, 
+key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page,
         ham_key_t *key)
 {
     ham_offset_t blobid;
@@ -40,13 +40,13 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page,
     *rid_ref = 0;
 
     rec.data=data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t));
-    rec.size=key->size-(db_get_keysize(db)-sizeof(ham_offset_t)); 
+    rec.size=key->size-(db_get_keysize(db)-sizeof(ham_offset_t));
 
     if ((st=db->get_env()->get_blob_manager()->allocate(db, &rec, 0, &blobid)))
         return st;
 
     if (db->get_extkey_cache())
-        db->get_extkey_cache()->insert(blobid, key->size, 
+        db->get_extkey_cache()->insert(blobid, key->size,
                         (ham_u8_t *)key->data);
 
     *rid_ref = blobid;
@@ -54,8 +54,8 @@ key_insert_extended(ham_offset_t *rid_ref, Database *db, Page *page,
 }
 
 ham_status_t
-key_set_record(Database *db, Transaction *txn, btree_key_t *key, 
-        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
+key_set_record(Database *db, Transaction *txn, btree_key_t *key,
+        ham_record_t *record, ham_size_t position, ham_u32_t flags,
         ham_size_t *new_position)
 {
     ham_status_t st;
@@ -64,7 +64,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
     ham_offset_t ptr = key_get_ptr(key);
     ham_u8_t oldflags = key_get_flags(key);
 
-    key_set_flags(key, 
+    key_set_flags(key,
             oldflags&~(KEY_BLOB_SIZE_SMALL
                 |KEY_BLOB_SIZE_TINY
                 |KEY_BLOB_SIZE_EMPTY));
@@ -75,7 +75,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
     if (!ptr
             && !(oldflags&(KEY_BLOB_SIZE_SMALL
                     |KEY_BLOB_SIZE_TINY
-                    |KEY_BLOB_SIZE_EMPTY))) 
+                    |KEY_BLOB_SIZE_EMPTY)))
     {
         if (record->size<=sizeof(ham_offset_t)) {
             if (record->data)
@@ -87,7 +87,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                 p[sizeof(ham_offset_t)-1]=(char)record->size;
                 key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
             }
-            else 
+            else
                 key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
             key_set_ptr(key, rid);
         }
@@ -100,12 +100,12 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
         }
     }
     else if (!(oldflags&KEY_HAS_DUPLICATES)
-            && record->size>sizeof(ham_offset_t) 
+            && record->size>sizeof(ham_offset_t)
             && !(flags&(HAM_DUPLICATE
                     |HAM_DUPLICATE_INSERT_BEFORE
                     |HAM_DUPLICATE_INSERT_AFTER
                     |HAM_DUPLICATE_INSERT_FIRST
-                    |HAM_DUPLICATE_INSERT_LAST))) 
+                    |HAM_DUPLICATE_INSERT_LAST)))
     {
         /*
          * an existing key, which is overwritten with a big record
@@ -133,7 +133,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
         }
     }
     else if (!(oldflags&KEY_HAS_DUPLICATES)
-            && record->size<=sizeof(ham_offset_t) 
+            && record->size<=sizeof(ham_offset_t)
             && !(flags&(HAM_DUPLICATE
                     |HAM_DUPLICATE_INSERT_BEFORE
                     |HAM_DUPLICATE_INSERT_AFTER
@@ -159,11 +159,11 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
             p[sizeof(ham_offset_t)-1]=(char)record->size;
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
         }
-        else 
+        else
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
         key_set_ptr(key, rid);
     }
-    else 
+    else
     {
         /*
          * a duplicate of an existing key - always insert it at the end of
@@ -182,21 +182,21 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                         |HAM_DUPLICATE_INSERT_LAST
                         |HAM_OVERWRITE)));
         memset(entries, 0, sizeof(entries));
-        if (!(oldflags&KEY_HAS_DUPLICATES)) 
+        if (!(oldflags&KEY_HAS_DUPLICATES))
         {
             ham_assert((flags&(HAM_DUPLICATE
                             |HAM_DUPLICATE_INSERT_BEFORE
                             |HAM_DUPLICATE_INSERT_AFTER
                             |HAM_DUPLICATE_INSERT_FIRST
                             |HAM_DUPLICATE_INSERT_LAST)));
-            dupe_entry_set_flags(&entries[i], 
+            dupe_entry_set_flags(&entries[i],
                     oldflags&(KEY_BLOB_SIZE_SMALL
                         |KEY_BLOB_SIZE_TINY
                         |KEY_BLOB_SIZE_EMPTY));
             dupe_entry_set_rid(&entries[i], ptr);
             i++;
         }
-        if (record->size<=sizeof(ham_offset_t)) 
+        if (record->size<=sizeof(ham_offset_t))
         {
             if (record->data)
                 memcpy(&rid, record->data, record->size);
@@ -207,11 +207,11 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                 p[sizeof(ham_offset_t)-1]=(char)record->size;
                 dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_TINY);
             }
-            else 
+            else
                 dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
             dupe_entry_set_rid(&entries[i], rid);
         }
-        else 
+        else
         {
             st=env->get_blob_manager()->allocate(db, record, flags, &rid);
             if (st)
@@ -227,13 +227,13 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
                 flags, &entries[0], i, &rid, new_position);
         if (st) {
             /* don't leak memory through the blob allocation above */
-            ham_assert((!(dupe_entry_get_flags(&entries[i-1]) 
+            ham_assert((!(dupe_entry_get_flags(&entries[i-1])
                             & (KEY_BLOB_SIZE_SMALL
                                 | KEY_BLOB_SIZE_TINY
                                 | KEY_BLOB_SIZE_EMPTY)))
                     == (record->size>sizeof(ham_offset_t)));
 
-            if (record->size > sizeof(ham_offset_t)) 
+            if (record->size > sizeof(ham_offset_t))
             {
                 (void)env->get_blob_manager()->free(db,
                         dupe_entry_get_rid(&entries[i-1]), 0);
@@ -250,7 +250,7 @@ key_set_record(Database *db, Transaction *txn, btree_key_t *key,
 }
 
 ham_status_t
-key_erase_record(Database *db, Transaction *txn, btree_key_t *key, 
+key_erase_record(Database *db, Transaction *txn, btree_key_t *key,
         ham_size_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;

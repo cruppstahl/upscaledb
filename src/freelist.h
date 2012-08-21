@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -54,7 +54,7 @@ struct FreelistEntry {
  * the freelist class structure
  */
 class Freelist
-{ 
+{
   public:
 
     /** constructor */
@@ -81,9 +81,9 @@ class Freelist
      * the given address.
      *
      * @note will assert that size is DB_CHUNKSIZE-aligned!
-     *    
+     *
      * @note The lower_bound_address is assumed to be on a DB_CHUNKSIZE
-     * boundary at least. @a aligned space will end up at a 
+     * boundary at least. @a aligned space will end up at a
      * @ref DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes boundary.
      * Regardless, the lower address bound check will be performed
      * on a DB_CHUNKSIZE boundary level anyhow.
@@ -103,7 +103,7 @@ class Freelist
     }
 
     /** get the first freelist entry */
-    FreelistEntry *get_entries() { 
+    FreelistEntry *get_entries() {
         return m_entries.size() ? &m_entries[0] : 0;
     }
 
@@ -194,9 +194,9 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
     ham_offset_t _overflow;
 
     /**
-     * 'zero': must be 0; serves as a doublecheck we're not 
-     * processing an old-style 16-bit freelist page, where this 
-     * spot would have the ham_u16_t _max_bits, which would 
+     * 'zero': must be 0; serves as a doublecheck we're not
+     * processing an old-style 16-bit freelist page, where this
+     * spot would have the ham_u16_t _max_bits, which would
      * always != 0 ...
      */
     ham_u16_t _zero;
@@ -216,9 +216,9 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
      * each freelist entry; after all, it's ludicrous to keep
      * the cache clogged with freelist pages which our
      * statistics show are useless given our usage patterns
-     * (determined at run-time; this is meant to help many-insert, 
-     * few-delete usage patterns the most, while many-delete usage 
-     * patterns will benefit most from a good cache page aging system 
+     * (determined at run-time; this is meant to help many-insert,
+     * few-delete usage patterns the most, while many-delete usage
+     * patterns will benefit most from a good cache page aging system
      * (see elsewhere in the code) as that will ensure relevant
      * freelist pages stay in the cache for as long as we need
      * them. Meanwhile, we've complicated things a little here

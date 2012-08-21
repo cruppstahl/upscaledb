@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -53,10 +53,10 @@ __cmpfoo(void *vlhs, void *vrhs)
 
     foo=db->get_compare_func();
 
-    return (foo((ham_db_t *)db, 
-                (ham_u8_t *)txn_opnode_get_key(lhs)->data, 
+    return (foo((ham_db_t *)db,
+                (ham_u8_t *)txn_opnode_get_key(lhs)->data,
                 txn_opnode_get_key(lhs)->size,
-                (ham_u8_t *)txn_opnode_get_key(rhs)->data, 
+                (ham_u8_t *)txn_opnode_get_key(rhs)->data,
                 txn_opnode_get_key(rhs)->size));
 }
 
@@ -219,7 +219,7 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
             node=rbt_psearch(tree, &tmp);
         match=-1;
     }
-    else 
+    else
         return (rbt_search(tree, &tmp));
 
     /* tree is empty? */
@@ -228,10 +228,10 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 
     /* approx. matching: set the key flag */
     if (match<0)
-        ham_key_set_intflags(key, (ham_key_get_intflags(key) 
+        ham_key_set_intflags(key, (ham_key_get_intflags(key)
                         & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
     else if (match>0)
-        ham_key_set_intflags(key, (ham_key_get_intflags(key) 
+        ham_key_set_intflags(key, (ham_key_get_intflags(key)
                         & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
 
     return (node);

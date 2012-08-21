@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -14,10 +14,10 @@ import de.crupp.hamsterdb.*;
 import junit.framework.TestCase;
 
 public class DatabaseTest extends TestCase {
-    
+
     private class MyErrorHandler implements ErrorHandler {
         public int m_counter;
-        
+
         public void handleMessage(int level, String message) {
             m_counter++;
         }
@@ -45,7 +45,7 @@ public class DatabaseTest extends TestCase {
 
     public void testGetLicense() {
         License l=Database.getLicense();
-        assertEquals("", l.licensee); /* this fails if you have 
+        assertEquals("", l.licensee); /* this fails if you have
                                         a licensed version */
         assertEquals("hamsterdb embedded storage", l.product);
     }
@@ -67,7 +67,7 @@ public class DatabaseTest extends TestCase {
             fail("Exception "+err);
         }
     }
-    
+
     public void testCreateInvalidParameters() {
         Parameter[] params=new Parameter[3];
         params[1]=new Parameter();
@@ -106,15 +106,15 @@ public class DatabaseTest extends TestCase {
         }
         assertEquals(Const.HAM_INV_PARAMETER, db.getError());
     }
-    
+
     private class MyComparator implements CompareCallback
     {
         public int m_counter;
-        
+
         public int compare(byte[] lhs, byte[] rhs) {
             m_counter++;
-            return m_counter; /* need to return different values, or 
-                                ham_insert thinks we're inserting 
+            return m_counter; /* need to return different values, or
+                                ham_insert thinks we're inserting
                                 duplicates */
         }
     }
@@ -122,11 +122,11 @@ public class DatabaseTest extends TestCase {
     private class MyDupeComparator implements DuplicateCompareCallback
     {
         public int m_counter;
-        
+
         public int compare(byte[] lhs, byte[] rhs) {
             m_counter++;
-            return m_counter; /* need to return different values, or 
-                                ham_insert thinks we're inserting 
+            return m_counter; /* need to return different values, or
+                                ham_insert thinks we're inserting
                                 duplicates */
         }
     }
@@ -259,11 +259,11 @@ public class DatabaseTest extends TestCase {
     private class MyPrefixComparator implements PrefixCompareCallback
     {
         public int m_counter;
-        
-        public int compare(byte[] lhs, int lhs_real_size, 
+
+        public int compare(byte[] lhs, int lhs_real_size,
                 byte[] rhs, int rhs_real_size) {
-            return ++m_counter; /* need to return different values, 
-                or ham_insert thinks we're inserting 
+            return ++m_counter; /* need to return different values,
+                or ham_insert thinks we're inserting
                 duplicates */
         }
     }

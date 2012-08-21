@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -33,7 +33,7 @@ namespace SampleDb1
 
             /*
              * now we can insert, delete or lookup values in the Database
-             * 
+             *
              * for our test program, we just insert a few values, then look them
              * up, then delete them and try to look them up again (which will fail).
              */
@@ -75,7 +75,7 @@ namespace SampleDb1
             }
 
             /*
-             * once more we try to find all values... every db.Find() call must 
+             * once more we try to find all values... every db.Find() call must
              * now fail with HAM_KEY_NOT_FOUND
              */
             for (int i = 0; i < LOOP; i++) {

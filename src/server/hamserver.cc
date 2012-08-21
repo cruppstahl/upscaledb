@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -34,7 +34,7 @@ namespace ham {
 #define MAX_ENVIRONMENTS  128
 #define MAX_DATABASES     512
 
-static const char *standard_reply =	"HTTP/1.1 200 OK\r\n"
+static const char *standard_reply = "HTTP/1.1 200 OK\r\n"
                   "Content-Type: text/plain\r\n"
                   "Connection: close\r\n\r\n";
 
@@ -72,12 +72,12 @@ __store_handle(struct env_t *envh, void *ptr, int type)
 
   if (i == envh->handles_size) {
     envh->handles_size += 10;
-    envh->handles=(srv_handle_t *)realloc(envh->handles, 
+    envh->handles=(srv_handle_t *)realloc(envh->handles,
             sizeof(srv_handle_t)*envh->handles_size);
     if (!envh->handles)
-      return 0; /* not so nice, but if we're out of memory then 
+      return 0; /* not so nice, but if we're out of memory then
              * it does not make sense to go on... */
-    memset(&envh->handles[envh->handles_size - 10], 0, 
+    memset(&envh->handles[envh->handles_size - 10], 0,
             sizeof(srv_handle_t) * 10);
   }
 
@@ -129,7 +129,7 @@ send_wrapper(ham_env_t *henv, struct mg_connection *conn, Protocol *wrapper)
 }
 
 static void
-handle_connect(ham_env_t *env, struct mg_connection *conn, 
+handle_connect(ham_env_t *env, struct mg_connection *conn,
                 const struct mg_request_info *ri, Protocol *request)
 {
   ham_assert(request!=0);
@@ -137,14 +137,14 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
   Protocol *reply = new Protocol(Protocol::CONNECT_REPLY);
   reply->mutable_connect_reply()->set_status(0);
   reply->mutable_connect_reply()->set_env_flags(
-          ((Environment *)env)->get_flags()); 
+          ((Environment *)env)->get_flags());
 
   send_wrapper(env, conn, reply);
   delete reply;
 }
 
 static void
-handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn, 
+handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
                 const struct mg_request_info *ri, Protocol *request)
 {
   ham_size_t i;
@@ -157,7 +157,7 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
   /* initialize the ham_parameters_t array */
   memset(&params[0], 0, sizeof(params));
   for (i = 0;
-      i < (ham_size_t)request->env_get_parameters_request().names().size() 
+      i < (ham_size_t)request->env_get_parameters_request().names().size()
       && i < 100; i++)
     params[i].name = request->mutable_env_get_parameters_request()->mutable_names()->mutable_data()[i];
 
@@ -211,7 +211,7 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
-handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn, 
+handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
                 const struct mg_request_info *ri, Protocol *request)
 {
   ham_env_t *env = envh->env;
@@ -225,7 +225,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
   /* initialize the ham_parameters_t array */
   memset(&params[0], 0, sizeof(params));
   for (ham_size_t i = 0;
-      i < (ham_size_t)request->db_get_parameters_request().names().size() 
+      i < (ham_size_t)request->db_get_parameters_request().names().size()
         && i < 100; i++)
     params[i].name = request->mutable_db_get_parameters_request()->mutable_names()->mutable_data()[i];
 
@@ -302,7 +302,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
+handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_size_t num_names = 1024;
@@ -323,7 +323,7 @@ handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
-handle_env_flush(ham_env_t *env, struct mg_connection *conn, 
+handle_env_flush(ham_env_t *env, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_assert(request != 0);
@@ -331,21 +331,21 @@ handle_env_flush(ham_env_t *env, struct mg_connection *conn,
 
   /* request the database names from the Environment */
   Protocol reply(Protocol::ENV_FLUSH_REPLY);
-  reply.mutable_env_flush_reply()->set_status(ham_env_flush(env, 
+  reply.mutable_env_flush_reply()->set_status(ham_env_flush(env,
         request->env_flush_request().flags()));
 
   send_wrapper(env, conn, &reply);
 }
 
 static void
-handle_env_rename(ham_env_t *env, struct mg_connection *conn, 
+handle_env_rename(ham_env_t *env, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_assert(request != 0);
   ham_assert(request->has_env_rename_request());
 
   /* rename the databases */
-  ham_status_t st = ham_env_rename_db(env, 
+  ham_status_t st = ham_env_rename_db(env,
           request->env_rename_request().oldname(),
           request->env_rename_request().newname(),
           request->env_rename_request().flags());
@@ -356,7 +356,7 @@ handle_env_rename(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
-handle_env_create_db(struct env_t *envh, ham_env_t *env, 
+handle_env_create_db(struct env_t *envh, ham_env_t *env,
             struct mg_connection *conn, const struct mg_request_info *ri,
             Protocol *request)
 {
@@ -379,7 +379,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
 
   /* create the database */
   ham_new(&db);
-  st = ham_env_create_db(env, db, 
+  st = ham_env_create_db(env, db,
             request->env_create_db_request().dbname(),
             request->env_create_db_request().flags(), &params[0]);
 
@@ -401,7 +401,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
 }
 
 static void
-handle_env_open_db(struct env_t *envh, ham_env_t *env, 
+handle_env_open_db(struct env_t *envh, ham_env_t *env,
             struct mg_connection *conn, const struct mg_request_info *ri,
             Protocol *request)
 {
@@ -439,7 +439,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
   /* if not found: open the database */
   if (!db) {
     ham_new(&db);
-    st = ham_env_open_db(env, db, dbname, 
+    st = ham_env_open_db(env, db, dbname,
                 request->env_open_db_request().flags(), &params[0]);
 
     if (st == 0) {
@@ -456,12 +456,12 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
   reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
   reply.mutable_env_open_db_reply()->set_db_flags(
       ((Database *)db)->get_rt_flags(true));
-  
+
   send_wrapper(env, conn, &reply);
 }
 
 static void
-handle_env_erase_db(ham_env_t *env, struct mg_connection *conn, 
+handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_assert(request != 0);
@@ -478,7 +478,7 @@ handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
-handle_db_close(struct env_t *envh, struct mg_connection *conn, 
+handle_db_close(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_db_t *db;
@@ -509,7 +509,7 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_txn_begin(struct env_t *envh, struct mg_connection *conn, 
+handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn;
@@ -531,12 +531,12 @@ handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
   Protocol reply(Protocol::TXN_BEGIN_REPLY);
   reply.mutable_txn_begin_reply()->set_status(st);
   reply.mutable_txn_begin_reply()->set_txn_handle(handle);
- 
+
   send_wrapper(env, conn, &reply);
 }
 
 static void
-handle_txn_commit(struct env_t *envh, struct mg_connection *conn, 
+handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn;
@@ -546,7 +546,7 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_txn_commit_request());
 
-  txn = (ham_txn_t *)__get_handle(envh, 
+  txn = (ham_txn_t *)__get_handle(envh,
             request->txn_commit_request().txn_handle());
   if (!txn) {
     st = HAM_INV_PARAMETER;
@@ -555,7 +555,7 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
     st = ham_txn_commit(txn, request->txn_commit_request().flags());
     if (st == 0) {
       /* remove the handle from the Env wrapper structure */
-      __remove_handle(envh, 
+      __remove_handle(envh,
             request->txn_commit_request().txn_handle());
     }
   }
@@ -567,7 +567,7 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_txn_abort(struct env_t *envh, struct mg_connection *conn, 
+handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn;
@@ -577,7 +577,7 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_txn_abort_request());
 
-  txn = (ham_txn_t *)__get_handle(envh, 
+  txn = (ham_txn_t *)__get_handle(envh,
             request->txn_abort_request().txn_handle());
   if (!txn) {
     st = HAM_INV_PARAMETER;
@@ -597,7 +597,7 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn, 
+handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -608,14 +608,14 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_db_check_integrity_request());
 
   if (request->db_check_integrity_request().txn_handle()) {
-    txn=(ham_txn_t *)__get_handle(envh, 
+    txn=(ham_txn_t *)__get_handle(envh,
             request->db_check_integrity_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh, 
+    db = (ham_db_t *)__get_handle(envh,
             request->db_check_integrity_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
@@ -625,12 +625,12 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
 
   Protocol reply(Protocol::DB_CHECK_INTEGRITY_REPLY);
   reply.mutable_db_check_integrity_reply()->set_status(st);
- 
+
   send_wrapper(envh->env, conn, &reply);
 }
 
 static void
-handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn, 
+handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -642,14 +642,14 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_db_get_key_count_request());
 
   if (request->db_get_key_count_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh, 
+    txn = (ham_txn_t *)__get_handle(envh,
             request->db_get_key_count_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh, 
+    db = (ham_db_t *)__get_handle(envh,
                 request->db_get_key_count_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
@@ -662,12 +662,12 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
   reply.mutable_db_get_key_count_reply()->set_status(st);
   if (st == 0)
     reply.mutable_db_get_key_count_reply()->set_keycount(keycount);
- 
+
   send_wrapper(envh->env, conn, &reply);
 }
 
 static void
-handle_db_insert(struct env_t *envh, struct mg_connection *conn, 
+handle_db_insert(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -681,14 +681,14 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_db_insert_request());
 
   if (request->db_insert_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh, 
+    txn = (ham_txn_t *)__get_handle(envh,
             request->db_insert_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh, 
+    db = (ham_db_t *)__get_handle(envh,
         request->db_insert_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
@@ -709,10 +709,10 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
           rec.data = (void *)&request->db_insert_request().record().data()[0];
         rec.partial_size = request->db_insert_request().record().partial_size();
         rec.partial_offset = request->db_insert_request().record().partial_offset();
-        rec.flags = request->db_insert_request().record().flags() 
+        rec.flags = request->db_insert_request().record().flags()
                     & (~HAM_RECORD_USER_ALLOC);
       }
-      st = ham_insert(db, txn, &key, &rec, 
+      st = ham_insert(db, txn, &key, &rec,
                     request->db_insert_request().flags());
 
       /* recno: return the modified key */
@@ -732,7 +732,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_db_find(struct env_t *envh, struct mg_connection *conn, 
+handle_db_find(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -746,14 +746,14 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_db_find_request());
 
   if (request->db_find_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh, 
+    txn = (ham_txn_t *)__get_handle(envh,
                 request->db_find_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh, 
+    db = (ham_db_t *)__get_handle(envh,
                 request->db_find_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
@@ -769,7 +769,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
       rec.size = request->db_find_request().record().data().size();
       rec.partial_size = request->db_find_request().record().partial_size();
       rec.partial_offset = request->db_find_request().record().partial_offset();
-      rec.flags = request->db_find_request().record().flags() 
+      rec.flags = request->db_find_request().record().flags()
                   & (~HAM_RECORD_USER_ALLOC);
 
       st = ham_find(db, txn, &key, &rec, request->db_find_request().flags());
@@ -792,7 +792,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_db_erase(struct env_t *envh, struct mg_connection *conn, 
+handle_db_erase(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -803,14 +803,14 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_db_erase_request());
 
   if (request->db_erase_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh, 
+    txn = (ham_txn_t *)__get_handle(envh,
                 request->db_erase_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh, 
+    db = (ham_db_t *)__get_handle(envh,
                 request->db_erase_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
@@ -834,7 +834,7 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_cursor_create(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_txn_t *txn = 0;
@@ -847,7 +847,7 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request->has_cursor_create_request());
 
   if (request->cursor_create_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh, 
+    txn = (ham_txn_t *)__get_handle(envh,
                 request->cursor_create_request().txn_handle());
     if (!txn) {
       st = HAM_INV_PARAMETER;
@@ -855,7 +855,7 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
     }
   }
 
-  db = (ham_db_t *)__get_handle(envh, 
+  db = (ham_db_t *)__get_handle(envh,
             request->cursor_create_request().db_handle());
   if (!db) {
     st = HAM_INV_PARAMETER;
@@ -863,7 +863,7 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
   }
 
   /* create the cursor */
-  st = ham_cursor_create(db, txn, 
+  st = ham_cursor_create(db, txn,
         request->cursor_create_request().flags(), &cursor);
 
   if (st == 0) {
@@ -880,7 +880,7 @@ bail:
 }
 
 static void
-handle_cursor_clone(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
         const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *src;
@@ -891,7 +891,7 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_clone_request());
 
-  src = (ham_cursor_t *)__get_handle(envh, 
+  src = (ham_cursor_t *)__get_handle(envh,
             request->cursor_clone_request().cursor_handle());
   if (!src)
     st = HAM_INV_PARAMETER;
@@ -907,12 +907,12 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
   Protocol reply(Protocol::CURSOR_CLONE_REPLY);
   reply.mutable_cursor_clone_reply()->set_status(st);
   reply.mutable_cursor_clone_reply()->set_cursor_handle(handle);
- 
+
   send_wrapper(envh->env, conn, &reply);
 }
 
 static void
-handle_cursor_insert(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
@@ -951,7 +951,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_insert(cursor, &key, &rec, 
+  st = ham_cursor_insert(cursor, &key, &rec,
             request->cursor_insert_request().flags());
 
   /* recno: return the modified key */
@@ -973,7 +973,7 @@ bail:
 }
 
 static void
-handle_cursor_erase(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_erase(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
@@ -996,12 +996,12 @@ handle_cursor_erase(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_cursor_find(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
-  ham_key_t key; 
-  ham_record_t rec; 
+  ham_key_t key;
+  ham_record_t rec;
   ham_status_t st = 0;
   ham_bool_t send_key = HAM_FALSE;
   ham_bool_t send_rec = HAM_FALSE;
@@ -1030,7 +1030,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
     rec.size = request->cursor_find_request().record().data().size();
     rec.partial_size = request->cursor_find_request().record().partial_size();
     rec.partial_offset = request->cursor_find_request().record().partial_offset();
-    rec.flags = request->cursor_find_request().record().flags() 
+    rec.flags = request->cursor_find_request().record().flags()
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
@@ -1056,7 +1056,7 @@ bail:
 }
 
 static void
-handle_cursor_get_duplicate_count(struct env_t *envh, 
+handle_cursor_get_duplicate_count(struct env_t *envh,
             struct mg_connection *conn, const struct mg_request_info *ri,
             Protocol *request)
 {
@@ -1072,7 +1072,7 @@ handle_cursor_get_duplicate_count(struct env_t *envh,
   if (!cursor)
     st = HAM_INV_PARAMETER;
   else
-    st = ham_cursor_get_duplicate_count(cursor, &count, 
+    st = ham_cursor_get_duplicate_count(cursor, &count,
             request->cursor_get_duplicate_count_request().flags());
 
   Protocol reply(Protocol::CURSOR_GET_DUPLICATE_COUNT_REPLY);
@@ -1083,7 +1083,7 @@ handle_cursor_get_duplicate_count(struct env_t *envh,
 }
 
 static void
-handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
@@ -1105,7 +1105,7 @@ handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
   rec.size = request->cursor_overwrite_request().record().data().size();
   rec.partial_size = request->cursor_overwrite_request().record().partial_size();
   rec.partial_offset = request->cursor_overwrite_request().record().partial_offset();
-  rec.flags = request->cursor_overwrite_request().record().flags() 
+  rec.flags = request->cursor_overwrite_request().record().flags()
               & (~HAM_RECORD_USER_ALLOC);
 
   st = ham_cursor_overwrite(cursor, &rec,
@@ -1119,12 +1119,12 @@ bail:
 }
 
 static void
-handle_cursor_move(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
-  ham_key_t key; 
-  ham_record_t rec; 
+  ham_key_t key;
+  ham_record_t rec;
   ham_status_t st = 0;
   ham_bool_t send_key = HAM_FALSE;
   ham_bool_t send_rec = HAM_FALSE;
@@ -1157,11 +1157,11 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
     rec.size = request->cursor_move_request().record().data().size();
     rec.partial_size = request->cursor_move_request().record().partial_size();
     rec.partial_offset = request->cursor_move_request().record().partial_offset();
-    rec.flags = request->cursor_move_request().record().flags() 
+    rec.flags = request->cursor_move_request().record().flags()
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_move(cursor, send_key ? &key : 0, send_rec ? &rec : 0, 
+  st = ham_cursor_move(cursor, send_key ? &key : 0, send_rec ? &rec : 0,
                 request->cursor_move_request().flags());
 
 bail:
@@ -1178,7 +1178,7 @@ bail:
 }
 
 static void
-handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
+handle_cursor_close(struct env_t *envh, struct mg_connection *conn,
             const struct mg_request_info *ri, Protocol *request)
 {
   ham_cursor_t *cursor;
@@ -1219,7 +1219,7 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
   wrapper = Protocol::unpack((ham_u8_t *)ri->post_data, ri->post_data_len);
   if (!wrapper) {
     ham_trace(("failed to unpack wrapper (%d bytes)\n", ri->post_data_len));
-    goto bail;   
+    goto bail;
   }
 
   switch (wrapper->type()) {
@@ -1337,25 +1337,25 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
   }
 
 #if 0
-	printf("Method: [%s]\n", ri->request_method);
-	printf("URI: [%s]\n", ri->uri);
-	printf("HTTP version: [%d.%d]\n", ri->http_version_major, 
+    printf("Method: [%s]\n", ri->request_method);
+    printf("URI: [%s]\n", ri->uri);
+    printf("HTTP version: [%d.%d]\n", ri->http_version_major,
       ri->http_version_minor);
 
-	for (i = 0; i < ri->num_headers; i++)
-		printf("HTTP header [%s]: [%s]\n",
-			 ri->http_headers[i].name,
-			 ri->http_headers[i].value);
+    for (i = 0; i < ri->num_headers; i++)
+        printf("HTTP header [%s]: [%s]\n",
+             ri->http_headers[i].name,
+             ri->http_headers[i].value);
 
-	printf("Query string: [%s]\n",
-			ri->query_string ? ri->query_string: "");
-	printf("POST data: [%.*s]\n",
-			ri->post_data_len, ri->post_data);
-	printf("Remote IP: [%lu]\n", ri->remote_ip);
-	printf("Remote port: [%d]\n", ri->remote_port);
-	printf("Remote user: [%s]\n",
-			ri->remote_user ? ri->remote_user : "");
-	printf("Hamsterdb url: [%s]\n", env->urlname);
+    printf("Query string: [%s]\n",
+            ri->query_string ? ri->query_string: "");
+    printf("POST data: [%.*s]\n",
+            ri->post_data_len, ri->post_data);
+    printf("Remote IP: [%lu]\n", ri->remote_ip);
+    printf("Remote port: [%d]\n", ri->remote_port);
+    printf("Remote user: [%s]\n",
+            ri->remote_user ? ri->remote_user : "");
+    printf("Hamsterdb url: [%s]\n", env->urlname);
 #endif
 
 bail:
@@ -1376,7 +1376,7 @@ struct ham_srv_t {
   struct ham::env_t environments[MAX_ENVIRONMENTS];
 };
 
-ham_status_t 
+ham_status_t
 ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
 {
   ham_srv_t *srv;
@@ -1393,7 +1393,7 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
   mg_set_option(srv->mg_ctxt, "dir_list", "no");
   if (config->access_log_path) {
     if (!mg_set_option(srv->mg_ctxt, "access_log", config->access_log_path)) {
-      ham_log(("failed to write access log file '%s'", 
+      ham_log(("failed to write access log file '%s'",
             config->access_log_path));
       mg_stop(srv->mg_ctxt);
       free(srv);
@@ -1413,7 +1413,7 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
   return (HAM_SUCCESS);
 }
 
-ham_status_t 
+ham_status_t
 ham_srv_add_env(ham_srv_t *srv, ham_env_t *env, const char *urlname)
 {
   int i;
@@ -1430,8 +1430,8 @@ ham_srv_add_env(ham_srv_t *srv, ham_env_t *env, const char *urlname)
 
   if (i == MAX_ENVIRONMENTS)
     return (HAM_LIMITS_REACHED);
-  
-  mg_set_uri_callback(srv->mg_ctxt, urlname, 
+
+  mg_set_uri_callback(srv->mg_ctxt, urlname,
             request_handler, &srv->environments[i]);
   return (HAM_SUCCESS);
 }

@@ -1,20 +1,20 @@
 
 all:de/crupp/hamsterdb/Const.class \
-	de/crupp/hamsterdb/DatabaseException.class \
-	de/crupp/hamsterdb/Transaction.class \
-    de/crupp/hamsterdb/Database.class \
-	de/crupp/hamsterdb/Environment.class \
-	de/crupp/hamsterdb/Cursor.class \
-	de/crupp/hamsterdb/Version.class \
-	de/crupp/hamsterdb/License.class \
-	de/crupp/hamsterdb/Parameter.class \
-	de/crupp/hamsterdb/ErrorHandler.class \
-	de/crupp/hamsterdb/CompareCallback.class \
-	de/crupp/hamsterdb/PrefixCompareCallback.class \
-	de/crupp/hamsterdb/DuplicateCompareCallback.class \
-	jar
+        de/crupp/hamsterdb/DatabaseException.class \
+        de/crupp/hamsterdb/Transaction.class \
+        de/crupp/hamsterdb/Database.class \
+        de/crupp/hamsterdb/Environment.class \
+        de/crupp/hamsterdb/Cursor.class \
+        de/crupp/hamsterdb/Version.class \
+        de/crupp/hamsterdb/License.class \
+        de/crupp/hamsterdb/Parameter.class \
+        de/crupp/hamsterdb/ErrorHandler.class \
+        de/crupp/hamsterdb/CompareCallback.class \
+        de/crupp/hamsterdb/PrefixCompareCallback.class \
+        de/crupp/hamsterdb/DuplicateCompareCallback.class \
+        jar
 
-jar: 
+jar:
 	$(JDK)/bin/jar -cf hamsterdb-$(PACKAGE_VERSION).jar \
 		de/crupp/hamsterdb/*.class 
 

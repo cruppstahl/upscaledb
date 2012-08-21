@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -33,13 +33,13 @@ namespace ham {
 /**
  * The changeset class
  */
-class Changeset 
+class Changeset
 {
   public:
     Changeset()
     : m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
-      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0), 
-      m_indices(0), m_indices_size(0), m_indices_capacity(0), 
+      m_freelists(0), m_freelists_size(0), m_freelists_capacity(0),
+      m_indices(0), m_indices_size(0), m_indices_capacity(0),
       m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
     }
 
@@ -74,10 +74,10 @@ class Changeset
     void clear();
 
     /**
-     * flush all pages in the changeset - first write them to the log, then 
+     * flush all pages in the changeset - first write them to the log, then
      * write them to the disk
      *
-     * on success: will clear the changeset and the log 
+     * on success: will clear the changeset and the log
      */
     ham_status_t flush(ham_u64_t lsn);
 

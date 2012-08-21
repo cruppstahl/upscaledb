@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -20,7 +20,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 /*
  * a critical section
@@ -36,19 +36,19 @@ typedef pthread_mutex_t os_critsec_t;
 /*
  * Initialize a critical section
  */
-extern void 
+extern void
 os_critsec_init(os_critsec_t *cs);
 
 /*
  * enter a critical section
  */
-extern void 
+extern void
 os_critsec_enter(os_critsec_t *cs);
 
 /*
  * leave a critical section
  */
-extern void 
+extern void
 os_critsec_leave(os_critsec_t *cs);
 
 /*
@@ -60,6 +60,6 @@ os_critsec_close(os_critsec_t *cs);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif 
+#endif
 
 #endif /* HAM_SRV_OS_H__ */

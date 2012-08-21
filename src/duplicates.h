@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -34,7 +34,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 
     /**
      * the flags - same as @ref KEY_BLOB_SIZE_SMALL,
-	 *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
+     *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
      */
     ham_u8_t _flags;
 
@@ -53,7 +53,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 
 /*
  * get the record id of a duplicate entry
- * 
+ *
  * !!!
  * if TINY or SMALL is set, the rid is actually a char*-pointer;
  * in this case, we must not use endian-conversion!
@@ -137,12 +137,12 @@ class DuplicateManager
      * (max. two entries are allowed; first entry will be at the first position,
      * second entry will be set depending on the flags)
      *
-     * OR, if the table already exists (i.e. table_id != 0), insert the 
+     * OR, if the table already exists (i.e. table_id != 0), insert the
      * entry depending on the flags (only one entry is allowed in this case)
      */
-    ham_status_t insert(Database *db, Transaction *txn, ham_offset_t table_id, 
-                ham_record_t *record, ham_size_t position, ham_u32_t flags, 
-                dupe_entry_t *entries, ham_size_t num_entries, 
+    ham_status_t insert(Database *db, Transaction *txn, ham_offset_t table_id,
+                ham_record_t *record, ham_size_t position, ham_u32_t flags,
+                dupe_entry_t *entries, ham_size_t num_entries,
                 ham_offset_t *rid, ham_size_t *new_position);
 
     /**
@@ -187,13 +187,13 @@ class DuplicateManager
 
   private:
     /** internal implementation of get_table() */
-    ham_status_t get_table(dupe_table_t **table_ref, Page **page, 
+    ham_status_t get_table(dupe_table_t **table_ref, Page **page,
                 ham_u64_t table_id);
 
-    /** the Environment which created this BlobManager */   
+    /** the Environment which created this BlobManager */
     Environment *m_env;
 };
- 
+
 } // namespace ham
 
 #endif /* HAM_DUPLICATES_H__ */

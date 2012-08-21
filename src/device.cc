@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -41,7 +41,7 @@ DeviceImplDisk::alloc_page(Page *page)
   return (read_page(page));
 }
 
-ham_status_t 
+ham_status_t
 DeviceImplDisk::read(ham_offset_t offset, void *buffer, ham_offset_t size)
 {
   ham_file_filter_t *head = 0;
@@ -62,7 +62,7 @@ DeviceImplDisk::read(ham_offset_t offset, void *buffer, ham_offset_t size)
   /* otherwise run the filters */
   while (head) {
     if (head->after_read_cb) {
-      st = head->after_read_cb((ham_env_t *)m_device->m_env, head, 
+      st = head->after_read_cb((ham_env_t *)m_device->m_env, head,
             (ham_u8_t *)buffer, (ham_size_t)size);
       if (st)
         return (st);
@@ -81,11 +81,11 @@ DeviceImplDisk::read_page(Page *page)
   ham_file_filter_t *head = 0;
   ham_size_t size = m_pagesize;
   bool alloc = false;
-  
+
   head = m_device->m_env->get_file_filter();
 
   /*
-   * first, try to mmap the file (if mmap is available/enabled). 
+   * first, try to mmap the file (if mmap is available/enabled).
    *
    * however, in some scenarios on win32, mmap can fail because resources
    * are exceeded (non-paged memory pool).
@@ -138,7 +138,7 @@ fallback_rw:
   /* otherwise run the filters */
   while (head) {
     if (head->after_read_cb) {
-      st = head->after_read_cb((ham_env_t *)m_device->m_env, 
+      st = head->after_read_cb((ham_env_t *)m_device->m_env,
                   head, buffer, size);
       if (st)
         return (st);
@@ -156,7 +156,7 @@ DeviceImplDisk::write_page(Page *page)
   return (write(page->get_self(), page->get_pers(), m_pagesize));
 }
 
-ham_status_t 
+ham_status_t
 DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
 {
   ham_u8_t *tempdata = 0;
@@ -178,7 +178,7 @@ DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
     if (head->before_write_cb) {
       st = head->before_write_cb((ham_env_t *)m_device->m_env,
                 head, tempdata, (ham_size_t)size);
-      if (st) 
+      if (st)
         break;
     }
     head = head->_next;
@@ -191,7 +191,7 @@ DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
   return (st);
 }
 
-ham_status_t 
+ham_status_t
 DeviceImplDisk::free_page(Page *page)
 {
   ham_status_t st;
