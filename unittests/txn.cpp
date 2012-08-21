@@ -28,6 +28,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class TxnTest : public hamsterDB_fixture
 {
@@ -881,8 +882,8 @@ public:
         ham_txn_t *txn;
         ham_cursor_t *cursor;
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create(m_db, BFC_OPATH(".test"),
                         HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         | HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
@@ -899,8 +900,8 @@ public:
         ham_env_t *env;
 
         ham_env_new(&env);
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create(env, BFC_OPATH(".test"),
                         HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         | HAM_ENABLE_TRANSACTIONS, 0644));
         ham_txn_t *txn;
@@ -924,8 +925,8 @@ public:
         ham_txn_t *txn;
         ham_cursor_t *cursor, *clone;
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create(m_db, BFC_OPATH(".test"),
                         HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         | HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
@@ -947,8 +948,8 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create(m_db, BFC_OPATH(".test"),
                     HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         | HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
@@ -971,8 +972,8 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0,
+                ham_create(m_db, BFC_OPATH(".test"),
                         HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         | HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));

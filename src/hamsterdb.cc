@@ -59,6 +59,8 @@
 #  endif
 #endif
 
+using namespace ham;
+
 
 /*
  * return true if the filename is for a local file

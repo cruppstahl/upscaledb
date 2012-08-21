@@ -595,13 +595,13 @@ class Environment
      * ALWAYS a worker thread, right?) */
     ham_status_t signal_commit();
 
-    /** set the worker thread 
+    /** set the worker thread
      * TODO move this into an implementation class */
     void set_worker_thread(Worker *thread) {
         m_worker_thread = thread;
     }
 
-    /** get the worker thread 
+    /** get the worker thread
      * TODO move this into an implementation class */
     Worker *get_worker_thread() {
         return (m_worker_thread);

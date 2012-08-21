@@ -38,6 +38,8 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
+using namespace ham;
+
 /*
  * forward decl - implemented in hamsterdb.cc
  */

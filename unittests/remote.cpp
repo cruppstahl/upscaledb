@@ -26,6 +26,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 #define SERVER_URL "http://localhost:8989/test.db"
 

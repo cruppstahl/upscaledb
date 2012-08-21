@@ -28,6 +28,8 @@ extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
 extern hook_func_t g_BTREE_INSERT_SPLIT_HOOK;
 }
 
+using namespace ham;
+
 #define NUM_STEPS       10
 
 void
