@@ -25,6 +25,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 static bool
 cursor_is_nil(Cursor *c, int what)
@@ -67,7 +68,7 @@ public:
                         |HAM_ENABLE_RECOVERY
                         |HAM_ENABLE_TRANSACTIONS
                         |HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0664));
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
         BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }

@@ -18,7 +18,8 @@
 #include <ham/hamsterdb.h>
 #include "error.h"
 
-using namespace ham;
+namespace ham
+{
 
 class ErrorInducer
 {
@@ -55,5 +56,7 @@ class ErrorInducer
   private:
     State m_state[MAX_ACTIONS];
 };
+
+} // namespace ham
 
 #endif /* HAM_ERRORINDUCER_H__ */

@@ -87,16 +87,16 @@ print_environment(ham_env_t *env)
     if (!quiet) {
       printf("environment\n");
       printf("    pagesize:                   %u\n",
-                      ((Environment *)env)->get_pagesize());
+                      ((ham::Environment *)env)->get_pagesize());
       printf("    version:                    %u.%u.%u.%u\n",
-                      ((Environment *)env)->get_version(0),
-                      ((Environment *)env)->get_version(1),
-                      ((Environment *)env)->get_version(2),
-                      ((Environment *)env)->get_version(3));
+                      ((ham::Environment *)env)->get_version(0),
+                      ((ham::Environment *)env)->get_version(1),
+                      ((ham::Environment *)env)->get_version(2),
+                      ((ham::Environment *)env)->get_version(3));
       printf("    serialno:                   %u\n",
-                      ((Environment *)env)->get_serialno());
+                      ((ham::Environment *)env)->get_serialno());
       printf("    max databases:              %u\n",
-                      ((Environment *)env)->get_max_databases());
+                      ((ham::Environment *)env)->get_max_databases());
     }
 
     st=ham_close(db, 0);
@@ -108,7 +108,7 @@ print_environment(ham_env_t *env)
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full)
 {
-    BtreeBackend *be;
+    ham::BtreeBackend *be;
     ham_cursor_t *cursor;
     ham_status_t st;
     ham_key_t key;
@@ -117,7 +117,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
              max_key_size=0, min_rec_size=0xffffffff, max_rec_size=0,
             total_key_size=0, total_rec_size=0;
 
-    be=(BtreeBackend *)((Database *)db)->get_backend();
+    be=(ham::BtreeBackend *)((ham::Database *)db)->get_backend();
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
@@ -130,7 +130,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
         printf("        address of root page:   %llu\n",
                 (long long unsigned int)be->get_rootpage());
         printf("        flags:                  0x%04x\n",
-                ((Database *)db)->get_rt_flags());
+                ((ham::Database *)db)->get_rt_flags());
     }
 
     if (!full)
@@ -162,7 +162,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full)
         if (rec.size>max_rec_size)
             max_rec_size=rec.size;
 
-        if (key.size>db_get_keysize((Database *)db))
+        if (key.size>db_get_keysize((ham::Database *)db))
             ext_keys++;
 
         total_key_size+=key.size;

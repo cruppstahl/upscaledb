@@ -31,6 +31,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 static int
 __compare_numbers(ham_db_t *db,

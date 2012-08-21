@@ -27,6 +27,8 @@
 #include "btree.h"
 #include "btree_key.h"
 
+using namespace ham;
+
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t) + sizeof(blob_t) + 1)
 
