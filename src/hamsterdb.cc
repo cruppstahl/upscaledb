@@ -2879,6 +2879,8 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (st)
         return (db->set_error(st));
 
+    bool delete_env = false;
+
     /* remove this database from the environment */
     if (env) {
         Database *prev=0;
@@ -2897,12 +2899,17 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
             (void)ham_env_close((ham_env_t *)db->get_env(),
                             flags|HAM_DONT_LOCK);
-            delete (Environment *)db->get_env();
+            delete_env = true;
         }
         db->set_env(0);
     }
 
     db->set_active(HAM_FALSE);
+
+    if (!(flags&HAM_DONT_LOCK) && delete_env) {
+        lock.unlock();
+        delete env;
+    }
 
     return (db->set_error(st));
 }
