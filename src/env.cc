@@ -802,7 +802,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     /* close the log and the journal */
     if (env->get_log()) {
         Log *log=env->get_log();
-        st=log->close(flags&HAM_DONT_CLEAR_LOG);
+        st=log->close(!!(flags&HAM_DONT_CLEAR_LOG));
         if (!st2)
             st2 = st;
         delete log;
@@ -810,7 +810,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     }
     if (env->get_journal()) {
         Journal *journal=env->get_journal();
-        st=journal->close(flags&HAM_DONT_CLEAR_LOG);
+        st=journal->close(!!(flags&HAM_DONT_CLEAR_LOG));
         if (!st2)
             st2 = st;
         delete journal;
