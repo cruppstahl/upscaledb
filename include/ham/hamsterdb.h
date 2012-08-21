@@ -2035,7 +2035,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * Flag mask to extract the common hint flags from a find/move/insert/erase
  * flag value.
  */
-#define HAM_HINTS_MASK                  0x00FF0000
+#define HAM_HINTS_MASK                  0x001F0000
 
 /**
  * Erases a Database item
