@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -38,19 +38,19 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
             ham_offset_t size, bool readonly, ham_u8_t **buffer);
 
 /**
- * unmap a buffer 
+ * unmap a buffer
  */
 extern ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size);
 
 /** read data from a file */
 extern ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
             ham_offset_t bufferlen);
 
 /** write data to a file */
 extern ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
            ham_offset_t bufferlen);
 
 /** append data to a file */

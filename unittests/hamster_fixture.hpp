@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -17,17 +17,17 @@
 #include <assert.h>
 
 /*
- * While this is a hamsterdb specific extension of the BFC fixture class, 
+ * While this is a hamsterdb specific extension of the BFC fixture class,
  * park it in the BFC namespace nevertheless.
- * 
+ *
  * It's just an act of utter laziness. ;-)
  */
-namespace bfc 
+namespace bfc
 {
 
 /*
  * __super is MSVC specific, but other compilers can simply offer the same
- * using this macro; place at the top of class definition and you're good 
+ * using this macro; place at the top of class definition and you're good
  * to go.
  */
 #if !defined(_MSC_VER) || (_MSC_VER < 1310 /* MSVC.NET 2003 */)
@@ -50,15 +50,15 @@ public:
     { }
 
     // make sure any hamsterdb-internal assertion failures are caught:
-    virtual void setup() 
-    { 
+    virtual void setup()
+    {
         __super::setup();
 
         ham_set_errhandler(hamster_dbghandler);
     }
 
-    virtual void teardown() 
-    { 
+    virtual void teardown()
+    {
         __super::teardown();
     }
 

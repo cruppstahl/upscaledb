@@ -3,13 +3,13 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- * 
  *
- * this file describes the configuration of hamster - serial number, 
+ *
+ * this file describes the configuration of hamster - serial number,
  * licensing information etc.
  *
  */
@@ -18,7 +18,7 @@
 #define SERIAL_H__
 
 
-/* 
+/*
  * the serial number; for GPL versions, this is always
  * 0x0; only non-GPL versions get a serial number.
  */

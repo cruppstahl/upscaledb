@@ -1,10 +1,10 @@
 
-CP=.:../java/hamsterdb-$(PACKAGE_VERSION).jar:junit-4.4.jar 
+CP=.:../java/hamsterdb-$(PACKAGE_VERSION).jar:junit-4.4.jar
 RUN=LD_LIBRARY_PATH=../../src/.libs/ $(JDK)/bin/java -Djava.library.path=../src/.libs
 
 all: CursorTest.class DatabaseTest.class DatabaseExceptionTest.class \
-	EnvironmentTest.class TransactionTest.class
-	
+        EnvironmentTest.class TransactionTest.class
+
 
 CursorTest.class: CursorTest.java
 	$(JDK)/bin/javac -cp $(CP) CursorTest.java

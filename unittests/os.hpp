@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
@@ -58,7 +58,7 @@ public:
 #ifdef WIN32
 #   ifdef UNDER_CE
         wchar_t wpath[1024];
-        MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, 
+        MultiByteToWideChar(CP_ACP, 0, path, -1, wpath,
                 sizeof(wpath)/sizeof(wchar_t));
         BOOL rv = DeleteFileW(wpath);
 #   else
@@ -70,8 +70,8 @@ public:
                 char buf2[1024];
                 DWORD st;
                 st = GetLastError();
-                _snprintf(buf2, sizeof(buf2), 
-                    "DeleteFileA('%s') failed with OS status %u (%s)", 
+                _snprintf(buf2, sizeof(buf2),
+                    "DeleteFileA('%s') failed with OS status %u (%s)",
                     path, st, DisplayError(buf, sizeof(buf), st));
                 buf2[sizeof(buf2)-1] = 0;
                 ham_log(("%s", buf2));
@@ -92,9 +92,9 @@ public:
 #   ifdef UNDER_CE
         wchar_t wsrc[1024];
         wchar_t wdest[1024];
-        MultiByteToWideChar(CP_ACP, 0, src, -1, wsrc, 
+        MultiByteToWideChar(CP_ACP, 0, src, -1, wsrc,
                 sizeof(wsrc)/sizeof(wchar_t));
-        MultiByteToWideChar(CP_ACP, 0, dest, -1, wdest, 
+        MultiByteToWideChar(CP_ACP, 0, dest, -1, wdest,
                 sizeof(wdest)/sizeof(wchar_t));
         BOOL rv = CopyFileW(wsrc, wdest, FALSE);
 #   else
@@ -105,8 +105,8 @@ public:
             char buf2[1024];
             DWORD st;
             st = GetLastError();
-            _snprintf(buf2, sizeof(buf2), 
-                "CopyFileA('%s', '%s') failed with OS status %u (%s)", 
+            _snprintf(buf2, sizeof(buf2),
+                "CopyFileA('%s', '%s') failed with OS status %u (%s)",
                 src, dest, st, DisplayError(buf, sizeof(buf), st));
             buf2[sizeof(buf2)-1] = 0;
             ham_log(("%s", buf2));
@@ -116,23 +116,23 @@ public:
 #else
         char buffer[1024*4];
 
-        snprintf(buffer, sizeof(buffer), "\\cp %s %s && chmod 644 %s", 
+        snprintf(buffer, sizeof(buffer), "\\cp %s %s && chmod 644 %s",
                         src, dest, dest);
         return (0==system(buffer));
 #endif
     }
 
-    /* 
+    /*
      * check if a file exists
      */
     static bool file_exists(const char *path) {
 #ifdef WIN32
         struct _stat buf={0};
-		if (::_stat(path, &buf)<0)
+        if (::_stat(path, &buf)<0)
             return (false);
 #else
         struct stat buf={0};
-		if (::stat(path, &buf)<0)
+        if (::stat(path, &buf)<0)
             return (false);
 #endif
         return (true);

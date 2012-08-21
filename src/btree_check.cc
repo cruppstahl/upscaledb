@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -37,7 +37,7 @@ class BtreeCheckAction
     }
 
     ham_status_t run() {
-        Page *page, *parent=0; 
+        Page *page, *parent=0;
         ham_u32_t level=0;
         btree_node_t *node;
         ham_status_t st=0;
@@ -90,7 +90,7 @@ class BtreeCheckAction
         btree_node_t *node=page_get_btree_node(page);
         Database *db=page->get_db();
 
-        /* 
+        /*
          * assert that the parent page's smallest item (item 0) is bigger
          * than the largest item in this page
          */
@@ -103,7 +103,7 @@ class BtreeCheckAction
                 return ((ham_status_t)cmp);
             if (cmp<0) {
                 ham_log(("integrity check failed in page 0x%llx: parent item "
-                        "#0 < item #%d\n", page->get_self(), 
+                        "#0 < item #%d\n", page->get_self(),
                         btree_node_get_count(cnode)-1));
                 return (HAM_INTEGRITY_VIOLATED);
             }
@@ -161,15 +161,15 @@ class BtreeCheckAction
          */
         if (leftsib) {
             btree_node_t *sibnode=page_get_btree_node(leftsib);
-            btree_key_t *sibentry=btree_node_get_key(db, sibnode, 
+            btree_key_t *sibentry=btree_node_get_key(db, sibnode,
                     btree_node_get_count(sibnode)-1);
 
             bte=btree_node_get_key(db, node, 0);
 
-            if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) 
+            if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED)
                     && !btree_node_is_leaf(node)) {
                 ham_log(("integrity check failed in page 0x%llx: item #0 "
-                        "has flags, but it's not a leaf page", 
+                        "has flags, but it's not a leaf page",
                         page->get_self(), i));
                 return (HAM_INTEGRITY_VIOLATED);
             }
@@ -194,7 +194,7 @@ class BtreeCheckAction
 
             if (cmp >= 0) {
                 ham_log(("integrity check failed in page 0x%llx: item #0 "
-                        "< left sibling item #%d\n", page->get_self(), 
+                        "< left sibling item #%d\n", page->get_self(),
                         btree_node_get_count(sibnode)-1));
                 return (HAM_INTEGRITY_VIOLATED);
             }
@@ -210,12 +210,12 @@ class BtreeCheckAction
                 ham_offset_t blobid=key_get_extended_rid(db, bte);
                 if (!blobid) {
                     ham_log(("integrity check failed in page 0x%llx: item #%d "
-                            "is extended, but has no blob", 
+                            "is extended, but has no blob",
                             page->get_self(), i));
                     return (HAM_INTEGRITY_VIOLATED);
                 }
             }
-        
+
             cmp=compare_keys(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
             if (cmp < -1)
                 return (ham_status_t)cmp;
@@ -229,30 +229,30 @@ class BtreeCheckAction
         return (0);
     }
 
-    int compare_keys(Database *db, Page *page, 
+    int compare_keys(Database *db, Page *page,
             ham_u16_t lhs_int, ham_u16_t rhs_int) {
         btree_key_t *l;
-	    btree_key_t *r;
+        btree_key_t *r;
         btree_node_t *node=page_get_btree_node(page);
-	    ham_key_t lhs;
-	    ham_key_t rhs;
-	    ham_status_t st;
+        ham_key_t lhs;
+        ham_key_t rhs;
+        ham_status_t st;
 
         l=btree_node_get_key(page->get_db(), node, lhs_int);
         r=btree_node_get_key(page->get_db(), node, rhs_int);
 
-	    st=btree_prepare_key_for_compare(db, 0, l, &lhs);
-	    if (st) {
-		    ham_assert(st < -1);
-		    return (st);
-	    }
-	    st=btree_prepare_key_for_compare(db, 1, r, &rhs);
-	    if (st) {
-		    ham_assert(st < -1);
-		    return (st);
-	    }
+        st=btree_prepare_key_for_compare(db, 0, l, &lhs);
+        if (st) {
+            ham_assert(st < -1);
+            return (st);
+        }
+        st=btree_prepare_key_for_compare(db, 1, r, &rhs);
+        if (st) {
+            ham_assert(st < -1);
+            return (st);
+        }
 
-	    return (page->get_db()->compare_keys(&lhs, &rhs));
+        return (page->get_db()->compare_keys(&lhs, &rhs));
     }
 
     BtreeBackend *m_backend;

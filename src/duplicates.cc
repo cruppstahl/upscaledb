@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -24,7 +24,7 @@
 
 
 ham_status_t
-DuplicateManager::get_table(dupe_table_t **table_ref, Page **page, 
+DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
                 ham_u64_t table_id)
 {
   ham_status_t st;
@@ -36,13 +36,13 @@ DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
   *table_ref = 0;
 
   if (m_env->get_flags() & HAM_IN_MEMORY_DB) {
-    ham_u8_t *p = (ham_u8_t *)U64_TO_PTR(table_id); 
+    ham_u8_t *p = (ham_u8_t *)U64_TO_PTR(table_id);
     *table_ref = (dupe_table_t *)(p + sizeof(hdr));
     return (0);
   }
 
   /* load the blob header */
-  st = m_env->get_blob_manager()->read_chunk(0, &hdrpage, table_id, 0, 
+  st = m_env->get_blob_manager()->read_chunk(0, &hdrpage, table_id, 0,
                   (ham_u8_t *)&hdr, sizeof(hdr));
   if (st)
     return (st);
@@ -62,7 +62,7 @@ DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
   }
 
   /* otherwise allocate memory for the table */
-  table = (dupe_table_t *)m_env->get_allocator()->alloc( 
+  table = (dupe_table_t *)m_env->get_allocator()->alloc(
               (ham_size_t)blob_get_size(&hdr));
   if (!table)
     return (HAM_OUT_OF_MEMORY);
@@ -90,7 +90,7 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
   ham_status_t st = 0;
 
   /*
-   * Use a slightly adapted form of binary search: as we already have our 
+   * Use a slightly adapted form of binary search: as we already have our
    * initial position (as was stored in the cursor), we take that as our
    * first 'median' value and go from there.
    */
@@ -98,7 +98,7 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
   r = dupe_table_get_count(table) - 1; /* get_count() is 1 too many! */
 
   /*
-   * Maybe Wrong Idea: sequential access/insert doesn't mean the RECORD 
+   * Maybe Wrong Idea: sequential access/insert doesn't mean the RECORD
    * values are sequential too! They MAY be, but don't have to!
    *
    * For now, we assume they are also sequential when you're storing records
@@ -114,7 +114,7 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
     m = (l + r) / 2;
   }
   ham_assert(m <= r);
-        
+
   while (l <= r) {
     ham_assert(m < dupe_table_get_count(table));
 
@@ -125,12 +125,12 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
     item_record._intflags = dupe_entry_get_flags(e) & (KEY_BLOB_SIZE_SMALL
                                                      | KEY_BLOB_SIZE_TINY
                                                      | KEY_BLOB_SIZE_EMPTY);
-    st = btree_read_record(db, txn, &item_record, 
+    st = btree_read_record(db, txn, &item_record,
               (ham_u64_t *)&dupe_entry_get_ridptr(e), flags);
     if (st)
       return (st);
 
-    cmp = foo((ham_db_t *)db, (ham_u8_t *)record->data, record->size, 
+    cmp = foo((ham_db_t *)db, (ham_u8_t *)record->data, record->size,
                       (ham_u8_t *)item_record.data, item_record.size);
     /* item is lower than the left-most item of our range */
     if (m == l) {
@@ -158,7 +158,7 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
       r = m - 1;
     }
     else {
-      /* write GE record value in NEXT slot, when we have nothing 
+      /* write GE record value in NEXT slot, when we have nothing
        * left to search */
       m++;
       l = m;
@@ -171,9 +171,9 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
 }
 
 ham_status_t
-DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id, 
-                ham_record_t *record, ham_size_t position, ham_u32_t flags, 
-                dupe_entry_t *entries, ham_size_t num_entries, 
+DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
+                ham_record_t *record, ham_size_t position, ham_u32_t flags,
+                dupe_entry_t *entries, ham_size_t num_entries,
                 ham_offset_t *rid, ham_size_t *new_position)
 {
   ham_status_t st = 0;
@@ -189,7 +189,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
   if (!table_id) {
     ham_assert(num_entries == 2);
     /* allocates space for 8 (!) entries */
-    table = (dupe_table_t *)m_env->get_allocator()->calloc( 
+    table = (dupe_table_t *)m_env->get_allocator()->calloc(
                     sizeof(dupe_table_t) + 7 * sizeof(dupe_entry_t));
     if (!table)
       return (HAM_OUT_OF_MEMORY);
@@ -213,7 +213,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
 
   ham_assert(num_entries == 1);
 
-  /* resize the table, if necessary */ 
+  /* resize the table, if necessary */
   if (!(flags & HAM_OVERWRITE)
         && dupe_table_get_count(table) + 1 >= dupe_table_get_capacity(table)) {
     dupe_table_t *old = table;
@@ -224,7 +224,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
     else
       new_cap += new_cap / 3;
 
-    table = (dupe_table_t *)m_env->get_allocator()->calloc( 
+    table = (dupe_table_t *)m_env->get_allocator()->calloc(
                 sizeof(dupe_table_t) + (new_cap - 1) * sizeof(dupe_entry_t));
     if (!table)
       return (HAM_OUT_OF_MEMORY);
@@ -249,7 +249,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
       (void)m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
     }
 
-    memcpy(dupe_table_get_entry(table, position), 
+    memcpy(dupe_table_get_entry(table, position),
                     &entries[0], sizeof(entries[0]));
   }
   else {
@@ -275,12 +275,12 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
     }
 
     if (position != dupe_table_get_count(table)) {
-      memmove(dupe_table_get_entry(table, position + 1), 
-          dupe_table_get_entry(table, position), 
+      memmove(dupe_table_get_entry(table, position + 1),
+          dupe_table_get_entry(table, position),
           sizeof(entries[0]) * (dupe_table_get_count(table) - position));
     }
 
-    memcpy(dupe_table_get_entry(table, position), 
+    memcpy(dupe_table_get_entry(table, position),
           &entries[0], sizeof(entries[0]));
 
     dupe_table_set_count(table, dupe_table_get_count(table) + 1);
@@ -421,7 +421,7 @@ DuplicateManager::get_count(ham_offset_t table_id, ham_size_t *count,
   return (0);
 }
 
-ham_status_t 
+ham_status_t
 DuplicateManager::get(ham_offset_t table_id, ham_size_t position,
                 dupe_entry_t *entry)
 {
@@ -448,7 +448,7 @@ DuplicateManager::get(ham_offset_t table_id, ham_size_t position,
   return (0);
 }
 
-ham_status_t 
+ham_status_t
 DuplicateManager::get_table(ham_offset_t table_id, dupe_table_t **ptable,
                 bool *needs_free)
 {

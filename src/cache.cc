@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -54,7 +54,7 @@ Cache::check_integrity()
 
   /* did we count the correct numbers? */
   if (m_cur_elements != elements) {
-    ham_trace(("cache's number of elements (%u) != actual number (%u)", 
+    ham_trace(("cache's number of elements (%u) != actual number (%u)",
         m_cur_elements, elements));
     return (HAM_INTEGRITY_VIOLATED);
   }

@@ -1,4 +1,4 @@
-/* 
+/*
  * bfc-testsuite
 
   Copyright (C) 2009 Ger Hobbelt, www.hebbut.net
@@ -24,7 +24,7 @@
 #ifndef BFC_SIGNAL_H__
 #define BFC_SIGNAL_H__
 
-/* the signal catching / hardware exception catching 
+/* the signal catching / hardware exception catching
  * stuff for UNIX (and a bit for Win32/64 too) */
 #ifndef UNDER_CE
 #   include <signal.h>
@@ -40,7 +40,7 @@ extern "C"
    WARNING: some systems have 'int' returning signal handlers, others
    have 'void' returning signal handlers. Since the ones, which expect
    a 'void' return type, will silently ignore the return value
-   at run-time anyhow, we can keep things simple here and just 
+   at run-time anyhow, we can keep things simple here and just
    specify 'int'.
 
    However, this will cause a set of compiler warnings to appear;

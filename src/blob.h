@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -28,13 +28,13 @@ namespace ham {
 /**
  * a blob structure (blob_t)
  *
- * every blob has a blob_t header; it holds flags and some other 
+ * every blob has a blob_t header; it holds flags and some other
  * administrative information
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 {
     /**
-     * the blob ID - which is the absolute address/offset of this 
+     * the blob ID - which is the absolute address/offset of this
      * blob_t structure in the file
      */
     ham_u64_t _blobid;
@@ -107,7 +107,7 @@ class BlobManager
      * reads a blob and stores the data in @a record
      * flags: either 0 or HAM_DIRECT_ACCESS
      */
-    ham_status_t read(Database *db, Transaction *txn, ham_offset_t blobid, 
+    ham_status_t read(Database *db, Transaction *txn, ham_offset_t blobid,
                     ham_record_t *record, ham_u32_t flags);
 
     /**
@@ -122,7 +122,7 @@ class BlobManager
      * will return an error if the blob does not exist
      * returns the blob-id (the start address of the blob header) in @a blobid
      */
-    ham_status_t overwrite(Database *db, ham_offset_t old_blobid, 
+    ham_status_t overwrite(Database *db, ham_offset_t old_blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ham_offset_t *new_blobid);
 
@@ -136,13 +136,13 @@ class BlobManager
 
     /**
      * write a series of data chunks to storage at file offset 'addr'.
-     * 
+     *
      * The chunks are assumed to be stored in sequential order, adjacent
      * to each other, i.e. as one long data strip.
-     * 
+     *
      * Writing is performed on a per-page basis, where special conditions
      * will decide whether or not the write operation is performed
-     * through the page cache or directly to device; such is determined 
+     * through the page cache or directly to device; such is determined
      * on a per-page basis.
      */
     ham_status_t write_chunks(Page *page, ham_offset_t addr, bool allocated,
@@ -155,13 +155,13 @@ class BlobManager
     ham_status_t read_chunk(Page *page, Page **fpage, ham_offset_t addr,
                     Database *db, ham_u8_t *data, ham_size_t size);
 
-    /* 
+    /*
      * if the blob is small enough (or if logging is enabled) then go through
      * the cache. otherwise use direct I/O
      */
     bool blob_from_cache(ham_size_t size);
 
-    /** the Environment which created this BlobManager */   
+    /** the Environment which created this BlobManager */
     Environment *m_env;
 };
 

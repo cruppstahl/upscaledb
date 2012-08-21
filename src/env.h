@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -43,68 +43,68 @@ namespace ham {
 
 /**
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
- * to this size. 
+ * to this size.
  *
- * WARNING: pages (and 'aligned' huge blobs) are aligned to 
- * a DB_PAGESIZE_MIN_REQD_ALIGNMENT boundary, that is, any 'aligned=true' 
- * freelist allocations will produce blocks which are aligned to a 
+ * WARNING: pages (and 'aligned' huge blobs) are aligned to
+ * a DB_PAGESIZE_MIN_REQD_ALIGNMENT boundary, that is, any 'aligned=true'
+ * freelist allocations will produce blocks which are aligned to a
  * 8*32 == 256 bytes boundary.
  */
 #define DB_CHUNKSIZE        32
 
 /**
- * The minimum required database page alignment: since the freelist scanner 
- * works on a byte-boundary basis for aligned storage, all aligned storage 
- * must/align to an 8-bits times 1 DB_CHUNKSIZE-per-bit boundary. Which for a 
- * 32 bytes chunksize means your pagesize minimum required alignment/size 
+ * The minimum required database page alignment: since the freelist scanner
+ * works on a byte-boundary basis for aligned storage, all aligned storage
+ * must/align to an 8-bits times 1 DB_CHUNKSIZE-per-bit boundary. Which for a
+ * 32 bytes chunksize means your pagesize minimum required alignment/size
  * is 8*32 = 256 bytes.
  */
-#define DB_PAGESIZE_MIN_REQD_ALIGNMENT		(8 * DB_CHUNKSIZE)
+#define DB_PAGESIZE_MIN_REQD_ALIGNMENT      (8 * DB_CHUNKSIZE)
 
 #include "packstart.h"
 
 /**
  * the persistent file header
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 
+typedef HAM_PACK_0 struct HAM_PACK_1
 {
-	/** magic cookie - always "ham\0" */
-	ham_u8_t  _magic[4];
+    /** magic cookie - always "ham\0" */
+    ham_u8_t  _magic[4];
 
-	/** version information - major, minor, rev, reserved */
-	ham_u8_t  _version[4];
+    /** version information - major, minor, rev, reserved */
+    ham_u8_t  _version[4];
 
-	/** serial number */
-	ham_u32_t _serialno;
+    /** serial number */
+    ham_u32_t _serialno;
 
-	/** size of the page */
-	ham_u32_t _pagesize;
+    /** size of the page */
+    ham_u32_t _pagesize;
 
-	/**
-	 * maximum number of databases for this environment
+    /**
+     * maximum number of databases for this environment
      *
-	 * NOTE: formerly, the _max_databases was 32 bits, but since
-	 * nobody would use more than 64K tables/indexes, we have the
-	 * MSW free for repurposing; as we store data in Little Endian
-	 * order, that would be the second WORD.
-	 *
-	 * For reasons of backwards compatibility, the default value
-	 * there would be zero (0).
-	 */
-	ham_u16_t _max_databases;
+     * NOTE: formerly, the _max_databases was 32 bits, but since
+     * nobody would use more than 64K tables/indexes, we have the
+     * MSW free for repurposing; as we store data in Little Endian
+     * order, that would be the second WORD.
+     *
+     * For reasons of backwards compatibility, the default value
+     * there would be zero (0).
+     */
+    ham_u16_t _max_databases;
 
-	/** reserved */
-	ham_u16_t _reserved1;
+    /** reserved */
+    ham_u16_t _reserved1;
 
-	/* 
-	 * following here: 
-	 *
-	 * 1. the private data of the index backend(s) 
-	 *      -> see env_get_indexdata()
-	 *
-	 * 2. the freelist data
-	 *      -> see env_get_freelist()
-	 */
+    /*
+     * following here:
+     *
+     * 1. the private data of the index backend(s)
+     *      -> see env_get_indexdata()
+     *
+     * 2. the freelist data
+     *      -> see env_get_freelist()
+     */
 
 } HAM_PACK_2 env_header_t;
 
@@ -116,9 +116,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 struct db_indexdata_t;
 typedef struct db_indexdata_t db_indexdata_t;
 
-#define SIZEOF_FULL_HEADER(env)												\
-	(sizeof(env_header_t)+													\
-	 (env)->get_max_databases()*sizeof(db_indexdata_t))
+#define SIZEOF_FULL_HEADER(env)                                             \
+    (sizeof(env_header_t)+                                                  \
+     (env)->get_max_databases()*sizeof(db_indexdata_t))
 
 class Worker;
 
@@ -135,7 +135,7 @@ class Environment
     ~Environment();
 
     /*
-     * following here: function pointers which implement access to 
+     * following here: function pointers which implement access to
      * local or remote databases. they are initialized in ham_env_create_ex
      * and ham_env_open_ex after the Environment handle was initialized and
      * an allocator was created.
@@ -160,19 +160,19 @@ class Environment
     /**
      * rename a database in the Environment
      */
-    ham_status_t (*_fun_rename_db)(Environment *env, ham_u16_t oldname, 
+    ham_status_t (*_fun_rename_db)(Environment *env, ham_u16_t oldname,
             ham_u16_t newname, ham_u32_t flags);
 
     /**
      * erase a database from the Environment
      */
-    ham_status_t (*_fun_erase_db)(Environment *env, ham_u16_t name, 
+    ham_status_t (*_fun_erase_db)(Environment *env, ham_u16_t name,
             ham_u32_t flags);
 
     /**
      * get all database names
      */
-    ham_status_t (*_fun_get_database_names)(Environment *env, 
+    ham_status_t (*_fun_get_database_names)(Environment *env,
             ham_u16_t *names, ham_size_t *count);
 
     /**
@@ -188,33 +188,33 @@ class Environment
     /**
      * create a database in the environment
      */
-    ham_status_t (*_fun_create_db)(Environment *env, Database *db, 
-                ham_u16_t dbname, ham_u32_t flags, 
+    ham_status_t (*_fun_create_db)(Environment *env, Database *db,
+                ham_u16_t dbname, ham_u32_t flags,
                 const ham_parameter_t *param);
 
     /**
      * open a database in the environment
      */
-    ham_status_t (*_fun_open_db)(Environment *env, Database *db, 
-                ham_u16_t dbname, ham_u32_t flags, 
+    ham_status_t (*_fun_open_db)(Environment *env, Database *db,
+                ham_u16_t dbname, ham_u32_t flags,
                 const ham_parameter_t *param);
 
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(Environment *env, Transaction **txn, 
+    ham_status_t (*_fun_txn_begin)(Environment *env, Transaction **txn,
                 const char *name, ham_u32_t flags);
 
     /**
      * aborts a transaction
      */
-    ham_status_t (*_fun_txn_abort)(Environment *env, Transaction *txn, 
+    ham_status_t (*_fun_txn_abort)(Environment *env, Transaction *txn,
                 ham_u32_t flags);
 
     /**
      * commits a transaction
      */
-    ham_status_t (*_fun_txn_commit)(Environment *env, Transaction *txn, 
+    ham_status_t (*_fun_txn_commit)(Environment *env, Transaction *txn,
                 ham_u32_t flags);
 
     /**
@@ -222,10 +222,10 @@ class Environment
      */
     ham_status_t (*_fun_close)(Environment *env, ham_u32_t flags);
 
-	/**
-	 * destroy the environment object, free all memory
-	 */
-	ham_status_t (*destroy)(Environment *self);
+    /**
+     * destroy the environment object, free all memory
+     */
+    ham_status_t (*destroy)(Environment *self);
 
     /** get the filename */
     const std::string &get_filename() {
@@ -394,7 +394,7 @@ class Environment
 
     /** get the size of the usable persistent payload of a page */
     ham_size_t get_usable_pagesize() {
-	    return (get_pagesize()-Page::sizeof_persistent_header);
+        return (get_pagesize()-Page::sizeof_persistent_header);
     }
 
     /** set the pagesize as specified in ham_env_create_ex */
@@ -450,7 +450,7 @@ class Environment
         return (m_is_active);
     }
 
-    /** returns true if this Environment is private to a Database 
+    /** returns true if this Environment is private to a Database
      * (was implicitly created in ham_create/ham_open) */
     bool is_private();
 
@@ -465,7 +465,7 @@ class Environment
     }
 
     /**
-     * Get the private data of the specified database stored at index @a i; 
+     * Get the private data of the specified database stored at index @a i;
      * interpretation of the data is up to the backend.
      */
     db_indexdata_t *get_indexdata_ptr(int i);
@@ -493,15 +493,15 @@ class Environment
     }
 
     /** get the page size from the header page */
-    // TODO can be private? 
+    // TODO can be private?
     ham_size_t get_persistent_pagesize() {
-	    return (ham_db2h32(get_header()->_pagesize));
+        return (ham_db2h32(get_header()->_pagesize));
     }
 
     /** set the page size in the header page */
-    // TODO can be private? 
-    void set_persistent_pagesize(ham_size_t ps)	{
-	    get_header()->_pagesize=ham_h2db32(ps);
+    // TODO can be private?
+    void set_persistent_pagesize(ham_size_t ps) {
+        get_header()->_pagesize=ham_h2db32(ps);
     }
 
     /** get a reference to the DB FILE (global) statistics */
@@ -511,10 +511,10 @@ class Environment
 
     /** set the 'magic' field of a file header */
     void set_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
-	    get_header()->_magic[0]=m1;
-	    get_header()->_magic[1]=m2;
-	    get_header()->_magic[2]=m3;
-	    get_header()->_magic[3]=m4;
+        get_header()->_magic[0]=m1;
+        get_header()->_magic[1]=m2;
+        get_header()->_magic[2]=m3;
+        get_header()->_magic[3]=m4;
     }
 
     /** returns true if the magic matches */
@@ -539,10 +539,10 @@ class Environment
 
     /** set the version of a file header */
     void set_version(ham_u8_t a, ham_u8_t b, ham_u8_t c, ham_u8_t d) {
-	    get_header()->_version[0]=a;
-	    get_header()->_version[1]=b;
-	    get_header()->_version[2]=c;
-	    get_header()->_version[3]=d;
+        get_header()->_version[0]=a;
+        get_header()->_version[1]=b;
+        get_header()->_version[2]=c;
+        get_header()->_version[3]=d;
     }
 
     /** get the serial number */
@@ -620,8 +620,8 @@ class Environment
     /** the current transaction ID */
     ham_u64_t m_txn_id;
 
-	/** the user-provided context data */
-	void *m_context;
+    /** the user-provided context data */
+    void *m_context;
 
     /** the device (either a file or an in-memory-db) */
     Device *m_device;
@@ -667,12 +667,12 @@ class Environment
     /** the cachesize which was specified when the env was created/opened */
     ham_u64_t m_cachesize;
 
-    /** the max. number of databases which was specified when the env 
+    /** the max. number of databases which was specified when the env
      * was created */
-	ham_u16_t m_max_databases_cached;
+    ham_u16_t m_max_databases_cached;
 
-	/** true after this object is already in use */
-	bool m_is_active;
+    /** true after this object is already in use */
+    bool m_is_active;
 
 #if HAM_ENABLE_REMOTE
     /** libcurl remote handle */
@@ -682,8 +682,8 @@ class Environment
     /** linked list of all file-level filters */
     ham_file_filter_t *m_file_filters;
 
-	/** some freelist algorithm specific run-time data */
-	ham_runtime_statistics_globdata_t m_perf_data;
+    /** some freelist algorithm specific run-time data */
+    ham_runtime_statistics_globdata_t m_perf_data;
 
     /** the directory of the log file and journal files */
     std::string m_log_directory;
@@ -705,7 +705,7 @@ class Environment
  * no Database handle
  */
 extern ham_status_t
-env_fetch_page(Page **page_ref, Environment *env, 
+env_fetch_page(Page **page_ref, Environment *env,
         ham_offset_t address, ham_u32_t flags);
 
 /**
@@ -732,16 +732,16 @@ env_initialize_remote(Environment *env);
 
 /**
  * Ensure that the environment occupies a minimum number of pages.
- * 
+ *
  * This is useful with various storage devices to prevent / reduce
  * fragmentation.
- * 
+ *
  * @param env the environment reference.
- * @param minimum_page_count The desired minimum number of storage pages 
+ * @param minimum_page_count The desired minimum number of storage pages
         * available to the environment/database.
- * 
- * process: 
- * 
+ *
+ * process:
+ *
  * <ol>
  * <li> detect how many pages we already have in the environment
  * <li> calculate how many pages we should have
@@ -749,7 +749,7 @@ env_initialize_remote(Environment *env);
  *      the device driver to allocate the remainder and mark
  *      them all as 'free'.
  * </ol>
- * 
+ *
  * @remark Caveat:
  *    The required size may be so large that it does not
  *    fit in the current freelist, so one or more of

@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -114,7 +114,7 @@ class ExtKeyCache
 
     /**
      * insert a new extended key in the cache
-     * will assert that there's no duplicate key! 
+     * will assert that there's no duplicate key!
      */
     void insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data) {
       ExtKey *e;
@@ -161,13 +161,13 @@ class ExtKeyCache
       else
         return (HAM_KEY_NOT_FOUND);
     }
-    
+
     /** removes all OLD keys from the cache */
     void purge() {
       m_extkeyhelper->m_removeall = false;
       m_hash.remove_if();
     }
-    
+
     /** removes ALL keys from the cache */
     void purge_all() {
       m_extkeyhelper->m_removeall = true;

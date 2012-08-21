@@ -3,13 +3,13 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
  *
  *
- * This sample uses hamsterdb to sort data from stdin; 
+ * This sample uses hamsterdb to sort data from stdin;
  * every word is inserted into the database (duplicate words are ignored).
  * Then a cursor is used to print all words in sorted order.
  */
@@ -18,17 +18,17 @@
 #include <string.h>
 #include <ham/hamsterdb.h>
 
-static int 
-my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length, 
+static int
+my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length,
                   const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     (void)db;
 
-    return strncmp((const char *)lhs, (const char *)rhs, 
+    return strncmp((const char *)lhs, (const char *)rhs,
             lhs_length<rhs_length ? lhs_length : rhs_length);
 }
 
-int 
+int
 main(int argc, char **argv)
 {
     ham_status_t st;      /* status variable */
@@ -45,7 +45,7 @@ main(int argc, char **argv)
     printf("Reading from stdin...\n");
 
     /*
-     * first step: create a new hamsterdb handle 
+     * first step: create a new hamsterdb handle
      */
     st=ham_new(&db);
     if (st!=HAM_SUCCESS) {
@@ -54,7 +54,7 @@ main(int argc, char **argv)
     }
 
     /*
-     * second step: since we use strings as our database-keys, we use 
+     * second step: since we use strings as our database-keys, we use
      * our own comparison function based on strcmp instead of the default
      * memcmp function.
      */
@@ -76,7 +76,7 @@ main(int argc, char **argv)
     }
 
     /*
-     * now we read each line from stdin and split it in words; then each 
+     * now we read each line from stdin and split it in words; then each
      * word is inserted into the database
      */
     while (fgets(line, sizeof(line), stdin)) {
@@ -88,7 +88,7 @@ main(int argc, char **argv)
          */
         while ((p=strtok(start, " \t\r\n"))) {
             key.data=p;
-            key.size=(ham_size_t)strlen(p)+1; /* also store the terminating 
+            key.size=(ham_size_t)strlen(p)+1; /* also store the terminating
                                                 0-byte */
 
             st=ham_insert(db, 0, &key, &record, 0);
@@ -102,8 +102,8 @@ main(int argc, char **argv)
         }
     }
 
-    /* 
-     * create a cursor 
+    /*
+     * create a cursor
      */
     st=ham_cursor_create(db, 0, 0, &cursor);
     if (st!=HAM_SUCCESS) {
@@ -146,7 +146,7 @@ main(int argc, char **argv)
      */
     ham_delete(db);
 
-    /* 
+    /*
      * success!
      */
     return (0);

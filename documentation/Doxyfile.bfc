@@ -14,15 +14,15 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 
-# This tag specifies the encoding used for all characters in the config file 
-# that follow. The default is UTF-8 which is also the encoding used for all 
-# text before the first occurrence of this tag. Doxygen uses libiconv (or the 
-# iconv built into libc) for the transcoding. See 
+# This tag specifies the encoding used for all characters in the config file
+# that follow. The default is UTF-8 which is also the encoding used for all
+# text before the first occurrence of this tag. Doxygen uses libiconv (or the
+# iconv built into libc) for the transcoding. See
 # http://www.gnu.org/software/libiconv for the list of possible encodings.
 
 DOXYFILE_ENCODING      = UTF-8
 
-# The PROJECT_NAME tag is a single word (or a sequence of words surrounded 
+# The PROJECT_NAME tag is a single word (or a sequence of words surrounded
 # by quotes) that should identify the project.
 
 PROJECT_NAME           = Baierischer Funktionär für Codiererverfahrensprüfung (Unittest Framework)
@@ -930,7 +930,7 @@ QCH_FILE               =
 # Qt Help Project output. For more information please see
 # http://doc.trolltech.com/qthelpproject.html#namespace
 
-QHP_NAMESPACE          = 
+QHP_NAMESPACE          =
 
 # The QHP_VIRTUAL_FOLDER tag specifies the namespace to use when generating
 # Qt Help Project output. For more information please see
@@ -976,7 +976,7 @@ GENERATE_ECLIPSEHELP   = NO
 # the directory name containing the HTML and XML files should also have
 # this name.
 
-ECLIPSE_DOC_ID         = 
+ECLIPSE_DOC_ID         =
 
 # The DISABLE_INDEX tag can be used to turn on/off the condensed index at
 # top of each HTML page. The value NO (the default) enables the index and
@@ -1322,7 +1322,7 @@ PREDEFINED             =
 # The macro definition that is found in the sources will be used.
 # Use the PREDEFINED tag if you want to use a different macro definition.
 
-EXPAND_AS_DEFINED      = CURSOR_DECLARATIONS FREELIST_DECLARATIONS BACKEND_DECLARATIONS HAM_PACK_1 HAM_PACK_0 HAM_PACK_2 
+EXPAND_AS_DEFINED      = CURSOR_DECLARATIONS FREELIST_DECLARATIONS BACKEND_DECLARATIONS HAM_PACK_1 HAM_PACK_0 HAM_PACK_2
 
 # If the SKIP_FUNCTION_MACROS tag is set to YES (the default) then
 # doxygen's preprocessor will remove all function-like macros that are alone

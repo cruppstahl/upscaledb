@@ -3,14 +3,14 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
  */
 
 /**
- * @brief a simple hash_table implementation using linked lists as 
+ * @brief a simple hash_table implementation using linked lists as
  * overflow buckets.
  *
  * this hash table does not require any allocations.
@@ -38,8 +38,8 @@ class hash_table
       : m_helper(h), m_buckets(bucket_size) {
     }
 
-    /** 
-     * inserts a key; does not verify if the key already exists. 
+    /**
+     * inserts a key; does not verify if the key already exists.
      * complexity: O(1)
      */
     void put(T *p) {
@@ -48,7 +48,7 @@ class hash_table
       m_buckets[h] = p;
     }
 
-    /** 
+    /**
      * fetches a key; returns NULL if the key is not available
      */
     T *get(const Key &key) const {
@@ -62,7 +62,7 @@ class hash_table
       return (p);
     }
 
-    /** 
+    /**
      * removes an object from the hash and returns the object (or NULL if
      * it was not found)
      */
@@ -83,7 +83,7 @@ class hash_table
       return 0;
     }
 
-    /** 
+    /**
      * traverses the key, and whenever helper.matches() returns true it
      * will remove the element from the hash
      */
@@ -108,15 +108,15 @@ class hash_table
 
   private:
     unsigned hash(const Key &key) const {
-      return (m_helper.hash(key) % m_buckets.size()); 
+      return (m_helper.hash(key) % m_buckets.size());
     }
 
     unsigned hash(const T *p) const {
-      return (m_helper.hash(p) % m_buckets.size()); 
+      return (m_helper.hash(p) % m_buckets.size());
     }
 
     Helper &m_helper;
-	bucket_list m_buckets;
+    bucket_list m_buckets;
 };
 
 #endif /* HAM_HASHTABLE_H__ */

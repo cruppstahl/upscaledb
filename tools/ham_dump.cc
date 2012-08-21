@@ -3,7 +3,7 @@
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or 
+ * Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
@@ -35,8 +35,8 @@
 static option_t opts[]={
     {
         ARG_HELP,               // symbolic name of this option
-        "h",                    // short option 
-        "help",                 // long option 
+        "h",                    // short option
+        "help",                 // long option
         "this help screen",     // help string
         0 },                    // no flags
     {
@@ -72,7 +72,7 @@ static option_t opts[]={
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
 
-static void 
+static void
 error(const char *foo, ham_status_t st)
 {
     printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
@@ -237,7 +237,7 @@ dump_database(ham_db_t *db, ham_u16_t dbname, int key_fmt, int max_keysize,
             /* reached end of the database? */
             if (st==HAM_KEY_NOT_FOUND)
                 break;
-            else 
+            else
                 error("ham_cursor_next", st);
         }
 
@@ -411,7 +411,7 @@ main(int argc, char **argv)
         st=ham_new(&db);
         if (st)
             error("ham_new", st);
-    
+
         st=ham_env_open_db(env, db, dbname, 0, 0);
         if (st==HAM_DATABASE_NOT_FOUND) {
             printf("Database %u (0x%x) not found\n", dbname, dbname);
@@ -419,9 +419,9 @@ main(int argc, char **argv)
         }
         else if (st)
             error("ham_env_open_db", st);
-    
+
         dump_database(db, dbname, key, keysize, rec, recsize);
-    
+
         st=ham_close(db, 0);
         if (st)
             error("ham_close", st);
@@ -435,19 +435,19 @@ main(int argc, char **argv)
             st=ham_new(&db);
             if (st)
                 error("ham_new", st);
-    
+
             st=ham_env_open_db(env, db, names[i], 0, 0);
             if (st)
                 error("ham_env_open_db", st);
-    
+
             dump_database(db, names[i], key, keysize, rec, recsize);
-    
+
             st=ham_close(db, 0);
             if (st)
                 error("ham_close", st);
             ham_delete(db);
         }
-    } 
+    }
     /*
      * clean up
      */

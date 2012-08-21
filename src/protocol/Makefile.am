@@ -5,9 +5,9 @@
 CFLAGS         += -DHAM_ENABLE_REMOTE
 AM_CXXFLAGS     = $(CFLAGS)
 CXXFLAGS        = $(CFLAGS)
-AM_CPPFLAGS 	= -I$(top_builddir)/include
+AM_CPPFLAGS     = -I$(top_builddir)/include
 
-# INCLUDES = 
+# INCLUDES =
 
 noinst_LTLIBRARIES     = libprotocol.la
 
@@ -16,5 +16,5 @@ libprotocol_la_LDFLAGS = -lprotobuf
 
 messages.pb.cc proto: messages.proto
 	protoc messages.proto --cpp_out=.
-	
+
 
