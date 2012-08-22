@@ -1,0 +1,25 @@
+*.sh            text eol=lf
+*.ac            text eol=lf
+*.am            text eol=lf
+*.in            text eol=lf
+Makefile        text eol=lf
+configure       text eol=lf
+
+# Xcode
+*.pbxproj       text eol=crlf
+.* icns         binary
+
+# Visual Studio
+*.csproj        text eol=crlf
+*.vbproj        text eol=crlf
+*.fsproj        text eol=crlf
+*.dbproj        text eol=crlf
+*.vcproj        text eol=crlf
+*.vcxproj       text eol=crlf
+*.filter        text eol=crlf
+*.vsprops       text eol=crlf
+*.sln           text eol=crlf
+*.dsw           text eol=crlf
+*.dsp           text eol=crlf
+
+*.bat           text eol=crlf
