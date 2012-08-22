@@ -24,6 +24,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class PageTest : public hamsterDB_fixture
 {

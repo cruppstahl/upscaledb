@@ -638,12 +638,9 @@ _remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 }
 
 
-#endif /* HAM_ENABLE_REMOTE */
-
 ham_status_t
 env_initialize_remote(Environment *env)
 {
-#if HAM_ENABLE_REMOTE
   env->_fun_create             =_remote_fun_create;
   env->_fun_open               =_remote_fun_open;
   env->_fun_rename_db          =_remote_fun_rename_db;
@@ -659,14 +656,10 @@ env_initialize_remote(Environment *env)
   env->_fun_txn_abort          =_remote_fun_txn_abort;
 
   env->set_flags(env->get_flags() | DB_IS_REMOTE);
-#else
-  return (HAM_NOT_IMPLEMENTED);
-#endif
 
-  return (0);
+  return (HAM_SUCCESS);
 }
 
-#if HAM_ENABLE_REMOTE
 
 ham_status_t
 DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
@@ -1378,6 +1371,18 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
 
   delete reply;
   return (st);
+}
+
+} // namespace ham
+
+#else // HAM_ENABLE_REMOTE
+
+namespace ham {
+
+ham_status_t
+env_initialize_remote(Environment *env)
+{
+	return HAM_NOT_IMPLEMENTED;
 }
 
 } // namespace ham

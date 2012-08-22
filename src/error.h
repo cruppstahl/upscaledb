@@ -48,38 +48,38 @@ extern void (*ham_test_abort)();
  */
 #ifdef HAM_DEBUG
 #   define ham_assert(e) if (!(e)) {                                    \
-                dbg_lock();                                             \
-                dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,            \
+                ham::dbg_lock();                                        \
+                ham::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
                     __LINE__, __FUNCTION__, #e);                        \
-                dbg_verify_failed(0);                                   \
-                dbg_unlock();                                           \
-               }
+                ham::dbg_verify_failed(0);                              \
+                ham::dbg_unlock();                                      \
+              }
 #else /* !HAM_DEBUG */
-#   define ham_assert(e) (void)0
+#   define ham_assert(e)      (void)0
 #endif /* HAM_DEBUG */
 
 /** ham_log() and ham_verify() are available in every build */
 #define ham_trace(f)     do {                                           \
-                dbg_lock();                                             \
-                dbg_prepare(HAM_DEBUG_LEVEL_DEBUG, __FILE__,            \
+                ham::dbg_lock();                                        \
+                ham::dbg_prepare(HAM_DEBUG_LEVEL_DEBUG, __FILE__,       \
                     __LINE__, __FUNCTION__, 0);                         \
-                dbg_log f;                                              \
-                dbg_unlock();                                           \
-               } while (0)
+                ham::dbg_log f;                                         \
+                ham::dbg_unlock();                                      \
+              } while (0)
 #define ham_log(f)       do {                                           \
-                dbg_lock();                                             \
-                dbg_prepare(HAM_DEBUG_LEVEL_NORMAL, __FILE__,           \
+                ham::dbg_lock();                                        \
+                ham::dbg_prepare(HAM_DEBUG_LEVEL_NORMAL, __FILE__,      \
                     __LINE__, __FUNCTION__, 0);                         \
-                dbg_log f;                                              \
-                dbg_unlock();                                           \
-               } while (0)
+                ham::dbg_log f;                                         \
+                ham::dbg_unlock();                                      \
+              } while (0)
 #define ham_verify(e)      if (!(e)) {                                  \
-                dbg_lock();                                             \
-                dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,            \
+                ham::dbg_lock();                                        \
+                ham::dbg_prepare(HAM_DEBUG_LEVEL_FATAL, __FILE__,       \
                     __LINE__, __FUNCTION__, #e);                        \
-                dbg_verify_failed(0);                                   \
-                dbg_unlock();                                           \
-               }
+                ham::dbg_verify_failed(0);                              \
+                ham::dbg_unlock();                                      \
+              }
 
 } // namespace ham
 

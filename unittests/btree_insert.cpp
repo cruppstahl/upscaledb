@@ -25,6 +25,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class BtreeInsertTest : public hamsterDB_fixture
 {

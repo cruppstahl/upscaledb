@@ -25,7 +25,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-
+using namespace ham;
 
 class MiscTest : public hamsterDB_fixture
 {

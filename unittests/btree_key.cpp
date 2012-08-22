@@ -26,7 +26,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-namespace ham {
+using namespace ham;
 
 class KeyTest : public hamsterDB_fixture
 {
