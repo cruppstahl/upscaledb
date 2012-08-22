@@ -33,6 +33,7 @@
     July 2003: slight mods to back out aggressive FFFE detection.
     Jan 2004: updated switches in from-UTF8 conversions.
     Oct 2004: updated to use UNI_MAX_LEGAL_UTF32 in UTF-32 conversions.
+    May 2006: updated isLegalUTF8Sequence.
 
     See the header file "ConvertUTF.h" for complete documentation.
 
@@ -43,6 +44,7 @@
 #ifdef CVTUTF_DEBUG
 #include <stdio.h>
 #endif
+#include <string.h> /* strlen() */
 
 static const int halfShift  = 10; /* used for shifting by 10 bits */
 
@@ -305,7 +307,7 @@ static Boolean isLegalUTF8(const UTF8 *source, int length) {
     switch (*source) {
         /* no fall-through in this inner switch */
         case 0xE0: if (a < 0xA0) return false; break;
-	    case 0xED: if (a > 0x9F) return false; break;
+        case 0xED: if ((a < 0x80) || (a > 0x9F)) return false; break;
         case 0xF0: if (a < 0x90) return false; break;
         case 0xF4: if (a > 0x8F) return false; break;
         default:   if (a < 0x80) return false;
@@ -324,11 +326,72 @@ static Boolean isLegalUTF8(const UTF8 *source, int length) {
  * This is not used here; it's just exported.
  */
 Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd) {
-    int length = trailingBytesForUTF8[*source]+1;
-    if (source+length > sourceEnd) {
-	return false;
+    int length;
+    if (source == sourceEnd) {
+        return true;
     }
-    return isLegalUTF8(source, length);
+    while (true) {
+        length = trailingBytesForUTF8[*source]+1;
+        if (source+length > sourceEnd) {
+            return false;
+        }
+        if (!isLegalUTF8(source, length)) {
+            return false;
+        }
+        source += length;
+        if (source >= sourceEnd) {
+            return true;
+        }
+    }
+}
+
+/**
+ * This is a variation of isLegalUTF8Sequence() that behaves like g_utf8_validate().
+ * In addition to knowing if the sequence is legal, it also tells you the last good character.
+ */
+Boolean
+tr_utf8_validate( const char * str, int max_len, const char ** end )
+{
+    const UTF8* source = (const UTF8*) str;
+    const UTF8* sourceEnd;
+
+    if( max_len == 0 )
+        return true;
+
+    if( str == NULL )
+        return false;
+
+    sourceEnd = source + ((max_len < 0) ? strlen(str) : (size_t)max_len);
+
+    if( source == sourceEnd )
+    {
+        if( end != NULL )
+            *end = (const char*) source;
+        return true;
+    }
+
+    for( ;; )
+    {
+        const int length = trailingBytesForUTF8[*source] + 1;
+        if (source + length > sourceEnd) {
+            if( end != NULL )
+                *end = (const char*) source;
+            return false;
+        }
+        if (!isLegalUTF8(source, length)) {
+            if( end != NULL )
+                *end = (const char*) source;
+            return false;
+        }
+        source += length;
+        if (source >= sourceEnd) {
+            if( end != NULL )
+                *end = (const char*) source;
+            return true;
+        }
+    }
+
+
 }
 
 

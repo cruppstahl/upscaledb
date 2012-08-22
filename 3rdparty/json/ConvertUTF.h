@@ -91,7 +91,7 @@
 ------------------------------------------------------------------------ */
 
 
-typedef unsigned int	UTF32;	/* at least 32 bits */
+typedef unsigned long   UTF32;   /* at least 32 bits */
 typedef unsigned short  UTF16;   /* at least 16 bits */
 typedef unsigned char   UTF8;    /* typically 8 bits */
 typedef unsigned char   Boolean; /* 0 or 1 */
@@ -146,10 +146,15 @@ ConversionResult ConvertUTF32toUTF16 (
 
 Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd);
 
+
+/* intended to work the same as g_utf8_validate */
+Boolean tr_utf8_validate( const char * str, int max_len, const char ** end );
+
+
 #ifdef __cplusplus
 }
 #endif
 
 /* --------------------------------------------------------------------- */
 
-#endif // CONVERT_UNICODE_H
+#endif /* CONVERT_UNICODE_H */
