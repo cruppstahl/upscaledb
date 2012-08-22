@@ -38,6 +38,8 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
+using namespace ham;
+
 /*
  * forward decl - implemented in hamsterdb.cc
  */
@@ -59,8 +61,8 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0), 
-    m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0), 
+  : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
+    m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
     m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this),
@@ -802,7 +804,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     /* close the log and the journal */
     if (env->get_log()) {
         Log *log=env->get_log();
-        st=log->close(flags&HAM_DONT_CLEAR_LOG);
+        st=log->close(!!(flags&HAM_DONT_CLEAR_LOG));
         if (!st2)
             st2 = st;
         delete log;
@@ -810,7 +812,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     }
     if (env->get_journal()) {
         Journal *journal=env->get_journal();
-        st=journal->close(flags&HAM_DONT_CLEAR_LOG);
+        st=journal->close(!!(flags&HAM_DONT_CLEAR_LOG));
         if (!st2)
             st2 = st;
         delete journal;
@@ -1529,7 +1531,7 @@ __flush_txn(Environment *env, Transaction *txn)
         /*
          * this op is about to be flushed!
          *
-         * as a concequence, all (txn)cursors which are coupled to this op
+         * as a consequence, all (txn)cursors which are coupled to this op
          * have to be uncoupled, as their parent (btree) cursor was
          * already coupled to the btree item instead
          */

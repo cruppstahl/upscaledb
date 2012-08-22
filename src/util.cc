@@ -34,3 +34,4 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 }
 
 } // namespace ham
+

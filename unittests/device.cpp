@@ -23,6 +23,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class DeviceTest : public hamsterDB_fixture
 {

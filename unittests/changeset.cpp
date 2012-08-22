@@ -22,6 +22,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class ChangesetTest : public hamsterDB_fixture
 {

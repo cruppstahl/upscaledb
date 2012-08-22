@@ -28,6 +28,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+using namespace ham;
 
 class BtreeCursorTest : public hamsterDB_fixture
 {
