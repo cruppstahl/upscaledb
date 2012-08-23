@@ -519,44 +519,41 @@ class Environment
 
     /** returns true if the magic matches */
     bool compare_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
-        if (get_header()->_magic[0]!=m1)
-            return (false);
-        if (get_header()->_magic[1]!=m2)
-            return (false);
-        if (get_header()->_magic[2]!=m3)
-            return (false);
-        if (get_header()->_magic[3]!=m4)
-            return (false);
-        return (true);
+      if (get_header()->_magic[0]!=m1)
+        return (false);
+      if (get_header()->_magic[1]!=m2)
+        return (false);
+      if (get_header()->_magic[2]!=m3)
+        return (false);
+      if (get_header()->_magic[3]!=m4)
+        return (false);
+      return (true);
     }
 
     /** get byte @a i of the 'version'-header */
     ham_u8_t get_version(ham_size_t idx) {
-        env_header_t *hdr=(env_header_t *)
-                    (get_header_page()->get_payload());
-        return (envheader_get_version(hdr, idx));
+      env_header_t *hdr=(env_header_t *)(get_header_page()->get_payload());
+      return (envheader_get_version(hdr, idx));
     }
 
     /** set the version of a file header */
     void set_version(ham_u8_t a, ham_u8_t b, ham_u8_t c, ham_u8_t d) {
-        get_header()->_version[0]=a;
-        get_header()->_version[1]=b;
-        get_header()->_version[2]=c;
-        get_header()->_version[3]=d;
+      get_header()->_version[0]=a;
+      get_header()->_version[1]=b;
+      get_header()->_version[2]=c;
+      get_header()->_version[3]=d;
     }
 
     /** get the serial number */
     ham_u32_t get_serialno() {
-        env_header_t *hdr=(env_header_t*)
-                    (get_header_page()->get_payload());
-        return (ham_db2h32(hdr->_serialno));
+      env_header_t *hdr=(env_header_t*)(get_header_page()->get_payload());
+      return (ham_db2h32(hdr->_serialno));
     }
 
     /** set the serial number */
     void set_serialno(ham_u32_t n) {
-        env_header_t *hdr=(env_header_t*)
-                    (get_header_page()->get_payload());
-        hdr->_serialno=ham_h2db32(n);
+      env_header_t *hdr=(env_header_t *)(get_header_page()->get_payload());
+      hdr->_serialno=ham_h2db32(n);
     }
 
     /** get the freelist object of the database */
@@ -564,22 +561,22 @@ class Environment
 
     /** set the logfile directory */
     void set_log_directory(const std::string &dir) {
-        m_log_directory=dir;
+      m_log_directory=dir;
     }
 
     /** get the logfile directory */
     const std::string &get_log_directory() {
-        return (m_log_directory);
+      return (m_log_directory);
     }
 
     /** get the blob manager */
     BlobManager *get_blob_manager() {
-        return (&m_blob_manager);
+      return (&m_blob_manager);
     }
 
     /** get the duplicate manager */
     DuplicateManager *get_duplicate_manager() {
-        return (&m_duplicate_manager);
+      return (&m_duplicate_manager);
     }
 
     /** flushes the committed transactions to disk */
@@ -587,7 +584,7 @@ class Environment
 
     /** get the mutex */
     Mutex &get_mutex() {
-        return (m_mutex);
+      return (m_mutex);
     }
 
     /** either flush committed Transaction to disk or, if available,
@@ -598,14 +595,20 @@ class Environment
     /** set the worker thread
      * TODO move this into an implementation class */
     void set_worker_thread(Worker *thread) {
-        m_worker_thread = thread;
+      m_worker_thread = thread;
     }
 
     /** get the worker thread
      * TODO move this into an implementation class */
     Worker *get_worker_thread() {
-        return (m_worker_thread);
+      return (m_worker_thread);
     }
+
+    /** returns true if the Worker thread has an error */
+    bool has_worker_error();
+
+    /** retrieves and resets the Worker thread's error */
+    ham_status_t get_and_reset_worker_error();
 
   private:
     /** a mutex for this Environment */

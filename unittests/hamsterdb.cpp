@@ -136,6 +136,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
         BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
         BFC_REGISTER_TEST(HamsterdbTest, disableAsyncFlushTest);
+        BFC_REGISTER_TEST(HamsterdbTest, asynchronousErrorTest);
     }
 
 protected:
@@ -2192,8 +2193,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ham_delete(db);
     }
 
-    void sortDuplicatesWithTxnTest(void)
-    {
+void sortDuplicatesWithTxnTest(void)
+{
         ham_db_t *db;
         ham_env_t *env;
 
@@ -2202,58 +2203,58 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         /* use ham_create[_ex] */
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                    ham_create(db, BFC_OPATH(".test.db"),
-                            HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0644));
+                        ham_create(db, BFC_OPATH(".test.db"),
+                                HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         /* use ham_open[_ex] */
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                    ham_open(db, BFC_OPATH(".test.db"),
-                            HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS));
+                        ham_open(db, BFC_OPATH(".test.db"),
+                                HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         /* use ham_env_create[_ex] and ham_env_create_db */
         BFC_ASSERT_EQUAL(0,
-                    ham_env_create(env, BFC_OPATH(".test"),
-                            HAM_ENABLE_TRANSACTIONS, 0644));
+                        ham_env_create(env, BFC_OPATH(".test"),
+                                HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_create_db(env, db,
-                        13, HAM_SORT_DUPLICATES, 0));
+                        ham_env_create_db(env, db,
+                                13, HAM_SORT_DUPLICATES, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         /* use ham_env_open[_ex] and ham_env_open_db */
         BFC_ASSERT_EQUAL(0,
-                    ham_env_create(env, BFC_OPATH(".test"),
-                            HAM_ENABLE_TRANSACTIONS, 0644));
+                        ham_env_create(env, BFC_OPATH(".test"),
+                                HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_db(env, db,
-                        13, HAM_SORT_DUPLICATES, 0));
+                        ham_env_open_db(env, db,
+                                13, HAM_SORT_DUPLICATES, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         ham_delete(db);
         ham_env_delete(env);
-    }
+}
 
-    void openVersion1x(void)
-    {
+void openVersion1x(void)
+{
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
-                    ham_open(db, BFC_OPATH("data/sample-db1-1.x.hdb"), 0));
+                        ham_open(db, BFC_OPATH("data/sample-db1-1.x.hdb"), 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
-    }
+}
 
-    void overwriteLogDirectoryTest()
-    {
+void overwriteLogDirectoryTest()
+{
         ham_db_t *db;
         ham_parameter_t ps[]={
-            {HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data"},
-            {0, 0}
+                {HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data"},
+                {0, 0}
         };
 
         os::unlink("data/test.db.log0");
@@ -2265,16 +2266,16 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, "test.db",
-                        HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
+                        ham_create_ex(db, "test.db",
+                                HAM_ENABLE_TRANSACTIONS, 0, &ps[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.log0"));
         BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn0"));
         BFC_ASSERT_EQUAL(true, os::file_exists("data/test.db.jrn1"));
 
         BFC_ASSERT_EQUAL(0,
-                ham_open_ex(db, "test.db",
-                        HAM_ENABLE_TRANSACTIONS, &ps[0]));
+                        ham_open_ex(db, "test.db",
+                                HAM_ENABLE_TRANSACTIONS, &ps[0]));
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(ham_get_env(db), &ps[0]));
         BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
@@ -2285,38 +2286,73 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
-    }
+}
 
-    void disableAsyncFlushTest()
-    {
+void disableAsyncFlushTest()
+{
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create_ex(db, "test.db",
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0, 0));
+                        ham_create_ex(db, "test.db",
+                                HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0, 0));
         BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, "test.db",
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH|HAM_ENABLE_TRANSACTIONS,
-                        0, 0));
+                        ham_create_ex(db, "test.db",
+                                HAM_DISABLE_ASYNCHRONOUS_FLUSH|HAM_ENABLE_TRANSACTIONS,
+                                0, 0));
         BFC_ASSERT_EQUAL((Worker *)0,
-                ((Database *)db)->get_env()->get_worker_thread());
+                        ((Database *)db)->get_env()->get_worker_thread());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, "test.db",
-                        HAM_IN_MEMORY_DB, 0, 0));
+                        ham_create_ex(db, "test.db",
+                                HAM_IN_MEMORY_DB, 0, 0));
         BFC_ASSERT_EQUAL((Worker *)0,
-                ((Database *)db)->get_env()->get_worker_thread());
+                        ((Database *)db)->get_env()->get_worker_thread());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
+        BFC_ASSERT_EQUAL(0,
+                        ham_create_ex(db, "test.db",
+                                HAM_ENABLE_TRANSACTIONS,
+                                0, 0));
+        BFC_ASSERT(((Database *)db)->get_env()->get_worker_thread() != 0);
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
+}
+
+void asynchronousErrorTest()
+{
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(db, "test.db",
                         HAM_ENABLE_TRANSACTIONS,
                         0, 0));
-        BFC_ASSERT(((Database *)db)->get_env()->get_worker_thread() != 0);
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
+        ErrorInducer *ei=new ErrorInducer();
+        ((Database *)db)->get_env()->get_changeset().m_inducer=ei;
+        ei->add(ErrorInducer::CHANGESET_FLUSH, 1);
+
+        ham_key_t key = {0};
+        ham_record_t rec = {0};
+        rec.size=6;
+        rec.data=(void *)"hello";
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+        sleep(2);
+        BFC_ASSERT_EQUAL(HAM_ASYNCHRONOUS_ERROR_PENDING,
+                    ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(HAM_INTERNAL_ERROR,
+                    ham_env_get_asnychronous_error(ham_get_env(db)));
+
+        ((Database *)db)->get_env()->get_changeset().m_inducer=0;
+        BFC_ASSERT_EQUAL(0,
+                    ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0,
+                    ham_env_get_asnychronous_error(ham_get_env(db)));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 };

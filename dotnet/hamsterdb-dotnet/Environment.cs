@@ -43,6 +43,20 @@ namespace Hamster
         }
 
         /// <summary>
+        /// Returns the last error code of the background thread
+        /// </summary>
+        /// <remarks>
+        /// This method wraps the native ham_env_get_asynchronous_error
+        /// function.
+        /// </remarks>
+        /// <returns>The error code of the background thread</returns>
+        public int GetAsynchronousError() {
+            lock (this) {
+                return NativeMethods.GetAsynchronousError(handle);
+            }
+        }
+
+        /// <summary>
         /// Creates a new Environment
         /// </summary>
         /// <remarks>

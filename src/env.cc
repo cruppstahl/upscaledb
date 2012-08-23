@@ -725,7 +725,9 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     ham_file_filter_t *file_head;
 
     /* flush all committed transactions */
-    env->flush_committed_txns(true);
+    st=env->flush_committed_txns(true);
+    if (st)
+        return (st);
 
     /* flush the freelist */
     if (env->get_freelist()) {
@@ -1512,7 +1514,6 @@ __flush_txn(Environment *env, Transaction *txn)
             ham_trace(("failed to flush op: %d (%s)",
                             (int)st, ham_strerror(st)));
             env->get_changeset().clear();
-            env->get_changeset().clear();
             return (st);
         }
 
@@ -1650,6 +1651,20 @@ env_purge_cache(Environment *env)
 
     return (cache->purge(purge_callback,
                 (env->get_flags()&HAM_CACHE_STRICT) != 0));
+}
+
+bool
+Environment::has_worker_error()
+{
+    return (m_worker_thread
+            ? (m_worker_thread->get_last_error() != 0)
+            : false);
+}
+
+ham_status_t
+Environment::get_and_reset_worker_error()
+{
+    return (m_worker_thread->get_last_error(true));
 }
 
 } // namespace ham

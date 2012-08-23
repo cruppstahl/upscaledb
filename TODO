@@ -140,9 +140,11 @@ o flush in background (asynchronously)
         x if in-memory database: disable async flush
         x if transactions are disabled: disable async flush
 
-    o how to deal with an error in the background thread???
-        -> store in Environment, then return in every exported function
-        o add unittests
+    x how to deal with an error in the background thread???
+        x store in Environment, then return in every exported function
+        x required in Java API
+        x required in .NET API
+        x add unittests (needs error inducer?)
 
     o extend monster tests
         o with async flush
@@ -152,10 +154,10 @@ o flush in background (asynchronously)
 
     o do "group commits" make sense? run some tests
         o verify that the logging/recovery works if we're group committing
+        o this would also decrease the number of fsyncs
         o but ham_env_flush and database::close must commit ALL
     o unlock global mutex after each single btree operation, to get a higher
         degree of concurrency? (unless we come from ham_env_flush)
->>>>>>> 6f31946... transactions are now flushed asynchronously (WIP)
     o how to improve performance when flushing? use database cursors?
 
 o see Laurent's email on the mailing list
@@ -245,6 +247,8 @@ o continue with refacoring - indention, coding style, better design etc...
         o code formatting
         o reduce bfc to a single header file, or use boost unittest framework
             http://www.boost.org/doc/libs/1_35_0/libs/test/doc/components/utf/index.html
+            http://www.beroux.com/english/articles/boost_unit_testing/
+            http://www.alittlemadness.com/2009/03/31/c-unit-testing-with-boosttest/
 
     o get rid of ham_bool_t, replace with bool whenever possible
 

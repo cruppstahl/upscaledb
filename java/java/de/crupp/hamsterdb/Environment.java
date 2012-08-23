@@ -50,6 +50,8 @@ public class Environment {
 
     private native int ham_env_close(long handle, int flags);
 
+    private native int ham_env_get_asynchronous_error(long handle);
+
     /**
      * Constructor - creates an empty Environment
      */
@@ -62,6 +64,18 @@ public class Environment {
     public void finalize()
             throws DatabaseException {
         close();
+    }
+
+    /**
+     * Returns the last error code of the background thread
+     * <p>
+     * This method wraps the native ham_env_get_asynchronous_error function.
+     * <p>
+     *
+     * @return the error code of the background thread
+     */
+    public synchronized int getAsynchronousError() {
+        return ham_env_get_asynchronous_error(m_handle);
     }
 
     /**

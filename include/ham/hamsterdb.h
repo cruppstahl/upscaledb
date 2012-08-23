@@ -404,6 +404,8 @@ typedef struct {
 #define HAM_LOG_INV_FILE_HEADER         (-300)
 /** Remote I/O error/Network error */
 #define HAM_NETWORK_ERROR               (-400)
+/** Failure in background thread; @sa ham_env_get_asnychronous_error() */
+#define HAM_ASYNCHRONOUS_ERROR_PENDING  (-500)
 
 /**
  * @}
@@ -1597,6 +1599,22 @@ ham_open_ex(ham_db_t *db, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_error(ham_db_t *db);
+
+/**
+ * Returns the last error code from the background thread
+ *
+ * When Transactions are enabled (@sa HAM_ENABLE_TRANSACTIONS), committed
+ * Transactions are flushed to disk by a background thread. If this thread
+ * causes errors then every other API function returns 
+ * @a HAM_ASYNCHRONOUS_ERROR_PENDING till @a ham_env_get_asynchronous_error
+ * is called.
+ *
+ * @param env A valid Environment handle
+ *
+ * @return The last error code from the background thread
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_get_asnychronous_error(ham_env_t *env);
 
 /**
  * Typedef for a prefix comparison function

@@ -128,6 +128,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"),
                         HAM_ENABLE_DUPLICATES
                         |HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         |HAM_ENABLE_RECOVERY, 0644));
 
         m_env=(Environment *)ham_get_env(m_db);
@@ -702,10 +703,14 @@ public:
         /* reopen the database */
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_ENABLE_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 
         /* verify that the journal is empty */
@@ -762,7 +767,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 
         /* verify that the journal is empty */
@@ -833,7 +840,9 @@ public:
                     BFC_OPATH(".test.jrn1")));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 
         /* verify that the journal is empty */
@@ -907,7 +916,9 @@ public:
                     BFC_OPATH(".test.jrn1")));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 
         /* verify that the journal is empty */
@@ -966,7 +977,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+                        HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 
         /* verify that the journal is empty */
@@ -1038,6 +1051,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"),
                         HAM_ENABLE_TRANSACTIONS
+                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         |HAM_AUTO_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
 

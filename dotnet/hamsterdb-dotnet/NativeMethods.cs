@@ -167,6 +167,10 @@ namespace Hamster
             CallingConvention = CallingConvention.Cdecl)]
         static public extern int GetLastError(IntPtr handle);
 
+        [DllImport("hamsterdb-2.0.4.dll", EntryPoint = "ham_env_get_asynchronous_error",
+            CallingConvention = CallingConvention.Cdecl)]
+        static public extern int GetAsynchronousError(IntPtr handle);
+
         [DllImport("hamsterdb-2.0.4.dll", EntryPoint = "ham_create_ex",
             CallingConvention = CallingConvention.Cdecl)]
         static public extern int Create(IntPtr handle, String fileName, int flags,
