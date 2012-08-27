@@ -225,7 +225,7 @@ _local_fun_create(Environment *env, const char *filename,
     }
 
     /* create the freelist */
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (!(env->get_flags()&HAM_IN_MEMORY)) {
         Freelist *f=new Freelist(env);
         env->set_freelist(f);
     }
@@ -257,7 +257,7 @@ _local_fun_create(Environment *env, const char *filename,
      * in-memory database */
     if (flags&HAM_ENABLE_TRANSACTIONS
             && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
-            && !(flags&HAM_IN_MEMORY_DB)) {
+            && !(flags&HAM_IN_MEMORY)) {
         env->set_worker_thread(new Worker(env));
     }
 
@@ -518,7 +518,7 @@ fail_with_fake_cleansing:
     env->set_cache(new Cache(env, env->get_cachesize()));
 
     /* create the freelist */
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB)
+    if (!(env->get_flags()&HAM_IN_MEMORY)
             && !(env->get_flags()&HAM_READ_ONLY)) {
         Freelist *f=new Freelist(env);
         env->set_freelist(f);
@@ -542,7 +542,7 @@ fail_with_fake_cleansing:
      * in-memory database */
     if (flags&HAM_ENABLE_TRANSACTIONS
             && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
-            && !(flags&HAM_IN_MEMORY_DB)) {
+            && !(flags&HAM_IN_MEMORY)) {
         env->set_worker_thread(new Worker(env));
     }
 
@@ -616,7 +616,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
      * if it's an in-memory environment: no need to go on, if the
      * database was closed, it does no longer exist
      */
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY)
         return (HAM_DATABASE_NOT_FOUND);
 
     /*
@@ -740,7 +740,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
      * and the dirty-flag is true: flush the page-header to disk
      */
     if (env->get_header_page()
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)
+            && !(env->get_flags()&HAM_IN_MEMORY)
             && env->get_device()
             && env->get_device()->is_open()
             && (!(env->get_flags()&HAM_READ_ONLY))) {
@@ -895,7 +895,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     (void)flags;
 
     /* never flush an in-memory-database */
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY)
         return (0);
 
     /* flush all committed transactions */
@@ -1646,7 +1646,7 @@ env_purge_cache(Environment *env)
     Cache *cache=env->get_cache();
 
     /* in-memory-db: don't remove the pages or they would be lost */
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY)
         return (0);
 
     return (cache->purge(purge_callback,

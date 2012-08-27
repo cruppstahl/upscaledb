@@ -48,7 +48,7 @@ public:
         __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY, 0));
 
         ExtKeyCache *c=new ExtKeyCache((Database *)m_db);
         BFC_ASSERT(c!=0);

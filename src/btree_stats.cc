@@ -261,7 +261,7 @@ db_update_global_stats_find_query(Database *db, ham_size_t key_size)
 {
     Environment *env = db->get_env();
 
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (!(env->get_flags()&HAM_IN_MEMORY)) {
         ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_FIND);
 
@@ -281,7 +281,7 @@ db_update_global_stats_insert_query(Database *db, ham_size_t key_size, ham_size_
 {
     Environment *env = db->get_env();
 
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB))
+    if (!(env->get_flags()&HAM_IN_MEMORY))
     {
         ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_INSERT);
@@ -302,7 +302,7 @@ db_update_global_stats_erase_query(Database *db, ham_size_t key_size)
 {
     Environment *env = db->get_env();
 
-    if (!(env->get_flags()&HAM_IN_MEMORY_DB))
+    if (!(env->get_flags()&HAM_IN_MEMORY))
     {
         ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
         ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, HAM_OPERATION_STATS_ERASE);

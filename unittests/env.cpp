@@ -190,7 +190,7 @@ protected:
                 ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
             BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
@@ -231,7 +231,7 @@ protected:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, 0, 333, 0, 0));
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
             BFC_ASSERT_EQUAL(1u, ((Database *)db)->is_active());
@@ -296,7 +296,7 @@ protected:
         BFC_ASSERT(ps[2].value == 128 /* 2029 */ );
 
         /* close and re-open the ENV */
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
@@ -438,7 +438,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0644, &ps[0]));
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0,
                     ham_env_open(env, BFC_OPATH(".test"), m_flags));
@@ -487,7 +487,7 @@ protected:
         };
 
         // in-memory db does not allow the cachesize parameter
-        if (m_flags&HAM_IN_MEMORY_DB) {
+        if (m_flags&HAM_IN_MEMORY) {
             parameters[2].name=0;
             parameters[2].value=0;
         }
@@ -565,7 +565,7 @@ protected:
         };
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        if (m_flags&HAM_IN_MEMORY_DB) {
+        if (m_flags&HAM_IN_MEMORY) {
             BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_ex(env, BFC_OPATH(".test"),
                     m_flags, 0644, parameters2));
@@ -580,7 +580,7 @@ protected:
                     m_flags, 0644, parameters2)); // pagesize too small for DB#
             parameters2[1].value = 65536; // pagesize := 64K
         }
-        if (m_flags&HAM_IN_MEMORY_DB) {
+        if (m_flags&HAM_IN_MEMORY) {
             parameters2[0].value = 0; // cachesize := 0
         }
         BFC_ASSERT_EQUAL(0,
@@ -601,12 +601,12 @@ protected:
             rec.data = &i;
             rec.size = sizeof(i);
             BFC_ASSERT_EQUAL_I(0, ham_insert(db[i], 0, &key, &rec, 0), i);
-            if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            if (!(m_flags&HAM_IN_MEMORY)) {
                 BFC_ASSERT_EQUAL_I(0, ham_close(db[i], 0), i);
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
@@ -623,14 +623,14 @@ protected:
                 ham_env_open_db(env, db[0], 1, 0, parameters));
         }
         else
-            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY_DB)
+            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY)
                                 ? HAM_INV_PARAMETER
                                 : HAM_DATABASE_NOT_FOUND),
                             ham_env_open_db(env, db[0], 1, 0, 0));
 
         for (i = 0; i < MAX; i++)
         {
-            if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            if (!(m_flags&HAM_IN_MEMORY)) {
                 BFC_ASSERT_EQUAL_I(0,
                         ham_env_open_db(env, db[i], i+1, 0, 0), i);
             }
@@ -681,7 +681,7 @@ protected:
                 ham_insert(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
             BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE,
@@ -720,7 +720,7 @@ protected:
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, db, 13, 0, &p2[0]));
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 13, 0, &p[0]));
             BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         }
@@ -779,7 +779,7 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<10; i++) {
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
                             (ham_u16_t)i+1, 0, 0));
@@ -839,7 +839,7 @@ protected:
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<MAX_DB; i++) {
                 BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
@@ -917,7 +917,7 @@ protected:
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<MAX_DB; i++) {
                 BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
@@ -1011,7 +1011,7 @@ protected:
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<MAX_DB; i++) {
                 BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
@@ -1117,7 +1117,7 @@ protected:
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<MAX_DB; i++) {
                 BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
                 BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
@@ -1194,18 +1194,18 @@ protected:
 
                 BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
-            if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            if (!(m_flags&HAM_IN_MEMORY)) {
                 BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
             }
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), m_flags));
         }
 
         for (i=0; i<MAX_DB; i++) {
-            if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            if (!(m_flags&HAM_IN_MEMORY)) {
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
                             (ham_u16_t)i+1, 0, 0));
             }
@@ -1273,7 +1273,7 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             for (i=0; i<MAX_DB; i++) {
                 BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i],
                             (ham_u16_t)i+1000, 0, 0));
@@ -1353,7 +1353,7 @@ protected:
                             ham_env_erase_db(env, (ham_u16_t)i+1, 0));
             BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
             BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
-            if (m_flags&HAM_IN_MEMORY_DB) {
+            if (m_flags&HAM_IN_MEMORY) {
                 BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND,
                         ham_env_erase_db(env, (ham_u16_t)i+1, 0));
             }
@@ -1443,14 +1443,14 @@ protected:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY_DB)
+            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY)
                                 ? HAM_DATABASE_NOT_FOUND
                                 : 0),
                 ham_env_erase_db(env, (ham_u16_t)i+1, 0));
         }
 
         for (i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY_DB)
+            BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY)
                                 ? HAM_INV_PARAMETER
                                 : HAM_DATABASE_NOT_FOUND),
                             ham_env_open_db(env, db[i], (ham_u16_t)i+1, 0, 0));
@@ -1698,7 +1698,7 @@ protected:
         BFC_ASSERT_EQUAL((ham_u16_t)333, names[2]);
 
         BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0,
                     ham_env_erase_db(env, 222, 0));
             names_size=5;
@@ -1734,7 +1734,7 @@ protected:
                 ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0664, ps));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY_DB) {
+        if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY) {
             ps[0].value=493;
             BFC_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0664, ps));
@@ -1771,7 +1771,7 @@ protected:
                 ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0664, ps));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db, 333, 0, 0));
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
             BFC_ASSERT_EQUAL(0,
@@ -1802,7 +1802,7 @@ protected:
             BFC_ASSERT_EQUAL(0,
                     ham_env_create_db(env, db[i], 333+i, 0, 0));
         }
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
             BFC_ASSERT_EQUAL(0,
@@ -1867,7 +1867,7 @@ class InMemoryEnvTest : public EnvTest
 {
 public:
     InMemoryEnvTest()
-        : EnvTest(HAM_IN_MEMORY_DB, "InMemoryEnvTest")
+        : EnvTest(HAM_IN_MEMORY, "InMemoryEnvTest")
     {
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);

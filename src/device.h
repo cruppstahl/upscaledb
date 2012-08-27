@@ -341,7 +341,7 @@ class Device {
     /** constructor */
     Device(Environment *env, ham_u32_t flags)
       : m_env(env), m_flags(flags) {
-      if (flags & HAM_IN_MEMORY_DB)
+      if (flags & HAM_IN_MEMORY)
         m_impl = new DeviceImplInMemory(this);
       else
         m_impl = new DeviceImplDisk(this);

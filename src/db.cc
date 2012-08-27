@@ -192,7 +192,7 @@ __cache_needs_purge(Environment *env)
     /* purge the cache, if necessary. if cache is unlimited, then we purge very
      * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
      * which can happen on 32bit Windows) */
-    if (cache && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (cache && !(env->get_flags()&HAM_IN_MEMORY)) {
         ham_bool_t purge=cache->is_too_big();
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env->get_flags()&HAM_CACHE_UNLIMITED) {
@@ -478,7 +478,7 @@ Database::get_extended_key(ham_u8_t *key_data,
      * advantages; it only duplicates the data and wastes memory.
      * therefore we don't use it.
      */
-    if (!(get_env()->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (!(get_env()->get_flags()&HAM_IN_MEMORY)) {
         if (!get_extkey_cache())
             set_extkey_cache(new ExtKeyCache(this));
     }
@@ -489,7 +489,7 @@ Database::get_extended_key(ham_u8_t *key_data,
     blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
-    if (!(get_env()->get_flags()&HAM_IN_MEMORY_DB)) {
+    if (!(get_env()->get_flags()&HAM_IN_MEMORY)) {
         st=get_extkey_cache()->fetch(blobid, &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length);
@@ -1613,7 +1613,7 @@ DatabaseImplementationLocal::check_integrity(Transaction *txn)
     be=m_db->get_backend();
 
     /* check the cache integrity */
-    if (!(m_db->get_rt_flags()&HAM_IN_MEMORY_DB)) {
+    if (!(m_db->get_rt_flags()&HAM_IN_MEMORY)) {
         st=m_db->get_env()->get_cache()->check_integrity();
         if (st)
             return (st);
@@ -2811,7 +2811,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
      */
     if (env
             && env->get_header_page()
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)
+            && !(env->get_flags()&HAM_IN_MEMORY)
             && env->get_device()
             && env->get_device()->is_open()
             && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
@@ -2830,7 +2830,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     }
 
     /* in-memory-database: free all allocated blobs */
-    if (be && be->is_active() && env->get_flags()&HAM_IN_MEMORY_DB) {
+    if (be && be->is_active() && env->get_flags()&HAM_IN_MEMORY) {
         Transaction *txn;
         free_cb_context_t context;
         context.db=m_db;

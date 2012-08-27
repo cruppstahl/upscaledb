@@ -150,7 +150,7 @@ public:
 
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY, 0));
 
         m_env=ham_get_env(m_db);
     }
@@ -211,11 +211,11 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_open(db, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_open(db, 0, HAM_IN_MEMORY_DB));
+                ham_open(db, 0, HAM_IN_MEMORY));
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND,
                 ham_open(db, "xxxx...", 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_open(db, "test.db", HAM_IN_MEMORY_DB));
+                ham_open(db, "test.db", HAM_IN_MEMORY));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_open(db, "test.db", HAM_ENABLE_DUPLICATES));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
@@ -283,7 +283,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create(db, 0, 0, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create(db, 0, HAM_IN_MEMORY_DB|HAM_CACHE_STRICT, 0));
+                ham_create(db, 0, HAM_IN_MEMORY|HAM_CACHE_STRICT, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create(db, ".test.db",
                     HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT, 0644));
@@ -294,9 +294,9 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_open_ex(db, ".test.db", HAM_CACHE_UNLIMITED, &cs[0]));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
+                ham_create_ex(db, 0, HAM_IN_MEMORY, 0, &cs[0]));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create_ex(db, 0, HAM_IN_MEMORY_DB|HAM_READ_ONLY, 0, 0));
+                ham_create_ex(db, 0, HAM_IN_MEMORY|HAM_READ_ONLY, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create_ex(db, 0, HAM_READ_ONLY, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE,
@@ -1764,7 +1764,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
+                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create(m_db, BFC_OPATH(".test"),
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
@@ -1787,7 +1787,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
+                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create(env, BFC_OPATH(".test"),
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
@@ -2306,7 +2306,7 @@ void disableAsyncFlushTest()
 
         BFC_ASSERT_EQUAL(0,
                         ham_create_ex(db, "test.db",
-                                HAM_IN_MEMORY_DB, 0, 0));
+                                HAM_IN_MEMORY, 0, 0));
         BFC_ASSERT_EQUAL((Worker *)0,
                         ((Database *)db)->get_env()->get_worker_thread());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

@@ -85,6 +85,14 @@ x implementation of hamsterdb should move into namespace ham; otherwise
     there are conflicts if users have a C++ class called Database or
     Environment etc
 
+x see Laurent's email on the mailing list
+    x 30 million keys (with Transactions)
+    x group 2 million inserts into a single Transaction
+    x then commit; the commit requires about 100 seconds
+    -> do profiling on "master" and "v2"!
+
+x rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
+
 o involve everyone in decisions on the new interface
   Do you use any of the HAM_HINT_* flags?
     If yes, would it be very problematic if I would remove this functionality?
@@ -147,27 +155,13 @@ o flush in background (asynchronously)
         x add unittests (needs error inducer?)
 
     o extend monster tests
-        o with async flush
-        o without async flush
-        o extend performance test
-        o run performance test against master branch
+        x with async flush
+        x without async flush
+        o extend/run performance test
+        o run monster tests
+        o based on tests: decide whether async flush is by default on or off
 
-    o do "group commits" make sense? run some tests
-        o verify that the logging/recovery works if we're group committing
-        o this would also decrease the number of fsyncs
-        o but ham_env_flush and database::close must commit ALL
-    o unlock global mutex after each single btree operation, to get a higher
-        degree of concurrency? (unless we come from ham_env_flush)
     o how to improve performance when flushing? use database cursors?
-
-o see Laurent's email on the mailing list
-    o 30 million keys (with Transactions)
-    o group 2 million inserts into a single Transaction
-    o then commit; the commit requires about 100 seconds
-    -> do profiling on "master" and "v2"!
-
-o rename HAM_INV_PARAMETER to HAM_INVALID_PARAMETER
-o rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
 
 o continue with refacoring - indention, coding style, better design etc...
     x backend.h
@@ -178,7 +172,7 @@ o continue with refacoring - indention, coding style, better design etc...
 
     o btree_key.h
     o btree_key.cc
-        - rewrite into Btree::Key
+        - rewrite into Btree::SerializedKey
         - constructors get "(const) ham_u8_t *" pointer to the key data
         - provide getters/setters
 

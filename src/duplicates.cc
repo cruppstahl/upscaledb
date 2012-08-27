@@ -36,7 +36,7 @@ DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
   *page = 0;
   *table_ref = 0;
 
-  if (m_env->get_flags() & HAM_IN_MEMORY_DB) {
+  if (m_env->get_flags() & HAM_IN_MEMORY) {
     ham_u8_t *p = (ham_u8_t *)U64_TO_PTR(table_id);
     *table_ref = (dupe_table_t *)(p + sizeof(hdr));
     return (0);
@@ -208,7 +208,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
     st = get_table(&table, &page, table_id);
     if (st)
       return (st);
-    if (!page && !(m_env->get_flags() & HAM_IN_MEMORY_DB))
+    if (!page && !(m_env->get_flags() & HAM_IN_MEMORY))
       alloc_table = true;
   }
 
@@ -415,7 +415,7 @@ DuplicateManager::get_count(ham_offset_t table_id, ham_size_t *count,
   if (entry)
     memcpy(entry, dupe_table_get_entry(table, (*count) - 1), sizeof(*entry));
 
-  if (!(m_env->get_flags() & HAM_IN_MEMORY_DB))
+  if (!(m_env->get_flags() & HAM_IN_MEMORY))
     if (!page)
       m_env->get_allocator()->free(table);
 
@@ -435,14 +435,14 @@ DuplicateManager::get(ham_offset_t table_id, ham_size_t position,
     return (st);
 
   if (position >= dupe_table_get_count(table)) {
-    if (!(m_env->get_flags() & HAM_IN_MEMORY_DB))
+    if (!(m_env->get_flags() & HAM_IN_MEMORY))
       if (!page)
         m_env->get_allocator()->free(table);
     return (HAM_KEY_NOT_FOUND);
   }
   memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
 
-  if (!(m_env->get_flags() & HAM_IN_MEMORY_DB))
+  if (!(m_env->get_flags() & HAM_IN_MEMORY))
     if (!page)
       m_env->get_allocator()->free(table);
 
@@ -459,7 +459,7 @@ DuplicateManager::get_table(ham_offset_t table_id, dupe_table_t **ptable,
   if (st)
     return (st);
 
-  if (!(m_env->get_flags() & HAM_IN_MEMORY_DB))
+  if (!(m_env->get_flags() & HAM_IN_MEMORY))
     if (!page)
       *needs_free = true;
 

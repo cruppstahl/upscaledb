@@ -63,7 +63,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"),
-                        m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
+                        m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
         m_env=ham_get_env(m_db);
     }
 
@@ -1178,7 +1178,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"),
-                        m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
+                        m_inmemory ? HAM_IN_MEMORY : 0, 0644, &params[0]));
         m_env=ham_get_env(m_db);
     }
 
@@ -1535,7 +1535,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"),
-                        m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, 0));
+                        m_inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
         m_env=ham_get_env(m_db);
     }
 
@@ -1560,7 +1560,7 @@ public:
                 ham_create_ex(db, BFC_OPATH(".test.db"),
                         HAM_SORT_DUPLICATES
                             |HAM_ENABLE_DUPLICATES
-                            |(m_inmemory ? HAM_IN_MEMORY_DB : 0),
+                            |(m_inmemory ? HAM_IN_MEMORY : 0),
                         0644, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
@@ -1583,7 +1583,7 @@ public:
                 ham_create_ex(db, BFC_OPATH(".test.db"),
                         HAM_SORT_DUPLICATES
                             |HAM_ENABLE_DUPLICATES
-                            |(m_inmemory ? HAM_IN_MEMORY_DB : 0),
+                            |(m_inmemory ? HAM_IN_MEMORY : 0),
                         0644, 0));
 
         ham_cursor_t *c;

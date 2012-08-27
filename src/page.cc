@@ -65,7 +65,7 @@ Page::fetch(ham_offset_t address)
 ham_status_t
 Page::flush()
 {
-  if (!is_dirty() || get_device()->get_env()->get_flags() & HAM_IN_MEMORY_DB)
+  if (!is_dirty() || get_device()->get_env()->get_flags() & HAM_IN_MEMORY)
     return (HAM_SUCCESS);
 
   ham_status_t st = get_device()->write_page(this);

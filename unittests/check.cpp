@@ -50,7 +50,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"),
-                    m_inmemory ? HAM_IN_MEMORY_DB : 0,
+                    m_inmemory ? HAM_IN_MEMORY : 0,
                     0644));
     }
 
@@ -102,7 +102,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"),
-                    m_inmemory ? HAM_IN_MEMORY_DB : 0,
+                    m_inmemory ? HAM_IN_MEMORY : 0,
                     0644, &params[0]));
 
         for (int i=0; i<100; i++) {

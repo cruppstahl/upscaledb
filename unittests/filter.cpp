@@ -541,7 +541,7 @@ public:
             BFC_ASSERT_EQUAL(0, ham_new(&db));
             BFC_ASSERT_EQUAL(0,
                             ham_env_create(m_env, BFC_OPATH(".test"),
-                                    HAM_IN_MEMORY_DB, 0664));
+                                    HAM_IN_MEMORY, 0664));
             BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(m_env, aeskey, 0));
 
             BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));

@@ -526,7 +526,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
             BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, m_db, 333, HAM_RECORD_NUMBER, 0));
@@ -765,7 +765,7 @@ class InMemoryRecNoTest : public RecNoTest
 {
 public:
     InMemoryRecNoTest()
-    :   RecNoTest(HAM_IN_MEMORY_DB, "InMemoryRecNoTest")
+    :   RecNoTest(HAM_IN_MEMORY, "InMemoryRecNoTest")
     {
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);

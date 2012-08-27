@@ -76,7 +76,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"),
-                    HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
+                    HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY:0),
                     0664, params));
 
         m_env=ham_get_env(m_db);
@@ -156,7 +156,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"),
-                        (m_inmemory ? HAM_IN_MEMORY_DB : 0),
+                        (m_inmemory ? HAM_IN_MEMORY : 0),
                         0664, &params[0]));
         m_env=ham_get_env(m_db);
 

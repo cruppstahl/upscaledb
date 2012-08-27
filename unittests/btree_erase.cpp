@@ -185,7 +185,7 @@ class InMemoryEraseTest : public EraseTest
 {
 public:
     InMemoryEraseTest()
-        : EraseTest(HAM_IN_MEMORY_DB, "InMemoryEraseTest")
+        : EraseTest(HAM_IN_MEMORY, "InMemoryEraseTest")
     {
     }
 };

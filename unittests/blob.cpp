@@ -84,7 +84,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(m_db, BFC_OPATH(".test"),
                     (m_inmemory
-                        ? HAM_IN_MEMORY_DB
+                        ? HAM_IN_MEMORY
                         : (m_use_txn
                             ? HAM_ENABLE_TRANSACTIONS
                             : 0)),

@@ -412,7 +412,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(m_env, BFC_OPATH(".test"),
-                        HAM_IN_MEMORY_DB|HAM_ENABLE_DUPLICATES, 0664));
+                        HAM_IN_MEMORY|HAM_ENABLE_DUPLICATES, 0664));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
     }

@@ -1,8 +1,12 @@
+
 Sep 27, 2012 - chris ---------------------------------------------------
 o issue #16: Fixed log file switching for temporary Transactions
 
 Sep 25, 2012 - chris ---------------------------------------------------
 o Fixed recovery process for temporary Transactions
+
+Aug 27, 2012 - chris ---------------------------------------------------
+o Renamed HAM_IN_MEMOR_DB to HAM_IN_MEMORY
 
 Aug 12, 2012 - chris ---------------------------------------------------
 o The internal C++ implementation was moved into namespace "ham" in order

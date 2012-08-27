@@ -123,10 +123,10 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_DISABLE_ASYNCHRONOUS_FLUSH;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_ASYNCHRONOUS_FLUSH");
     }
-    if (flags & HAM_IN_MEMORY_DB)
+    if (flags & HAM_IN_MEMORY)
     {
-        flags &= ~HAM_IN_MEMORY_DB;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_IN_MEMORY_DB");
+        flags &= ~HAM_IN_MEMORY;
+        buf = my_strncat_ex(buf, buflen, NULL, "HAM_IN_MEMORY");
     }
     if (flags & HAM_DISABLE_MMAP)
     {
@@ -247,9 +247,9 @@ static ham_bool_t
 __check_recovery_flags(ham_u32_t flags)
 {
     if (flags&HAM_ENABLE_RECOVERY) {
-        if (flags&HAM_IN_MEMORY_DB) {
+        if (flags&HAM_IN_MEMORY) {
             ham_trace(("combination of HAM_ENABLE_RECOVERY and "
-                       "HAM_IN_MEMORY_DB not allowed"));
+                       "HAM_IN_MEMORY not allowed"));
             return (HAM_FALSE);
         }
         if (flags&HAM_DISABLE_FREELIST_FLUSH) {
@@ -560,7 +560,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     /*
      * cannot open an in-memory-db
      */
-    if (!create && (flags & HAM_IN_MEMORY_DB)) {
+    if (!create && (flags & HAM_IN_MEMORY)) {
         ham_trace(("cannot open an in-memory database"));
         return (HAM_INV_PARAMETER);
     }
@@ -608,7 +608,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
      * DB create: only a few flags are allowed
      */
     if (db && (flags & ~((!create ? HAM_READ_ONLY : 0)
-                        |(create ? HAM_IN_MEMORY_DB : 0)
+                        |(create ? HAM_IN_MEMORY : 0)
                         |(!env ? (HAM_WRITE_THROUGH
                                 |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
@@ -631,7 +631,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_trace(("invalid flags specified: %s",
                 ham_create_flags2str(msgbuf, sizeof(msgbuf),
                 (flags & ~((!create ? HAM_READ_ONLY : 0)
-                        |(create ? HAM_IN_MEMORY_DB : 0)
+                        |(create ? HAM_IN_MEMORY : 0)
                         |(!env ? (HAM_WRITE_THROUGH
                                 |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
@@ -783,7 +783,7 @@ default_case:
     }
 
     if ((env && !db) || (!env && db)) {
-        if (!filename && !(flags&HAM_IN_MEMORY_DB)) {
+        if (!filename && !(flags&HAM_IN_MEMORY)) {
             ham_trace(("filename is missing"));
             return (HAM_INV_PARAMETER);
         }
@@ -839,14 +839,14 @@ default_case:
     /*
      * in-memory-db? don't allow cache limits!
      */
-    if (flags&HAM_IN_MEMORY_DB) {
+    if (flags&HAM_IN_MEMORY) {
         if (flags&HAM_CACHE_STRICT) {
-            ham_trace(("combination of HAM_IN_MEMORY_DB and HAM_CACHE_STRICT "
+            ham_trace(("combination of HAM_IN_MEMORY and HAM_CACHE_STRICT "
                         "not allowed"));
             return (HAM_INV_PARAMETER);
         }
         if (cachesize!=0) {
-            ham_trace(("combination of HAM_IN_MEMORY_DB and cachesize != 0 "
+            ham_trace(("combination of HAM_IN_MEMORY and cachesize != 0 "
                         "not allowed"));
             return (HAM_INV_PARAMETER);
         }
@@ -888,7 +888,7 @@ default_case:
     /*
      * in-memory-db? use a default pagesize of 16kb
      */
-    if (flags&HAM_IN_MEMORY_DB) {
+    if (flags&HAM_IN_MEMORY) {
         if (!pagesize) {
             pagesize = 16*1024;
             no_mmap = HAM_TRUE;
@@ -1262,7 +1262,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("database name must be lower than 0xf000"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (env->get_flags()&HAM_IN_MEMORY_DB) {
+    if (env->get_flags()&HAM_IN_MEMORY) {
         ham_trace(("cannot open a Database in an In-Memory Environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
@@ -1987,7 +1987,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
      * setup the parameters for ham_env_create_ex
      */
     env_param[0].name=HAM_PARAM_CACHESIZE;
-    env_param[0].value=(flags&HAM_IN_MEMORY_DB) ? 0 : cachesize;
+    env_param[0].value=(flags&HAM_IN_MEMORY) ? 0 : cachesize;
     env_param[1].name=HAM_PARAM_PAGESIZE;
     env_param[1].value=pagesize;
     env_param[2].name=HAM_PARAM_MAX_ENV_DATABASES;
@@ -2016,7 +2016,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
      * in ham_env_create_db; then set up the parameter list
      */
     flags &= ~(HAM_WRITE_THROUGH
-            |HAM_IN_MEMORY_DB
+            |HAM_IN_MEMORY
             |HAM_DISABLE_MMAP
             |HAM_DISABLE_FREELIST_FLUSH
             |HAM_CACHE_UNLIMITED
@@ -2246,7 +2246,7 @@ ham_env_enable_encryption(ham_env_t *henv, ham_u8_t key[16], ham_u32_t flags)
                 "servers"));
         return (HAM_NOT_IMPLEMENTED);
     }
-    if (env->get_flags()&HAM_IN_MEMORY_DB)
+    if (env->get_flags()&HAM_IN_MEMORY)
         return (0);
 
     device=env->get_device();
@@ -2577,7 +2577,7 @@ ham_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
         return (db->set_error(HAM_INV_PARAMETER));
     }
     if ((flags&HAM_DIRECT_ACCESS)
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
+            && !(env->get_flags()&HAM_IN_MEMORY)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                     "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -3210,7 +3210,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     env=db->get_env();
 
     if ((flags&HAM_DIRECT_ACCESS)
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
+            && !(env->get_flags()&HAM_IN_MEMORY)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -3281,7 +3281,7 @@ ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
         return (db->set_error(HAM_INV_PARAMETER));
     }
     if ((flags&HAM_DIRECT_ACCESS)
-            && !(env->get_flags()&HAM_IN_MEMORY_DB)) {
+            && !(env->get_flags()&HAM_IN_MEMORY)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db->set_error(HAM_INV_PARAMETER));

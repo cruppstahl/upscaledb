@@ -568,7 +568,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      if Transactions are disabled. Slows down performance but makes
  *      sure that all file handles and operating system caches are
  *      transferred to disk, thus providing a stronger durability.
- *     <li>@ref HAM_IN_MEMORY_DB</li> Creates an In-Memory Environment. No
+ *     <li>@ref HAM_IN_MEMORY</li> Creates an In-Memory Environment. No
  *      file will be created, and the Database contents are lost after
  *      the Environment is closed. The @a filename parameter can
  *      be NULL. Do <b>NOT</b> use in combination with
@@ -593,7 +593,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      a given file at a given time. Deprecated - this is now the
  *      default
  *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY_DB
+ *      Database. Not allowed in combination with @ref HAM_IN_MEMORY
  *      and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Database.
@@ -714,7 +714,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY_DB and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      with @ref HAM_IN_MEMORY and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
@@ -1295,7 +1295,7 @@ ham_create(ham_db_t *db, const char *filename,
  *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
- *     <li>@ref HAM_IN_MEMORY_DB </li> Creates an In-Memory Database. No file
+ *     <li>@ref HAM_IN_MEMORY </li> Creates an In-Memory Database. No file
  *      will be created, and the Database contents are lost after
  *      the Database is closed. The @a filename parameter can
  *      be NULL. Do <b>NOT</b> use in combination with
@@ -1335,7 +1335,7 @@ ham_create(ham_db_t *db, const char *filename,
  *      a given file at a given time. Deprecated - this is now the
  *      default
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY_DB
+ *      Database. Not allowed in combination with @ref HAM_IN_MEMORY
  *      and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database.
@@ -1449,7 +1449,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY_DB and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      with @ref HAM_IN_MEMORY and @ref HAM_DISABLE_FREELIST_FLUSH.
  *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
@@ -1522,7 +1522,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @ref ham_create, @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_IN_MEMORY_DB                            0x00000080
+#define HAM_IN_MEMORY                               0x00000080
+/** @deprecated */
+#define HAM_IN_MEMORY_DB                            HAM_IN_MEMORY
 
 /* reserved: DB_USE_MMAP (not persistent)           0x00000100 */
 

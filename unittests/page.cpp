@@ -58,7 +58,7 @@ public:
         __super::setup();
 
         if (m_inmemory)
-            flags|=HAM_IN_MEMORY_DB;
+            flags|=HAM_IN_MEMORY;
         if (!m_usemmap)
             flags|=HAM_DISABLE_MMAP;
 

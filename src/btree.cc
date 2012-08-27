@@ -334,7 +334,7 @@ BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
             bte=btree_node_get_key(db, node, i);
             if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                 blobid=key_get_extended_rid(db, bte);
-                if (db->get_env()->get_flags()&HAM_IN_MEMORY_DB) {
+                if (db->get_env()->get_flags()&HAM_IN_MEMORY) {
                     /* delete the blobid to prevent that it's freed twice */
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;

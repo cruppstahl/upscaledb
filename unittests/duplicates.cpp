@@ -950,7 +950,7 @@ public:
         insertData("111", "3333333333");
         insertData("222", "bbbbbbbbbb");
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
             BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
@@ -1832,7 +1832,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
 
-        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+        if (!(m_flags&HAM_IN_MEMORY)) {
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
             BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
@@ -1953,7 +1953,7 @@ class InMemoryDupeTest : public DupeTest
 {
 public:
     InMemoryDupeTest()
-        : DupeTest(HAM_IN_MEMORY_DB, "InMemoryDupeTest")
+        : DupeTest(HAM_IN_MEMORY, "InMemoryDupeTest")
     {
     }
 };
@@ -2249,7 +2249,7 @@ class InMemorySortedDupeTest : public SortedDupeTest
 {
 public:
     InMemorySortedDupeTest()
-        : SortedDupeTest(HAM_IN_MEMORY_DB, "InMemorySortedDupeTest")
+        : SortedDupeTest(HAM_IN_MEMORY, "InMemorySortedDupeTest")
     {
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);
