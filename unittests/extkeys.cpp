@@ -66,8 +66,8 @@ public:
     void insertFetchRemoveTest(void)
     {
         ExtKeyCache *c=((Database *)m_db)->get_extkey_cache();
-        ham_u8_t *pbuffer, buffer[12]={0};
-        ham_size_t size;
+        ham_u8_t *pbuffer = 0, buffer[12]={0};
+        ham_size_t size = 0;
 
         c->insert(0x123, sizeof(buffer), buffer);
 

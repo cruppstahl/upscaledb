@@ -150,7 +150,6 @@ public:
     void getInitializedEnvParamsTest(void)
     {
         ham_env_t *env;
-        ham_statistics_t stats = {0};
         ham_parameter_t params[] =
         {
             {HAM_PARAM_CACHESIZE, 0},
@@ -159,7 +158,6 @@ public:
             {HAM_PARAM_GET_FLAGS, 0},
             {HAM_PARAM_GET_FILEMODE, 0},
             {HAM_PARAM_GET_FILENAME, 0},
-            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
         ham_parameter_t set_params[] =
@@ -189,8 +187,6 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
-        BFC_ASSERT_EQUAL((ham_offset_t)&stats,
-                get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -199,7 +195,6 @@ public:
     void getInitializedReadonlyEnvParamsTest(void)
     {
         ham_env_t *env;
-        ham_statistics_t stats = {0};
         ham_parameter_t params[] =
         {
             {HAM_PARAM_CACHESIZE, 0},
@@ -208,7 +203,6 @@ public:
             {HAM_PARAM_GET_FLAGS, 0},
             {HAM_PARAM_GET_FILEMODE, 0},
             {HAM_PARAM_GET_FILENAME, 0},
-            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
         ham_parameter_t set_params[] =
@@ -241,8 +235,6 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
-        BFC_ASSERT_EQUAL((ham_offset_t)&stats,
-                get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -251,7 +243,6 @@ public:
     void getInitializedDbParamsTest(void)
     {
         ham_db_t *db;
-        ham_statistics_t stats = {0};
         ham_parameter_t params[] =
         {
             {HAM_PARAM_CACHESIZE, 0},
@@ -264,7 +255,6 @@ public:
             {HAM_PARAM_GET_FILENAME, 0},
             {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
             {HAM_PARAM_GET_DATA_ACCESS_MODE, 0},
-            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
 
@@ -303,8 +293,6 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(".test.db",
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
-        BFC_ASSERT_EQUAL((ham_offset_t)&stats,
-                get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
@@ -313,7 +301,6 @@ public:
     void getInitializedReadonlyDbParamsTest(void)
     {
         ham_db_t *db;
-        ham_statistics_t stats = {0};
         ham_parameter_t params[] =
         {
             {HAM_PARAM_CACHESIZE, 0},
@@ -326,7 +313,6 @@ public:
             {HAM_PARAM_GET_FILENAME, 0},
             {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
             {HAM_PARAM_GET_DATA_ACCESS_MODE, 0},
-            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
 
@@ -369,8 +355,6 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(".test.db",
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
-        BFC_ASSERT_EQUAL((ham_offset_t)&stats,
-                get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

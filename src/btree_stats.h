@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,201 +13,141 @@
  * @brief btree find/insert/erase statistical structures, functions and macros
  */
 
-#ifndef HAM_STATISTICS_H__
-#define HAM_STATISTICS_H__
+#ifndef HAM_BTREE_STATS_H__
+#define HAM_BTREE_STATS_H__
 
 #include "internal_fwd_decl.h"
 
-namespace ham {
+namespace ham { namespace Btree {
 
-/**
- * get a reference to the statistics data of the given operation
- */
-#define db_get_op_perf_data(db, o)        ((db->get_perf_data())->op + (o))
+class Statistics {
+  public:
+    struct FindHints {
+      /* the original flags of ham_find */
+      ham_u32_t original_flags;
 
-#define btree_stats_memmove_cost(size)          (((size) + 512 - 1) / 512)
+      /* the modified flags */
+      ham_u32_t flags;
 
-struct find_hints_t
-{
-    /* [in] insert flags */
-    ham_u32_t original_flags;
+      /* page/btree leaf to check first */
+      ham_offset_t leaf_page_addr;
 
-    /* [in/out] find flags */
-    ham_u32_t flags;
+      /* signals whether the key is out of bounds in the database */
+      bool key_is_out_of_bounds;
 
-    /* [out] page/btree leaf to check first */
-    ham_offset_t leaf_page_addr;
+      /* check specified btree leaf node page first */
+      bool try_fast_track;
+    };
 
-    /* [out] - signals whether the key is out of bounds in the database */
-    ham_bool_t key_is_out_of_bounds;
+    struct InsertHints {
+      /* the original flags of ham_insert */
+      ham_u32_t original_flags;
 
-    /* [out] check specified btree leaf node page first */
-    ham_bool_t try_fast_track;
+      /* the modified flags */
+      ham_u32_t flags;
 
-    /* [feedback] cost tracking for our statistics */
-    ham_size_t cost;
+      /* page/btree leaf to check first */
+      ham_offset_t leaf_page_addr;
+
+      /* check specified btree leaf node page first */
+      bool try_fast_track;
+
+      /* not (yet) part of the hints, but a result from it: informs
+       * insert_nosplit() that the insertion position (slot) is already
+       * known */
+      bool force_append;
+
+      /* not (yet) part of the hints, but a result from it: informs
+       * insert_nosplit() that the insertion position (slot) is already
+       * known */
+      bool force_prepend;
+
+      /* the btree leaf page which received the inserted key */
+      Page *processed_leaf_page;
+
+      /* >=0: entry slot index of the key within the btree leaf
+       * node; -1: failure condition */
+      ham_s32_t processed_slot;
+    };
+
+    struct EraseHints {
+      /* the original flags of ham_erase */
+      ham_u32_t original_flags;
+
+      /* the modified flags */
+      ham_u32_t flags;
+
+      /* page/btree leaf to check first */
+      ham_offset_t leaf_page_addr;
+
+      /* true if the key is out of bounds (does not exist) */
+      bool key_is_out_of_bounds;
+
+      /* check specified btree leaf node page first */
+      bool try_fast_track;
+
+      /* the btree leaf page which received the inserted key */
+      Page *processed_leaf_page;
+
+      /* >=0: entry slot index of the key within the btree leaf
+       * node; -1: failure condition */
+      ham_s32_t processed_slot;
+    };
+
+    /** constructor */
+    Statistics(Database *db);
+
+    /** retrieve database hints for ham_erase */
+    EraseHints get_erase_hints(ham_u32_t flags, ham_key_t *key);
+
+    /** retrieve database hints for ham_find */
+    FindHints get_find_hints(ham_key_t *key, ham_u32_t flags);
+
+    /** retrieve database hints for insert */
+    InsertHints get_insert_hints(ham_u32_t flags, Cursor *cursor,
+                ham_key_t *key);
+
+    /** An update succeeded */
+    void update_succeeded(int op, Page *page, bool try_fast_track);
+
+    /** An update failed */
+    void update_failed(int op, bool try_fast_track);
+
+    /** update statistics following an out-of-bound hint */
+    void update_failed_oob(int op, bool try_fast_track);
+
+    /** update database boundaries */
+    void update_any_bound(int op, Page *page, ham_key_t *key,
+                    ham_u32_t find_flags, ham_s32_t slot);
+
+    /** reset page statistics */
+    void reset_page(Page *page, bool split);
+
+  private:
+    /** get a reference to the per-database statistics */
+    DatabaseStatistics *get_perf_data() {
+      return (&m_perf_data);
+    }
+
+    /** get a reference to the statistics data of the given operation */
+    OperationStatistics *get_op_data(int op) {
+      return (get_perf_data()->op + op);
+    }
+
+    /** the Database */
+    Database *m_db;
+
+    /** some database specific run-time data */
+    DatabaseStatistics m_perf_data;
+
+    /** dynamic arrays which back the cached lower bound key */
+    ByteArray m_lower_arena;
+
+    /** dynamic arrays which back the cached upper bound key */
+    ByteArray m_upper_arena;
 };
 
-struct insert_hints_t
-{
-    /* [in] insert flags */
-    ham_u32_t original_flags;
 
-    /* [in/out] insert flags; may be modified while performing the insert */
-    ham_u32_t flags;
+} } // namespace ham::Btree
 
-    /* [in] cursor, if any */
-    ham_cursor_t *cursor;
-
-    /* [out] page/btree leaf to check first */
-    ham_offset_t leaf_page_addr;
-
-    /* [out] check specified btree leaf node page first */
-    ham_bool_t try_fast_track;
-
-    /* [out] not (yet) part of the hints, but a result from it: informs
-     * insert_nosplit() that the insertion position (slot) is already known */
-    ham_bool_t force_append;
-
-    /* [out] not (yet) part of the hints, but a result from it: informs
-     * insert_nosplit() that the insertion position (slot) is already known */
-    ham_bool_t force_prepend;
-
-    /* [feedback] cost tracking for our statistics */
-    ham_size_t cost;
-
-    /* [feedback] the btree leaf page which received the inserted key */
-    Page *processed_leaf_page;
-
-    /* [feedback] >=0: entry slot index of the key within the btree leaf node;
-     * -1: failure condition */
-    ham_s32_t processed_slot;
-};
-
-struct erase_hints_t
-{
-
-    /* [in] insert flags */
-    ham_u32_t original_flags;
-
-    /* [in/out] insert flags; may be modified while performing the insert */
-    ham_u32_t flags;
-
-    /* [in] */
-    ham_cursor_t *cursor;
-
-    /* [out] page/btree leaf to check first */
-    ham_offset_t leaf_page_addr;
-
-    /* [out] */
-    ham_bool_t key_is_out_of_bounds;
-
-    /* [out] check specified btree leaf node page first */
-    ham_bool_t try_fast_track;
-
-    /* [feedback] cost tracking for our statistics */
-    ham_size_t cost;
-
-    /* [feedback] the btree leaf page which received the inserted key */
-    Page *processed_leaf_page;
-
-    /* [feedback] >=0: entry slot index of the key within the btree leaf node;
-     * -1: failure condition */
-    ham_s32_t processed_slot;
-};
-
-/**
- * statistics gathering call for btree_find
- */
-extern void
-db_update_global_stats_find_query(Database *db, ham_size_t key_size);
-
-/**
- * statistics gathering call for btree_insert
- */
-extern void
-db_update_global_stats_insert_query(Database *db, ham_size_t key_size,
-                    ham_size_t record_size);
-
-/**
- * statistics gathering call for btree_erase
- */
-extern void
-db_update_global_stats_erase_query(Database *db, ham_size_t key_size);
-
-/**
- * statistics gathering call for failing lookups (key is out of bounds)
- */
-extern void
-stats_update_fail_oob(int op, Database *db, ham_size_t cost,
-                    ham_bool_t try_fast_track);
-
-#define btree_stats_update_find_fail_oob(db, hints)  stats_update_fail(HAM_OPERATION_STATS_FIND, db, (hints)->cost, (hints)->try_fast_track)
-
-#define btree_stats_update_erase_fail_oob(db, hints)  stats_update_fail(HAM_OPERATION_STATS_ERASE, db, (hints)->cost, (hints)->try_fast_track)
-
-/**
- * statistics gathering call for other failures
- */
-extern void
-stats_update_fail(int op, Database *db, ham_size_t cost,
-                    ham_bool_t try_fast_track);
-
-#define btree_stats_update_find_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_FIND, db, (hints)->cost, (hints)->try_fast_track)
-
-#define btree_stats_update_insert_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_INSERT, db, (hints)->cost, (hints)->try_fast_track)
-
-#define btree_stats_update_erase_fail(db, hints)  stats_update_fail(HAM_OPERATION_STATS_ERASE, db, (hints)->cost, (hints)->try_fast_track)
-
-extern void
-stats_update(int op, Database *db, Page *page,
-                    ham_size_t cost, ham_bool_t try_fast_track);
-
-#define btree_stats_update_find(db, page, hints)    stats_update(HAM_OPERATION_STATS_FIND, db, page, (hints)->cost, (hints)->try_fast_track)
-
-#define btree_stats_update_insert(db, page, hints)    stats_update(HAM_OPERATION_STATS_INSERT, db, page, (hints)->cost, (hints)->try_fast_track)
-
-#define btree_stats_update_erase(db, page, hints)    stats_update(HAM_OPERATION_STATS_ERASE, db, page, (hints)->cost, (hints)->try_fast_track)
-
-extern void
-btree_stats_page_is_nuked(Database *db, Page *page,
-                    ham_bool_t split);
-
-extern void
-btree_stats_update_any_bound(int op, Database *db, Page *page,
-                    ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot);
-
-extern void
-btree_find_get_hints(find_hints_t *hints, Database *db, ham_key_t *key);
-
-extern void
-btree_insert_get_hints(insert_hints_t *hints, Database *db, ham_key_t *key);
-
-extern void
-btree_erase_get_hints(erase_hints_t *hints, Database *db, ham_key_t *key);
-
-extern void
-btree_stats_init_globdata(Environment *env,
-                    ham_runtime_statistics_globdata_t *globdata);
-
-extern void
-btree_stats_trash_globdata(Environment *env,
-                    ham_runtime_statistics_globdata_t *globdata);
-
-extern void
-btree_stats_init_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata);
-
-extern void
-btree_stats_flush_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata,
-                    ham_bool_t last_in_env);
-
-extern void
-btree_stats_trash_dbdata(Database *db, ham_runtime_statistics_dbdata_t *dbdata);
-
-extern ham_status_t
-btree_stats_fill_ham_statistics_t(Environment *env, Database *db,
-                    ham_statistics_t *dst);
-
-} // namespace ham
-
-#endif /* HAM_FREELIST_H__ */
+#endif /* HAM_BTREE_STATS_H__ */

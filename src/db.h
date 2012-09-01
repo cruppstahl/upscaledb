@@ -19,7 +19,7 @@
 
 #include "internal_fwd_decl.h"
 
-#include <ham/hamsterdb_stats.h>
+#include "statistics.h"
 
 #include "endianswap.h"
 #include "error.h"
@@ -563,11 +563,6 @@ class Database
         m_is_active=b;
     }
 
-    /** get a reference to the per-database statistics */
-    ham_runtime_statistics_dbdata_t *get_perf_data() {
-        return (&m_perf_data);
-    }
-
     /** Get the memory buffer for the key data */
     ByteArray &get_key_arena() {
         return (m_key_arena);
@@ -775,9 +770,6 @@ class Database
 
     /** non-zero after this istem has been opened/created */
     bool m_is_active;
-
-    /** some database specific run-time data */
-    ham_runtime_statistics_dbdata_t m_perf_data;
 
 #if HAM_ENABLE_REMOTE
     /** the remote database handle */

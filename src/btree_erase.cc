@@ -89,7 +89,7 @@ static ham_status_t
 my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left,
                 ham_offset_t right, ham_offset_t lanchor, ham_offset_t ranchor,
                 Page *parent, erase_scratchpad_t *scratchpad,
-                erase_hints_t *hints);
+                Btree::Statistics::EraseHints *hints);
 
 /*
  * collapse the root node
@@ -104,14 +104,14 @@ __collapse_root(Page *root, erase_scratchpad_t *scratchpad);
 static ham_status_t
 my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t right,
              ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
-             erase_scratchpad_t *scratchpad, erase_hints_t *hints);
+             erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints);
 
 /*
  * merge two pages
  */
 static ham_status_t
 my_merge_pages(Page **newpage_ref, Page *page, Page *sibling, ham_offset_t anchor,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints);
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints);
 
 /*
  * shift items from a sibling to this page, till both pages have an equal
@@ -125,7 +125,7 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibling, ham_offset_t ancho
  */
 static ham_status_t
 my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t anchor,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints);
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints);
 
 /*
  * copy a key
@@ -138,14 +138,14 @@ my_copy_key(Database *db, Transaction *txn, btree_key_t *lhs, btree_key_t *rhs);
  */
 static ham_status_t
 my_replace_key(Page *page, ham_s32_t slot, btree_key_t *newentry,
-        ham_u32_t flags, erase_scratchpad_t *scratchpad, erase_hints_t *hints);
+        ham_u32_t flags, erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints);
 
 /*
  * remove an item from a page
  */
 static ham_status_t
 my_remove_entry(Page *page, ham_s32_t slot,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints);
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints);
 
 /*
  * flags for my_replace_key
@@ -163,11 +163,6 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
     ham_offset_t rootaddr;
     Database *db=be->get_db();
     erase_scratchpad_t scratchpad;
-    erase_hints_t hints = {flags, flags,
-                    cursor
-                        ? (ham_cursor_t *)btree_cursor_get_parent(cursor)
-                        : 0,
-                    0, HAM_FALSE, HAM_FALSE, 0, NULL, -1};
 
     /*
      * initialize the scratchpad
@@ -180,11 +175,13 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
     scratchpad.dupe_id=dupe_id;
     scratchpad.txn=txn;
 
-    btree_erase_get_hints(&hints, db, key);
+    Btree::Statistics::EraseHints hints = be->get_statistics()->get_erase_hints(
+                    flags, key);
 
     if (hints.key_is_out_of_bounds)
     {
-        btree_stats_update_erase_fail_oob(db, &hints);
+        be->get_statistics()->update_failed_oob(HAM_OPERATION_STATS_ERASE,
+                    hints.try_fast_track);
         return (HAM_KEY_NOT_FOUND);
     }
 
@@ -198,7 +195,8 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
      */
     rootaddr=be->get_rootpage();
     if (!rootaddr) {
-        btree_stats_update_erase_fail(db, &hints);
+        be->get_statistics()->update_failed(HAM_OPERATION_STATS_ERASE,
+                    hints.try_fast_track);
         return HAM_KEY_NOT_FOUND;
     }
     st=db_fetch_page(&root, db, rootaddr, 0);
@@ -208,7 +206,8 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
     /* ... and start the recursion */
     st=my_erase_recursive(&p, root, 0, 0, 0, 0, 0, &scratchpad, &hints);
     if (st) {
-        btree_stats_update_erase_fail(db, &hints);
+        be->get_statistics()->update_failed(HAM_OPERATION_STATS_ERASE,
+                    hints.try_fast_track);
         return (st);
     }
 
@@ -221,21 +220,25 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
         st=btree_uncouple_all_cursors(root, 0);
         if (st)
         {
-            btree_stats_update_erase_fail(db, &hints);
+            be->get_statistics()->update_failed(HAM_OPERATION_STATS_ERASE,
+                        hints.try_fast_track);
             return (st);
         }
 
         st=__collapse_root(p, &scratchpad);
         if (st) {
-            btree_stats_update_erase_fail(db, &hints);
+            be->get_statistics()->update_failed(HAM_OPERATION_STATS_ERASE,
+                        hints.try_fast_track);
             return (st);
         }
 
-        btree_stats_page_is_nuked(db, root, HAM_FALSE);
+        be->get_statistics()->reset_page(root, false);
     }
 
-    btree_stats_update_erase(db, hints.processed_leaf_page, &hints);
-    btree_stats_update_any_bound(HAM_OPERATION_STATS_ERASE, db,
+    // TODO merge the following two calls
+    be->get_statistics()->update_succeeded(HAM_OPERATION_STATS_ERASE,
+                    hints.processed_leaf_page, hints.try_fast_track);
+    be->get_statistics()->update_any_bound(HAM_OPERATION_STATS_ERASE,
                     hints.processed_leaf_page, key,
                     hints.flags, hints.processed_slot);
     return (0);
@@ -244,7 +247,7 @@ btree_erase_impl(BtreeBackend *be, Transaction *txn, ham_key_t *key,
 static ham_status_t
 my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left, ham_offset_t right,
         ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints)
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints)
 {
     ham_s32_t slot;
     ham_bool_t isfew;
@@ -283,7 +286,6 @@ my_erase_recursive(Page **page_ref, Page *page, ham_offset_t left, ham_offset_t 
             return (st);
     }
     else {
-        hints->cost++;
         st=btree_get_slot(db, page, scratchpad->key, &slot, 0);
         if (st)
             return st;
@@ -429,7 +431,7 @@ __collapse_root(Page *newroot, erase_scratchpad_t *scratchpad)
 static ham_status_t
 my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t right,
         ham_offset_t lanchor, ham_offset_t ranchor, Page *parent,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints)
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints)
 {
     ham_status_t st;
     btree_node_t *node=page_get_btree_node(page);
@@ -565,7 +567,7 @@ my_rebalance(Page **newpage_ref, Page *page, ham_offset_t left, ham_offset_t rig
 static ham_status_t
 my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
             ham_offset_t anchor, erase_scratchpad_t *scratchpad,
-            erase_hints_t *hints)
+            Btree::Statistics::EraseHints *hints)
 {
     ham_status_t st;
     ham_s32_t slot;
@@ -619,7 +621,6 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
         key.data  =key_get_key(bte);
         key.size  =key_get_size(bte);
 
-        hints->cost++;
         st=btree_get_slot(db, ancpage, &key, &slot, 0);
         if (st) {
             return st;
@@ -629,7 +630,6 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
             btree_node_get_count(node));
         bte_rhs=btree_node_get_key(db, ancnode, slot);
 
-        hints->cost++;
         st=my_copy_key(db, scratchpad->txn, bte_lhs, bte_rhs);
         if (st) {
             return st;
@@ -645,8 +645,6 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
     /*
      * shift items from the sibling to this page
      */
-    hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()+
-                        keysize)*c);
     memcpy(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*c);
 
     /*
@@ -713,7 +711,7 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
             scratchpad->mergepage->get_self()==sibpage->get_self()))
         scratchpad->mergepage=0;
 
-    btree_stats_page_is_nuked(db, sibpage, HAM_FALSE);
+    scratchpad->be->get_statistics()->reset_page(sibpage, false);
 
     /*
      * delete the page
@@ -727,7 +725,7 @@ my_merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
 
 static ham_status_t
 my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t anchor,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints)
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints)
 {
     ham_s32_t slot=0;
     ham_status_t st;
@@ -783,7 +781,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            hints->cost++;
             st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 return st;
@@ -796,7 +793,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             bte_lhs=btree_node_get_key(db, node,
                 btree_node_get_count(node));
 
-            hints->cost++;
             st=my_copy_key(db, scratchpad->txn, bte_lhs, bte_rhs);
             if (st) {
                 return st;
@@ -820,8 +816,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             /*
              * shift the remainder of sibling to the left
              */
-            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                        + keysize) * (btree_node_get_count(sibnode)-1));
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, sibnode, 1);
             memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)
@@ -851,7 +845,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
                     btree_node_get_count(node));
             bte_rhs=btree_node_get_key(db, ancnode, slot);
 
-            hints->cost++;
             st=my_copy_key(db, scratchpad->txn, bte_lhs, bte_rhs);
             if (st) {
                 return st;
@@ -865,9 +858,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
          * shift items from the sibling to this page, then
          * delete the shifted items
          */
-        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                + keysize)*(btree_node_get_count(sibnode) + c));
-
         bte_lhs=btree_node_get_key(db, node,
                 btree_node_get_count(node));
         bte_rhs=btree_node_get_key(db, sibnode, 0);
@@ -895,7 +885,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
                 key._flags=key_get_flags(bte);
                 key.data  =key_get_key(bte);
                 key.size  =key_get_size(bte);
-                hints->cost++;
                 st=btree_get_slot(db, ancpage, &key, &slot, 0);
                 if (st) {
                     return st;
@@ -909,8 +898,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             /*
              * shift once more
              */
-            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                    + keysize)*(btree_node_get_count(sibnode)-1));
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, sibnode, 1);
             memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*
@@ -928,7 +915,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            hints->cost++;
             st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 return st;
@@ -970,7 +956,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            hints->cost++;
             st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 return st;
@@ -979,8 +964,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             /*
              * shift entire sibling by 1 to the right
              */
-            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                    + keysize) * (btree_node_get_count(sibnode)));
             bte_lhs=btree_node_get_key(db, sibnode, 1);
             bte_rhs=btree_node_get_key(db, sibnode, 0);
             memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)
@@ -992,7 +975,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
 
-            hints->cost++;
             st=my_copy_key(db, scratchpad->txn, bte_lhs, bte_rhs);
             if (st) {
                 return st;
@@ -1040,8 +1022,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             /*
              * shift entire sibling by 1 to the right
              */
-            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                    + keysize) * (btree_node_get_count(sibnode)));
             bte_lhs=btree_node_get_key(db, sibnode, 1);
             bte_rhs=btree_node_get_key(db, sibnode, 0);
             memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)
@@ -1071,8 +1051,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
          * shift items from this page to the sibling, then delete the
          * items from this page
          */
-        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                + keysize)*(btree_node_get_count(sibnode)+c));
         bte_lhs=btree_node_get_key(db, sibnode, c);
         bte_rhs=btree_node_get_key(db, sibnode, 0);
         memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*
@@ -1129,7 +1107,6 @@ my_shift_pages(Page **newpage_ref, Page *page, Page *sibpage, ham_offset_t ancho
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
 
-            hints->cost++;
             st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 return st;
@@ -1190,14 +1167,12 @@ my_copy_key(Database *db, Transaction *txn, btree_key_t *lhs, btree_key_t *rhs)
 
 static ham_status_t
 my_replace_key(Page *page, ham_s32_t slot, btree_key_t *rhs,
-        ham_u32_t flags, erase_scratchpad_t *scratchpad, erase_hints_t *hints)
+        ham_u32_t flags, erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints)
 {
     btree_key_t *lhs;
     ham_status_t st;
     Database *db=page->get_db();
     btree_node_t *node=page_get_btree_node(page);
-
-    hints->cost++;
 
     /*
      * uncouple all cursors
@@ -1268,7 +1243,7 @@ my_replace_key(Page *page, ham_s32_t slot, btree_key_t *rhs,
 
 static ham_status_t
 my_remove_entry(Page *page, ham_s32_t slot,
-        erase_scratchpad_t *scratchpad, erase_hints_t *hints)
+        erase_scratchpad_t *scratchpad, Btree::Statistics::EraseHints *hints)
 {
     ham_status_t st;
     btree_key_t *bte_lhs, *bte_rhs, *bte;
@@ -1281,9 +1256,6 @@ my_remove_entry(Page *page, ham_s32_t slot,
     node=page_get_btree_node(page);
     keysize=db_get_keysize(db);
     bte=btree_node_get_key(db, node, slot);
-
-    if (hints)
-        hints->cost++;
 
     /*
      * uncouple all cursors
@@ -1414,9 +1386,6 @@ free_all:
      * counter and return...
      */
     if (slot != btree_node_get_count(node)-1) {
-        if (hints)
-            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
-                + keysize)*(btree_node_get_count(node)-slot-1));
         bte_lhs=btree_node_get_key(db, node, slot);
         bte_rhs=btree_node_get_key(db, node, slot+1);
         memmove(bte_lhs, bte_rhs, ((db_get_int_key_header_size()+keysize))*

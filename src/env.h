@@ -20,9 +20,9 @@
 #include "internal_fwd_decl.h"
 #include <string>
 
-#include <ham/hamsterdb_stats.h>
 #include <ham/hamsterdb.h>
 
+#include "statistics.h"
 #include "endianswap.h"
 #include "error.h"
 #include "page.h"
@@ -505,7 +505,7 @@ class Environment
     }
 
     /** get a reference to the DB FILE (global) statistics */
-    ham_runtime_statistics_globdata_t *get_global_perf_data() {
+    EnvironmentStatistics *get_global_perf_data() {
         return (&m_perf_data);
     }
 
@@ -686,7 +686,7 @@ class Environment
     ham_file_filter_t *m_file_filters;
 
     /** some freelist algorithm specific run-time data */
-    ham_runtime_statistics_globdata_t m_perf_data;
+    EnvironmentStatistics m_perf_data;
 
     /** the directory of the log file and journal files */
     std::string m_log_directory;

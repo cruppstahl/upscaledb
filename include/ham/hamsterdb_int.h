@@ -65,23 +65,6 @@ extern "C" {
 */
 
 /**
- * Retrieve a @ref ham_statistics_t structure with the current statistics.
- *
- * @warning
- * Please, heed the warnings and notes listed in the @ref ham_statistics_t
- * documentation section and follow the advice given there to the letter.
- * Not adhering to these adminishions introduces the risk of hamsterdb
- * becoming unstable and exhibiting unreliable and downright faulty
- * behaviour over time. This includes, but is not limited to, core dumps or
- * comparable system crashes.
- *
- * @sa ham_statistics_t
- * @sa ham_get_parameters
- * @sa ham_env_get_parameters
- */
-#define HAM_PARAM_GET_STATISTICS            0x00000206
-
-/**
  * Verifies the integrity of the Database
  *
  * This function is only interesting if you want to debug hamsterdb.

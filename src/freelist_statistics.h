@@ -19,7 +19,7 @@
 
 #include "internal_fwd_decl.h"
 
-#include <ham/hamsterdb_stats.h>
+#include "statistics.h"
 
 namespace ham {
 
@@ -295,9 +295,6 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
 extern void
 freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst);
 
-
-extern ham_status_t
-freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst);
 
 } // namespace ham
 

@@ -134,7 +134,7 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 BtreeBackend::BtreeBackend(Database *db, ham_u32_t flags)
   : Backend(db, flags), m_rootpage(0), m_maxkeys(0),
     m_keydata1(db->get_env()->get_allocator()),
-    m_keydata2(db->get_env()->get_allocator())
+    m_keydata2(db->get_env()->get_allocator()), m_statistics(db)
 {
 }
 

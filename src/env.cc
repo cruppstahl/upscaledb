@@ -92,9 +92,6 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-    /* delete all performance data */
-    btree_stats_trash_globdata(this, get_global_perf_data());
-
     /* close the device if it still exists */
     if (get_device()) {
         Device *device=get_device();
@@ -169,9 +166,6 @@ _local_fun_create(Environment *env, const char *filename,
     ham_status_t st=0;
     Device *device=0;
     ham_size_t pagesize=env->get_pagesize();
-
-    /* reset all performance data */
-    btree_stats_init_globdata(env, env->get_global_perf_data());
 
     ham_assert(!env->get_header_page());
 
@@ -370,9 +364,6 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     ham_status_t st;
     Device *device=0;
     ham_u32_t pagesize=0;
-
-    /* reset all performance data */
-    btree_stats_init_globdata(env, env->get_global_perf_data());
 
     /* initialize the device if it does not yet exist */
     if (!env->get_device()) {
@@ -859,22 +850,6 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
                 else
                     p->value=0;
                 break;
-            case HAM_PARAM_GET_STATISTICS:
-                if (!p->value) {
-                    ham_trace(("the value for parameter "
-                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
-                               "and reference a ham_statistics_t data "
-                               "structure before invoking "
-                               "ham_get_parameters"));
-                    return (HAM_INV_PARAMETER);
-                }
-                else {
-                    ham_status_t st = btree_stats_fill_ham_statistics_t(env, 0,
-                            (ham_statistics_t *)U64_TO_PTR(p->value));
-                    if (st)
-                        return st;
-                }
-                break;
             default:
                 ham_trace(("unknown parameter %d", (int)p->name));
                 return (HAM_INV_PARAMETER);
@@ -962,9 +937,6 @@ _local_fun_create_db(Environment *env, Database *db,
 
     /* store the env pointer in the database */
     db->set_env(env);
-
-    /* reset all DB performance data */
-    btree_stats_init_dbdata(db, db->get_perf_data());
 
     /*
      * set the flags; strip off run-time (per session) flags for the
@@ -1162,9 +1134,6 @@ _local_fun_open_db(Environment *env, Database *db,
 
     /* store the env pointer in the database */
     db->set_env(env);
-
-    /* reset the DB performance data */
-    btree_stats_init_dbdata(db, db->get_perf_data());
 
     /*
      * search for a database with this name

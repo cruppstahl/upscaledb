@@ -159,33 +159,48 @@ o flush in background (asynchronously)
         x without async flush
         o extend/run performance test
         o run monster tests
-        o based on tests: decide whether async flush is by default on or off
 
-    o how to improve performance when flushing? use database cursors?
+    o batch updates
+        o wait for 10 committed transactions OR 2 seconds (configurable)
+        o unlock env->mutex after EVERY committed transaction (or even after
+            every single op?)
+
+    o based on performance tests: decide whether async flush is by default on
+        or off
 
 o continue with refacoring - indention, coding style, better design etc...
     x backend.h
 
+    x hamsterdb_stats - make private, not public
+        x rename to statistics.h
+        x remove everything that's not required
+
+    x btree_stats.h
+        x remove everything that is not required
+        x namespace Btree::Statistics
+        x adjust coding style
+        x fix get_global_perf_data, db_get_perf_data
+    x btree_stats.cc
+        x adjust coding style
+        x move from db.h to btree.h
+        x should use arena for lower/upper bounds and use
+            HAM_KEY_USERALLOC when calling db->get_extended_key()
+
     o btree.h
+        x introduce namespace Btree
+        o use arenas for btree_read_key, btree_read_record?
     o btree.cc
-        - introduce namespace Btree
+
+    o btree_check.cc
+        - improve BtreeCheckAction; use it as template for enum, find, etc
+
+    o btree_enum.cc
 
     o btree_key.h
     o btree_key.cc
         - rewrite into Btree::SerializedKey
         - constructors get "(const) ham_u8_t *" pointer to the key data
         - provide getters/setters
-
-    o btree_stats.h
-        - remove everything that is not required
-        - namespace Btree::Statistics
-    o btree_stats.cc
-        - should use arena for lower/upper bounds
-
-    o btree_check.cc
-        - improve BtreeCheckAction; use it as template for enum, find, etc
-
-    o btree_enum.cc
 
     o btree_find.cc
     o btree_insert.cc
@@ -194,6 +209,8 @@ o continue with refacoring - indention, coding style, better design etc...
     o btree_cursor.cc
     o btree_cursor.h
 
+    ==> get rid of the whole freelist; no need to refactor the existing
+        code
     o freelist.h
     o freelist.cc
     o freelist_statistics.h

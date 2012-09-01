@@ -228,9 +228,6 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_GET_KEYS_PER_PAGE:
         return "HAM_PARAM_GET_KEYS_PER_PAGE";
 
-    case HAM_PARAM_GET_STATISTICS:
-        return "HAM_PARAM_GET_STATISTICS";
-
     default:
         if (buf && buflen > 13) {
             util_snprintf(buf, buflen, "HAM_PARAM(0x%x)", (unsigned int)name);
@@ -760,7 +757,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
             case HAM_PARAM_GET_FILEMODE:
             case HAM_PARAM_GET_FILENAME:
             case HAM_PARAM_GET_KEYS_PER_PAGE:
-            case HAM_PARAM_GET_STATISTICS:
             default:
 default_case:
                 ham_trace(("unsupported/unknown parameter %d (%s)",
@@ -1776,12 +1772,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (HAM_INTERNAL_ERROR);
     }
 
-    /* delete all performance data */
-    btree_stats_trash_globdata(env, env->get_global_perf_data());
-
-    /*
-     * finally, close the memory allocator
-     */
+    /* finally, close the memory allocator */
     if (env->get_allocator()) {
         delete env->get_allocator();
         env->set_allocator(0);
@@ -3798,22 +3789,6 @@ ham_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
     }
 
     return (db->set_error((*db)()->get_key_count(txn, flags, keycount)));
-}
-
-ham_status_t HAM_CALLCONV
-ham_clean_statistics_datarec(ham_statistics_t *s)
-{
-    if (!s) {
-        ham_trace(("parameter 's' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    if (s->_free_func)
-        s->_free_func(s);
-
-    ham_assert(s->_free_func == 0);
-
-    return (0);
 }
 
 ham_status_t HAM_CALLCONV

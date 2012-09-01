@@ -28,51 +28,51 @@ namespace ham {
 class ByteArray
 {
   public:
-  ByteArray(Allocator *alloc=0, ham_size_t size=0)
-  : m_alloc(alloc), m_ptr(0), m_size(0) {
-    resize(size);
-  }
-
-  ~ByteArray() {
-    clear();
-  }
-
-  void resize(ham_size_t size) {
-    if (size>m_size) {
-      m_ptr=m_alloc->realloc(m_ptr, size);
-      m_size=size;
+    ByteArray(Allocator *alloc = 0, ham_size_t size = 0)
+      : m_alloc(alloc), m_ptr(0), m_size(0) {
+      resize(size);
     }
-  }
 
-  void set_allocator(Allocator *alloc) {
-    m_alloc=alloc;
-  }
+    ~ByteArray() {
+      clear();
+    }
 
-  ham_size_t get_size() {
-    return (m_size);
-  }
+    void resize(ham_size_t size) {
+      if (size > m_size) {
+        m_ptr = m_alloc->realloc(m_ptr, size);
+        m_size = size;
+      }
+    }
 
-  void *get_ptr() {
-    return (m_ptr);
-  }
+    void set_allocator(Allocator *alloc) {
+      m_alloc = alloc;
+    }
 
-  void assign(void *ptr, ham_size_t size) {
-    clear();
-    m_ptr=ptr;
-    m_size=size;
-  }
+    ham_size_t get_size() {
+      return (m_size);
+    }
 
-  void clear() {
-    if (m_ptr)
-      m_alloc->free(m_ptr);
-    m_ptr=0;
-    m_size=0;
-  }
+    void *get_ptr() {
+      return (m_ptr);
+    }
+
+    void assign(void *ptr, ham_size_t size) {
+      clear();
+      m_ptr = ptr;
+      m_size = size;
+    }
+
+    void clear() {
+      if (m_ptr)
+        m_alloc->free(m_ptr);
+      m_ptr = 0;
+      m_size = 0;
+    }
 
   private:
-  Allocator *m_alloc;
-  void *m_ptr;
-  ham_size_t m_size;
+    Allocator *m_alloc;
+    void *m_ptr;
+    ham_size_t m_size;
 };
 
 /**

@@ -26,21 +26,22 @@
 #include "btree_key.h"
 #include "db.h"
 #include "util.h"
+#include "btree_stats.h"
+#include "statistics.h"
 
 namespace ham {
 
 /** a macro for getting the minimum number of keys */
-#define btree_get_minkeys(maxkeys)      (maxkeys/2)
+#define btree_get_minkeys(maxkeys)      (maxkeys /  2)
 
 /** defines the maximum number of keys per node */
 #define MAX_KEYS_PER_NODE               0xFFFFU /* max(ham_u16_t) */
-
 
 class BtreeBackend : public Backend
 {
   public:
     /** constructor; creates and initializes a new Backend */
-    BtreeBackend(Database *db, ham_u32_t flags=0);
+    BtreeBackend(Database *db, ham_u32_t flags = 0);
 
     virtual ~BtreeBackend() { }
 
@@ -96,6 +97,12 @@ class BtreeBackend : public Backend
                             ham_key_t *key, ham_record_t *record,
                             ham_u32_t flags);
 
+    /** get hinter */
+    // TODO make this private
+    Btree::Statistics *get_statistics() {
+      return (&m_statistics);
+    }
+
   protected:
     /** creates a new backend */
     virtual ham_status_t do_create(ham_u16_t keysize, ham_u32_t flags);
@@ -149,6 +156,9 @@ class BtreeBackend : public Backend
      */
     ByteArray m_keydata1;
     ByteArray m_keydata2;
+
+    /** the hinter */
+    Btree::Statistics m_statistics;
 };
 
 
@@ -231,6 +241,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
  * @return returns the child page in @a page_ref
  * @remark if @a idxptr is a valid pointer, it will store the anchor index
  *    of the loaded page
+
+// TODO rename to find_internal
  */
 extern ham_status_t
 btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr,
@@ -245,6 +257,8 @@ btree_traverse_tree(Page **page_ref, ham_s32_t *idxptr,
  * @return returns the index of the key, or -1 if the key was not found, or
  *     another negative @ref ham_status_codes value when an
  *     unexpected error occurred.
+
+// TODO rename to find_leaf
  */
 extern ham_s32_t
 btree_node_search_by_key(Database *db, Page *page, ham_key_t *key,

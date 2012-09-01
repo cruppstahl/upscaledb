@@ -171,7 +171,7 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 static void
 rescale_global_statistics(Environment *env)
 {
-    ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
+    EnvironmentStatistics *globalstats = env->get_global_perf_data();
     ham_u16_t b;
 
     for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
@@ -231,7 +231,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
      * which should NOT corrupt our statistics in any way.
      */
     if (hints->lower_bound_address == 0) {
-        ham_runtime_statistics_globdata_t *globalstats
+        EnvironmentStatistics *globalstats
                     = fl->get_env()->get_global_perf_data();
         freelist_page_statistics_t *entrystats
                     = &entry->perf_data._persisted_stats;
@@ -334,7 +334,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
         ham_u16_t b;
         ham_size_t cost = hints->cost;
 
-        ham_runtime_statistics_globdata_t *globalstats =
+        EnvironmentStatistics *globalstats =
                     fl->get_env()->get_global_perf_data();
         freelist_page_statistics_t *entrystats =
                     &entry->perf_data._persisted_stats;
@@ -434,7 +434,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
      * overall staistics gathering.
     */
     if (hints->lower_bound_address == 0) {
-        ham_runtime_statistics_globdata_t *globalstats
+        EnvironmentStatistics *globalstats
                     = fl->get_env()->get_global_perf_data();
         freelist_page_statistics_t *entrystats
                     = &entry->perf_data._persisted_stats;
@@ -592,7 +592,7 @@ void
 freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
                 freelist_hints_t *hints)
 {
-    ham_runtime_statistics_globdata_t *globalstats = fl->get_env()->get_global_perf_data();
+    EnvironmentStatistics *globalstats = fl->get_env()->get_global_perf_data();
 
     ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
     ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
@@ -635,7 +635,7 @@ freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
 void
 freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
 {
-    ham_runtime_statistics_globdata_t *globalstats = fl->get_env()->get_global_perf_data();
+    EnvironmentStatistics *globalstats = fl->get_env()->get_global_perf_data();
 
     ham_u32_t offset;
     ham_size_t pos;
@@ -897,7 +897,7 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
 #if 0 /* disabled printing of statistics */
     {
     static int c = 0;
-    ham_runtime_statistics_globdata_t *globalstats = env->get_global_perf_data();
+    EnvironmentStatistics *globalstats = env->get_global_perf_data();
     c++;
     if (c % 100000 == 999) {
         /*
@@ -1042,122 +1042,6 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
             dst->startpos -= dst->startpos % alignment;
         }
     }
-}
-
-/**
- * copy one internal format freelist statistics record to a public format
- * record for the same.
- *
- * Can't use memcpy() because of alignment issues we don't want the hamsterdb
- * API user to bother about -- let alone forcing him/her to include the
- * packstart.h and packstop.h header files too.
- */
-static void
-copy_freelist_page_stat2api_rec(ham_freelist_page_statistics_t *dst,
-                freelist_page_statistics_t *src)
-{
-    int i;
-
-    for (i = 0; i < HAM_FREELIST_SLOT_SPREAD; i++) {
-        ham_freelist_slotsize_stats_t *d = dst->per_size + i;
-        freelist_slotsize_stats_t *s = src->per_size + i;
-
-        d->first_start = s->first_start;
-        d->free_fill = s->free_fill;
-        d->epic_fail_midrange = s->epic_fail_midrange;
-        d->epic_win_midrange = s->epic_win_midrange;
-        d->scan_count = s->scan_count;
-        d->ok_scan_count = s->ok_scan_count;
-        d->scan_cost = s->scan_cost;
-        d->ok_scan_cost = s->ok_scan_cost;
-    }
-
-    dst->last_start = src->last_start;
-    dst->persisted_bits = src->persisted_bits;
-    dst->insert_count = src->insert_count;
-    dst->delete_count = src->delete_count;
-    dst->extend_count = src->extend_count;
-    dst->fail_count = src->fail_count;
-    dst->search_count = src->search_count;
-    dst->rescale_monitor = src->rescale_monitor;
-}
-
-/**
- * The @ref ham_statistics_t cleanup/free callback function: this one is
- * needed as we must use the same system to free any allocated heap storage as
- * we used for allocating such storage in the first place, i.e. our freelist
- * stats array.
- */
-static void
-cleanup_ham_statistics_t(ham_statistics_t *dst)
-{
-    Allocator *a = (Allocator *)dst->_free_func_internal_arg;
-
-    /* cleanup is simple: when it was allocated, free the freelist stats array */
-    if (dst->freelist_stats) {
-        a->free(dst->freelist_stats);
-        dst->freelist_stats = NULL;
-    }
-    dst->freelist_stats_maxalloc = 0;
-
-    /* and blow ourselves away from dst, while keeping the other data in
-     * dst intact: */
-    dst->_free_func = 0;
-    dst->_free_func_internal_arg = NULL;
-}
-
-ham_status_t
-freelist_fill_statistics_t(Freelist *fl, ham_statistics_t *dst)
-{
-    ham_bool_t collect_freelistdata;
-
-    ham_assert(dst);
-
-    /* copy the user-specified selectors before we zero the whole darn thing */
-    collect_freelistdata = (!dst->dont_collect_freelist_stats && fl->get_env());
-
-    /* now the tougher part: see if we should report the freelist statistics */
-    if (collect_freelistdata) {
-        Allocator *allocator = fl->get_env()->get_allocator();
-
-        if (!fl || !allocator || !fl->get_entries())
-            collect_freelistdata = HAM_FALSE;
-        else {
-            ham_size_t count = freel_cache_get_count(fl);
-
-            if (count > 0) {
-                ham_freelist_page_statistics_t *d;
-                ham_size_t i;
-
-                dst->_free_func = cleanup_ham_statistics_t;
-                dst->_free_func_internal_arg = (void *)allocator;
-
-                d = dst->freelist_stats = (ham_freelist_page_statistics_t *)
-                            allocator->alloc(count
-                                    * sizeof(dst->freelist_stats[0]));
-                if (!d)
-                    return (HAM_OUT_OF_MEMORY);
-                memset(d, 0, count * sizeof(dst->freelist_stats[0]));
-
-                /* now fill those API freelist records from the regular
-                 * (internal) ones: */
-                for (i = 0; i < count; i++) {
-                    FreelistEntry *entry = fl->get_entries() + i;
-
-                    copy_freelist_page_stat2api_rec(d + i,
-                            &entry->perf_data._persisted_stats);
-                }
-            }
-
-            dst->freelist_stats_maxalloc = count;
-            dst->freelist_record_count = count;
-        }
-    }
-
-    /* and finally mark which sections have actually been fetched */
-    dst->dont_collect_freelist_stats = !collect_freelistdata;
-
-    return 0;
 }
 
 } // namespace ham

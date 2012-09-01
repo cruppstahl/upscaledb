@@ -275,8 +275,6 @@ Database::Database()
     m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0),
     m_is_active(0), m_impl(0)
 {
-    memset(&m_perf_data, 0, sizeof(m_perf_data));
-
 #if HAM_ENABLE_REMOTE
     m_remote_handle=0;
 #endif
@@ -300,9 +298,6 @@ Database::remove_extkey(ham_offset_t blobid)
 
 Database::~Database()
 {
-    /* trash all DB performance data */
-    btree_stats_trash_dbdata(this, get_perf_data());
-
     delete m_impl;
 }
 
@@ -1578,22 +1573,6 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
             case HAM_PARAM_GET_DATA_ACCESS_MODE:
                 p->value=m_db->get_data_access_mode();
                 break;
-            case HAM_PARAM_GET_STATISTICS:
-                if (!p->value) {
-                    ham_trace(("the value for parameter "
-                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
-                               "and reference a ham_statistics_t data "
-                               "structure before invoking "
-                               "ham_[env_]get_parameters"));
-                    return (HAM_INV_PARAMETER);
-                }
-                else {
-                    ham_status_t st=btree_stats_fill_ham_statistics_t(env,
-                            m_db, (ham_statistics_t *)U64_TO_PTR(p->value));
-                    if (st)
-                        return (st);
-                }
-                break;
             default:
                 ham_trace(("unknown parameter %d", (int)p->name));
                 return (HAM_INV_PARAMETER);
@@ -1848,8 +1827,6 @@ DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key,
             return (st);
     }
 
-    db_update_global_stats_erase_query(m_db, key->size);
-
     /*
      * if transactions are enabled: append a 'erase key' operation into
      * the txn tree; otherwise immediately erase the key from disk
@@ -1939,8 +1916,6 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
         if (st)
             return (st);
     }
-
-    db_update_global_stats_find_query(m_db, key->size);
 
     /*
      * if transactions are enabled: read keys from transaction trees,
@@ -2074,9 +2049,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
      */
     temprec=*record;
     st=__record_filters_before_write(m_db, &temprec);
-    if (!st)
-        db_update_global_stats_insert_query(m_db, key->size, temprec.size);
-    else
+    if (st)
         return (st);
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2191,8 +2164,6 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     Environment *env=m_db->get_env();
     Transaction *local_txn=0;
 
-    db_update_global_stats_erase_query(m_db, 0);
-
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn()
@@ -2267,8 +2238,6 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;
     }
-
-    db_update_global_stats_find_query(m_db, key->size);
 
     /* purge cache if necessary */
     if (__cache_needs_purge(env)) {
@@ -2782,7 +2751,6 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     ham_status_t st=HAM_SUCCESS;
     ham_status_t st2=HAM_SUCCESS;
     Backend *be;
-    ham_bool_t has_other_db=HAM_FALSE;
     Database *newowner=0;
     ham_record_filter_t *record_head;
 
@@ -2793,15 +2761,11 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     if (env) {
         Database *n=env->get_databases();
         while (n) {
-            if (n!=m_db) {
-                has_other_db=HAM_TRUE;
+            if (n!=m_db)
                 break;
-            }
             n=n->get_next();
         }
     }
-
-    btree_stats_flush_dbdata(m_db, m_db->get_perf_data(), has_other_db);
 
     be=m_db->get_backend();
 
@@ -2900,14 +2864,6 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         record_head=next;
     }
     m_db->set_record_filter(0);
-
-    /*
-     * trash all DB performance data
-     *
-     * This must happen before the DB is removed from the ENV as the ENV
-     * (when it exists) provides the required allocator.
-     */
-    btree_stats_trash_dbdata(m_db, m_db->get_perf_data());
 
     return (st2);
 }
