@@ -26,6 +26,7 @@
 #include "error.h"
 #include "mem.h"
 #include "page.h"
+#include "btree_node.h"
 
 using namespace ham;
 
@@ -51,7 +52,7 @@ BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
     Page *page;
     ham_u32_t level=0;
     ham_offset_t ptr_left;
-    btree_node_t *node;
+    BtreeNode *node;
     ham_status_t st;
     Database *db=get_db();
     ham_status_t cb_st = HAM_ENUM_CONTINUE;
@@ -68,10 +69,10 @@ BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
     while (page) {
         ham_size_t count;
 
-        node=page_get_btree_node(page);
-        ptr_left = btree_node_get_ptr_left(node);
+        node=BtreeNode::from_page(page);
+        ptr_left = node->get_ptr_left();
 
-        count=btree_node_get_count(node);
+        count=node->get_count();
 
         /*
          * WARNING:WARNING:WARNING:WARNING:WARNING
@@ -123,7 +124,7 @@ _enumerate_level(BtreeBackend *be, Page *page, ham_u32_t level,
 {
     ham_status_t st;
     ham_size_t count=0;
-    btree_node_t *node;
+    BtreeNode *node;
     ham_status_t cb_st = HAM_ENUM_CONTINUE;
 
     while (page) {
@@ -135,10 +136,10 @@ _enumerate_level(BtreeBackend *be, Page *page, ham_u32_t level,
         /*
          * get the right sibling
          */
-        node=page_get_btree_node(page);
-        if (btree_node_get_right(node)) {
+        node=BtreeNode::from_page(page);
+        if (node->get_right()) {
             st=db_fetch_page(&page, be->get_db(),
-                    btree_node_get_right(node), 0);
+                    node->get_right(), 0);
             if (st)
                 return st;
         }
@@ -159,17 +160,17 @@ _enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level,
     ham_size_t count;
     Database *db=page->get_db();
     btree_key_t *bte;
-    btree_node_t *node=page_get_btree_node(page);
+    BtreeNode *node=BtreeNode::from_page(page);
     ham_bool_t is_leaf;
     ham_status_t cb_st;
     ham_status_t cb_st2;
 
-    if (btree_node_get_ptr_left(node))
+    if (node->get_ptr_left())
         is_leaf=0;
     else
         is_leaf=1;
 
-    count=btree_node_get_count(node);
+    count=node->get_count();
 
     /*
      * WARNING:WARNING:WARNING:WARNING:WARNING
@@ -191,7 +192,7 @@ _enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level,
 
     for (i=0; (i < count) && (cb_st != HAM_ENUM_DO_NOT_DESCEND); i++)
     {
-        bte = btree_node_get_key(db, node, i);
+        bte = node->get_key(db, i);
 
         cb_st = cb(HAM_ENUM_EVENT_ITEM, (void *)bte, (void *)&count, context);
         if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)

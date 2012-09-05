@@ -183,6 +183,7 @@
     <ClInclude Include="..\..\src\backend.h" />
     <ClInclude Include="..\..\src\blob.h" />
     <ClInclude Include="..\..\src\btree.h" />
+    <ClInclude Include="..\..\src\btree_node.h" />
     <ClInclude Include="..\..\src\btree_cursor.h" />
     <ClInclude Include="..\..\src\btree_key.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />

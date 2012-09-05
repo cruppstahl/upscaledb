@@ -126,7 +126,7 @@ DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
     item_record._intflags = dupe_entry_get_flags(e) & (KEY_BLOB_SIZE_SMALL
                                                      | KEY_BLOB_SIZE_TINY
                                                      | KEY_BLOB_SIZE_EMPTY);
-    st = btree_read_record(db, txn, &item_record,
+    st = db->get_backend()->read_record(txn, &item_record,
               (ham_u64_t *)&dupe_entry_get_ridptr(e), flags);
     if (st)
       return (st);

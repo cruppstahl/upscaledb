@@ -105,6 +105,7 @@ o involve everyone in decisions on the new interface
   Do you use other file filters/record filters?
   Do you use any of the functions/structures in hamsterdb_stats.h?
   Do you use any of the functions/structures in hamsterdb_int.h?
+    ham_get_keycount_per_page
     TODO @@@ - be more specific
   Do you use to insert duplicate keys at exact positions (i.e. use one of
         HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
@@ -186,28 +187,48 @@ o continue with refacoring - indention, coding style, better design etc...
         x should use arena for lower/upper bounds and use
             HAM_KEY_USERALLOC when calling db->get_extended_key()
 
-    o btree.h
-        x introduce namespace Btree
-        o use arenas for btree_read_key, btree_read_record?
-    o btree.cc
-
-    o btree_check.cc
-        - improve BtreeCheckAction; use it as template for enum, find, etc
-
-    o btree_enum.cc
+    x btree.h
+        x remove namespace Btree
+        x Statistics -> BtreeStatistics
+        x rename btree_node_t -> BtreeNode (with getters/setters)
+        x move BtreeNode to btree_node.h
+        x remove global functions
+        x do not use btree_cursor_t in backend.h, only use Cursor
+    x btree.cc
+        x code formatting
+        x get rid of ham_bool_t
+        x replace db_get_keysize() with backend->get_keysize()
 
     o btree_key.h
+        o rename btree_key_t -> BtreeKey (with getters/setters)
+        o constructors get "(const) ham_u8_t *" pointer to the key data
+        o provide getters/setters
+        o code formatting
     o btree_key.cc
-        - rewrite into Btree::SerializedKey
-        - constructors get "(const) ham_u8_t *" pointer to the key data
-        - provide getters/setters
+        o code formatting
 
+    o btree_check.cc
+        o improve BtreeCheckAction; use it as template for enum, find, etc
+        o remove scratchpad, use member variables
+        o replace db_get_keysize() with backend->get_keysize()
+    o btree_enum.cc
+        o remove scratchpad, use member variables
+        o replace db_get_keysize() with backend->get_keysize()
     o btree_find.cc
+        o remove scratchpad, use member variables
+        o replace db_get_keysize() with backend->get_keysize()
     o btree_insert.cc
+        o split when going down
+        o replace db_get_keysize() with backend->get_keysize()
+        o remove scratchpad, use member variables
     o btree_erase.cc
+        o replace db_get_keysize() with backend->get_keysize()
+        o remove scratchpad, use member variables
 
     o btree_cursor.cc
     o btree_cursor.h
+        o use memory arena for uncoupling the key
+        o replace db_get_keysize() with backend->get_keysize()
 
     ==> get rid of the whole freelist; no need to refactor the existing
         code

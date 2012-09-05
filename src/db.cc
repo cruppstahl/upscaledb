@@ -2724,6 +2724,8 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
          * if this page has a header, and it's either a B-Tree root page or
          * a B-Tree index page: remove all extended keys from the cache,
          * and/or free their blobs
+         *
+         * TODO move BtreeBackend to backend
          */
         if (page->get_pers() &&
             (!(page->get_flags()&Page::NPERS_NO_HEADER)) &&

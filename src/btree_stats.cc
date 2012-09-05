@@ -30,8 +30,9 @@
 #include "page.h"
 #include "btree_stats.h"
 #include "util.h"
+#include "btree_node.h"
 
-namespace ham { namespace Btree {
+namespace ham {
 
 /*
  *  TODO statistics gatherer/hinter:
@@ -113,14 +114,14 @@ namespace ham { namespace Btree {
 #define rescale_2(val)                            \
     val = ((val + 2 - 1) >> 1) /* make sure non-zero numbers remain non-zero: roundup(x) */
 
-Statistics::Statistics(Database *db)
+BtreeStatistics::BtreeStatistics(Database *db)
   : m_db(db), m_lower_arena(db->get_env()->get_allocator()),
     m_upper_arena(db->get_env()->get_allocator())
 {
 }
 
 void
-Statistics::update_failed_oob(int op, bool try_fast_track)
+BtreeStatistics::update_failed_oob(int op, bool try_fast_track)
 {
   OperationStatistics *opstats = get_op_data(op);
 
@@ -130,7 +131,7 @@ Statistics::update_failed_oob(int op, bool try_fast_track)
 }
 
 void
-Statistics::update_failed(int op, bool try_fast_track)
+BtreeStatistics::update_failed(int op, bool try_fast_track)
 {
   OperationStatistics *opstats = get_op_data(op);
 
@@ -148,7 +149,7 @@ Statistics::update_failed(int op, bool try_fast_track)
 }
 
 void
-Statistics::update_succeeded(int op, Page *page, bool try_fast_track)
+BtreeStatistics::update_succeeded(int op, Page *page, bool try_fast_track)
 {
   OperationStatistics *opstats = get_op_data(op);
 
@@ -183,7 +184,7 @@ Statistics::update_succeeded(int op, Page *page, bool try_fast_track)
  * INVALID btree node later on!
  */
 void
-Statistics::reset_page(Page *page, bool split)
+BtreeStatistics::reset_page(Page *page, bool split)
 {
   for (int i = 0; i <= 2; i++) {
     OperationStatistics *opstats = get_op_data(i);
@@ -214,24 +215,24 @@ Statistics::reset_page(Page *page, bool split)
 }
 
 void
-Statistics::update_any_bound(int op, Page *page, ham_key_t *key,
+BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
                 ham_u32_t find_flags, ham_s32_t slot)
 {
   ham_status_t st;
-  btree_node_t *node = page_get_btree_node(page);
+  BtreeNode *node = BtreeNode::from_page(page);
 
   /* reset both flags - they will be set if lower_bound or
    * upper_bound are modified */
   m_perf_data.last_insert_was_prepend = 0;
   m_perf_data.last_insert_was_append = 0;
 
-  ham_assert(btree_node_is_leaf(node));
-  if (!btree_node_get_left(node)) {
+  ham_assert(node->is_leaf());
+  if (!node->get_left()) {
     /* this is the leaf page which carries the lower bound key */
-    ham_assert(btree_node_get_count(node) == 0
-                ? !btree_node_get_right(node)
+    ham_assert(node->get_count() == 0
+                ? !node->get_right()
                 : 1);
-    if (btree_node_get_count(node) == 0) {
+    if (node->get_count() == 0) {
       /* range is empty
        *
        * do not set the lower/upper boundary; otherwise we may trigger
@@ -271,13 +272,14 @@ Statistics::update_any_bound(int op, Page *page, ham_key_t *key,
         m_perf_data.lower_bound_page_address = page->get_self();
         m_perf_data.lower_bound = ham_key_t();
 
-        btree_key_t *btk = btree_node_get_key(m_db, node,
+        btree_key_t *btk = node->get_key(m_db,
                     m_perf_data.lower_bound_index);
         m_lower_arena.resize(key_get_size(btk));
         m_perf_data.lower_bound.data = m_lower_arena.get_ptr();
         m_perf_data.lower_bound.flags |= HAM_KEY_USER_ALLOC;
 
-        st = btree_copy_key_int2pub(m_db, btk, &m_perf_data.lower_bound);
+        st = ((BtreeBackend *)m_db->get_backend())->copy_key(btk,
+                    &m_perf_data.lower_bound);
         if (st) {
           /* panic! is case of failure, just drop the lower bound
            * entirely. */
@@ -298,12 +300,12 @@ Statistics::update_any_bound(int op, Page *page, ham_key_t *key,
     }
   }
 
-  if (!btree_node_get_right(node)) {
+  if (!node->get_right()) {
     /* this is the leaf page which carries the upper bound key */
-    ham_assert(btree_node_get_count(node) == 0
-               ? !btree_node_get_left(node)
+    ham_assert(node->get_count() == 0
+               ? !node->get_left()
                : 1);
-    if (btree_node_get_count(node) != 0) {
+    if (node->get_count() != 0) {
       /*
        * range is non-empty; the other case has already been handled
        * above upper bound key is always located at index [size-1]
@@ -313,22 +315,23 @@ Statistics::update_any_bound(int op, Page *page, ham_key_t *key,
        * saves us one costly key comparison.
        */
       if (m_perf_data.upper_bound_index
-            != (ham_u32_t)btree_node_get_count(node) - 1
+            != (ham_u32_t)node->get_count() - 1
           || m_perf_data.upper_bound_page_address != page->get_self()
-          || (ham_u16_t)slot == btree_node_get_count(node) - 1) {
+          || (ham_u16_t)slot == node->get_count() - 1) {
         /* only set when not done already */
         m_perf_data.upper_bound_set = true;
-        m_perf_data.upper_bound_index = btree_node_get_count(node) - 1;
+        m_perf_data.upper_bound_index = node->get_count() - 1;
         m_perf_data.upper_bound_page_address = page->get_self();
         m_perf_data.upper_bound = ham_key_t();
 
-        btree_key_t *btk = btree_node_get_key(m_db, node,
+        btree_key_t *btk = node->get_key(m_db,
                     m_perf_data.upper_bound_index);
         m_upper_arena.resize(key_get_size(btk));
         m_perf_data.upper_bound.data = m_upper_arena.get_ptr();
         m_perf_data.upper_bound.flags |= HAM_KEY_USER_ALLOC;
 
-        st = btree_copy_key_int2pub(m_db, btk, &m_perf_data.upper_bound);
+        st = ((BtreeBackend *)m_db->get_backend())->copy_key(btk,
+                    &m_perf_data.upper_bound);
         if (st) {
           /* panic! is case of failure, just drop the upper bound entirely. */
           m_perf_data.upper_bound = ham_key_t();
@@ -356,10 +359,10 @@ Statistics::update_any_bound(int op, Page *page, ham_key_t *key,
   * it's really useful to have complex leaf-node tracking in here to improve
   * hinting in such mixed use cases.
   */
-Btree::Statistics::FindHints
-Statistics::get_find_hints(ham_key_t *key, ham_u32_t flags)
+BtreeStatistics::FindHints
+BtreeStatistics::get_find_hints(ham_key_t *key, ham_u32_t flags)
 {
-  Statistics::FindHints hints = {flags, flags, 0, false, false};
+  BtreeStatistics::FindHints hints = {flags, flags, 0, false, false};
   OperationStatistics *opstats = get_op_data(HAM_OPERATION_STATS_FIND);
 
   /*
@@ -522,8 +525,9 @@ Statistics::get_find_hints(ham_key_t *key, ham_u32_t flags)
   return (hints);
 }
 
-Btree::Statistics::InsertHints
-Statistics::get_insert_hints(ham_u32_t flags, Cursor *cursor, ham_key_t *key)
+BtreeStatistics::InsertHints
+BtreeStatistics::get_insert_hints(ham_u32_t flags, Cursor *cursor,
+                ham_key_t *key)
 {
   InsertHints hints = {flags, flags, 0, false, false,
                 false, NULL, -1};
@@ -551,13 +555,13 @@ Statistics::get_insert_hints(ham_u32_t flags, Cursor *cursor, ham_key_t *key)
        */
       if (btree_cursor_is_coupled(btc)) {
         Page *page = btree_cursor_get_coupled_page(btc);
-        btree_node_t *node = page_get_btree_node(page);
-        ham_assert(btree_node_is_leaf(node));
+        BtreeNode *node = BtreeNode::from_page(page);
+        ham_assert(node->is_leaf());
         /*
          * if cursor is not coupled to the LAST (right-most) leaf
          * in the Database, it does not make sense to append
          */
-        if (btree_node_get_right(node)) {
+        if (node->get_right()) {
           hints.force_append = false;
           hints.try_fast_track = false;
         }
@@ -581,13 +585,13 @@ Statistics::get_insert_hints(ham_u32_t flags, Cursor *cursor, ham_key_t *key)
        */
       if (btree_cursor_is_coupled(btc)) {
         Page *page = btree_cursor_get_coupled_page(btc);
-        btree_node_t *node = page_get_btree_node(page);
-        ham_assert(btree_node_is_leaf(node));
+        BtreeNode *node = BtreeNode::from_page(page);
+        ham_assert(node->is_leaf());
         /*
          * if cursor is not coupled to the FIRST (left-most) leaf
          * in the Database, it does not make sense to prepend
          */
-        if (btree_node_get_left(node)) {
+        if (node->get_left()) {
           hints.force_prepend = false;
           hints.try_fast_track = false;
         }
@@ -742,10 +746,10 @@ Statistics::get_insert_hints(ham_u32_t flags, Cursor *cursor, ham_key_t *key)
   return (hints);
 }
 
-Statistics::EraseHints
-Statistics::get_erase_hints(ham_u32_t flags, ham_key_t *key)
+BtreeStatistics::EraseHints
+BtreeStatistics::get_erase_hints(ham_u32_t flags, ham_key_t *key)
 {
-  Btree::Statistics::EraseHints hints = {flags, flags,
+  BtreeStatistics::EraseHints hints = {flags, flags,
                     0, false, false, NULL, -1};
 
   ham_assert(!(key->_flags & KEY_IS_EXTENDED));
@@ -791,4 +795,4 @@ Statistics::get_erase_hints(ham_u32_t flags, ham_key_t *key)
   return (hints);
 }
 
-} } // namespace ham::Btree
+} // namespace ham

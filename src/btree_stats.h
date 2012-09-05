@@ -18,9 +18,9 @@
 
 #include "internal_fwd_decl.h"
 
-namespace ham { namespace Btree {
+namespace ham {
 
-class Statistics {
+class BtreeStatistics {
   public:
     struct FindHints {
       /* the original flags of ham_find */
@@ -95,7 +95,7 @@ class Statistics {
     };
 
     /** constructor */
-    Statistics(Database *db);
+    BtreeStatistics(Database *db);
 
     /** retrieve database hints for ham_erase */
     EraseHints get_erase_hints(ham_u32_t flags, ham_key_t *key);
@@ -148,6 +148,6 @@ class Statistics {
 };
 
 
-} } // namespace ham::Btree
+} // namespace ham
 
 #endif /* HAM_BTREE_STATS_H__ */

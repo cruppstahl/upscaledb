@@ -47,6 +47,7 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
+    BtreeBackend *m_backend;
 
 public:
     virtual void setup()
@@ -61,6 +62,9 @@ public:
                     ham_env_create_ex(m_env, 0, HAM_IN_MEMORY, 0644, &p[0]));
         BFC_ASSERT_EQUAL(0,
                     ham_env_create_db(m_env, m_db, 1, 0, 0));
+
+        Database *db = (Database *)m_db;
+        m_backend = (BtreeBackend *)db->get_backend();
     }
 
     virtual void teardown()
@@ -120,7 +124,7 @@ public:
         key_set_size(&src, 0);
         key_set_flags(&src, 0);
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
         BFC_ASSERT_EQUAL((void *)0, dest.data);
     }
@@ -137,7 +141,7 @@ public:
         key_set_flags(&src, 0);
         src._key[0]='a';
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(1, dest.size);
         BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
         ((Environment *)m_env)->get_allocator()->free(dest.data);
@@ -155,7 +159,7 @@ public:
         key_set_flags(src, 0);
         ::memcpy((char *)src->_key, "1234567\0", 8);
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
         ((Environment *)m_env)->get_allocator()->free(dest.data);
@@ -173,7 +177,7 @@ public:
         key_set_flags(src, 0);
         ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
-        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub((Database *)m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 

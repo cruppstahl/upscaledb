@@ -312,6 +312,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\btree_node.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\btree_check.cc"
 			>
 		</File>

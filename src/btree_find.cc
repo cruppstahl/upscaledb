@@ -28,6 +28,7 @@
 #include "page.h"
 #include "btree_stats.h"
 #include "util.h"
+#include "btree_node.h"
 
 using namespace ham;
 
@@ -38,11 +39,12 @@ BtreeBackend::do_find(Transaction *txn, Cursor *hcursor, ham_key_t *key,
 {
     ham_status_t st;
     Page *page = NULL;
-    btree_node_t *node = NULL;
+    BtreeNode *node = NULL;
     btree_key_t *entry;
     ham_s32_t idx = -1;
     Database *db=get_db();
-    Btree::Statistics::FindHints hints;
+    BtreeBackend *be=(BtreeBackend *)db->get_backend();
+    BtreeStatistics::FindHints hints;
     hints = get_statistics()->get_find_hints(key, flags);
     btree_cursor_t *cursor=(btree_cursor_t *)hcursor;
 
@@ -65,21 +67,21 @@ BtreeBackend::do_find(Transaction *txn, Cursor *hcursor, ham_key_t *key,
         if (st)
             return st;
         if (page) {
-            node=page_get_btree_node(page);
-            ham_assert(btree_node_is_leaf(node));
+            node=BtreeNode::from_page(page);
+            ham_assert(node->is_leaf());
 
             /* we need at least 3 keys in the node: edges + middle match */
-            if (btree_node_get_count(node) < 3)
+            if (node->get_count() < 3)
                 goto no_fast_track;
 
-            idx = btree_node_search_by_key(db, page, key, hints.flags);
+            idx = find_leaf(page, key, hints.flags);
             /*
              * if we didn't hit a match OR a match at either edge, FAIL.
              * A match at one of the edges is very risky, as this can also
              * signal a match far away from the current node, so we need
              * the full tree traversal then.
              */
-            if (idx <= 0 || idx >= btree_node_get_count(node) - 1) {
+            if (idx <= 0 || idx >= node->get_count() - 1) {
                 idx = -1;
             }
             /*
@@ -113,29 +115,29 @@ no_fast_track:
         }
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
-        node=page_get_btree_node(page);
-        if (!btree_node_is_leaf(node)) {
+        node=BtreeNode::from_page(page);
+        if (!node->is_leaf()) {
             /* signal 'don't care' when we have multiple pages; we resolve
                this once we've got a hit further down */
             if (hints.flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 hints.flags |= (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH);
 
             for (;;) {
-                st=btree_traverse_tree(&page, 0, db, page, key);
+                st=find_internal(page, key, &page);
                 if (!page) {
                     get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                                     hints.try_fast_track);
                     return st ? st : HAM_KEY_NOT_FOUND;
                 }
 
-                node=page_get_btree_node(page);
-                if (btree_node_is_leaf(node))
+                node=BtreeNode::from_page(page);
+                if (node->is_leaf())
                     break;
             }
         }
 
         /* check the leaf page for the key */
-        idx=btree_node_search_by_key(db, page, key, hints.flags);
+        idx=find_leaf(page, key, hints.flags);
         if (idx < -1) {
             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
@@ -156,7 +158,7 @@ no_fast_track:
      * The whole trick works, because the code above detects when
      * we need to traverse a multi-page btree -- where this worst-case
      * scenario can happen -- and adjusted the flags to accept
-     * both LT and GT approximate matches so that btree_node_search_by_key()
+     * both LT and GT approximate matches so that find_leaf()
      * will be hard pressed to return a 'key not found' signal (idx==-1),
      * instead delivering the nearest LT or GT match; all we need to
      * do now is ensure we've got the right one and if not,
@@ -180,23 +182,23 @@ no_fast_track:
                     /*
                      * otherwise load the left sibling page
                      */
-                    if (!btree_node_get_left(node)) {
+                    if (!node->get_left()) {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
-                        ham_assert(node == page_get_btree_node(page));
+                        ham_assert(node == BtreeNode::from_page(page));
                         get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                                     page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
-                    st=db_fetch_page(&page, db, btree_node_get_left(node), 0);
+                    st=db_fetch_page(&page, db, node->get_left(), 0);
                     if (st) {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
                         return (st);
                     }
-                    node = page_get_btree_node(page);
-                    idx = btree_node_get_count(node) - 1;
+                    node = BtreeNode::from_page(page);
+                    idx = node->get_count() - 1;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
                         & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
@@ -207,30 +209,30 @@ no_fast_track:
                  * if the index+1 is still in the page, just increment the
                  * index
                  */
-                if (idx + 1 < btree_node_get_count(node)) {
+                if (idx + 1 < node->get_count()) {
                     idx++;
                 }
                 else {
                     /*
                      * otherwise load the right sibling page
                      */
-                    if (!btree_node_get_right(node))
+                    if (!node->get_right())
                     {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
-                        ham_assert(node == page_get_btree_node(page));
+                        ham_assert(node == BtreeNode::from_page(page));
                         get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                                 page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
-                    st=db_fetch_page(&page, db, btree_node_get_right(node), 0);
+                    st=db_fetch_page(&page, db, node->get_right(), 0);
                     if (st) {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
                         return (st);
                     }
-                    node = page_get_btree_node(page);
+                    node = BtreeNode::from_page(page);
                     idx = 0;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
@@ -269,7 +271,7 @@ no_fast_track:
                 }
                 else {
                     /* otherwise load the left sibling page */
-                    if (!btree_node_get_left(node)) {
+                    if (!node->get_left()) {
                         /* when an error is otherwise unavoidable, see if
                            we have an escape route through GT? */
                         if (hints.original_flags & HAM_FIND_GT_MATCH) {
@@ -277,27 +279,27 @@ no_fast_track:
                              * if the index+1 is still in the page, just
                              * increment the index
                              */
-                            if (idx + 1 < btree_node_get_count(node))
+                            if (idx + 1 < node->get_count())
                                 idx++;
                             else {
                                 /* otherwise load the right sibling page */
-                                if (!btree_node_get_right(node)) {
+                                if (!node->get_right()) {
                                     get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                                         hints.try_fast_track);
-                                    ham_assert(node==page_get_btree_node(page));
+                                    ham_assert(node==BtreeNode::from_page(page));
                                     get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                                             page, key, hints.original_flags, -1);
                                     return HAM_KEY_NOT_FOUND;
                                 }
 
                                 st=db_fetch_page(&page, db,
-                                                btree_node_get_right(node), 0);
+                                                node->get_right(), 0);
                                 if (st) {
                                     get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                                         hints.try_fast_track);
                                     return (st);
                                 }
-                                node = page_get_btree_node(page);
+                                node = BtreeNode::from_page(page);
                                 idx = 0;
                             }
                             ham_key_set_intflags(key, (ham_key_get_intflags(key) &
@@ -306,7 +308,7 @@ no_fast_track:
                         else {
                             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                                 hints.try_fast_track);
-                            ham_assert(node == page_get_btree_node(page));
+                            ham_assert(node == BtreeNode::from_page(page));
                             get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                                     page, key, hints.original_flags, -1);
                             return HAM_KEY_NOT_FOUND;
@@ -314,14 +316,14 @@ no_fast_track:
                     }
                     else {
                         st=db_fetch_page(&page, db,
-                                        btree_node_get_left(node), 0);
+                                        node->get_left(), 0);
                         if (st) {
                             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                                 hints.try_fast_track);
                             return (st);
                         }
-                        node=page_get_btree_node(page);
-                        idx=btree_node_get_count(node)-1;
+                        node=BtreeNode::from_page(page);
+                        idx=node->get_count()-1;
 
                         ham_key_set_intflags(key, (ham_key_get_intflags(key)
                                         & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
@@ -333,27 +335,27 @@ no_fast_track:
                  * if the index+1 is still in the page, just increment the
                  * index
                  */
-                if (idx + 1 < btree_node_get_count(node))
+                if (idx + 1 < node->get_count())
                     idx++;
                 else {
                     /* otherwise load the right sibling page */
-                    if (!btree_node_get_right(node)) {
+                    if (!node->get_right()) {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
-                        ham_assert(node == page_get_btree_node(page));
+                        ham_assert(node == BtreeNode::from_page(page));
                         get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                                 page, key, hints.original_flags, -1);
                         return (HAM_KEY_NOT_FOUND);
                     }
 
                     st=db_fetch_page(&page, db,
-                                btree_node_get_right(node), 0);
+                                node->get_right(), 0);
                     if (st) {
                         get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                             hints.try_fast_track);
                         return (st);
                     }
-                    node=page_get_btree_node(page);
+                    node=BtreeNode::from_page(page);
                     idx=0;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
@@ -367,14 +369,14 @@ no_fast_track:
                         hints.try_fast_track);
         ham_assert(node);
         ham_assert(page);
-        ham_assert(node == page_get_btree_node(page));
+        ham_assert(node == BtreeNode::from_page(page));
         get_statistics()->update_any_bound(HAM_OPERATION_STATS_FIND,
                 page, key, hints.original_flags, -1);
         return (HAM_KEY_NOT_FOUND);
     }
 
     /* load the entry, and store record ID and key flags */
-    entry=btree_node_get_key(db, node, idx);
+    entry=node->get_key(db, idx);
 
     /* set the cursor-position to this key */
     if (cursor) {
@@ -388,20 +390,20 @@ no_fast_track:
     }
 
     /*
-     * during btree_read_key and btree_read_record, new pages might be needed,
+     * during read_key() and read_record() new pages might be needed,
      * and the page at which we're pointing could be moved out of memory;
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing
      * the reference counter
      */
-    ham_assert(btree_node_is_leaf(node));
+    ham_assert(node->is_leaf());
 
     /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
      * is set: */
     if (key
             && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
             && !(flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
-        ham_status_t st=btree_read_key(db, txn, entry, key);
+        ham_status_t st=be->read_key(txn, entry, key);
         if (st) {
             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                         hints.try_fast_track);
@@ -413,7 +415,7 @@ no_fast_track:
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=btree_read_record(db, txn, record,
+        st=db->get_backend()->read_record(txn, record,
                         (ham_u64_t *)&key_get_rawptr(entry), flags);
         if (st) {
             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
@@ -422,7 +424,7 @@ no_fast_track:
         }
     }
 
-    ham_assert(node == page_get_btree_node(page));
+    ham_assert(node == BtreeNode::from_page(page));
     // TODO merge these two calls
     get_statistics()->update_succeeded(HAM_OPERATION_STATS_FIND,
             page, hints.try_fast_track);

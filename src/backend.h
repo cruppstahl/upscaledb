@@ -73,8 +73,6 @@ enum {
   HAM_ENUM_EVENT_ITEM               = 4
 };
 
-struct btree_cursor_t;
-
 /**
 * @}
 */
@@ -203,8 +201,7 @@ class Backend
      * inserts a key, points cursor to the new key
      */
     ham_status_t insert_cursor(Transaction *txn, ham_key_t *key,
-                    ham_record_t *record, btree_cursor_t *cursor,
-                    ham_u32_t flags) {
+                    ham_record_t *record, Cursor *cursor, ham_u32_t flags) {
       return (do_insert_cursor(txn, key, record, cursor, flags));
     }
 
@@ -212,7 +209,7 @@ class Backend
      * erases the key that the cursor points to
      */
     ham_status_t erase_cursor(Transaction *txn, ham_key_t *key,
-                    btree_cursor_t *cursor, ham_u32_t flags) {
+                    Cursor *cursor, ham_u32_t flags) {
       return (do_erase_cursor(txn, key, cursor, flags));
     }
 
@@ -271,6 +268,38 @@ class Backend
                             ham_key_t *key, ham_record_t *record,
                             ham_u32_t flags) = 0;
 
+    /**
+     * read a key
+     *
+     * @a dest must have been initialized before calling this function; the
+     * dest->data space will be reused when the specified size is large enough;
+     * otherwise the old dest->data will be ham_mem_free()d and a new
+     * space allocated.
+     *
+     * This can save superfluous heap free+allocation actions in there.
+     *
+     * @note
+     * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+         // TODO make this private
+         // TODO use arena; get rid of txn parameter
+     */
+    virtual ham_status_t read_key(Transaction *txn, btree_key_t *source,
+                    ham_key_t *dest) = 0;
+
+    /**
+     * read a record
+     *
+     * @param rid same as record->_rid, if key is not TINY/SMALL. Otherwise,
+     * and if HAM_DIRECT_ACCESS is set, we use the rid-pointer to the
+     * original record ID
+     *
+     * flags: either 0 or HAM_DIRECT_ACCESS
+         // TODO make this private
+         // TODO use arena; get rid of txn parameter
+     */
+    virtual ham_status_t read_record(Transaction *txn, ham_record_t *record,
+                    ham_u64_t *ridptr, ham_u32_t flags) = 0;
+
   protected:
     /** implementation for create() */
     virtual ham_status_t do_create(ham_u16_t keysize, ham_u32_t flags) = 0;
@@ -306,17 +335,17 @@ class Backend
 
     /** implementation for insert_cursor() */
     virtual ham_status_t do_insert_cursor(Transaction *txn, ham_key_t *key,
-                            ham_record_t *record, btree_cursor_t *cursor,
+                            ham_record_t *record, Cursor *cursor,
                             ham_u32_t flags) = 0;
 
     /** implementation for erase_cursor() */
     virtual ham_status_t do_erase_cursor(Transaction *txn, ham_key_t *key,
-                            btree_cursor_t *cursor, ham_u32_t flags) = 0;
+                            Cursor *cursor, ham_u32_t flags) = 0;
 
-  private:
     /** pointer to the database object */
     Database *m_db;
 
+  private:
     /** the keysize of this backend index */
     ham_u16_t m_keysize;
 

@@ -121,7 +121,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, recoveryNegativeTest);
         BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvNegativeTest);
-        BFC_REGISTER_TEST(HamsterdbTest, btreeMacroTest);
         BFC_REGISTER_TEST(HamsterdbTest, cursorInsertAppendTest);
         BFC_REGISTER_TEST(HamsterdbTest, negativeCursorInsertAppendTest);
         BFC_REGISTER_TEST(HamsterdbTest, recordCountTest);
@@ -1793,30 +1792,6 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-    }
-
-    void btreeMacroTest(void)
-    {
-        Page *page;
-        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, (Database *)m_db, 0, 0));
-        BFC_ASSERT(page!=0);
-
-        int off=(int)btree_node_get_key_offset(page, 0);
-        int l = Page::sizeof_persistent_header; // 12
-        l += OFFSETOF(btree_node_t, _entries); // 40-12
-
-        l = db_get_int_key_header_size();
-        l += db_get_keysize(page->get_db());
-
-        BFC_ASSERT_EQUAL((int)page->get_self()+12+28, off);
-        off=(int)btree_node_get_key_offset(page, 1);
-        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+32, off);
-        off=(int)btree_node_get_key_offset(page, 2);
-        BFC_ASSERT_EQUAL((int)page->get_self()+12+28+64, off);
-
-        page->free();
-        ((Environment *)m_env)->get_cache()->remove_page(page);
-        delete page;
     }
 
     void cursorInsertAppendTest(void)

@@ -20,6 +20,7 @@
 #include "../src/util.h"
 #include "../src/page.h"
 #include "../src/env.h"
+#include "../src/btree_node.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -81,10 +82,10 @@ public:
         Page *page=new Page((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page->allocate());
-        btree_node_t *node=page_get_btree_node(page);
+        BtreeNode *node=BtreeNode::from_page(page);
         ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
-        btree_key_t *key=btree_node_get_key(m_dbp, node, 0);
+        btree_key_t *key=node->get_key(m_dbp, 0);
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(key));
         BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key_get_key(key));
@@ -104,12 +105,12 @@ public:
         Page *page=new Page((Environment *)m_env);
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, page->allocate());
-        btree_node_t *node=page_get_btree_node(page);
+        BtreeNode *node=BtreeNode::from_page(page);
         ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
         ham_offset_t blobid;
 
-        btree_key_t *key=btree_node_get_key(m_dbp, node, 0);
+        btree_key_t *key=node->get_key(m_dbp, 0);
         blobid=key_get_extended_rid(m_dbp, key);
         BFC_ASSERT_EQUAL((ham_offset_t)0, blobid);
 
@@ -217,7 +218,8 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_dbp, 0, &rec2, &rec2._rid, 0));
+            BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+                        &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -263,7 +265,8 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_dbp, 0, &rec2, &rec2._rid, 0));
+            BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+                        &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -305,7 +308,8 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_dbp, 0, &rec2, &rec2._rid, 0));
+            BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+                    &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -407,7 +411,8 @@ public:
 
         rec._intflags=dupe_entry_get_flags(&entry);
         rec._rid=dupe_entry_get_rid(&entry);
-        BFC_ASSERT_EQUAL(0, btree_read_record(m_dbp, 0, &rec, &rec._rid, 0));
+        BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+                    &rec, &rec._rid, 0));
         BFC_ASSERT_EQUAL(rec.size, size);
         if (size) {
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));
