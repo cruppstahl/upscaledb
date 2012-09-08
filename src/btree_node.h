@@ -81,9 +81,10 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   }
 
   /** get entry @a i of a btree node */
-  btree_key_t *get_key(Database *db, int i) {
-    return ((btree_key_t *)&((const char *)_entries)
-              [(db_get_keysize(db) + db_get_int_key_header_size()) * i]);
+  BtreeKey *get_key(Database *db, int i) {
+    ham_assert(i <= get_count());
+    return ((BtreeKey *)&((const char *)_entries)
+              [(db_get_keysize(db) + BtreeKey::ms_sizeof_overhead) * i]);
   }
 
   /**
@@ -109,7 +110,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   ham_offset_t _ptr_left;
 
   /** the entries of this node */
-  btree_key_t _entries[1];
+  BtreeKey _entries[1];
 
 } HAM_PACK_2;
 

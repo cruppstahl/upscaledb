@@ -97,8 +97,7 @@ struct FreelistPayload;
 
 #include "packstart.h"
 
-struct btree_key_t;
-typedef struct btree_key_t btree_key_t;
+struct BtreeKey;
 
 #include "packstop.h"
 

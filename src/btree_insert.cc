@@ -21,6 +21,7 @@
 #include "blob.h"
 #include "btree.h"
 #include "btree_cursor.h"
+#include "extkeys.h"
 #include "cursor.h"
 #include "cache.h"
 #include "db.h"
@@ -579,7 +580,7 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     ham_u16_t count;
     ham_size_t keysize;
     ham_size_t new_dupe_id = 0;
-    btree_key_t *bte = 0;
+    BtreeKey *bte = 0;
     BtreeNode *node;
     Database *db=page->get_db();
     ham_bool_t exists = HAM_FALSE;
@@ -669,14 +670,14 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
             if (st)
                 return (st);
 
-            memmove(((char *)bte)+db_get_int_key_header_size()+keysize, bte,
-                    (db_get_int_key_header_size()+keysize)*(count-slot));
+            memmove(((char *)bte)+BtreeKey::ms_sizeof_overhead+keysize, bte,
+                    (BtreeKey::ms_sizeof_overhead+keysize)*(count-slot));
         }
 
         /*
          * if a new key is created or inserted: initialize it with zeroes
          */
-        memset(bte, 0, db_get_int_key_header_size()+keysize);
+        memset(bte, 0, BtreeKey::ms_sizeof_overhead+keysize);
     }
 
     /*
@@ -687,7 +688,7 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     {
         ham_status_t st;
 
-        st=key_set_record(db, txn, bte, record,
+        st=bte->set_record(db, txn, record,
                         cursor
                             ? btree_cursor_get_dupe_id(cursor)
                             : 0,
@@ -700,18 +701,18 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     }
     else
     {
-        key_set_ptr(bte, rid);
+        bte->set_ptr(rid);
     }
 
     page->set_dirty(true);
-    key_set_size(bte, key->size);
+    bte->set_size(key->size);
 
     /*
      * set a flag if the key is extended, and does not fit into the
      * btree
      */
     if (key->size > db_get_keysize(db))
-        key_set_flags(bte, key_get_flags(bte)|KEY_IS_EXTENDED);
+        bte->set_flags(bte->get_flags()|BtreeKey::KEY_IS_EXTENDED);
 
     /*
      * if we have a cursor: couple it to the new key
@@ -741,7 +742,7 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     /*
      * we insert the extended key, if necessary
      */
-    key_set_key(bte, key->data,
+    bte->set_key(key->data,
             db_get_keysize(db) < key->size ? db_get_keysize(db) : key->size);
 
     /*
@@ -752,14 +753,23 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     {
         ham_offset_t blobid;
 
-        key_set_key(bte, key->data, db_get_keysize(db));
+        bte->set_key(key->data, db_get_keysize(db));
 
-        st=key_insert_extended(&blobid, db, page, key);
-        if (st)
-            return (st);
+        ham_u8_t *data_ptr=(ham_u8_t *)key->data;
+        ham_record_t rec = ham_record_t();
+        rec.data=data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t));
+        rec.size=key->size-(db_get_keysize(db)-sizeof(ham_offset_t));
+
+        if ((st=db->get_env()->get_blob_manager()->allocate(db, &rec, 0,
+                &blobid)))
+            return st;
+
+        if (db->get_extkey_cache())
+            db->get_extkey_cache()->insert(blobid, key->size,
+                            (ham_u8_t *)key->data);
+
         ham_assert(blobid!=0);
-
-        key_set_extended_rid(db, bte, blobid);
+        bte->set_extended_rid(db, blobid);
     }
 
     /*
@@ -778,7 +788,7 @@ __insert_split(Page *page, ham_key_t *key,
     int cmp;
     ham_status_t st;
     Page *newpage, *oldsib;
-    btree_key_t *nbte, *obte;
+    BtreeKey *nbte, *obte;
     BtreeNode *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
     Database *db=page->get_db();
@@ -862,13 +872,13 @@ __insert_split(Page *page, ham_key_t *key,
      */
     if (obtp->is_leaf()) {
         memcpy((char *)nbte,
-               ((char *)obte)+(db_get_int_key_header_size()+keysize)*pivot,
-               (db_get_int_key_header_size()+keysize)*(count-pivot));
+               ((char *)obte)+(BtreeKey::ms_sizeof_overhead+keysize)*pivot,
+               (BtreeKey::ms_sizeof_overhead+keysize)*(count-pivot));
     }
     else {
         memcpy((char *)nbte,
-               ((char *)obte)+(db_get_int_key_header_size()+keysize)*(pivot+1),
-               (db_get_int_key_header_size()+keysize)*(count-pivot-1));
+               ((char *)obte)+(BtreeKey::ms_sizeof_overhead+keysize)*(pivot+1),
+               (BtreeKey::ms_sizeof_overhead+keysize)*(count-pivot-1));
     }
 
     /*
@@ -879,9 +889,9 @@ __insert_split(Page *page, ham_key_t *key,
 
     memset(&pivotkey, 0, sizeof(pivotkey));
     memset(&oldkey, 0, sizeof(oldkey));
-    oldkey.data=key_get_key(nbte);
-    oldkey.size=key_get_size(nbte);
-    oldkey._flags=key_get_flags(nbte);
+    oldkey.data=nbte->get_key();
+    oldkey.size=nbte->get_size();
+    oldkey._flags=nbte->get_flags();
     st=db->copy_key(&oldkey, &pivotkey);
     if (st)
         goto fail_dramatically;
@@ -907,7 +917,7 @@ __insert_split(Page *page, ham_key_t *key,
         /*
          * nbte still contains the pivot key
          */
-        nbtp->set_ptr_left(key_get_ptr(nbte));
+        nbtp->set_ptr_left(nbte->get_ptr());
     }
 
     /*
@@ -980,3 +990,16 @@ fail_dramatically:
     return st;
 }
 
+#if 0
+static void
+dump_page(Database *db, ham_offset_t address) {
+  Page *page;
+  ham_status_t st=db_fetch_page(&page, db, address, 0);
+  ham_assert(st==0);
+  BtreeNode *node=BtreeNode::from_page(page);
+  for (ham_size_t i = 0; i < node->get_count(); i++) {
+    BtreeKey *btk = node->get_key(db, i);
+    printf("%04d: %d\n", (int)i, *(int *)btk->get_key());
+  }
+}
+#endif

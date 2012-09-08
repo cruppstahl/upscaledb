@@ -283,7 +283,7 @@ class Backend
          // TODO make this private
          // TODO use arena; get rid of txn parameter
      */
-    virtual ham_status_t read_key(Transaction *txn, btree_key_t *source,
+    virtual ham_status_t read_key(Transaction *txn, BtreeKey *source,
                     ham_key_t *dest) = 0;
 
     /**

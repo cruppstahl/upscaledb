@@ -40,7 +40,7 @@ BtreeBackend::do_find(Transaction *txn, Cursor *hcursor, ham_key_t *key,
     ham_status_t st;
     Page *page = NULL;
     BtreeNode *node = NULL;
-    btree_key_t *entry;
+    BtreeKey *entry;
     ham_s32_t idx = -1;
     Database *db=get_db();
     BtreeBackend *be=(BtreeBackend *)db->get_backend();
@@ -165,11 +165,11 @@ no_fast_track:
      * shift by one.
      */
     if (idx >= 0) {
-        if ((ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
+        if ((ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)
             && (hints.original_flags
                     & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 != (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) {
-            if ((ham_key_get_intflags(key) & KEY_IS_GT)
+            if ((ham_key_get_intflags(key) & BtreeKey::KEY_IS_GT)
                 && (hints.original_flags & HAM_FIND_LT_MATCH)) {
                 /*
                  * if the index-1 is still in the page, just decrement the
@@ -201,9 +201,9 @@ no_fast_track:
                     idx = node->get_count() - 1;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
-                        & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
+                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
             }
-            else if ((ham_key_get_intflags(key) & KEY_IS_LT)
+            else if ((ham_key_get_intflags(key) & BtreeKey::KEY_IS_LT)
                     && (hints.original_flags & HAM_FIND_GT_MATCH)) {
                 /*
                  * if the index+1 is still in the page, just increment the
@@ -236,10 +236,10 @@ no_fast_track:
                     idx = 0;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
-                        & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
+                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
             }
         }
-        else if (!(ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
+        else if (!(ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)
                 && !(hints.original_flags & HAM_FIND_EXACT_MATCH)
                 && (hints.original_flags != 0)) {
             /*
@@ -267,7 +267,7 @@ no_fast_track:
                     idx--;
 
                     ham_key_set_intflags(key, (ham_key_get_intflags(key)
-                            & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
+                            & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
                 }
                 else {
                     /* otherwise load the left sibling page */
@@ -303,7 +303,7 @@ no_fast_track:
                                 idx = 0;
                             }
                             ham_key_set_intflags(key, (ham_key_get_intflags(key) &
-                                            ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
+                                            ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
                         }
                         else {
                             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
@@ -326,7 +326,7 @@ no_fast_track:
                         idx=node->get_count()-1;
 
                         ham_key_set_intflags(key, (ham_key_get_intflags(key)
-                                        & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
+                                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
                     }
                 }
             }
@@ -359,7 +359,7 @@ no_fast_track:
                     idx=0;
                 }
                 ham_key_set_intflags(key, (ham_key_get_intflags(key)
-                                        & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
+                                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
             }
         }
     }
@@ -401,7 +401,7 @@ no_fast_track:
     /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
      * is set: */
     if (key
-            && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
+            && (ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)
             && !(flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
         ham_status_t st=be->read_key(txn, entry, key);
         if (st) {
@@ -413,10 +413,10 @@ no_fast_track:
 
     if (record) {
         ham_status_t st;
-        record->_intflags=key_get_flags(entry);
-        record->_rid=key_get_ptr(entry);
+        record->_intflags=entry->get_flags();
+        record->_rid=entry->get_ptr();
         st=db->get_backend()->read_record(txn, record,
-                        (ham_u64_t *)&key_get_rawptr(entry), flags);
+                        entry->get_rawptr(), flags);
         if (st) {
             get_statistics()->update_failed_oob(HAM_OPERATION_STATS_FIND,
                         hints.try_fast_track);

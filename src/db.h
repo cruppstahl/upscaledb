@@ -618,7 +618,7 @@ class Database
 
         /* need prefix compare? if no key is extended we can just call the
          * normal compare function */
-        if (!(lhs->_flags&KEY_IS_EXTENDED) && !(rhs->_flags&KEY_IS_EXTENDED)) {
+        if (!(lhs->_flags&BtreeKey::BtreeKey::KEY_IS_EXTENDED) && !(rhs->_flags&BtreeKey::BtreeKey::KEY_IS_EXTENDED)) {
             return (foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
                             (ham_u8_t *)rhs->data, rhs->size));
         }
@@ -626,11 +626,11 @@ class Database
         /* yes! - run prefix comparison */
         if (prefoo) {
             ham_size_t lhsprefixlen, rhsprefixlen;
-            if (lhs->_flags&KEY_IS_EXTENDED)
+            if (lhs->_flags&BtreeKey::BtreeKey::KEY_IS_EXTENDED)
                 lhsprefixlen=db_get_keysize(this)-sizeof(ham_offset_t);
             else
                 lhsprefixlen=lhs->size;
-            if (rhs->_flags&KEY_IS_EXTENDED)
+            if (rhs->_flags&BtreeKey::BtreeKey::KEY_IS_EXTENDED)
                 rhsprefixlen=db_get_keysize(this)-sizeof(ham_offset_t);
             else
                 rhsprefixlen=rhs->size;
@@ -644,21 +644,21 @@ class Database
 
         if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
             /* 1. load the first key, if needed */
-            if (lhs->_flags&KEY_IS_EXTENDED) {
+            if (lhs->_flags&BtreeKey::BtreeKey::KEY_IS_EXTENDED) {
                 ham_status_t st=get_extended_key((ham_u8_t *)lhs->data,
                         lhs->size, lhs->_flags, lhs);
                 if (st)
                     return st;
-                lhs->_flags&=~KEY_IS_EXTENDED;
+                lhs->_flags&=~BtreeKey::KEY_IS_EXTENDED;
             }
 
             /* 2. load the second key, if needed */
-            if (rhs->_flags&KEY_IS_EXTENDED) {
+            if (rhs->_flags&BtreeKey::KEY_IS_EXTENDED) {
                 ham_status_t st=get_extended_key((ham_u8_t *)rhs->data,
                         rhs->size, rhs->_flags, rhs);
                 if (st)
                     return st;
-                rhs->_flags&=~KEY_IS_EXTENDED;
+                rhs->_flags&=~BtreeKey::KEY_IS_EXTENDED;
             }
 
             /* 3. run the comparison function */
@@ -685,7 +685,7 @@ class Database
      */
     ham_status_t copy_key(const ham_key_t *source, ham_key_t *dest) {
         /* extended key: copy the whole key */
-        if (source->_flags&KEY_IS_EXTENDED) {
+        if (source->_flags&BtreeKey::KEY_IS_EXTENDED) {
             ham_status_t st=get_extended_key((ham_u8_t *)source->data,
                         source->size, source->_flags, dest);
             if (st)
@@ -694,7 +694,7 @@ class Database
             /* dest->size is set by db->get_extended_key() */
             ham_assert(dest->size == source->size);
             /* the extended flag is set later, when this key is inserted */
-            dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
+            dest->_flags=source->_flags&(~BtreeKey::KEY_IS_EXTENDED);
         }
         else if (source->size) {
             if (!(dest->flags&HAM_KEY_USER_ALLOC)) {

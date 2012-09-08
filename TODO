@@ -199,13 +199,14 @@ o continue with refacoring - indention, coding style, better design etc...
         x get rid of ham_bool_t
         x replace db_get_keysize() with backend->get_keysize()
 
-    o btree_key.h
-        o rename btree_key_t -> BtreeKey (with getters/setters)
-        o constructors get "(const) ham_u8_t *" pointer to the key data
-        o provide getters/setters
-        o code formatting
-    o btree_key.cc
-        o code formatting
+    x btree_key.h
+        x code formatting
+        x rename btree_key_t -> BtreeKey (with getters/setters)
+        x Backend::read_key -> move to BtreeBackend? no, leave it
+        x all #defines -> enum
+        x db_get_int_key_header_size -> Backend::get_full_keysize(payload_size)
+    x btree_key.cc
+        x code formatting
 
     o btree_check.cc
         o improve BtreeCheckAction; use it as template for enum, find, etc

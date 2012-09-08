@@ -139,7 +139,7 @@ class BtreeCheckAction
         int cmp;
         ham_size_t i=0;
         Database *db=page->get_db();
-        btree_key_t *bte;
+        BtreeKey *bte;
         BtreeNode *node=BtreeNode::from_page(page);
 
         count=node->get_count();
@@ -160,12 +160,12 @@ class BtreeCheckAction
          */
         if (leftsib) {
             BtreeNode *sibnode=BtreeNode::from_page(leftsib);
-            btree_key_t *sibentry=sibnode->get_key(db,
-                    node->get_count()-1);
+            BtreeKey *sibentry=sibnode->get_key(db,
+                    sibnode->get_count() - 1);
 
             bte=node->get_key(db, 0);
 
-            if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED)
+            if ((bte->get_flags()!=0 && bte->get_flags()!=BtreeKey::KEY_IS_EXTENDED)
                     && !node->is_leaf()) {
                 ham_log(("integrity check failed in page 0x%llx: item #0 "
                         "has flags, but it's not a leaf page",
@@ -207,8 +207,8 @@ class BtreeCheckAction
         for (i=0; i<count-1; i++) {
             /* if this is an extended key: check for a blob-id */
             bte=node->get_key(db, i);
-            if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-                ham_offset_t blobid=key_get_extended_rid(db, bte);
+            if (bte->get_flags()&BtreeKey::KEY_IS_EXTENDED) {
+                ham_offset_t blobid=bte->get_extended_rid(db);
                 if (!blobid) {
                     ham_log(("integrity check failed in page 0x%llx: item #%d "
                             "is extended, but has no blob",
@@ -232,8 +232,8 @@ class BtreeCheckAction
 
     int compare_keys(Database *db, Page *page,
             ham_u16_t lhs_int, ham_u16_t rhs_int) {
-        btree_key_t *l;
-        btree_key_t *r;
+        BtreeKey *l;
+        BtreeKey *r;
         BtreeNode *node=BtreeNode::from_page(page);
         ham_key_t lhs;
         ham_key_t rhs;

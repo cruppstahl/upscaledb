@@ -159,7 +159,7 @@ _enumerate_page(BtreeBackend *be, Page *page, ham_u32_t level,
     ham_size_t i;
     ham_size_t count;
     Database *db=page->get_db();
-    btree_key_t *bte;
+    BtreeKey *bte;
     BtreeNode *node=BtreeNode::from_page(page);
     ham_bool_t is_leaf;
     ham_status_t cb_st;

@@ -290,8 +290,8 @@ public:
         BFC_ASSERT(compare_sizes(sizeof(dupe_entry_t), 16));
         BFC_ASSERT(compare_sizes(sizeof(dupe_table_t),
                 8 + sizeof(dupe_entry_t)));
-        BFC_ASSERT(compare_sizes(sizeof(BtreeNode), 28+sizeof(btree_key_t)));
-        BFC_ASSERT(compare_sizes(sizeof(btree_key_t), 12));
+        BFC_ASSERT(compare_sizes(sizeof(BtreeNode), 28+sizeof(BtreeKey)));
+        BFC_ASSERT(compare_sizes(sizeof(BtreeKey), 12));
         BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
         BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
@@ -303,7 +303,7 @@ public:
         BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
         BFC_ASSERT(compare_sizes(db_get_freelist_header_size(),
                 16 + 12 + sizeof(freelist_page_statistics_t)));
-        BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
+        BFC_ASSERT(compare_sizes(BtreeKey::ms_sizeof_overhead, 11));
         BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));
         BFC_ASSERT(compare_sizes(sizeof(Log::Entry), 32));
         BFC_ASSERT(compare_sizes(sizeof(PageData), 13));

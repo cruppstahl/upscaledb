@@ -59,8 +59,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
  * in this case, we must not use endian-conversion!
  */
 #define dupe_entry_get_rid(e)                                                 \
-         (((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)                       \
-          || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))                   \
+         (((dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_TINY)             \
+          || (dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_SMALL))         \
            ? (e)->_rid                                                        \
            : ham_db2h_offset((e)->_rid))
 
@@ -75,10 +75,10 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
  * in this case we must not use endian-conversion!
  */
 #define dupe_entry_set_rid(e, r)                                              \
-         (e)->_rid=(((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)             \
-                    || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))         \
-                     ? (r)                                                    \
-                       : ham_h2db_offset(r))
+         (e)->_rid=(((dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_TINY)   \
+          || (dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_SMALL))         \
+           ? (r)                                                              \
+           : ham_h2db_offset(r))
 
 #include "packstart.h"
 
@@ -148,14 +148,14 @@ class DuplicateManager
     /**
      * delete a duplicate
      *
-     * if flags == HAM_ERASE_ALL_DUPLICATES then all duplicates and the dupe
+     * if erase_all_duplicates is true then all duplicates and the dupe
      * table are deleted; otherwise only the single duplicate is erased and
      * the table remains (unless it became empty)
      *
      * sets new_table_id to 0 if the table is empty
      */
     ham_status_t erase(Database *db, Transaction *txn, ham_offset_t table_id,
-                ham_size_t position, ham_u32_t flags,
+                ham_size_t position, bool erase_all_duplicates,
                 ham_offset_t *new_table_id);
 
     /**

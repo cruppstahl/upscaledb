@@ -933,7 +933,7 @@ default_case:
         if (flags&HAM_RECORD_NUMBER)
             keysize = sizeof(ham_u64_t);
         else
-            keysize = DB_CHUNKSIZE - (db_get_int_key_header_size());
+            keysize = DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead);
     }
 
     /*
@@ -2602,8 +2602,8 @@ ham_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
-    if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)) {
-        int rv = (ham_key_get_intflags(key) & KEY_IS_LT) ? -1 : +1;
+    if (key && (ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)) {
+        int rv = (ham_key_get_intflags(key) & BtreeKey::KEY_IS_LT) ? -1 : +1;
         return (rv);
     }
 

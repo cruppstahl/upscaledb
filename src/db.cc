@@ -58,7 +58,7 @@ typedef struct
 static ham_status_t
 __calc_keys_cb(int event, void *param1, void *param2, void *context)
 {
-    btree_key_t *key;
+    BtreeKey *key;
     calckeys_context_t *c;
     ham_size_t count;
 
@@ -76,16 +76,16 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case HAM_ENUM_EVENT_ITEM:
-        key=(btree_key_t *)param1;
+        key=(BtreeKey *)param1;
         count=*(ham_size_t *)param2;
 
         if (c->is_leaf) {
             ham_size_t dupcount=1;
 
             if (!(c->flags&HAM_SKIP_DUPLICATES)
-                    && (key_get_flags(key)&KEY_HAS_DUPLICATES)) {
+                    && (key->get_flags()&BtreeKey::KEY_HAS_DUPLICATES)) {
                 ham_status_t st=c->db->get_env()->get_duplicate_manager()->get_count(
-                            key_get_ptr(key), &dupcount, 0);
+                            key->get_ptr(), &dupcount, 0);
                 if (st)
                     return (st);
                 c->total_count+=dupcount;
@@ -131,7 +131,7 @@ ham_status_t
 __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 {
     ham_status_t st;
-    btree_key_t *key;
+    BtreeKey *key;
     free_cb_context_t *c;
 
     c=(free_cb_context_t *)context;
@@ -149,26 +149,26 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case HAM_ENUM_EVENT_ITEM:
-        key=(btree_key_t *)param1;
+        key=(BtreeKey *)param1;
 
-        if (key_get_flags(key)&KEY_IS_EXTENDED) {
-            ham_offset_t blobid=key_get_extended_rid(c->db, key);
+        if (key->get_flags()&BtreeKey::KEY_IS_EXTENDED) {
+            ham_offset_t blobid=key->get_extended_rid(c->db);
             /* delete the extended key */
             st=c->db->remove_extkey(blobid);
             if (st)
                 return (st);
         }
 
-        if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
-                            |KEY_BLOB_SIZE_SMALL
-                            |KEY_BLOB_SIZE_EMPTY))
+        if (key->get_flags()&(BtreeKey::KEY_BLOB_SIZE_TINY
+                            |BtreeKey::KEY_BLOB_SIZE_SMALL
+                            |BtreeKey::KEY_BLOB_SIZE_EMPTY))
             break;
 
         /*
          * if we're in the leaf page, delete the blob
          */
         if (c->is_leaf) {
-            st=key_erase_record(c->db, 0, key, 0, HAM_ERASE_ALL_DUPLICATES);
+            st=key->erase_record(c->db, 0, 0, true);
             if (st)
                 return (st);
         }
@@ -333,9 +333,9 @@ db_default_prefix_compare(ham_db_t *db,
     Note:
 
     there's a 'tiny' caveat to it all: often these comparisons are between a database key
-    (btree_key_t based) and a user-specified key (ham_key_t based), where the latter will always
+    (BtreeKey based) and a user-specified key (ham_key_t based), where the latter will always
     appear in the LHS and the important part here is: ham_key_t-based comparisons will have
-    their key lengths possibly LARGER than the usual 'short' btree_key_t key length as the
+    their key lengths possibly LARGER than the usual 'short' BtreeKey key length as the
     ham_key_t data doesn't need extending - the result is that simply looking at the lhs_length
     is not good enough here to ensure the key is actually shorter than the other.
      */
@@ -464,7 +464,7 @@ Database::get_extended_key(ham_u8_t *key_data,
     ham_u8_t *ptr;
     Allocator *alloc=get_env()->get_allocator();
 
-    ham_assert(key_flags&KEY_IS_EXTENDED);
+    ham_assert(key_flags&BtreeKey::KEY_IS_EXTENDED);
 
     /*
      * make sure that we have an extended key-cache
@@ -478,7 +478,7 @@ Database::get_extended_key(ham_u8_t *key_data,
             set_extkey_cache(new ExtKeyCache(this));
     }
 
-    /* almost the same as: blobid = key_get_extended_rid(db, key); */
+    /* almost the same as: blobid = key->get_extended_rid(db); */
     memcpy(&blobid, key_data+(db_get_keysize(this)-sizeof(ham_offset_t)),
             sizeof(blobid));
     blobid=ham_db2h_offset(blobid);
@@ -1336,7 +1336,7 @@ db_find_txn(Database *db, Transaction *txn,
     tree=db->get_optree();
 
     ham_key_set_intflags(key,
-        (ham_key_get_intflags(key)&(~KEY_IS_APPROXIMATE)));
+        (ham_key_get_intflags(key)&(~BtreeKey::KEY_IS_APPROXIMATE)));
 
     /* get the node for this key (but don't create a new one if it does
      * not yet exist) */
@@ -1373,19 +1373,19 @@ retry:
              */
             else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                 if (first_loop
-                        && !(ham_key_get_intflags(key)&KEY_IS_APPROXIMATE))
+                        && !(ham_key_get_intflags(key)&BtreeKey::KEY_IS_APPROXIMATE))
                     exact_is_erased=true;
                 first_loop=false;
                 if (flags&HAM_FIND_LT_MATCH) {
                     node=txn_opnode_get_previous_sibling(node);
                     ham_key_set_intflags(key,
-                        (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+                        (ham_key_get_intflags(key)|BtreeKey::KEY_IS_APPROXIMATE));
                     goto retry;
                 }
                 else if (flags&HAM_FIND_GT_MATCH) {
                     node=txn_opnode_get_next_sibling(node);
                     ham_key_set_intflags(key,
-                        (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+                        (ham_key_get_intflags(key)|BtreeKey::KEY_IS_APPROXIMATE));
                     goto retry;
                 }
                 return (HAM_KEY_NOT_FOUND);
@@ -1400,7 +1400,7 @@ retry:
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 // approx match? leave the loop and continue
                 // with the btree
-                if (ham_key_get_intflags(key)&KEY_IS_APPROXIMATE)
+                if (ham_key_get_intflags(key)&BtreeKey::KEY_IS_APPROXIMATE)
                     break;
                 // otherwise copy the record and return
                 return (copy_record(db, txn, op, record));
@@ -1422,11 +1422,11 @@ retry:
      * if there was an approximate match: check if the btree provides
      * a better match
      */
-    if (op && ham_key_get_intflags(key)&KEY_IS_APPROXIMATE) {
+    if (op && ham_key_get_intflags(key)&BtreeKey::KEY_IS_APPROXIMATE) {
         ham_key_t txnkey={0};
         ham_key_t *k=txn_opnode_get_key(txn_op_get_node(op));
         txnkey.size=k->size;
-        txnkey._flags=KEY_IS_APPROXIMATE;
+        txnkey._flags=BtreeKey::KEY_IS_APPROXIMATE;
         txnkey.data=db->get_env()->get_allocator()->alloc(txnkey.size);
         memcpy(txnkey.data, k->data, txnkey.size);
 
@@ -1455,7 +1455,7 @@ retry:
         else if (st)
             return (st);
         // the btree key is a direct match? then return it
-        if ((!(ham_key_get_intflags(key)&KEY_IS_APPROXIMATE))
+        if ((!(ham_key_get_intflags(key)&BtreeKey::KEY_IS_APPROXIMATE))
                 && (flags&HAM_FIND_EXACT_MATCH)) {
             if (txnkey.data)
                 db->get_env()->get_allocator()->free(txnkey.data);
@@ -1487,7 +1487,7 @@ retry:
                             flags|HAM_FIND_EXACT_MATCH);
             if (st==0)
                 ham_key_set_intflags(key,
-                    (ham_key_get_intflags(key)|KEY_IS_APPROXIMATE));
+                    (ham_key_get_intflags(key)|BtreeKey::KEY_IS_APPROXIMATE));
             return (st);
         }
         else { // use txn

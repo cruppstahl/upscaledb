@@ -115,14 +115,14 @@ public:
 
     void copyKeyInt2PubEmptyTest(void)
     {
-        btree_key_t src;
+        BtreeKey src;
         ham_key_t dest;
         memset(&src, 0, sizeof(src));
         memset(&dest, 0, sizeof(dest));
 
-        key_set_ptr(&src, 0x12345);
-        key_set_size(&src, 0);
-        key_set_flags(&src, 0);
+        src.set_ptr(0x12345);
+        src.set_size(0);
+        src.set_flags(0);
 
         BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
@@ -131,14 +131,14 @@ public:
 
     void copyKeyInt2PubTinyTest(void)
     {
-        btree_key_t src;
+        BtreeKey src;
         ham_key_t dest;
         memset(&src, 0, sizeof(src));
         memset(&dest, 0, sizeof(dest));
 
-        key_set_ptr(&src, 0x12345);
-        key_set_size(&src, 1);
-        key_set_flags(&src, 0);
+        src.set_ptr(0x12345);
+        src.set_size(1);
+        src.set_flags(0);
         src._key[0]='a';
 
         BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
@@ -150,17 +150,17 @@ public:
     void copyKeyInt2PubSmallTest(void)
     {
         char buffer[128];
-        btree_key_t *src=(btree_key_t *)buffer;
+        BtreeKey *src=(BtreeKey *)buffer;
         ham_key_t dest;
         memset(&dest, 0, sizeof(dest));
 
-        key_set_ptr(src, 0x12345);
-        key_set_size(src, 8);
-        key_set_flags(src, 0);
+        src->set_ptr(0x12345);
+        src->set_size(8);
+        src->set_flags(0);
         ::memcpy((char *)src->_key, "1234567\0", 8);
 
         BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
-        BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
+        BFC_ASSERT_EQUAL(dest.size, src->get_size());
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
         ((Environment *)m_env)->get_allocator()->free(dest.data);
     }
@@ -168,17 +168,17 @@ public:
     void copyKeyInt2PubFullTest(void)
     {
         char buffer[128];
-        btree_key_t *src=(btree_key_t *)buffer;
+        BtreeKey *src=(BtreeKey *)buffer;
         ham_key_t dest;
         memset(&dest, 0, sizeof(dest));
 
-        key_set_ptr(src, 0x12345);
-        key_set_size(src, 16);
-        key_set_flags(src, 0);
+        src->set_ptr(0x12345);
+        src->set_size(16);
+        src->set_flags(0);
         ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
         BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
-        BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
+        BFC_ASSERT_EQUAL(dest.size, src->get_size());
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
         ((Environment *)m_env)->get_allocator()->free(dest.data);

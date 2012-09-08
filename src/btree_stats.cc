@@ -272,9 +272,8 @@ BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
         m_perf_data.lower_bound_page_address = page->get_self();
         m_perf_data.lower_bound = ham_key_t();
 
-        btree_key_t *btk = node->get_key(m_db,
-                    m_perf_data.lower_bound_index);
-        m_lower_arena.resize(key_get_size(btk));
+        BtreeKey *btk = node->get_key(m_db, m_perf_data.lower_bound_index);
+        m_lower_arena.resize(btk->get_size());
         m_perf_data.lower_bound.data = m_lower_arena.get_ptr();
         m_perf_data.lower_bound.flags |= HAM_KEY_USER_ALLOC;
 
@@ -324,9 +323,8 @@ BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
         m_perf_data.upper_bound_page_address = page->get_self();
         m_perf_data.upper_bound = ham_key_t();
 
-        btree_key_t *btk = node->get_key(m_db,
-                    m_perf_data.upper_bound_index);
-        m_upper_arena.resize(key_get_size(btk));
+        BtreeKey *btk = node->get_key(m_db, m_perf_data.upper_bound_index);
+        m_upper_arena.resize(btk->get_size());
         m_perf_data.upper_bound.data = m_upper_arena.get_ptr();
         m_perf_data.upper_bound.flags |= HAM_KEY_USER_ALLOC;
 
@@ -475,8 +473,8 @@ BtreeStatistics::get_find_hints(ham_key_t *key, ham_u32_t flags)
    * right here that a match won't be forthcoming: KEY_NOT_FOUND will be your
    * thanks.
    */
-  ham_assert(!(key->_flags & KEY_IS_EXTENDED));
-  key->_flags &= ~KEY_IS_EXTENDED;
+  ham_assert(!(key->_flags & BtreeKey::KEY_IS_EXTENDED));
+  key->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
 
   if (!dam_is_set(flags, HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)
       && m_perf_data.lower_bound_page_address
@@ -616,8 +614,8 @@ BtreeStatistics::get_insert_hints(ham_u32_t flags, Cursor *cursor,
    * The only advantage of manually specifying HAM_HINT_APPEND/_PREPEND is
    * that it can save you two key comparisons in here.
    */
-  ham_assert(!(key->_flags & KEY_IS_EXTENDED));
-  key->_flags &= ~KEY_IS_EXTENDED;
+  ham_assert(!(key->_flags & BtreeKey::KEY_IS_EXTENDED));
+  key->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
 
   if (!hints.try_fast_track) {
     OperationStatistics *opstats = get_op_data(HAM_OPERATION_STATS_INSERT);
@@ -752,8 +750,8 @@ BtreeStatistics::get_erase_hints(ham_u32_t flags, ham_key_t *key)
   BtreeStatistics::EraseHints hints = {flags, flags,
                     0, false, false, NULL, -1};
 
-  ham_assert(!(key->_flags & KEY_IS_EXTENDED));
-  key->_flags &= ~KEY_IS_EXTENDED;
+  ham_assert(!(key->_flags & BtreeKey::KEY_IS_EXTENDED));
+  key->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
 
   /* forget about deleting a key when it's out of bounds */
   if (m_perf_data.lower_bound_set) {

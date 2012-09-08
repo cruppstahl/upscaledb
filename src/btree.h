@@ -148,7 +148,7 @@ class BtreeBackend : public Backend
     int compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs);
 
     /**
-     * create a preliminary copy of an @ref btree_key_t key to a @ref ham_key_t
+     * create a preliminary copy of an @ref BtreeKey key to a @ref ham_key_t
      * in such a way that @ref db->compare_keys can use the data and optionally
      * call @ref db->get_extended_key on this key to obtain all key data, when
      * this is an extended key.
@@ -160,7 +160,7 @@ class BtreeBackend : public Backend
      * Used in conjunction with @ref btree_release_key_after_compare
      // TODO make this private
      */
-    ham_status_t prepare_key_for_compare(int which, btree_key_t *src,
+    ham_status_t prepare_key_for_compare(int which, BtreeKey *src,
                     ham_key_t *dest);
 
     /**
@@ -169,7 +169,7 @@ class BtreeBackend : public Backend
      * allocates memory unless HAM_KEY_USER_ALLOC is set
      // TODO make this private
      */
-    ham_status_t copy_key(const btree_key_t *source, ham_key_t *dest);
+    ham_status_t copy_key(const BtreeKey *source, ham_key_t *dest);
 
     /**
      * read a key
@@ -186,7 +186,7 @@ class BtreeBackend : public Backend
          // TODO make this private
          // TODO use arena; get rid of txn parameter
      */
-    ham_status_t read_key(Transaction *txn, btree_key_t *source,
+    ham_status_t read_key(Transaction *txn, BtreeKey *source,
                     ham_key_t *dest);
 
     /**
