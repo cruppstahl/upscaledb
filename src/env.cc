@@ -250,7 +250,7 @@ _local_fun_create(Environment *env, const char *filename,
     /* disable async flush if transactions are disabled or if it's an
      * in-memory database */
     if (flags&HAM_ENABLE_TRANSACTIONS
-            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH
             && !(flags&HAM_IN_MEMORY)) {
         env->set_worker_thread(new Worker(env));
     }
@@ -532,7 +532,7 @@ fail_with_fake_cleansing:
     /* disable async flush if transactions are disabled or if it's an
      * in-memory database */
     if (flags&HAM_ENABLE_TRANSACTIONS
-            && !(flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+            && flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH
             && !(flags&HAM_IN_MEMORY)) {
         env->set_worker_thread(new Worker(env));
     }

@@ -2269,12 +2269,10 @@ void disableAsyncFlushTest()
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_create_ex(db, "test.db",
-                                HAM_DISABLE_ASYNCHRONOUS_FLUSH, 0, 0));
+                        ham_create_ex(db, "test.db", 0, 0, 0));
         BFC_ASSERT_EQUAL(0,
                         ham_create_ex(db, "test.db",
-                                HAM_DISABLE_ASYNCHRONOUS_FLUSH|HAM_ENABLE_TRANSACTIONS,
-                                0, 0));
+                                HAM_ENABLE_TRANSACTIONS, 0, 0));
         BFC_ASSERT_EQUAL((Worker *)0,
                         ((Database *)db)->get_env()->get_worker_thread());
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

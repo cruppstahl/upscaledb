@@ -598,8 +598,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Database.
  *      This flag implies @ref HAM_ENABLE_RECOVERY.
- *     <li>@ref HAM_DISABLE_ASYNCHRONOUS_FLUSH</li> Disable asynchronous
- *      flush of committed Transactions. Enabled by default. Only
+ *     <li>@ref HAM_ENABLE_ASYNCHRONOUS_FLUSH</li> Enable asynchronous
+ *      flush of committed Transactions. Disabled by default. Only
  *      if Transactions are enabled.
  *    </ul>
  *
@@ -720,8 +720,8 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database.
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
- *     <li>@ref HAM_DISABLE_ASYNCHRONOUS_FLUSH</li> Disable asynchronous
- *      flush of committed Transactions. Enabled by default. Only
+ *     <li>@ref HAM_ENABLE_ASYNCHRONOUS_FLUSH</li> Enable asynchronous
+ *      flush of committed Transactions. Disabled by default. Only
  *      if Transactions are enabled.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
@@ -1588,7 +1588,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @ref ham_create, @ref ham_create_ex,
  * @ref ham_open, @ref ham_open_ex
  * This flag is non persistent. */
-#define HAM_DISABLE_ASYNCHRONOUS_FLUSH              0x00800000
+#define HAM_ENABLE_ASYNCHRONOUS_FLUSH               0x00800000
 
 /**
  * Returns the last error code

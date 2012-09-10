@@ -119,9 +119,9 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_DISABLE_VAR_KEYLEN;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_VAR_KEYLEN");
     }
-    if (flags & HAM_DISABLE_ASYNCHRONOUS_FLUSH) {
-        flags &= ~HAM_DISABLE_ASYNCHRONOUS_FLUSH;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_ASYNCHRONOUS_FLUSH");
+    if (flags & HAM_ENABLE_ASYNCHRONOUS_FLUSH) {
+        flags &= ~HAM_ENABLE_ASYNCHRONOUS_FLUSH;
+        buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_ASYNCHRONOUS_FLUSH");
     }
     if (flags & HAM_IN_MEMORY)
     {
@@ -619,7 +619,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |HAM_USE_BTREE
                         |HAM_DONT_LOCK
                         |HAM_DISABLE_VAR_KEYLEN
-                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_ENABLE_ASYNCHRONOUS_FLUSH
                         |HAM_RECORD_NUMBER
                         |HAM_SORT_DUPLICATES
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))
@@ -641,7 +641,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |HAM_USE_BTREE
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
-                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
+                        |HAM_ENABLE_ASYNCHRONOUS_FLUSH
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))));
         return (HAM_INV_PARAMETER);
     }
@@ -1088,9 +1088,9 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
-    if ((flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+    if ((flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH)
             && !(flags&HAM_ENABLE_TRANSACTIONS)) {
-        ham_trace(("flag HAM_DISABLE_ASYNCHRONOUS_FLUSH only allowed if "
+        ham_trace(("flag HAM_ENABLE_ASYNCHRONOUS_FLUSH only allowed if "
                 "Transactions are enabled"));
         return (HAM_INV_PARAMETER);
     }
@@ -1299,9 +1299,9 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
-    if ((flags&HAM_DISABLE_ASYNCHRONOUS_FLUSH)
+    if ((flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH)
             && !(flags&HAM_ENABLE_TRANSACTIONS)) {
-        ham_trace(("flag HAM_DISABLE_ASYNCHRONOUS_FLUSH only allowed if "
+        ham_trace(("flag HAM_ENABLE_ASYNCHRONOUS_FLUSH only allowed if "
                 "Transactions are enabled"));
         return (HAM_INV_PARAMETER);
     }

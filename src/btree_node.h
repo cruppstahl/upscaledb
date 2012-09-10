@@ -80,9 +80,12 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
     _ptr_left = ham_h2db_offset(o);
   }
 
-  /** get entry @a i of a btree node */
+  /** get entry @a i of a btree node
+   *
+   * note that this function does not check the boundaries (i.e. whether
+   * i <= get_count(), because some functions deliberately write to
+   * elements "after" get_count() */
   BtreeKey *get_key(Database *db, int i) {
-    ham_assert(i <= get_count());
     return ((BtreeKey *)&((const char *)_entries)
               [(db_get_keysize(db) + BtreeKey::ms_sizeof_overhead) * i]);
   }

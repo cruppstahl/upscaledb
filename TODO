@@ -93,6 +93,45 @@ x see Laurent's email on the mailing list
 
 x rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
 
+x continue with refacoring - indention, coding style, better design etc...
+    x backend.h
+
+    x hamsterdb_stats - make private, not public
+        x rename to statistics.h
+        x remove everything that's not required
+
+    x btree_stats.h
+        x remove everything that is not required
+        x namespace Btree::Statistics
+        x adjust coding style
+        x fix get_global_perf_data, db_get_perf_data
+    x btree_stats.cc
+        x adjust coding style
+        x move from db.h to btree.h
+        x should use arena for lower/upper bounds and use
+            HAM_KEY_USERALLOC when calling db->get_extended_key()
+
+    x btree.h
+        x remove namespace Btree
+        x Statistics -> BtreeStatistics
+        x rename btree_node_t -> BtreeNode (with getters/setters)
+        x move BtreeNode to btree_node.h
+        x remove global functions
+        x do not use btree_cursor_t in backend.h, only use Cursor
+    x btree.cc
+        x code formatting
+        x get rid of ham_bool_t
+        x replace db_get_keysize() with backend->get_keysize()
+
+    x btree_key.h
+        x code formatting
+        x rename btree_key_t -> BtreeKey (with getters/setters)
+        x Backend::read_key -> move to BtreeBackend? no, leave it
+        x all #defines -> enum
+        x db_get_int_key_header_size -> Backend::get_full_keysize(payload_size)
+    x btree_key.cc
+        x code formatting
+
 o involve everyone in decisions on the new interface
   Do you use any of the HAM_HINT_* flags?
     If yes, would it be very problematic if I would remove this functionality?
@@ -155,59 +194,28 @@ o flush in background (asynchronously)
         x required in .NET API
         x add unittests (needs error inducer?)
 
+    o default: async flush is OFF!
+        x change documentation in header file
+        x change the code
+        o add a few tests (w/ ham_env_flush)
+
+    o batch updates
+        o wait for 10 committed transactions OR 2 seconds (configurable
+            through parameters)
+        o unlock env->mutex after EVERY committed transaction (or even after
+            every single op?)
+
     o extend monster tests
         x with async flush
         x without async flush
         o extend/run performance test
         o run monster tests
 
-    o batch updates
-        o wait for 10 committed transactions OR 2 seconds (configurable)
-        o unlock env->mutex after EVERY committed transaction (or even after
-            every single op?)
-
-    o based on performance tests: decide whether async flush is by default on
-        or off
+    o documentation
+        o tutorial
+        o faq
 
 o continue with refacoring - indention, coding style, better design etc...
-    x backend.h
-
-    x hamsterdb_stats - make private, not public
-        x rename to statistics.h
-        x remove everything that's not required
-
-    x btree_stats.h
-        x remove everything that is not required
-        x namespace Btree::Statistics
-        x adjust coding style
-        x fix get_global_perf_data, db_get_perf_data
-    x btree_stats.cc
-        x adjust coding style
-        x move from db.h to btree.h
-        x should use arena for lower/upper bounds and use
-            HAM_KEY_USERALLOC when calling db->get_extended_key()
-
-    x btree.h
-        x remove namespace Btree
-        x Statistics -> BtreeStatistics
-        x rename btree_node_t -> BtreeNode (with getters/setters)
-        x move BtreeNode to btree_node.h
-        x remove global functions
-        x do not use btree_cursor_t in backend.h, only use Cursor
-    x btree.cc
-        x code formatting
-        x get rid of ham_bool_t
-        x replace db_get_keysize() with backend->get_keysize()
-
-    x btree_key.h
-        x code formatting
-        x rename btree_key_t -> BtreeKey (with getters/setters)
-        x Backend::read_key -> move to BtreeBackend? no, leave it
-        x all #defines -> enum
-        x db_get_int_key_header_size -> Backend::get_full_keysize(payload_size)
-    x btree_key.cc
-        x code formatting
-
     o btree_check.cc
         o improve BtreeCheckAction; use it as template for enum, find, etc
         o remove scratchpad, use member variables

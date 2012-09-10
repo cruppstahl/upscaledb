@@ -84,7 +84,6 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(m_env, BFC_OPATH(".test"),
                     HAM_ENABLE_DUPLICATES
-                        |HAM_DISABLE_ASYNCHRONOUS_FLUSH
                         |HAM_ENABLE_RECOVERY
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0,
@@ -884,8 +883,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH
-                        | HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
@@ -902,8 +900,7 @@ public:
         ham_env_new(&env);
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH
-                        | HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         ham_txn_t *txn;
         ham_key_t key;
         ham_record_t rec;
@@ -927,8 +924,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH
-                        | HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
@@ -950,8 +946,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_create(m_db, BFC_OPATH(".test"),
-                    HAM_DISABLE_ASYNCHRONOUS_FLUSH
-                        | HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
@@ -974,8 +969,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_DISABLE_ASYNCHRONOUS_FLUSH
-                        | HAM_ENABLE_TRANSACTIONS, 0644));
+                        HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
