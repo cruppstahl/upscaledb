@@ -580,7 +580,7 @@ class Environment
     }
 
     /** flushes the committed transactions to disk */
-    ham_status_t flush_committed_txns(bool dontlock);
+    ham_status_t flush_committed_txns(bool dontlock, bool only_one = false);
 
     /** get the mutex */
     Mutex &get_mutex() {
@@ -609,6 +609,22 @@ class Environment
 
     /** retrieves and resets the Worker thread's error */
     ham_status_t get_and_reset_worker_error();
+
+    /** get number of committed txns which were not yet flushed to disk */
+    int get_committed_txns_count() {
+      return (m_committed_txns_count);
+    }
+
+    /** increase number of committed txns which were not yet flushed to disk */
+    void inc_committed_txns_count() {
+      ++m_committed_txns_count;
+    }
+
+    /** decrease number of committed txns which were not yet flushed to disk */
+    void dec_committed_txns_count() {
+      ham_assert(m_committed_txns_count > 0);
+      --m_committed_txns_count;
+    }
 
   private:
     /** a mutex for this Environment */
@@ -699,6 +715,9 @@ class Environment
 
     /** the worker thread for flushing committed Transactions */
     Worker *m_worker_thread;
+
+    /** count committed transactions which were not yet flushed to disk */
+    int m_committed_txns_count;
 };
 
 /**

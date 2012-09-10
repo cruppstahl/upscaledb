@@ -134,7 +134,8 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
         BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
         BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
-        BFC_REGISTER_TEST(HamsterdbTest, disableAsyncFlushTest);
+        BFC_REGISTER_TEST(HamsterdbTest, enableAsyncFlushTest);
+        BFC_REGISTER_TEST(HamsterdbTest, asyncFlushTest);
         BFC_REGISTER_TEST(HamsterdbTest, asynchronousErrorTest);
     }
 
@@ -559,66 +560,65 @@ public:
     }
 
 
-static int HAM_CALLCONV my_prefix_compare_func_u32(ham_db_t *db,
+    static int HAM_CALLCONV my_prefix_compare_func_u32(ham_db_t *db,
                                   const ham_u8_t *lhs, ham_size_t lhs_length,
                                   ham_size_t lhs_real_length,
                                   const ham_u8_t *rhs, ham_size_t rhs_length,
                                   ham_size_t rhs_real_length)
-{
-    ham_s32_t *l = (ham_s32_t *)lhs;
-    ham_s32_t *r = (ham_s32_t *)rhs;
-    ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
-
-    ham_assert(lhs);
-    ham_assert(rhs);
-
-    len /= 4;
-    while (len > 0)
     {
-        if (*l < *r)
-            return -1;
-        else if (*l > *r)
-            return +1;
-        len--;
-        l++;
-        r++;
+        ham_s32_t *l = (ham_s32_t *)lhs;
+        ham_s32_t *r = (ham_s32_t *)rhs;
+        ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
+    
+        ham_assert(lhs);
+        ham_assert(rhs);
+    
+        len /= 4;
+        while (len > 0)
+        {
+            if (*l < *r)
+                return -1;
+            else if (*l > *r)
+                return +1;
+            len--;
+            l++;
+            r++;
+        }
+        return HAM_PREFIX_REQUEST_FULLKEY;
     }
-    return HAM_PREFIX_REQUEST_FULLKEY;
-}
 
-
-static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
+    static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                                   const ham_u8_t *lhs, ham_size_t lhs_length,
                                   const ham_u8_t *rhs, ham_size_t rhs_length)
-{
-    ham_s32_t *l = (ham_s32_t *)lhs;
-    ham_s32_t *r = (ham_s32_t *)rhs;
-    ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
+    {
+        ham_s32_t *l = (ham_s32_t *)lhs;
+        ham_s32_t *r = (ham_s32_t *)rhs;
+        ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
 
-    ham_assert(lhs);
-    ham_assert(rhs);
+        ham_assert(lhs);
+        ham_assert(rhs);
 
-    len /= 4;
-    while (len > 0)
-    {
-        if (*l < *r)
-            return -1;
-        else if (*l > *r)
-            return +1;
-        len--;
-        l++;
-        r++;
+        len /= 4;
+        while (len > 0)
+        {
+            if (*l < *r)
+                return -1;
+            else if (*l > *r)
+                return +1;
+            len--;
+            l++;
+            r++;
+        }
+        if (lhs_length<rhs_length)
+        {
+            return (-1);
+        }
+        else if (rhs_length<lhs_length)
+        {
+            return (+1);
+        }
+        return 0;
     }
-    if (lhs_length<rhs_length)
-    {
-        return (-1);
-    }
-    else if (rhs_length<lhs_length)
-    {
-        return (+1);
-    }
-    return 0;
-}
 
     void nearFindStressTest(void)
     {
@@ -2168,8 +2168,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ham_delete(db);
     }
 
-void sortDuplicatesWithTxnTest(void)
-{
+    void sortDuplicatesWithTxnTest(void)
+    {
         ham_db_t *db;
         ham_env_t *env;
 
@@ -2210,10 +2210,10 @@ void sortDuplicatesWithTxnTest(void)
 
         ham_delete(db);
         ham_env_delete(env);
-}
+    }
 
-void openVersion1x(void)
-{
+    void openVersion1x(void)
+    {
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
@@ -2222,10 +2222,10 @@ void openVersion1x(void)
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
-}
+    }
 
-void overwriteLogDirectoryTest()
-{
+    void overwriteLogDirectoryTest()
+    {
         ham_db_t *db;
         ham_parameter_t ps[]={
                 {HAM_PARAM_LOG_DIRECTORY, (ham_u64_t)"data"},
@@ -2261,15 +2261,16 @@ void overwriteLogDirectoryTest()
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
-}
+    }
 
-void disableAsyncFlushTest()
-{
+    void enableAsyncFlushTest()
+    {
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_create_ex(db, "test.db", 0, 0, 0));
+                        ham_create_ex(db, "test.db",
+                                HAM_ENABLE_ASYNCHRONOUS_FLUSH, 0, 0));
         BFC_ASSERT_EQUAL(0,
                         ham_create_ex(db, "test.db",
                                 HAM_ENABLE_TRANSACTIONS, 0, 0));
@@ -2286,22 +2287,52 @@ void disableAsyncFlushTest()
 
         BFC_ASSERT_EQUAL(0,
                         ham_create_ex(db, "test.db",
-                                HAM_ENABLE_TRANSACTIONS,
+                                HAM_ENABLE_ASYNCHRONOUS_FLUSH
+                                | HAM_ENABLE_TRANSACTIONS,
                                 0, 0));
         BFC_ASSERT(((Database *)db)->get_env()->get_worker_thread() != 0);
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
-}
+    }
 
-void asynchronousErrorTest()
-{
+    void asyncFlushTest()
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0,
+                        ham_create_ex(db, "test.db",
+                                HAM_ENABLE_ASYNCHRONOUS_FLUSH
+                                | HAM_ENABLE_TRANSACTIONS,
+                                0, 0));
+
+        for (int i = 0; i < 10000; i++) {
+            ham_key_t key = {0};
+            key.data = &i;
+            key.size = sizeof(i);
+            ham_record_t rec = {0};
+            rec.data = &i;
+            rec.size = sizeof(i);
+
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+            /* periodically call ham_flush */
+            if (i % 17 == 0)
+              BFC_ASSERT_EQUAL(0, ham_env_flush(ham_get_env(db), 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void asynchronousErrorTest()
+    {
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(db, "test.db",
-                        HAM_ENABLE_TRANSACTIONS,
+                        HAM_ENABLE_ASYNCHRONOUS_FLUSH | HAM_ENABLE_TRANSACTIONS,
                         0, 0));
 
         ErrorInducer *ei=new ErrorInducer();

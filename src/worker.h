@@ -48,9 +48,11 @@ class Worker
 
       while (!m_exit_requested) {
         m_cond.wait(lock);
+
         if (m_exit_requested)
           return;
-        ham_status_t st = m_env->flush_committed_txns(false);
+
+        ham_status_t st = m_env->flush_committed_txns(false, true);
         if (st) {
           ScopedLock lock2(m_last_error_mutex);
           m_last_error = st;

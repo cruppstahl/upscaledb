@@ -66,7 +66,7 @@ Environment::Environment()
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
     m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this),
-    m_worker_thread(0)
+    m_worker_thread(0), m_committed_txns_count(0)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -1522,17 +1522,22 @@ next_op:
 }
 
 static ham_status_t
-env_flush_committed_txns_nolock(Environment *env)
+env_flush_committed_txns_nolock(Environment *env, bool only_one = false)
 {
     Transaction *oldest;
+    ham_u64_t last_id = 0;
 
     /* always get the oldest transaction; if it was committed: flush
      * it; if it was aborted: discard it; otherwise return */
     while ((oldest=env->get_oldest_txn())) {
         if (txn_get_flags(oldest)&TXN_STATE_COMMITTED) {
+            if (last_id)
+                ham_assert(last_id != txn_get_id(oldest));
+            last_id = txn_get_id(oldest);
             ham_status_t st=__flush_txn(env, oldest);
             if (st)
                 return (st);
+            env->dec_committed_txns_count();
         }
         else if (txn_get_flags(oldest)&TXN_STATE_ABORTED) {
             ; /* nop */
@@ -1545,6 +1550,9 @@ env_flush_committed_txns_nolock(Environment *env)
 
         /* and free the whole memory */
         txn_free(oldest);
+
+        if (only_one)
+            break;
     }
 
     /* clear the changeset; if the loop above was not entered or the
@@ -1555,13 +1563,28 @@ env_flush_committed_txns_nolock(Environment *env)
 }
 
 ham_status_t
-Environment::flush_committed_txns(bool dontlock)
+Environment::flush_committed_txns(bool dontlock, bool only_one)
 {
     ScopedLock lock;
     if (!dontlock)
         lock=ScopedLock(m_mutex);
 
-    return (env_flush_committed_txns_nolock(this));
+    while (true) {
+        ham_status_t st = env_flush_committed_txns_nolock(this, only_one);
+        if (st)
+            return (st);
+
+        if (get_committed_txns_count() == 0)
+            return (st);
+
+        // briefly release the lock
+        if (!dontlock) {
+            lock.unlock();
+            lock.lock();
+        }
+    }
+
+    return (0);
 }
 
 ham_status_t
