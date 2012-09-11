@@ -95,11 +95,9 @@ x rename HAM_IN_MEMORY_DB to HAM_IN_MEMORY
 
 x continue with refacoring - indention, coding style, better design etc...
     x backend.h
-
     x hamsterdb_stats - make private, not public
         x rename to statistics.h
         x remove everything that's not required
-
     x btree_stats.h
         x remove everything that is not required
         x namespace Btree::Statistics
@@ -110,7 +108,6 @@ x continue with refacoring - indention, coding style, better design etc...
         x move from db.h to btree.h
         x should use arena for lower/upper bounds and use
             HAM_KEY_USERALLOC when calling db->get_extended_key()
-
     x btree.h
         x remove namespace Btree
         x Statistics -> BtreeStatistics
@@ -122,7 +119,6 @@ x continue with refacoring - indention, coding style, better design etc...
         x code formatting
         x get rid of ham_bool_t
         x replace db_get_keysize() with backend->get_keysize()
-
     x btree_key.h
         x code formatting
         x rename btree_key_t -> BtreeKey (with getters/setters)
@@ -131,6 +127,11 @@ x continue with refacoring - indention, coding style, better design etc...
         x db_get_int_key_header_size -> Backend::get_full_keysize(payload_size)
     x btree_key.cc
         x code formatting
+    x btree_check.cc
+        x improve BtreeCheckAction; use it as template for enum, find, etc
+        x constructor takes BtreeBackend
+    x btree_enum.cc
+        x remove scratchpad, use member variables
 
 o involve everyone in decisions on the new interface
   Do you use any of the HAM_HINT_* flags?
@@ -216,15 +217,11 @@ o flush in background (asynchronously)
         o faq
 
 o continue with refacoring - indention, coding style, better design etc...
-    o btree_check.cc
-        o improve BtreeCheckAction; use it as template for enum, find, etc
-        o remove scratchpad, use member variables
-        o replace db_get_keysize() with backend->get_keysize()
-    o btree_enum.cc
-        o remove scratchpad, use member variables
-        o replace db_get_keysize() with backend->get_keysize()
     o btree_find.cc
         o remove scratchpad, use member variables
+        o BtreeFindAction is a friend of BtreeBackend
+        o always use a cursor, and when doing approx matching then simply
+            move left or right with that cursor
         o replace db_get_keysize() with backend->get_keysize()
     o btree_insert.cc
         o split when going down

@@ -48,7 +48,7 @@ typedef struct
     Database *db;               /* [in] */
     ham_u32_t flags;            /* [in] */
     ham_offset_t total_count;   /* [out] */
-    ham_bool_t is_leaf;         /* [scratch] */
+    bool is_leaf;         /* [scratch] */
 }  calckeys_context_t;
 
 /*
@@ -69,7 +69,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case HAM_ENUM_EVENT_PAGE_START:
-        c->is_leaf=*(ham_bool_t *)param2;
+        c->is_leaf=*(bool *)param2;
         break;
 
     case HAM_ENUM_EVENT_PAGE_STOP:
@@ -120,7 +120,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 typedef struct free_cb_context_t
 {
     Database *db;
-    ham_bool_t is_leaf;
+    bool is_leaf;
 
 } free_cb_context_t;
 
@@ -141,7 +141,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case HAM_ENUM_EVENT_PAGE_START:
-        c->is_leaf=*(ham_bool_t *)param2;
+        c->is_leaf=*(bool *)param2;
         break;
 
     case HAM_ENUM_EVENT_PAGE_STOP:
@@ -2798,7 +2798,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     /* in-memory-database: free all allocated blobs */
     if (be && be->is_active() && env->get_flags()&HAM_IN_MEMORY) {
         Transaction *txn;
-        free_cb_context_t context;
+        free_cb_context_t context = {0};
         context.db=m_db;
         st=txn_begin(&txn, env, 0, HAM_TXN_TEMPORARY);
         if (st && st2==0)
