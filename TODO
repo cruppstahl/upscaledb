@@ -132,30 +132,32 @@ x continue with refacoring - indention, coding style, better design etc...
         x constructor takes BtreeBackend
     x btree_enum.cc
         x remove scratchpad, use member variables
+    x btree_find.cc
+        x remove scratchpad, use member variables
 
 o involve everyone in decisions on the new interface
-  Do you use any of the HAM_HINT_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use any of the HAM_DAM_* flags?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use AES encryption?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use zlib compression?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use other file filters/record filters?
-  Do you use any of the functions/structures in hamsterdb_stats.h?
-  Do you use any of the functions/structures in hamsterdb_int.h?
-    ham_get_keycount_per_page
-    TODO @@@ - be more specific
-  Do you use to insert duplicate keys at exact positions (i.e. use one of
+    Do you use any of the HAM_HINT_* flags?
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use any of the HAM_DAM_* flags?
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use AES encryption?
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use zlib compression?
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use other file filters/record filters?
+    Do you use any of the functions/structures in hamsterdb_stats.h?
+    Do you use any of the functions/structures in hamsterdb_int.h?
+      ham_get_keycount_per_page
+      TODO @@@ - be more specific
+    Do you use to insert duplicate keys at exact positions (i.e. use one of
         HAM_CURSOR_INSERT_BEFORE, HAM_CURSOR_INSERT_AFTER,
         HAM_CURSOR_INSERT_FIRST, HAM_CURSOR_INSERT_LAST)?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use ham_cursor_move in combination with HAM_SKIP_DUPLICATES
         or HAM_ONLY_DUPLICATES?
-    If yes, would it be very problematic if I would remove this functionality?
-  Do you use sorted duplicates?
-    If yes, would it be very problematic if I would remove this functionality?
+      If yes, would it be very problematic if I would remove this functionality?
+    Do you use sorted duplicates?
+      If yes, would it be very problematic if I would remove this functionality?
 
 o clean up interface
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
@@ -236,12 +238,7 @@ o continue with refacoring - indention, coding style, better design etc...
         o replace db_get_keysize() with backend->get_keysize()
     o btree_find.cc
         o remove scratchpad, use member variables
->>>>>>> async flush is now disabled by default
-=======
-    o btree_find.cc
-        o remove scratchpad, use member variables
         o BtreeFindAction is a friend of BtreeBackend
->>>>>>> refactoring of btree_enum.cc, btree_check.cc
         o always use a cursor, and when doing approx matching then simply
             move left or right with that cursor
         o replace db_get_keysize() with backend->get_keysize()
@@ -252,6 +249,7 @@ o continue with refacoring - indention, coding style, better design etc...
     o btree_erase.cc
         o replace db_get_keysize() with backend->get_keysize()
         o remove scratchpad, use member variables
+        o try to simplify the whole flow
 
     o btree_cursor.cc
     o btree_cursor.h
@@ -337,6 +335,9 @@ o clean up the "close" functions
     o Cursor::close: currently (nearly) empty; merge with ~Cursor and
         Database::close_cursor()
     o do not have st2/st; just fail if there's a serious problem
+
+o BtreeFindAction: always use a cursor, and when doing approx matching
+    then simply move left or right with that cursor
 
 o python API - update and integrate
     o rewrite with boost::python??

@@ -657,7 +657,7 @@ btree_cursor_find(btree_cursor_t *c, ham_key_t *key, ham_record_t *record,
     if (st)
         return (st);
 
-    st=be->do_find(txn, (Cursor *)c, key, record, flags);
+    st=be->do_find(txn, btree_cursor_get_parent(c), key, record, flags);
     if (st) {
         /* cursor is now NIL */
         return (st);

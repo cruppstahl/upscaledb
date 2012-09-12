@@ -265,8 +265,7 @@ class Backend
     /** implementation for find() */
     // TODO make this protected
     virtual ham_status_t do_find(Transaction *txn, Cursor *cursor,
-                            ham_key_t *key, ham_record_t *record,
-                            ham_u32_t flags) = 0;
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
 
     /**
      * read a key
