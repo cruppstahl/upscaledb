@@ -243,9 +243,9 @@ o continue with refacoring - indention, coding style, better design etc...
             move left or right with that cursor
         o replace db_get_keysize() with backend->get_keysize()
     o btree_insert.cc
+        o remove scratchpad, use member variables
         o split when going down
         o replace db_get_keysize() with backend->get_keysize()
-        o remove scratchpad, use member variables
     o btree_erase.cc
         o replace db_get_keysize() with backend->get_keysize()
         o remove scratchpad, use member variables

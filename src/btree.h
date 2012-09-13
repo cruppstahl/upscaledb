@@ -213,10 +213,6 @@ class BtreeBackend : public Backend
     /** close the backend */
     virtual void do_close(ham_u32_t flags);
 
-    /** insert (or update) a key in the index */
-    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key,
-                     ham_record_t *record, ham_u32_t flags);
-
     /** erase a key in the index */
     virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key,
                      ham_u32_t flags);

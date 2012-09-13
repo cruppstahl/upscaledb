@@ -146,7 +146,7 @@ class Backend
      */
     ham_status_t insert(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags) {
-      return (do_insert(txn, key, record, flags));
+      return (do_insert_cursor(txn, key, record, 0, flags));
     }
 
     /**
@@ -308,10 +308,6 @@ class Backend
 
     /** implementation for close() */
     virtual void do_close(ham_u32_t flags) = 0;
-
-    /** implementation for insert() */
-    virtual ham_status_t do_insert(Transaction *txn, ham_key_t *key,
-                            ham_record_t *record, ham_u32_t flags) = 0;
 
     /** implementation for erase() */
     virtual ham_status_t do_erase(Transaction *txn, ham_key_t *key,
