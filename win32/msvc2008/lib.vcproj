@@ -68,7 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x86_debug.lib ..\..\..\hamsterdb-alien\boost\msvc2008\x86\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.0.4.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.0.5.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -136,7 +136,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x64_debug.lib ..\..\..\hamsterdb-alien\boost\msvc2008\x64\libboost_thread-vc90-mt-gd-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.0.4.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.0.5.lib"
 				AdditionalLibraryDirectories=""
 			/>
 			<Tool
@@ -201,7 +201,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x86.lib ..\..\..\hamsterdb-alien\boost\msvc2008\x86\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.0.4.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.0.5.lib"
 				AdditionalLibraryDirectories=""
 				SuppressStartupBanner="true"
 			/>
@@ -268,7 +268,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x64.lib ..\..\..\hamsterdb-alien\boost\msvc2008\x64\libboost_thread-vc90-mt-1_49.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.0.4.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.0.5.lib"
 				AdditionalLibraryDirectories="..\..\hamsterdb-alien\boost\x64"
 			/>
 			<Tool

@@ -280,7 +280,7 @@ main(int argc, char **argv)
     st=ham_env_new(&env);
     if (st!=HAM_SUCCESS)
         error("ham_env_new", st);
-    st=ham_env_open(env, filename, HAM_READ_ONLY | HAM_ENABLE_TRANSACTIONS);
+    st=ham_env_open(env, filename, HAM_READ_ONLY);
     if (st==HAM_FILE_NOT_FOUND) {
         printf("File `%s' not found or unable to open it\n", filename);
         return (-1);
