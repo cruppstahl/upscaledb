@@ -263,9 +263,9 @@ BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
        * (slot == 0). This 'copy anyway' approach saves us one costly key
        * comparison.
        */
-      if (m_perf_data.lower_bound_index != 0
-           || m_perf_data.lower_bound_page_address != page->get_self()
-           || slot == 0) {
+      if (slot == 0
+          && (m_perf_data.lower_bound_index != 0
+               || m_perf_data.lower_bound_page_address != page->get_self())) {
         /* only set when not done already */
         m_perf_data.lower_bound_set = true;
         m_perf_data.lower_bound_index = 0;
@@ -294,8 +294,8 @@ BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
           ham_assert(m_perf_data.lower_bound_page_address != 0);
         }
         if (op == HAM_OPERATION_STATS_INSERT)
-           m_perf_data.last_insert_was_prepend = 1;
-       }
+          m_perf_data.last_insert_was_prepend = 1;
+      }
     }
   }
 
@@ -313,10 +313,9 @@ BtreeStatistics::update_any_bound(int op, Page *page, ham_key_t *key,
        * some way (slot == size-1). This 'copy anyway' approach
        * saves us one costly key comparison.
        */
-      if (m_perf_data.upper_bound_index
-            != (ham_u32_t)node->get_count() - 1
-          || m_perf_data.upper_bound_page_address != page->get_self()
-          || (ham_u16_t)slot == node->get_count() - 1) {
+      if (((ham_u16_t)slot == node->get_count() - 1)
+          && (m_perf_data.upper_bound_index != (ham_u32_t)node->get_count() - 1
+            || m_perf_data.upper_bound_page_address != page->get_self())) {
         /* only set when not done already */
         m_perf_data.upper_bound_set = true;
         m_perf_data.upper_bound_index = node->get_count() - 1;

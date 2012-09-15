@@ -197,16 +197,10 @@ o flush in background (asynchronously)
         x required in .NET API
         x add unittests (needs error inducer?)
 
-    o default: async flush is OFF!
+    x default: async flush is OFF!
         x change documentation in header file
         x change the code
-        o add a few tests (w/ ham_env_flush)
 
-    o batch updates
-        o wait for 10 committed transactions OR 2 seconds (configurable
-            through parameters)
-        o unlock env->mutex after EVERY committed transaction (or even after
-            every single op?)
     x default: async flush is OFF!
         x change documentation in header file
         x change the code
@@ -223,25 +217,16 @@ o flush in background (asynchronously)
         o tutorial
         o faq
 
+===============================
+
+o a lot of monster tests fail with --use-transactions=5
+    ./test --use-transactions=5 --verbose=1 --verbose=1 220.tst 
+    o fix this
+    o add --use-transactions=5 to monster.sh
+
+===============================
+
 o continue with refacoring - indention, coding style, better design etc...
-    o btree_find.cc
-        o remove scratchpad, use member variables
-        o BtreeFindAction is a friend of BtreeBackend
-    o btree_check.cc
-        o improve BtreeCheckAction; use it as template for enum, find, etc
-        o constructor takes BtreeBackend
-        o BtreeCheckAction is a friend of BtreeBackend
-        o remove scratchpad, use member variables
-        o replace db_get_keysize() with backend->get_keysize()
-    o btree_enum.cc
-        o remove scratchpad, use member variables
-        o replace db_get_keysize() with backend->get_keysize()
-    o btree_find.cc
-        o remove scratchpad, use member variables
-        o BtreeFindAction is a friend of BtreeBackend
-        o always use a cursor, and when doing approx matching then simply
-            move left or right with that cursor
-        o replace db_get_keysize() with backend->get_keysize()
     o btree_insert.cc
         o remove scratchpad, use member variables
         o split when going down

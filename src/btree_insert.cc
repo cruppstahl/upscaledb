@@ -49,6 +49,8 @@ void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
  */
 typedef struct insert_scratchpad_t
 {
+    bool has_split;
+
     /**
      * the backend pointer
      */
@@ -83,7 +85,7 @@ typedef struct insert_scratchpad_t
 } insert_scratchpad_t;
 
 /**
- * @ref insert_recursive B+-tree split requirement signaling
+ * @ref insert_recursive() B+-tree split requirement signaling
  * return value.
  *
  * @note Shares the value space with the error codes
@@ -95,14 +97,6 @@ typedef struct insert_scratchpad_t
  * flags for __insert_nosplit()
  */
 /* #define NOFLUSH   0x1000    -- unused */
-
-/**
- * this function inserts a key in a page
- */
-static ham_status_t
-__insert_in_page(Page *page, ham_key_t *key,
-                ham_offset_t rid, insert_scratchpad_t *scratchpad,
-                BtreeStatistics::InsertHints *hints);
 
 /**
  * insert a key in a page; the page MUST have free slots
@@ -119,60 +113,6 @@ static ham_status_t
 __insert_split(Page *page, ham_key_t *key,
                 ham_offset_t rid, insert_scratchpad_t *scratchpad,
                 BtreeStatistics::InsertHints *hints);
-
-static ham_status_t
-__insert_in_page(Page *page, ham_key_t *key,
-                ham_offset_t rid, insert_scratchpad_t *scratchpad,
-                BtreeStatistics::InsertHints *hints)
-{
-    ham_status_t st;
-    ham_size_t maxkeys=scratchpad->be->get_maxkeys();
-    BtreeNode *node=BtreeNode::from_page(page);
-
-    ham_assert(maxkeys>1);
-    ham_assert(hints->force_append == false);
-    ham_assert(hints->force_prepend == false);
-
-    /*
-     * if we can insert the new key without splitting the page:
-     * __insert_nosplit() will do the work for us
-     */
-    if (node->get_count()<maxkeys) {
-        st=__insert_nosplit(page, scratchpad->txn, key, rid,
-                scratchpad->record, scratchpad->cursor, hints);
-        scratchpad->cursor=0; /* don't overwrite cursor if __insert_nosplit
-                                 is called again */
-        return (st);
-    }
-
-    /*
-     * otherwise, we have to split the page.
-     * but BEFORE we split, we check if the key already exists!
-     */
-    if (node->is_leaf()) {
-        ham_s32_t idx;
-
-        idx = scratchpad->be->find_leaf(page, key, HAM_FIND_EXACT_MATCH);
-        /* key exists! */
-        if (idx>=0) {
-            ham_assert((hints->flags & (HAM_DUPLICATE_INSERT_BEFORE
-                                |HAM_DUPLICATE_INSERT_AFTER
-                                |HAM_DUPLICATE_INSERT_FIRST
-                                |HAM_DUPLICATE_INSERT_LAST))
-                    ? (hints->flags & HAM_DUPLICATE)
-                    : 1);
-            if (!(hints->flags & (HAM_OVERWRITE | HAM_DUPLICATE)))
-                return (HAM_DUPLICATE_KEY);
-            st=__insert_nosplit(page, scratchpad->txn, key, rid,
-                    scratchpad->record, scratchpad->cursor, hints);
-            /* don't overwrite cursor if __insert_nosplit is called again */
-            scratchpad->cursor=0;
-            return (st);
-        }
-    }
-
-    return (__insert_split(page, key, rid, scratchpad, hints));
-}
 
 static ham_status_t
 __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
@@ -584,6 +524,10 @@ __insert_split(Page *page, ham_key_t *key,
     if (g_BTREE_INSERT_SPLIT_HOOK)
         g_BTREE_INSERT_SPLIT_HOOK();
 
+    hints->try_fast_track = false;
+    hints->processed_leaf_page = 0;
+    hints->processed_slot = 0;
+    scratchpad->has_split = true;
     return (SPLIT);
 
 fail_dramatically:
@@ -615,7 +559,7 @@ class BtreeInsertAction
     BtreeInsertAction(BtreeBackend *backend, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
-        m_record(record), m_flags(flags) {
+        m_record(record), m_flags(flags), m_has_split(false) {
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
         ham_assert(m_backend->get_db() == btree_cursor_get_db(m_cursor));
@@ -642,6 +586,7 @@ class BtreeInsertAction
       else {
         m_hints.force_append = false;
         m_hints.force_prepend = false;
+        m_hints.try_fast_track = false;
         st = insert_cursor();
       }
 
@@ -649,11 +594,14 @@ class BtreeInsertAction
         stats->update_failed(HAM_OPERATION_STATS_INSERT, m_hints.try_fast_track);
       else {
         // TODO merge these two calls
-        stats->update_succeeded(HAM_OPERATION_STATS_INSERT,
-                m_hints.processed_leaf_page, m_hints.try_fast_track);
-        stats->update_any_bound(HAM_OPERATION_STATS_INSERT,
-                m_hints.processed_leaf_page, m_key, m_hints.flags,
-                m_hints.processed_slot);
+        if (m_hints.processed_leaf_page) {
+          stats->update_succeeded(HAM_OPERATION_STATS_INSERT,
+                  m_hints.processed_leaf_page, m_hints.try_fast_track);
+          if (!m_has_split)
+            stats->update_any_bound(HAM_OPERATION_STATS_INSERT,
+                    m_hints.processed_leaf_page, m_key, m_hints.flags,
+                    m_hints.processed_slot);
+        }
       }
 
       return (st);
@@ -806,6 +754,7 @@ class BtreeInsertAction
       scratchpad.record = m_record;
       scratchpad.cursor = m_cursor;
       scratchpad.txn = m_txn;
+      scratchpad.has_split = false;
 
       /* get the root-page...  */
       st = db_fetch_page(&root, db, m_backend->get_rootpage(), 0);
@@ -832,8 +781,8 @@ class BtreeInsertAction
         BtreeNode *node = BtreeNode::from_page(newroot);
         node->set_ptr_left(m_backend->get_rootpage());
         st = __insert_nosplit(newroot, m_txn, &scratchpad.key,
-                    scratchpad.rid, m_record, m_cursor, &m_hints);
-        ham_assert(!(m_key->flags & HAM_KEY_USER_ALLOC));
+                    scratchpad.rid, m_record, 0, &m_hints);
+        ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC));
         /* don't overwrite cursor if __insert_nosplit is called again */
         m_cursor = scratchpad.cursor = 0;
         if (st) {
@@ -864,6 +813,7 @@ class BtreeInsertAction
       if (scratchpad.key.data)
         env->get_allocator()->free(scratchpad.key.data);
 
+      m_has_split = scratchpad.has_split;
       return (st);
     }
 
@@ -879,7 +829,7 @@ class BtreeInsertAction
 
       /* if we've reached a leaf: insert the key */
       if (node->is_leaf())
-        return (__insert_in_page(page, key, rid, scratchpad, &m_hints));
+        return (insert_in_page(page, key, rid, scratchpad));
 
       /* otherwise traverse the root down to the leaf */
       ham_status_t st = m_backend->find_internal(page, key, &child);
@@ -898,10 +848,14 @@ class BtreeInsertAction
         /* the child was split, and we have to insert a new key/rid-pair.  */
         case SPLIT:
           m_hints.flags |= HAM_OVERWRITE;
-          st = __insert_in_page(page, &scratchpad->key,
-                      scratchpad->rid, scratchpad, &m_hints);
+          m_cursor = scratchpad->cursor = 0;
+          st = insert_in_page(page, &scratchpad->key,
+                          scratchpad->rid, scratchpad);
           ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC));
           m_hints.flags = m_hints.original_flags;
+          m_hints.try_fast_track = false;
+          m_hints.processed_leaf_page = 0;
+          m_hints.processed_slot = 0;
           break;
         /* every other return value is unexpected and shouldn't happen */
         default:
@@ -909,6 +863,58 @@ class BtreeInsertAction
       }
 
       return (st);
+    }
+
+    /**
+     * this function inserts a key in a page; if necessary, the page is split
+     */
+    ham_status_t insert_in_page(Page *page, ham_key_t *key,
+                ham_offset_t rid, insert_scratchpad_t *scratchpad) {
+      ham_status_t st;
+      ham_size_t maxkeys = m_backend->get_maxkeys();
+      BtreeNode *node = BtreeNode::from_page(page);
+
+      ham_assert(maxkeys > 1);
+      ham_assert(m_hints.force_append == false);
+      ham_assert(m_hints.force_prepend == false);
+
+      /*
+       * if we can insert the new key without splitting the page then
+       * insert_nosplit() will do the work for us
+       */
+      if (node->get_count() < maxkeys) {
+        st = __insert_nosplit(page, scratchpad->txn, key, rid,
+                scratchpad->record, scratchpad->cursor, &m_hints);
+        /* don't overwrite cursor if __insert_nosplit is called again */
+        m_cursor = scratchpad->cursor = 0;
+        return (st);
+      }
+
+      /*
+       * otherwise, we have to split the page.
+       * but BEFORE we split, we check if the key already exists!
+       */
+      if (node->is_leaf()) {
+        ham_s32_t idx = m_backend->find_leaf(page, key, HAM_FIND_EXACT_MATCH);
+        /* key exists! */
+        if (idx >= 0) {
+          ham_assert((m_hints.flags & (HAM_DUPLICATE_INSERT_BEFORE
+                                | HAM_DUPLICATE_INSERT_AFTER
+                                | HAM_DUPLICATE_INSERT_FIRST
+                                | HAM_DUPLICATE_INSERT_LAST))
+                    ? (m_hints.flags & HAM_DUPLICATE)
+                    : 1);
+          if (!(m_hints.flags & (HAM_OVERWRITE | HAM_DUPLICATE)))
+            return (HAM_DUPLICATE_KEY);
+          st=__insert_nosplit(page, scratchpad->txn, key, rid,
+                         scratchpad->record, scratchpad->cursor, &m_hints);
+          /* don't overwrite cursor if __insert_nosplit is called again */
+          m_cursor = scratchpad->cursor = 0;
+          return (st);
+        }
+      }
+
+      return (__insert_split(page, key, rid, scratchpad, &m_hints));
     }
 
 
@@ -935,6 +941,9 @@ class BtreeInsertAction
 
     /** statistical hints for this operation */
     BtreeStatistics::InsertHints m_hints;
+
+    /** true if there was an SMO */
+    bool m_has_split;
 };
 
 ham_status_t
