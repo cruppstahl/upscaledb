@@ -134,6 +134,17 @@ x continue with refacoring - indention, coding style, better design etc...
         x remove scratchpad, use member variables
     x btree_find.cc
         x remove scratchpad, use member variables
+    x btree_stats.cc
+        x many fields in the "hint" structures are currently not used
+        x if last insert is an append: try fast-track in next insert
+        x if last erase is at the end: try fast-track in next erase
+        x if last insert is an prepend: try fast-track in next insert
+        x if last erase is at the beginning: try fast-track in next erase
+        x if the last 5 operations (insert, erase or find) are on the same
+            page then try fast-track in the next operation
+        x unittest currently crashes
+        x there's a TODO in BtreeInsertAction
+        x also make sure that BtreeFindAction checks the hints
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
@@ -224,7 +235,6 @@ o a lot of monster tests fail with --use-transactions=5
     o fix this
     o add --use-transactions=5 to monster.sh
 
-===============================
 
 o continue with refacoring - indention, coding style, better design etc...
     o btree_insert.cc

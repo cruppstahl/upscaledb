@@ -455,7 +455,6 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInBtreeOverwrittenInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInTxnOverwrittenInTxnTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, findInTxnOverwrittenInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnKeyFromBtreeTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnKeyFromTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenKeyTest);

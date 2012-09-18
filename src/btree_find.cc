@@ -50,13 +50,7 @@ class BtreeFindAction
       Database *db = m_backend->get_db();
       BtreeNode *node;
       BtreeStatistics *stats = m_backend->get_statistics();
-      BtreeStatistics::FindHints hints = stats->get_find_hints(m_key, m_flags);
-
-      if (hints.key_is_out_of_bounds) {
-        stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                        hints.try_fast_track);
-        return (HAM_KEY_NOT_FOUND);
-      }
+      BtreeStatistics::FindHints hints = stats->get_find_hints(m_flags);
 
       if (hints.try_fast_track) {
         /*
@@ -68,17 +62,12 @@ class BtreeFindAction
          * should be discarded.
          */
         st = db_fetch_page(&page, db, hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
-        if (st)
-          return st;
-        if (page) {
+        if (st == 0 && page) {
           node = BtreeNode::from_page(page);
           ham_assert(node->is_leaf());
 
-          /* we need at least 3 keys in the node: edges + middle match */
-          if (node->get_count() < 3)
-            goto no_fast_track;
-
           idx = m_backend->find_leaf(page, m_key, hints.flags);
+
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
            * A match at one of the edges is very risky, as this can also
@@ -87,16 +76,12 @@ class BtreeFindAction
            */
           if (idx <= 0 || idx >= node->get_count() - 1)
             idx = -1;
+
           /*
            * else: we landed in the middle of the node, so we don't need to
            * traverse the entire tree now.
            */
         }
-
-        /* Reset any errors which may have been collected during the hinting
-         * phase -- this is done by setting 'idx = -1' above as that effectively
-         * clears the possible error code stored in there when (idx < -1)
-         */
       }
 
 no_fast_track:
@@ -122,8 +107,7 @@ no_fast_track:
           for (;;) {
             st = m_backend->find_internal(page, m_key, &page);
             if (!page) {
-              stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                                hints.try_fast_track);
+              stats->find_failed();
               return (st ? st : HAM_KEY_NOT_FOUND);
             }
 
@@ -136,8 +120,7 @@ no_fast_track:
         /* check the leaf page for the key */
         idx = m_backend->find_leaf(page, m_key, hints.flags);
         if (idx < -1) {
-          stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                            hints.try_fast_track);
+          stats->find_failed();
           return ((ham_status_t)idx);
         }
       } /* end of regular search */
@@ -173,10 +156,7 @@ no_fast_track:
             else {
               /* otherwise load the left sibling page */
               if (!node->get_left()) {
-                stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                            hints.try_fast_track);
-                stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                                    page, m_key, hints.original_flags, -1);
+                stats->find_failed();
                 return (HAM_KEY_NOT_FOUND);
               }
 
@@ -197,10 +177,7 @@ no_fast_track:
             else {
               /* otherwise load the right sibling page */
               if (!node->get_right()) {
-                stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                            hints.try_fast_track);
-                stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                            page, m_key, hints.original_flags, -1);
+                stats->find_failed();
                 return (HAM_KEY_NOT_FOUND);
               }
 
@@ -252,10 +229,7 @@ no_fast_track:
                   else {
                     /* otherwise load the right sibling page */
                     if (!node->get_right()) {
-                      stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                                        hints.try_fast_track);
-                      stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                                        page, m_key, hints.original_flags, -1);
+                      stats->find_failed();
                       return (HAM_KEY_NOT_FOUND);
                     }
 
@@ -269,10 +243,7 @@ no_fast_track:
                                       ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
                 }
                 else {
-                  stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                                hints.try_fast_track);
-                  stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                                    page, m_key, hints.original_flags, -1);
+                  stats->find_failed();
                   return (HAM_KEY_NOT_FOUND);
                 }
               }
@@ -295,10 +266,7 @@ no_fast_track:
             else {
               /* otherwise load the right sibling page */
               if (!node->get_right()) {
-                stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                            hints.try_fast_track);
-                stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                                page, m_key, hints.original_flags, -1);
+                stats->find_failed();
                 return (HAM_KEY_NOT_FOUND);
               }
 
@@ -316,10 +284,7 @@ no_fast_track:
       }
 
       if (idx < 0) {
-        stats->update_failed_oob(HAM_OPERATION_STATS_FIND,
-                        hints.try_fast_track);
-        stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-                page, m_key, hints.original_flags, -1);
+        stats->find_failed();
         return (HAM_KEY_NOT_FOUND);
       }
 
@@ -365,11 +330,7 @@ no_fast_track:
       }
 
       // TODO merge these two calls
-      stats->update_succeeded(HAM_OPERATION_STATS_FIND,
-            page, hints.try_fast_track);
-      stats->update_any_bound(HAM_OPERATION_STATS_FIND,
-            page, m_key, hints.original_flags, idx);
-
+      stats->find_failed();
       return (0);
     }
 

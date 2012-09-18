@@ -32,9 +32,6 @@ class BtreeStatistics {
       /* page/btree leaf to check first */
       ham_offset_t leaf_page_addr;
 
-      /* signals whether the key is out of bounds in the database */
-      bool key_is_out_of_bounds;
-
       /* check specified btree leaf node page first */
       bool try_fast_track;
     };
@@ -49,79 +46,42 @@ class BtreeStatistics {
       /* page/btree leaf to check first */
       ham_offset_t leaf_page_addr;
 
-      /* check specified btree leaf node page first */
-      bool try_fast_track;
-
-      /* not (yet) part of the hints, but a result from it: informs
-       * insert_nosplit() that the insertion position (slot) is already
-       * known */
-      bool force_append;
-
-      /* not (yet) part of the hints, but a result from it: informs
-       * insert_nosplit() that the insertion position (slot) is already
-       * known */
-      bool force_prepend;
-
-      /* the btree leaf page which received the inserted key */
+      /* the processed leaf page */
       Page *processed_leaf_page;
 
-      /* >=0: entry slot index of the key within the btree leaf
-       * node; -1: failure condition */
-      ham_s32_t processed_slot;
-    };
-
-    struct EraseHints {
-      /* the original flags of ham_erase */
-      ham_u32_t original_flags;
-
-      /* the modified flags */
-      ham_u32_t flags;
-
-      /* page/btree leaf to check first */
-      ham_offset_t leaf_page_addr;
-
-      /* true if the key is out of bounds (does not exist) */
-      bool key_is_out_of_bounds;
-
-      /* check specified btree leaf node page first */
-      bool try_fast_track;
-
-      /* the btree leaf page which received the inserted key */
-      Page *processed_leaf_page;
-
-      /* >=0: entry slot index of the key within the btree leaf
-       * node; -1: failure condition */
-      ham_s32_t processed_slot;
+      /* the slot in that page */
+      ham_u16_t processed_slot;
     };
 
     /** constructor */
     BtreeStatistics(Database *db);
 
-    /** retrieve database hints for ham_erase */
-    EraseHints get_erase_hints(ham_u32_t flags, ham_key_t *key);
-
     /** retrieve database hints for ham_find */
-    FindHints get_find_hints(ham_key_t *key, ham_u32_t flags);
+    FindHints get_find_hints(ham_u32_t flags);
 
     /** retrieve database hints for insert */
-    InsertHints get_insert_hints(ham_u32_t flags, Cursor *cursor,
-                ham_key_t *key);
+    InsertHints get_insert_hints(ham_u32_t flags);
 
-    /** An update succeeded */
-    void update_succeeded(int op, Page *page, bool try_fast_track);
+    /** A ham_find/ham_cusor_find succeeded */
+    void find_succeeded(Page *page);
 
-    /** An update failed */
-    void update_failed(int op, bool try_fast_track);
+    /** A ham_find/ham_cursor_find failed */
+    void find_failed();
 
-    /** update statistics following an out-of-bound hint */
-    void update_failed_oob(int op, bool try_fast_track);
+    /** A ham_insert/ham_cursor_insert succeeded */
+    void insert_succeeded(Page *page, ham_u16_t slot);
 
-    /** update database boundaries */
-    void update_any_bound(int op, Page *page, ham_key_t *key,
-                    ham_u32_t find_flags, ham_s32_t slot);
+    /** A ham_insert/ham_cursor_insert failed */
+    void insert_failed();
+
+    /** A ham_erase/ham_cusor_erase succeeded */
+    void erase_succeeded(Page *page);
+
+    /** A ham_erase/ham_cursor_erase failed */
+    void erase_failed();
 
     /** reset page statistics */
-    void reset_page(Page *page, bool split);
+    void reset_page(Page *page);
 
   private:
     /** get a reference to the per-database statistics */
@@ -129,22 +89,11 @@ class BtreeStatistics {
       return (&m_perf_data);
     }
 
-    /** get a reference to the statistics data of the given operation */
-    OperationStatistics *get_op_data(int op) {
-      return (get_perf_data()->op + op);
-    }
-
     /** the Database */
     Database *m_db;
 
     /** some database specific run-time data */
     DatabaseStatistics m_perf_data;
-
-    /** dynamic arrays which back the cached lower bound key */
-    ByteArray m_lower_arena;
-
-    /** dynamic arrays which back the cached upper bound key */
-    ByteArray m_upper_arena;
 };
 
 

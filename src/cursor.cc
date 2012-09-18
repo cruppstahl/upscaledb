@@ -266,6 +266,8 @@ Cursor::sync(ham_u32_t flags, ham_bool_t *equal_keys)
         get_db()->close_cursor(clone);
     }
 
+    get_db()->get_env()->get_changeset().clear();
+
 bail:
     return (st);
 }

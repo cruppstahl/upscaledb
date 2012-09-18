@@ -270,26 +270,6 @@ struct EnvironmentStatistics
  * @}
  */
 
-
-/**
- * Statistics gathered specific per operation (find, insert, erase)
- */
-struct OperationStatistics
-{
-  ham_offset_t btree_last_page_addr;
-
-  /**
-   * number of consecutive times that this last page was produced as
-   * an answer ('sequential hits')
-   */
-  ham_u32_t btree_last_page_sq_hits;
-
-  ham_u32_t query_count;
-  ham_u32_t btree_hinting_fail_count;
-  ham_u32_t btree_hinting_count;
-  ham_u32_t aging_tracker;
-};
-
 /**
  * Statistics gathered for a single database
  */
@@ -299,22 +279,11 @@ struct DatabaseStatistics
     memset(this, 0, sizeof(*this));
   }
 
-  /* find/insert/erase */
-  OperationStatistics op[HAM_OPERATION_STATS_MAX];
+  /* last leaf page for find/insert/erase */
+  ham_offset_t last_leaf_pages[HAM_OPERATION_STATS_MAX];
 
-  /**
-   * Remember the upper and lower bound kays for this database; update them
-   * when we insert a key, maybe even update them when we delete/erase a key
-   */
-  ham_key_t lower_bound;
-  ham_u32_t lower_bound_index;
-  ham_offset_t lower_bound_page_address;
-  bool lower_bound_set;
-
-  ham_key_t upper_bound;
-  ham_u32_t upper_bound_index;
-  ham_offset_t upper_bound_page_address;
-  bool upper_bound_set;
+  /* count of how often this leaf page was used */
+  ham_size_t last_leaf_count[HAM_OPERATION_STATS_MAX];
 
   /* a flag if the previous insert operation was an append */
   bool last_insert_was_append;

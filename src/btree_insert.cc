@@ -49,8 +49,6 @@ void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
  */
 typedef struct insert_scratchpad_t
 {
-    bool has_split;
-
     /**
      * the backend pointer
      */
@@ -99,14 +97,6 @@ typedef struct insert_scratchpad_t
 /* #define NOFLUSH   0x1000    -- unused */
 
 /**
- * insert a key in a page; the page MUST have free slots
- */
-static ham_status_t
-__insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
-                ham_offset_t rid, ham_record_t *record,
-                btree_cursor_t *cursor, BtreeStatistics::InsertHints *hints);
-
-/**
  * split a page and insert the new element
  */
 static ham_status_t
@@ -117,7 +107,8 @@ __insert_split(Page *page, ham_key_t *key,
 static ham_status_t
 __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
                 ham_offset_t rid, ham_record_t *record,
-                btree_cursor_t *cursor, BtreeStatistics::InsertHints *hints)
+                btree_cursor_t *cursor, BtreeStatistics::InsertHints *hints,
+                bool force_prepend = false, bool force_append = false)
 {
     ham_status_t st;
     ham_u16_t count;
@@ -136,20 +127,12 @@ __insert_nosplit(Page *page, Transaction *txn, ham_key_t *key,
     keysize=db_get_keysize(db);
 
     if (node->get_count()==0)
-    {
         slot = 0;
-    }
-    else if (hints->force_append)
-    {
-        slot = count;
-    }
-    else if (hints->force_prepend)
-    {
-        /* insert at beginning; shift all up by one */
+    else if (force_prepend)
         slot = 0;
-    }
-    else
-    {
+    else if (force_append)
+        slot = node->get_count();
+    else {
         int cmp;
 
         st=((BtreeBackend *)db->get_backend())->get_slot(page, key, &slot, &cmp);
@@ -343,8 +326,6 @@ __insert_split(Page *page, ham_key_t *key,
 
     ham_assert(page->get_db());
 
-    ham_assert(hints->force_append == false);
-
     keysize=db_get_keysize(db);
 
     /*
@@ -359,7 +340,7 @@ __insert_split(Page *page, ham_key_t *key,
     /* clear the node header */
     memset(newpage->get_payload(), 0, sizeof(BtreeNode));
 
-    scratchpad->be->get_statistics()->reset_page(page, true);
+    scratchpad->be->get_statistics()->reset_page(page);
 
     /*
      * move half of the key/rid-tuples to the new page
@@ -523,11 +504,6 @@ __insert_split(Page *page, ham_key_t *key,
 
     if (g_BTREE_INSERT_SPLIT_HOOK)
         g_BTREE_INSERT_SPLIT_HOOK();
-
-    hints->try_fast_track = false;
-    hints->processed_leaf_page = 0;
-    hints->processed_slot = 0;
-    scratchpad->has_split = true;
     return (SPLIT);
 
 fail_dramatically:
@@ -559,7 +535,7 @@ class BtreeInsertAction
     BtreeInsertAction(BtreeBackend *backend, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
-        m_record(record), m_flags(flags), m_has_split(false) {
+        m_record(record), m_flags(flags) {
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
         ham_assert(m_backend->get_db() == btree_cursor_get_db(m_cursor));
@@ -570,8 +546,7 @@ class BtreeInsertAction
       ham_status_t st;
       BtreeStatistics *stats = m_backend->get_statistics();
 
-      m_hints = stats->get_insert_hints(m_flags,
-                      m_cursor ? btree_cursor_get_parent(m_cursor) : 0, m_key);
+      m_hints = stats->get_insert_hints(m_flags);
 
       /*
        * append the key? append_key() will try to append the key; if it
@@ -579,29 +554,17 @@ class BtreeInsertAction
        * because the current page is already full, it will remove the
        * HINT_APPEND flag and recursively call do_insert_cursor()
        */
-      if (m_hints.force_append || m_hints.force_prepend) {
-        ham_assert(m_hints.try_fast_track);
+      if (m_hints.flags & HAM_HINT_APPEND)
         st = append_key();
-      }
-      else {
-        m_hints.force_append = false;
-        m_hints.force_prepend = false;
-        m_hints.try_fast_track = false;
+      else
         st = insert_cursor();
-      }
 
       if (st)
-        stats->update_failed(HAM_OPERATION_STATS_INSERT, m_hints.try_fast_track);
+        stats->insert_failed();
       else {
-        // TODO merge these two calls
-        if (m_hints.processed_leaf_page) {
-          stats->update_succeeded(HAM_OPERATION_STATS_INSERT,
-                  m_hints.processed_leaf_page, m_hints.try_fast_track);
-          if (!m_has_split)
-            stats->update_any_bound(HAM_OPERATION_STATS_INSERT,
-                    m_hints.processed_leaf_page, m_key, m_hints.flags,
-                    m_hints.processed_slot);
-        }
+        if (m_hints.processed_leaf_page)
+          stats->insert_succeeded(m_hints.processed_leaf_page,
+                  m_hints.processed_slot);
       }
 
       return (st);
@@ -613,6 +576,8 @@ class BtreeInsertAction
       ham_status_t st = 0;
       Page *page;
       Database *db = m_backend->get_db();
+      bool force_append = false;
+      bool force_prepend = false;
 
       /*
        * see if we get this btree leaf; if not, revert to regular scan
@@ -624,11 +589,8 @@ class BtreeInsertAction
       st = db_fetch_page(&page, db, m_hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
       if (st)
         return st;
-      if (!page) {
-        m_hints.force_append = false;
-        m_hints.force_prepend = false;
+      if (!page)
         return (insert_cursor());
-      }
 
       BtreeNode *node = BtreeNode::from_page(page);
       ham_assert(node->is_leaf());
@@ -638,13 +600,10 @@ class BtreeInsertAction
        * when we APPEND or the left-most node when we PREPEND
        * OR the new key is not the highest key: perform a normal insert
        */
-      if ((m_hints.force_append && node->get_right())
-              || (m_hints.force_prepend && node->get_left())
-              || node->get_count() >= m_backend->get_maxkeys()) {
-        m_hints.force_append = false;
-        m_hints.force_prepend = false;
+      if ((m_hints.flags & HAM_HINT_APPEND && node->get_right())
+              || (m_hints.flags & HAM_HINT_PREPEND && node->get_left())
+              || node->get_count() >= m_backend->get_maxkeys())
         return (insert_cursor());
-      }
 
       /*
        * if the page is not empty: check if we append the key at the end / start
@@ -657,8 +616,8 @@ class BtreeInsertAction
         int cmp_hi;
         int cmp_lo;
 
-        if (!m_hints.force_prepend) {
-          cmp_hi = m_backend->compare_keys(page, m_key, node->get_count()-1);
+        if (m_hints.flags & HAM_HINT_APPEND) {
+          cmp_hi = m_backend->compare_keys(page, m_key, node->get_count() - 1);
           /* key is in the middle */
           if (cmp_hi < -1)
             return ((ham_status_t)cmp_hi);
@@ -667,22 +626,14 @@ class BtreeInsertAction
             if (node->get_right()) {
               /* not at top end of the btree, so we can't do the
                * fast track */
-              m_hints.force_append = false;
-              m_hints.force_prepend = false;
               return (insert_cursor());
             }
 
-            m_hints.force_append = true;
-            m_hints.force_prepend = false;
+            force_append = true;
           }
         }
-        else { /* hints->force_prepend is true */
-          /* not bigger than the right-most node while we
-           * were trying to APPEND */
-          cmp_hi = -1;
-        }
 
-        if (!m_hints.force_append) {
+        if (m_hints.flags & HAM_HINT_PREPEND) {
           cmp_lo = m_backend->compare_keys(page, m_key, 0);
           /* in the middle range */
           if (cmp_lo < -1)
@@ -692,50 +643,20 @@ class BtreeInsertAction
             if (node->get_left()) {
               /* not at bottom end of the btree, so we can't
                * do the fast track */
-              m_hints.force_append = false;
-              m_hints.force_prepend = false;
               return (insert_cursor());
             }
 
-            m_hints.force_append = false;
-            m_hints.force_prepend = true;
+            force_prepend = true;
           }
         }
-        else { /* hints->force_prepend is true */
-          /* not smaller than the left-most node while we were
-           * trying to PREPEND */
-          cmp_lo = +1;
-
-          /* handle inserts in the middle range */
-          if (cmp_lo >= 0 && cmp_hi <= 0) {
-            /*
-             * Depending on where we are in the btree, the current key either
-             * is going to end up in the middle of the given node/page,
-             * OR the given key is out of range of the given leaf node.
-             */
-            if (m_hints.force_append || m_hints.force_prepend) {
-              /*
-               * when prepend or append is FORCED, we are expected to
-               * add keys ONLY at the beginning or end of the btree
-               * key range. Clearly the current key does not fit that
-               * criterium.
-               */
-              m_hints.force_append = false;
-              m_hints.force_prepend = false;
-              return (insert_cursor());
-            }
-          }
-        }
-      }
-      else { /* empty page: force insertion in slot 0 */
-        m_hints.force_append = false;
-        m_hints.force_prepend = true;
       }
 
       /* OK - we're really appending/prepending the new key.  */
-      ham_assert(m_hints.force_append || m_hints.force_prepend);
-      return (__insert_nosplit(page, m_txn, m_key, 0, m_record,
-                        m_cursor, &m_hints));
+      if (force_append || force_prepend)
+        return (__insert_nosplit(page, m_txn, m_key, 0, m_record,
+                        m_cursor, &m_hints, force_prepend, force_append));
+      else
+        return (insert_cursor());
     }
 
     ham_status_t insert_cursor() {
@@ -744,9 +665,6 @@ class BtreeInsertAction
       Database *db = m_backend->get_db();
       Environment *env = db->get_env();
 
-      ham_assert(m_hints.force_append == false);
-      ham_assert(m_hints.force_prepend == false);
-
       /* initialize the scratchpad */
       insert_scratchpad_t scratchpad;
       memset(&scratchpad, 0, sizeof(scratchpad));
@@ -754,7 +672,6 @@ class BtreeInsertAction
       scratchpad.record = m_record;
       scratchpad.cursor = m_cursor;
       scratchpad.txn = m_txn;
-      scratchpad.has_split = false;
 
       /* get the root-page...  */
       st = db_fetch_page(&root, db, m_backend->get_rootpage(), 0);
@@ -775,7 +692,7 @@ class BtreeInsertAction
         /* clear the node header */
         memset(newroot->get_payload(), 0, sizeof(BtreeNode));
 
-        m_backend->get_statistics()->reset_page(root, true);
+        m_backend->get_statistics()->reset_page(root);
 
         /* insert the pivot element and the ptr_left */
         BtreeNode *node = BtreeNode::from_page(newroot);
@@ -812,8 +729,6 @@ class BtreeInsertAction
       ham_assert(!(scratchpad.key.flags & HAM_KEY_USER_ALLOC));
       if (scratchpad.key.data)
         env->get_allocator()->free(scratchpad.key.data);
-
-      m_has_split = scratchpad.has_split;
       return (st);
     }
 
@@ -853,7 +768,6 @@ class BtreeInsertAction
                           scratchpad->rid, scratchpad);
           ham_assert(!(scratchpad->key.flags & HAM_KEY_USER_ALLOC));
           m_hints.flags = m_hints.original_flags;
-          m_hints.try_fast_track = false;
           m_hints.processed_leaf_page = 0;
           m_hints.processed_slot = 0;
           break;
@@ -875,8 +789,6 @@ class BtreeInsertAction
       BtreeNode *node = BtreeNode::from_page(page);
 
       ham_assert(maxkeys > 1);
-      ham_assert(m_hints.force_append == false);
-      ham_assert(m_hints.force_prepend == false);
 
       /*
        * if we can insert the new key without splitting the page then
@@ -941,9 +853,6 @@ class BtreeInsertAction
 
     /** statistical hints for this operation */
     BtreeStatistics::InsertHints m_hints;
-
-    /** true if there was an SMO */
-    bool m_has_split;
 };
 
 ham_status_t
