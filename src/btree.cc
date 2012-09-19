@@ -605,7 +605,7 @@ int
 BtreeBackend::compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs_int)
 {
   BtreeNode *node = BtreeNode::from_page(page);
-  ham_key_t rhs = ham_key_t();
+  ham_key_t rhs = {0};
 
   ham_assert(m_db == page->get_db());
 

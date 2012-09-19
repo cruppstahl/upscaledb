@@ -238,9 +238,9 @@ o a lot of monster tests fail with --use-transactions=5
 
 o continue with refacoring - indention, coding style, better design etc...
     o btree_insert.cc
-        o remove scratchpad, use member variables
+        x remove scratchpad, use member variables
+        x replace db_get_keysize() with backend->get_keysize()
         o split when going down
-        o replace db_get_keysize() with backend->get_keysize()
     o btree_erase.cc
         o replace db_get_keysize() with backend->get_keysize()
         o remove scratchpad, use member variables
