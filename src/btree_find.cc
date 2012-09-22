@@ -84,8 +84,6 @@ class BtreeFindAction
         }
       }
 
-no_fast_track:
-
       if (idx == -1) {
         /* get the address of the root page */
         if (!m_backend->get_rootpage())

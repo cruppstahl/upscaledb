@@ -691,7 +691,6 @@ btree_cursor_insert(btree_cursor_t *c, ham_key_t *key,
 ham_status_t
 btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
 {
-    ham_status_t st;
     Database *db=btree_cursor_get_db(c);
     BtreeBackend *be=(BtreeBackend *)db->get_backend();
     Transaction *txn=btree_cursor_get_parent(c)->get_txn();
@@ -699,30 +698,10 @@ btree_cursor_erase(btree_cursor_t *c, ham_u32_t flags)
     if (!be)
         return (HAM_NOT_INITIALIZED);
 
-    /* coupled cursor: try to remove the key directly from the page.
-     * if that's not possible (i.e. because of underflow): uncouple
-     * the cursor and process the normal erase algorithm */
-    if (btree_cursor_is_coupled(c)) {
-        Page *page=btree_cursor_get_coupled_page(c);
-        BtreeNode *node=BtreeNode::from_page(page);
-        BtreeBackend *be=(BtreeBackend *)db->get_backend();
-        ham_assert(node->is_leaf());
-        if (btree_cursor_get_coupled_index(c)>0
-                && node->get_count()>be->get_minkeys()) {
-            /* yes, we can remove the key */
-            return (be->cursor_erase_fasttrack(txn, c));
-        }
-        else {
-            st=btree_cursor_uncouple(c, 0);
-            if (st)
-                return (st);
-        }
-    }
-    else if (!btree_cursor_is_uncoupled(c))
+    if (!btree_cursor_is_uncoupled(c) && !btree_cursor_is_coupled(c))
         return (HAM_CURSOR_IS_NIL);
 
-    return (be->erase_cursor(txn, btree_cursor_get_uncoupled_key(c),
-                    btree_cursor_get_parent(c), flags));
+    return (be->erase_cursor(txn, 0, btree_cursor_get_parent(c), flags));
 }
 
 bool

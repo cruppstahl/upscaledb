@@ -385,15 +385,21 @@ class BtreeInsertAction
       }
 
       /*
-       * internal pages set the count of the new page to count-pivot-1 (because
-       * the pivot element will become ptr_left of the new page).
-       * by using pivot=count-2 we make sure that at least 1 element will
-       * remain in the new node.
+       * the position of the pivot key depends on the previous inserts;
+       * if most of them were appends then pick a pivot key at the "end" of
+       * the node
        */
-      if (pivot_at_end)
+      if (pivot_at_end || m_hints.append_count > 30)
         pivot = count - 2;
+      else if (m_hints.append_count > 10)
+        pivot = (ham_u16_t)(count / 100.f * 66);
+      else if (m_hints.prepend_count > 10)
+        pivot = (ham_u16_t)(count / 100.f * 33);
+      else if (m_hints.prepend_count > 30)
+        pivot = 2;
       else
         pivot = count / 2;
+      ham_assert(pivot > 0 && pivot <= count - 2);
 
       /* uncouple all cursors */
       st = btree_uncouple_all_cursors(page, pivot);

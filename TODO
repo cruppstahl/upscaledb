@@ -145,6 +145,16 @@ x continue with refacoring - indention, coding style, better design etc...
         x unittest currently crashes
         x there's a TODO in BtreeInsertAction
         x also make sure that BtreeFindAction checks the hints
+    x btree_insert.cc
+        x remove scratchpad, use member variables
+        x replace db_get_keysize() with backend->get_keysize()
+        x count the number of appends/prepends; if the last 30 inserts were 
+            appends: split at end; if the last 10 inserts were appends:
+            split at 2/3rd (similar for prepends)
+    x btree_erase.cc
+        x remove scratchpad, use member variables
+        x replace db_get_keysize() with backend->get_keysize()
+        x check the TODOs
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
@@ -237,22 +247,13 @@ o a lot of monster tests fail with --use-transactions=5
 
 
 o continue with refacoring - indention, coding style, better design etc...
-    o btree_insert.cc
-        x remove scratchpad, use member variables
-        x replace db_get_keysize() with backend->get_keysize()
-        o count the number of appends/prepends; if the last 30 inserts were 
-            appends: split at end; if the last 10 inserts were appends:
-            split at 2/3rd (similar for prepends)
-
-    o btree_erase.cc
-        o replace db_get_keysize() with backend->get_keysize()
-        o remove scratchpad, use member variables
-        o try to simplify the whole flow
-
     o btree_cursor.cc
     o btree_cursor.h
+        o rename to BtreeCursor
         o use memory arena for uncoupling the key
         o replace db_get_keysize() with backend->get_keysize()
+
+    o backend.h/btree.h: check the TODOs
 
     ==> get rid of the whole freelist; no need to refactor the existing
         code

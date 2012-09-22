@@ -45,10 +45,6 @@ class BtreeBackend : public Backend
               ham_u32_t dupe_id, ham_u32_t flags);
 
     // TODO make this private
-    ham_status_t cursor_erase_fasttrack(Transaction *txn,
-              btree_cursor_t *cursor);
-
-    // TODO make this private
     ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
 
     /** flush the backend */

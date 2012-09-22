@@ -51,6 +51,12 @@ class BtreeStatistics {
 
       /* the slot in that page */
       ham_u16_t processed_slot;
+
+      /* count the number of appends */
+      ham_size_t append_count;
+
+      /* count the number of prepends */
+      ham_size_t prepend_count;
     };
 
     /** constructor */

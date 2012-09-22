@@ -285,11 +285,11 @@ struct DatabaseStatistics
   /* count of how often this leaf page was used */
   ham_size_t last_leaf_count[HAM_OPERATION_STATS_MAX];
 
-  /* a flag if the previous insert operation was an append */
-  bool last_insert_was_append;
+  /* count the number of appends */
+  ham_size_t append_count;
 
-  /* a flag if the previous insert operation was a prepend */
-  bool last_insert_was_prepend;
+  /* count the number of prepends */
+  ham_size_t prepend_count;
 };
 
 } // namespace ham

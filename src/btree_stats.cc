@@ -73,10 +73,15 @@ BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
   BtreeNode *node = BtreeNode::from_page(page);
   ham_assert(node->is_leaf());
   
-  if (!node->get_left() && slot == 0)
-    m_perf_data.last_insert_was_prepend = true;
   if (!node->get_right() && slot == node->get_count() - 1)
-    m_perf_data.last_insert_was_append = true;
+    m_perf_data.append_count++;
+  else
+    m_perf_data.append_count = 0;
+
+  if (!node->get_left() && slot == 0)
+    m_perf_data.prepend_count++;
+  else
+    m_perf_data.prepend_count = 0;
 }
 
 void
@@ -84,8 +89,8 @@ BtreeStatistics::insert_failed()
 {
   m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_INSERT] = 0;
   m_perf_data.last_leaf_count[HAM_OPERATION_STATS_INSERT] = 0;
-  m_perf_data.last_insert_was_append = false;
-  m_perf_data.last_insert_was_prepend = false;
+  m_perf_data.append_count = 0;
+  m_perf_data.prepend_count = 0;
 }
 
 void
@@ -140,10 +145,13 @@ BtreeStatistics::get_insert_hints(ham_u32_t flags)
    * in this case there's some probability that the next operation is also
    * appending/prepending.
    */
-  if (m_perf_data.last_insert_was_append)
+  if (m_perf_data.append_count > 0)
     hints.flags |= HAM_HINT_APPEND;
-  else if (m_perf_data.last_insert_was_prepend)
+  else if (m_perf_data.prepend_count > 0)
     hints.flags |= HAM_HINT_PREPEND;
+
+  hints.append_count = m_perf_data.append_count;
+  hints.prepend_count = m_perf_data.prepend_count;
 
   /* if the last 5 inserts hit the same page: reuse that page */
   if (m_perf_data.last_leaf_count[HAM_OPERATION_STATS_INSERT] >= 5)
