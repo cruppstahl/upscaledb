@@ -37,25 +37,18 @@
 #include "util.h"
 #include "btree_node.h"
 
-using namespace ham;
-
+namespace ham {
 
 /* a unittest hook triggered when a page is split */
 void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
 
-/**
- * @ref insert_recursive() B+-tree split requirement signaling
- * return value.
- *
- * @note Shares the value space with the error codes
- * listed in @ref ham_status_codes .
- */
-#define SPLIT     1
-
-namespace ham {
-
 class BtreeInsertAction
 {
+  enum {
+    /** page split required */
+    SPLIT = 1
+  };
+
   public:
     BtreeInsertAction(BtreeBackend *backend, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
@@ -66,6 +59,12 @@ class BtreeInsertAction
         m_cursor = cursor->get_btree_cursor();
         ham_assert(m_backend->get_db() == btree_cursor_get_db(m_cursor));
       }
+    }
+
+    ~BtreeInsertAction() {
+      Environment *env = m_backend->get_db()->get_env();
+      if (m_split_key.data)
+        env->get_allocator()->free(m_split_key.data);
     }
 
     ham_status_t run() {
@@ -83,7 +82,7 @@ class BtreeInsertAction
       if (m_hints.flags & HAM_HINT_APPEND)
         st = append_key();
       else
-        st = insert_cursor();
+        st = insert();
 
       if (st)
         stats->insert_failed();
@@ -116,7 +115,7 @@ class BtreeInsertAction
       if (st)
         return st;
       if (!page)
-        return (insert_cursor());
+        return (insert());
 
       BtreeNode *node = BtreeNode::from_page(page);
       ham_assert(node->is_leaf());
@@ -129,7 +128,7 @@ class BtreeInsertAction
       if ((m_hints.flags & HAM_HINT_APPEND && node->get_right())
               || (m_hints.flags & HAM_HINT_PREPEND && node->get_left())
               || node->get_count() >= m_backend->get_maxkeys())
-        return (insert_cursor());
+        return (insert());
 
       /*
        * if the page is not empty: check if we append the key at the end / start
@@ -152,7 +151,7 @@ class BtreeInsertAction
             if (node->get_right()) {
               /* not at top end of the btree, so we can't do the
                * fast track */
-              return (insert_cursor());
+              return (insert());
             }
 
             force_append = true;
@@ -169,7 +168,7 @@ class BtreeInsertAction
             if (node->get_left()) {
               /* not at bottom end of the btree, so we can't
                * do the fast track */
-              return (insert_cursor());
+              return (insert());
             }
 
             force_prepend = true;
@@ -179,16 +178,15 @@ class BtreeInsertAction
 
       /* OK - we're really appending/prepending the new key.  */
       if (force_append || force_prepend)
-        return (insert_nosplit(page, m_key, 0, force_prepend, force_append));
+        return (insert_in_leaf(page, m_key, 0, force_prepend, force_append));
       else
-        return (insert_cursor());
+        return (insert());
     }
 
-    ham_status_t insert_cursor() {
+    ham_status_t insert() {
       ham_status_t st;
       Page *root;
       Database *db = m_backend->get_db();
-      Environment *env = db->get_env();
 
       /* get the root-page...  */
       st = db_fetch_page(&root, db, m_backend->get_rootpage(), 0);
@@ -198,52 +196,55 @@ class BtreeInsertAction
       /* ... and start the recursion */
       st = insert_recursive(root, m_key, 0);
 
-      /* if the root page was split, we have to create a new root page.  */
+      /* create a new root page if it needs to be split */
       if (st == SPLIT) {
-        /* allocate a new root page */
-        Page *newroot;
-        st = db_alloc_page(&newroot, db, Page::TYPE_B_ROOT, 0);
+        st = split_root(root);
         if (st)
-            return (st);
-        ham_assert(newroot->get_db());
-        /* clear the node header */
-        memset(newroot->get_payload(), 0, sizeof(BtreeNode));
-
-        m_backend->get_statistics()->reset_page(root);
-
-        /* insert the pivot element and the ptr_left */
-        BtreeNode *node = BtreeNode::from_page(newroot);
-        node->set_ptr_left(m_backend->get_rootpage());
-        st = insert_nosplit(newroot, &m_split_key, m_split_rid);
-        ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
-        /* don't overwrite cursor if insert_nosplit is called again */
-        m_cursor = 0;
-        if (st) {
-          if (m_split_key.data)
-            env->get_allocator()->free(m_split_key.data);
           return (st);
-        }
-
-        /*
-         * set the new root page
-         *
-         * !!
-         * do NOT delete the old root page - it's still in use! also add the
-         * root page to the changeset to make sure that the changes are logged
-         */
-        m_backend->set_rootpage(newroot->get_self());
-        m_backend->do_flush_indexdata();
-        if (env->get_flags() & HAM_ENABLE_RECOVERY)
-            env->get_changeset().add_page(env->get_header_page());
-        root->set_type(Page::TYPE_B_INDEX);
-        root->set_dirty(true);
-        newroot->set_dirty(true);
       }
 
-      /* release the scratchpad-memory and return to caller */
-      if (m_split_key.data)
-        env->get_allocator()->free(m_split_key.data);
       return (st);
+    }
+
+    ham_status_t split_root(Page *root) {
+      /* allocate a new root page */
+      Page *newroot;
+      Database *db = m_backend->get_db();
+      ham_status_t st = db_alloc_page(&newroot, db, Page::TYPE_B_ROOT, 0);
+      if (st)
+        return (st);
+      ham_assert(newroot->get_db());
+
+      /* clear the node header */
+      memset(newroot->get_payload(), 0, sizeof(BtreeNode));
+
+      m_backend->get_statistics()->reset_page(root);
+
+      /* insert the pivot element and the ptr_left */
+      BtreeNode *node = BtreeNode::from_page(newroot);
+      node->set_ptr_left(m_backend->get_rootpage());
+      st = insert_in_leaf(newroot, &m_split_key, m_split_rid);
+      ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
+      /* don't overwrite cursor if insert_in_leaf is called again */
+      m_cursor = 0;
+      if (st)
+        return (st);
+
+      /*
+       * set the new root page
+       *
+       * !!
+       * do NOT delete the old root page - it's still in use! also add the
+       * root page to the changeset to make sure that the changes are logged
+       */
+      m_backend->set_rootpage(newroot->get_self());
+      m_backend->do_flush_indexdata();
+      if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY)
+        db->get_env()->get_changeset().add_page(db->get_env()->get_header_page());
+      root->set_type(Page::TYPE_B_INDEX);
+      root->set_dirty(true);
+      newroot->set_dirty(true);
+      return (0);
     }
 
     /**
@@ -303,11 +304,11 @@ class BtreeInsertAction
 
       /*
        * if we can insert the new key without splitting the page then
-       * insert_nosplit() will do the work for us
+       * insert_in_leaf() will do the work for us
        */
       if (node->get_count() < maxkeys) {
-        st = insert_nosplit(page, key, rid);
-        /* don't overwrite cursor if insert_nosplit is called again */
+        st = insert_in_leaf(page, key, rid);
+        /* don't overwrite cursor if insert_in_leaf is called again */
         m_cursor = 0;
         return (st);
       }
@@ -328,8 +329,8 @@ class BtreeInsertAction
                     : 1);
           if (!(m_hints.flags & (HAM_OVERWRITE | HAM_DUPLICATE)))
             return (HAM_DUPLICATE_KEY);
-          st = insert_nosplit(page, key, rid);
-          /* don't overwrite cursor if insert_nosplit is called again */
+          st = insert_in_leaf(page, key, rid);
+          /* don't overwrite cursor if insert_in_leaf is called again */
           m_cursor = 0;
           return (st);
         }
@@ -459,12 +460,13 @@ class BtreeInsertAction
       }
 
       if (cmp >= 0)
-        st = insert_nosplit(newpage, key, rid);
+        st = insert_in_leaf(newpage, key, rid);
       else
-        st = insert_nosplit(page, key, rid);
+        st = insert_in_leaf(page, key, rid);
       if (st)
         goto fail_dramatically;
-      m_cursor = 0; /* don't overwrite cursor if insert_nosplit is called again */
+      /* don't overwrite cursor if insert_in_leaf is called again */
+      m_cursor = 0;
 
       /* fix the double-linked list of pages, and mark the pages as dirty */
       if (obtp->get_right()) {
@@ -488,8 +490,6 @@ class BtreeInsertAction
 
       /* propagate the pivot key to the parent page */
       ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
-      if (m_split_key.data)
-        env->get_allocator()->free(m_split_key.data);
       m_split_key = pivotkey;
       m_split_rid = pivotrid;
 
@@ -498,13 +498,13 @@ class BtreeInsertAction
       return (SPLIT);
 
 fail_dramatically:
-      ham_assert(!(pivotkey.flags & HAM_KEY_USER_ALLOC));
       if (pivotkey.data)
         env->get_allocator()->free(pivotkey.data);
+      ham_assert(!(pivotkey.flags & HAM_KEY_USER_ALLOC));
       return (st);
     }
 
-    ham_status_t insert_nosplit(Page *page, ham_key_t *key, ham_offset_t rid,
+    ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_offset_t rid,
                 bool force_prepend = false, bool force_append = false) {
       ham_status_t st;
       ham_size_t new_dupe_id = 0;

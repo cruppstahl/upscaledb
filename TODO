@@ -240,7 +240,10 @@ o continue with refacoring - indention, coding style, better design etc...
     o btree_insert.cc
         x remove scratchpad, use member variables
         x replace db_get_keysize() with backend->get_keysize()
-        o split when going down
+        o count the number of appends/prepends; if the last 30 inserts were 
+            appends: split at end; if the last 10 inserts were appends:
+            split at 2/3rd (similar for prepends)
+
     o btree_erase.cc
         o replace db_get_keysize() with backend->get_keysize()
         o remove scratchpad, use member variables
