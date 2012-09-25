@@ -462,21 +462,19 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
     return (0);
 }
 
-static ham_status_t
-__recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
+static void
+recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
 {
     Transaction *txn=env->get_oldest_txn();
     while (txn) {
         if (txn_get_id(txn)==txn_id) {
             *ptxn=txn;
-            return (0);
+            return;
         }
         txn=txn_get_newer(txn);
     }
 
-    ham_assert(!"shouldn't be here", (""));
     *ptxn=0;
-    return (HAM_INTERNAL_ERROR);
 }
 
 static ham_status_t
@@ -592,17 +590,13 @@ Journal::recover()
         }
         case ENTRY_TYPE_TXN_ABORT: {
             Transaction *txn;
-            st=__recover_get_txn(m_env, entry.txn_id, &txn);
-            if (st)
-                break;
+            recover_get_txn(m_env, entry.txn_id, &txn);
             st=ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
             break;
         }
         case ENTRY_TYPE_TXN_COMMIT: {
             Transaction *txn;
-            st=__recover_get_txn(m_env, entry.txn_id, &txn);
-            if (st)
-                break;
+            recover_get_txn(m_env, entry.txn_id, &txn);
             st=ham_txn_commit((ham_txn_t *)txn, HAM_DONT_LOCK);
             break;
         }
@@ -627,9 +621,7 @@ Journal::recover()
             record.size=ins->record_size;
             record.partial_size=ins->record_partial_size;
             record.partial_offset=ins->record_partial_offset;
-            st=__recover_get_txn(m_env, entry.txn_id, &txn);
-            if (st)
-                break;
+            recover_get_txn(m_env, entry.txn_id, &txn);
             st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
@@ -653,9 +645,7 @@ Journal::recover()
             if (entry.lsn<=start_lsn)
                 continue;
 
-            st=__recover_get_txn(m_env, entry.txn_id, &txn);
-            if (st)
-                break;
+            recover_get_txn(m_env, entry.txn_id, &txn);
             st=__recover_get_db(m_env, entry.dbname, &db);
             if (st)
                 break;
