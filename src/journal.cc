@@ -153,20 +153,10 @@ Journal::open()
 }
 
 ham_status_t
-Journal::append_txn_begin(Transaction *txn, Environment *env, 
-                const char *name, ham_u64_t lsn)
+Journal::switch_files_maybe(Transaction *txn)
 {
-    ScopedLock lock(m_mutex);
-    ham_status_t st;
-    JournalEntry entry;
     int cur=m_current_fd;
     int other=cur ? 0 : 1;
-
-    entry.txn_id=txn_get_id(txn);
-    entry.type=ENTRY_TYPE_TXN_BEGIN;
-    entry.lsn=lsn;
-    if (name)
-        entry.followup_size=strlen(name)+1;
 
     /* 
      * determine the journal file which is used for this transaction 
@@ -181,7 +171,7 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
          * Otherwise, if the other file does no longer have open Transactions,
          * delete the other file and use the other file as the current file
          */
-        st=clear_file(other);
+        ham_status_t st=clear_file(other);
         if (st)
             return (st);
         cur=other;
@@ -194,6 +184,29 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
      */
     else
         txn_set_log_desc(txn, cur);
+
+    return 0;
+}
+
+ham_status_t
+Journal::append_txn_begin(Transaction *txn, Environment *env, 
+                const char *name, ham_u64_t lsn)
+{
+    ScopedLock lock(m_mutex);
+    ham_status_t st;
+    JournalEntry entry;
+
+    entry.txn_id=txn_get_id(txn);
+    entry.type=ENTRY_TYPE_TXN_BEGIN;
+    entry.lsn=lsn;
+    if (name)
+        entry.followup_size=strlen(name)+1;
+
+    st=switch_files_maybe(txn);
+    if (st)
+        return (st);
+
+    int cur=txn_get_log_desc(txn);
 
     if (txn_get_name(txn))
         st=append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
@@ -283,6 +296,13 @@ Journal::append_insert(Database *db, Transaction *txn,
     entry.type=ENTRY_TYPE_INSERT;
     entry.followup_size=size+padding_size;
 
+    if (txn_get_flags(txn) & HAM_TXN_TEMPORARY) {
+        ham_status_t st=switch_files_maybe(txn);
+        if (st)
+            return (st);
+        m_closed_txn[txn_get_log_desc(txn)]++;
+    }
+
     insert.key_size=key->size;
     insert.record_size=record->size;
     insert.record_partial_size=record->partial_size;
@@ -308,6 +328,13 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
     JournalEntryErase erase;
     ham_size_t size=sizeof(JournalEntryErase)+key->size-1;
     ham_size_t padding_size=__get_aligned_entry_size(size)-size;
+
+    if (txn_get_flags(txn) & HAM_TXN_TEMPORARY) {
+        ham_status_t st=switch_files_maybe(txn);
+        if (st)
+            return (st);
+        m_closed_txn[txn_get_log_desc(txn)]++;
+    }
 
     entry.lsn=lsn;
     entry.dbname=db->get_name();
