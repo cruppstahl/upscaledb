@@ -188,68 +188,10 @@ o clean up interface
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
         
-o flush in background (asynchronously)
-    x need new flag in header file HAM_DISABLE_ASYNCHRONOUS_FLUSH
-    x if in-memory database: disable async flush
-    x if transactions are disabled: disable async flush
-    x if enabled: create background thread, wait for signal
-    x ham_env_flush: if txn are enabled then try to flush them to disk
-
-    x if disabled: use current code path
-    x if enabled: trigger a signal
-    x if signalled: lock env, flush transactions (same as ham_env_flush)
-    x move the whole thread into a separate worker class
-    x have a separate function to do the final flushes and exit the thread
-        attn: env->m_mutex is locked!
-
-    x check unittests; there are still race conditions, i guess when
-        closing the Environment -> no, but when circumventing the exported
-        ham_* functions (because there's no lock in place)
-        x starting TempTxnCursorTest::cloneUncoupledBtreeCursorTest
-        x starting TempTxnCursorTest::closeCoupledBtreeCursorTest
-
-    x add tests
-        x if in-memory database: disable async flush
-        x if transactions are disabled: disable async flush
-
-    x how to deal with an error in the background thread???
-        x store in Environment, then return in every exported function
-        x required in Java API
-        x required in .NET API
-        x add unittests (needs error inducer?)
-
-    x default: async flush is OFF!
-        x change documentation in header file
-        x change the code
-
-    x default: async flush is OFF!
-        x change documentation in header file
-        x change the code
-        x add test (w/ ham_env_flush)
-        x unlock env->mutex after EVERY committed transaction
-
-    o extend monster tests
-        x with async flush
-        x without async flush
-        o extend/run performance test
-        o run monster tests
-
-    o documentation
-        o tutorial
-        o faq
-
-===============================
-
-o a lot of monster tests fail with --use-transactions=5
-    ./test --use-transactions=5 --verbose=1 --verbose=1 220.tst 
-    o fix this
-    o add --use-transactions=5 to monster.sh
-
-
 o continue with refacoring - indention, coding style, better design etc...
     o btree_cursor.cc
     o btree_cursor.h
-        o rename to BtreeCursor
+        x rename to BtreeCursor
         o use memory arena for uncoupling the key
         o replace db_get_keysize() with backend->get_keysize()
 
@@ -288,9 +230,11 @@ o continue with refacoring - indention, coding style, better design etc...
         use an arena allocator for everything that's stored in a transaction
         the arena should allocate pages with dynamic sizes; if a page is
         no longer used it will be stored in a lookaside list
-    o txn_cursor.cc
-    o txn_cursor.h
+
     o txn.h
+    o txn_cursor.h
+    o txn_cursor.cc
+        o get rid of dependency to BtreeCursor
 
     o hamsterdb.cc
     o configuration: move into separate file
@@ -338,30 +282,29 @@ o clean up the "close" functions
 o BtreeFindAction: always use a cursor, and when doing approx matching
     then simply move left or right with that cursor
 
+o flush in background (asynchronously)
+    o need new flag file HAM_DISABLE_ASYNCHRONOUS_FLUSH
+    o if in-memory database: disable async flush
+    o if transactions are disabled: disable async flush
+    o if enabled: create background thread, wait for signal
+    o ham_env_flush: if txn are enabled then try to flush them to disk
+    o how to deal with an error in the background thread???
+        o store in Environment, then return in every exported function
+    o default: async flush is OFF!
+
+    o extend monster tests
+        o with async flush
+        o without async flush
+        o extend/run performance test
+        o run monster tests
+
+    o documentation
+        o tutorial
+        o faq
+
 o python API - update and integrate
     o rewrite with boost::python??
     o also add to win32 package
-
-o continue with c++-ification of db.h/db.cc
-
-o c++-ify the backend
-    o replace with C++ class and inheritance
-    o BtreeBackend does not require to store in little/big-endian!
-    o remove be_set_dirty, replace with be->_fun_flush()
-    o btree has keydata1, keydata2 - why? better use DynamicArray?
-
-
-
-
-
-o move flushing of transactions in background
-    o new flag HAM_DISABLE_ASYNC_COMMITS
-    o need new test: n threads; each thread inserts keys [i*n, i*(n+1))
-    o make sure that each Database accesses its own pages; i.e. do not share
-        blob pages between databases. Each database stores the address of the
-        previously used blob page in order to reduce freelist access
-    o when flushing and values are written to multiple databases: write them
-        in parallel
 
 o need a function to get the txn of a conflict (same as in v2)
     ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
@@ -373,13 +316,6 @@ o need a function to get the txn of a conflict (same as in v2)
 o recovery: re-create pending transactions (if required)
     o needs a function to enumerate them
 
-o c++-ify the transaction
-
-
-
-
-
-
 o allow transactions in-memory
 
 o allow transactions w/o journal
@@ -387,19 +323,6 @@ o allow transactions w/o journal
 o allow transactions w/o recovery
 
 o rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
-
-o new node format:
-    iiikkkkkkkkkrrrrrrrr
-
-    iii: fixed size index (skip-list)
-    kkk: keys
-    rrr: records
-    keys can have different compressions (bitmap, suppress null, ...)
-    records are compressed; will be multiplied by BLOCKSIZE (32)
-    each key consists of { char flag; short record_id; char data[1]; }
-        where record_id is an offset into rrrrrrrrr
-    keys are sorted lazily (i.e. inserted at the end and only sorted
-        when flushed to disk or when searched
 
 . android port (needs new java api) in /contrib directory (it's on a separate
     branch)

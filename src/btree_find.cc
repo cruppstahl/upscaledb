@@ -39,7 +39,7 @@ class BtreeFindAction
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags) {
-      if (cursor && btree_cursor_get_parent(cursor->get_btree_cursor()))
+      if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
     }
 
@@ -293,11 +293,10 @@ class BtreeFindAction
       if (m_cursor) {
         ham_assert(!btree_cursor_is_uncoupled(m_cursor));
         ham_assert(!btree_cursor_is_coupled(m_cursor));
-        page->add_cursor(btree_cursor_get_parent(m_cursor));
-        btree_cursor_set_flags(m_cursor,
-                btree_cursor_get_flags(m_cursor) | BTREE_CURSOR_FLAG_COUPLED);
-        btree_cursor_set_coupled_page(m_cursor, page);
-        btree_cursor_set_coupled_index(m_cursor, idx);
+        page->add_cursor(m_cursor->get_parent());
+        m_cursor->set_flags(m_cursor->get_flags() | BTREE_CURSOR_FLAG_COUPLED);
+        m_cursor->set_coupled_page(page);
+        m_cursor->set_coupled_index(idx);
       }
 
       /*
@@ -340,7 +339,7 @@ class BtreeFindAction
     Transaction *m_txn;
 
     /** the current cursor */
-    btree_cursor_t *m_cursor;
+    BtreeCursor *m_cursor;
 
     /** the key that is retrieved */
     ham_key_t *m_key;

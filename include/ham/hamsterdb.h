@@ -404,8 +404,6 @@ typedef struct {
 #define HAM_LOG_INV_FILE_HEADER         (-300)
 /** Remote I/O error/Network error */
 #define HAM_NETWORK_ERROR               (-400)
-/** Failure in background thread; @sa ham_env_get_asnychronous_error() */
-#define HAM_ASYNCHRONOUS_ERROR_PENDING  (-500)
 
 /**
  * @}
@@ -598,9 +596,6 @@ ham_env_create(ham_env_t *env, const char *filename,
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Database.
  *      This flag implies @ref HAM_ENABLE_RECOVERY.
- *     <li>@ref HAM_ENABLE_ASYNCHRONOUS_FLUSH</li> Enable asynchronous
- *      flush of committed Transactions. Disabled by default. Only
- *      if Transactions are enabled.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -720,9 +715,6 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database.
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
- *     <li>@ref HAM_ENABLE_ASYNCHRONOUS_FLUSH</li> Enable asynchronous
- *      flush of committed Transactions. Disabled by default. Only
- *      if Transactions are enabled.
  *    </ul>
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
@@ -1585,11 +1577,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /* reserved: DB_DISABLE_AUTO_FLUSH (not persistent) 0x00400000 */
 
-/** Flag for @ref ham_create, @ref ham_create_ex,
- * @ref ham_open, @ref ham_open_ex
- * This flag is non persistent. */
-#define HAM_ENABLE_ASYNCHRONOUS_FLUSH               0x00800000
-
 /**
  * Returns the last error code
  *
@@ -1601,22 +1588,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_error(ham_db_t *db);
-
-/**
- * Returns the last error code from the background thread
- *
- * When Transactions are enabled (@sa HAM_ENABLE_TRANSACTIONS), committed
- * Transactions are flushed to disk by a background thread. If this thread
- * causes errors then every other API function returns 
- * @a HAM_ASYNCHRONOUS_ERROR_PENDING till @a ham_env_get_asynchronous_error
- * is called.
- *
- * @param env A valid Environment handle
- *
- * @return The last error code from the background thread
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_get_asnychronous_error(ham_env_t *env);
 
 /**
  * Typedef for a prefix comparison function

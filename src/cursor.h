@@ -463,7 +463,7 @@ class Cursor
     }
 
     /** Get a pointer to the Btree cursor */
-    btree_cursor_t *get_btree_cursor(void) {
+    BtreeCursor *get_btree_cursor(void) {
         return (&m_btree_cursor);
     }
 
@@ -580,7 +580,7 @@ class Cursor
     txn_cursor_t m_txn_cursor;
 
     /** A Cursor which can walk over B+trees */
-    btree_cursor_t m_btree_cursor;
+    BtreeCursor m_btree_cursor;
 
     /** The remote database handle */
     ham_u64_t m_remote_handle;

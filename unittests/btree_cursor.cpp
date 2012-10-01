@@ -229,19 +229,19 @@ public:
     void structureTest(void)
     {
         ham_cursor_t *c;
-        btree_cursor_t *btc;
+        BtreeCursor *btc;
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
 
         btc=((Cursor *)c)->get_btree_cursor();
 
-        ham_u32_t flags=btree_cursor_get_flags(btc);
-        BFC_ASSERT(btree_cursor_get_flags(btc)==0);
-        btree_cursor_set_flags(btc, 0x13);
-        BFC_ASSERT(btree_cursor_get_flags(btc)==0x13);
-        btree_cursor_set_flags(btc, 0);
-        BFC_ASSERT(btree_cursor_get_flags(btc)==0);
-        btree_cursor_set_flags(btc, flags);
+        ham_u32_t flags=btc->get_flags();
+        BFC_ASSERT(btc->get_flags()==0);
+        btc->set_flags(0x13);
+        BFC_ASSERT(btc->get_flags()==0x13);
+        btc->set_flags(0);
+        BFC_ASSERT(btc->get_flags()==0);
+        btc->set_flags(flags);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
@@ -336,7 +336,7 @@ public:
     void couplingTest(void)
     {
         ham_cursor_t *c, *clone;
-        btree_cursor_t *btc;
+        BtreeCursor *btc;
         ham_key_t key1, key2, key3;
         ham_record_t rec;
         int v1=1, v2=2, v3=3;

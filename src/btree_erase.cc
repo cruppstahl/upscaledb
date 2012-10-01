@@ -50,7 +50,7 @@ class BtreeEraseAction
         ham_key_t *key, ham_u32_t dupe_id = 0, ham_u32_t flags = 0)
       : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
         m_dupe_id(dupe_id), m_flags(flags), m_mergepage(0) {
-      if (cursor && btree_cursor_get_parent(cursor->get_btree_cursor()))
+      if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
       if (m_cursor && !key && btree_cursor_is_uncoupled(m_cursor))
         m_key = btree_cursor_get_uncoupled_key(m_cursor);
@@ -64,22 +64,21 @@ class BtreeEraseAction
        * if that's not possible (i.e. because of underflow): uncouple
        * the cursor and process the normal erase algorithm */
       if (m_cursor && btree_cursor_is_coupled(m_cursor)) {
-        Page *page = btree_cursor_get_coupled_page(m_cursor);
+        Page *page = m_cursor->get_coupled_page();
         BtreeNode *node = BtreeNode::from_page(page);
         ham_assert(node->is_leaf());
-        if (btree_cursor_get_coupled_index(m_cursor) > 0
+        if (m_cursor->get_coupled_index() > 0
             && node->get_count() > m_backend->get_minkeys()) {
           /* yes, we can remove the key */
-          return (remove_entry(btree_cursor_get_coupled_page(m_cursor),
-                btree_cursor_get_coupled_index(m_cursor)));
+          return (remove_entry(m_cursor->get_coupled_page(),
+                m_cursor->get_coupled_index()));
         }
         else {
           /* otherwise uncouple and call erase recursively */
           ham_status_t st = btree_cursor_uncouple(m_cursor, 0);
           if (st)
             return (st);
-          BtreeEraseAction bea(m_backend, m_txn,
-                    btree_cursor_get_parent(m_cursor),
+          BtreeEraseAction bea(m_backend, m_txn, m_cursor->get_parent(),
                     btree_cursor_get_uncoupled_key(m_cursor), m_flags);
           return (bea.run());
         }
@@ -126,7 +125,7 @@ class BtreeEraseAction
     /* remove an item from a page */
     ham_status_t remove_entry(Page *page, ham_s32_t slot) {
       ham_status_t st;
-      btree_cursor_t *btc = 0;
+      BtreeCursor *btc = 0;
 
       Database *db = page->get_db();
       BtreeNode *node = BtreeNode::from_page(page);
@@ -154,7 +153,7 @@ class BtreeEraseAction
           btc = cursors->get_btree_cursor();
 
         if (m_cursor)
-          dupe_id = btree_cursor_get_dupe_id(m_cursor) + 1;
+          dupe_id = m_cursor->get_dupe_id() + 1;
         else if (m_dupe_id) /* +1-based index */
           dupe_id = m_dupe_id;
 
@@ -175,22 +174,19 @@ class BtreeEraseAction
            * all other cursors
            */
           while (btc && m_cursor) {
-            btree_cursor_t *next = 0;
+            BtreeCursor *next = 0;
             if (cursors->get_next()) {
               cursors = cursors->get_next();
               next = cursors->get_btree_cursor();
             }
             if (btc != m_cursor) {
-              if (btree_cursor_get_dupe_id(btc)
-                  == btree_cursor_get_dupe_id(m_cursor)) {
+              if (btc->get_dupe_id() == m_cursor->get_dupe_id()) {
                 if (btree_cursor_points_to(btc, bte))
                   btree_cursor_set_to_nil(btc);
               }
-              else if (btree_cursor_get_dupe_id(btc)
-                  > btree_cursor_get_dupe_id(m_cursor)) {
-                btree_cursor_set_dupe_id(btc, btree_cursor_get_dupe_id(btc)-1);
-                memset(btree_cursor_get_dupe_cache(btc), 0,
-                        sizeof(dupe_entry_t));
+              else if (btc->get_dupe_id() > m_cursor->get_dupe_id()) {
+                btc->set_dupe_id(btc->get_dupe_id()-1);
+                memset(btc->get_dupe_cache(), 0, sizeof(dupe_entry_t));
               }
             }
             btc = next;
@@ -210,8 +206,8 @@ free_all:
 
             /* make sure that no cursor is pointing to this key */
             while (btc) {
-              btree_cursor_t *cur = btc;
-              btree_cursor_t *next = 0;
+              BtreeCursor *cur = btc;
+              BtreeCursor *next = 0;
               if (cursors->get_next()) {
                 cursors = cursors->get_next();
                 next = cursors->get_btree_cursor();
@@ -1043,7 +1039,7 @@ cleanup:
     Transaction *m_txn;
 
     /** the current cursor */
-    btree_cursor_t *m_cursor;
+    BtreeCursor *m_cursor;
 
     /** the key that is retrieved */
     ham_key_t *m_key;

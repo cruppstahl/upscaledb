@@ -1601,8 +1601,7 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)i,
-                            btree_cursor_get_dupe_id(
-                                ((Cursor *)c)->get_btree_cursor()));
+                    ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
         }
 
         checkData(c, HAM_CURSOR_FIRST,    0, values[0]);
@@ -1639,8 +1638,7 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)0,
-                            btree_cursor_get_dupe_id(
-                                ((Cursor *)c)->get_btree_cursor()));
+                    ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
         }
 
         checkData(c, HAM_CURSOR_FIRST,    0, values[3]);
@@ -1677,8 +1675,7 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)(i>=1 ? 1 : 0),
-                            btree_cursor_get_dupe_id(
-                                ((Cursor *)c)->get_btree_cursor()));
+                        ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
             BFC_ASSERT_EQUAL(0,
                         ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
         }
@@ -1717,8 +1714,7 @@ public:
                             strlen(values[i])+1);
             BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
             BFC_ASSERT_EQUAL((ham_size_t)(i<=1 ? 0 : i-1),
-                            btree_cursor_get_dupe_id(
-                                ((Cursor *)c)->get_btree_cursor()));
+                        ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
             BFC_ASSERT_EQUAL(0,
                         ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
         }

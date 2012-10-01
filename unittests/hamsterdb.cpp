@@ -134,9 +134,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
         BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
         BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
-        BFC_REGISTER_TEST(HamsterdbTest, enableAsyncFlushTest);
-        BFC_REGISTER_TEST(HamsterdbTest, asyncFlushTest);
-        BFC_REGISTER_TEST(HamsterdbTest, asynchronousErrorTest);
     }
 
 protected:
@@ -2260,103 +2257,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        ham_delete(db);
-    }
-
-    void enableAsyncFlushTest()
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_create_ex(db, "test.db",
-                                HAM_ENABLE_ASYNCHRONOUS_FLUSH, 0, 0));
-        BFC_ASSERT_EQUAL(0,
-                        ham_create_ex(db, "test.db",
-                                HAM_ENABLE_TRANSACTIONS, 0, 0));
-        BFC_ASSERT_EQUAL((Worker *)0,
-                        ((Database *)db)->get_env()->get_worker_thread());
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(0,
-                        ham_create_ex(db, "test.db",
-                                HAM_IN_MEMORY, 0, 0));
-        BFC_ASSERT_EQUAL((Worker *)0,
-                        ((Database *)db)->get_env()->get_worker_thread());
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(0,
-                        ham_create_ex(db, "test.db",
-                                HAM_ENABLE_ASYNCHRONOUS_FLUSH
-                                | HAM_ENABLE_TRANSACTIONS,
-                                0, 0));
-        BFC_ASSERT(((Database *)db)->get_env()->get_worker_thread() != 0);
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        ham_delete(db);
-    }
-
-    void asyncFlushTest()
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0,
-                        ham_create_ex(db, "test.db",
-                                HAM_ENABLE_ASYNCHRONOUS_FLUSH
-                                | HAM_ENABLE_TRANSACTIONS,
-                                0, 0));
-
-        for (int i = 0; i < 10000; i++) {
-            ham_key_t key = {0};
-            key.data = &i;
-            key.size = sizeof(i);
-            ham_record_t rec = {0};
-            rec.data = &i;
-            rec.size = sizeof(i);
-
-            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-            /* periodically call ham_flush */
-            if (i % 17 == 0)
-              BFC_ASSERT_EQUAL(0, ham_env_flush(ham_get_env(db), 0));
-        }
-
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
-
-    void asynchronousErrorTest()
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, "test.db",
-                        HAM_ENABLE_ASYNCHRONOUS_FLUSH | HAM_ENABLE_TRANSACTIONS,
-                        0, 0));
-
-        ErrorInducer *ei=new ErrorInducer();
-        ((Database *)db)->get_env()->get_changeset().m_inducer=ei;
-        ei->add(ErrorInducer::CHANGESET_FLUSH, 1);
-
-        ham_key_t key = {0};
-        ham_record_t rec = {0};
-        rec.size=6;
-        rec.data=(void *)"hello";
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
-        sleep(2);
-        BFC_ASSERT_EQUAL(HAM_ASYNCHRONOUS_ERROR_PENDING,
-                    ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL(HAM_INTERNAL_ERROR,
-                    ham_env_get_asnychronous_error(ham_get_env(db)));
-
-        ((Database *)db)->get_env()->get_changeset().m_inducer=0;
-        BFC_ASSERT_EQUAL(0,
-                    ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL(0,
-                    ham_env_get_asnychronous_error(ham_get_env(db)));
-
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 };

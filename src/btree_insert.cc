@@ -57,7 +57,7 @@ class BtreeInsertAction
       memset(&m_split_key, 0, sizeof(m_split_key));
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
-        ham_assert(m_backend->get_db() == btree_cursor_get_db(m_cursor));
+        ham_assert(m_backend->get_db() == m_cursor->get_db());
       }
     }
 
@@ -592,7 +592,7 @@ fail_dramatically:
       if (node->is_leaf()) {
         st = bte->set_record(db, m_txn, m_record,
                         m_cursor
-                            ? btree_cursor_get_dupe_id(m_cursor)
+                            ? m_cursor->get_dupe_id()
                             : 0,
                         m_hints.flags, &new_dupe_id);
         if (st)
@@ -613,17 +613,16 @@ fail_dramatically:
 
       /* if we have a cursor: couple it to the new key */
       if (m_cursor) {
-        btree_cursor_get_parent(m_cursor)->set_to_nil(Cursor::CURSOR_BTREE);
+        m_cursor->get_parent()->set_to_nil(Cursor::CURSOR_BTREE);
 
         ham_assert(!btree_cursor_is_uncoupled(m_cursor));
         ham_assert(!btree_cursor_is_coupled(m_cursor));
-        btree_cursor_set_flags(m_cursor,
-                btree_cursor_get_flags(m_cursor) | BTREE_CURSOR_FLAG_COUPLED);
-        btree_cursor_set_coupled_page(m_cursor, page);
-        btree_cursor_set_coupled_index(m_cursor, slot);
-        btree_cursor_set_dupe_id(m_cursor, new_dupe_id);
-        memset(btree_cursor_get_dupe_cache(m_cursor), 0, sizeof(dupe_entry_t));
-        page->add_cursor(btree_cursor_get_parent(m_cursor));
+        m_cursor->set_flags(m_cursor->get_flags() | BTREE_CURSOR_FLAG_COUPLED);
+        m_cursor->set_coupled_page(page);
+        m_cursor->set_coupled_index(slot);
+        m_cursor->set_dupe_id(new_dupe_id);
+        memset(m_cursor->get_dupe_cache(), 0, sizeof(dupe_entry_t));
+        page->add_cursor(m_cursor->get_parent());
       }
 
       /* if we've overwritten a key: no need to continue, we're done */
@@ -673,7 +672,7 @@ fail_dramatically:
     Transaction *m_txn;
 
     /** the current cursor */
-    btree_cursor_t *m_cursor;
+    BtreeCursor *m_cursor;
 
     /** the key that is inserted */
     ham_key_t *m_key;

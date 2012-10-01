@@ -580,50 +580,11 @@ class Environment
     }
 
     /** flushes the committed transactions to disk */
-    ham_status_t flush_committed_txns(bool dontlock, bool only_one = false);
+    ham_status_t flush_committed_txns();
 
     /** get the mutex */
     Mutex &get_mutex() {
       return (m_mutex);
-    }
-
-    /** either flush committed Transaction to disk or, if available,
-     * signal the worker thread (TODO - if there's a commit, then there's
-     * ALWAYS a worker thread, right?) */
-    ham_status_t signal_commit();
-
-    /** set the worker thread
-     * TODO move this into an implementation class */
-    void set_worker_thread(Worker *thread) {
-      m_worker_thread = thread;
-    }
-
-    /** get the worker thread
-     * TODO move this into an implementation class */
-    Worker *get_worker_thread() {
-      return (m_worker_thread);
-    }
-
-    /** returns true if the Worker thread has an error */
-    bool has_worker_error();
-
-    /** retrieves and resets the Worker thread's error */
-    ham_status_t get_and_reset_worker_error();
-
-    /** get number of committed txns which were not yet flushed to disk */
-    int get_committed_txns_count() {
-      return (m_committed_txns_count);
-    }
-
-    /** increase number of committed txns which were not yet flushed to disk */
-    void inc_committed_txns_count() {
-      ++m_committed_txns_count;
-    }
-
-    /** decrease number of committed txns which were not yet flushed to disk */
-    void dec_committed_txns_count() {
-      ham_assert(m_committed_txns_count > 0);
-      --m_committed_txns_count;
     }
 
   private:
@@ -712,12 +673,6 @@ class Environment
 
     /** the DuplicateManager */
     DuplicateManager m_duplicate_manager;
-
-    /** the worker thread for flushing committed Transactions */
-    Worker *m_worker_thread;
-
-    /** count committed transactions which were not yet flushed to disk */
-    int m_committed_txns_count;
 };
 
 /**

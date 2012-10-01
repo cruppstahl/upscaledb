@@ -21,7 +21,6 @@
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
-#include "worker.h"
 #include "device.h"
 #include "btree.h"
 #include "mem.h"
@@ -65,8 +64,7 @@ Environment::Environment()
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
-    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this),
-    m_worker_thread(0), m_committed_txns_count(0)
+    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -246,14 +244,6 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* initialize the cache */
     env->set_cache(new Cache(env, env->get_cachesize()));
-
-    /* disable async flush if transactions are disabled or if it's an
-     * in-memory database */
-    if (flags&HAM_ENABLE_TRANSACTIONS
-            && flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH
-            && !(flags&HAM_IN_MEMORY)) {
-        env->set_worker_thread(new Worker(env));
-    }
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
@@ -529,14 +519,6 @@ fail_with_fake_cleansing:
         }
     }
 
-    /* disable async flush if transactions are disabled or if it's an
-     * in-memory database */
-    if (flags&HAM_ENABLE_TRANSACTIONS
-            && flags&HAM_ENABLE_ASYNCHRONOUS_FLUSH
-            && !(flags&HAM_IN_MEMORY)) {
-        env->set_worker_thread(new Worker(env));
-    }
-
     return (HAM_SUCCESS);
 }
 
@@ -716,7 +698,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     ham_file_filter_t *file_head;
 
     /* flush all committed transactions */
-    st=env->flush_committed_txns(true);
+    st=env->flush_committed_txns();
     if (st)
         return (st);
 
@@ -874,7 +856,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
         return (0);
 
     /* flush all committed transactions */
-    st=env->flush_committed_txns(true);
+    st=env->flush_committed_txns();
     if (st)
         return (st);
 
@@ -1521,23 +1503,22 @@ next_op:
     return (0);
 }
 
-static ham_status_t
-env_flush_committed_txns_nolock(Environment *env, bool only_one = false)
+ham_status_t
+Environment::flush_committed_txns()
 {
     Transaction *oldest;
     ham_u64_t last_id = 0;
 
     /* always get the oldest transaction; if it was committed: flush
      * it; if it was aborted: discard it; otherwise return */
-    while ((oldest=env->get_oldest_txn())) {
+    while ((oldest=get_oldest_txn())) {
         if (txn_get_flags(oldest)&TXN_STATE_COMMITTED) {
             if (last_id)
                 ham_assert(last_id != txn_get_id(oldest));
             last_id = txn_get_id(oldest);
-            ham_status_t st=__flush_txn(env, oldest);
+            ham_status_t st=__flush_txn(this, oldest);
             if (st)
                 return (st);
-            env->dec_committed_txns_count();
         }
         else if (txn_get_flags(oldest)&TXN_STATE_ABORTED) {
             ; /* nop */
@@ -1546,54 +1527,16 @@ env_flush_committed_txns_nolock(Environment *env, bool only_one = false)
             break;
 
         /* now remove the txn from the linked list */
-        env_remove_txn(env, oldest);
+        env_remove_txn(this, oldest);
 
         /* and free the whole memory */
         txn_free(oldest);
-
-        if (only_one)
-            break;
     }
 
     /* clear the changeset; if the loop above was not entered or the
      * transaction was empty then it may still contain pages */
-    env->get_changeset().clear();
+    get_changeset().clear();
 
-    return (0);
-}
-
-ham_status_t
-Environment::flush_committed_txns(bool dontlock, bool only_one)
-{
-    ScopedLock lock;
-    if (!dontlock)
-        lock=ScopedLock(m_mutex);
-
-    while (true) {
-        ham_status_t st = env_flush_committed_txns_nolock(this, only_one);
-        if (st)
-            return (st);
-
-        if (get_committed_txns_count() == 0)
-            return (st);
-
-        // briefly release the lock
-        if (!dontlock) {
-            lock.unlock();
-            lock.lock();
-        }
-    }
-
-    return (0);
-}
-
-ham_status_t
-Environment::signal_commit()
-{
-    if (!m_worker_thread)
-        return (env_flush_committed_txns_nolock(this));
-
-    m_worker_thread->signal_commit();
     return (0);
 }
 
@@ -1643,20 +1586,6 @@ env_purge_cache(Environment *env)
 
     return (cache->purge(purge_callback,
                 (env->get_flags()&HAM_CACHE_STRICT) != 0));
-}
-
-bool
-Environment::has_worker_error()
-{
-    return (m_worker_thread
-            ? (m_worker_thread->get_last_error() != 0)
-            : false);
-}
-
-ham_status_t
-Environment::get_and_reset_worker_error()
-{
-    return (m_worker_thread->get_last_error(true));
 }
 
 } // namespace ham
