@@ -43,7 +43,7 @@ btree_cursor_couple(BtreeCursor *c)
     Environment *env = db->get_env();
     ham_u32_t dupe_id;
 
-    ham_assert(btree_cursor_is_uncoupled(c));
+    ham_assert(c->is_uncoupled());
 
     /*
      * make a 'find' on the cached key; if we succeed, the cursor
@@ -54,7 +54,7 @@ btree_cursor_couple(BtreeCursor *c)
      */
     memset(&key, 0, sizeof(key));
 
-    st=db->copy_key(btree_cursor_get_uncoupled_key(c), &key);
+    st=db->copy_key(c->get_uncoupled_key(), &key);
     if (st) {
         if (key.data)
             env->get_allocator()->free(key.data);
@@ -110,9 +110,7 @@ __move_first(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
 
     /* couple this cursor to the smallest key in this page */
     page->add_cursor(c->get_parent());
-    c->set_coupled_page(page);
-    c->set_coupled_index(0);
-    c->set_flags(c->get_flags()|BTREE_CURSOR_FLAG_COUPLED);
+    c->couple_to(page, 0);
     c->set_dupe_id(0);
 
     return (0);
@@ -129,12 +127,12 @@ __move_next(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
     BtreeKey *entry;
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!btree_cursor_is_coupled(c))
+    else if (!c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     page=c->get_coupled_page();
@@ -170,7 +168,7 @@ __move_next(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
      * index
      */
     if (c->get_coupled_index()+1<node->get_count()) {
-        c->set_coupled_index(c->get_coupled_index()+1);
+        c->couple_to(page, c->get_coupled_index()+1);
         c->set_dupe_id(0);
         return (HAM_SUCCESS);
     }
@@ -182,7 +180,6 @@ __move_next(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
         return (HAM_KEY_NOT_FOUND);
 
     page->remove_cursor(c->get_parent());
-    c->set_flags(c->get_flags()&(~BTREE_CURSOR_FLAG_COUPLED));
 
     st=db_fetch_page(&page, db, node->get_right(), 0);
     if (st)
@@ -190,9 +187,7 @@ __move_next(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
 
     /* couple this cursor to the smallest key in this page */
     page->add_cursor(c->get_parent());
-    c->set_coupled_page(page);
-    c->set_coupled_index(0);
-    c->set_flags(c->get_flags()|BTREE_CURSOR_FLAG_COUPLED);
+    c->couple_to(page, 0);
     c->set_dupe_id(0);
 
     return (HAM_SUCCESS);
@@ -209,12 +204,12 @@ __move_previous(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
     BtreeKey *entry;
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!btree_cursor_is_coupled(c))
+    else if (!c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     page=c->get_coupled_page();
@@ -251,7 +246,7 @@ __move_previous(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
      * index
      */
     if (c->get_coupled_index()!=0) {
-        c->set_coupled_index(c->get_coupled_index()-1);
+        c->couple_to(page, c->get_coupled_index()-1);
         entry=node->get_key(db, c->get_coupled_index());
     }
     /*
@@ -262,7 +257,6 @@ __move_previous(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
             return (HAM_KEY_NOT_FOUND);
 
         page->remove_cursor(c->get_parent());
-        c->set_flags(c->get_flags()&(~BTREE_CURSOR_FLAG_COUPLED));
 
         st=db_fetch_page(&page, db, node->get_left(), 0);
         if (st)
@@ -271,9 +265,7 @@ __move_previous(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
 
         /* couple this cursor to the highest key in this page */
         page->add_cursor(c->get_parent());
-        c->set_coupled_page(page);
-        c->set_coupled_index(node->get_count()-1);
-        c->set_flags(c->get_flags()|BTREE_CURSOR_FLAG_COUPLED);
+        c->couple_to(page, node->get_count()-1);
         entry=node->get_key(db, c->get_coupled_index());
     }
     c->set_dupe_id(0);
@@ -342,9 +334,7 @@ __move_last(BtreeBackend *be, BtreeCursor *c, ham_u32_t flags)
 
     /* couple this cursor to the largest key in this page */
     page->add_cursor(c->get_parent());
-    c->set_coupled_page(page);
-    c->set_coupled_index(node->get_count()-1);
-    c->set_flags(c->get_flags()|BTREE_CURSOR_FLAG_COUPLED);
+    c->couple_to(page, node->get_count()-1);
     entry=node->get_key(db, c->get_coupled_index());
     c->set_dupe_id(0);
 
@@ -369,20 +359,19 @@ btree_cursor_set_to_nil(BtreeCursor *c)
     Environment *env = c->get_db()->get_env();
 
     /* uncoupled cursor: free the cached pointer */
-    if (btree_cursor_is_uncoupled(c)) {
-        ham_key_t *key=btree_cursor_get_uncoupled_key(c);
+    if (c->is_uncoupled()) {
+        ham_key_t *key=c->get_uncoupled_key();
         if (key->data)
             env->get_allocator()->free(key->data);
         env->get_allocator()->free(key);
-        btree_cursor_set_uncoupled_key(c, 0);
-        c->set_flags(c->get_flags()&(~BTREE_CURSOR_FLAG_UNCOUPLED));
+        c->set_uncoupled_key(0);
     }
-    /* coupled cursor: uncouple, remove from page */
-    else if (btree_cursor_is_coupled(c)) {
+    /* coupled cursor: remove from page */
+    else if (c->is_coupled()) {
         c->get_coupled_page()->remove_cursor(c->get_parent());
-        c->set_flags(c->get_flags()&(~BTREE_CURSOR_FLAG_COUPLED));
     }
 
+    c->set_state(BtreeCursor::STATE_NIL);
     c->set_dupe_id(0);
     memset(c->get_dupe_cache(), 0, sizeof(dupe_entry_t));
 
@@ -392,21 +381,20 @@ btree_cursor_set_to_nil(BtreeCursor *c)
 void
 btree_cursor_couple_to_other(BtreeCursor *cu, BtreeCursor *other)
 {
-    ham_assert(btree_cursor_is_coupled(other));
+    ham_assert(other->is_coupled());
     btree_cursor_set_to_nil(cu);
 
-    cu->set_coupled_page(other->get_coupled_page());
-    cu->set_coupled_index(other->get_coupled_index());
+    cu->couple_to(other->get_coupled_page(), other->get_coupled_index());
     cu->set_dupe_id(other->get_dupe_id());
-    cu->set_flags(other->get_flags());
+    //cu->set_flags(other->get_flags());
 }
 
 ham_bool_t
 btree_cursor_is_nil(BtreeCursor *cursor)
 {
-    if (btree_cursor_is_uncoupled(cursor))
+    if (cursor->is_uncoupled())
         return (HAM_FALSE);
-    if (btree_cursor_is_coupled(cursor))
+    if (cursor->is_coupled())
         return (HAM_FALSE);
     if (cursor->get_parent()->is_coupled_to_txnop())
         return (HAM_FALSE);
@@ -423,7 +411,7 @@ btree_cursor_uncouple(BtreeCursor *c, ham_u32_t flags)
     Database *db=c->get_db();
     Environment *env=db->get_env();
 
-    if (btree_cursor_is_uncoupled(c) || btree_cursor_is_nil(c))
+    if (c->is_uncoupled() || btree_cursor_is_nil(c))
         return (0);
 
     ham_assert(c->get_coupled_page()!=0);
@@ -450,9 +438,8 @@ btree_cursor_uncouple(BtreeCursor *c, ham_u32_t flags)
         c->get_coupled_page()->remove_cursor(c->get_parent());
 
     /* set the flags and the uncoupled key */
-    c->set_flags(c->get_flags()&(~BTREE_CURSOR_FLAG_COUPLED));
-    c->set_flags(c->get_flags()|BTREE_CURSOR_FLAG_UNCOUPLED);
-    btree_cursor_set_uncoupled_key(c, key);
+    c->set_state(BtreeCursor::STATE_UNCOUPLED);
+    c->set_uncoupled_key(key);
 
     return (0);
 }
@@ -469,28 +456,27 @@ btree_cursor_clone(BtreeCursor *src, BtreeCursor *dest,
     dest->set_parent(parent);
 
     /* if the old cursor is coupled: couple the new cursor, too */
-    if (btree_cursor_is_coupled(src)) {
+    if (src->is_coupled()) {
          Page *page=src->get_coupled_page();
          page->add_cursor(dest->get_parent());
-         dest->set_coupled_page(page);
+         dest->couple_to(page, src->get_coupled_index());
     }
     /* otherwise, if the src cursor is uncoupled: copy the key */
-    else if (btree_cursor_is_uncoupled(src)) {
+    else if (src->is_uncoupled()) {
         ham_key_t *key;
 
         key=(ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
         if (!key)
             return (HAM_OUT_OF_MEMORY);
 
-        st=dest->get_db()->copy_key(
-                        btree_cursor_get_uncoupled_key(src), key);
+        st=dest->get_db()->copy_key(src->get_uncoupled_key(), key);
         if (st) {
             if (key->data)
                 env->get_allocator()->free(key->data);
             env->get_allocator()->free(key);
             return (st);
         }
-        btree_cursor_set_uncoupled_key(dest, key);
+        dest->set_uncoupled_key(key);
     }
 
     return (0);
@@ -513,12 +499,12 @@ btree_cursor_overwrite(BtreeCursor *c, ham_record_t *record, ham_u32_t flags)
     Page *page;
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!btree_cursor_is_coupled(c))
+    else if (!c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     /* delete the cache of the current duplicate */
@@ -577,7 +563,7 @@ btree_cursor_move(BtreeCursor *c, ham_key_t *key,
             return (0);
     }
     /* no move, but cursor is not coupled? couple it */
-    else if (btree_cursor_is_uncoupled(c))
+    else if (c->is_uncoupled())
         st=btree_cursor_couple(c);
 
     if (st)
@@ -590,7 +576,7 @@ btree_cursor_move(BtreeCursor *c, ham_key_t *key,
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing
      * the reference counter
      */
-    ham_assert(btree_cursor_is_coupled(c));
+    ham_assert(c->is_coupled());
     page=c->get_coupled_page();
     node=BtreeNode::from_page(page);
     ham_assert(node->is_leaf());
@@ -687,7 +673,7 @@ btree_cursor_erase(BtreeCursor *c, ham_u32_t flags)
     if (!be)
         return (HAM_NOT_INITIALIZED);
 
-    if (!btree_cursor_is_uncoupled(c) && !btree_cursor_is_coupled(c))
+    if (!c->is_uncoupled() && !c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     return (be->erase_cursor(txn, 0, c->get_parent(), flags));
@@ -699,13 +685,13 @@ btree_cursor_points_to(BtreeCursor *cursor, BtreeKey *key)
     ham_status_t st;
     Database *db=cursor->get_db();
 
-    if (btree_cursor_is_uncoupled(cursor)) {
+    if (cursor->is_uncoupled()) {
         st=btree_cursor_couple(cursor);
         if (st)
             return (false);
     }
 
-    if (btree_cursor_is_coupled(cursor)) {
+    if (cursor->is_coupled()) {
         Page *page=cursor->get_coupled_page();
         BtreeNode *node=BtreeNode::from_page(page);
         BtreeKey *entry=node->get_key(db, cursor->get_coupled_index());
@@ -724,14 +710,14 @@ btree_cursor_points_to_key(BtreeCursor *btc, ham_key_t *key)
     Database *db=c->get_db();
     bool ret=false;
 
-    if (btree_cursor_is_uncoupled(btc)) {
-        ham_key_t *k=btree_cursor_get_uncoupled_key(btc);
+    if (btc->is_uncoupled()) {
+        ham_key_t *k=btc->get_uncoupled_key();
         if (k->size!=key->size)
             return (false);
         return (0==db->compare_keys(key, k));
     }
 
-    if (btree_cursor_is_coupled(btc)) {
+    if (btc->is_coupled()) {
         Page *page=btc->get_coupled_page();
         BtreeNode *node=BtreeNode::from_page(page);
         BtreeKey *entry=node->get_key(db, btc->get_coupled_index());
@@ -748,7 +734,7 @@ btree_cursor_points_to_key(BtreeCursor *btc, ham_key_t *key)
             return (false);
         }
         if (0==db->compare_keys(key,
-               btree_cursor_get_uncoupled_key(clone->get_btree_cursor())))
+               clone->get_btree_cursor()->get_uncoupled_key()))
             ret=true;
         db->close_cursor(clone);
         return (ret);
@@ -778,12 +764,12 @@ btree_cursor_get_duplicate_count(BtreeCursor *c,
         return (HAM_NOT_INITIALIZED);
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!(btree_cursor_is_coupled(c)))
+    else if (!(c->is_coupled()))
         return (HAM_CURSOR_IS_NIL);
 
     page=c->get_coupled_page();
@@ -818,7 +804,7 @@ btree_uncouple_all_cursors(Page *page, ham_size_t start)
          * ignore all cursors which are already uncoupled or which are
          * coupled to the txn
          */
-        if (btree_cursor_is_coupled(btc) || c->is_coupled_to_txnop()) {
+        if (btc->is_coupled() || c->is_coupled_to_txnop()) {
             /* skip this cursor if its position is < start */
             if (btc->get_coupled_index()<start) {
                 c=n;
@@ -864,12 +850,12 @@ btree_cursor_get_duplicate_table(BtreeCursor *c, dupe_table_t **ptable,
     *ptable=0;
 
     /* uncoupled cursor: couple it */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!btree_cursor_is_coupled(c))
+    else if (!c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     page=c->get_coupled_page();
@@ -917,12 +903,12 @@ btree_cursor_get_record_size(BtreeCursor *c, ham_offset_t *size)
     /*
      * uncoupled cursor: couple it
      */
-    if (btree_cursor_is_uncoupled(c)) {
+    if (c->is_uncoupled()) {
         st=btree_cursor_couple(c);
         if (st)
             return (st);
     }
-    else if (!btree_cursor_is_coupled(c))
+    else if (!c->is_coupled())
         return (HAM_CURSOR_IS_NIL);
 
     page=c->get_coupled_page();
@@ -972,6 +958,7 @@ BtreeCursor::get_db()
   return (m_parent->get_db());
 }
 
+#if 0
 ham_u32_t
 BtreeCursor::get_flags()
 {
@@ -983,5 +970,6 @@ BtreeCursor::set_flags(ham_u32_t flags)
 {
   m_parent->set_flags(flags);
 }
+#endif
 
 } // namespace ham

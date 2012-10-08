@@ -291,12 +291,10 @@ class BtreeFindAction
 
       /* set the cursor-position to this key */
       if (m_cursor) {
-        ham_assert(!btree_cursor_is_uncoupled(m_cursor));
-        ham_assert(!btree_cursor_is_coupled(m_cursor));
+        ham_assert(!m_cursor->is_uncoupled());
+        ham_assert(!m_cursor->is_coupled());
         page->add_cursor(m_cursor->get_parent());
-        m_cursor->set_flags(m_cursor->get_flags() | BTREE_CURSOR_FLAG_COUPLED);
-        m_cursor->set_coupled_page(page);
-        m_cursor->set_coupled_index(idx);
+        m_cursor->couple_to(page, idx);
       }
 
       /*

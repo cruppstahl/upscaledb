@@ -52,8 +52,8 @@ class BtreeEraseAction
         m_dupe_id(dupe_id), m_flags(flags), m_mergepage(0) {
       if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
-      if (m_cursor && !key && btree_cursor_is_uncoupled(m_cursor))
-        m_key = btree_cursor_get_uncoupled_key(m_cursor);
+      if (m_cursor && !key && m_cursor->is_uncoupled())
+        m_key = m_cursor->get_uncoupled_key();
     }
 
     ham_status_t run() {
@@ -63,7 +63,7 @@ class BtreeEraseAction
       /* coupled cursor: try to remove the key directly from the page.
        * if that's not possible (i.e. because of underflow): uncouple
        * the cursor and process the normal erase algorithm */
-      if (m_cursor && btree_cursor_is_coupled(m_cursor)) {
+      if (m_cursor && m_cursor->is_coupled()) {
         Page *page = m_cursor->get_coupled_page();
         BtreeNode *node = BtreeNode::from_page(page);
         ham_assert(node->is_leaf());
@@ -79,7 +79,7 @@ class BtreeEraseAction
           if (st)
             return (st);
           BtreeEraseAction bea(m_backend, m_txn, m_cursor->get_parent(),
-                    btree_cursor_get_uncoupled_key(m_cursor), m_flags);
+                    m_cursor->get_uncoupled_key(), m_flags);
           return (bea.run());
         }
       }

@@ -465,13 +465,12 @@ txn_cursor_erase(txn_cursor_t *cursor)
     /* case 1 described above */
     if (txn_cursor_is_nil(cursor)) {
         BtreeCursor *btc=parent->get_btree_cursor();
-        if (btree_cursor_is_coupled(btc)) {
+        if (btc->is_coupled()) {
             st=btree_cursor_uncouple(btc, 0);
             if (st)
                 return (st);
         }
-        st=db_erase_txn(db, txn, btree_cursor_get_uncoupled_key(btc), 0,
-                            cursor);
+        st=db_erase_txn(db, txn, btc->get_uncoupled_key(), 0, cursor);
         if (st)
             return (st);
     }

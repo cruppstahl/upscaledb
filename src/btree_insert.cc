@@ -615,11 +615,9 @@ fail_dramatically:
       if (m_cursor) {
         m_cursor->get_parent()->set_to_nil(Cursor::CURSOR_BTREE);
 
-        ham_assert(!btree_cursor_is_uncoupled(m_cursor));
-        ham_assert(!btree_cursor_is_coupled(m_cursor));
-        m_cursor->set_flags(m_cursor->get_flags() | BTREE_CURSOR_FLAG_COUPLED);
-        m_cursor->set_coupled_page(page);
-        m_cursor->set_coupled_index(slot);
+        ham_assert(!m_cursor->is_uncoupled());
+        ham_assert(!m_cursor->is_coupled());
+        m_cursor->couple_to(page, slot);
         m_cursor->set_dupe_id(new_dupe_id);
         memset(m_cursor->get_dupe_cache(), 0, sizeof(dupe_entry_t));
         page->add_cursor(m_cursor->get_parent());

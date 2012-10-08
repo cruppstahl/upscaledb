@@ -195,6 +195,10 @@ o continue with refacoring - indention, coding style, better design etc...
         o use memory arena for uncoupling the key
         o replace db_get_keysize() with backend->get_keysize()
 
+=====================
+WIP: remove BtreeCursor::*et_flags(); adjust unittest; run unittest
+=====================
+
     o backend.h/btree.h: check the TODOs
 
     ==> get rid of the whole freelist; no need to refactor the existing

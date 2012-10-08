@@ -355,18 +355,18 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         btc=((Cursor *)c)->get_btree_cursor();
         /* after create: cursor is NIL */
-        BFC_ASSERT(!btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(!btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         /* after insert: cursor is NIL */
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key2, &rec, 0));
-        BFC_ASSERT(!btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(!btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         /* move to item: cursor is coupled */
         BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
-        BFC_ASSERT(btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         /* clone the coupled cursor */
         BFC_ASSERT_EQUAL(0, ham_cursor_clone(c, &clone));
@@ -374,25 +374,25 @@ public:
 
         /* insert item BEFORE the first item - cursor is uncoupled */
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key1, &rec, 0));
-        BFC_ASSERT(!btree_cursor_is_coupled(btc));
-        BFC_ASSERT(btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(!btc->is_coupled());
+        BFC_ASSERT(btc->is_uncoupled());
 
         /* move to item: cursor is coupled */
         BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
-        BFC_ASSERT(btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         /* insert duplicate - cursor stays coupled */
         BFC_ASSERT_EQUAL(0,
                 ham_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
-        BFC_ASSERT(btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         /* insert item AFTER the middle item - cursor stays coupled */
         BFC_ASSERT_EQUAL(0,
                 ham_insert(m_db, 0, &key3, &rec, 0));
-        BFC_ASSERT(btree_cursor_is_coupled(btc));
-        BFC_ASSERT(!btree_cursor_is_uncoupled(btc));
+        BFC_ASSERT(btc->is_coupled());
+        BFC_ASSERT(!btc->is_uncoupled());
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }

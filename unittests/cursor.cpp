@@ -309,10 +309,8 @@ public:
 
         BFC_ASSERT_EQUAL(false, cursor_is_nil((Cursor *)clone,
                         Cursor::CURSOR_BTREE));
-        ham_key_t *k1=btree_cursor_get_uncoupled_key(
-                    c->get_btree_cursor());
-        ham_key_t *k2=btree_cursor_get_uncoupled_key(
-                    ((Cursor *)clone)->get_btree_cursor());
+        ham_key_t *k1=c->get_btree_cursor()->get_uncoupled_key();
+        ham_key_t *k2=((Cursor *)clone)->get_btree_cursor()->get_uncoupled_key();
         BFC_ASSERT_EQUAL(0, strcmp((char *)k1->data, (char *)k2->data));
         BFC_ASSERT_EQUAL(k1->size, k2->size);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));

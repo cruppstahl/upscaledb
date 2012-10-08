@@ -28,7 +28,7 @@ using namespace ham;
 static ham_bool_t
 __btree_cursor_is_nil(BtreeCursor *btc)
 {
-    return (!btree_cursor_is_coupled(btc) && !btree_cursor_is_uncoupled(btc));
+    return (!btc->is_coupled() && !btc->is_uncoupled());
 }
 
 ham_status_t
@@ -252,7 +252,7 @@ Cursor::sync(ham_u32_t flags, ham_bool_t *equal_keys)
             get_db()->close_cursor(clone);
             goto bail;
         }
-        k=btree_cursor_get_uncoupled_key(clone->get_btree_cursor());
+        k=clone->get_btree_cursor()->get_uncoupled_key();
         if (!(flags&CURSOR_SYNC_ONLY_EQUAL_KEY))
             flags=flags|((flags&HAM_CURSOR_NEXT)
                     ? HAM_FIND_GEQ_MATCH
@@ -346,7 +346,7 @@ Cursor::compare(void)
     ham_assert(!is_nil(0));
     ham_assert(!txn_cursor_is_nil(txnc));
 
-    if (btree_cursor_is_coupled(btrc)) {
+    if (btrc->is_coupled()) {
         /* clone the cursor, then uncouple the clone; get the uncoupled key
          * and discard the clone again */
 
@@ -367,16 +367,16 @@ Cursor::compare(void)
         }
         /* TODO error codes are swallowed */
         cmp=get_db()->compare_keys(
-                btree_cursor_get_uncoupled_key(clone->get_btree_cursor()),
+                clone->get_btree_cursor()->get_uncoupled_key(),
                 txnk);
         get_db()->close_cursor(clone);
 
         set_lastcmp(cmp);
         return (cmp);
     }
-    else if (btree_cursor_is_uncoupled(btrc)) {
+    else if (btrc->is_uncoupled()) {
         /* TODO error codes are swallowed */
-        cmp=get_db()->compare_keys(btree_cursor_get_uncoupled_key(btrc), txnk);
+        cmp=get_db()->compare_keys(btrc->get_uncoupled_key(), txnk);
         set_lastcmp(cmp);
         return (cmp);
     }
@@ -1196,7 +1196,7 @@ Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
             st=btree_cursor_uncouple(get_btree_cursor(), 0);
             if (st==0)
                 st=db_insert_txn(m_db, txn,
-                    btree_cursor_get_uncoupled_key(get_btree_cursor()),
+                    get_btree_cursor()->get_uncoupled_key(),
                         record, flags|HAM_OVERWRITE,
                         get_txn_cursor());
         }
