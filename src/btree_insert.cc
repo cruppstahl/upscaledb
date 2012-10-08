@@ -628,7 +628,7 @@ fail_dramatically:
         return (0);
 
       /* we insert the extended key, if necessary */
-      bte->set_key(key->data, std::min(keysize, (ham_size_t)key->size));
+      bte->set_key(key->data, min(keysize, (ham_size_t)key->size));
 
       /*
        * if we need an extended key, allocate a blob and store

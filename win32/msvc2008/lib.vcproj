@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;;&quot;..\..\..\hamsterdb-alien\protobuf\msvc2008\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -180,7 +180,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;..\..\..\hamsterdb-alien\protobuf\msvc2008\include&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -312,10 +312,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_node.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_check.cc"
 			>
 		</File>
@@ -349,6 +345,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_key.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_node.h"
 			>
 		</File>
 		<File
@@ -396,19 +396,19 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\duplicates.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\duplicates.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\device.cc"
 			>
 		</File>
 		<File
 			RelativePath="..\..\src\device.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\duplicates.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\duplicates.h"
 			>
 		</File>
 		<File
