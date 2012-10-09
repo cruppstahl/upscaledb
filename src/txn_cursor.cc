@@ -445,7 +445,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     Transaction *txn=parent->get_txn();
 
     /* don't continue if cursor is nil */
-    if (btree_cursor_is_nil(parent->get_btree_cursor())
+    if (parent->get_btree_cursor()->is_nil()
             && txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 

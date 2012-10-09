@@ -182,7 +182,7 @@ class BtreeEraseAction
             if (btc != m_cursor) {
               if (btc->get_dupe_id() == m_cursor->get_dupe_id()) {
                 if (btree_cursor_points_to(btc, bte))
-                  btree_cursor_set_to_nil(btc);
+                  btc->set_to_nil();
               }
               else if (btc->get_dupe_id() > m_cursor->get_dupe_id()) {
                 btc->set_dupe_id(btc->get_dupe_id()-1);
@@ -214,7 +214,7 @@ free_all:
               }
               if (btc != m_cursor) {
                 if (btree_cursor_points_to(cur, bte))
-                  btree_cursor_set_to_nil(cur);
+                  cur->set_to_nil();
               }
               btc = next;
             }

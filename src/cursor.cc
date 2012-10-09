@@ -474,7 +474,7 @@ Cursor::move_next_key_singlestep(void)
         return (0);
     }
     /* txn-key is smaller */
-    else if (get_lastcmp()>0 || btree_cursor_is_nil(btrc)) {
+    else if (get_lastcmp()>0 || btrc->is_nil()) {
         couple_to_txnop();
         update_dupecache(CURSOR_TXN);
         return (0);
@@ -643,7 +643,7 @@ Cursor::move_previous_key_singlestep(void)
         return (0);
     }
     /* txn-key is greater */
-    else if (get_lastcmp()<0 || btree_cursor_is_nil(btrc)) {
+    else if (get_lastcmp()<0 || btrc->is_nil()) {
         couple_to_txnop();
         update_dupecache(CURSOR_TXN);
         return (0);
@@ -1025,15 +1025,16 @@ bail:
 }
 
 Cursor::Cursor(Database *db, Transaction *txn, ham_u32_t flags)
-  : m_db(db), m_txn(txn), m_remote_handle(0), m_next(0), m_previous(0),
-    m_next_in_page(0), m_previous_in_page(0), m_dupecache_index(0),
-    m_lastop(0), m_lastcmp(0), m_flags(flags), m_is_first_use(true)
+  : m_db(db), m_txn(txn), m_btree_cursor(this), m_remote_handle(0),
+    m_next(0), m_previous(0), m_next_in_page(0), m_previous_in_page(0),
+    m_dupecache_index(0), m_lastop(0), m_lastcmp(0), m_flags(flags),
+    m_is_first_use(true)
 {
     txn_cursor_create(db, txn, flags, get_txn_cursor(), this);
-    btree_cursor_create(db, txn, flags, get_btree_cursor(), this);
 }
 
 Cursor::Cursor(Cursor &other)
+  : m_btree_cursor(this)
 {
     m_db=other.m_db;
     m_txn=other.m_txn;
@@ -1053,7 +1054,7 @@ Cursor::Cursor(Cursor &other)
     set_next_in_page(0);
     set_previous_in_page(0);
 
-    btree_cursor_clone(other.get_btree_cursor(), get_btree_cursor(), this);
+    m_btree_cursor.clone(other.get_btree_cursor());
 
     /* always clone the txn-cursor, even if transactions are not required */
     txn_cursor_clone(other.get_txn_cursor(), get_txn_cursor(), this);
@@ -1076,7 +1077,7 @@ Cursor::is_nil(int what)
         ham_assert(what==0);
         /* TODO btree_cursor_is_nil is different from __btree_cursor_is_nil
          * - refactor and clean up! */
-        return (btree_cursor_is_nil(get_btree_cursor())
+        return (get_btree_cursor()->is_nil()
             ? true
             : false);
     }
@@ -1087,7 +1088,7 @@ Cursor::set_to_nil(int what)
 {
     switch (what) {
       case CURSOR_BTREE:
-        btree_cursor_set_to_nil(get_btree_cursor());
+        get_btree_cursor()->set_to_nil();
         break;
       case CURSOR_TXN:
         txn_cursor_set_to_nil(get_txn_cursor());
@@ -1095,7 +1096,7 @@ Cursor::set_to_nil(int what)
         break;
       default:
         ham_assert(what==0);
-        btree_cursor_set_to_nil(get_btree_cursor());
+        get_btree_cursor()->set_to_nil();
         txn_cursor_set_to_nil(get_txn_cursor());
         set_first_use(true);
         break;

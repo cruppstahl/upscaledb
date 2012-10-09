@@ -52,11 +52,9 @@ class BtreeCursor
       STATE_UNCOUPLED = 2
     };
 
-    BtreeCursor()
-      : m_parent(0), m_state(0), m_dupe_id(0), m_dupe_cache() {
-      m_u._coupled._page = 0;
-      m_u._coupled._index = 0;
-      m_u._uncoupled._key = 0;
+    BtreeCursor(Cursor *parent = 0)
+      : m_parent(parent), m_state(0), m_dupe_id(0), m_dupe_cache(),
+        m_coupled_page(0), m_coupled_index(0), m_uncoupled_key(0) {
     }
 
     /** get the parent cursor */
@@ -64,40 +62,38 @@ class BtreeCursor
       return (m_parent);
     }
 
-    /** set the parent cursor */
-    void set_parent(Cursor *parent) {
-      m_parent = parent;
-    }
+    /** clone another BtreeCursor */
+    void clone(BtreeCursor *other);
+
+    /** set the cursor to NIL */
+    void set_to_nil();
+
+    /** returns true if the cursor is nil, otherwise false */
+    bool is_nil();
 
     /** set the cursor state */
     void set_state(int state) {
       m_state = state;
     }
 
-    /** get the flags */
-    //ham_u32_t get_flags();
-
-    /** set the flags */
-    //void set_flags(ham_u32_t flags);
-
     /** get the database pointer */
     Database *get_db();
 
-    /** get the page we're pointing to - if the cursor is coupled */
-    Page *get_coupled_page() {
-      return (m_u._coupled._page);
-    }
-
     /** set the key we're pointing to - if the cursor is coupled */
     void couple_to(Page *page, ham_size_t index) {
-      m_u._coupled._page = page;
-      m_u._coupled._index = index;
+      m_coupled_page = page;
+      m_coupled_index = index;
       m_state = STATE_COUPLED;
+    }
+
+    /** get the page we're pointing to - if the cursor is coupled */
+    Page *get_coupled_page() {
+      return (m_coupled_page);
     }
 
     /** get the key index we're pointing to - if the cursor is coupled */
     ham_size_t get_coupled_index() {
-      return (m_u._coupled._index);
+      return (m_coupled_index);
     }
 
     /** get the duplicate key we're pointing to - if the cursor is coupled */
@@ -117,12 +113,12 @@ class BtreeCursor
 
     /** get the key we're pointing to - if the cursor is uncoupled */
     ham_key_t *get_uncoupled_key() {
-      return (m_u._uncoupled._key);
+      return (m_uncoupled_key);
     }
 
     /** set the key we're pointing to - if the cursor is uncoupled */
     void set_uncoupled_key(ham_key_t *key) {
-      m_u._uncoupled._key = key;
+      m_uncoupled_key = key;
     }
 
     /** check if the cursor is coupled */
@@ -139,7 +135,13 @@ class BtreeCursor
     /** the parent cursor */
     Cursor *m_parent;
 
-    /** the current cursor state (coupled, uncoupled) */
+    /**
+     * "coupled" or "uncoupled" states; coupled means that the
+     * cursor points into a Page object, which is in
+     * memory. "uncoupled" means that the cursor has a copy
+     * of the key on which it points (i.e. because the coupled page was
+     * flushed to disk and removed from the cache)
+     */
     int m_state;
 
     /** the id of the duplicate key to which this cursor is coupled */
@@ -148,57 +150,15 @@ class BtreeCursor
     /** cached flags and record ID of the current duplicate */
     dupe_entry_t m_dupe_cache;
 
-    /**
-     * "coupled" or "uncoupled" states; coupled means that the
-     * cursor points into a Page object, which is in
-     * memory. "uncoupled" means that the cursor has a copy
-     * of the key on which it points (i.e. because the coupled page was
-     * flushed to disk and removed from the cache)
-     */
-    union btree_cursor_union_t {
-        struct btree_cursor_coupled_t {
-            /* the page we're pointing to */
-            Page *_page;
+    /* for coupled cursors: the page we're pointing to */
+    Page *m_coupled_page;
 
-            /* the offset of the key in the page */
-            ham_size_t _index;
+    /* ... and the index of the key in that page */
+    ham_size_t m_coupled_index;
 
-        } _coupled;
-
-        struct btree_cursor_uncoupled_t {
-            /* a copy of the key at which we're pointing */
-            ham_key_t *_key;
-
-        } _uncoupled;
-    } m_u;
+    /* for uncoupled cursors: a copy of the key at which we're pointing */
+    ham_key_t *m_uncoupled_key;
 };
-
-/**
- * Create a new cursor
- */
-extern void
-btree_cursor_create(Database *db, Transaction *txn, ham_u32_t flags,
-                BtreeCursor *cursor, Cursor *parent);
-
-/**
- * Clone an existing cursor
- * the dest structure is already allocated
- */
-extern ham_status_t
-btree_cursor_clone(BtreeCursor *src, BtreeCursor *dest,
-                Cursor *parent);
-
-/**
- * Set the cursor to NIL
- */
-extern ham_status_t
-btree_cursor_set_to_nil(BtreeCursor *c);
-
-/**
- * Returns true if the cursor is nil, otherwise false
- */
-extern ham_bool_t
-btree_cursor_is_nil(BtreeCursor *cursor);
 
 /**
  * Couple the cursor to the same item as another (coupled!) cursor

@@ -46,7 +46,6 @@ public:
         BFC_REGISTER_TEST(BtreeCursorTest, moveTest);
         BFC_REGISTER_TEST(BtreeCursorTest, moveSplitTest);
         BFC_REGISTER_TEST(BtreeCursorTest, overwriteTest);
-        BFC_REGISTER_TEST(BtreeCursorTest, structureTest);
         BFC_REGISTER_TEST(BtreeCursorTest, linkedListTest);
         BFC_REGISTER_TEST(BtreeCursorTest, linkedListReverseCloseTest);
         BFC_REGISTER_TEST(BtreeCursorTest, cursorGetErasedItemTest);
@@ -224,26 +223,6 @@ public:
                     ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    }
-
-    void structureTest(void)
-    {
-        ham_cursor_t *c;
-        BtreeCursor *btc;
-
-        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
-
-        btc=((Cursor *)c)->get_btree_cursor();
-
-        ham_u32_t flags=btc->get_flags();
-        BFC_ASSERT(btc->get_flags()==0);
-        btc->set_flags(0x13);
-        BFC_ASSERT(btc->get_flags()==0x13);
-        btc->set_flags(0);
-        BFC_ASSERT(btc->get_flags()==0);
-        btc->set_flags(flags);
-
-        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void linkedListTest(void)

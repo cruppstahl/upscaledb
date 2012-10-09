@@ -903,7 +903,7 @@ public:
         Cursor *cl=(Cursor *)clone;
 
         BFC_ASSERT_EQUAL(false,
-                btree_cursor_is_nil((((Cursor *)clone)->get_btree_cursor())));
+                (((Cursor *)clone)->get_btree_cursor()->is_nil()));
         BFC_ASSERT_EQUAL(2u, txn_get_cursor_refcount((Transaction *)m_txn));
         BFC_ASSERT_EQUAL(
                 txn_cursor_get_coupled_op(c->get_txn_cursor()),
