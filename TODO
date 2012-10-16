@@ -187,7 +187,10 @@ o clean up interface
     o clean up ham_flush, ham_env_flush
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
-        
+
+o jake: disable file indexing with file attribute on windows
+    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+
 o continue with refacoring - indention, coding style, better design etc...
     o btree_cursor.cc
     o btree_cursor.h
