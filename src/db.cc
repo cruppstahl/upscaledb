@@ -1037,8 +1037,7 @@ __increment_dupe_index(Database *db, txn_opnode_t *node,
         }
         /* if cursor is coupled to the same key in the btree: increment
          * duplicate index (if required) */
-        else if (btree_cursor_points_to_key(c->get_btree_cursor(),
-                        txn_opnode_get_key(node))) {
+        else if (c->get_btree_cursor()->points_to(txn_opnode_get_key(node))) {
             hit=HAM_TRUE;
         }
 
@@ -1198,7 +1197,7 @@ __nil_all_cursors_in_btree(Database *db, Cursor *current, ham_key_t *key)
         if (c->is_coupled_to_txnop())
             goto next;
 
-        if (btree_cursor_points_to_key(c->get_btree_cursor(), key)) {
+        if (c->get_btree_cursor()->points_to(key)) {
             /* is the current cursor to a duplicate? then adjust the
              * coupled duplicate index of all cursors which point to a
              * duplicate */
@@ -2094,8 +2093,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         }
     }
     else {
-        st=btree_cursor_insert(cursor->get_btree_cursor(),
-                    key, &temprec, flags);
+        st=cursor->get_btree_cursor()->insert(key, &temprec, flags);
         if (st==0)
             cursor->couple_to_btree();
     }
@@ -2323,7 +2321,7 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
     }
 
 btree:
-    st=btree_cursor_find(cursor->get_btree_cursor(), key, record, flags);
+    st=cursor->get_btree_cursor()->find(key, record, flags);
     if (st==0) {
         cursor->couple_to_btree();
         /* if btree keys were found: reset the dupecache. The previous
@@ -2354,8 +2352,7 @@ check_dupes:
                 st=txn_cursor_get_record(cursor->get_txn_cursor(),
                         record);
             else
-                st=btree_cursor_move(cursor->get_btree_cursor(),
-                        0, record, 0);
+                st=cursor->get_btree_cursor()->move(0, record, 0);
         }
     }
     else {
@@ -2646,8 +2643,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
 
     /* in non-transactional mode - just call the btree function and return */
     if (!(m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=btree_cursor_move(cursor->get_btree_cursor(),
-                key, record, flags);
+        st=cursor->get_btree_cursor()->move(key, record, flags);
         env->get_changeset().clear();
         if (st)
             return (st);

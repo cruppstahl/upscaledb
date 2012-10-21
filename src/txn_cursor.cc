@@ -466,7 +466,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     if (txn_cursor_is_nil(cursor)) {
         BtreeCursor *btc=parent->get_btree_cursor();
         if (btc->is_coupled()) {
-            st=btree_cursor_uncouple(btc, 0);
+            st=btc->uncouple();
             if (st)
                 return (st);
         }

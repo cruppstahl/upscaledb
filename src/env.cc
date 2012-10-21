@@ -1425,7 +1425,7 @@ __flush_txn(Environment *env, Transaction *txn)
                 /* pick the first cursor, get the parent/btree cursor and
                  * insert the key/record pair in the btree. The btree cursor
                  * then will be coupled to this item. */
-                st=btree_cursor_insert(c1->get_btree_cursor(),
+                st=c1->get_btree_cursor()->insert(
                         txn_opnode_get_key(node), txn_op_get_record(op),
                         txn_op_get_orig_flags(op)|additional_flag);
                 if (!st) {
@@ -1439,7 +1439,7 @@ __flush_txn(Environment *env, Transaction *txn)
                     while ((tc2=txn_op_get_cursors(op))) {
                         txn_op_remove_cursor(op, tc2);
                         c2=txn_cursor_get_parent(tc2);
-                        btree_cursor_couple_to_other(c2->get_btree_cursor(),
+                        c2->get_btree_cursor()->couple_to_other(
                                     c1->get_btree_cursor());
                         c2->couple_to_btree();
                         c2->set_to_nil(Cursor::CURSOR_TXN);

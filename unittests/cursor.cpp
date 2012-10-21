@@ -302,8 +302,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0,
-                  btree_cursor_uncouple(c->get_btree_cursor(), 0));
+        BFC_ASSERT_EQUAL(0, c->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_clone(m_cursor, &clone));
 
@@ -329,8 +328,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0,
-                  btree_cursor_uncouple(c->get_btree_cursor(), 0));
+        BFC_ASSERT_EQUAL(0, c->get_btree_cursor()->uncouple());
 
         /* will close in teardown() */
     }

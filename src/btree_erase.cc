@@ -75,7 +75,7 @@ class BtreeEraseAction
         }
         else {
           /* otherwise uncouple and call erase recursively */
-          ham_status_t st = btree_cursor_uncouple(m_cursor, 0);
+          ham_status_t st = m_cursor->uncouple();
           if (st)
             return (st);
           BtreeEraseAction bea(m_backend, m_txn, m_cursor->get_parent(),
@@ -181,7 +181,7 @@ class BtreeEraseAction
             }
             if (btc != m_cursor) {
               if (btc->get_dupe_id() == m_cursor->get_dupe_id()) {
-                if (btree_cursor_points_to(btc, bte))
+                if (btc->points_to(bte))
                   btc->set_to_nil();
               }
               else if (btc->get_dupe_id() > m_cursor->get_dupe_id()) {
@@ -213,7 +213,7 @@ free_all:
                 next = cursors->get_btree_cursor();
               }
               if (btc != m_cursor) {
-                if (btree_cursor_points_to(cur, bte))
+                if (cur->points_to(bte))
                   cur->set_to_nil();
               }
               btc = next;

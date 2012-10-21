@@ -813,7 +813,7 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
+                ((Cursor *)c2)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
         BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
         BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
@@ -1090,9 +1090,9 @@ public:
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c1)->get_btree_cursor(), 0));
+                ((Cursor *)c1)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
+                ((Cursor *)c2)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
         BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
         BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
@@ -1204,9 +1204,9 @@ public:
         BFC_ASSERT_EQUAL(2, *(int *)rec.data);
 
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c1)->get_btree_cursor(), 0));
+                ((Cursor *)c1)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c2)->get_btree_cursor(), 0));
+                ((Cursor *)c2)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
         BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
         BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
@@ -1813,7 +1813,7 @@ public:
         insertData(0, "3333333333");
         checkData(c, HAM_CURSOR_NEXT,     0, "3333333333");
         BFC_ASSERT_EQUAL(0,
-                btree_cursor_uncouple(((Cursor *)c)->get_btree_cursor(), 0));
+                ((Cursor *)c)->get_btree_cursor()->uncouple());
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_get_duplicate_count(c, &count, 0));
         BFC_ASSERT_EQUAL((ham_size_t)3, count);
