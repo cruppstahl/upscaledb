@@ -155,6 +155,13 @@ x continue with refacoring - indention, coding style, better design etc...
         x remove scratchpad, use member variables
         x replace db_get_keysize() with backend->get_keysize()
         x check the TODOs
+    x btree_cursor.cc
+    x btree_cursor.h
+        x rename to BtreeCursor
+        x replace db_get_keysize() with backend->get_keysize()
+        x move global functions into namespace of class
+        x fix coding style
+        x declare ham_key_t as struct, not as pointer
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
@@ -192,20 +199,27 @@ o jake: disable file indexing with file attribute on windows
     FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 
 o continue with refacoring - indention, coding style, better design etc...
-    o btree_cursor.cc
-    o btree_cursor.h
-        x rename to BtreeCursor
-        x replace db_get_keysize() with backend->get_keysize()
-        x move global functions into namespace of class
-        x fix coding style
-        o when uncoupling, there are 2 allocations
-            o declare ham_key_t as struct, not as pointer
-            o use memory arena for uncoupling the key
-
+    o move duplicates into btree namespace (btree_dup.cc)
     o backend.h/btree.h: check the TODOs
 
     ==> get rid of the whole freelist; no need to refactor the existing
         code
+    the new freelist only stores empty pages in a linked list
+    if a new page is allocated then pick it from the freelist; if this
+    list is empty, then the freelist allocates a couple of new pages
+    (1, then 2, then 4, then 8...).
+    The head of the freelist is stored in the database header page.
+    When a blob is deleted then the blob header is modified (a DELETE flag
+    is set). The page header also stores the number of free bytes
+    and the amount of free blobs.
+
+    open questions:
+    - what about multi-page blobs: how can the various blobs be managed?
+    - at startup the blob pages are not read; therefore they're lost till
+        the page is read?
+    - ...? what else?
+    - need a migration path (i.e. allow forward-cursors if db is read-only)
+
     o freelist.h
     o freelist.cc
     o freelist_statistics.h
@@ -308,6 +322,9 @@ o flush in background (asynchronously)
     o documentation
         o tutorial
         o faq
+
+o btree_cursor.h/btree_cursor.cc
+    o use memory arena for uncoupling the key
 
 o python API - update and integrate
     o rewrite with boost::python??
