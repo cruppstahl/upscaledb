@@ -163,6 +163,26 @@ x continue with refacoring - indention, coding style, better design etc...
         x fix coding style
         x declare ham_key_t as struct, not as pointer
 
+x jake: disable file indexing with file attribute on windows
+    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+
+o optimize memory usage in transaction tree: avoid malloc/free use page
+    allocator
+    o txn.h
+    o txn.cc
+        o txn_op_node_t should be a private structure
+        o txn_op_t should be a private structure
+
+        o txn->name: use std::string
+        o try to reduce the memory allocations
+        o try performance tests with google allocator
+        o convert to clean c++ code
+        o avoid single code allocations; use an arena allocator based
+            on a ByteArray
+        use an arena allocator for everything that's stored in a transaction
+        the arena should allocate pages with dynamic sizes; if a page is
+        no longer used it will be stored in a lookaside list
+
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
       If yes, would it be very problematic if I would remove this functionality?
@@ -194,9 +214,6 @@ o clean up interface
     o clean up ham_flush, ham_env_flush
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
-
-o jake: disable file indexing with file attribute on windows
-    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
@@ -244,15 +261,6 @@ o continue with refacoring - indention, coding style, better design etc...
         o improve abstraction
     o env.h
 
-    o txn.cc
-        o convert to clean c++ code
-        o avoid single code allocations; use an arena allocator based
-            on a ByteArray
-        use an arena allocator for everything that's stored in a transaction
-        the arena should allocate pages with dynamic sizes; if a page is
-        no longer used it will be stored in a lookaside list
-
-    o txn.h
     o txn_cursor.h
     o txn_cursor.cc
         o get rid of dependency to BtreeCursor

@@ -29,7 +29,7 @@
  */
 struct ham_txn_t
 {
-    int dummy;
+  int dummy;
 };
 
 
