@@ -1,3 +1,7 @@
+Oct 25, 2012 - chris ---------------------------------------------------
+o (win32) Now creating file with attribute FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+    (thanks, Jake)
+
 Sep 27, 2012 - chris ---------------------------------------------------
 o issue #16: Fixed log file switching for temporary Transactions
 

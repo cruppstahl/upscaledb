@@ -65,18 +65,18 @@ DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
     buf[len] = 0;
   }
 
-  return buf;
+  return (buf);
 #else
   size_t len;
 
   buf[0] = 0;
   FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
-          FORMAT_MESSAGE_FROM_SYSTEM |
-          FORMAT_MESSAGE_IGNORE_INSERTS,
-          NULL, errorcode,
-          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-          (LPSTR)buf, buflen, NULL);
-  buf[buflen - 1]=0;
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, errorcode,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPSTR)buf, buflen, NULL);
+  buf[buflen - 1] = 0;
 
   /* strip trailing whitespace\newlines */
   for (len = strlen(buf); len-- > 0; ) {
@@ -85,7 +85,7 @@ DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
     buf[len] = 0;
   }
 
-  return buf;
+  return (buf);
 #endif
 }
 
@@ -145,7 +145,7 @@ os_get_granularity(void)
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
-    ham_offset_t size, bool readonly, ham_u8_t **buffer)
+            ham_offset_t size, bool readonly, ham_u8_t **buffer)
 {
 #ifndef UNDER_CE
   ham_status_t st;
@@ -446,11 +446,13 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
   /* translate ASCII filename to unicode */
   utf8_string(filename, wfilename, fnameWlen);
   *fd = (ham_fd_t)CreateFileW(wfilename, access,
-        share, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+        share, NULL, CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, 0);
   free(wfilename);
 #else
   *fd = (ham_fd_t)CreateFileA(filename, access,
-        share, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+        share, NULL, CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, 0);
 #endif
 
   if (*fd == INVALID_HANDLE_VALUE) {
