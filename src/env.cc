@@ -1243,17 +1243,12 @@ static ham_status_t
 _local_fun_txn_begin(Environment *env, Transaction **txn,
                     const char *name, ham_u32_t flags)
 {
-    ham_status_t st;
+    ham_status_t st = 0;
 
-    st=txn_begin(txn, env, name, flags);
-    if (st) {
-        txn_free(*txn);
-        *txn=0;
-    }
+    *txn = new Transaction(env, name, flags);
 
     /* append journal entry */
-    if (st==0
-            && env->get_flags()&HAM_ENABLE_RECOVERY
+    if (env->get_flags()&HAM_ENABLE_RECOVERY
             && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
         ham_u64_t lsn;
         st=env_get_incremented_lsn(env, &lsn);
@@ -1270,7 +1265,7 @@ _local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
     ham_status_t st;
 
     /* are cursors attached to this txn? if yes, fail */
-    if (txn_get_cursor_refcount(txn)) {
+    if (txn->get_cursor_refcount()) {
         ham_trace(("Transaction cannot be committed till all attached "
                     "Cursors are closed"));
         return (HAM_CURSOR_STILL_OPEN);
@@ -1288,7 +1283,7 @@ _local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
             return (st);
     }
 
-    return (txn_commit(txn, flags));
+    return (txn->commit(flags));
 }
 
 static ham_status_t
@@ -1297,7 +1292,7 @@ _local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
     ham_status_t st=0;
 
     /* are cursors attached to this txn? if yes, fail */
-    if (txn_get_cursor_refcount(txn)) {
+    if (txn->get_cursor_refcount()) {
         ham_trace(("Transaction cannot be aborted till all attached "
                     "Cursors are closed"));
         return (HAM_CURSOR_STILL_OPEN);
@@ -1315,7 +1310,7 @@ _local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
             return (st);
     }
 
-    return (txn_abort(txn, flags));
+    return (txn->abort(flags));
 }
 
 ham_status_t
@@ -1341,16 +1336,14 @@ env_initialize_local(Environment *env)
 void
 env_append_txn(Environment *env, Transaction *txn)
 {
-    txn_set_env(txn, env);
-
     if (!env->get_newest_txn()) {
         ham_assert(env->get_oldest_txn()==0);
         env->set_oldest_txn(txn);
         env->set_newest_txn(txn);
     }
     else {
-        txn_set_older(txn, env->get_newest_txn());
-        txn_set_newer(env->get_newest_txn(), txn);
+        txn->set_older(env->get_newest_txn());
+        env->get_newest_txn()->set_newer(txn);
         env->set_newest_txn(txn);
         /* if there's no oldest txn (this means: all txn's but the
          * current one were already flushed) then set this txn as
@@ -1364,14 +1357,14 @@ void
 env_remove_txn(Environment *env, Transaction *txn)
 {
     if (env->get_newest_txn()==txn) {
-        env->set_newest_txn(txn_get_older(txn));
+        env->set_newest_txn(txn->get_older());
     }
 
     if (env->get_oldest_txn()==txn) {
-        Transaction *n=txn_get_newer(txn);
+        Transaction *n=txn->get_newer();
         env->set_oldest_txn(n);
         if (n)
-            txn_set_older(n, 0);
+            n->set_older(0);
     }
     else {
         ham_assert(!"not yet implemented");
@@ -1382,7 +1375,7 @@ static ham_status_t
 __flush_txn(Environment *env, Transaction *txn)
 {
     ham_status_t st=0;
-    txn_op_t *op=txn_get_oldest_op(txn);
+    txn_op_t *op=txn->get_oldest_op();
     txn_cursor_t *cursor=0;
 
     while (op) {
@@ -1512,15 +1505,15 @@ Environment::flush_committed_txns()
     /* always get the oldest transaction; if it was committed: flush
      * it; if it was aborted: discard it; otherwise return */
     while ((oldest=get_oldest_txn())) {
-        if (txn_get_flags(oldest)&TXN_STATE_COMMITTED) {
+        if (oldest->get_flags()&TXN_STATE_COMMITTED) {
             if (last_id)
-                ham_assert(last_id != txn_get_id(oldest));
-            last_id = txn_get_id(oldest);
+                ham_assert(last_id != oldest->get_id());
+            last_id = oldest->get_id();
             ham_status_t st=__flush_txn(this, oldest);
             if (st)
                 return (st);
         }
-        else if (txn_get_flags(oldest)&TXN_STATE_ABORTED) {
+        else if (oldest->get_flags()&TXN_STATE_ABORTED) {
             ; /* nop */
         }
         else
@@ -1530,7 +1523,7 @@ Environment::flush_committed_txns()
         env_remove_txn(this, oldest);
 
         /* and free the whole memory */
-        txn_free(oldest);
+        delete oldest;
     }
 
     /* clear the changeset; if the loop above was not entered or the

@@ -124,19 +124,19 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_env, 0, 0, 0));
 
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_older((Transaction *)txn1));
+                ((Transaction *)txn1)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)txn2,
-                txn_get_newer((Transaction *)txn1));
+                ((Transaction *)txn1)->get_newer());
 
         BFC_ASSERT_EQUAL((Transaction *)txn1,
-                txn_get_older((Transaction *)txn2));
+                ((Transaction *)txn2)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)txn3,
-                txn_get_newer((Transaction *)txn2));
+                ((Transaction *)txn2)->get_newer());
 
         BFC_ASSERT_EQUAL((Transaction *)txn2,
-                txn_get_older((Transaction *)txn3));
+                ((Transaction *)txn3)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_newer((Transaction *)txn3));
+                ((Transaction *)txn3)->get_newer());
 
         /* have to commit the txns in the same order as they were created,
          * otherwise env_flush_committed_txns() will not flush the oldest
@@ -144,20 +144,20 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
 
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_older((Transaction *)txn2));
+                ((Transaction *)txn2)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)txn3,
-                txn_get_newer((Transaction *)txn2));
+                ((Transaction *)txn2)->get_newer());
         BFC_ASSERT_EQUAL((Transaction *)txn2,
-                txn_get_older((Transaction *)txn3));
+                ((Transaction *)txn3)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_newer((Transaction *)txn3));
+                ((Transaction *)txn3)->get_newer());
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
 
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_older((Transaction *)txn3));
+                ((Transaction *)txn3)->get_older());
         BFC_ASSERT_EQUAL((Transaction *)0,
-                txn_get_newer((Transaction *)txn3));
+                ((Transaction *)txn3)->get_newer());
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn3, 0));
     }
@@ -175,31 +175,31 @@ public:
         Transaction *txn;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
-        BFC_ASSERT_EQUAL(m_env, txn_get_env(txn));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
+        BFC_ASSERT_EQUAL(m_env, txn->get_env());
+        BFC_ASSERT_EQUAL((ham_u64_t)1, txn->get_id());
 
-        txn_set_flags(txn, 0x99);
-        BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(txn));
+        txn->set_flags(0x99);
+        BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn->get_flags());
 
-        txn_set_log_desc(txn, 4);
-        BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
-        txn_set_log_desc(txn, 0);
+        txn->set_log_desc(4);
+        BFC_ASSERT_EQUAL(4, txn->get_log_desc());
+        txn->set_log_desc(0);
 
-        txn_set_oldest_op(txn, (txn_op_t *)2);
-        BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_oldest_op(txn));
-        txn_set_oldest_op(txn, (txn_op_t *)0);
+        txn->set_oldest_op((txn_op_t *)2);
+        BFC_ASSERT_EQUAL((txn_op_t *)2, txn->get_oldest_op());
+        txn->set_oldest_op((txn_op_t *)0);
 
-        txn_set_newest_op(txn, (txn_op_t *)2);
-        BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_newest_op(txn));
-        txn_set_newest_op(txn, (txn_op_t *)0);
+        txn->set_newest_op((txn_op_t *)2);
+        BFC_ASSERT_EQUAL((txn_op_t *)2, txn->get_newest_op());
+        txn->set_newest_op((txn_op_t *)0);
 
-        txn_set_newer(txn, (Transaction *)1);
-        BFC_ASSERT_EQUAL((Transaction *)1, txn_get_newer(txn));
-        txn_set_newer(txn, (Transaction *)0);
+        txn->set_newer((Transaction *)1);
+        BFC_ASSERT_EQUAL((Transaction *)1, txn->get_newer());
+        txn->set_newer((Transaction *)0);
 
-        txn_set_older(txn, (Transaction *)3);
-        BFC_ASSERT_EQUAL((Transaction *)3, txn_get_older(txn));
-        txn_set_older(txn, (Transaction *)0);
+        txn->set_older((Transaction *)3);
+        BFC_ASSERT_EQUAL((Transaction *)3, txn->get_older());
+        txn->set_older((Transaction *)0);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit((ham_txn_t *)txn, 0));
     }

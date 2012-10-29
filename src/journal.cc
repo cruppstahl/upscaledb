@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -163,7 +163,7 @@ Journal::switch_files_maybe(Transaction *txn)
    * if the "current" file is not yet full, continue to write to this file
    */
   if (m_open_txn[cur] + m_closed_txn[cur] < m_threshold) {
-    txn_set_log_desc(txn, cur);
+    txn->set_log_desc(cur);
   }
   else if (m_open_txn[other] == 0) {
     /*
@@ -175,7 +175,7 @@ Journal::switch_files_maybe(Transaction *txn)
       return (st);
     cur = other;
     m_current_fd = cur;
-    txn_set_log_desc(txn, cur);
+    txn->set_log_desc(cur);
   }
 
   return (0);
@@ -188,7 +188,7 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
   ham_status_t st;
   JournalEntry entry;
 
-  entry.txn_id = txn_get_id(txn);
+  entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_BEGIN;
   entry.lsn = lsn;
   if (name)
@@ -198,12 +198,12 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
   if (st)
     return (st);
 
-  int cur = txn_get_log_desc(txn);
+  int cur = txn->get_log_desc();
 
-  if (txn_get_name(txn))
+  if (txn->get_name().size())
     st = append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry),
-                (void *)txn_get_name(txn),
-                (ham_size_t)strlen(txn_get_name(txn)) + 1);
+                (void *)txn->get_name().c_str(),
+                (ham_size_t)txn->get_name().size() + 1);
   else
     st = append_entry(cur, (void *)&entry, (ham_size_t)sizeof(entry));
 
@@ -226,11 +226,11 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
   ham_status_t st;
   JournalEntry entry;
   entry.lsn = lsn;
-  entry.txn_id = txn_get_id(txn);
+  entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_ABORT;
 
   /* update the transaction counters of this logfile */
-  idx = txn_get_log_desc(txn);
+  idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
@@ -249,11 +249,11 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
   ham_status_t st;
   JournalEntry entry;
   entry.lsn = lsn;
-  entry.txn_id = txn_get_id(txn);
+  entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_COMMIT;
 
   /* update the transaction counters of this logfile */
-  idx = txn_get_log_desc(txn);
+  idx = txn->get_log_desc();
   m_open_txn[idx]--;
   m_closed_txn[idx]++;
 
@@ -278,7 +278,7 @@ Journal::append_insert(Database *db, Transaction *txn,
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
-  entry.txn_id = txn_get_id(txn);
+  entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_INSERT;
   entry.followup_size = size + padding_size;
 
@@ -289,7 +289,7 @@ Journal::append_insert(Database *db, Transaction *txn,
   insert.insert_flags = flags;
 
   /* append the entry to the logfile */
-  return (append_entry(txn_get_log_desc(txn),
+  return (append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
                 &insert, sizeof(JournalEntryInsert) - 1,
                 key->data, key->size,
@@ -309,7 +309,7 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
 
   entry.lsn = lsn;
   entry.dbname = db->get_name();
-  entry.txn_id = txn_get_id(txn);
+  entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_ERASE;
   entry.followup_size = size + padding_size;
   erase.key_size = key->size;
@@ -317,7 +317,7 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
   erase.duplicate = dupe;
 
   /* append the entry to the logfile */
-  return (append_entry(txn_get_log_desc(txn),
+  return (append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
                 (JournalEntry *)&erase, sizeof(JournalEntryErase) - 1,
                 key->data, key->size,
@@ -463,11 +463,11 @@ recover_get_txn(Environment *env, ham_u64_t txn_id, Transaction **ptxn)
 {
   Transaction *txn = env->get_oldest_txn();
   while (txn) {
-    if (txn_get_id(txn) == txn_id) {
+    if (txn->get_id() == txn_id) {
       *ptxn = txn;
       return;
     }
-    txn = txn_get_newer(txn);
+    txn = txn->get_newer();
   }
 
   *ptxn = 0;
@@ -499,8 +499,8 @@ __abort_uncommitted_txns(Environment *env)
   Transaction *newer, *txn = env->get_oldest_txn();
 
   while (txn) {
-    newer = txn_get_newer(txn);
-    if (!(txn_get_flags(txn) & TXN_STATE_COMMITTED)) {
+    newer = txn->get_newer();
+    if (!(txn->get_flags() & TXN_STATE_COMMITTED)) {
       st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
       if (st)
         return (st);
@@ -575,7 +575,7 @@ Journal::recover()
                 (const char *)aux, 0, HAM_DONT_LOCK);
         /* on success: patch the txn ID */
         if (st == 0) {
-          txn_set_id(txn, entry.txn_id);
+          txn->set_id(entry.txn_id);
           m_env->set_txn_id(entry.txn_id);
         }
         break;

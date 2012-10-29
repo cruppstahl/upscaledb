@@ -637,7 +637,7 @@ BtreeBackend::read_key(Transaction *txn, BtreeKey *source, ham_key_t *dest)
 {
   Allocator *alloc = m_db->get_env()->get_allocator();
 
-  ByteArray *arena = (txn == 0 || (txn_get_flags(txn) & HAM_TXN_TEMPORARY))
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &m_db->get_key_arena()
             : &txn->get_key_arena();
 
@@ -713,7 +713,7 @@ BtreeBackend::read_record(Transaction *txn, ham_record_t *record,
   bool noblob = false;
   ham_size_t blobsize;
 
-  ByteArray *arena= (txn == 0 || (txn_get_flags(txn) & HAM_TXN_TEMPORARY))
+  ByteArray *arena= (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &m_db->get_record_arena()
             : &txn->get_record_arena();
 

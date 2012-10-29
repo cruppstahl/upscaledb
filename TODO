@@ -170,18 +170,14 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
     o txn.h
     o txn.cc
-        o txn_op_node_t should be a private structure
-        o txn_op_t should be a private structure
-
-        o txn->name: use std::string
-        o try to reduce the memory allocations
-        o try performance tests with google allocator
+        x txn->name: use std::string
+        o db.cc: when calling local_txn->abort(), local_txn is not deleted;
+            we can abort directly in the destructor (if the txn is active)
+        o txn_op_node_t should be a private structure (no getter/setter)
+        o txn_op_t should be a private structure (no getter/setter)
         o convert to clean c++ code
-        o avoid single code allocations; use an arena allocator based
-            on a ByteArray
-        use an arena allocator for everything that's stored in a transaction
-        the arena should allocate pages with dynamic sizes; if a page is
-        no longer used it will be stored in a lookaside list
+
+o try performance tests with google memory allocator
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
@@ -215,63 +211,55 @@ o clean up interface
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o clean up ham/hamsterdb_stats.h, ham/hamsterdb_int.h
 
+o freelist rewrite - make files smaller, make hamsterdb faster
+    o freelist.h
+    o freelist.cc
+    o freelist_statistics.h
+    o freelist_statistics.cc
+        ==> get rid of the whole freelist; no need to refactor the existing
+            code
+        ==> described in github wiki
+        ==> need a migration path (i.e. allow forward-cursors if db is
+            read-only, no transactions)
+
+
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
     o backend.h/btree.h: check the TODOs
 
-    ==> get rid of the whole freelist; no need to refactor the existing
-        code
-    the new freelist only stores empty pages in a linked list
-    if a new page is allocated then pick it from the freelist; if this
-    list is empty, then the freelist allocates a couple of new pages
-    (1, then 2, then 4, then 8...).
-    The head of the freelist is stored in the database header page.
-    When a blob is deleted then the blob header is modified (a DELETE flag
-    is set). The page header also stores the number of free bytes
-    and the amount of free blobs.
+    o txn.h
+    o txn.cc
+        o do a whole top-down redesign; there should be a transaction manager
+            which is a factory for new transactions (and manages the
+            txn ID); and there should be a TransactionBackend (as opposite
+            to the BtreeBackend) which basically is the tree, and which
+            manages the memory of the nodes
+        o try to reduce the memory allocations
 
-    open questions:
-    - what about multi-page blobs: how can the various blobs be managed?
-    - at startup the blob pages are not read; therefore they're lost till
-        the page is read?
-    - ...? what else?
-    - need a migration path (i.e. allow forward-cursors if db is read-only)
+    o configuration: move into separate file
+        o use for runtime-configuration
+        o and for persistent configuration
 
-    o freelist.h
-    o freelist.cc
-    o freelist_statistics.h
-        o split into env/db/freelist
-        o remove unused code - also from public interface?
-        o protect env and freelist with mutex
-        o in db: assert that the db is locked
-    o freelist_statistics.cc
-        remove everything that is not required
-
-    o cursor.cc
-    o cursor.h
+    o db.h
     o db.cc
         o should use arena for get_extended_key
         o completely hide the local/remote implementation in the database
         o move more members from Database to the Implementation classes
         o improve abstraction
-    o db.h
+    o env.h
     o env.cc
         o completely hide the local/remote implementation in the Environment
         o move more members from Environment to the Implementation classes
         o improve abstraction
-    o env.h
+
+    o cursor.cc
+    o cursor.h
 
     o txn_cursor.h
     o txn_cursor.cc
         o get rid of dependency to BtreeCursor
 
     o hamsterdb.cc
-    o configuration: move into separate file
-    o blob manager
-    o introduce a buffer manager?
-        o i.e. holds the cache and manages the device
-        o i.e. for de-coupling freelist from env
-        o i.e. for de-coupling btree from db and env
 
     o unittests
         o code formatting
@@ -284,8 +272,13 @@ o continue with refacoring - indention, coding style, better design etc...
 
 o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
 
-o freelist: store the last successful freelist page in the hinter of the
-    database
+o recno: make sure that there's no write to the header page with every
+    insert; this would kill the performance when recovery is enabled 
+
+o changeset: instead of simply adding pages to the changeset, the caller
+    could already specify whether this page needs logging or not;
+    i.e. after freelist rewrite, the blob pages do not need logging if a
+    blob is deleted  
 
 o is there a way to group all changeset flushes of a Transaction into one
     changeset? that way we would avoid the frequent syncs

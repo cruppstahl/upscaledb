@@ -491,7 +491,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
   blob_t hdr;
   ham_size_t blobsize = 0;
 
-  ByteArray *arena = (txn == 0 || (txn_get_flags(txn) & HAM_TXN_TEMPORARY))
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
                           ? &db->get_record_arena()
                           : &txn->get_record_arena();
 

@@ -138,7 +138,7 @@ BtreeStatistics::get_find_hints(ham_u32_t flags)
 BtreeStatistics::InsertHints
 BtreeStatistics::get_insert_hints(ham_u32_t flags)
 {
-  InsertHints hints = {flags, flags, 0, false, 0};
+  InsertHints hints = {flags, flags, 0, 0, 0, 0, 0};
 
   /* if the previous insert-operation replaced the upper bound (or
    * lower bound) key then it was actually an append (or prepend) operation.

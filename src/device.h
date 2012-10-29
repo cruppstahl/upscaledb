@@ -38,6 +38,9 @@ class DeviceImplementation {
       : m_device(device), m_pagesize(0) {
     }
 
+    virtual ~DeviceImplementation() {
+    }
+
     /** Create a new device */
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode) = 0;
