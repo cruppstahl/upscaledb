@@ -599,7 +599,7 @@ _remote_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
   st = reply->txn_commit_reply().status();
   if (st == 0) {
     env_remove_txn(env, txn);
-    txn_free(txn);
+    delete txn;
   }
 
   delete reply;
@@ -627,7 +627,7 @@ _remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
   st = reply->txn_abort_reply().status();
   if (st == 0) {
     env_remove_txn(env, txn);
-    txn_free(txn);
+    delete txn;
   }
 
   delete reply;

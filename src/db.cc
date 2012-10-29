@@ -1749,7 +1749,7 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
 
         if ((m_db->get_rt_flags()&HAM_RECORD_NUMBER)
                 && !(flags&HAM_OVERWRITE)) {
@@ -1781,7 +1781,7 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
     ham_assert(st==0);
 
     if (local_txn)
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
         return (env->get_changeset().flush(DUMMY_LSN));
@@ -1830,7 +1830,7 @@ DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
 
         env->get_changeset().clear();
         return (st);
@@ -1844,7 +1844,7 @@ DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -1918,7 +1918,7 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
 
         env->get_changeset().clear();
         return (st);
@@ -1932,7 +1932,7 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
     st=__record_filters_after_find(m_db, record);
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
 
         env->get_changeset().clear();
         return (st);
@@ -1942,7 +1942,7 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
     env->get_changeset().clear();
 
     if (local_txn)
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
                 && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
         return (env->get_changeset().flush(DUMMY_LSN));
@@ -2096,7 +2096,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         if ((m_db->get_rt_flags()&HAM_RECORD_NUMBER)
                 && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
@@ -2135,7 +2135,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
                 && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2178,7 +2178,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
     }
     else {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         env->get_changeset().clear();
         return (st);
     }
@@ -2190,7 +2190,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2352,7 +2352,7 @@ bail:
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         env->get_changeset().clear();
         return (st);
     }
@@ -2366,7 +2366,7 @@ bail:
         st=__record_filters_after_find(m_db, record);
         if (st) {
             if (local_txn)
-                (void)txn_abort(local_txn, 0);
+                local_txn->abort();
             env->get_changeset().clear();
             return (st);
         }
@@ -2380,7 +2380,7 @@ bail:
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2427,7 +2427,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         env->get_changeset().clear();
         return (st);
     }
@@ -2440,7 +2440,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2489,7 +2489,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         return (st);
     }
 
@@ -2501,7 +2501,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2557,7 +2557,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         env->get_changeset().clear();
         return (st);
     }
@@ -2568,7 +2568,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else if (env->get_flags()&HAM_ENABLE_RECOVERY
             && !(env->get_flags()&HAM_ENABLE_TRANSACTIONS))
@@ -2662,7 +2662,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
 
     if (st) {
         if (local_txn)
-            (void)txn_abort(local_txn, 0);
+            local_txn->abort();
         if (st==HAM_KEY_ERASED_IN_TXN)
             st=HAM_KEY_NOT_FOUND;
         /* trigger a sync when the function is called again */
@@ -2672,7 +2672,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
 
     if (local_txn) {
         env->get_changeset().clear();
-        return (txn_commit(local_txn, 0));
+        return (local_txn->commit());
     }
     else
         return (st);
@@ -2775,7 +2775,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         context.db=m_db;
         txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         (void)be->enumerate(__free_inmemory_blobs_cb, &context);
-        (void)txn_commit(txn, 0);
+        (void)txn->commit();
     }
 
     /* clear the changeset */

@@ -328,47 +328,6 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
     return (op);
 }
 
-ham_status_t
-txn_commit(Transaction *txn, ham_u32_t flags)
-{
-    Environment *env=txn->get_env();
-
-    /* are cursors attached to this txn? if yes, fail */
-    ham_assert(txn->get_cursor_refcount()==0);
-
-    /* this transaction is now committed!  */
-    txn->set_flags(txn->get_flags()|TXN_STATE_COMMITTED);
-
-    /* now flush all committed Transactions to disk */
-    return (env->flush_committed_txns());
-}
-
-ham_status_t
-txn_abort(Transaction *txn, ham_u32_t flags)
-{
-    /*
-     * are cursors attached to this txn? if yes, fail
-     */
-    if (txn->get_cursor_refcount()) {
-        ham_trace(("Transaction cannot be aborted till all attached "
-                    "Cursors are closed"));
-        return (HAM_CURSOR_STILL_OPEN);
-    }
-
-    /*
-     * this transaction is now aborted!
-     */
-    txn->set_flags(txn->get_flags()|TXN_STATE_ABORTED);
-
-    /* immediately release memory of the cached operations */
-    txn_free_ops(txn);
-
-    /* clean up the changeset */
-    txn->get_env()->get_changeset().clear();
-
-    return (0);
-}
-
 void
 txn_free_optree(txn_optree_t *tree)
 {
@@ -463,8 +422,6 @@ txn_free(Transaction *txn)
         txn->get_older()->set_newer(txn->get_newer());
     if (txn->get_newer())
         txn->get_newer()->set_older(txn->get_older());
-
-    delete txn;
 }
 
 Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
@@ -481,6 +438,52 @@ Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
 
   /* link this txn with the Environment */
   env_append_txn(env, this);
+}
+
+Transaction::~Transaction()
+{
+    txn_free_ops(this);
+
+    /* fix double linked transaction list */
+    if (get_older())
+        get_older()->set_newer(get_newer());
+    if (get_newer())
+        get_newer()->set_older(get_older());
+}
+
+ham_status_t
+Transaction::commit(ham_u32_t flags)
+{
+    /* are cursors attached to this txn? if yes, fail */
+    ham_assert(get_cursor_refcount()==0);
+
+    /* this transaction is now committed!  */
+    set_flags(get_flags()|TXN_STATE_COMMITTED);
+
+    /* now flush all committed Transactions to disk */
+    return (get_env()->flush_committed_txns());
+}
+
+ham_status_t
+Transaction::abort(ham_u32_t flags)
+{
+    /* are cursors attached to this txn? if yes, fail */
+    if (get_cursor_refcount()) {
+        ham_trace(("Transaction cannot be aborted till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
+    }
+
+    /* this transaction is now aborted!  */
+    set_flags(get_flags()|TXN_STATE_ABORTED);
+
+    /* immediately release memory of the cached operations */
+    txn_free_ops(this);
+
+    /* clean up the changeset */
+    get_env()->get_changeset().clear();
+
+    return (0);
 }
 
 } // namespace ham

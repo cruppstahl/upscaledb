@@ -1283,7 +1283,7 @@ _local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
             return (st);
     }
 
-    return (txn_commit(txn, flags));
+    return (txn->commit(flags));
 }
 
 static ham_status_t
@@ -1310,7 +1310,7 @@ _local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
             return (st);
     }
 
-    return (txn_abort(txn, flags));
+    return (txn->abort(flags));
 }
 
 ham_status_t
@@ -1523,7 +1523,7 @@ Environment::flush_committed_txns()
         env_remove_txn(this, oldest);
 
         /* and free the whole memory */
-        txn_free(oldest);
+        delete oldest;
     }
 
     /* clear the changeset; if the loop above was not entered or the

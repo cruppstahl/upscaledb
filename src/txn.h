@@ -284,9 +284,19 @@ class Transaction
 {
   public:
     /** constructor; "begins" the Transaction
-     * supported flag = HAM_TXN_READ_ONLY
+     * supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY, ...
      */
     Transaction(Environment *env, const char *name, ham_u32_t flags);
+
+    /** destructor; frees all txn_op_t structures associated with this
+     * Transaction */
+    ~Transaction();
+
+    /** commits the Transaction */
+    ham_status_t commit(ham_u32_t flags = 0);
+
+    /** aborts the Transaction */
+    ham_status_t abort(ham_u32_t flags = 0);
 
     /** get the id */
     ham_u64_t get_id() const {
@@ -447,6 +457,7 @@ class Transaction
 /** transaction is still alive but was aborted */
 #define TXN_STATE_ABORTED         0x10000
 
+>>>>>>> aad1fbc... refactoring txn.h/txn.cc (wip)
 /** transaction is still alive but was committed */
 #define TXN_STATE_COMMITTED       0x20000
 
@@ -524,18 +535,6 @@ extern txn_opnode_t *
 txn_opnode_get_previous_sibling(txn_opnode_t *node);
 
 /**
- * commit a Transaction
- */
-extern ham_status_t
-txn_commit(Transaction *txn, ham_u32_t flags);
-
-/**
- * abort a Transaction
- */
-extern ham_status_t
-txn_abort(Transaction *txn, ham_u32_t flags);
-
-/**
  * frees all nodes in the tree
  */
 extern void
@@ -547,14 +546,6 @@ txn_free_optree(txn_optree_t *tree);
  */
 extern void
 txn_free_ops(Transaction *txn);
-
-/**
- * free the txn structure
- *
- * will call txn_free_ops() and then free the txn pointer itself
- */
-extern void
-txn_free(Transaction *txn);
 
 } // namespace ham
 
