@@ -92,7 +92,7 @@ Cursor::update_dupecache(ham_u32_t what)
             Transaction *optxn=txn_op_get_txn(op);
             /* collect all ops that are valid (even those that are
              * from conflicting transactions) */
-            if (!(txn_get_flags(optxn)&TXN_STATE_ABORTED)) {
+            if (!(optxn->get_flags()&TXN_STATE_ABORTED)) {
                 /* a normal (overwriting) insert will overwrite ALL dupes,
                  * but an overwrite of a duplicate will only overwrite
                  * an entry in the dupecache */

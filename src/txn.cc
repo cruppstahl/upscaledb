@@ -105,9 +105,9 @@ ham_bool_t
 txn_op_conflicts(txn_op_t *op, Transaction *current_txn)
 {
     Transaction *optxn=txn_op_get_txn(op);
-    if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+    if (optxn->get_flags()&TXN_STATE_ABORTED)
         return (HAM_FALSE);
-    else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+    else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
             || (current_txn==optxn))
         return (HAM_FALSE);
     else /* txn is still active */
@@ -267,7 +267,7 @@ txn_op_t *
 txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
-    Allocator *alloc=txn_get_env(txn)->get_allocator();
+    Allocator *alloc=txn->get_env()->get_allocator();
     txn_op_t *op;
 
     /* create and initialize a new txn_op_t structure */
@@ -313,61 +313,31 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
     }
 
     /* store it in the chronological list which is managed by the transaction */
-    if (!txn_get_newest_op(txn)) {
-        ham_assert(txn_get_oldest_op(txn)==0);
-        txn_set_newest_op(txn, op);
-        txn_set_oldest_op(txn, op);
+    if (!txn->get_newest_op()) {
+        ham_assert(txn->get_oldest_op()==0);
+        txn->set_newest_op(op);
+        txn->set_oldest_op(op);
     }
     else {
-        txn_op_t *newest=txn_get_newest_op(txn);
+        txn_op_t *newest=txn->get_newest_op();
         txn_op_set_next_in_txn(newest, op);
         txn_op_set_previous_in_txn(op, newest);
-        txn_set_newest_op(txn, op);
+        txn->set_newest_op(op);
     }
 
     return (op);
 }
 
 ham_status_t
-txn_begin(Transaction **ptxn, Environment *env, const char *name, ham_u32_t flags)
-{
-    ham_status_t st=0;
-    Transaction *txn;
-
-    txn=new Transaction();
-
-    memset(txn, 0, sizeof(*txn));
-    txn_set_id(txn, env->get_txn_id()+1);
-    txn_set_flags(txn, flags);
-    if (name) {
-        char *p=(char *)env->get_allocator()->alloc((ham_size_t)strlen(name)+1);
-        strcpy(p, name);
-        txn_set_name(txn, p);
-    }
-    env->set_txn_id(txn_get_id(txn));
-    if (!(flags&HAM_TXN_TEMPORARY)) {
-        txn->get_key_arena().set_allocator(env->get_allocator());
-        txn->get_record_arena().set_allocator(env->get_allocator());
-    }
-
-    /* link this txn with the Environment */
-    env_append_txn(env, txn);
-
-    *ptxn=txn;
-
-    return (st);
-}
-
-ham_status_t
 txn_commit(Transaction *txn, ham_u32_t flags)
 {
-    Environment *env=txn_get_env(txn);
+    Environment *env=txn->get_env();
 
     /* are cursors attached to this txn? if yes, fail */
-    ham_assert(txn_get_cursor_refcount(txn)==0);
+    ham_assert(txn->get_cursor_refcount()==0);
 
     /* this transaction is now committed!  */
-    txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
+    txn->set_flags(txn->get_flags()|TXN_STATE_COMMITTED);
 
     /* now flush all committed Transactions to disk */
     return (env->flush_committed_txns());
@@ -379,7 +349,7 @@ txn_abort(Transaction *txn, ham_u32_t flags)
     /*
      * are cursors attached to this txn? if yes, fail
      */
-    if (txn_get_cursor_refcount(txn)) {
+    if (txn->get_cursor_refcount()) {
         ham_trace(("Transaction cannot be aborted till all attached "
                     "Cursors are closed"));
         return (HAM_CURSOR_STILL_OPEN);
@@ -388,13 +358,13 @@ txn_abort(Transaction *txn, ham_u32_t flags)
     /*
      * this transaction is now aborted!
      */
-    txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_ABORTED);
+    txn->set_flags(txn->get_flags()|TXN_STATE_ABORTED);
 
     /* immediately release memory of the cached operations */
     txn_free_ops(txn);
 
     /* clean up the changeset */
-    txn_get_env(txn)->get_changeset().clear();
+    txn->get_env()->get_changeset().clear();
 
     return (0);
 }
@@ -470,8 +440,8 @@ txn_op_free(Environment *env, Transaction *txn, txn_op_t *op)
 void
 txn_free_ops(Transaction *txn)
 {
-    Environment *env=txn_get_env(txn);
-    txn_op_t *n, *op=txn_get_oldest_op(txn);
+    Environment *env=txn->get_env();
+    txn_op_t *n, *op=txn->get_oldest_op();
 
     while (op) {
         n=txn_op_get_next_in_txn(op);
@@ -479,31 +449,38 @@ txn_free_ops(Transaction *txn)
         op=n;
     }
 
-    txn_set_oldest_op(txn, 0);
-    txn_set_newest_op(txn, 0);
+    txn->set_oldest_op(0);
+    txn->set_newest_op(0);
 }
 
 void
 txn_free(Transaction *txn)
 {
-    Environment *env=txn_get_env(txn);
-
     txn_free_ops(txn);
 
     /* fix double linked transaction list */
-    if (txn_get_older(txn))
-        txn_set_newer(txn_get_older(txn), txn_get_newer(txn));
-    if (txn_get_newer(txn))
-        txn_set_older(txn_get_newer(txn), txn_get_older(txn));
-
-#if DEBUG
-    memset(txn, 0, sizeof(*txn));
-#endif
-
-    if (txn_get_name(txn))
-        env->get_allocator()->free(txn_get_name(txn));
+    if (txn->get_older())
+        txn->get_older()->set_newer(txn->get_newer());
+    if (txn->get_newer())
+        txn->get_newer()->set_older(txn->get_older());
 
     delete txn;
+}
+
+Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
+  : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
+    m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
+  m_id = env->get_txn_id() + 1;
+  env->set_txn_id(m_id);
+  if (name)
+    m_name = name;
+  if (!(flags & HAM_TXN_TEMPORARY)) {
+    get_key_arena().set_allocator(env->get_allocator());
+    get_record_arena().set_allocator(env->get_allocator());
+  }
+
+  /* link this txn with the Environment */
+  env_append_txn(env, this);
 }
 
 } // namespace ham

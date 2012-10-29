@@ -495,7 +495,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                     j->get_entry(&iter, &entry, (void **)&data));
         BFC_ASSERT_EQUAL((ham_u64_t)1, entry.lsn);
-        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id((Transaction *)txn));
+        BFC_ASSERT_EQUAL((ham_u64_t)1, ((Transaction *)txn)->get_id());
         BFC_ASSERT_EQUAL((ham_u64_t)1, entry.txn_id);
         BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
         BFC_ASSERT_EQUAL((ham_u32_t)Journal::ENTRY_TYPE_TXN_BEGIN,
@@ -584,10 +584,10 @@ public:
             sprintf(name, "name%d", i);
             BFC_ASSERT_EQUAL(0,
                     ham_txn_begin(&txn, (ham_env_t *)m_env, name, 0, 0));
-            vec[p++]=LogEntry(1+i*2, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(1+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0, &name[0]);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-            vec[p++]=LogEntry(2+i*2, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(2+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_ABORT, 0);
         }
 
@@ -615,10 +615,10 @@ public:
 
         for (int i=0; i<=7; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-            vec[p++]=LogEntry(1+i*2, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(1+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-            vec[p++]=LogEntry(2+i*2, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(2+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_ABORT, 0);
         }
 
@@ -648,11 +648,11 @@ public:
         for (int i=0; i<=10; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
             if (i>=5)
-                vec[p++]=LogEntry(1+i*2, txn_get_id((Transaction *)txn),
+                vec[p++]=LogEntry(1+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
             if (i>=5)
-                vec[p++]=LogEntry(2+i*2, txn_get_id((Transaction *)txn),
+                vec[p++]=LogEntry(2+i*2, ((Transaction *)txn)->get_id(),
                             Journal::ENTRY_TYPE_TXN_ABORT, 0);
         }
 
@@ -688,10 +688,10 @@ public:
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-            BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id((Transaction *)txn));
-            vec[p++]=LogEntry(1+i*2, txn_get_id((Transaction *)txn),
+            BFC_ASSERT_EQUAL((ham_u64_t)i+1, ((Transaction *)txn)->get_id());
+            vec[p++]=LogEntry(1+i*2, ((Transaction *)txn)->get_id(),
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0);
-            ham_u64_t txnid=txn_get_id((Transaction *)txn);
+            ham_u64_t txnid=((Transaction *)txn)->get_id();
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
             vec[p++]=LogEntry(2+i*2, txnid,
                         Journal::ENTRY_TYPE_TXN_COMMIT, 0);
@@ -721,7 +721,7 @@ public:
         /* create another transaction and make sure that the transaction
          * IDs and the lsn's continue seamlessly */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        BFC_ASSERT_EQUAL(6ull, txn_get_id((Transaction *)txn));
+        BFC_ASSERT_EQUAL(6ull, ((Transaction *)txn)->get_id());
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -739,14 +739,14 @@ public:
          * them */
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_INSERT, 0xf000);
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_COMMIT, 0);
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
         }
@@ -795,12 +795,12 @@ public:
          * commit them! */
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_INSERT, 0xf000);
         }
 
@@ -869,14 +869,14 @@ public:
          * transaction to the journal (but not to the database!) */
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0);
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_INSERT, 0xf000);
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_COMMIT, 0);
             if (i==0)
                 BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
@@ -940,21 +940,21 @@ public:
         /* create two transactions with many keys that are inserted */
         for (int i=0; i<2; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], (ham_env_t *)m_env, 0, 0, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
                         Journal::ENTRY_TYPE_TXN_BEGIN, 0);
         }
         for (int i=0; i<100; i++) {
             key.data=&i;
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i&1], &key, &rec, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[i&1]),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn[i&1])->get_id(),
                         Journal::ENTRY_TYPE_INSERT, 0xf000);
         }
         /* commit the first txn, abort the second */
-        vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[0]),
+        vec[p++]=LogEntry(lsn++, ((Transaction *)txn[0])->get_id(),
                     Journal::ENTRY_TYPE_TXN_COMMIT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[0], 0));
-        vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn[1]),
+        vec[p++]=LogEntry(lsn++, ((Transaction *)txn[1])->get_id(),
                     Journal::ENTRY_TYPE_TXN_ABORT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn[1], 0));
 
@@ -1005,7 +1005,7 @@ public:
         /* create a transaction with many keys that are inserted, mostly
          * duplicates */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-        vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn),
+        vec[p++]=LogEntry(lsn++, ((Transaction *)txn)->get_id(),
                     Journal::ENTRY_TYPE_TXN_BEGIN, 0);
         for (int i=0; i<100; i++) {
             int val=i%10;
@@ -1013,7 +1013,7 @@ public:
             key.size=sizeof(val);
             BFC_ASSERT_EQUAL(0,
                         ham_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn)->get_id(),
                         Journal::ENTRY_TYPE_INSERT, 0xf000);
         }
         /* now delete them all */
@@ -1022,11 +1022,11 @@ public:
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0,
                         ham_erase(m_db, txn, &key, 0));
-            vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn),
+            vec[p++]=LogEntry(lsn++, ((Transaction *)txn)->get_id(),
                         Journal::ENTRY_TYPE_ERASE, 0xf000);
         }
         /* commit the txn */
-        vec[p++]=LogEntry(lsn++, txn_get_id((Transaction *)txn),
+        vec[p++]=LogEntry(lsn++, ((Transaction *)txn)->get_id(),
                     Journal::ENTRY_TYPE_TXN_COMMIT, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 

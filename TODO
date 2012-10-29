@@ -170,10 +170,10 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
     o txn.h
     o txn.cc
-        o txn_op_node_t should be a private structure
-        o txn_op_t should be a private structure
-
-        o txn->name: use std::string
+        x txn->name: use std::string
+        o txn_op_node_t should be a private structure (no getter/setter)
+        o txn_op_t should be a private structure (no getter/setter)
+        o can we use boost::intrusive_list for older/newer transactions
         o try to reduce the memory allocations
         o try performance tests with google allocator
         o convert to clean c++ code

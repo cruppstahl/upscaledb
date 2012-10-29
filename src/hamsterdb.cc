@@ -296,8 +296,13 @@ ham_txn_get_name(ham_txn_t *htxn)
     Transaction *txn=(Transaction *)htxn;
     if (!txn)
         return (0);
-    ScopedLock lock(txn_get_env(txn)->get_mutex());
-    return (txn_get_name(txn));
+
+    ScopedLock lock(txn->get_env()->get_mutex());
+    const std::string &name = txn->get_name();
+    if (name.empty())
+      return 0;
+    else
+      return (name.c_str());
 }
 
 ham_status_t
@@ -309,7 +314,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
-    Environment *env=txn_get_env(txn);
+    Environment *env=txn->get_env();
     if (!env || !env->_fun_txn_commit) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
@@ -334,7 +339,7 @@ ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
-    Environment *env=txn_get_env(txn);
+    Environment *env=txn->get_env();
     if (!env || !env->_fun_txn_abort) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
@@ -1622,9 +1627,9 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (env && env->get_newest_txn()) {
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
-            n=txn_get_older(t);
-            if ((txn_get_flags(t)&TXN_STATE_ABORTED)
-                    || (txn_get_flags(t)&TXN_STATE_COMMITTED))
+            n=t->get_older();
+            if ((t->get_flags()&TXN_STATE_ABORTED)
+                    || (t->get_flags()&TXN_STATE_COMMITTED))
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
@@ -2777,7 +2782,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         while (node) {
             txn_op_t *op=txn_opnode_get_newest_op(node);
             while (op) {
-                ham_u32_t f=txn_get_flags(txn_op_get_txn(op));
+                ham_u32_t f=txn_op_get_txn(op)->get_flags();
                 if (!((f&TXN_STATE_COMMITTED) || (f&TXN_STATE_ABORTED))) {
                     ham_trace(("cannot close a Database that is modified by "
                                "a currently active Transaction"));
@@ -2805,9 +2810,9 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             && db->get_rt_flags(true)&DB_ENV_IS_PRIVATE) {
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
-            n=txn_get_older(t);
-            if ((txn_get_flags(t)&TXN_STATE_ABORTED)
-                    || (txn_get_flags(t)&TXN_STATE_COMMITTED))
+            n=t->get_older();
+            if ((t->get_flags()&TXN_STATE_ABORTED)
+                    || (t->get_flags()&TXN_STATE_COMMITTED))
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
@@ -2914,7 +2919,7 @@ ham_cursor_create(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
     db->set_cursors(*cursor);
 
     if (txn) {
-        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
+        txn->set_cursor_refcount(txn->get_cursor_refcount()+1);
         (*cursor)->set_txn(txn);
     }
 

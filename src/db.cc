@@ -750,8 +750,7 @@ Database::clone_cursor(Cursor *src, Cursor **dest)
     (*dest)->set_txn(src->get_txn());
 
     if (src->get_txn())
-        txn_set_cursor_refcount(src->get_txn(),
-                txn_get_cursor_refcount(src->get_txn())+1);
+        src->get_txn()->set_cursor_refcount(src->get_txn()->get_cursor_refcount()+1);
 }
 
 void
@@ -762,9 +761,8 @@ Database::close_cursor(Cursor *cursor)
     /* decrease the transaction refcount; the refcount specifies how many
      * cursors are attached to the transaction */
     if (cursor->get_txn()) {
-        ham_assert(txn_get_cursor_refcount(cursor->get_txn())>0);
-        txn_set_cursor_refcount(cursor->get_txn(),
-                txn_get_cursor_refcount(cursor->get_txn())-1);
+        ham_assert(cursor->get_txn()->get_cursor_refcount()>0);
+        cursor->get_txn()->set_cursor_refcount(cursor->get_txn()->get_cursor_refcount()-1);
     }
 
     /* now finally close the cursor */
@@ -819,9 +817,9 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        if (optxn->get_flags()&TXN_STATE_ABORTED)
             ; /* nop */
-        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
                     || (kc->txn==optxn)) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
@@ -903,9 +901,9 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        if (optxn->get_flags()&TXN_STATE_ABORTED)
             ; /* nop */
-        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
             /* if key was erased then it doesn't exist and can be
              * inserted without problems */
@@ -976,9 +974,9 @@ db_check_erase_conflicts(Database *db, Transaction *txn,
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        if (optxn->get_flags()&TXN_STATE_ABORTED)
             ; /* nop */
-        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
@@ -1299,7 +1297,7 @@ db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
 static ham_status_t
 copy_record(Database *db, Transaction *txn, txn_op_t *op, ham_record_t *record)
 {
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &db->get_record_arena()
                         : &txn->get_record_arena();
 
@@ -1325,7 +1323,7 @@ db_find_txn(Database *db, Transaction *txn,
     bool first_loop=true;
     bool exact_is_erased=false;
 
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &db->get_key_arena()
                         : &txn->get_key_arena();
 
@@ -1358,9 +1356,9 @@ retry:
         op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        if (optxn->get_flags()&TXN_STATE_ABORTED)
             ; /* nop */
-        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
                     || (txn==optxn)) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
@@ -1676,7 +1674,7 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
     ham_u64_t recno=0;
     ham_record_t temprec;
 
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &m_db->get_key_arena()
                         : &txn->get_key_arena();
 
@@ -1687,11 +1685,8 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
             return (st);
     }
 
-    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
-    }
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS))
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -1821,10 +1816,8 @@ DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key,
         *(ham_offset_t *)key->data=recno;
     }
 
-    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        if ((st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY)))
-            return (st);
-    }
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS))
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
 
     /*
      * if transactions are enabled: append a 'erase key' operation into
@@ -1910,11 +1903,9 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_READ_ONLY|HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
-    }
+    if (!txn && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS))
+        local_txn = new Transaction(env, 0,
+                    HAM_TXN_READ_ONLY|HAM_TXN_TEMPORARY);
 
     /*
      * if transactions are enabled: read keys from transaction trees,
@@ -1989,7 +1980,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
     Transaction *local_txn=0;
     Transaction *txn=cursor->get_txn();
 
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &m_db->get_key_arena()
                         : &txn->get_key_arena();
 
@@ -2055,9 +2046,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2166,9 +2155,7 @@ DatabaseImplementationLocal::cursor_erase(Cursor *cursor, ham_u32_t flags)
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2248,9 +2235,7 @@ DatabaseImplementationLocal::cursor_find(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2427,9 +2412,7 @@ DatabaseImplementationLocal::cursor_get_duplicate_count(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2489,9 +2472,7 @@ DatabaseImplementationLocal::cursor_get_record_size(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2558,9 +2539,7 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2656,9 +2635,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
      * create a temporary one */
     if (!cursor->get_txn()
             && (m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st)
-            return (st);
+        local_txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
         cursor->set_txn(local_txn);
     }
 
@@ -2796,13 +2773,9 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         Transaction *txn;
         free_cb_context_t context = {0};
         context.db=m_db;
-        st=txn_begin(&txn, env, 0, HAM_TXN_TEMPORARY);
-        if (st && st2==0)
-            st2=st;
-        else {
-            (void)be->enumerate(__free_inmemory_blobs_cb, &context);
-            (void)txn_commit(txn, 0);
-        }
+        txn = new Transaction(env, 0, HAM_TXN_TEMPORARY);
+        (void)be->enumerate(__free_inmemory_blobs_cb, &context);
+        (void)txn_commit(txn, 0);
     }
 
     /* clear the changeset */

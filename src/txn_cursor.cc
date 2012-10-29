@@ -77,7 +77,7 @@ txn_cursor_conflicts(txn_cursor_t *cursor)
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
 
     if (txn_op_get_txn(op)!=txn) {
-        ham_u32_t flags=txn_get_flags(txn_op_get_txn(op));
+        ham_u32_t flags=txn_op_get_txn(op)->get_flags();
         if (!(flags&TXN_STATE_COMMITTED) && !(flags&TXN_STATE_ABORTED))
             return (HAM_TRUE);
     }
@@ -128,7 +128,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         /* only look at ops from the current transaction and from
          * committed transactions */
         if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
-                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+                || (optxn->get_flags()&TXN_STATE_COMMITTED)) {
             /* a normal (overwriting) insert will return this key */
             if ((txn_op_get_flags(op)&TXN_OP_INSERT)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
@@ -152,7 +152,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
             /* everything else is a bug! */
             ham_assert(txn_op_get_flags(op)==TXN_OP_NOP);
         }
-        else if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        else if (optxn->get_flags()&TXN_STATE_ABORTED)
             ; /* nop */
         else if (!ignore_conflicts) {
             /* we still have to couple, because higher-level functions
@@ -283,7 +283,7 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
         /* only look at ops from the current transaction and from
          * committed transactions */
         if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
-                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+                || (optxn->get_flags()&TXN_STATE_COMMITTED)) {
             /* a normal erase deletes ALL the duplicates */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                 ham_u32_t ref=txn_op_get_referenced_dupe(op);
@@ -352,7 +352,7 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
     Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     ham_key_t *source=0;
 
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &db->get_key_arena()
                         : &txn->get_key_arena();
 
@@ -389,7 +389,7 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
     ham_record_t *source=0;
     Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
 
-    ByteArray *arena=(txn==0 || (txn_get_flags(txn)&HAM_TXN_TEMPORARY))
+    ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &db->get_record_arena()
                         : &txn->get_record_arena();
 
