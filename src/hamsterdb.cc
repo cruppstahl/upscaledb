@@ -1628,8 +1628,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=t->get_older();
-            if ((t->get_flags()&TXN_STATE_ABORTED)
-                    || (t->get_flags()&TXN_STATE_COMMITTED))
+            if (t->is_aborted() || t->is_committed())
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {
@@ -2776,14 +2775,14 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         lock=ScopedLock(env->get_mutex());
 
     /* check if this database is modified by an active transaction */
-    txn_optree_t *tree=db->get_optree();
+    TransactionTree *tree=db->get_optree();
     if (tree && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE)) {
         txn_opnode_t *node=txn_tree_get_first(tree);
         while (node) {
             txn_op_t *op=txn_opnode_get_newest_op(node);
             while (op) {
-                ham_u32_t f=txn_op_get_txn(op)->get_flags();
-                if (!((f&TXN_STATE_COMMITTED) || (f&TXN_STATE_ABORTED))) {
+                Transaction *optxn = txn_op_get_txn(op);
+                if (!optxn->is_committed() && !optxn->is_aborted()) {
                     ham_trace(("cannot close a Database that is modified by "
                                "a currently active Transaction"));
                     return (HAM_TXN_STILL_OPEN);
@@ -2811,8 +2810,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=t->get_older();
-            if ((t->get_flags()&TXN_STATE_ABORTED)
-                    || (t->get_flags()&TXN_STATE_COMMITTED))
+            if (t->is_aborted() || t->is_committed())
                 ; /* nop */
             else {
                 if (flags&HAM_TXN_AUTO_COMMIT) {

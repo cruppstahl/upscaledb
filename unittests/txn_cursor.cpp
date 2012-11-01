@@ -216,7 +216,7 @@ public:
         txn_op_remove_cursor(op, &c1);
         BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -245,7 +245,7 @@ public:
         BFC_ASSERT_EQUAL(k.size, key.size);
         BFC_ASSERT_EQUAL(0, memcmp(k.data, key.data, key.size));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -278,7 +278,7 @@ public:
         BFC_ASSERT_EQUAL(k.size, key.size);
         BFC_ASSERT_EQUAL(0, memcmp(k.data, key.data, key.size));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -305,7 +305,7 @@ public:
         BFC_ASSERT_EQUAL(k.size, key.size);
         BFC_ASSERT_EQUAL((void *)0, k.data);
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -330,7 +330,7 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_key(&c, &k));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -358,7 +358,7 @@ public:
         BFC_ASSERT_EQUAL(r.size, record.size);
         BFC_ASSERT_EQUAL(0, memcmp(r.data, record.data, record.size));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -390,7 +390,7 @@ public:
         BFC_ASSERT_EQUAL(r.size, record.size);
         BFC_ASSERT_EQUAL(0, memcmp(r.data, record.data, record.size));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -416,7 +416,7 @@ public:
         BFC_ASSERT_EQUAL(r.size, record.size);
         BFC_ASSERT_EQUAL((void *)0, r.data);
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -439,7 +439,7 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 

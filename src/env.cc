@@ -1505,7 +1505,7 @@ Environment::flush_committed_txns()
     /* always get the oldest transaction; if it was committed: flush
      * it; if it was aborted: discard it; otherwise return */
     while ((oldest=get_oldest_txn())) {
-        if (oldest->get_flags()&TXN_STATE_COMMITTED) {
+        if (oldest->is_committed()) {
             if (last_id)
                 ham_assert(last_id != oldest->get_id());
             last_id = oldest->get_id();
@@ -1513,7 +1513,7 @@ Environment::flush_committed_txns()
             if (st)
                 return (st);
         }
-        else if (oldest->get_flags()&TXN_STATE_ABORTED) {
+        else if (oldest->is_aborted()) {
             ; /* nop */
         }
         else

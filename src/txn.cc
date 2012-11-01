@@ -60,7 +60,7 @@ __cmpfoo(void *vlhs, void *vrhs)
                 txn_opnode_get_key(rhs)->size));
 }
 
-rb_wrap(static, rbt_, txn_optree_t, txn_opnode_t, node, __cmpfoo)
+rb_wrap(static, rbt_, TransactionTree, txn_opnode_t, node, __cmpfoo)
 
 void
 txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
@@ -105,24 +105,16 @@ ham_bool_t
 txn_op_conflicts(txn_op_t *op, Transaction *current_txn)
 {
     Transaction *optxn=txn_op_get_txn(op);
-    if (optxn->get_flags()&TXN_STATE_ABORTED)
+    if (optxn->is_aborted())
         return (HAM_FALSE);
-    else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
-            || (current_txn==optxn))
+    else if (optxn->is_committed() || current_txn==optxn)
         return (HAM_FALSE);
     else /* txn is still active */
         return (HAM_TRUE);
 }
 
-void
-txn_tree_init(Database *db, txn_optree_t *tree)
-{
-    txn_optree_set_db(tree, db);
-    rbt_new(tree);
-}
-
 txn_opnode_t *
-txn_tree_get_first(txn_optree_t *tree)
+txn_tree_get_first(TransactionTree *tree)
 {
     if (tree)
         return (rbt_first(tree));
@@ -131,7 +123,7 @@ txn_tree_get_first(txn_optree_t *tree)
 }
 
 txn_opnode_t *
-txn_tree_get_last(txn_optree_t *tree)
+txn_tree_get_last(TransactionTree *tree)
 {
     if (tree)
         return (rbt_last(tree));
@@ -152,7 +144,7 @@ txn_opnode_get_previous_sibling(txn_opnode_t *node)
 }
 
 void
-txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data)
+txn_tree_enumerate(TransactionTree *tree, txn_tree_enumerate_cb cb, void *data)
 {
     txn_opnode_t *node=rbt_first(tree);
 
@@ -181,7 +173,7 @@ txn_opnode_t *
 txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 {
     txn_opnode_t *node=0, tmp;
-    txn_optree_t *tree=db->get_optree();
+    TransactionTree *tree=db->get_optree();
     int match=0;
 
     if (!tree)
@@ -241,7 +233,7 @@ txn_opnode_t *
 txn_opnode_create(Database *db, ham_key_t *key)
 {
     txn_opnode_t *node=0;
-    txn_optree_t *tree=db->get_optree();
+    TransactionTree *tree=db->get_optree();
     Allocator *alloc=db->get_env()->get_allocator();
 
     /* make sure that a node with this key does not yet exist */
@@ -329,7 +321,7 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 }
 
 void
-txn_free_optree(txn_optree_t *tree)
+txn_free_optree(TransactionTree *tree)
 {
     Environment *env=txn_optree_get_db(tree)->get_env();
     txn_opnode_t *node;
@@ -338,7 +330,7 @@ txn_free_optree(txn_optree_t *tree)
         txn_opnode_free(env, node);
     }
 
-    txn_tree_init(txn_optree_get_db(tree), tree);
+    rbt_new(tree);
 }
 
 void
@@ -346,7 +338,7 @@ txn_opnode_free(Environment *env, txn_opnode_t *node)
 {
     ham_key_t *key;
 
-    txn_optree_t *tree=txn_opnode_get_tree(node);
+    TransactionTree *tree=txn_opnode_get_tree(node);
     rbt_remove(tree, node);
 
     key=txn_opnode_get_key(node);
@@ -396,22 +388,6 @@ txn_op_free(Environment *env, Transaction *txn, txn_op_t *op)
     env->get_allocator()->free(op);
 }
 
-void
-txn_free_ops(Transaction *txn)
-{
-    Environment *env=txn->get_env();
-    txn_op_t *n, *op=txn->get_oldest_op();
-
-    while (op) {
-        n=txn_op_get_next_in_txn(op);
-        txn_op_free(env, txn, op);
-        op=n;
-    }
-
-    txn->set_oldest_op(0);
-    txn->set_newest_op(0);
-}
-
 Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
   : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
     m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
@@ -430,7 +406,7 @@ Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
 
 Transaction::~Transaction()
 {
-    txn_free_ops(this);
+    free_ops();
 
     /* fix double linked transaction list */
     if (get_older())
@@ -466,12 +442,34 @@ Transaction::abort(ham_u32_t flags)
     set_flags(get_flags()|TXN_STATE_ABORTED);
 
     /* immediately release memory of the cached operations */
-    txn_free_ops(this);
+    free_ops();
 
     /* clean up the changeset */
     get_env()->get_changeset().clear();
 
     return (0);
+}
+
+void
+Transaction::free_ops()
+{
+    Environment *env=get_env();
+    txn_op_t *n, *op=get_oldest_op();
+
+    while (op) {
+        n=txn_op_get_next_in_txn(op);
+        txn_op_free(env, this, op);
+        op=n;
+    }
+
+    set_oldest_op(0);
+    set_newest_op(0);
+}
+
+TransactionTree::TransactionTree(Database *db)
+  : m_db(db)
+{
+  rbt_new(this);
 }
 
 } // namespace ham

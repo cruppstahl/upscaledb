@@ -75,10 +75,10 @@ txn_cursor_conflicts(txn_cursor_t *cursor)
 {
     Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
     txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+    Transaction *optxn=txn_op_get_txn(op);
 
-    if (txn_op_get_txn(op)!=txn) {
-        ham_u32_t flags=txn_op_get_txn(op)->get_flags();
-        if (!(flags&TXN_STATE_COMMITTED) && !(flags&TXN_STATE_ABORTED))
+    if (optxn!=txn) {
+        if (!optxn->is_committed() && !optxn->is_aborted())
             return (HAM_TRUE);
     }
 
@@ -127,8 +127,8 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from
          * committed transactions */
-        if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
-                || (optxn->get_flags()&TXN_STATE_COMMITTED)) {
+        if (optxn==txn_cursor_get_parent(cursor)->get_txn()
+                || optxn->is_committed()) {
             /* a normal (overwriting) insert will return this key */
             if ((txn_op_get_flags(op)&TXN_OP_INSERT)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
@@ -152,7 +152,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
             /* everything else is a bug! */
             ham_assert(txn_op_get_flags(op)==TXN_OP_NOP);
         }
-        else if (optxn->get_flags()&TXN_STATE_ABORTED)
+        else if (optxn->is_aborted())
             ; /* nop */
         else if (!ignore_conflicts) {
             /* we still have to couple, because higher-level functions
@@ -282,8 +282,8 @@ txn_cursor_is_erased_duplicate(txn_cursor_t *cursor)
         Transaction *optxn=txn_op_get_txn(op);
         /* only look at ops from the current transaction and from
          * committed transactions */
-        if ((optxn==txn_cursor_get_parent(cursor)->get_txn())
-                || (optxn->get_flags()&TXN_STATE_COMMITTED)) {
+        if (optxn==txn_cursor_get_parent(cursor)->get_txn()
+                || optxn->is_committed()) {
             /* a normal erase deletes ALL the duplicates */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
                 ham_u32_t ref=txn_op_get_referenced_dupe(op);

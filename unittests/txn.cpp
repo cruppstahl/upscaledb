@@ -207,15 +207,11 @@ public:
     void txnTreeStructureTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
+        TransactionTree *tree;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree=m_dbp->get_optree();
         BFC_ASSERT(tree!=0);
-
-        txn_optree_set_db(tree, (Database *)1);
-        BFC_ASSERT_EQUAL((Database *)1, txn_optree_get_db(tree));
-        txn_optree_set_db(tree, m_dbp);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
@@ -223,7 +219,7 @@ public:
     void txnTreeCreatedOnceTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree, *tree2;
+        TransactionTree *tree, *tree2;
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
         tree=m_dbp->get_optree();
@@ -238,7 +234,7 @@ public:
     {
         ham_db_t *db2, *db3;
         ham_txn_t *txn;
-        txn_optree_t *tree1, *tree2, *tree3;
+        TransactionTree *tree1, *tree2, *tree3;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db2));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db2, 14, 0, 0));
@@ -263,7 +259,7 @@ public:
     void txnNodeStructureTest(void)
     {
         ham_txn_t *txn;
-        txn_optree_t *tree;
+        TransactionTree *tree;
         txn_opnode_t *node;
         ham_key_t key;
         memset(&key, 0, sizeof(key));
@@ -276,10 +272,6 @@ public:
         tree=m_dbp->get_optree();
         node=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node!=0);
-
-        txn_opnode_set_db(tree, (Database *)1);
-        BFC_ASSERT_EQUAL((Database *)1, txn_opnode_get_db(tree));
-        txn_opnode_set_db(tree, m_dbp);
 
         ham_key_t *k=txn_opnode_get_key(node);
         BFC_ASSERT_EQUAL(k->size, key.size);
@@ -397,7 +389,7 @@ public:
         BFC_ASSERT_EQUAL((txn_cursor_t *)0x43, txn_op_get_cursors(op));
         txn_op_set_cursors(op, (txn_cursor_t *)0x0);
 
-        txn_free_ops((Transaction *)txn);
+        ((Transaction *)txn)->free_ops();
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 

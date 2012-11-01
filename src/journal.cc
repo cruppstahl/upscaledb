@@ -500,7 +500,7 @@ __abort_uncommitted_txns(Environment *env)
 
   while (txn) {
     newer = txn->get_newer();
-    if (!(txn->get_flags() & TXN_STATE_COMMITTED)) {
+    if (!txn->is_committed()) {
       st = ham_txn_abort((ham_txn_t *)txn, HAM_DONT_LOCK);
       if (st)
         return (st);

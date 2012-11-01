@@ -215,7 +215,7 @@ typedef struct txn_opnode_t
   ham_key_t _key;
 
   /** the parent tree */
-  struct txn_optree_t *_tree;
+  struct TransactionTree *_tree;
 
   /** the linked list of operations - head is oldest operation */
   txn_op_t *_oldest_op;
@@ -257,31 +257,70 @@ typedef struct txn_opnode_t
 
 
 /*
- * each Transaction has one tree per Database for a fast lookup; this
- * is just a normal binary tree
+ * Each Database has a binary tree which stores the current Transaction
+ * operations
  */
-typedef struct txn_optree_t
+class TransactionTree
 {
-  /* the Database for all operations in this tree */
-  Database *_db;
+  public:
+    /** constructor */
+    TransactionTree(Database *db);
 
-  /* stuff for rb.h */
-  txn_opnode_t *rbt_root;
-  txn_opnode_t rbt_nil;
+ // private:
+    /* the Database for all operations in this tree */
+    Database *m_db;
 
-} txn_optree_t;
+    /* stuff for rb.h */
+    txn_opnode_t *rbt_root;
+    txn_opnode_t rbt_nil;
+};
 
 /** get the database handle of this txn tree */
-#define txn_optree_get_db(t)    (t)->_db
+#define txn_optree_get_db(t)    (t)->m_db
 
-/** set the database handle of this txn tree */
-#define txn_optree_set_db(t, d)   (t)->_db=d
+/**
+ * traverses a tree; for each node, a callback function is executed
+ */
+typedef void(*txn_tree_enumerate_cb)(txn_opnode_t *node, void *data);
+
+/**
+ * retrieves the first (=smallest) node of the tree, or NULL if the
+ * tree is empty
+ */
+extern txn_opnode_t *
+txn_tree_get_first(TransactionTree *tree);
+
+/**
+ * retrieves the last (=largest) node of the tree, or NULL if the
+ * tree is empty
+ */
+extern txn_opnode_t *
+txn_tree_get_last(TransactionTree *tree);
+
+extern void
+txn_tree_enumerate(TransactionTree *tree, txn_tree_enumerate_cb cb, void *data);
+
+
+/**
+ * frees all nodes in the tree
+ */
+extern void
+txn_free_optree(TransactionTree *tree);
+
 
 /**
  * a Transaction structure
  */
 class Transaction
 {
+  private:
+    enum {
+      /** Transaction was aborted */
+      TXN_STATE_ABORTED   = 0x10000,
+      /** Transaction was committed */
+      TXN_STATE_COMMITTED = 0x20000
+    };
+
   public:
     /** constructor; "begins" the Transaction
      * supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY, ...
@@ -297,6 +336,16 @@ class Transaction
 
     /** aborts the Transaction */
     ham_status_t abort(ham_u32_t flags = 0);
+
+    /** returns true if the Transaction was aborted */
+    bool is_aborted() const {
+      return (m_flags & TXN_STATE_ABORTED);
+    }
+
+    /** returns true if the Transaction was committed */
+    bool is_committed() const {
+      return (m_flags & TXN_STATE_COMMITTED);
+    }
 
     /** get the id */
     ham_u64_t get_id() const {
@@ -344,11 +393,13 @@ class Transaction
     }
 
     /** get the index of the log file descriptor */
+    // TODO make this private
     int get_log_desc() const {
       return (m_log_desc);
     }
 
     /** set the index of the log file descriptor */
+    // TODO make this private
     void set_log_desc(int desc) {
       m_log_desc = desc;
     }
@@ -384,21 +435,25 @@ class Transaction
     }
 
     /** get the oldest transaction operation */
+    // TODO make this private
     txn_op_t *get_oldest_op() const {
       return (m_oldest_op);
     }
 
     /** set the oldest transaction operation */
+    // TODO make this private
     void set_oldest_op(txn_op_t *op) {
       m_oldest_op = op;
     }
 
     /** get the newest transaction operation */
+    // TODO make this private
     txn_op_t *get_newest_op() const {
       return (m_newest_op);
     }
 
     /** set the newest transaction operation */
+    // TODO make this private
     void set_newest_op(txn_op_t *op) {
       m_newest_op = op;
     }
@@ -412,6 +467,10 @@ class Transaction
     ByteArray &get_record_arena() {
       return (m_record_arena);
     }
+
+    /** frees the internal txn trees, nodes and ops */
+    // TODO make this private
+    void free_ops();
 
   private:
     /** the id of this txn */
@@ -453,40 +512,6 @@ class Transaction
      * record to the user */
     ByteArray m_record_arena;
 };
-
-/** transaction is still alive but was aborted */
-#define TXN_STATE_ABORTED         0x10000
-
-/** transaction is still alive but was committed */
-#define TXN_STATE_COMMITTED       0x20000
-
-/**
- * initializes the txn-tree
- */
-extern void
-txn_tree_init(Database *db, txn_optree_t *tree);
-
-/**
- * traverses a tree; for each node, a callback function is executed
- */
-typedef void(*txn_tree_enumerate_cb)(txn_opnode_t *node, void *data);
-
-/**
- * retrieves the first (=smallest) node of the tree, or NULL if the
- * tree is empty
- */
-extern txn_opnode_t *
-txn_tree_get_first(txn_optree_t *tree);
-
-/**
- * retrieves the last (=largest) node of the tree, or NULL if the
- * tree is empty
- */
-extern txn_opnode_t *
-txn_tree_get_last(txn_optree_t *tree);
-
-extern void
-txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
 
 /**
  * get an opnode for an optree; if a node with this
@@ -532,19 +557,6 @@ txn_opnode_get_next_sibling(txn_opnode_t *node);
  */
 extern txn_opnode_t *
 txn_opnode_get_previous_sibling(txn_opnode_t *node);
-
-/**
- * frees all nodes in the tree
- */
-extern void
-txn_free_optree(txn_optree_t *tree);
-
-/**
- * frees the internal txn trees, nodes and ops
- * This function is a test gate for the unittests. do not use it.
- */
-extern void
-txn_free_ops(Transaction *txn);
 
 } // namespace ham
 

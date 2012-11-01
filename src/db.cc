@@ -273,12 +273,11 @@ Database::Database()
     m_prefix_func(0), m_cmp_func(0), m_duperec_func(0),
     m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0),
     m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0),
-    m_is_active(0), m_impl(0)
+    m_is_active(0), m_optree(this), m_impl(0)
 {
 #if HAM_ENABLE_REMOTE
     m_remote_handle=0;
 #endif
-    txn_tree_init(this, &m_optree);
 }
 
 ham_u16_t
@@ -817,10 +816,9 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (optxn->get_flags()&TXN_STATE_ABORTED)
+        if (optxn->is_aborted())
             ; /* nop */
-        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
-                    || (kc->txn==optxn)) {
+        else if (optxn->is_committed() || kc->txn==optxn) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
             /* if key was erased then it doesn't exist */
@@ -901,10 +899,9 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (optxn->get_flags()&TXN_STATE_ABORTED)
+        if (optxn->is_aborted())
             ; /* nop */
-        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
-                    || (txn==optxn)) {
+        else if (optxn->is_committed() || txn==optxn) {
             /* if key was erased then it doesn't exist and can be
              * inserted without problems */
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
@@ -974,10 +971,9 @@ db_check_erase_conflicts(Database *db, Transaction *txn,
     op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (optxn->get_flags()&TXN_STATE_ABORTED)
+        if (optxn->is_aborted())
             ; /* nop */
-        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
-                    || (txn==optxn)) {
+        else if (optxn->is_committed() || txn==optxn) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
             /* if key was erased then it doesn't exist and we fail with
@@ -1316,7 +1312,7 @@ db_find_txn(Database *db, Transaction *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    txn_optree_t *tree=0;
+    TransactionTree *tree=0;
     txn_opnode_t *node=0;
     txn_op_t *op=0;
     Backend *be=db->get_backend();
@@ -1356,10 +1352,9 @@ retry:
         op=txn_opnode_get_newest_op(node);
     while (op) {
         Transaction *optxn=txn_op_get_txn(op);
-        if (optxn->get_flags()&TXN_STATE_ABORTED)
+        if (optxn->is_aborted())
             ; /* nop */
-        else if ((optxn->get_flags()&TXN_STATE_COMMITTED)
-                    || (txn==optxn)) {
+        else if (optxn->is_committed() || txn==optxn) {
             if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
                 ; /* nop */
             /* if key was erased then it doesn't exist and we can return

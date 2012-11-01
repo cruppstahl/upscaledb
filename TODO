@@ -171,10 +171,12 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
     o txn.h
     o txn.cc
         x txn->name: use std::string
-        o db.cc: when calling local_txn->abort(), local_txn is not deleted;
-            we can abort directly in the destructor (if the txn is active)
-        o txn_op_node_t should be a private structure (no getter/setter)
-        o txn_op_t should be a private structure (no getter/setter)
+        o db.h: TransactionTree should be pointer, not object; only
+            create if required
+        o txn_free_optree -> ~TransactionTree
+        o txn_optree_t -> TransactionTree
+        o txn_op_node_t -> TransactionTreeNode
+        o txn_op_t -> TransactionOperation
         o convert to clean c++ code
 
 o try performance tests with google memory allocator
