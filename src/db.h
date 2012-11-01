@@ -592,7 +592,7 @@ class Database
 #endif
 
     /** get the transaction tree */
-    struct txn_optree_t *get_optree() {
+    struct TransactionTree *get_optree() {
         return (&m_optree);
     }
 
@@ -777,7 +777,7 @@ class Database
 #endif
 
     /** the transaction tree */
-    struct txn_optree_t m_optree;
+    TransactionTree m_optree;
 
     /** the object which does the actual work */
     DatabaseImplementation *m_impl;
