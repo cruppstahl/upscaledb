@@ -55,7 +55,7 @@ protected:
     ham_db_t *m_db;
     Database *m_dbp;
     ham_env_t *m_env;
-    ham_bool_t m_inmemory;
+    bool m_inmemory;
 
 public:
     virtual void setup()
@@ -143,9 +143,9 @@ public:
         m_dbp->set_next((Database *)0);
 
         BFC_ASSERT_EQUAL(1u, m_dbp->is_active());
-        m_dbp->set_active(HAM_FALSE);
+        m_dbp->set_active(false);
         BFC_ASSERT_EQUAL(0u, m_dbp->is_active());
-        m_dbp->set_active(HAM_TRUE);
+        m_dbp->set_active(true);
         BFC_ASSERT_EQUAL(1u, m_dbp->is_active());
     }
 

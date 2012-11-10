@@ -33,7 +33,7 @@ class BlobTest : public hamsterDB_fixture
     define_super(hamsterDB_fixture);
 
 public:
-    BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_bool_t use_txn=HAM_FALSE,
+    BlobTest(bool inmemory=false, bool use_txn=false,
                 ham_size_t cachesize=0, ham_size_t pagesize=0,
                 const char *name="BlobTest")
     :   hamsterDB_fixture(name),
@@ -58,8 +58,8 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    ham_bool_t m_inmemory;
-    ham_bool_t m_use_txn;
+    bool m_inmemory;
+    bool m_use_txn;
     ham_size_t m_cachesize;
     ham_size_t m_pagesize;
     BlobManager *m_blob_manager;
@@ -427,7 +427,7 @@ class FileBlobTest : public BlobTest
 public:
     FileBlobTest(ham_size_t cachesize=1024,
                 ham_size_t pagesize=0, const char *name="FileBlobTest")
-    : BlobTest(HAM_FALSE, HAM_TRUE, cachesize, pagesize, name)
+    : BlobTest(false, true, cachesize, pagesize, name)
     {
     }
 };
@@ -437,7 +437,7 @@ class FileBlobNoTxnTest : public BlobTest
 public:
     FileBlobNoTxnTest(ham_size_t cachesize=1024,
                 ham_size_t pagesize=0, const char *name="FileBlobNoTxnTest")
-    : BlobTest(HAM_FALSE, HAM_FALSE, cachesize, pagesize, name)
+    : BlobTest(false, false, cachesize, pagesize, name)
     {
     }
 };
@@ -457,7 +457,7 @@ class NoCacheBlobTest : public BlobTest
 public:
     NoCacheBlobTest(ham_size_t cachesize=0,
                 ham_size_t pagesize=0, const char *name="NoCacheBlobTest")
-    : BlobTest(HAM_FALSE, HAM_TRUE, cachesize, pagesize, name)
+    : BlobTest(false, true, cachesize, pagesize, name)
     {
     }
 };
@@ -467,7 +467,7 @@ class NoCacheBlobNoTxnTest : public BlobTest
 public:
     NoCacheBlobNoTxnTest(ham_size_t cachesize=0,
                 ham_size_t pagesize=0, const char *name="NoCacheBlobNoTxnTest")
-    : BlobTest(HAM_FALSE, HAM_FALSE, cachesize, pagesize, name)
+    : BlobTest(false, false, cachesize, pagesize, name)
     {
     }
 };
@@ -488,7 +488,7 @@ class InMemoryBlobTest : public BlobTest
 public:
     InMemoryBlobTest(ham_size_t cachesize=0, ham_size_t pagesize=0,
             const char *name="InMemoryBlobTest")
-    : BlobTest(HAM_TRUE, HAM_FALSE, cachesize, pagesize, name)
+    : BlobTest(true, false, cachesize, pagesize, name)
     {
     }
 };

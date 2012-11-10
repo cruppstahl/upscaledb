@@ -27,7 +27,8 @@ class CheckIntegrityTest : public hamsterDB_fixture
     define_super(hamsterDB_fixture);
 
 public:
-    CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE, const char *name="CheckIntegrityTest")
+    CheckIntegrityTest(bool inmemorydb=false,
+            const char *name="CheckIntegrityTest")
         : hamsterDB_fixture(name),
             m_inmemory(inmemorydb)
     {
@@ -39,7 +40,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_bool_t m_inmemory;
+    bool m_inmemory;
 
 public:
     virtual void setup()
@@ -121,7 +122,7 @@ class InMemoryCheckIntegrityTest : public CheckIntegrityTest
 {
 public:
     InMemoryCheckIntegrityTest()
-    :   CheckIntegrityTest(HAM_TRUE, "InMemoryCheckIntegrityTest")
+    :   CheckIntegrityTest(true, "InMemoryCheckIntegrityTest")
     {
     }
 };
