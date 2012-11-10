@@ -50,7 +50,7 @@ public:
 protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
-    ham_bool_t m_inmemory;
+    bool m_inmemory;
     Device *m_dev;
 
 public:

@@ -31,7 +31,7 @@ class PageTest : public hamsterDB_fixture
     define_super(hamsterDB_fixture);
 
 public:
-    PageTest(ham_bool_t inmemorydb=HAM_FALSE, ham_bool_t mmap=HAM_TRUE,
+    PageTest(ham_bool_t inmemorydb=false, ham_bool_t mmap=true,
             const char *name="PageTest")
     :   hamsterDB_fixture(name),
         m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap), m_dev(0)
@@ -146,7 +146,7 @@ class RwPageTest : public PageTest
 {
 public:
     RwPageTest()
-    : PageTest(HAM_FALSE, HAM_FALSE, "RwPageTest")
+    : PageTest(false, false, "RwPageTest")
     {
         /* constructor will register all tests from parent page */
     }
@@ -156,7 +156,7 @@ class InMemoryPageTest : public PageTest
 {
 public:
     InMemoryPageTest()
-    : PageTest(HAM_TRUE, HAM_FALSE, "InMemoryPageTest")
+    : PageTest(true, false, "InMemoryPageTest")
     {
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);

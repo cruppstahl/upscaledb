@@ -166,13 +166,30 @@ x continue with refacoring - indention, coding style, better design etc...
 x jake: disable file indexing with file attribute on windows
     FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 
+o recno: make sure that there's no write to the header page with every
+    insert; this would kill the performance when recovery is enabled 
+    o move from backend to (local) db
+    o when opening, always read last recno from the database (with a cursor)
+        (in hamsterdb.cc, at the end of ham_env_open_db)
+
+o add transaction support for in-memory databases
+
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
     o txn.h
     o txn.cc
-        x txn->name: use std::string
-        o db.h: TransactionTree should be pointer, not object; only
-            create if required
+        o get rid of the rb-tree; use std::map or std::set instead
+            std::map<ham_key_t, boost::unintrusive_list<Operation> >
+            -> this needs a proper redesign:
+          o TransactionManager: is a factory for new Transactions; owned by
+            the Environment and manages the Transaction IDs
+          o TransactionBackend: this is the std::map which contains the nodes
+            (TransactionNode) and the operations (TransactionOperation)
+          o Try to reduce the TransactionNode to the key and the linked list
+          o Try to make the interface of TransactionBackend similar to
+            BtreeBackend
+          o The Node manages the ham_key_t and the list of Operations
+        o txn->name: use std::string
         o txn_free_optree -> ~TransactionTree
         o txn_optree_t -> TransactionTree
         o txn_op_node_t -> TransactionTreeNode
@@ -224,19 +241,9 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         ==> need a migration path (i.e. allow forward-cursors if db is
             read-only, no transactions)
 
-
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
     o backend.h/btree.h: check the TODOs
-
-    o txn.h
-    o txn.cc
-        o do a whole top-down redesign; there should be a transaction manager
-            which is a factory for new transactions (and manages the
-            txn ID); and there should be a TransactionBackend (as opposite
-            to the BtreeBackend) which basically is the tree, and which
-            manages the memory of the nodes
-        o try to reduce the memory allocations
 
     o configuration: move into separate file
         o use for runtime-configuration
@@ -274,8 +281,8 @@ o continue with refacoring - indention, coding style, better design etc...
 
 o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
 
-o recno: make sure that there's no write to the header page with every
-    insert; this would kill the performance when recovery is enabled 
+o should in-memory databases rather use a std::map with a custom allocator?
+    this would reduce the memory usage
 
 o changeset: instead of simply adding pages to the changeset, the caller
     could already specify whether this page needs logging or not;

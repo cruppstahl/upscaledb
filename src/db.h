@@ -618,7 +618,8 @@ class Database
 
         /* need prefix compare? if no key is extended we can just call the
          * normal compare function */
-        if (!(lhs->_flags&BtreeKey::KEY_IS_EXTENDED) && !(rhs->_flags&BtreeKey::KEY_IS_EXTENDED)) {
+        if (!(lhs->_flags&BtreeKey::KEY_IS_EXTENDED)
+                && !(rhs->_flags&BtreeKey::KEY_IS_EXTENDED)) {
             return (foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
                             (ham_u8_t *)rhs->data, rhs->size));
         }

@@ -115,8 +115,8 @@ class DupeCacheLine
     }
 
     /** Returns true if this cache entry is a duplicate in the btree */
-    ham_bool_t use_btree(void) {
-        return ((ham_bool_t)m_use_btree);
+    bool use_btree() {
+        return (m_use_btree);
     }
 
     /** Returns the btree duplicate index */
