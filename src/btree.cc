@@ -177,7 +177,6 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
   index_set_keysize(indexdata, keysize);
   index_set_self(indexdata, root->get_self());
   index_set_flags(indexdata, flags);
-  index_set_recno(indexdata, 0);
   index_clear_reserved(indexdata);
 
   m_db->get_env()->set_dirty(true);
@@ -190,7 +189,6 @@ ham_status_t
 BtreeBackend::do_open(ham_u32_t flags)
 {
   ham_offset_t rootadd;
-  ham_offset_t recno;
   ham_u16_t maxkeys;
   ham_u16_t keysize;
   db_indexdata_t *indexdata=m_db->get_env()->get_indexdata_ptr(
@@ -204,13 +202,11 @@ BtreeBackend::do_open(ham_u32_t flags)
   keysize = index_get_keysize(indexdata);
   rootadd = index_get_self(indexdata);
   flags = index_get_flags(indexdata);
-  recno = index_get_recno(indexdata);
 
   set_rootpage(rootadd);
   set_maxkeys(maxkeys);
   set_keysize(keysize);
   set_flags(flags);
-  set_recno(recno);
 
   set_active(true);
 
@@ -227,7 +223,6 @@ BtreeBackend::do_flush_indexdata()
   index_set_keysize(indexdata, get_keysize());
   index_set_self(indexdata, get_rootpage());
   index_set_flags(indexdata, get_flags());
-  index_set_recno(indexdata, get_recno());
   index_clear_reserved(indexdata);
 
   m_db->get_env()->set_dirty(true);

@@ -175,35 +175,26 @@ x fix memory leaks (run unittests with valgrind)
 
 o recno: make sure that there's no write to the header page with every
     insert; this would kill the performance when recovery is enabled 
-    o move from backend to (local) db
-    o when opening, always read last recno from the database (with a cursor)
+    x move record number from backend to (local) db
+    x when opening, always read last recno from the database (with a cursor)
         (in hamsterdb.cc, at the end of ham_env_open_db)
-
-o add transaction support for in-memory databases
+    o the following tests currently fail:
+      o error #1 in RecNoTest::createCloseOpenCloseTest
+      o error #2 in RecNoTest::eraseLastReopenTest
+      o error #3 in HamsterdbTest::recnoUsesSequentialDamTest
+      o error #4 in RemoteTest::insertRecnoTest
+      o error #5 in RemoteTest::insertFindEraseRecnoTest
+      o error #6 in RemoteTest::cursorInsertRecnoTest
+      o error #7 in RemoteTest::cursorInsertFindEraseRecnoTest
+      o error #8 in RemoteTest::openTwiceTest
+      o error #9 in RemoteTest::cursorCreateTest
+      o error #10 in RemoteTest::cursorCloneTest
+    o run a test with recovery and recno; make sure that the header page is
+        not updated when a new recno is inserted
 
 o run performance tests with google memory allocator
 
-o optimize memory usage in transaction tree: avoid malloc/free use page
-    allocator
-    o txn.h
-    o txn.cc
-        o get rid of the rb-tree; use std::map or std::set instead
-            std::map<ham_key_t, boost::unintrusive_list<Operation> >
-            -> this needs a proper redesign:
-          o TransactionManager: is a factory for new Transactions; owned by
-            the Environment and manages the Transaction IDs
-          o TransactionBackend: this is the std::map which contains the nodes
-            (TransactionNode) and the operations (TransactionOperation)
-          o Try to reduce the TransactionNode to the key and the linked list
-          o Try to make the interface of TransactionBackend similar to
-            BtreeBackend
-          o The Node manages the ham_key_t and the list of Operations
-        o txn->name: use std::string
-        o txn_free_optree -> ~TransactionTree
-        o txn_optree_t -> TransactionTree
-        o txn_op_node_t -> TransactionTreeNode
-        o txn_op_t -> TransactionOperation
-        o convert to clean c++ code
+o add transaction support for in-memory databases
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?
@@ -247,6 +238,28 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         ==> described in github wiki
         ==> need a migration path (i.e. allow forward-cursors if db is
             read-only, no transactions)
+
+o optimize memory usage in transaction tree: avoid malloc/free use page
+    allocator
+    o txn.h
+    o txn.cc
+        o get rid of the rb-tree; use std::map or std::set instead
+            std::map<ham_key_t, boost::unintrusive_list<Operation> >
+            -> this needs a proper redesign:
+          o TransactionManager: is a factory for new Transactions; owned by
+            the Environment and manages the Transaction IDs
+          o TransactionBackend: this is the std::map which contains the nodes
+            (TransactionNode) and the operations (TransactionOperation)
+          o Try to reduce the TransactionNode to the key and the linked list
+          o Try to make the interface of TransactionBackend similar to
+            BtreeBackend
+          o The Node manages the ham_key_t and the list of Operations
+        o txn->name: use std::string
+        o txn_free_optree -> ~TransactionTree
+        o txn_optree_t -> TransactionTree
+        o txn_op_node_t -> TransactionTreeNode
+        o txn_op_t -> TransactionOperation
+        o convert to clean c++ code
 
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)

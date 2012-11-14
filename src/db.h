@@ -103,11 +103,11 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
     /** flags for this database */
     ham_u32_t _flags;
 
-    /** last used record number value */
-    ham_offset_t _recno;
+    /* reserved */
+    ham_u64_t _reserved2;
 
     /* reserved */
-    ham_u32_t _reserved2;
+    ham_u32_t _reserved3;
 
 } HAM_PACK_2;
 
@@ -129,9 +129,6 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 #define index_get_flags(p)                ham_db2h32((p)->_flags)
 #define index_set_flags(p, n)             (p)->_flags=ham_h2db32(n)
 
-#define index_get_recno(p)                ham_db2h_offset((p)->_recno)
-#define index_set_recno(p, n)             (p)->_recno=ham_h2db_offset(n)
-
 #define index_clear_reserved(p)           { (p)->_reserved1=0;            \
                                             (p)->_reserved2=0; }
 class Database;
@@ -149,6 +146,9 @@ class DatabaseImplementation
 
     virtual ~DatabaseImplementation() {
     }
+
+    /** finalize db_open() - currently this only reads the record number */
+    virtual ham_status_t finalize_open() = 0;
 
     /** get Database parameters */
     virtual ham_status_t get_parameters(ham_parameter_t *param) = 0;
@@ -222,8 +222,11 @@ class DatabaseImplementationLocal : public DatabaseImplementation
 {
   public:
     DatabaseImplementationLocal(Database *db)
-      : DatabaseImplementation(db) {
+      : DatabaseImplementation(db), m_recno(0) {
     }
+
+    /** finalize db_open() - currently this only reads the record number */
+    virtual ham_status_t finalize_open();
 
     /** get Database parameters */
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -285,6 +288,14 @@ class DatabaseImplementationLocal : public DatabaseImplementation
     /** close the Database */
     virtual ham_status_t close(ham_u32_t flags);
 
+    /** returns the next record number */
+    ham_u64_t get_incremented_recno() {
+      return (++m_recno);
+    }
+
+  private:
+    /** the current record number */
+    ham_u64_t m_recno;
 };
 
 /**
@@ -298,6 +309,9 @@ class DatabaseImplementationRemote : public DatabaseImplementation
     DatabaseImplementationRemote(Database *db)
       : DatabaseImplementation(db) {
     }
+
+    /** finalize db_open() - currently this only reads the record number */
+    virtual ham_status_t finalize_open() { return 0; }
 
     /** get Database parameters */
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -395,7 +409,7 @@ class Database
     }
 
     /** syntactic sugar to access the implementation object */
-    DatabaseImplementation *operator()(void) {
+    DatabaseImplementation *operator()() {
         return (m_impl);
     }
 

@@ -1509,6 +1509,21 @@ retry:
 }
 
 ham_status_t
+DatabaseImplementationLocal::finalize_open()
+{
+    ham_key_t key = {};
+    Cursor *c=new Cursor(m_db, 0, 0);
+    ham_status_t st=cursor_move(c, &key, 0, HAM_CURSOR_LAST);
+    m_db->close_cursor(c);
+    if (st)
+        return (st);
+    ham_assert(key.size == sizeof(ham_u64_t));
+    m_recno = *(ham_u64_t *)key.data;
+    m_recno = ham_h2db64(m_recno);
+    return (0);
+}
+
+ham_status_t
 DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
@@ -1695,8 +1710,7 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
         }
         else {
             /* get the record number (host endian) and increment it */
-            recno=be->get_recno();
-            recno++;
+            recno=get_incremented_recno();
         }
 
         /* allocate memory for the key */
@@ -1767,10 +1781,6 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE)) {
-            be->set_recno(recno);
-            be->flush_indexdata();
-        }
     }
 
     ham_assert(st==0);
@@ -1968,7 +1978,6 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    Backend *be=m_db->get_backend();
     ham_u64_t recno = 0;
     ham_record_t temprec;
     Environment *env=m_db->get_env();
@@ -1997,8 +2006,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         }
         else {
             /* get the record number (host endian) and increment it */
-            recno=be->get_recno();
-            recno++;
+            recno=get_incremented_recno();
         }
 
         /* allocate memory for the key */
@@ -2116,10 +2124,6 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE)) {
-            be->set_recno(recno);
-            be->flush_indexdata();
-        }
     }
 
     ham_assert(st==0);

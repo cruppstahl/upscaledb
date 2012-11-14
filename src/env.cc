@@ -1230,6 +1230,18 @@ _local_fun_open_db(Environment *env, Database *db,
     db->set_duplicate_compare_func(db_default_compare);
 
     /*
+     * if this is a recno database: read the highest recno
+     */
+    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
+        st = (*db)()->finalize_open();
+        if (st) {
+            ham_trace(("Database could not be opened"));
+            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+            return (st);
+        }
+    }
+
+    /*
      * on success: store the open database in the environment's list of
      * opened databases
      */

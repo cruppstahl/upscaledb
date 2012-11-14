@@ -85,7 +85,7 @@ class Backend
 {
   public:
     Backend(Database *db, ham_u32_t flags)
-      : m_db(db), m_keysize(0), m_recno(0), m_is_active(false), m_flags(flags) {
+      : m_db(db), m_keysize(0), m_is_active(false), m_flags(flags) {
     }
 
     /**
@@ -242,16 +242,6 @@ class Backend
       m_flags = flags;
     }
 
-    /** get the last used record number */
-    ham_u64_t get_recno() {
-      return m_recno;
-    }
-
-    /** set the last used record number */
-    void set_recno(ham_u64_t recno) {
-      m_recno = recno;
-    }
-
     /** check whether this backend is active */
     bool is_active() {
       return m_is_active;
@@ -343,9 +333,6 @@ class Backend
   private:
     /** the keysize of this backend index */
     ham_u16_t m_keysize;
-
-    /** the last used record number */
-    ham_offset_t m_recno;
 
     /** flag if this backend has been fully initialized */
     bool m_is_active;

@@ -259,7 +259,6 @@ public:
     void txnNodeStructureTest(void)
     {
         ham_txn_t *txn;
-        TransactionTree *tree;
         txn_opnode_t *node;
         ham_key_t key;
         memset(&key, 0, sizeof(key));
@@ -269,7 +268,6 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-        tree=m_dbp->get_optree();
         node=txn_opnode_create(m_dbp, &key);
         BFC_ASSERT(node!=0);
 
