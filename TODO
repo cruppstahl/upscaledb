@@ -166,6 +166,13 @@ x continue with refacoring - indention, coding style, better design etc...
 x jake: disable file indexing with file attribute on windows
     FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 
+x fix memory leaks (run unittests with valgrind)
+    -> unittests/leaks.txt
+    x add FilterTest::zlibFilterTest to suppression
+    x MiscPartialTests::invalidFindParametersTest
+    x MiscPartialTests::disabledTransactionsTest
+    x RemoteTest::insertFindEraseUserallocTest??
+
 o recno: make sure that there's no write to the header page with every
     insert; this would kill the performance when recovery is enabled 
     o move from backend to (local) db
@@ -173,6 +180,8 @@ o recno: make sure that there's no write to the header page with every
         (in hamsterdb.cc, at the end of ham_env_open_db)
 
 o add transaction support for in-memory databases
+
+o run performance tests with google memory allocator
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
@@ -195,8 +204,6 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o txn_op_node_t -> TransactionTreeNode
         o txn_op_t -> TransactionOperation
         o convert to clean c++ code
-
-o try performance tests with google memory allocator
 
 o involve everyone in decisions on the new interface
     Do you use any of the HAM_HINT_* flags?

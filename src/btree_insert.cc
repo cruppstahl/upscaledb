@@ -62,9 +62,10 @@ class BtreeInsertAction
     }
 
     ~BtreeInsertAction() {
-      Environment *env = m_backend->get_db()->get_env();
-      if (m_split_key.data)
+      if (m_split_key.data) {
+        Environment *env = m_backend->get_db()->get_env();
         env->get_allocator()->free(m_split_key.data);
+      }
     }
 
     ham_status_t run() {
@@ -496,6 +497,8 @@ class BtreeInsertAction
 
       /* propagate the pivot key to the parent page */
       ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
+      if (m_split_key.data)
+        env->get_allocator()->free(m_split_key.data);
       m_split_key = pivotkey;
       m_split_rid = pivotrid;
 

@@ -1044,7 +1044,6 @@ Cursor::Cursor(Cursor &other)
     m_lastcmp=other.m_lastcmp;
     m_flags=other.m_flags;
     m_txn_cursor=other.m_txn_cursor;
-    m_btree_cursor=other.m_btree_cursor;
     m_is_first_use=other.m_is_first_use;
 
     set_next_in_page(0);

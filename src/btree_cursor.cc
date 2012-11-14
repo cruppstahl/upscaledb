@@ -51,6 +51,14 @@ BtreeCursor::set_to_nil()
   else if (is_coupled())
     get_coupled_page()->remove_cursor(get_parent());
 
+  ham_key_t *key = get_uncoupled_key();
+  if (key) {
+    if (key->data)
+      env->get_allocator()->free(key->data);
+    env->get_allocator()->free(key);
+    set_uncoupled_key(0);
+  }
+
   set_state(BtreeCursor::STATE_NIL);
   set_dupe_id(0);
   memset(get_dupe_cache(), 0, sizeof(dupe_entry_t));
@@ -84,14 +92,19 @@ BtreeCursor::uncouple(ham_u32_t flags)
   BtreeKey *entry = node->get_key(db, get_coupled_index());
 
   /* copy the key */
-  ham_key_t *key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
-  if (!key)
-    return (HAM_OUT_OF_MEMORY);
+  ham_key_t *key = get_uncoupled_key();
+  if (!key) {
+    key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
+    if (!key)
+      return (HAM_OUT_OF_MEMORY);
+  }
+
   st = ((BtreeBackend *)db->get_backend())->copy_key(entry, key);
   if (st) {
     if (key->data)
       env->get_allocator()->free(key->data);
     env->get_allocator()->free(key);
+    set_uncoupled_key(0);
     return (st);
   }
 
@@ -121,8 +134,14 @@ BtreeCursor::clone(BtreeCursor *other)
   }
   /* otherwise, if the src cursor is uncoupled: copy the key */
   else if (other->is_uncoupled()) {
-    ham_key_t *key;
-    key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
+    ham_key_t *key = get_uncoupled_key();
+    if (!key)
+      key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
+    else {
+      env->get_allocator()->free(key->data);
+      key->data = 0;
+      key->size = 0;
+    }
 
     get_db()->copy_key(other->get_uncoupled_key(), key);
     set_uncoupled_key(key);

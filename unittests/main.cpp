@@ -120,6 +120,10 @@ crm_report_mem_analysis(void)
 
 #endif
 
+extern "C" {
+void gnutls_global_deinit(void);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -223,6 +227,7 @@ main(int argc, char **argv)
 
 #ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
+    atexit(gnutls_global_deinit);
     atexit(Protocol::shutdown);
 #endif
 

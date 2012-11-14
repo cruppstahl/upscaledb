@@ -732,7 +732,8 @@ public:
         key.size=sizeof(recno);
 
         BFC_ASSERT_EQUAL(0,
-                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"),
+                    m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT_EQUAL(0,

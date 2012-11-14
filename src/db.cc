@@ -2791,7 +2791,7 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     /* close the backend */
     if (be) {
         if (be->is_active())
-            be->close();
+            be->close(flags);
         delete be;
         m_db->set_backend(0);
     }
