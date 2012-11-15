@@ -1077,7 +1077,7 @@ public:
 } // namespace ham
 
 // since BFC macro will b0rk on ham::LogTest:
-typedef ham::JournalTest  JournalTest;
+typedef ham::JournalTest JournalTest;
 
 BFC_REGISTER_FIXTURE(JournalTest);
 

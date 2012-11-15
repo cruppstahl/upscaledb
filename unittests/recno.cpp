@@ -711,7 +711,7 @@ public:
         for (int i=5; i<10; i++) {
             BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, 0, &key, &rec, 0));
-            BFC_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+            BFC_ASSERT_EQUAL((ham_u64_t)i, recno);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

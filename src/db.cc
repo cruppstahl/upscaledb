@@ -1516,7 +1516,7 @@ DatabaseImplementationLocal::finalize_open()
     ham_status_t st=cursor_move(c, &key, 0, HAM_CURSOR_LAST);
     m_db->close_cursor(c);
     if (st)
-        return (st);
+        return (st == HAM_KEY_NOT_FOUND ? 0 : st);
     ham_assert(key.size == sizeof(ham_u64_t));
     m_recno = *(ham_u64_t *)key.data;
     m_recno = ham_h2db64(m_recno);

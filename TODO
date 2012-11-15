@@ -173,26 +173,43 @@ x fix memory leaks (run unittests with valgrind)
     x MiscPartialTests::disabledTransactionsTest
     x RemoteTest::insertFindEraseUserallocTest??
 
-o recno: make sure that there's no write to the header page with every
+x recno: make sure that there's no write to the header page with every
     insert; this would kill the performance when recovery is enabled 
     x move record number from backend to (local) db
     x when opening, always read last recno from the database (with a cursor)
         (in hamsterdb.cc, at the end of ham_env_open_db)
-    o the following tests currently fail:
-      o error #1 in RecNoTest::createCloseOpenCloseTest
-      o error #2 in RecNoTest::eraseLastReopenTest
-      o error #3 in HamsterdbTest::recnoUsesSequentialDamTest
-      o error #4 in RemoteTest::insertRecnoTest
-      o error #5 in RemoteTest::insertFindEraseRecnoTest
-      o error #6 in RemoteTest::cursorInsertRecnoTest
-      o error #7 in RemoteTest::cursorInsertFindEraseRecnoTest
-      o error #8 in RemoteTest::openTwiceTest
-      o error #9 in RemoteTest::cursorCreateTest
-      o error #10 in RemoteTest::cursorCloneTest
-    o run a test with recovery and recno; make sure that the header page is
-        not updated when a new recno is inserted
+    x make sure all unittests are running fine
+    x run a test with recovery and recno; make sure that the header page is
+        not modified and logged when a new recno is inserted
+
+x sample db4.c crashes
 
 o run performance tests with google memory allocator
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 o add transaction support for in-memory databases
 

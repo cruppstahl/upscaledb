@@ -1,3 +1,7 @@
+Nov 15, 2012 - chris ---------------------------------------------------
+o Performance improvement: insertion of a new record number no longer modifies
+	the header page
+
 Oct 25, 2012 - chris ---------------------------------------------------
 o (win32) Now creating file with attribute FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
     (thanks, Jake)
