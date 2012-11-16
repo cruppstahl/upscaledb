@@ -184,7 +184,7 @@ x recno: make sure that there's no write to the header page with every
 
 x sample db4.c crashes
 
-o run performance tests with google memory allocator
+x if possible, link against -ltcmalloc_simple - it's faster
 
 
 

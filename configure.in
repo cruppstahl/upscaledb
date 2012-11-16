@@ -1,7 +1,7 @@
 dnl
 dnl configuration script for hamsterdb
 dnl
-dnl Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+dnl Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
 dnl All rights reserved. See file LICENSE for licence and copyright
 dnl information
 dnl
@@ -30,6 +30,7 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev pread pwrite)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
+AC_CHECK_LIB(tcmalloc_minimal, malloc)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
 BOOST_REQUIRE()

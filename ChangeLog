@@ -1,3 +1,6 @@
+Nov 16, 2012 - chris ---------------------------------------------------
+o Now linking against libtcmalloc_minimal if it's installed
+
 Nov 15, 2012 - chris ---------------------------------------------------
 o Performance improvement: insertion of a new record number no longer modifies
 	the header page
