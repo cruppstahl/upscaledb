@@ -1,3 +1,6 @@
+Nov 17, 2012 - chris ---------------------------------------------------
+                      release of hamsterdb-2.0.5
+
 Nov 16, 2012 - chris ---------------------------------------------------
 o Now linking against libtcmalloc_minimal if it's installed
 
@@ -15,15 +18,12 @@ o issue #16: Fixed log file switching for temporary Transactions
 Sep 25, 2012 - chris ---------------------------------------------------
 o Fixed recovery process for temporary Transactions
 
-Sep 10, 2012 - chris ---------------------------------------------------
-o Added asynchronous flushes (see HAM_ENABLE_ASYNCHRONOUS_FLUSH)
-
 Aug 30, 2012 - chris ---------------------------------------------------
 o Removed HAM_PARAM_GET_STATISTICS; ham/hamsterdb_stats.h is no longer
     public, and the functions are no longer exported
 
 Aug 27, 2012 - chris ---------------------------------------------------
-o Renamed HAM_IN_MEMOR_DB to HAM_IN_MEMORY
+o Renamed HAM_IN_MEMORY_DB to HAM_IN_MEMORY
 
 Aug 12, 2012 - chris ---------------------------------------------------
 o The internal C++ implementation was moved into namespace "ham" in order

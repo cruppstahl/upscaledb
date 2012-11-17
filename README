@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.5               Sat Sep 15 17:38:44 CEST 2012
+hamsterdb Embedded Storage 2.0.5               Sat Nov 17 20:59:00 CET 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,12 +12,7 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available),
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release adds the ability to flush committed Transactions asynchronously
-to disk. Use HAM_ENABLE_ASYNCHRONOUS_FLUSH to enable this (by default it's
-disabled). 
-
-HAM_PARAM_GET_STATISTICS was removed and ham/hamsterdb_stats.h is no
-longer public, and its functions are no longer exported
+This release fixes a few minor bugs and has a few performance improvements.
 
 The internal C++ implementation was moved to into namespace "ham" to avoid
 conflicts with other symbols.
@@ -27,27 +22,29 @@ A segmentation fault in the dotnet API was fixed.
 2. Changes
 
 New Features
-* Added asynchronous flushes (see HAM_ENABLE_ASYNCHRONOUS_FLUSH)
+* None
 
 Bugfixes
 * (dotnet) Fixed invalid memory access when using Parameter[] in
         env.CreateDatabase or env.OpenDatabase (Thanks, Jason)
+* Issue 16: Fixed the recovery process for temporary Transactions
 
 Other Changes
 * Removed HAM_PARAM_GET_STATISTICS; ham/hamsterdb_stats.h is no longer
     public, and the functions are no longer exported
-* Renamed HAM_IN_MEMOR_DB to HAM_IN_MEMORY
+* Renamed HAM_IN_MEMORY_DB to HAM_IN_MEMORY
 * The internal C++ implementation was moved into namespace "ham" in order
         to avoid conflicts with other applications
+* Performance improvements when using record number databases with recovery
+* Win32 files are now created with FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
 - API cleanups, code refactoring
-- fine-grained locking for faster concurrent access
-- more transactional stuff (i.e. recreate pending transactions when
-  recovering from a crash)
+- Enabling Transactions for In-Memory Databases
+- Rewriting the freelist
 
 4. Features
 
