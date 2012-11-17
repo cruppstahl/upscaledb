@@ -97,6 +97,8 @@ main(int argc, char **argv)
         return (-1);
     }
 
+    memset(&key, 0, sizeof(key));
+
     /*
      * iterate over all items and print the records
      */

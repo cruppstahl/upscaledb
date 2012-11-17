@@ -711,7 +711,7 @@ public:
         for (int i=5; i<10; i++) {
             BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, 0, &key, &rec, 0));
-            BFC_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+            BFC_ASSERT_EQUAL((ham_u64_t)i, recno);
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -732,7 +732,8 @@ public:
         key.size=sizeof(recno);
 
         BFC_ASSERT_EQUAL(0,
-                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"),
+                    m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT_EQUAL(0,

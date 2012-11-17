@@ -63,7 +63,7 @@ bfc_sample_SOURCES = bfc-sample.cpp \
 
 valgrind:
 	valgrind --suppressions=suppressions.valgrind --leak-check=full \
-			--show-reachable=yes .libs/lt-test 
+			--num-callers=20 --show-reachable=yes .libs/lt-test 
 
 bfc_sample_LDADD = -ldl
 
