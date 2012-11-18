@@ -199,6 +199,8 @@ txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
 extern ham_bool_t
 txn_op_conflicts(txn_op_t *op, Transaction *current_txn);
 
+class TransactionTree;
+
 /*
  * a node in the red-black Transaction tree (implemented in rb.h);
  * a group of Transaction operations which modify the same key
@@ -215,7 +217,7 @@ typedef struct txn_opnode_t
   ham_key_t _key;
 
   /** the parent tree */
-  struct TransactionTree *_tree;
+  TransactionTree *_tree;
 
   /** the linked list of operations - head is oldest operation */
   txn_op_t *_oldest_op;
@@ -339,12 +341,12 @@ class Transaction
 
     /** returns true if the Transaction was aborted */
     bool is_aborted() const {
-      return (m_flags & TXN_STATE_ABORTED);
+      return (m_flags & TXN_STATE_ABORTED) != 0;
     }
 
     /** returns true if the Transaction was committed */
     bool is_committed() const {
-      return (m_flags & TXN_STATE_COMMITTED);
+      return (m_flags & TXN_STATE_COMMITTED) != 0;
     }
 
     /** get the id */

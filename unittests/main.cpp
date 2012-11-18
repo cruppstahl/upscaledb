@@ -226,8 +226,10 @@ main(int argc, char **argv)
 #endif
 
 #ifdef HAM_ENABLE_REMOTE
+#ifndef WIN32
+	atexit(gnutls_global_deinit);
+#endif
     atexit(curl_global_cleanup);
-    atexit(gnutls_global_deinit);
     atexit(Protocol::shutdown);
 #endif
 

@@ -606,7 +606,7 @@ class Database
 #endif
 
     /** get the transaction tree */
-    struct TransactionTree *get_optree() {
+    TransactionTree *get_optree() {
         return (&m_optree);
     }
 

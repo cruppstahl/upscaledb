@@ -834,7 +834,7 @@ BtreeBackend::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
   /* adjust page size and key size by adding the overhead */
   pagesize -= OFFSETOF(BtreeNode, _entries);
   pagesize -= Page::sizeof_persistent_header;
-  keysize += BtreeKey::ms_sizeof_overhead;
+  keysize += (ham_u16_t)BtreeKey::ms_sizeof_overhead;
 
   /* and return an even number */
   ham_size_t max = pagesize / keysize;
