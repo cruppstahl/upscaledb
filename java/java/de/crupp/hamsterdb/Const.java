@@ -144,7 +144,7 @@ public class Const {
     public final static int HAM_TXN_FORCE_WRITE                 =        1;
 
     /** Flag for Database.open(), Database.create() */
-    public final static int HAM_WRITE_THROUGH                   =    0x001;
+    public final static int HAM_ENABLE_FSYNC                    =    0x001;
 
     /** Flag for Database.open() */
     public final static int HAM_READ_ONLY                       =    0x004;

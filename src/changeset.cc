@@ -197,7 +197,7 @@ Changeset::flush(ham_u64_t lsn)
   Log *log = env->get_log();
 
   /* flush the file handles (if required) */
-  if (env->get_flags() & HAM_WRITE_THROUGH && log_written)
+  if (env->get_flags() & HAM_ENABLE_FSYNC && log_written)
     env->get_log()->flush();
 
   induce(ErrorInducer::CHANGESET_FLUSH);
@@ -223,7 +223,7 @@ Changeset::flush(ham_u64_t lsn)
   }
 
   /* flush the file handle (if required) */
-  if (env->get_flags() & HAM_WRITE_THROUGH)
+  if (env->get_flags() & HAM_ENABLE_FSYNC)
     env->get_device()->flush();
 
   /* done - we can now clear the changeset and the log */

@@ -102,7 +102,7 @@ public class Environment {
      * @param flags optional flags for creating the Environment, combined with
      *          bitwise OR. Possible flags are:
      *      <ul>
-     *       <li><code>Const.HAM_WRITE_THROUGH</code></li>
+     *       <li><code>Const.HAM_ENABLE_FSYNC</code></li>
      *            Immediately write modified pages to
      *            the disk. This slows down all Database operations, but may
      *            save the Database integrity in case of a system crash.
@@ -135,7 +135,7 @@ public class Environment {
      *            Enables logging/recovery for this Database. Not allowed in
      *            combination with <code>Const.HAM_IN_MEMORY_DB</code>,
      *            <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
-     *            <code>Const.HAM_WRITE_THROUGH</code>.
+     *            <code>Const.HAM_ENABLE_FSYNC</code>.
      *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
      *      </ul>
      * @param mode File access rights for the new file. This is the
@@ -205,7 +205,7 @@ public class Environment {
      *            Opens the file for reading only. Operations which need
      *            write access (i.e. <code>ham_insert</code>) will return
      *            <code>Const.HAM_DB_READ_ONLY</code>.
-     *       <li><code>Const.HAM_WRITE_THROUGH</code></li>
+     *       <li><code>Const.HAM_ENABLE_FSYNC</code></li>
      *            Immediately write modified pages to
      *            the disk. This slows down all Database operations, but may
      *            save the Database integrity in case of a system crash.
@@ -232,7 +232,7 @@ public class Environment {
      *            <code>Const.HAM_NEED_RECOVERY</code>, if the Database
      *            is in an inconsistent state. Not allowed in combination
      *            with <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
-     *            <code>Const.HAM_WRITE_THROUGH</code>.
+     *            <code>Const.HAM_ENABLE_FSYNC</code>.
      *       <li><code>Const.HAM_AUTO_RECOVERY</code></li>
      *            Automatically recover the Database, if necessary. This
      *            flag implies <code>Const.HAM_ENABLE_RECOVERY</code>.

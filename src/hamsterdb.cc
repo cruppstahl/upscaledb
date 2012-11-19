@@ -91,9 +91,9 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
     else
         buf[0] = 0;
 
-    if (flags & HAM_WRITE_THROUGH) {
-        flags &= ~HAM_WRITE_THROUGH            ;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_WRITE_THROUGH");
+    if (flags & HAM_ENABLE_FSYNC) {
+        flags &= ~HAM_ENABLE_FSYNC            ;
+        buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_FSYNC");
     }
     if (flags & HAM_READ_ONLY) {
         flags &= ~HAM_READ_ONLY;
@@ -554,7 +554,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
      */
     if (db && (flags & ~((!create ? HAM_READ_ONLY : 0)
                         |(create ? HAM_IN_MEMORY : 0)
-                        |(!env ? (HAM_WRITE_THROUGH
+                        |(!env ? (HAM_ENABLE_FSYNC
                                 |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
@@ -575,7 +575,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 ham_create_flags2str(msgbuf, sizeof(msgbuf),
                 (flags & ~((!create ? HAM_READ_ONLY : 0)
                         |(create ? HAM_IN_MEMORY : 0)
-                        |(!env ? (HAM_WRITE_THROUGH
+                        |(!env ? (HAM_ENABLE_FSYNC
                                 |HAM_DISABLE_MMAP
                                 |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
@@ -1608,7 +1608,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
      * for this, we first strip off flags which are not allowed/needed
      * in ham_env_open_db; then set up the parameter list
      */
-    flags &= ~(HAM_WRITE_THROUGH
+    flags &= ~(HAM_ENABLE_FSYNC
             |HAM_READ_ONLY
             |HAM_DISABLE_MMAP
             |HAM_DISABLE_FREELIST_FLUSH
@@ -1736,7 +1736,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
      * for this, we first strip off flags which are not allowed/needed
      * in ham_env_create_db; then set up the parameter list
      */
-    flags &= ~(HAM_WRITE_THROUGH
+    flags &= ~(HAM_ENABLE_FSYNC
             |HAM_IN_MEMORY
             |HAM_DISABLE_MMAP
             |HAM_DISABLE_FREELIST_FLUSH

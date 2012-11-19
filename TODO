@@ -36,6 +36,7 @@ o involve everyone in decisions on the new interface
 
 o clean up interface
     x clean up ham_flush, ham_env_flush
+    x rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
     o rename ham_cursor_find_ex to ham_cursor_find
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
@@ -44,7 +45,6 @@ o clean up interface
         in... out
     o once more check all flags and #defines; remove deprecated and obsolete
         stuff (i.e. HAM_LOCK_EXCLUSIVE)
-    o rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close

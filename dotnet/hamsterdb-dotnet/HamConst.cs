@@ -110,7 +110,7 @@ namespace Hamster
 
         // Create/Open flags
         /// <summary>Flag for Database.Open, Database.Create</summary>
-        public const int HAM_WRITE_THROUGH                  =    0x001;
+        public const int HAM_ENABLE_FSYNC                   =    0x001;
         /// <summary>Flag for Database.Open</summary>
         public const int HAM_READ_ONLY                      =    0x004;
         /// <summary>Flag for Database.Create</summary>

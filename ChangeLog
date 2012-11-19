@@ -8,6 +8,7 @@ o Removed ham_get_keycount_per_page; the keycount can still be retrieved
 o Removed sorted duplicates; they anyway did not work in combination with
     Transactions. They will be fully implemented at a later stage.
 o Removed ham_flush; use ham_env_flush instead
+o Renamed HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
 
 Nov 25, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.5

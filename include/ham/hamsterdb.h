@@ -558,7 +558,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @param flags Optional flags for opening the Environment, combined with
  *      bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref HAM_WRITE_THROUGH</li> Flushes all file handles after
+ *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
  *      if Transactions are disabled. Slows down performance but makes
@@ -680,7 +680,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
  *      Operations that need write access (i.e. @ref ham_insert) will
  *      return @ref HAM_DB_READ_ONLY
- *     <li>@ref HAM_WRITE_THROUGH</li> Flushes all file handles after
+ *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
  *      if Transactions are disabled. Slows down performance but makes
@@ -1221,7 +1221,7 @@ ham_create(ham_db_t *db, const char *filename,
  * @param flags Optional flags for opening the Database, combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref HAM_WRITE_THROUGH</li> Flushes all file handles after
+ *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
  *      if Transactions are disabled. Slows down performance but makes
@@ -1353,7 +1353,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
  *      Operations which need write access (i.e. @ref ham_insert) will
  *      return @ref HAM_DB_READ_ONLY.
- *     <li>@ref HAM_WRITE_THROUGH</li> Flushes all file handles after
+ *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
  *      if Transactions are disabled. Slows down performance but makes
@@ -1429,7 +1429,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
  * @ref ham_create_ex.
  * This flag is non persistent. */
-#define HAM_WRITE_THROUGH                           0x00000001
+#define HAM_ENABLE_FSYNC                            0x00000001
 
 /* unused                                           0x00000002 */
 

@@ -919,7 +919,7 @@ _local_fun_create_db(Environment *env, Database *db,
              |HAM_CACHE_STRICT
              |HAM_CACHE_UNLIMITED
              |HAM_DISABLE_MMAP
-             |HAM_WRITE_THROUGH
+             |HAM_ENABLE_FSYNC
              |HAM_READ_ONLY
              |HAM_DISABLE_FREELIST_FLUSH
              |HAM_ENABLE_RECOVERY
@@ -1161,7 +1161,7 @@ _local_fun_open_db(Environment *env, Database *db,
              |HAM_CACHE_STRICT
              |HAM_CACHE_UNLIMITED
              |HAM_DISABLE_MMAP
-             |HAM_WRITE_THROUGH
+             |HAM_ENABLE_FSYNC
              |HAM_READ_ONLY
              |HAM_DISABLE_FREELIST_FLUSH
              |HAM_ENABLE_RECOVERY
@@ -1174,7 +1174,7 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
     ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED));
     ham_assert(!(be->get_flags()&HAM_DISABLE_MMAP));
-    ham_assert(!(be->get_flags()&HAM_WRITE_THROUGH));
+    ham_assert(!(be->get_flags()&HAM_ENABLE_FSYNC));
     ham_assert(!(be->get_flags()&HAM_READ_ONLY));
     ham_assert(!(be->get_flags()&HAM_DISABLE_FREELIST_FLUSH));
     ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY));

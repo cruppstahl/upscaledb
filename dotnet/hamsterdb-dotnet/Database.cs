@@ -228,7 +228,7 @@ namespace Hamster
         /// <param name="flags">Optional flags for this operation, combined
         /// with bitwise OR. Possible flags are:
         ///   <list type="bullet">
-        ///     <item><see cref="HamConst.HAM_WRITE_THROUGH" />
+        ///     <item><see cref="HamConst.HAM_ENABLE_FSYNC" />
         ///         Immediately write modified pages to the disk. This
         ///         slows down all Database operations, but may save the
         ///         Database integrity in case of a system crash.</item><br />
@@ -277,7 +277,7 @@ namespace Hamster
         ///         Enables logging/recovery for this Database. Not allowed in
         ///         combination with <see cref="HamConst.HAM_IN_MEMORY_DB" />,
         ///         <see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" /> and
-        ///         <see cref="HamConst.HAM_WRITE_THROUGH" />.</item><br />
+        ///         <see cref="HamConst.HAM_ENABLE_FSYNC" />.</item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_TRANSACTIONS" />
         ///         Enables Transactions for this Database. This flag implies
         ///         <see cref="HamConst.HAM_ENABLE_RECOVERY" />.</item><br />
@@ -383,7 +383,7 @@ namespace Hamster
         ///         write access (i.e. Database.Insert)
         ///         will return <see cref="HamConst.HAM_DB_READ_ONLY" />.
         ///         </item><br />
-        ///     <item><see cref="HamConst.HAM_WRITE_THROUGH" />
+        ///     <item><see cref="HamConst.HAM_ENABLE_FSYNC" />
         ///         Immediately write modified pages to the disk. This
         ///         slows down all Database operations, but may save the
         ///         Database integrity in case of a system crash.</item><br />
@@ -416,7 +416,7 @@ namespace Hamster
         ///         Database is in an inconsistent state. Not allowed in
         ///         combination with <see cref="HamConst.HAM_IN_MEMORY_DB" />,
         ///         <see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" /> and
-        ///         <see cref="HamConst.HAM_WRITE_THROUGH" />.</item><br />
+        ///         <see cref="HamConst.HAM_ENABLE_FSYNC" />.</item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_TRANSACTIONS" />
         ///         Enables Transactions for this Database. This flag implies
         ///         <see cref="HamConst.HAM_ENABLE_RECOVERY" />.</item><br />
