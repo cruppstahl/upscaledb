@@ -69,20 +69,18 @@ namespace Hamster
         public const int HAM_NOT_READY                      =      -23;
         /// <summary>Database limits reached</summary>
         public const int HAM_LIMITS_REACHED                 =      -24;
-        /// <summary>AES encryption key is wrong</summary>
-        public const int HAM_ACCESS_DENIED                  =      -25;
         /// <summary>Object was already initialized</summary>
         public const int HAM_ALREADY_INITIALIZED            =      -27;
         /// <summary>Database needs recovery</summary>
-        public const int HAM_NEED_RECOVERY                          =          -28;
+        public const int HAM_NEED_RECOVERY                  =      -28;
         /// <summary>Cursor must be closed prior to Transaction abort/commit</summary>
-        public const int HAM_CURSOR_STILL_OPEN                      =          -29;
+        public const int HAM_CURSOR_STILL_OPEN              =      -29;
         /// <summary>Record filter or file filter not found</summary>
-        public const int HAM_FILTER_NOT_FOUND                       =          -30;
+        public const int HAM_FILTER_NOT_FOUND               =      -30;
         /// <summary>Operation conflicts with another Transaction</summary>
-        public const int HAM_TXN_CONFLICT                           =          -31;
+        public const int HAM_TXN_CONFLICT                   =      -31;
         /// <summary>Database cannot be closed because it is modified in a Transaction</summary>
-        public const int HAM_TXN_STIL_OPEN                          =          -33;
+        public const int HAM_TXN_STIL_OPEN                  =      -33;
         /// <summary>Cursor does not point to a valid item</summary>
         public const int HAM_CURSOR_IS_NIL                  =     -100;
         /// <summary>Database not found</summary>
@@ -92,7 +90,7 @@ namespace Hamster
         /// <summary>Database already open, or: Database handle is already initialized</summary>
         public const int HAM_DATABASE_ALREADY_OPEN          =     -202;
         /// <summary>Environment already open, or: Environment handle is already initialized</summary>
-        public const int HAM_ENVIRONMENT_ALREADY_OPEN           =     -203;
+        public const int HAM_ENVIRONMENT_ALREADY_OPEN       =     -203;
         /// <summary>Invalid log file header</summary>
         public const int HAM_LOG_INV_FILE_HEADER            =     -300;
 

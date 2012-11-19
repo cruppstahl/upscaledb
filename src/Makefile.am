@@ -6,7 +6,7 @@ SUBDIRS += server
 endif # ENABLE_SERVER
 endif # ENABLE_REMOTE
 
-AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes $(BOOST_CPPFLAGS)
+AM_CPPFLAGS = -I../include $(BOOST_CPPFLAGS)
 AM_LDFLAGS = $(BOOST_THREAD_LDFLAGS)
 
 lib_LTLIBRARIES = libhamsterdb.la
@@ -45,10 +45,6 @@ libhamsterdb_la_SOURCES = log.cc \
             device.cc
 
 libhamsterdb_la_LDFLAGS = -version-info 3:0:0 -lboost_thread -lpthread
-
-if ENABLE_ENCRYPTION
-libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/aes/libaes.la
-endif
 
 if ENABLE_COMPRESSION
 if SYSTEM_ZLIB

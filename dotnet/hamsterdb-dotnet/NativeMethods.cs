@@ -137,11 +137,6 @@ namespace Hamster
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int EnvClose(IntPtr handle, int flags);
 
-        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_enable_encryption",
-           CallingConvention = CallingConvention.Cdecl)]
-        static public extern int EnvEnableEncryption(IntPtr handle,
-                byte[] aesKey, int flags);
-
         [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_txn_begin",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int TxnBegin(out IntPtr txnhandle, IntPtr envhandle,

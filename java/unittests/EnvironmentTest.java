@@ -252,30 +252,6 @@ public class EnvironmentTest extends TestCase {
         env.close();
     }
 
-/* TODO fails...
-    public void testEnableEncryption() {
-        Environment env=new Environment();
-        byte[] key=new byte[10];
-        byte[] rec=new byte[10];
-        byte[] aeskey=new byte[16];
-        rec[0]=0x13;
-        try {
-            env.create("jtest.db");
-            env.enableEncryption(aeskey);
-            Database db=env.createDatabase((short)13);
-            db.insert(key, rec);
-            db.close();
-            db=env.openDatabase((short)13);
-            byte[] r=db.find(key);
-            assertByteArrayEquals(r, rec);
-            env.close();
-        }
-        catch (DatabaseException err) {
-            fail("Exception "+err);
-        }
-    }
-*/
-
     public void testGetDatabaseNames() {
         Environment env=new Environment();
         short names[];

@@ -341,9 +341,6 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createAndEraseDbTest);
     }
 
@@ -879,123 +876,6 @@ public:
         BFC_ASSERT_EQUAL(6ull, m_env->get_log()->get_lsn());
 
         m_env->get_changeset().clear();
-#endif
-    }
-
-    void negativeAesFilterTest()
-    {
-#ifndef HAM_DISABLE_ENCRYPTION
-        /* close m_db, otherwise ham_env_create fails */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        ham_env_t *env;
-        ham_u8_t aeskey[16] ={0x13};
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED,
-                    ham_env_enable_encryption(env, aeskey, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"),
-                    0, 0664));
-
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-#endif
-    }
-
-    void aesFilterTest()
-    {
-#ifndef WIN32
-#ifndef HAM_DISABLE_ENCRYPTION
-        /* close m_db, otherwise ham_env_create fails */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        ham_env_t *env;
-        ham_db_t *db;
-
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey[16] ={0x13};
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"),
-                    HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
-
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        g_CHANGESET_POST_LOG_HOOK=0;
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"),
-                    HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-#endif
-#endif
-    }
-
-    void aesFilterRecoverTest()
-    {
-#ifndef WIN32
-#ifndef HAM_DISABLE_ENCRYPTION
-        /* close m_db, otherwise ham_env_create fails on win32 */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        ham_env_t *env;
-        ham_db_t *db;
-        char buffer[1024]={0};
-
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-        rec.data=buffer;
-        rec.size=sizeof(buffer);
-        ham_u8_t aeskey[16] ={0x13};
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"),
-                    HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
-
-        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-        g_CHANGESET_POST_LOG_HOOK=0;
-        BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
-
-        /* restore the backupped logfiles */
-        restoreLog();
-
-        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-#endif
 #endif
     }
 

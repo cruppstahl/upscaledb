@@ -432,10 +432,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\filter.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\freelist.cpp"
 			>
 		</File>

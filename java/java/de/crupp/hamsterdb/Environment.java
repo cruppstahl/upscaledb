@@ -39,9 +39,6 @@ public class Environment {
 
     private native int ham_env_erase_db(long handle, short name, int flags);
 
-    private native int ham_env_enable_encryption(long handle, byte[] key,
-            int flags);
-
     private native short[] ham_env_get_database_names(long handle);
 
     private native int ham_env_flush(long handle);
@@ -430,35 +427,6 @@ public class Environment {
             int status=ham_env_erase_db(m_handle, name, 0);
             if (status!=0)
                 throw new DatabaseException(status);
-    }
-
-    /**
-     * Enables AES encryption
-     * <p>
-     * This method wraps the native ham_env_enable_encryption function.
-     * <p>
-     * This function enables AES encryption for every Database in the
-     * Environment.<br>
-     * The AES key is cached in the Environment handle. The AES
-     * encryption/decryption is only active when file chunks are written to
-     * disk/read from disk; the cached pages in RAM are decrypted. Please
-     * read the FAQ for security relevant notes.
-     * <p>
-     * The encryption has no effect on In-Memory Environments, but the function
-     * will return successfully.
-     *
-     * @param aeskey a 128bit (16 bytes) AES encryption key
-     *
-     * <p>
-     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga6c1cee9a56718cb627460ac305c7cf4b">C documentation</a>
-     */
-    public synchronized void enableEncryption(byte[] aeskey)
-            throws DatabaseException {
-        if (aeskey==null || aeskey.length!=16)
-            throw new DatabaseException(Const.HAM_INV_PARAMETER);
-        int status=ham_env_enable_encryption(m_handle, aeskey, 0);
-        if (status!=0)
-            throw new DatabaseException(status);
     }
 
     /**

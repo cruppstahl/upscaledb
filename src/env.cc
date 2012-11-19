@@ -64,7 +64,7 @@ Environment::Environment()
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
-    m_file_filters(0), m_blob_manager(this), m_duplicate_manager(this)
+    m_blob_manager(this), m_duplicate_manager(this)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -695,7 +695,6 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     ham_status_t st;
     ham_status_t st2=HAM_SUCCESS;
     Device *device;
-    ham_file_filter_t *file_head;
 
     /* flush all committed transactions */
     st=env->flush_committed_txns();
@@ -765,16 +764,6 @@ _local_fun_close(Environment *env, ham_u32_t flags)
         delete device;
         env->set_device(0);
     }
-
-    /* close all file-level filters */
-    file_head=env->get_file_filter();
-    while (file_head) {
-        ham_file_filter_t *next=file_head->_next;
-        if (file_head->close_cb)
-            file_head->close_cb((ham_env_t *)env, file_head);
-        file_head=next;
-    }
-    env->set_file_filter(0);
 
     /* close the log and the journal */
     if (env->get_log()) {

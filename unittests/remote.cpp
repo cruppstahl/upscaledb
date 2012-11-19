@@ -47,7 +47,6 @@ public:
         BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
         BFC_REGISTER_TEST(RemoteTest, envFlushTest);
         BFC_REGISTER_TEST(RemoteTest, renameDbTest);
-        BFC_REGISTER_TEST(RemoteTest, enableEncryptionTest);
         BFC_REGISTER_TEST(RemoteTest, createDbTest);
         BFC_REGISTER_TEST(RemoteTest, createDbExtendedTest);
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
@@ -298,22 +297,6 @@ protected:
         BFC_ASSERT_EQUAL(13, names[1]);
         BFC_ASSERT_EQUAL(33, names[2]);
         BFC_ASSERT_EQUAL(3u, max_names);
-
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        ham_env_delete(env);
-    }
-
-    void enableEncryptionTest(void)
-    {
-        ham_env_t *env;
-        ham_u8_t key[16]={0};
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0,
-                ham_env_create(env, SERVER_URL, 0, 0664));
-
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED,
-                    ham_env_enable_encryption(env, key, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);

@@ -374,8 +374,6 @@ typedef struct {
 #define HAM_NOT_READY                   (-23)
 /** Database limits reached */
 #define HAM_LIMITS_REACHED              (-24)
-/** AES encryption key is wrong */
-#define HAM_ACCESS_DENIED               (-25)
 /** Object was already initialized */
 #define HAM_ALREADY_INITIALIZED         (-27)
 /** Database needs recovery */
@@ -995,43 +993,6 @@ ham_env_flush(ham_env_t *env, ham_u32_t flags);
 #define HAM_DONT_LOCK        0xf0000000
 
 /**
- * Enables AES encryption
- *
- * This function enables AES encryption for every Database in the Environment.
- * The AES key is cached in the Environment handle. The AES
- * encryption/decryption is only active when file chunks are written to
- * disk/read from disk; the cached pages in RAM are decrypted. Please read
- * the FAQ for security relevant notes.
- *
- * The encryption has no effect on In-Memory Environments, but the function
- * will return @ref HAM_SUCCESS.
- *
- * Log files and the header page of the Database are not encrypted.
- *
- * The encryption will be active till @ref ham_env_close is called. If the
- * Environment handle is reused after calling @ref ham_env_close, the
- * encryption is no longer active. @ref ham_env_enable_encryption should
- * be called immediately <b>after</b> @ref ham_env_create[_ex] or
- * @ref ham_env_open[_ex].
- *
- * @param env A valid Environment handle
- * @param key A 128bit AES key
- * @param flags Optional flags for encrypting; unused, set to 0
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if one of the parameters is NULL
- * @return @ref HAM_ALREADY_INITIALIZED if this function was called AFTER
- *        @ref ham_env_open_db or @ref ham_env_create_db
- * @return @ref HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
- *        for AES encryption
- * @return @ref HAM_ACCESS_DENIED if the key (= password) was wrong
- * @return @ref HAM_ALREADY_INITIALIZED if encryption is already enabled
- *        for this Environment
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
-
-/**
  * Returns the names of all Databases in an Environment
  *
  * This function returns the names of all Databases and the number of
@@ -1074,10 +1035,6 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
  * This function also aborts all Transactions which were not yet committed,
  * and therefore renders all Transaction handles invalid. If the flag
  * @ref HAM_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
- *
- * This function removes all file-level filters installed
- * with @ref ham_env_add_file_filter (and hence also, implicitly,
- * the filter installed by @ref ham_env_enable_encryption).
  *
  * @param env A valid Environment handle
  * @param flags Optional flags for closing the handle. Possible flags are:

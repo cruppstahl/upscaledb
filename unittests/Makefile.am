@@ -13,7 +13,6 @@ test_SOURCES    = log.cpp \
                   btree_insert.cpp \
                   check.cpp \
                   error.cpp \
-                  filter.cpp \
                   cppapi.cpp \
                   recno.cpp \
                   duplicates.cpp \

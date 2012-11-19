@@ -170,31 +170,8 @@ ham_status_t
 Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 {
   ham_status_t st = 0;
-  ham_file_filter_t *head = m_env->get_file_filter();
-  ham_u8_t *p;
+  ham_u8_t *p = (ham_u8_t *)page->get_raw_payload();
   ham_size_t size = m_env->get_pagesize();
-
-  /*
-   * run page through page-level filters, but not for the
-   * root-page!
-   */
-  if (head && !page->is_header()) {
-    p = (ham_u8_t *)m_env->get_allocator()->alloc(m_env->get_pagesize());
-    if (!p)
-      return (HAM_OUT_OF_MEMORY);
-    memcpy(p, page->get_raw_payload(), size);
-
-    while (head) {
-      if (head->before_write_cb) {
-        st = head->before_write_cb((ham_env_t *)m_env, head, p, size);
-        if (st)
-          break;
-      }
-      head = head->_next;
-    }
-  }
-  else
-    p = (ham_u8_t *)page->get_raw_payload();
 
   if (st == 0)
     st = append_write(lsn, page_count == 0 ? CHANGESET_IS_COMPLETE : 0,
@@ -216,7 +193,6 @@ Log::recover()
   Iterator it = 0;
   ham_u8_t *data = 0;
   ham_offset_t filesize;
-  ham_file_filter_t *head = 0;
   bool first_loop = true;
 
   /* get the file size of the database; otherwise we do not know if we
@@ -227,11 +203,6 @@ Log::recover()
 
   /* temporarily disable logging */
   m_env->set_flags(m_env->get_flags() & ~HAM_ENABLE_RECOVERY);
-
-  /* disable file filters - the logged pages were already filtered */
-  head = m_env->get_file_filter();
-  if (head)
-    m_env->set_file_filter(0);
 
   /* now start the loop once more and apply the log */
   while (1) {
@@ -319,10 +290,6 @@ clear:
 bail:
   /* re-enable the logging */
   m_env->set_flags(m_env->get_flags() | HAM_ENABLE_RECOVERY);
-
-  /* restore the file filters */
-  if (head)
-    m_env->set_file_filter(head);
 
   /* clean up memory */
   if (data) {

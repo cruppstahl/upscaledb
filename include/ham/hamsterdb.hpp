@@ -748,13 +748,6 @@ public:
             throw error(st);
     }
 
-    /** Enable AES encryption. */
-    void enable_encryption(ham_u8_t key[16], ham_u32_t flags=0) {
-        ham_status_t st=ham_env_enable_encryption(m_env, key, flags);
-        if (st)
-            throw error(st);
-    }
-
     /** Get all Database names. */
     std::vector<ham_u16_t> get_database_names(void) {
         ham_size_t count=32;

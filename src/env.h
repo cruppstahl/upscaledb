@@ -470,16 +470,6 @@ class Environment
      */
     db_indexdata_t *get_indexdata_ptr(int i);
 
-    /** get the linked list of all file-level filters */
-    ham_file_filter_t *get_file_filter() {
-        return (m_file_filters);
-    }
-
-    /** set the linked list of all file-level filters */
-    void set_file_filter(ham_file_filter_t *f) {
-        m_file_filters=f;
-    }
-
     /** get the maximum number of databases for this file */
     ham_u16_t get_max_databases() {
         env_header_t *hdr=(env_header_t*)
@@ -658,9 +648,6 @@ class Environment
     /** libcurl remote handle */
     void *m_curl;
 #endif
-
-    /** linked list of all file-level filters */
-    ham_file_filter_t *m_file_filters;
 
     /** some freelist algorithm specific run-time data */
     EnvironmentStatistics m_perf_data;

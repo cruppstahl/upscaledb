@@ -592,50 +592,6 @@ namespace Hamster
         }
 
         /// <summary>
-        /// Enables AES encryption
-        /// </summary>
-        /// <remarks>
-        /// This method wraps the native ham_env_enable_encryption function.
-        /// <br />
-        /// This method enables AES encryption for every Database in this
-        /// Environment.
-        /// <br />
-        /// The AES key is cached in the Environment handle. The AES
-        /// encryption/decryption is only active when file chunks are written
-        /// to disk/read from disk; the cached pages in RAM are decrypted.
-        /// Please read the FAQ for security relevant notes.
-        /// <br />
-        /// The encryption has no effect on In-Memory Environments, but the
-        /// function will return successfully.
-        /// </remarks>
-        /// <param name="aesKey">A 128 bit (16 bytes) encryption key</param>
-        /// <exception cref="DatabaseException">
-        ///   <list type="bullet">
-        ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
-        ///         if aesKey is not 16 bytes long</item>
-        ///     <item><see cref="HamConst.HAM_ACCESS_DENIED"/>
-        ///         if the AES key (= passphrase) is wrong</item>
-        ///     <item><see cref="HamConst.HAM_NOT_IMPLEMENTED"/>
-        ///         if hamsterdb was compiled without support for encryption</item>
-        ///     <item><see cref="HamConst.HAM_DATABASE_ALREADY_OPEN"/>
-        ///         if this function was called <b>AFTER</b>
-        ///         Environment.OpenDatabase or Environment.CreateDatabase</item>
-        ///     <item><see cref="HamConst.HAM_ALREADY_INITIALIZED"/>
-        ///         if encryption was already enabled for this Environment</item>
-        ///   </list>
-        /// </exception>
-        public void EnableEncryption(byte[] aesKey) {
-            if (aesKey == null || aesKey.Length!=16)
-                throw new DatabaseException(HamConst.HAM_INV_PARAMETER);
-            int st;
-            lock (this) {
-                st = NativeMethods.EnvEnableEncryption(handle, aesKey, 0);
-            }
-            if (st != 0)
-                throw new DatabaseException(st);
-        }
-
-        /// <summary>
         /// Flushes the Environment
         /// </summary>
         /// <remarks>

@@ -21,8 +21,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_db5", "sample_db5.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_env2", "sample_env2.vcxproj", "{57E4DDEF-945D-46A7-A889-3B2E9B2B7096}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_aes", "3rdparty_aes.vcxproj", "{AB99816E-52C4-44CE-B8DD-604DCA380173}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_zlib", "3rdparty_zlib.vcxproj", "{AB39816E-52C4-44CE-B8DD-604DCA380173}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_db6", "sample_db6.vcxproj", "{8FE983E8-8B32-4524-9BEF-1303B7ABC143}"

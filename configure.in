@@ -140,18 +140,6 @@ AC_ARG_ENABLE(internal,
         [obsolete; internal functions are now enabled by default]))
 
 # -------------------------------------------------------------------------
-# Disable AES encryption
-# -------------------------------------------------------------------------
-AC_ARG_ENABLE(encryption,
-    AC_HELP_STRING([--disable-encryption],
-                   [Disable AES encryption (ham_enable_encryption)]))
-if test "$enable_encryption" = "no"; then
-    CFLAGS="${CFLAGS} -DHAM_DISABLE_ENCRYPTION"
-    settings="$settings (no encryption)"
-fi
-AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" != "xno")
-
-# -------------------------------------------------------------------------
 # Disable zlib compression
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(compression,
@@ -330,7 +318,7 @@ CXXFLAGS=${CFLAGS}
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile src/protocol/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile src/server/Makefile java/Makefile java/java/Makefile java/src/Makefile java/unittests/Makefile)
 AC_OUTPUT
 
 # Messages
