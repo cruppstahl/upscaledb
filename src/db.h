@@ -543,16 +543,6 @@ class Database
         m_indexdata_offset=offset;
     }
 
-    /** get the linked list of all record-level filters */
-    ham_record_filter_t *get_record_filter(void) {
-        return (m_record_filters);
-    }
-
-    /** set the linked list of all record-level filters */
-    void set_record_filter(ham_record_filter_t *f) {
-        m_record_filters=f;
-    }
-
     /** get the expected data access mode for this database */
     ham_u16_t get_data_access_mode(void) {
         return (m_data_access_mode);
@@ -776,9 +766,6 @@ class Database
 
     /** the offset of this database in the environment _indexdata */
     ham_u16_t m_indexdata_offset;
-
-    /** linked list of all record-level filters */
-    ham_record_filter_t *m_record_filters;
 
     /** current data access mode (DAM) */
     ham_u16_t m_data_access_mode;

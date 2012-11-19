@@ -63,7 +63,6 @@ public:
         BFC_REGISTER_TEST(CppApiTest, createOpenCloseDbTest);
         BFC_REGISTER_TEST(CppApiTest, insertFindEraseTest);
         BFC_REGISTER_TEST(CppApiTest, cursorTest);
-        BFC_REGISTER_TEST(CppApiTest, compressionTest);
         BFC_REGISTER_TEST(CppApiTest, envTest);
         BFC_REGISTER_TEST(CppApiTest, envDestructorTest);
         BFC_REGISTER_TEST(CppApiTest, envGetDatabaseNamesTest);
@@ -344,22 +343,6 @@ public:
 
         ham::cursor temp;
         temp.close();
-    }
-
-    void compressionTest(void)
-    {
-#ifndef HAM_DISABLE_COMPRESSION
-        ham::db db;
-        db.create(BFC_OPATH(".test"));
-
-        try {
-            db.enable_compression(999);
-        }
-        catch (ham::error &) {
-        }
-
-        db.enable_compression(0);
-#endif
     }
 
     void envTest(void)

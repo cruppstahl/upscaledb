@@ -206,73 +206,11 @@ __cache_needs_purge(Environment *env)
     return (HAM_FALSE);
 }
 
-static ham_status_t
-__record_filters_before_write(Database *db, ham_record_t *record)
-{
-    ham_status_t st=0;
-    ham_record_filter_t *record_head;
-
-    record_head=db->get_record_filter();
-    while (record_head) {
-        if (record_head->before_write_cb) {
-            st=record_head->before_write_cb((ham_db_t *)db,
-                    record_head, record);
-            if (st)
-                break;
-        }
-        record_head=record_head->_next;
-    }
-
-    return (st);
-}
-
-/*
- * WATCH IT!
- *
- * as with the page filters, there was a bug in PRE-1.1.0 which would execute
- * a record filter chain in the same order for both write (insert) and read
- * (find), which means chained record filters would process invalid data in
- * one of these, as a correct filter chain must traverse the transformation
- * process IN REVERSE for one of these actions.
- *
- * As with the page filters, we've chosen the WRITE direction to be the
- * FORWARD direction, i.e. added filters end up processing data WRITTEN by
- * the previous filter.
- *
- * This also means the READ==FIND action must walk this chain in reverse.
- *
- * See the documentation about the cyclic prev chain: the point is
- * that FIND must traverse the record filter chain in REVERSE order so we
- * should start with the LAST filter registered and stop once we've DONE
- * calling the FIRST.
- */
-static ham_status_t
-__record_filters_after_find(Database *db, ham_record_t *record)
-{
-    ham_status_t st = 0;
-    ham_record_filter_t *record_head;
-
-    record_head=db->get_record_filter();
-    if (record_head) {
-        record_head = record_head->_prev;
-        do {
-            if (record_head->after_read_cb) {
-                st=record_head->after_read_cb((ham_db_t *)db,
-                        record_head, record);
-                if (st)
-                      break;
-            }
-            record_head = record_head->_prev;
-        } while (record_head->_prev->_next);
-    }
-    return (st);
-}
-
 Database::Database()
   : m_error(0), m_context(0), m_backend(0), m_cursors(0),
     m_prefix_func(0), m_cmp_func(0), m_duperec_func(0),
     m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0),
-    m_indexdata_offset(0), m_record_filters(0), m_data_access_mode(0),
+    m_indexdata_offset(0), m_data_access_mode(0),
     m_is_active(0), m_optree(this), m_impl(0)
 {
 #if HAM_ENABLE_REMOTE
@@ -1682,7 +1620,6 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
     ham_status_t st;
     Backend *be=m_db->get_backend();
     ham_u64_t recno=0;
-    ham_record_t temprec;
 
     ByteArray *arena=(txn==0 || (txn->get_flags()&HAM_TXN_TEMPORARY))
                         ? &m_db->get_key_arena()
@@ -1734,27 +1671,14 @@ DatabaseImplementationLocal::insert(Transaction *txn, ham_key_t *key,
     }
 
     /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(m_db, &temprec);
-
-    /*
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structure. Otherwise immediately write to the btree.
      */
-    if (!st) {
-        if (txn || local_txn) {
-            st=db_insert_txn(m_db, txn ? txn : local_txn,
-                            key, &temprec, flags, 0);
-        }
-        else
-            st=be->insert(txn, key, &temprec, flags);
+    if (txn || local_txn) {
+        st=db_insert_txn(m_db, txn ? txn : local_txn, key, record, flags, 0);
     }
-
-    if (temprec.data!=record->data)
-        env->get_allocator()->free(temprec.data);
+    else
+        st=be->insert(txn, key, record, flags);
 
     if (st) {
         if (local_txn)
@@ -1933,17 +1857,6 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
     if (m_db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
-    /* run the record-level filters */
-    st=__record_filters_after_find(m_db, record);
-    if (st) {
-        if (local_txn)
-            local_txn->abort();
-
-        env->get_changeset().clear();
-        return (st);
-    }
-
-    ham_assert(st==0);
     env->get_changeset().clear();
 
     if (local_txn)
@@ -1979,7 +1892,6 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
 {
     ham_status_t st;
     ham_u64_t recno = 0;
-    ham_record_t temprec;
     Environment *env=m_db->get_env();
     Transaction *local_txn=0;
     Transaction *txn=cursor->get_txn();
@@ -2036,15 +1948,6 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
             return (st);
     }
 
-    /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(m_db, &temprec);
-    if (st)
-        return (st);
-
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!cursor->get_txn()
@@ -2058,7 +1961,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
                     cursor->get_txn()
                         ? cursor->get_txn()
                         : local_txn,
-                    key, &temprec, flags, cursor->get_txn_cursor());
+                    key, record, flags, cursor->get_txn_cursor());
         if (st==0) {
             DupeCache *dc=cursor->get_dupecache();
             cursor->couple_to_txnop();
@@ -2085,7 +1988,7 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
         }
     }
     else {
-        st=cursor->get_btree_cursor()->insert(key, &temprec, flags);
+        st=cursor->get_btree_cursor()->insert(key, record, flags);
         if (st==0)
             cursor->couple_to_btree();
     }
@@ -2093,9 +1996,6 @@ DatabaseImplementationLocal::cursor_insert(Cursor *cursor, ham_key_t *key,
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
         cursor->set_txn(0);
-
-    if (temprec.data!=record->data)
-        env->get_allocator()->free(temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2360,19 +2260,6 @@ bail:
     if (m_db->get_rt_flags()&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
-    /* run the record-level filters */
-    if (record) {
-        st=__record_filters_after_find(m_db, record);
-        if (st) {
-            if (local_txn)
-                local_txn->abort();
-            env->get_changeset().clear();
-            return (st);
-        }
-    }
-
-    ham_assert(st==0);
-
     /* set a flag that the cursor just completed an Insert-or-find
      * operation; this information is needed in ham_cursor_move */
     cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
@@ -2515,7 +2402,6 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
 {
     Environment *env=m_db->get_env();
     ham_status_t st;
-    ham_record_t temprec;
     Transaction *local_txn=0;
 
     /* purge cache if necessary */
@@ -2524,15 +2410,6 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
         if (st)
             return (st);
     }
-
-    /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(m_db, &temprec);
-    if (st)
-        return (st);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
@@ -2545,14 +2422,11 @@ DatabaseImplementationLocal::cursor_overwrite(Cursor *cursor,
     /* this function will do all the work */
     st=cursor->overwrite(
                     cursor->get_txn() ? cursor->get_txn() : local_txn,
-                    &temprec, flags);
+                    record, flags);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
         cursor->set_txn(0);
-
-    if (temprec.data != record->data)
-        env->get_allocator()->free(temprec.data);
 
     if (st) {
         if (local_txn)
@@ -2623,11 +2497,7 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
     if (!(m_db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         st=cursor->get_btree_cursor()->move(key, record, flags);
         env->get_changeset().clear();
-        if (st)
-            return (st);
-
-        /* run the record-level filters */
-        return (__record_filters_after_find(m_db, record));
+        return (st);
     }
 
     /* if user did not specify a transaction, but transactions are enabled:
@@ -2646,10 +2516,6 @@ DatabaseImplementationLocal::cursor_move(Cursor *cursor, ham_key_t *key,
         cursor->set_txn(0);
 
     env->get_changeset().clear();
-
-    /* run the record-level filters */
-    if (st==0 && record)
-        st=__record_filters_after_find(m_db, record);
 
     /* store the direction */
     if (flags&HAM_CURSOR_NEXT)
@@ -2726,7 +2592,6 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     ham_status_t st2=HAM_SUCCESS;
     Backend *be;
     Database *newowner=0;
-    ham_record_filter_t *record_head;
 
     /*
      * if this Database is the last database in the environment:
@@ -2823,17 +2688,6 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
         ham_assert(env->get_header_page());
         env->get_header_page()->set_db(newowner);
     }
-
-    /* close all record-level filters */
-    record_head=m_db->get_record_filter();
-    while (record_head) {
-        ham_record_filter_t *next=record_head->_next;
-
-        if (record_head->close_cb)
-            record_head->close_cb((ham_db_t *)m_db, record_head);
-        record_head=next;
-    }
-    m_db->set_record_filter(0);
 
     return (st2);
 }

@@ -253,10 +253,6 @@
       <Project>{ab99816e-52c4-44ce-b8dd-604dca380173}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="3rdparty_zlib.vcxproj">
-      <Project>{ab39816e-52c4-44ce-b8dd-604dca380173}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="protocol.vcxproj">
       <Project>{10dcd767-dfbe-4096-9258-111d4cf899b1}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

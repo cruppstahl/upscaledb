@@ -1670,39 +1670,6 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_set_duplicate_compare_func(ham_db_t *db, ham_duplicate_compare_func_t foo);
 
 /**
- * Enables zlib compression for all inserted records
- *
- * This function enables zlib compression for all inserted Database records.
- *
- * The compression will be active till @ref ham_close is called. If the Database
- * handle is reused after calling @ref ham_close, the compression is no longer
- * active. @ref ham_enable_compression should be called immediately after
- * @ref ham_create[_ex] or @ref ham_open[_ex]. When opening the Database,
- * the compression has to be enabled again.
- *
- * Note that zlib usually has an overhead and often is not effective if the
- * records are small (i.e. < 128byte), but this highly depends
- * on the data that is inserted.
- *
- * The zlib compression filter does not allow queries (i.e. with @ref ham_find)
- * with user-allocated records and the flag @ref HAM_RECORD_USER_ALLOC. In this
- * case, the query-function will return @ref HAM_INV_PARAMETER.
- *
- * @param db A valid Database handle
- * @param level The compression level. 0 for the zlib default, 1 for
- *    best speed and 9 for minimum size
- * @param flags Optional flags for the compression; unused, set to 0
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if @a db is NULL or @a level is not between
- *    0 and 9
- * @return @ref HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
- *    for compression
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
-
-/**
  * Searches an item in the Database
  *
  * This function searches the Database for @a key. If the key
@@ -2243,10 +2210,6 @@ ham_key_get_approximate_match_type(ham_key_t *key);
  *
  * If the flag is not specified, the application must close all Database
  * Cursors with @ref ham_cursor_close to prevent memory leaks.
- *
- * This function removes all record-level filters installed
- * with @ref ham_add_record_filter (and hence also, implicitly,
- * the filter installed by @ref ham_enable_compression).
  *
  * This function also aborts all Transactions which were not yet committed,
  * and therefore renders all Transaction handles invalid. If the flag

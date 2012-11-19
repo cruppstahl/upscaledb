@@ -44,9 +44,6 @@ public class Database {
     private native void ham_set_duplicate_compare_func(long handle,
             DuplicateCompareCallback cmp);
 
-    private native int ham_enable_compression(long handle, int level,
-            int flags);
-
     private native Environment ham_get_env(long handle);
 
     private native byte[] ham_find(long handle, long txnhandle,
@@ -626,44 +623,6 @@ public class Database {
     public synchronized void flush()
             throws DatabaseException {
         int status=ham_flush(m_handle, 0);
-        if (status!=0)
-            throw new DatabaseException(status);
-    }
-
-    /**
-     * Enables zlib compression for all inserted records
-     *
-     * @see Database#enableCompression(int)
-     */
-    public synchronized void enableCompression()
-            throws DatabaseException {
-        enableCompression(0);
-    }
-
-    /**
-     * Enables zlib compression for all inserted records
-     * <p>
-     * This method wraps the native ham_enable_compression function.
-     * <p>
-     * This function enables zlib compression for all inserted Database
-     * records.
-     * <p>
-     * The compression will be active till <code>Database.close</code> is
-     * called. This method should be called immediately after
-     * <code>Database.create</code> or <code>Database.open</code>.
-     * <p>
-     * Note that zlib usually has an overhead and often is not effective if the
-     * records are small (i.e. less than 128byte), but this highly depends
-     * on the data that is inserted.
-     * <p>
-     * @param level The compression level; set 0 for the zlib default, 1 for
-     *          best speed and 9 for minimum size
-     * <p>
-     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga88bae903616e46c42cd492141b0bd7f4">C documentation</a>
-     */
-    public synchronized void enableCompression(int level)
-            throws DatabaseException {
-        int status=ham_enable_compression(m_handle, level, 0);
         if (status!=0)
             throw new DatabaseException(status);
     }

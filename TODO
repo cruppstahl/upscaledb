@@ -18,21 +18,22 @@ to scale with the number of cores.
 o add transaction support for in-memory databases
 
 o involve everyone in decisions on the new interface
-    o Do you use AES encryption?
+    x Do you use AES encryption?
       Remove including all file filters, 3rdparty, dotnet, java, win32
+    o Do you use zlib compression?
+      Remove including all record filters, 3rdparty, dotnet, java, win32
+    x Remove unittests/filter.cpp
+    o Remove ham_get_keycount_per_page (make available through other function?)
+    o Remove other stuff from hamsterdb_int.h
+    o Get rid of sorted duplicates
     o Do you use any of the HAM_HINT_* flags?
       Yes, leave APPEND and PREPEND; check when they are used. are they really
         needed? the histogram should do that automatically
     o Do you use any of the HAM_DAM_* flags?
       DAM is currently used to decide about split point; really necessary? The
       hinter should do this automatically
-    o Do you use zlib compression?
-      Remove including all record filters, 3rdparty, dotnet, java, win32
-    o Remove unittests/filter.cpp
-    o Remove ham_get_keycount_per_page (make available through other function?)
-    o Remove other stuff from hamsterdb_int.h
-    o Do you use sorted duplicates?
-      Get rid of them
+    o update README
+    o update Webpage
 
 o clean up interface
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]

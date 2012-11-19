@@ -366,13 +366,6 @@ public:
             throw error(st);
     }
 
-    /** Enable zlib compression. */
-    void enable_compression(ham_u32_t level, ham_u32_t flags=0) {
-        ham_status_t st=ham_enable_compression(m_db, level, flags);
-        if (st)
-            throw error(st);
-    }
-
     /** Finds a record by looking up the key. */
     record find(txn *t, key *k, ham_u32_t flags=0) {
         record r;

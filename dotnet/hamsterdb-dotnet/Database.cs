@@ -615,46 +615,6 @@ namespace Hamster
         }
 
         /// <summary>
-        /// Enables zlib compression for all inserted records.
-        /// </summary>
-        public void EnableCompression() {
-            EnableCompression(0);
-        }
-
-        /// <summary>
-        /// Enables zlib compression for all inserted records.
-        /// </summary>
-        /// <remarks>
-        /// This method wraps the native ham_enable_compression function.<br />
-        /// <br/>
-        /// The compression will be active till <see cref="Database.Close()" /> is
-        /// called. This method should be called immediately after
-        /// Database.Create or Database.Open.<br />
-        /// <br />
-        /// Note that zlib usually has an overhead and often is not effective if
-        /// the records are small (i.e. less than 128byte), but this highly
-        /// depends on the data that is inserted.
-        /// </remarks>
-        /// <param name="level">The zlib compression level; set to 0 for the zlib
-        /// default, 1 for best speed and 9 for minimum size</param>
-        /// <exception cref="DatabaseException">
-        ///   <list type="bullet">
-        ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
-        ///         if compression level is not between 0 and 9</item>
-        ///     <item><see cref="HamConst.HAM_NOT_IMPLEMENTED"/>
-        ///         if hamsterdb was built without support for compression</item>
-        ///   </list>
-        /// </exception>
-        public void EnableCompression(int level) {
-            int st;
-            lock (this) {
-                st = NativeMethods.EnableCompression(handle, level);
-            }
-            if (st != 0)
-                throw new DatabaseException(st);
-        }
-
-        /// <summary>
         /// Searches an item in the Database, returns the record
         /// </summary>
         public byte[] Find(byte[] key)

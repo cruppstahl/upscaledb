@@ -1,6 +1,8 @@
 Nov 19, 2012 - chris ---------------------------------------------------
 o Removed ham_enable_encryption and the file filters; this function was
     not really used
+o Removed ham_enable_compression and the record filters; this function was
+    not really used
 
 Nov 25, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.5

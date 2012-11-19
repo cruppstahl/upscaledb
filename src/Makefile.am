@@ -46,14 +46,6 @@ libhamsterdb_la_SOURCES = log.cc \
 
 libhamsterdb_la_LDFLAGS = -version-info 3:0:0 -lboost_thread -lpthread
 
-if ENABLE_COMPRESSION
-if SYSTEM_ZLIB
-libhamsterdb_la_LDFLAGS += -lz
-else
-libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/zlib/libzlib.la
-endif
-endif
-
 if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl
 libhamsterdb_la_LDFLAGS += $(top_builddir)/src/protocol/libprotocol.la
