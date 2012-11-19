@@ -412,13 +412,6 @@ public:
             throw error(st);
     }
 
-    /** Flushes the Database to disk. */
-    void flush(ham_u32_t flags=0) {
-        ham_status_t st=ham_flush(m_db, flags);
-        if (st)
-            throw error(st);
-    }
-
     /** Returns number of items in the Database. */
     ham_u64_t get_key_count(ham_txn_t *txn=0, ham_u32_t flags=0) {
         ham_u64_t count=0;
@@ -660,6 +653,14 @@ public:
         if (st)
             throw error(st);
     }
+
+    /** Flushes the Environment to disk. */
+    void flush(ham_u32_t flags=0) {
+        ham_status_t st=ham_env_flush(m_env, flags);
+        if (st)
+            throw error(st);
+    }
+
 
     /** Creates a new Database in the Environment. */
     db create_db(ham_u16_t name, ham_u32_t flags=0,

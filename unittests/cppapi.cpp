@@ -187,7 +187,6 @@ public:
 
         db.open(BFC_OPATH(".test"));
         db=db;
-        db.flush();
         tmp=db;
         db.close();
     }
@@ -350,6 +349,7 @@ public:
         ham::env env;
 
         env.create(BFC_OPATH(".test"));
+        env.flush();
         env.close();
         env.close();
         env.close();

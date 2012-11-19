@@ -52,7 +52,6 @@ public:
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
         BFC_REGISTER_TEST(RemoteTest, eraseDbTest);
         BFC_REGISTER_TEST(RemoteTest, getDbParamsTest);
-        BFC_REGISTER_TEST(RemoteTest, dbFlushTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginCommitTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginAbortTest);
         BFC_REGISTER_TEST(RemoteTest, checkIntegrityTest);
@@ -435,20 +434,6 @@ protected:
                         |HAM_ENABLE_RECOVERY), params[3].value);
         BFC_ASSERT_EQUAL(0644u, params[4].value);
         BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
-
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
-
-    void dbFlushTest(void)
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0,
-                ham_create(db, SERVER_URL, 0, 0664));
-
-        BFC_ASSERT_EQUAL(0, ham_flush(db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

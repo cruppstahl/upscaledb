@@ -285,10 +285,6 @@ namespace Hamster
             }
         }
 
-        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_flush",
-           CallingConvention = CallingConvention.Cdecl)]
-        static public extern int Flush(IntPtr handle, int flags);
-
         [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_get_key_count",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int GetKeyCount(IntPtr handle, IntPtr txnhandle,

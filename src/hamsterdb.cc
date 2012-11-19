@@ -2115,30 +2115,6 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
     return (db->set_error((*db)()->check_integrity(txn)));
 }
 
-ham_status_t HAM_CALLCONV
-ham_flush(ham_db_t *hdb, ham_u32_t flags)
-{
-    Database *db=(Database *)hdb;
-    Environment *env;
-
-    (void)flags;
-
-    if (!db) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    env=db->get_env();
-    if (!env) {
-        ham_trace(("parameter 'db' must be linked to a valid (implicit or "
-                   "explicit) environment"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
-
-    /* just call ham_env_flush() */
-    return (db->set_error(ham_env_flush((ham_env_t *)env, flags)));
-}
-
 /*
  * always shut down entirely, even when a page flush or other
  * 'non-essential' element of the process fails.

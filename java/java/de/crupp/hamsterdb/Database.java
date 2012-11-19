@@ -46,8 +46,6 @@ public class Database {
     private native byte[] ham_find(long handle, long txnhandle,
             byte[] key, int flags);
 
-    private native int ham_flush(long handle, int flags);
-
     private native int ham_get_parameters(long handle, Parameter[] params);
 
     private native int ham_insert(long handle, long txnhandle,
@@ -575,27 +573,6 @@ public class Database {
         if (key==null)
             throw new NullPointerException();
         int status=ham_erase(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
-        if (status!=0)
-            throw new DatabaseException(status);
-    }
-
-    /**
-     * Flushes the Database
-     * <p>
-     * This method wraps the native ham_flush function.
-     * <p>
-     * This function flushes the Database cache and writes the whole file
-     * to disk. If this Database was opened in an Environment, all other
-     * Databases of this Environment are flushed as well.
-     * <p>
-     * Since In-Memory Databases do not have a file on disk, the
-     * function will have no effect and will return successfully.
-     * <p>
-     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad4db2642d606577e23808ed8e35b7d30">C documentation</a>
-     */
-    public synchronized void flush()
-            throws DatabaseException {
-        int status=ham_flush(m_handle, 0);
         if (status!=0)
             throw new DatabaseException(status);
     }

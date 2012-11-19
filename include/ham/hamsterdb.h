@@ -1919,22 +1919,6 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 #define HAM_ERASE_ALL_DUPLICATES                1
 
 /**
- * Flushes the Database
- *
- * This function is deprecated. Use @ref ham_env_flush instead.
- * Use @ref ham_get_env to retrieve an Environment handle for your Database,
- * in case the handle is not available because the Database was opened or
- * created with @ref ham_create_ex or @ref ham_open_ex.
- *
- * @deprecated This function was replaced by @ref ham_env_flush.
- *
- * @sa ham_env_flush
- * @sa ham_get_env
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_flush(ham_db_t *db, ham_u32_t flags);
-
-/**
  * Calculates the number of keys stored in the Database
  *
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want

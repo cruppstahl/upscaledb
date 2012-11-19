@@ -15,8 +15,6 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-o add transaction support for in-memory databases
-
 o involve everyone in decisions on the new interface
     x Do you use AES encryption?
       Remove including all file filters, 3rdparty, dotnet, java, win32
@@ -37,13 +35,16 @@ o involve everyone in decisions on the new interface
     o update Webpage
 
 o clean up interface
+    x clean up ham_flush, ham_env_flush
     o rename ham_cursor_find_ex to ham_cursor_find
-    o clean up ham_flush, ham_env_flush
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
     o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters
         in... out
+    o once more check all flags and #defines; remove deprecated and obsolete
+        stuff (i.e. HAM_LOCK_EXCLUSIVE)
+    o rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close
@@ -53,6 +54,12 @@ o clean up the "close" functions
     o Cursor::close: currently (nearly) empty; merge with ~Cursor and
         Database::close_cursor()
     o do not have st2/st; just fail if there's a serious problem
+
+o rewrite samples with new coding style
+
+o rewrite c++ API with new coding style
+
+o add transaction support for in-memory databases
 
 o freelist rewrite - make files smaller, make hamsterdb faster
     o freelist.h
@@ -192,8 +199,6 @@ o allow transactions in-memory
 o allow transactions w/o journal
 
 o allow transactions w/o recovery
-
-o rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
 
 . android port (needs new java api) in /contrib directory (it's on a separate
     branch)

@@ -95,7 +95,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
         BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
-        BFC_REGISTER_TEST(HamsterdbTest, flushTest);
         BFC_REGISTER_TEST(HamsterdbTest, flushBackendTest);
         BFC_REGISTER_TEST(HamsterdbTest, closeTest);
         BFC_REGISTER_TEST(HamsterdbTest, closeWithCursorsTest);
@@ -1370,12 +1369,6 @@ public:
                 ham_erase(m_db, 0, &key, 0));
     }
 
-    void flushTest(void)
-    {
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_flush(0, 0));
-    }
-
     void flushBackendTest(void)
     {
         ham_env_t *env1, *env2;
@@ -1396,7 +1389,7 @@ public:
                     HAM_LOCK_EXCLUSIVE, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_flush(db1, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_flush(env1, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
         BFC_ASSERT_EQUAL(0, ham_new(&db2));

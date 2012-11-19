@@ -743,28 +743,6 @@ namespace Hamster
         }
 
         /// <summary>
-        /// Flushes the Database
-        /// </summary>
-        /// <remarks>
-        /// This method wraps the native ham_flush function.
-        /// <br />
-        /// This function flushes the Database cache and writes the whole
-        /// file to disk. If this Database was opened in an Environment,
-        /// all other Databases of this Environment are flushed as well.
-        /// <br />
-        /// Since In-Memory Databases do not have a file on disk, the
-        /// function will have no effect and will return successfully.
-        /// </remarks>
-        public void Flush() {
-            int st;
-            lock (this) {
-                st = NativeMethods.Flush(handle, 0);
-            }
-            if (st != 0)
-                throw new DatabaseException(st);
-        }
-
-        /// <summary>
         /// Returns the Environment handle of this Database
         /// </summary>
         /// <remarks>
@@ -846,8 +824,7 @@ namespace Hamster
         /// <remarks>
         /// This method wraps the native ham_close function.
         /// <br />
-        /// Before closing the Database, the cache is flushed to Disk
-        /// <see cref="Database.Flush" />.
+        /// Before closing the Database, the cache is flushed to Disk.
         /// </remarks>
         public void Close(int flags) {
             if (initialized == false)

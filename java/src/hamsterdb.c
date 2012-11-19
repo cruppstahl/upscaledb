@@ -760,13 +760,6 @@ Java_de_crupp_hamsterdb_Database_ham_1erase(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1flush(JNIEnv *jenv, jobject jobj,
-        jlong jhandle, jint jflags)
-{
-    return (ham_flush((ham_db_t *)jhandle, (ham_u32_t)jflags));
-}
-
-JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Database_ham_1close(JNIEnv *jenv, jobject jobj,
         jlong jhandle, jint jflags)
 {
