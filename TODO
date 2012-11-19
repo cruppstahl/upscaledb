@@ -20,10 +20,11 @@ o add transaction support for in-memory databases
 o involve everyone in decisions on the new interface
     x Do you use AES encryption?
       Remove including all file filters, 3rdparty, dotnet, java, win32
-    o Do you use zlib compression?
+    x Do you use zlib compression?
       Remove including all record filters, 3rdparty, dotnet, java, win32
     x Remove unittests/filter.cpp
     o Remove ham_get_keycount_per_page (make available through other function?)
+    o Remove ham_calc_maxkeys_per_page
     o Remove other stuff from hamsterdb_int.h
     o Get rid of sorted duplicates
     o Do you use any of the HAM_HINT_* flags?

@@ -2174,46 +2174,6 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
 }
 
 ham_status_t HAM_CALLCONV
-ham_calc_maxkeys_per_page(ham_db_t *hdb, ham_size_t *keycount,
-                ham_u16_t keysize)
-{
-    Database *db=(Database *)hdb;
-    Backend *be;
-
-    if (!db) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-    if (!keycount) {
-        ham_trace(("parameter 'keycount' must not be NULL"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
-    if (!db->get_env()) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    ScopedLock lock(db->get_env()->get_mutex());
-
-    if (db->get_env()->get_flags()&DB_IS_REMOTE) {
-        ham_trace(("ham_calc_maxkeys_per_page is not supported by remote "
-                "servers"));
-        return (HAM_NOT_IMPLEMENTED);
-    }
-
-    *keycount = 0;
-
-    db->set_error(0);
-
-    be=db->get_backend();
-    if (!be)
-        return (db->set_error(HAM_NOT_INITIALIZED));
-
-    /* call the backend function */
-    return (db->set_error(be->calc_keycount_per_page(keycount, keysize)));
-}
-
-ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *hdb, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;

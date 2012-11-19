@@ -79,25 +79,6 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn);
 
 /**
- * Estimates the number of keys stored per page in the Database
- *
- * @param db A valid Database handle
- * @param keycount A reference to a variable which will receive
- *                 the calculated key count per page
- * @param keysize The size of the key
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if @a db or @a keycount is NULL
- * @return @ref HAM_INV_KEYSIZE if the @a keycount turns out to be huge (i.e.
- *         larger than 65535); in this case @a keycount still contains a
- *         valid value, but this error indicates this keysize won't be
- *         usable with the given Database.
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount,
-            ham_u16_t keysize);
-
-/**
  * Set a user-provided context pointer
  *
  * This function sets a user-provided context pointer. This can be any

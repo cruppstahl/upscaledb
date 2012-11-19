@@ -3,6 +3,8 @@ o Removed ham_enable_encryption and the file filters; this function was
     not really used
 o Removed ham_enable_compression and the record filters; this function was
     not really used
+o Removed ham_get_keycount_per_page; the keycount can still be retrieved
+    with ham_get_parameter(... HAM_PARAM_GET_KEYS_PER_PAGE...)
 
 Nov 25, 2012 - chris ---------------------------------------------------
                       release of hamsterdb-2.0.5
