@@ -80,7 +80,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,7 +107,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -131,7 +131,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -158,7 +158,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../3rdparty/aes;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -192,9 +192,8 @@
     <ClInclude Include="..\..\src\config.h" />
     <ClInclude Include="..\..\src\cursor.h" />
     <ClInclude Include="..\..\src\db.h" />
-    <ClInclude Include="..\..\src\duplicates.h" />
-    <ClInclude Include="..\..\src\duplicates.cc" />
     <ClInclude Include="..\..\src\device.h" />
+    <ClInclude Include="..\..\src\duplicates.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
     <ClInclude Include="..\..\src\error.h" />
@@ -233,6 +232,7 @@
     <ClCompile Include="..\..\src\cursor.cc" />
     <ClCompile Include="..\..\src\db.cc" />
     <ClCompile Include="..\..\src\device.cc" />
+    <ClCompile Include="..\..\src\duplicates.cc" />
     <ClCompile Include="..\..\src\env.cc" />
     <ClCompile Include="..\..\src\error.cc" />
     <ClCompile Include="..\..\src\freelist.cc" />

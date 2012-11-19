@@ -80,7 +80,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,7 +107,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -131,7 +131,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -157,7 +157,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>

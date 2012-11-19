@@ -643,13 +643,6 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1error(JNIEnv *jenv, jobject jobj,
     return (ham_get_error((ham_db_t *)jhandle));
 }
 
-JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ham_1env_1get_1asynchronous_1error(JNIEnv *jenv,
-        jobject jobj, jlong jhandle)
-{
-    return (ham_env_get_asynchronous_error((ham_env_t *)jhandle));
-}
-
 JNIEXPORT void JNICALL
 Java_de_crupp_hamsterdb_Database_ham_1set_1compare_1func(JNIEnv *jenv,
         jobject jobj, jlong jhandle, jobject jcmp)

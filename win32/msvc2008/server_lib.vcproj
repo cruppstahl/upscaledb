@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -112,7 +112,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -180,7 +180,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -246,7 +246,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost"
+				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

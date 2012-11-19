@@ -1026,9 +1026,5 @@ public:
 
 } // namespace ham
 
-// since BFC macro will b0rk on ham::LogTest:
-typedef ham::LogTest          LogTest;
-typedef ham::LogHighLevelTest LogHighLevelTest;
-
 BFC_REGISTER_FIXTURE(LogTest);
 BFC_REGISTER_FIXTURE(LogHighLevelTest);
