@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.0.5               Sat Nov 17 20:59:00 CET 2012
+hamsterdb Embedded Storage 2.0.5               Sun Nov 25 11:59:08 CET 2012
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -18,6 +18,13 @@ The internal C++ implementation was moved to into namespace "ham" to avoid
 conflicts with other symbols.
 
 A segmentation fault in the dotnet API was fixed.
+
+!!
+Note that for the next release there are various API changes in the queue. 
+Over the last 7 years hamsterdb has grown continuously, and it's time to clean
+up some of the changes in order to improve consistency and reduce the code.
+A few functions will be removed, i.e. support for encryption and compression.
+The file format will most likely change as well.
 
 2. Changes
 

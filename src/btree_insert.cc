@@ -38,6 +38,8 @@
 #include "util.h"
 #include "btree_node.h"
 
+using namespace std;
+
 namespace ham {
 
 /* a unittest hook triggered when a page is split */
