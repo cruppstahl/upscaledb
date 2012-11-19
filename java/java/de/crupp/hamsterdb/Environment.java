@@ -314,8 +314,6 @@ public class Environment {
      *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
      *            Enable duplicate keys for this Database. By default,
      *            duplicate keys are disabled.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
-     *            Enables sorting for duplicate keys.
      *      </ul>
      * @param params An array of <code>Parameter</code> structures.
      *        The following parameters are available:
@@ -367,7 +365,6 @@ public class Environment {
      *            Do not allow the use of variable length keys. Inserting
      *            a key, which is larger than the B+Tree index key size,
      *            returns <code>Const.HAM_INV_KEYSIZE</code>.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
      *      </ul>
      * @param params An array of <code>Parameter</code> structures.
      *        The following parameters are available:

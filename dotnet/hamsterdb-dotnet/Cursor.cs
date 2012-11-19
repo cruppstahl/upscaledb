@@ -291,11 +291,6 @@ namespace Hamster
         /// This method wraps the native ham_cursor_overwrite function.
         /// <br />
         /// This function overwrites the record of the current item.
-        ///
-        /// The use of this function is not allowed if the item has duplicate
-        /// keys and the duplicate sorting is enabled (see
-        /// HamConst.HAM_SORT_DUPLICATES). In this case,
-        /// HamConst.HAM_INV_PARAMETER is thrown.
         /// </remarks>
         /// <exception cref="DatabaseException">
         ///   <list type="bullet">
@@ -376,16 +371,6 @@ namespace Hamster
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>,
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> or
         /// <see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER"/>.
-        /// <br />
-        /// However, if a sort order is specified (<see
-        /// cref="HamConst.HAM_SORT_DUPLICATES"/>) then
-        /// the key is inserted in sorted order. In this case, the use of
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>,
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>,
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> and
-        /// <see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER"/> is
-        /// not allowed and will throw
-        /// <see cref="HamConst.HAM_INV_PARAMETER"/>.
         /// <br />
         /// Specify the flag <see cref="HamConst.HAM_HINT_APPEND"/> if you
         /// insert sequential data and the current key is higher than any

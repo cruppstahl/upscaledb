@@ -1558,9 +1558,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(db, BFC_OPATH(".test.db"),
-                        HAM_SORT_DUPLICATES
-                            |HAM_ENABLE_DUPLICATES
-                            |(m_inmemory ? HAM_IN_MEMORY : 0),
+                        HAM_ENABLE_DUPLICATES|(m_inmemory ? HAM_IN_MEMORY : 0),
                         0644, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
@@ -1581,9 +1579,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0,
                 ham_create_ex(db, BFC_OPATH(".test.db"),
-                        HAM_SORT_DUPLICATES
-                            |HAM_ENABLE_DUPLICATES
-                            |(m_inmemory ? HAM_IN_MEMORY : 0),
+                        HAM_ENABLE_DUPLICATES|(m_inmemory ? HAM_IN_MEMORY : 0),
                         0644, 0));
 
         ham_cursor_t *c;

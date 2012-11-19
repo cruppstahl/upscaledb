@@ -137,10 +137,6 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_ENABLE_DUPLICATES;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_DUPLICATES");
     }
-    if (flags & HAM_SORT_DUPLICATES) {
-        flags &= ~HAM_SORT_DUPLICATES;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_SORT_DUPLICATES");
-    }
     if (flags & HAM_ENABLE_RECOVERY) {
         flags &= ~HAM_ENABLE_RECOVERY;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_RECOVERY");
@@ -554,23 +550,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     }
 
     /*
-     * when creating a Database, HAM_SORT_DUPLICATES is only allowed in
-     * combination with HAM_ENABLE_DUPLICATES, but not with Transactions
-     */
-    if (create && (flags&HAM_SORT_DUPLICATES)) {
-        if (!(flags&HAM_ENABLE_DUPLICATES)) {
-            ham_trace(("flag HAM_SORT_DUPLICATES only allowed in combination "
-                        "with HAM_ENABLE_DUPLICATES"));
-            return (HAM_INV_PARAMETER);
-        }
-        if (flags&HAM_ENABLE_TRANSACTIONS) {
-            ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
-                        "with HAM_ENABLE_TRANSACTIONS"));
-            return (HAM_INV_PARAMETER);
-        }
-    }
-
-    /*
      * DB create: only a few flags are allowed
      */
     if (db && (flags & ~((!create ? HAM_READ_ONLY : 0)
@@ -589,7 +568,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |HAM_DONT_LOCK
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
-                        |HAM_SORT_DUPLICATES
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))
     {
         char msgbuf[2048];
@@ -1212,12 +1190,6 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
         ham_trace(("cannot open a Database in an In-Memory Environment"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if (flags&HAM_SORT_DUPLICATES
-            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
-                    "with HAM_ENABLE_TRANSACTIONS"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
 
     /* the function handler will do the rest */
     st=env->_fun_open_db(env, db, dbname, flags, param);
@@ -1260,15 +1232,6 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
     if (env->is_active()) {
         ham_trace(("parameter 'env' is already initialized"));
         return (HAM_ENVIRONMENT_ALREADY_OPEN);
-    }
-
-    /*
-     * check for invalid flags
-     */
-    if (flags&HAM_SORT_DUPLICATES) {
-        ham_trace(("flag HAM_SORT_DUPLICATES only allowed when creating/"
-                   "opening Databases, not Environments"));
-        return (HAM_INV_PARAMETER);
     }
 
     env->set_flags(0);
@@ -1629,7 +1592,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
         env_param[1].name=HAM_PARAM_LOG_DIRECTORY;
         env_param[1].value=(ham_u64_t)logdir.c_str();
     }
-    env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
+    env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
 
     st=ham_env_new(&env);
     if (st)
@@ -1754,7 +1717,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
         env_param[3].name=HAM_PARAM_LOG_DIRECTORY;
         env_param[3].value=(ham_u64_t)logdir.c_str();
     }
-    env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
+    env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
 
     /*
      * create a new Environment
@@ -1888,22 +1851,6 @@ ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 
     db->set_error(0);
     db->set_compare_func(foo ? foo : db_default_compare);
-    return (db->set_error(HAM_SUCCESS));
-}
-
-ham_status_t HAM_CALLCONV
-ham_set_duplicate_compare_func(ham_db_t *hdb, ham_duplicate_compare_func_t foo)
-{
-    Database *db=(Database *)hdb;
-    if (!db) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    ScopedLock lock(db->get_env()->get_mutex());
-
-    db->set_error(0);
-    db->set_duplicate_compare_func(foo ? foo : db_default_compare);
     return (db->set_error(HAM_SUCCESS));
 }
 
@@ -2046,11 +1993,6 @@ ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     if ((flags&HAM_PARTIAL) && (db->get_rt_flags()&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
                     "transactions"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_PARTIAL) && (db->get_rt_flags()&HAM_SORT_DUPLICATES)) {
-        ham_trace(("flag HAM_PARTIAL is not allowed if duplicates "
-                    "are sorted"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
     if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
@@ -2448,11 +2390,6 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
         ham_trace(("cannot overwrite in a read-only database"));
         return (db->set_error(HAM_DB_READ_ONLY));
     }
-    if (db->get_rt_flags()&HAM_SORT_DUPLICATES) {
-        ham_trace(("function ham_cursor_overwrite is not allowed if "
-                    "duplicate sorting is enabled"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
 
     return (db->set_error((*db)()->cursor_overwrite(cursor, record, flags)));
 }
@@ -2657,11 +2594,6 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                     "transactions"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) && (db->get_rt_flags()&HAM_SORT_DUPLICATES)) {
-        ham_trace(("flag HAM_PARTIAL is not allowed if duplicates "
-                    "are sorted"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
     if ((flags&HAM_PARTIAL)
             && (record->partial_size+record->partial_offset>record->size)) {
         ham_trace(("partial offset+size is greater than the total "
@@ -2682,11 +2614,6 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                 |HAM_DUPLICATE_INSERT_BEFORE
                 |HAM_DUPLICATE_INSERT_LAST
                 |HAM_DUPLICATE_INSERT_FIRST)) {
-        if (db->get_rt_flags()&HAM_SORT_DUPLICATES) {
-            ham_trace(("flag HAM_DUPLICATE_INSERT_* is not allowed if "
-                        "duplicate sorting is enabled"));
-            return (db->set_error(HAM_INV_PARAMETER));
-        }
         flags|=HAM_DUPLICATE;
     }
 

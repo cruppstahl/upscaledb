@@ -179,12 +179,6 @@ class DuplicateManager
     ham_status_t get_table(ham_offset_t table_id, dupe_table_t **ptable,
                 bool *needs_free);
 
-    /**
-     * gets the position for a record in a sorted duplicate table
-     */
-    ham_size_t get_sorted_position(Database *db, Transaction *txn,
-                dupe_table_t *table, ham_record_t *record, ham_u32_t flags);
-
   private:
     /** internal implementation of get_table() */
     ham_status_t get_table(dupe_table_t **table_ref, Page **page,

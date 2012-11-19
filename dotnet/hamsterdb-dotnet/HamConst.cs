@@ -139,8 +139,6 @@ namespace Hamster
         public const int HAM_ENABLE_TRANSACTIONS            =  0x20000;
         /// <summary>Flag for Database.Create, Database.Open</summary>
         public const int HAM_CACHE_UNLIMITED                =  0x40000;
-        /// <summary>Flag for Database.Create, Database.Open</summary>
-        public const int HAM_SORT_DUPLICATES                =  0x100000;
 
         // Extended parameters
         /// <summary>Parameter name for Database.Open, Database.Create</summary>

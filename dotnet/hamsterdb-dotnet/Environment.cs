@@ -384,11 +384,6 @@ namespace Hamster
         ///         Creates an "auto-increment" Database. Keys in Record
         ///         Number Databases are automatically assigned an incrementing
         ///         64bit value.</item>
-        ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
-        ///         Sort duplicate keys for this Database. Only allowed in
-        ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
-        ///         This flag is not persistent.</item><br />
         ///   </list>
         /// </param>
         /// <param name="parameters">An array of <see cref="Parameter" />
@@ -479,11 +474,6 @@ namespace Hamster
         ///         Do not allow the use of variable length keys. Inserting
         ///         a key, which is larger than the B+Tree index key size,
         ///         returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item>
-        ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
-        ///         Sort duplicate keys for this Database. Only allowed in
-        ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
-        ///         This flag is not persistent.</item><br />
         ///   </list>
         /// </param>
         /// <param name="parameters">An array of <see cref="Parameter" />

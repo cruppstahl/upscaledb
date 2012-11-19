@@ -78,100 +78,6 @@ DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
   return (0);
 }
 
-ham_size_t
-DuplicateManager::get_sorted_position(Database *db, Transaction *txn,
-                dupe_table_t *table, ham_record_t *record, ham_u32_t flags)
-{
-  ham_duplicate_compare_func_t foo = db->get_duplicate_compare_func();
-  ham_size_t l, r, m;
-  int cmp;
-  dupe_entry_t *e;
-  ham_record_t item_record;
-  ham_u16_t dam;
-  ham_status_t st = 0;
-
-  /*
-   * Use a slightly adapted form of binary search: as we already have our
-   * initial position (as was stored in the cursor), we take that as our
-   * first 'median' value and go from there.
-   */
-  l = 0;
-  r = dupe_table_get_count(table) - 1; /* get_count() is 1 too many! */
-
-  /*
-   * Maybe Wrong Idea: sequential access/insert doesn't mean the RECORD
-   * values are sequential too! They MAY be, but don't have to!
-   *
-   * For now, we assume they are also sequential when you're storing records
-   * in duplicate-key tables (probably a secondary index table for another
-   * table, this one).
-   */
-  dam = db->get_data_access_mode();
-  if (dam & HAM_DAM_SEQUENTIAL_INSERT) {
-    /* assume the insertion point sits at the end of the dupe table */
-    m = r;
-  }
-  else {
-    m = (l + r) / 2;
-  }
-  ham_assert(m <= r);
-
-  while (l <= r) {
-    ham_assert(m < dupe_table_get_count(table));
-
-    e = dupe_table_get_entry(table, m);
-
-    memset(&item_record, 0, sizeof(item_record));
-    item_record._rid = dupe_entry_get_rid(e);
-    item_record._intflags = dupe_entry_get_flags(e)
-            & (BtreeKey::KEY_BLOB_SIZE_SMALL
-               | BtreeKey::KEY_BLOB_SIZE_TINY
-               | BtreeKey::KEY_BLOB_SIZE_EMPTY);
-    st = db->get_backend()->read_record(txn, &item_record,
-              (ham_u64_t *)&dupe_entry_get_ridptr(e), flags);
-    if (st)
-      return (st);
-
-    cmp = foo((ham_db_t *)db, (ham_u8_t *)record->data, record->size,
-                      (ham_u8_t *)item_record.data, item_record.size);
-    /* item is lower than the left-most item of our range */
-    if (m == l) {
-      if (cmp < 0)
-        break;
-    }
-    if (l == r) {
-      if (cmp >= 0) {
-        /* write GEQ record value in NEXT slot */
-        m++;
-      }
-      else /* if (cmp < 0) */ {
-        ham_assert(m == r);
-      }
-      break;
-    }
-    else if (cmp == 0) {
-      /* write equal record value in NEXT slot */
-      m++;
-      break;
-    }
-    else if (cmp < 0) {
-      if (m == 0) /* new item will be smallest item in the list */
-          break;
-      r = m - 1;
-    }
-    else {
-      /* write GE record value in NEXT slot, when we have nothing
-       * left to search */
-      m++;
-      l = m;
-    }
-    m = (l + r) / 2;
-  }
-
-  /* now 'm' points at the insertion point in the table */
-  return (m);
-}
-
 ham_status_t
 DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
                 ham_record_t *record, ham_size_t position, ham_u32_t flags,
@@ -255,10 +161,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
                     &entries[0], sizeof(entries[0]));
   }
   else {
-    if (db->get_rt_flags() & HAM_SORT_DUPLICATES) {
-      position = get_sorted_position(db, txn, table, record, flags);
-    }
-    else if (flags & HAM_DUPLICATE_INSERT_BEFORE) {
+    if (flags & HAM_DUPLICATE_INSERT_BEFORE) {
       /* do nothing, insert at the current position */
     }
     else if (flags & HAM_DUPLICATE_INSERT_AFTER) {

@@ -158,8 +158,7 @@ public class DatabaseTest extends TestCase {
         Database db=new Database();
         MyDupeComparator cmp=new MyDupeComparator();
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_DUPLICATES
-                                  |Const.HAM_SORT_DUPLICATES);
+            db.create("jtest.db", Const.HAM_ENABLE_DUPLICATES);
             db.setDuplicateComparator(cmp);
             db.insert(k, r, Const.HAM_DUPLICATE);
             r[0]=1;
@@ -179,8 +178,7 @@ public class DatabaseTest extends TestCase {
         byte[] r=new byte[5];
         Database db=new Database();
         try {
-            db.create("jtest.db", Const.HAM_ENABLE_DUPLICATES
-                                  |Const.HAM_SORT_DUPLICATES);
+            db.create("jtest.db", Const.HAM_ENABLE_DUPLICATES);
             db.setDuplicateComparator(null);
             db.insert(k, r, Const.HAM_DUPLICATE);
             r[0]=1;

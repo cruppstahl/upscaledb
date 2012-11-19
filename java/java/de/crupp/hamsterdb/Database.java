@@ -41,9 +41,6 @@ public class Database {
     private native void ham_set_prefix_compare_func(long handle,
             PrefixCompareCallback cmp);
 
-    private native void ham_set_duplicate_compare_func(long handle,
-            DuplicateCompareCallback cmp);
-
     private native Environment ham_get_env(long handle);
 
     private native byte[] ham_find(long handle, long txnhandle,
@@ -211,11 +208,6 @@ public class Database {
      *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
      *            Enable duplicate keys for this Database. By default,
      *            duplicate keys are disabled.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
-     *            Sort duplicate keys for this Database. Only allowed in
-     *            combination with <code>Const.HAM_ENABLE_DUPLICATES</code>.
-     *            A compare function can be set with
-     *            ham_set_duplicate_compare_func. This flag is not persistent.
      *       <li><code>Const.HAM_DISABLE_MMAP</code></li>
      *            Do not use memory mapped files for I/O. By default,
      *            hamsterdb checks if it can use mmap, since mmap is
@@ -340,7 +332,6 @@ public class Database {
      *       <li><code>Const.HAM_AUTO_RECOVERY</code></li>
      *            Automatically recover the Database, if necessary. This
      *            flag implies <code>Const.HAM_ENABLE_RECOVERY</code>.
-     *       <li><code>Const.HAM_SORT_DUPLICATES</code></li>
      *       <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
      *       <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
      *      </ul>
@@ -432,24 +423,6 @@ public class Database {
     public synchronized void setPrefixComparator(PrefixCompareCallback cmp) {
         m_prefix_cmp=cmp;
         ham_set_prefix_compare_func(m_handle, cmp);
-    }
-
-    /**
-     * Sets the duplicate comparison function
-     * <p>
-     * This method wraps the native ham_set_duplicate_compare_func function.
-     * <p>
-     * @param cmp an object implementing the DuplicateCompareCallback
-     *          interface, or null
-     * <p>
-     * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga7d8cd9266c8e802685ee467d3bb35b3b">C documentation</a>
-     * <p>
-     * @see Database#setComparator
-     */
-    public synchronized void setDuplicateComparator(DuplicateCompareCallback
-            cmp) {
-        m_dupe_cmp=cmp;
-        ham_set_duplicate_compare_func(m_handle, cmp);
     }
 
     /**

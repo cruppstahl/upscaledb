@@ -130,7 +130,6 @@ namespace Hamster
             this.cursors = new List<Cursor>();
             pinnedCompareFunc = new NativeMethods.CompareFunc(MyCompareFunc);
             pinnedPrefixCompareFunc = new NativeMethods.PrefixCompareFunc(MyPrefixCompareFunc);
-            pinnedDupeCompareFunc = new NativeMethods.DuplicateCompareFunc(MyDuplicateCompareFunc);
         }
 
         internal Database(IntPtr handle) {
@@ -255,11 +254,6 @@ namespace Hamster
         ///         Creates an "auto-increment" Database. Keys in Record
         ///         Number Databases are automatically assigned an incrementing
         ///         64bit value.</item><br />
-        ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
-        ///         Sort duplicate keys for this Database. Only allowed in
-        ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
-        ///         This flag is not persistent.</item><br />
         ///     <item><see cref="HamConst.HAM_DISABLE_MMAP" />
         ///         Do not use memory mapped files for I/O. By default,
         ///         hamsterdb checks if it can use mmap, since mmap is faster
@@ -430,11 +424,6 @@ namespace Hamster
         ///         Automatically recover the Database, if necessary. This
         ///         flag imples <see cref="HamConst.HAM_ENABLE_RECOVERY" />.
         ///         </item><br />
-        ///     <item><see cref="HamConst.HAM_SORT_DUPLICATES" />
-        ///         Sort duplicate keys for this Database. Only allowed in
-        ///         combination with HAM_ENABLE_DUPLICATES. A compare function
-        ///         can be set with <see cref="Database.SetDuplicateCompareFunc"/>.
-        ///         This flag is not persistent.</item><br />
         ///   </list>
         /// </param>
         /// <param name="parameters">An array of <see cref="Parameter" />
@@ -561,45 +550,6 @@ namespace Hamster
         }
 
         private PrefixCompareFunc PrefixCompareFoo;
-
-        private int MyDuplicateCompareFunc(IntPtr dbhandle,
-                byte[] lhs, int lhs_length,
-                byte[] rhs, int rhs_length)
-        {
-            return DuplicateCompareFoo(lhs, rhs);
-        }
-
-        /// <summary>
-        /// Sets the duplicate comparison function
-        /// </summary>
-        /// <remarks>
-        /// This method wraps the native ham_set_duplicate_compare_func function.<br />
-        /// <br />
-        /// The <see cref="CompareFunc" /> delegate compares two records.
-        /// It returns -1 if the first record is smaller, +1 if the second record
-        /// is smaller or 0 if both records are equal.<br />
-        /// <br />
-        /// If <paramref name="foo"/> is null, hamsterdb will use the default
-        /// compare function (which is based on memcmp(3)).<br />
-        /// <br />
-        /// Note that duplicate comparison has to be enabled with
-        /// <see cref="HamConst.HAM_SORT_DUPLICATES"/>.
-        /// </remarks>
-        /// <param name="foo">The duplicate compare delegate, or null</param>
-        public void SetDuplicateCompareFunc(DuplicateCompareFunc foo)
-        {
-            int st;
-            lock (this)
-            {
-                st = NativeMethods.SetDuplicateCompareFunc(handle,
-                    pinnedDupeCompareFunc);
-            }
-            if (st != 0)
-                throw new DatabaseException(st);
-            DuplicateCompareFoo = foo;
-        }
-
-        private DuplicateCompareFunc DuplicateCompareFoo;
 
         /// <summary>
         /// Returns the last error code
@@ -974,6 +924,5 @@ namespace Hamster
         private List<Cursor> cursors;
         private NativeMethods.CompareFunc pinnedCompareFunc;
         private NativeMethods.PrefixCompareFunc pinnedPrefixCompareFunc;
-        private NativeMethods.DuplicateCompareFunc pinnedDupeCompareFunc;
     }
 }

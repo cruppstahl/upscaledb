@@ -925,7 +925,6 @@ _local_fun_create_db(Environment *env, Database *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
-             |HAM_SORT_DUPLICATES
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
 
@@ -1016,7 +1015,6 @@ _local_fun_create_db(Environment *env, Database *db,
         db->set_compare_func(db_default_compare);
         db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    db->set_duplicate_compare_func(db_default_compare);
     env->set_dirty(true);
 
     /* finally calculate and store the data access mode */
@@ -1037,7 +1035,6 @@ _local_fun_create_db(Environment *env, Database *db,
         db->set_compare_func(db_default_compare);
         db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    db->set_duplicate_compare_func(db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1170,7 +1167,6 @@ _local_fun_open_db(Environment *env, Database *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
-             |HAM_SORT_DUPLICATES
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
     db->set_rt_flags(flags|be->get_flags());
@@ -1185,18 +1181,6 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
     ham_assert(!(be->get_flags()&DB_USE_MMAP));
-
-    /*
-     * SORT_DUPLICATES is only allowed if the Database was created
-     * with ENABLE_DUPLICATES!
-     */
-    if ((flags&HAM_SORT_DUPLICATES)
-            && !(db->get_rt_flags()&HAM_ENABLE_DUPLICATES)) {
-        ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
-                   "enabled for this Database"));
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
-        return (HAM_INV_PARAMETER);
-    }
 
     /* finally calculate and store the data access mode */
     if (!dam) {
@@ -1216,7 +1200,6 @@ _local_fun_open_db(Environment *env, Database *db,
         db->set_compare_func(db_default_compare);
         db->set_prefix_compare_func(db_default_prefix_compare);
     }
-    db->set_duplicate_compare_func(db_default_compare);
 
     /*
      * if this is a recno database: read the highest recno

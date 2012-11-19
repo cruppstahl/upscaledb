@@ -23,10 +23,10 @@ o involve everyone in decisions on the new interface
     x Do you use zlib compression?
       Remove including all record filters, 3rdparty, dotnet, java, win32
     x Remove unittests/filter.cpp
-    o Remove ham_get_keycount_per_page (make available through other function?)
-    o Remove ham_calc_maxkeys_per_page
-    o Remove other stuff from hamsterdb_int.h
-    o Get rid of sorted duplicates
+    x Remove ham_get_keycount_per_page (make available through other function?)
+    x Remove ham_calc_maxkeys_per_page
+    x Remove other stuff from hamsterdb_int.h
+    x Get rid of sorted duplicates
     o Do you use any of the HAM_HINT_* flags?
       Yes, leave APPEND and PREPEND; check when they are used. are they really
         needed? the histogram should do that automatically
@@ -37,11 +37,22 @@ o involve everyone in decisions on the new interface
     o update Webpage
 
 o clean up interface
-    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
-    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
     o rename ham_cursor_find_ex to ham_cursor_find
     o clean up ham_flush, ham_env_flush
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
+    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
+    o review all interfaces whether they consequently sort parameters
+        in... out
+
+o clean up the "close" functions
+    o ham_close - move all functionality to Database::close
+    o ham_env_close - move all functionality to Environment::close
+    o ~Database: call close(), then simplify all code
+    o ~Environment: call close(), then simplify all code
+    o Cursor::close: currently (nearly) empty; merge with ~Cursor and
+        Database::close_cursor()
+    o do not have st2/st; just fail if there's a serious problem
 
 o freelist rewrite - make files smaller, make hamsterdb faster
     o freelist.h
@@ -135,15 +146,6 @@ o also remove locking from C# and Java APIs
 
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work
-
-o clean up the "close" functions
-    o ham_close - move all functionality to Database::close
-    o ham_env_close - move all functionality to Environment::close
-    o ~Database: call close(), then simplify all code
-    o ~Environment: call close(), then simplify all code
-    o Cursor::close: currently (nearly) empty; merge with ~Cursor and
-        Database::close_cursor()
-    o do not have st2/st; just fail if there's a serious problem
 
 o BtreeFindAction: always use a cursor, and when doing approx matching
     then simply move left or right with that cursor

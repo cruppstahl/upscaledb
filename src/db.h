@@ -473,16 +473,6 @@ class Database
         m_cmp_func=f;
     }
 
-    /** get the duplicate record comparison function */
-    ham_compare_func_t get_duplicate_compare_func() {
-        return (m_duperec_func);
-    }
-
-    /** set the duplicate record comparison function */
-    void set_duplicate_compare_func(ham_compare_func_t f) {
-        m_duperec_func=f;
-    }
-
     /**
      * get the runtime-flags - the flags are "mixed" with the flags from
      * the Environment
@@ -747,9 +737,6 @@ class Database
 
     /** the comparison function */
     ham_compare_func_t m_cmp_func;
-
-    /** the duplicate keys record comparison function */
-    ham_compare_func_t m_duperec_func;
 
     /** the database flags - a combination of the persistent flags
      * and runtime flags */

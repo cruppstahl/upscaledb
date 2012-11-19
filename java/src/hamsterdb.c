@@ -1256,20 +1256,6 @@ Java_de_crupp_hamsterdb_Transaction_ham_1txn_1abort(JNIEnv *jenv,
     return (ham_txn_abort((ham_txn_t *)jhandle, (ham_u32_t)jflags));
 }
 
-JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1set_1duplicate_1compare_1func(
-        JNIEnv *jenv, jobject jobj, jlong jhandle, jobject jcmp)
-{
-    /* jcmp==null: set default compare function */
-    if (!jcmp) {
-        ham_set_duplicate_compare_func((ham_db_t *)jhandle, 0);
-        return;
-    }
-
-    ham_set_duplicate_compare_func((ham_db_t *)jhandle,
-                    jni_duplicate_compare_func);
-}
-
 JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Database_ham_1get_1parameters(JNIEnv *jenv,
         jobject jobj, jlong jhandle, jobjectArray jparams)

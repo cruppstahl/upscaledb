@@ -233,29 +233,6 @@ namespace Unittests
         }
 
         [TestMethod()]
-        public void SetDuplicateComparator()
-        {
-            Database db = new Database();
-            byte[] k = new byte[5];
-            byte[] r = new byte[5];
-            compareCounter = 0;
-            try
-            {
-                db.Create("ntest.db", HamConst.HAM_ENABLE_DUPLICATES|HamConst.HAM_SORT_DUPLICATES);
-                db.SetDuplicateCompareFunc(new DuplicateCompareFunc(MyDupeCompareFunc));
-                db.Insert(k, r);
-                r[0] = 1;
-                db.Insert(k, r, HamConst.HAM_DUPLICATE);
-                db.Close();
-            }
-            catch (DatabaseException e)
-            {
-                Assert.Fail("unexpected exception " + e);
-            }
-            Assert.AreEqual(1, compareCounter);
-        }
-
-        [TestMethod()]
         public void EnableCompression() {
             Database db = new Database();
             db.Create("ntest.db");
