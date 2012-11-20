@@ -295,7 +295,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
         value=1;
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
                 ham_cursor_move(cursor, &key, 0, 0));
@@ -343,7 +343,7 @@ public:
         BFC_ASSERT(!btc->is_uncoupled());
 
         /* move to item: cursor is coupled */
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0, 0));
         BFC_ASSERT(btc->is_coupled());
         BFC_ASSERT(!btc->is_uncoupled());
 
@@ -357,7 +357,7 @@ public:
         BFC_ASSERT(btc->is_uncoupled());
 
         /* move to item: cursor is coupled */
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0, 0));
         BFC_ASSERT(btc->is_coupled());
         BFC_ASSERT(!btc->is_uncoupled());
 

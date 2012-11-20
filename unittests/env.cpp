@@ -1112,7 +1112,7 @@ protected:
                 key.data=buffer;
                 key.size=(ham_u16_t)strlen(buffer)+1;
 
-                BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
+                BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0, 0));
                 BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor[i], 0));
             }
         }
@@ -1134,7 +1134,7 @@ protected:
 
                     if (j&1) { // must exist
                         BFC_ASSERT_EQUAL(0,
-                                ham_cursor_find(cursor[i], &key, 0));
+                                ham_cursor_find(cursor[i], &key, 0, 0));
                         BFC_ASSERT_EQUAL(0,
                                 ham_cursor_move(cursor[i], 0, &rec, 0));
                         BFC_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1,
@@ -1144,7 +1144,7 @@ protected:
                     }
                     else { // was deleted
                         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
-                                ham_cursor_find(cursor[i], &key, 0));
+                                ham_cursor_find(cursor[i], &key, 0, 0));
                     }
                 }
             }

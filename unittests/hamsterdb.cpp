@@ -846,35 +846,40 @@ public:
             key.flags = HAM_KEY_USER_ALLOC;
 
             PREP();
-            BFC_ASSERT_EQUAL_I((eq_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, 0), i);
+            BFC_ASSERT_EQUAL_I((eq_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, 0), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_EQUAL_I((k ? k->val1 : 666), looking_for, i);
             BFC_ASSERT_EQUAL_I((r ? r->val1 : 666), (eq_expect ? looking_for * 50 : 666), i);
 
             PREP();
-            BFC_ASSERT_EQUAL_I((lt_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, HAM_FIND_LT_MATCH), i);
+            BFC_ASSERT_EQUAL_I((lt_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, HAM_FIND_LT_MATCH), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_EQUAL_I((k ? k->val1 : 666), (lt_expect ? lt_keyval : looking_for), i); // key is untouched when no match found at all
             BFC_ASSERT_EQUAL_I((r ? r->val1 : 666), (lt_expect ? lt_keyval * 50 : 666), i);
 
             PREP();
-            BFC_ASSERT_EQUAL_I((gt_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, HAM_FIND_GT_MATCH), i);
+            BFC_ASSERT_EQUAL_I((gt_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, HAM_FIND_GT_MATCH), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_EQUAL_I((k ? k->val1 : 666), (gt_expect ? gt_keyval : looking_for), i); // key is untouched when no match found at all
             BFC_ASSERT_EQUAL_I((r ? r->val1 : 666), (gt_expect ? gt_keyval * 50 : 666), i);
 
             PREP();
-            BFC_ASSERT_EQUAL_I((le_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, HAM_FIND_LEQ_MATCH), i);
+            BFC_ASSERT_EQUAL_I((le_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, HAM_FIND_LEQ_MATCH), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_EQUAL_I((k ? k->val1 : 666), (le_expect ? le_keyval : looking_for), i); // key is untouched when no match found at all
             BFC_ASSERT_EQUAL_I((r ? r->val1 : 666), (le_expect ? le_keyval * 50 : 666), i);
 
             PREP();
-            BFC_ASSERT_EQUAL_I((ge_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, HAM_FIND_GEQ_MATCH), i);
+            BFC_ASSERT_EQUAL_I((ge_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, HAM_FIND_GEQ_MATCH), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_EQUAL_I((k ? k->val1 : 666), (ge_expect ? ge_keyval : looking_for), i); // key is untouched when no match found at all
@@ -882,7 +887,8 @@ public:
 
             PREP();
             bool mix_expect = (le_expect || ge_expect);
-            BFC_ASSERT_EQUAL_I((mix_expect ? 0 : HAM_KEY_NOT_FOUND), ham_cursor_find_ex(cursor, &key, &rec, HAM_FIND_NEAR_MATCH), i);
+            BFC_ASSERT_EQUAL_I((mix_expect ? 0 : HAM_KEY_NOT_FOUND),
+                    ham_cursor_find(cursor, &key, &rec, HAM_FIND_NEAR_MATCH), i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
             BFC_ASSERT_I(((k ? k->val1 : 666) == le_keyval)
@@ -896,7 +902,7 @@ public:
             PREP();
             mix_expect = (lt_expect || gt_expect);
             BFC_ASSERT_EQUAL_I((mix_expect ? 0 : HAM_KEY_NOT_FOUND),
-                            ham_cursor_find_ex(cursor, &key, &rec, (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)),
+                            ham_cursor_find(cursor, &key, &rec, (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)),
                             i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
@@ -1535,9 +1541,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find(0, key, 0));
+                ham_cursor_find(0, key, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find(cursor, 0, 0));
+                ham_cursor_find(cursor, 0, 0, 0));
 
         ham_cursor_close(cursor);
     }
@@ -1596,7 +1602,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
         value=1;
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
                 ham_cursor_move(cursor, &key, 0, 0));
@@ -1965,16 +1971,16 @@ public:
                     HAM_HINT_PREPEND));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find(cursor, &key,
+                ham_cursor_find(cursor, &key, 0,
                     HAM_HINT_APPEND));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find(cursor, &key,
+                ham_cursor_find(cursor, &key, 0,
                     HAM_HINT_PREPEND));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_cursor_find(cursor, &key, &rec,
                     HAM_HINT_APPEND));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_cursor_find(cursor, &key, &rec,
                     HAM_HINT_PREPEND));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_find(m_db, 0, &key, &rec,
@@ -2007,7 +2013,7 @@ public:
 
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_cursor_find(cursor, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL((unsigned)6, rec.size);
         BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
@@ -2090,7 +2096,7 @@ public:
                 ham_find(m_db, 0, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_cursor_find(cursor, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_cursor_move(cursor, &key, &rec,
@@ -2109,7 +2115,7 @@ public:
                 ham_find(m_db, 0, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_cursor_find(cursor, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_cursor_move(cursor, &key, &rec,

@@ -1814,8 +1814,7 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
                 HAM_DONT_LOCK, (ham_cursor_t **)&c);
         if (st)
             return (st);
-        st=ham_cursor_find_ex((ham_cursor_t *)c, key, record,
-                            flags|HAM_DONT_LOCK);
+        st=ham_cursor_find((ham_cursor_t *)c, key, record, flags|HAM_DONT_LOCK);
         m_db->close_cursor(c);
         return (st);
     }

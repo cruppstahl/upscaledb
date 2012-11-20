@@ -1034,7 +1034,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_find_ex(cursor, &key, send_rec ? &rec : 0,
+  st = ham_cursor_find(cursor, &key, send_rec ? &rec : 0,
                 request->cursor_find_request().flags());
   if (st==0) {
     /* approx matching: key->_flags was modified! */

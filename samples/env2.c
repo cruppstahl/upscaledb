@@ -261,7 +261,7 @@ main(int argc, char **argv)
          */
         c2o_key.data=&customer->id;
         c2o_key.size=sizeof(int);
-        st=ham_cursor_find(cursor[2], &c2o_key, 0);
+        st=ham_cursor_find(cursor[2], &c2o_key, 0, 0);
         if (st!=HAM_SUCCESS) {
             if (st==HAM_KEY_NOT_FOUND)
                 continue;

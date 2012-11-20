@@ -1657,7 +1657,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(0,
-                ham_cursor_find(c, &key, 0));
+                ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
 
@@ -1687,7 +1687,7 @@ public:
                 ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(400u, rec.size);
         BFC_ASSERT_EQUAL(0,
-                ham_cursor_find(c, &key, 0));
+                ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(400u, rec.size);
@@ -1699,7 +1699,7 @@ public:
                 ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(500u, rec.size);
         BFC_ASSERT_EQUAL(0,
-                ham_cursor_find(c, &key, 0));
+                ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(500u, rec.size);
@@ -1790,7 +1790,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_find(db, 0, &key, &rec, HAM_PARTIAL));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_find_ex(c, &key, &rec, HAM_PARTIAL));
+                ham_cursor_find(c, &key, &rec, HAM_PARTIAL));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL));
 

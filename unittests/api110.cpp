@@ -373,7 +373,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                    ham_cursor_find(cursor, &key, HAM_FIND_GEQ_MATCH));
+                    ham_cursor_find(cursor, &key, 0, HAM_FIND_GEQ_MATCH));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

@@ -699,7 +699,7 @@ public:
         key.size=2;
         ham_record_t rec={0};
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         for (int i=0; i<3; i++) {
             BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
             BFC_ASSERT_EQUAL(0, strcmp(exp[i], (char *)rec.data));
@@ -1001,14 +1001,14 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c1));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c2));
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0, 0));
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0, 0));
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
@@ -1058,14 +1058,14 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c1));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c2));
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0, 0));
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c1, &key, &rec, 0));
         BFC_ASSERT_EQUAL(1, *(int *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0, 0));
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
@@ -1491,7 +1491,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
         BFC_ASSERT_EQUAL(_ham_byteswap32(125), *(unsigned int *)rec.data);
@@ -1533,28 +1533,28 @@ public:
         insertData(0, "5555555555");
 
         memset(&key, 0, sizeof(key));
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
 
         memset(&key, 0, sizeof(key));
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
 
         memset(&key, 0, sizeof(key));
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
 
         memset(&key, 0, sizeof(key));
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
 
         memset(&key, 0, sizeof(key));
-        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
 
         memset(&key, 0, sizeof(key));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
-                        ham_cursor_find(c, &key, 0));
+                        ham_cursor_find(c, &key, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }

@@ -2433,14 +2433,8 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     return (db->set_error(st));
 }
 
-ham_status_t HAM_CALLCONV
-ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key, ham_u32_t flags)
-{
-    return (ham_cursor_find_ex(hcursor, key, NULL, flags));
-}
-
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_find_ex(ham_cursor_t *hcursor, ham_key_t *key,
+ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     Database *db;

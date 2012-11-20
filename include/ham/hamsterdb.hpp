@@ -542,15 +542,8 @@ public:
     }
 
     /** Finds a key. */
-    void find(key *k, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_find(m_cursor, k->get_handle(), flags);
-        if (st)
-            throw error(st);
-    }
-
-    /** Finds a key. */
-    void find_ex(key *k, record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_find_ex(m_cursor, k->get_handle(),
+    void find(key *k, record *r=0, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_find(m_cursor, k->get_handle(),
                         (r ? r->get_handle() : 0), flags);
         if (st)
             throw error(st);
