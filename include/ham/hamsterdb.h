@@ -1951,20 +1951,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 #define HAM_PARAM_GET_KEYS_PER_PAGE     0x00000204
 
 /**
- * Retrieve the flags which were specified when the Database was created
- * or opened
- *
- * @param db A valid Database handle
- *
- * @return The Database flags
- *
- * @deprecated This function was replaced by @ref ham_get_parameters
- * and @ref ham_env_get_parameters
- */
-HAM_EXPORT ham_u32_t HAM_CALLCONV
-ham_get_flags(ham_db_t *db);
-
-/**
  * Retrieve the Environment handle of a Database
  *
  * Every Database belongs to an Environment, even if it was created with

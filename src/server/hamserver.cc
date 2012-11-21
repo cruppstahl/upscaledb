@@ -712,7 +712,8 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
                     request->db_insert_request().flags());
 
       /* recno: return the modified key */
-      if ((st == 0) && (ham_get_flags(db) & HAM_RECORD_NUMBER)) {
+      if ((st == 0)
+          && (((Database *)db)->get_rt_flags(true) & HAM_RECORD_NUMBER)) {
         ham_assert(key.size == sizeof(ham_offset_t));
         send_key = HAM_TRUE;
       }
@@ -953,7 +954,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
   /* recno: return the modified key */
   if (st == 0) {
     Cursor *c = (Cursor *)cursor;
-    if (ham_get_flags((ham_db_t *)c->get_db()) & HAM_RECORD_NUMBER) {
+    if (c->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
       ham_assert(key.size == sizeof(ham_offset_t));
       send_key = true;
     }

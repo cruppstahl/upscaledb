@@ -39,6 +39,9 @@ o clean up interface
     x rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
     x rename ham_cursor_find_ex to ham_cursor_find
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+        o ham_get_parameters and ham_env_get_parameters should not
+            allow the use of the same parameters
+        x remove ham_get_flags since it's obsolete
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
     o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters

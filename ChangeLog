@@ -1,4 +1,5 @@
 Nov 21, 2012 - chris ---------------------------------------------------
+o Removed ham_get_flags; use ham_get_parameters instead
 o Removed the HAM_DAM_* flags
 
 Nov 20, 2012 - chris ---------------------------------------------------

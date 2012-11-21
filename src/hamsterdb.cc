@@ -2738,18 +2738,7 @@ ham_cursor_get_database(ham_cursor_t *hcursor)
         return (0);
 }
 
-ham_u32_t
-ham_get_flags(ham_db_t *hdb)
-{
-    Database *db=(Database *)hdb;
-    if (!db)
-        return (0);
-
-    ScopedLock lock(db->get_env()->get_mutex());
-    return (db->get_rt_flags());
-}
-
-ham_env_t *
+ham_env_t * HAM_CALLCONV
 ham_get_env(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
