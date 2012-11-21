@@ -133,7 +133,7 @@ main(int argc, char **argv)
     /*
      * Now create a new database file for the Environment
      */
-    st=ham_env_create_ex(env, "test.db", 0, 0664, 0);
+    st=ham_env_create(env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 

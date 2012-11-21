@@ -20,7 +20,7 @@ public class Environment {
 
     private native void ham_env_delete(long handle);
 
-    private native int ham_env_create_ex(long handle, String filename,
+    private native int ham_env_create(long handle, String filename,
             int flags, int mode, Parameter[] params);
 
     private native int ham_env_open(long handle, String filename, int flags,
@@ -94,7 +94,7 @@ public class Environment {
     /**
      * Creates a new Database Environment
      * <p>
-     * This method wraps the native ham_env_create_ex function.
+     * This method wraps the native ham_env_create function.
      * <p>
      * @param filename the filename of the Environment file. If the file
      *          already exists, it is overwritten. Can be null for an In-Memory
@@ -167,7 +167,7 @@ public class Environment {
             if (m_handle==0)
                 throw new DatabaseException(Const.HAM_OUT_OF_MEMORY);
         }
-        status=ham_env_create_ex(m_handle, filename, flags, mode, params);
+        status=ham_env_create(m_handle, filename, flags, mode, params);
         if (status!=0)
             throw new DatabaseException(status);
     }

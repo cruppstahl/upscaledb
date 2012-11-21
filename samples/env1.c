@@ -122,11 +122,8 @@ main(int argc, char **argv)
 
     /*
      * now create a new database file for the environment
-     *
-     * we could also use ham_env_create_ex() if we wanted to specify the
-     * page size, key size or cache size limits
      */
-    st=ham_env_create(env, "test.db", 0, 0664);
+    st=ham_env_create(env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 

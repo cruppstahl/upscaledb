@@ -65,7 +65,7 @@ public:
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(m_env, BFC_OPATH(".test"),
                         HAM_ENABLE_TRANSACTIONS
-                        | HAM_ENABLE_RECOVERY, 0644));
+                        | HAM_ENABLE_RECOVERY, 0644, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(m_env, m_db, 13,
                         HAM_ENABLE_DUPLICATES, 0));
@@ -291,7 +291,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
+                ham_env_create(env, ".test.db", 0, 0644, &param[0]));
         Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());
@@ -309,7 +309,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
+                ham_env_create(env, ".test.db", 0, 0644, &param[0]));
         ham_env_close(env, 0);
         BFC_ASSERT_EQUAL(0,
                 ham_env_open(env, ".test.db", 0, &param[0]));

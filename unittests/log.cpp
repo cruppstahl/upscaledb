@@ -396,7 +396,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY, 0664));
+                        HAM_ENABLE_RECOVERY, 0664, 0));
         BFC_ASSERT(((Environment *)env)->get_log() != 0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(((Environment *)env)->get_log()!=0);
@@ -472,7 +472,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY, 0664));
+                        HAM_ENABLE_RECOVERY, 0664, 0));
         BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(((Environment *)env)->get_log()!=0);
@@ -573,7 +573,7 @@ public:
 
         /* for traversing the logfile we need a temp. Env handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664, 0));
         log=((Environment *)env)->get_log();
         BFC_ASSERT_EQUAL((Log *)0, log);
         log=new Log((Environment *)env);
@@ -890,7 +890,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"),
-                    HAM_ENABLE_RECOVERY, 0664));
+                    HAM_ENABLE_RECOVERY, 0664, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

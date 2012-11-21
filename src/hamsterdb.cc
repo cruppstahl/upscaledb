@@ -945,14 +945,7 @@ ham_env_delete(ham_env_t *henv)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_create(ham_env_t *env, const char *filename,
-        ham_u32_t flags, ham_u32_t mode)
-{
-    return (ham_env_create_ex(env, filename, flags, mode, 0));
-}
-
-ham_status_t HAM_CALLCONV
-ham_env_create_ex(ham_env_t *henv, const char *filename,
+ham_env_create(ham_env_t *henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -1621,7 +1614,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     db->set_rt_flags(0);
 
     /*
-     * setup the parameters for ham_env_create_ex
+     * setup the parameters for ham_env_create
      */
     env_param[0].name=HAM_PARAM_CACHESIZE;
     env_param[0].value=(flags&HAM_IN_MEMORY) ? 0 : cachesize;
@@ -1642,7 +1635,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     if (st)
         goto bail;
 
-    st=ham_env_create_ex(env, filename, env_flags, mode, env_param);
+    st=ham_env_create(env, filename, env_flags, mode, env_param);
     if (st)
         goto bail;
 

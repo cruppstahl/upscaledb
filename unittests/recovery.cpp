@@ -88,13 +88,13 @@ insert(int argc, char **argv)
             { HAM_PARAM_KEYSIZE, 200 },
             { 0, 0 }
         };
-        st=ham_env_create_ex(env, "recovery.db",
+        st=ham_env_create(env, "recovery.db",
                         (dupes ? HAM_ENABLE_DUPLICATES : 0)
                             | (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                             | HAM_ENABLE_RECOVERY, 0644,
                         &params[0]);
         if (st) {
-            printf("ham_env_create_ex failed: %d\n", (int)st);
+            printf("ham_env_create failed: %d\n", (int)st);
             exit(-1);
         }
         st=ham_env_create_db(env, db, 1, 0, 0);

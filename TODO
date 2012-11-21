@@ -48,7 +48,7 @@ o clean up interface
         HAM_LOCK_EXCLUSIVE
         HAM_IN_MEMORY_DB
     x rename ham_env_open_ex to ham_env_open
-    o rename ham_env_create_ex to ham_env_create
+    x rename ham_env_create_ex to ham_env_create
     o remove ham_open[_ex]
     o remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters

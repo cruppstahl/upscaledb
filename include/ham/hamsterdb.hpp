@@ -628,7 +628,7 @@ public:
             if (st)
                 throw error(st);
         }
-        st=ham_env_create_ex(m_env, filename, flags, mode, param);
+        st=ham_env_create(m_env, filename, flags, mode, param);
         if (st)
             throw error(st);
     }

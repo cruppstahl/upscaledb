@@ -93,7 +93,7 @@ namespace Hamster
         /// Creates a new Database
         /// </summary>
         /// <remarks>
-        /// This method wraps the native ham_env_create_ex function.
+        /// This method wraps the native ham_env_create function.
         /// <br />
         /// A Database Environment is a collection of Databases, which are all
         /// stored in one physical file (or in-memory). Per default, up to 16

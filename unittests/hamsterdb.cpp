@@ -592,7 +592,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create_ex(env, BFC_OPATH(".test"),
+                ham_env_create(env, BFC_OPATH(".test"),
                     HAM_DISABLE_MMAP, 0644, ps));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
@@ -1333,7 +1333,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env1));
         BFC_ASSERT_EQUAL(0, ham_new(&db1));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create(env1, BFC_OPATH(".test"), 0, 0664));
+                ham_env_create(env1, BFC_OPATH(".test"), 0, 0664, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_flush(env1, 0));
@@ -1692,7 +1692,7 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
+                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -1702,7 +1702,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664));
+                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }

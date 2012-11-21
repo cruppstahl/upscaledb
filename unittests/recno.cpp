@@ -517,7 +517,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
+                ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, m_db, 333, HAM_RECORD_NUMBER, 0));
         BFC_ASSERT_EQUAL(0,

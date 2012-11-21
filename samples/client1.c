@@ -50,12 +50,12 @@ main(int argc, char **argv)
     /*
      * now connect to the server which should listen at 8080
      *
-     * ham_env_create_ex() will not really create a new Environment but rather
-     * connect to an already existing one
+     * ham_env_create() will not create a new Environment at the specified
+     * location but open an already existing one instead
      */
-    st=ham_env_create_ex(env, "http://localhost:8080/env1.db", 0, 0, 0);
+    st=ham_env_create(env, "http://localhost:8080/env1.db", 0, 0, 0);
     if (st!=HAM_SUCCESS)
-        error("ham_env_create_ex", st);
+        error("ham_env_create", st);
 
     /*
      * now open a Database in this Environment

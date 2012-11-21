@@ -36,9 +36,9 @@ main(void)
     char input[1024];
 
     ham_env_new(&env);
-    st=ham_env_create_ex(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
+    st=ham_env_create(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
     if (st) {
-        printf("ham_env_create_ex: %d\n", st);
+        printf("ham_env_create: %d\n", st);
         exit(-1);
     }
 

@@ -136,7 +136,7 @@ class Environment
 
     /*
      * following here: function pointers which implement access to
-     * local or remote databases. they are initialized in ham_env_create_ex
+     * local or remote databases. they are initialized in ham_env_create
      * and ham_env_open after the Environment handle was initialized and
      * an allocator was created.
      *
@@ -387,7 +387,7 @@ class Environment
         return (m_changeset);
     }
 
-    /** get the pagesize as specified in ham_env_create_ex */
+    /** get the pagesize as specified in ham_env_create */
     ham_size_t get_pagesize() {
         return (m_pagesize);
     }
@@ -397,17 +397,17 @@ class Environment
         return (get_pagesize()-Page::sizeof_persistent_header);
     }
 
-    /** set the pagesize as specified in ham_env_create_ex */
+    /** set the pagesize as specified in ham_env_create */
     void set_pagesize(ham_size_t ps) {
         m_pagesize=ps;
     }
 
-    /** get the cachesize as specified in ham_env_create_ex/ham_env_open */
+    /** get the cachesize as specified in ham_env_create/ham_env_open */
     ham_u64_t get_cachesize() {
         return (m_cachesize);
     }
 
-    /** set the cachesize as specified in ham_env_create_ex/ham_env_open */
+    /** set the cachesize as specified in ham_env_create/ham_env_open */
     void set_cachesize(ham_u64_t cs) {
         m_cachesize=cs;
     }
@@ -584,7 +584,7 @@ class Environment
     /** the filename of the environment file */
     std::string m_filename;
 
-    /** the 'mode' parameter of ham_env_create_ex */
+    /** the 'mode' parameter of ham_env_create */
     ham_u32_t m_file_mode;
 
     /** the current transaction ID */

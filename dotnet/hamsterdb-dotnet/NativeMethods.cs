@@ -70,7 +70,7 @@ namespace Hamster
             CallingConvention = CallingConvention.Cdecl)]
         static public extern void DeleteEnvironmentHandle(IntPtr handle);
 
-        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_create_ex",
+        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_create",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int EnvCreate(IntPtr handle, String fileName, int flags,
                 int mode, Parameter[] parameters);

@@ -170,7 +170,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create_ex(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+                ham_env_create(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
                                 0664, &set_params[0]));
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
@@ -215,7 +215,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create_ex(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+                ham_env_create(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
                                 0664, &set_params[0]));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0,

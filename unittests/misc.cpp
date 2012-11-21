@@ -59,7 +59,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0,
-                    ham_env_create_ex(m_env, 0, HAM_IN_MEMORY, 0644, &p[0]));
+                    ham_env_create(m_env, 0, HAM_IN_MEMORY, 0644, &p[0]));
         BFC_ASSERT_EQUAL(0,
                     ham_env_create_db(m_env, m_db, 1, 0, 0));
 
