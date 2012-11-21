@@ -199,15 +199,10 @@ public class DatabaseTest extends TestCase {
         for (int i=0; i<params.length; i++) {
             params[i]=new Parameter();
         }
-        params[0].name=Const.HAM_PARAM_CACHESIZE;
-        params[1].name=Const.HAM_PARAM_KEYSIZE;
-        params[2].name=Const.HAM_PARAM_PAGESIZE;
-        params[3].name=Const.HAM_PARAM_MAX_ENV_DATABASES;
-        params[4].name=Const.HAM_PARAM_DBNAME;
-        params[5].name=Const.HAM_PARAM_GET_FLAGS;
-        params[6].name=Const.HAM_PARAM_GET_FILEMODE;
-        params[7].name=Const.HAM_PARAM_GET_FILENAME;
-        params[8].name=Const.HAM_PARAM_GET_KEYS_PER_PAGE;
+        params[0].name=Const.HAM_PARAM_KEYSIZE;
+        params[1].name=Const.HAM_PARAM_DATABASE_NAME;
+        params[2].name=Const.HAM_PARAM_FLAGS;
+        params[3].name=Const.HAM_PARAM_MAX_KEYS_PER_PAGE;
         Database db=new Database();
         try {
             db.create("jtest.db");
@@ -216,17 +211,11 @@ public class DatabaseTest extends TestCase {
         catch (DatabaseException err) {
             fail("Exception "+err);
         }
-        assertEquals(2*1024*1024, params[0].value);
-        assertEquals(21, params[1].value);
-        if (params[2].value!=1024*16 && params[2].value!=1024*64)
-            assertEquals(16*1024, params[2].value);
-        assertEquals(16, params[3].value);
-        assertEquals(61440, params[4].value);
-        assertEquals(524288, params[5].value);
-        assertEquals(420, params[6].value);
+        assertEquals(21, params[0].value);
+        assertEquals(61440, params[1].value);
+        assertEquals(524288, params[2].value);
+        assertEquals(420, params[3].value);
         assertEquals("jtest.db", params[7].stringValue);
-        // 510: linux/darwin; 2046: win32
-        assert(params[8].value==510 || params[8].value==2046);
         db.close();
     }
 

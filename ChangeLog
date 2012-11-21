@@ -1,4 +1,12 @@
 Nov 21, 2012 - chris ---------------------------------------------------
+o Refactored ham_get_parameters, ham_env_get_parameters and HAM_PARAM_*:
+    - HAM_PARAM_GET_FLAGS -> renamed to HAM_PARAM_FLAGS
+    - HAM_PARAM_GET_FILEMODE -> renamed to HAM_PARAM_FILEMODE
+    - HAM_PARAM_GET_FILEMODE -> renamed to HAM_PARAM_FILEMODE
+    - HAM_PARAM_MAX_ENV_DATABASES -> renamed to HAM_PARAM_MAX_DATABASES
+    - HAM_PARAM_GET_KEYS_PER_PAGE -> renamed to HAM_PARAM_MAX_KEYS_PER_PAGE
+    - Reduced list of options for ham_get_parameters; see hamsterdb.h
+    - Removed HAM_PARAM_DBNAME
 o Removed ham_get_flags; use ham_get_parameters instead
 o Removed the HAM_DAM_* flags
 

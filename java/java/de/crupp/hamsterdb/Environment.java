@@ -146,7 +146,7 @@ public class Environment {
      *      <ul>
      *        <li><code>Const.HAM_PARAM_CACHESIZE</code></li>
      *        <li><code>Const.HAM_PARAM_PAGESIZE</code></li>
-     *        <li><code>Const.HAM_PARAM_MAX_ENV_DATABASES</code></li>
+     *        <li><code>Const.HAM_PARAM_MAX_DATABASES</code></li>
      *      </ul>
      * <p>
      * More information about flags, parameters and possible exceptions:

@@ -267,17 +267,18 @@ protected:
         const ham_parameter_t parameters[]={
            { HAM_PARAM_CACHESIZE,  128*1024 },
            { HAM_PARAM_PAGESIZE, 64*1024 },
-           { HAM_PARAM_MAX_ENV_DATABASES, 128 },
+           { HAM_PARAM_MAX_DATABASES, 128 },
            { 0, 0 }
         };
         const ham_parameter_t parameters2[]={
            { HAM_PARAM_CACHESIZE,  128*1024 },
            { 0, 0 }
         };
+
         ham_parameter_t ps[]={
            { HAM_PARAM_CACHESIZE,0},
            { HAM_PARAM_PAGESIZE, 0},
-           { HAM_PARAM_MAX_ENV_DATABASES, 0},
+           { HAM_PARAM_MAX_DATABASES, 0},
            { 0, 0 }
         };
 
@@ -324,10 +325,6 @@ protected:
 
             for (j = 0; ps[j].name; j++)
                 ps[j].value = 0;
-            BFC_ASSERT_EQUAL(0, ham_get_parameters(db[i], ps));
-            BFC_ASSERT_EQUAL(128*1024u, ps[0].value);
-            BFC_ASSERT_EQUAL(1024*64u, ps[1].value);
-            BFC_ASSERT_EQUAL(128u, ps[2].value);
         }
 
         BFC_ASSERT_EQUAL(0, ham_delete(dbx));
@@ -554,7 +551,7 @@ protected:
         ham_parameter_t parameters2[]={
            { HAM_PARAM_CACHESIZE,    1024*128 },
            { HAM_PARAM_PAGESIZE,   1024*4 },
-           { HAM_PARAM_MAX_ENV_DATABASES, MAX },
+           { HAM_PARAM_MAX_DATABASES, MAX },
            { 0, 0 }
         };
 
@@ -1686,7 +1683,7 @@ protected:
     void maxDatabasesTest(void)
     {
         ham_env_t *env;
-        ham_parameter_t ps[]={{HAM_PARAM_MAX_ENV_DATABASES,   0}, {0, 0}};
+        ham_parameter_t ps[]={{HAM_PARAM_MAX_DATABASES,   0}, {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
@@ -1727,7 +1724,7 @@ protected:
     {
         ham_env_t *env;
         ham_db_t *db;
-        ham_parameter_t ps[]={{HAM_PARAM_MAX_ENV_DATABASES,  50}, {0, 0}};
+        ham_parameter_t ps[]={{HAM_PARAM_MAX_DATABASES,  50}, {0, 0}};
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));

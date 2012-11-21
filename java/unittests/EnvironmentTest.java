@@ -286,10 +286,10 @@ public class EnvironmentTest extends TestCase {
         }
         params[0].name=Const.HAM_PARAM_CACHESIZE;
         params[1].name=Const.HAM_PARAM_PAGESIZE;
-        params[2].name=Const.HAM_PARAM_MAX_ENV_DATABASES;
-        params[3].name=Const.HAM_PARAM_GET_FLAGS;
-        params[4].name=Const.HAM_PARAM_GET_FILEMODE;
-        params[5].name=Const.HAM_PARAM_GET_FILENAME;
+        params[2].name=Const.HAM_PARAM_MAX_DATABASES;
+        params[3].name=Const.HAM_PARAM_FLAGS;
+        params[4].name=Const.HAM_PARAM_FILEMODE;
+        params[5].name=Const.HAM_PARAM_FILENAME;
         try {
             env.create("jtest.db");
             env.getParameters(params);

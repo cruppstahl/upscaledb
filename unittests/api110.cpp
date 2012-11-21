@@ -154,17 +154,17 @@ public:
         {
             {HAM_PARAM_CACHESIZE, 0},
             {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_MAX_DATABASES, 0},
+            {HAM_PARAM_FLAGS, 0},
+            {HAM_PARAM_FILEMODE, 0},
+            {HAM_PARAM_FILENAME, 0},
             {0,0}
         };
         ham_parameter_t set_params[] =
         {
             {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_PAGESIZE, 1024*64},
-            {HAM_PARAM_MAX_ENV_DATABASES, 32},
+            {HAM_PARAM_MAX_DATABASES, 32},
             {0,0}
         };
 
@@ -180,13 +180,13 @@ public:
         BFC_ASSERT_EQUAL(1024*64u,
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)32,
-                get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
+                get_param_value(params, HAM_PARAM_MAX_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_GET_FLAGS));
+                get_param_value(params, HAM_PARAM_FLAGS));
         BFC_ASSERT_EQUAL((ham_offset_t)0664,
-                get_param_value(params, HAM_PARAM_GET_FILEMODE));
+                get_param_value(params, HAM_PARAM_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
-                (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
+                (char *)get_param_value(params, HAM_PARAM_FILENAME)));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -199,17 +199,17 @@ public:
         {
             {HAM_PARAM_CACHESIZE, 0},
             {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_MAX_DATABASES, 0},
+            {HAM_PARAM_FLAGS, 0},
+            {HAM_PARAM_FILEMODE, 0},
+            {HAM_PARAM_FILENAME, 0},
             {0,0}
         };
         ham_parameter_t set_params[] =
         {
             {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_PAGESIZE, 1024*64},
-            {HAM_PARAM_MAX_ENV_DATABASES, 32},
+            {HAM_PARAM_MAX_DATABASES, 32},
             {0,0}
         };
 
@@ -228,13 +228,13 @@ public:
         BFC_ASSERT_EQUAL(1024*64u,
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)32,
-                get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
+                get_param_value(params, HAM_PARAM_MAX_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_READ_ONLY,
-                get_param_value(params, HAM_PARAM_GET_FLAGS));
+                get_param_value(params, HAM_PARAM_FLAGS));
         BFC_ASSERT_EQUAL((ham_offset_t)0644,
-                get_param_value(params, HAM_PARAM_GET_FILEMODE));
+                get_param_value(params, HAM_PARAM_FILEMODE));
         BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
-                (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
+                (char *)get_param_value(params, HAM_PARAM_FILENAME)));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -245,15 +245,10 @@ public:
         ham_db_t *db;
         ham_parameter_t params[] =
         {
-            {HAM_PARAM_CACHESIZE, 0},
             {HAM_PARAM_KEYSIZE, 0},
-            {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_DBNAME, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
-            {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
+            {HAM_PARAM_DATABASE_NAME, 0},
+            {HAM_PARAM_FLAGS, 0},
+            {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
             {0,0}
         };
 
@@ -271,24 +266,14 @@ public:
                         HAM_CACHE_STRICT, 0644, &set_params[0]));
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-        BFC_ASSERT_EQUAL(1024*32u,
-                get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(16u,
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-        BFC_ASSERT_EQUAL(1024u,
-                get_param_value(params, HAM_PARAM_PAGESIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)13,
-                get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)36,
-                get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
+                get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_DATABASE_NAME,
-                get_param_value(params, HAM_PARAM_DBNAME));
+                get_param_value(params, HAM_PARAM_DATABASE_NAME));
         BFC_ASSERT_EQUAL((ham_offset_t)DB_ENV_IS_PRIVATE|HAM_CACHE_STRICT|HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_GET_FLAGS));
-        BFC_ASSERT_EQUAL((ham_offset_t)0644,
-                get_param_value(params, HAM_PARAM_GET_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(".test.db",
-                (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
+                get_param_value(params, HAM_PARAM_FLAGS));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
@@ -299,15 +284,10 @@ public:
         ham_db_t *db;
         ham_parameter_t params[] =
         {
-            {HAM_PARAM_CACHESIZE, 0},
             {HAM_PARAM_KEYSIZE, 0},
-            {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_DBNAME, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
-            {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
+            {HAM_PARAM_DATABASE_NAME, 0},
+            {HAM_PARAM_FLAGS, 0},
+            {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
             {0,0}
         };
 
@@ -329,24 +309,14 @@ public:
                         HAM_READ_ONLY, 0));
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_CACHESIZE,
-                get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(16u,
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-        BFC_ASSERT_EQUAL(1024u,
-                get_param_value(params, HAM_PARAM_PAGESIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)13,
-                get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)36,
-                get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
+                get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_DATABASE_NAME,
-                get_param_value(params, HAM_PARAM_DBNAME));
+                get_param_value(params, HAM_PARAM_DATABASE_NAME));
         BFC_ASSERT_EQUAL((ham_offset_t)DB_ENV_IS_PRIVATE|HAM_READ_ONLY|HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_GET_FLAGS));
-        BFC_ASSERT_EQUAL((ham_offset_t)0644,
-                get_param_value(params, HAM_PARAM_GET_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(".test.db",
-                (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
+                get_param_value(params, HAM_PARAM_FLAGS));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

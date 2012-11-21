@@ -143,21 +143,19 @@ namespace Hamster
         /// <summary>Parameter name for Database.Create</summary>
         public const int HAM_PARAM_KEYSIZE                  =    0x102;
         /// <summary>Parameter name for Environment.Create</summary>
-        public const int HAM_PARAM_MAX_ENV_DATABASES        =    0x103;
+        public const int HAM_PARAM_MAX_DATABASES            =    0x103;
 
         // Database operations
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_FLAGS            =        0x00000200;
+        public const int HAM_PARAM_FLAGS                    = 0x00000200;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_FILEMODE         =        0x00000201;
+        public const int HAM_PARAM_FILEMODE                 = 0x00000201;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_FILENAME         =        0x00000202;
+        public const int HAM_PARAM_FILENAME                 = 0x00000202;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_DBNAME               =        0x00000203;
+        public const int HAM_PARAM_DATABASE_NAME            = 0x00000203;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_KEYS_PER_PAGE    =        0x00000204;
-        /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_STATISTICS       =        0x00000206;
+        public const int HAM_PARAM_MAX_KEYS_PER_PAGE        = 0x00000204;
 
         // Database operations
         /// <summary>Flag for Database.Insert, Cursor.Insert</summary>

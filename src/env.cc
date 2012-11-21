@@ -799,16 +799,16 @@ _local_fun_get_parameters(Environment *env, ham_parameter_t *param)
             case HAM_PARAM_PAGESIZE:
                 p->value=env->get_pagesize();
                 break;
-            case HAM_PARAM_MAX_ENV_DATABASES:
+            case HAM_PARAM_MAX_DATABASES:
                 p->value=env->get_max_databases();
                 break;
-            case HAM_PARAM_GET_FLAGS:
+            case HAM_PARAM_FLAGS:
                 p->value=env->get_flags();
                 break;
-            case HAM_PARAM_GET_FILEMODE:
+            case HAM_PARAM_FILEMODE:
                 p->value=env->get_file_mode();
                 break;
-            case HAM_PARAM_GET_FILENAME:
+            case HAM_PARAM_FILENAME:
                 if (env->get_filename().size())
                     p->value=(ham_u64_t)(PTR_TO_U64(env->get_filename().c_str()));
                 else

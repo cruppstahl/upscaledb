@@ -374,19 +374,19 @@ _remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
       ham_assert(reply->env_get_parameters_reply().has_pagesize());
       p->value = reply->env_get_parameters_reply().pagesize();
       break;
-    case HAM_PARAM_MAX_ENV_DATABASES:
+    case HAM_PARAM_MAX_DATABASES:
       ham_assert(reply->env_get_parameters_reply().has_max_env_databases());
       p->value = reply->env_get_parameters_reply().max_env_databases();
       break;
-    case HAM_PARAM_GET_FLAGS:
+    case HAM_PARAM_FLAGS:
       ham_assert(reply->env_get_parameters_reply().has_flags());
       p->value = reply->env_get_parameters_reply().flags();
       break;
-    case HAM_PARAM_GET_FILEMODE:
+    case HAM_PARAM_FILEMODE:
       ham_assert(reply->env_get_parameters_reply().has_filemode());
       p->value = reply->env_get_parameters_reply().filemode();
       break;
-    case HAM_PARAM_GET_FILENAME:
+    case HAM_PARAM_FILENAME:
       if (reply->env_get_parameters_reply().has_filename()) {
         strncpy(filename, reply->env_get_parameters_reply().filename().c_str(),
               sizeof(filename));
@@ -661,7 +661,6 @@ env_initialize_remote(Environment *env)
 ham_status_t
 DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
 {
-  static char filename[1024];
   ham_status_t st;
   Environment *env = m_db->get_env();
   Protocol *reply = 0;
@@ -694,41 +693,19 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
   p = param;
   while (p && p->name) {
     switch (p->name) {
-    case HAM_PARAM_CACHESIZE:
-      ham_assert(reply->db_get_parameters_reply().has_cachesize());
-      p->value = reply->db_get_parameters_reply().cachesize();
-      break;
-    case HAM_PARAM_PAGESIZE:
-      ham_assert(reply->db_get_parameters_reply().has_pagesize());
-      p->value = reply->db_get_parameters_reply().pagesize();
-      break;
-    case HAM_PARAM_MAX_ENV_DATABASES:
-      ham_assert(reply->db_get_parameters_reply().has_max_env_databases());
-      p->value = reply->db_get_parameters_reply().max_env_databases();
-      break;
-    case HAM_PARAM_GET_FLAGS:
+    case HAM_PARAM_FLAGS:
       ham_assert(reply->db_get_parameters_reply().has_flags());
       p->value = reply->db_get_parameters_reply().flags();
-      break;
-    case HAM_PARAM_GET_FILEMODE:
-      ham_assert(reply->db_get_parameters_reply().has_filemode());
-      p->value = reply->db_get_parameters_reply().filemode();
-      break;
-    case HAM_PARAM_GET_FILENAME:
-      ham_assert(reply->db_get_parameters_reply().has_filename());
-      strncpy(filename, reply->db_get_parameters_reply().filename().c_str(),
-            sizeof(filename));
-      p->value = (ham_u64_t)(&filename[0]);
       break;
     case HAM_PARAM_KEYSIZE:
       ham_assert(reply->db_get_parameters_reply().has_keysize());
       p->value = reply->db_get_parameters_reply().keysize();
       break;
-    case HAM_PARAM_GET_DATABASE_NAME:
+    case HAM_PARAM_DATABASE_NAME:
       ham_assert(reply->db_get_parameters_reply().has_dbname());
       p->value = reply->db_get_parameters_reply().dbname();
       break;
-    case HAM_PARAM_GET_KEYS_PER_PAGE:
+    case HAM_PARAM_MAX_KEYS_PER_PAGE:
       ham_assert(reply->db_get_parameters_reply().has_keys_per_page());
       p->value = reply->db_get_parameters_reply().keys_per_page();
       break;

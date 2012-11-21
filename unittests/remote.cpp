@@ -203,10 +203,10 @@ protected:
         {
             {HAM_PARAM_CACHESIZE, 0},
             {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_MAX_DATABASES, 0},
+            {HAM_PARAM_FLAGS, 0},
+            {HAM_PARAM_FILEMODE, 0},
+            {HAM_PARAM_FILENAME, 0},
             {0,0}
         };
 
@@ -408,12 +408,7 @@ protected:
         ham_db_t *db;
         ham_parameter_t params[] =
         {
-            {HAM_PARAM_CACHESIZE, 0},
-            {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_ENV_DATABASES, 0},
-            {HAM_PARAM_GET_FLAGS, 0},
-            {HAM_PARAM_GET_FILEMODE, 0},
-            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_FLAGS, 0},
             {0,0}
         };
 
@@ -423,17 +418,8 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
 
-        BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
-#ifdef WIN32
-        BFC_ASSERT_EQUAL(1024*64u, params[1].value);
-#else
-        BFC_ASSERT_EQUAL(1024*16u, params[1].value);
-#endif
-        BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
         BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
-                        |HAM_ENABLE_RECOVERY), params[3].value);
-        BFC_ASSERT_EQUAL(0644u, params[4].value);
-        BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
+                        |HAM_ENABLE_RECOVERY), params[0].value);
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

@@ -1463,45 +1463,20 @@ ham_status_t
 DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
-    Environment *env=m_db->get_env();
 
     if (p) {
         for (; p->name; p++) {
             switch (p->name) {
-            case HAM_PARAM_CACHESIZE:
-                p->value=env->get_cache()->get_capacity();
-                break;
-            case HAM_PARAM_PAGESIZE:
-                p->value=env->get_pagesize();
-                break;
             case HAM_PARAM_KEYSIZE:
                 p->value=m_db->get_backend() ? db_get_keysize(m_db) : 21;
                 break;
-            case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env->get_max_databases();
+            case HAM_PARAM_FLAGS:
+                p->value=(ham_offset_t)m_db->get_rt_flags();
                 break;
-            case HAM_PARAM_GET_FLAGS:
-                p->value=m_db->get_rt_flags();
-                break;
-            case HAM_PARAM_GET_FILEMODE:
-                p->value=m_db->get_env()->get_file_mode();
-                break;
-            case HAM_PARAM_GET_FILENAME:
-                if (env->get_filename().size())
-                    p->value=(ham_u64_t)PTR_TO_U64(env->get_filename().c_str());
-                else
-                    p->value=0;
-                break;
-            case HAM_PARAM_LOG_DIRECTORY:
-                if (env->get_log_directory().size())
-                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_log_directory().c_str()));
-                else
-                    p->value=0;
-                break;
-            case HAM_PARAM_GET_DATABASE_NAME:
+            case HAM_PARAM_DATABASE_NAME:
                 p->value=(ham_offset_t)m_db->get_name();
                 break;
-            case HAM_PARAM_GET_KEYS_PER_PAGE:
+            case HAM_PARAM_MAX_KEYS_PER_PAGE:
                 if (m_db->get_backend()) {
                     ham_size_t count=0, size=db_get_keysize(m_db);
                     Backend *be = m_db->get_backend();

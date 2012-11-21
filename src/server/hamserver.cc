@@ -184,19 +184,19 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
       reply.mutable_env_get_parameters_reply()->set_pagesize(
               (int)params[i].value);
       break;
-    case HAM_PARAM_MAX_ENV_DATABASES:
+    case HAM_PARAM_MAX_DATABASES:
       reply.mutable_env_get_parameters_reply()->set_max_env_databases(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_FLAGS:
+    case HAM_PARAM_FLAGS:
       reply.mutable_env_get_parameters_reply()->set_flags(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_FILEMODE:
+    case HAM_PARAM_FILEMODE:
       reply.mutable_env_get_parameters_reply()->set_filemode(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_FILENAME:
+    case HAM_PARAM_FILENAME:
       if (params[i].value)
         reply.mutable_env_get_parameters_reply()->set_filename(
               (const char *)(U64_TO_PTR(params[i].value)));
@@ -252,39 +252,19 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
     switch (params[i].name) {
     case 0:
       continue;
-    case HAM_PARAM_CACHESIZE:
-      reply.mutable_db_get_parameters_reply()->set_cachesize(
-              (int)params[i].value);
-      break;
-    case HAM_PARAM_PAGESIZE:
-      reply.mutable_db_get_parameters_reply()->set_pagesize(
-              (int)params[i].value);
-      break;
-    case HAM_PARAM_MAX_ENV_DATABASES:
-      reply.mutable_db_get_parameters_reply()->set_max_env_databases(
-              (int)params[i].value);
-      break;
-    case HAM_PARAM_GET_FLAGS:
+    case HAM_PARAM_FLAGS:
       reply.mutable_db_get_parameters_reply()->set_flags(
               (int)params[i].value);
-      break;
-    case HAM_PARAM_GET_FILEMODE:
-      reply.mutable_db_get_parameters_reply()->set_filemode(
-              (int)params[i].value);
-      break;
-    case HAM_PARAM_GET_FILENAME:
-      reply.mutable_db_get_parameters_reply()->set_filename(
-              (char *)(U64_TO_PTR(params[i].value)));
       break;
     case HAM_PARAM_KEYSIZE:
       reply.mutable_db_get_parameters_reply()->set_keysize(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_DATABASE_NAME:
+    case HAM_PARAM_DATABASE_NAME:
       reply.mutable_db_get_parameters_reply()->set_dbname(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_KEYS_PER_PAGE:
+    case HAM_PARAM_MAX_KEYS_PER_PAGE:
       reply.mutable_db_get_parameters_reply()->set_keys_per_page(
               (int)params[i].value);
       break;

@@ -469,8 +469,8 @@ jparams_from_native(JNIEnv *jenv, ham_parameter_t *params, jobjectArray jparams)
                 return (HAM_INTERNAL_ERROR);
             }
             /* some values have to be stored in a string, not a long; so far
-             * this is only the case for HAM_PARAM_GET_FILENAME. */
-            if (params[j].name==HAM_PARAM_GET_FILENAME) {
+             * this is only the case for HAM_PARAM_FILENAME. */
+            if (params[j].name==HAM_PARAM_FILENAME) {
                 jstring str;
                 fidvalue=(*jenv)->GetFieldID(jenv, jcls, "stringValue",
                                     "Ljava/lang/String;");

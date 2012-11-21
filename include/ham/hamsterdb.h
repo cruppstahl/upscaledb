@@ -560,7 +560,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *      bytes. It is recommended not to change the default size. The
  *      default size depends on hardware and operating system.
  *      Page sizes must be 1024 or a multiple of 2048.
- *    <li>@ref HAM_PARAM_MAX_ENV_DATABASES</li> The number of maximum
+ *    <li>@ref HAM_PARAM_MAX_DATABASES</li> The number of maximum
  *      Databases in this Environment; default value: 16.
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
@@ -571,7 +571,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an
  *        invalid combination of flags or parameters was specified
  * @return @ref HAM_INV_PARAMETER if the value for
- *        @ref HAM_PARAM_MAX_ENV_DATABASES is too high (either decrease
+ *        @ref HAM_PARAM_MAX_DATABASES is too high (either decrease
  *        it or increase the page size)
  * @return @ref HAM_IO_ERROR if the file could not be opened or
  *        reading/writing failed
@@ -703,13 +703,13 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *    <ul>
  *    <li>HAM_PARAM_CACHESIZE</li> returns the cache size
  *    <li>HAM_PARAM_PAGESIZE</li> returns the page size
- *    <li>HAM_PARAM_MAX_ENV_DATABASES</li> returns the max. number of
+ *    <li>HAM_PARAM_MAX_DATABASES</li> returns the max. number of
  *        Databases of this Database's Environment
- *    <li>HAM_PARAM_GET_FLAGS</li> returns the flags which were used to
+ *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
  *        open or create this Database
- *    <li>HAM_PARAM_GET_FILEMODE</li> returns the @a mode parameter which
+ *    <li>HAM_PARAM_FILEMODE</li> returns the @a mode parameter which
  *        was specified when creating this Database
- *    <li>HAM_PARAM_GET_FILENAME</li> returns the filename (the @a value
+ *    <li>HAM_PARAM_FILENAME</li> returns the filename (the @a value
  *        of this parameter is a const char * pointer casted to a
  *        ham_u64_t variable)
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
@@ -1859,22 +1859,10 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *
  * The following parameters are supported:
  *    <ul>
- *    <li>HAM_PARAM_CACHESIZE</li> returns the cache size
- *    <li>HAM_PARAM_PAGESIZE</li> returns the page size
- *    <li>HAM_PARAM_KEYSIZE</li> returns the key size
- *    <li>HAM_PARAM_MAX_ENV_DATABASES</li> returns the max. number of
- *        Databases of this Database's Environment
- *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
- *      and the journal files
- *    <li>HAM_PARAM_GET_FLAGS</li> returns the flags which were used to
+ *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
  *        open or create this Database
- *    <li>HAM_PARAM_GET_FILEMODE</li> returns the @a mode parameter which
- *        was specified when creating this Database
- *    <li>HAM_PARAM_GET_FILENAME</li> returns the filename (the @a value
- *        of this parameter is a const char * pointer casted to a
- *        ham_u64_t variable)
- *    <li>HAM_PARAM_GET_DATABASE_NAME</li> returns the Database name
- *    <li>HAM_PARAM_GET_KEYS_PER_PAGE</li> returns the maximum number
+ *    <li>HAM_PARAM_DATABASE_NAME</li> returns the Database name
+ *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
  *    </ul>
  *
@@ -1901,7 +1889,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /** Parameter name for @ref ham_env_create_ex; sets the number of maximum
  * Databases */
-#define HAM_PARAM_MAX_ENV_DATABASES     0x00000103
+#define HAM_PARAM_MAX_DATABASES         0x00000103
 
 /** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex,
  * @ref ham_open_ex, @ref ham_create_ex; sets the path of the log files */
@@ -1912,14 +1900,14 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * @ref ham_create/@ref ham_env_create/@ref ham_open/@ref ham_env_open
  * invocation.
  */
-#define HAM_PARAM_GET_FLAGS             0x00000200
+#define HAM_PARAM_FLAGS                 0x00000200
 
 /**
  * Retrieve the filesystem file access mode as was specified at the time
  * of @ref ham_create/@ref ham_env_create/@ref ham_open/@ref ham_env_open
  * invocation.
  */
-#define HAM_PARAM_GET_FILEMODE          0x00000201
+#define HAM_PARAM_FILEMODE              0x00000201
 
 /**
  * Return a <code>const char *</code> pointer to the current
@@ -1928,7 +1916,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  *
  * In-memory Databases will return a NULL (0) pointer instead.
  */
-#define HAM_PARAM_GET_FILENAME          0x00000202
+#define HAM_PARAM_FILENAME              0x00000202
 
 /**
  * Retrieve the Database 'name' number of this @ref ham_db_t Database within
@@ -1937,8 +1925,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * When the Database is not related to an Environment, the reserved 'name'
  * 0xf001 is used for this Database.
 */
-#define HAM_PARAM_GET_DATABASE_NAME     0x00000203
-#define HAM_PARAM_DBNAME                HAM_PARAM_GET_DATABASE_NAME
+#define HAM_PARAM_DATABASE_NAME         0x00000203
 
 /**
  * Retrieve the maximum number of keys per page; this number depends on the
@@ -1948,7 +1935,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * settings for all of these will be assumed in order to produce a viable
  * ball park value for this one.
  */
-#define HAM_PARAM_GET_KEYS_PER_PAGE     0x00000204
+#define HAM_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 
 /**
  * Retrieve the Environment handle of a Database

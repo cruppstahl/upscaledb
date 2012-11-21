@@ -56,7 +56,8 @@ namespace Unittests
                         name = HamConst.HAM_PARAM_KEYSIZE, value = 32
                     }
                 };
-                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, param)) { }
+                using (Database db = env.CreateDatabase(13,
+                        HamConst.HAM_DISABLE_VAR_KEYLEN, param)) { }
             }
         }
 

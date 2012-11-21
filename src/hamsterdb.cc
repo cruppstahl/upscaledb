@@ -184,23 +184,23 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_LOG_DIRECTORY:
         return "HAM_PARAM_LOG_DIRECTORY";
 
-    case HAM_PARAM_MAX_ENV_DATABASES:
-        return "HAM_PARAM_MAX_ENV_DATABASES";
+    case HAM_PARAM_MAX_DATABASES:
+        return "HAM_PARAM_MAX_DATABASES";
 
-    case HAM_PARAM_GET_FLAGS:
-        return "HAM_PARAM_GET_FLAGS";
+    case HAM_PARAM_FLAGS:
+        return "HAM_PARAM_FLAGS";
 
-    case HAM_PARAM_GET_FILEMODE:
-        return "HAM_PARAM_GET_FILEMODE";
+    case HAM_PARAM_FILEMODE:
+        return "HAM_PARAM_FILEMODE";
 
-    case HAM_PARAM_GET_FILENAME:
-        return "HAM_PARAM_GET_FILENAME";
+    case HAM_PARAM_FILENAME:
+        return "HAM_PARAM_FILENAME";
 
-    case HAM_PARAM_GET_DATABASE_NAME:
-        return "HAM_PARAM_GET_DATABASE_NAME";
+    case HAM_PARAM_DATABASE_NAME:
+        return "HAM_PARAM_DATABASE_NAME";
 
-    case HAM_PARAM_GET_KEYS_PER_PAGE:
-        return "HAM_PARAM_GET_KEYS_PER_PAGE";
+    case HAM_PARAM_MAX_KEYS_PER_PAGE:
+        return "HAM_PARAM_MAX_KEYS_PER_PAGE";
 
     default:
         if (buf && buflen > 13) {
@@ -628,12 +628,12 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_MAX_ENV_DATABASES:
+            case HAM_PARAM_MAX_DATABASES:
                 if (pmaxdbs) {
                     if (param->value==0 || param->value >= HAM_DEFAULT_DATABASE_NAME) {
                         if (param->value==0) {
                             ham_trace(("invalid value %u for parameter "
-                                       "HAM_PARAM_MAX_ENV_DATABASES",
+                                       "HAM_PARAM_MAX_DATABASES",
                                        (unsigned)param->value));
                             return (HAM_INV_PARAMETER);
                         }
@@ -645,7 +645,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_GET_DATABASE_NAME:
+            case HAM_PARAM_DATABASE_NAME:
                 if (pdbname) {
                     if (dbname == HAM_DEFAULT_DATABASE_NAME || dbname == HAM_FIRST_DATABASE_NAME) {
                         dbname=(ham_u16_t)param->value;
@@ -655,7 +655,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 && dbname != HAM_DUMMY_DATABASE_NAME
                                 && dbname > HAM_DEFAULT_DATABASE_NAME))
                         {
-                            ham_trace(("parameter 'HAM_PARAM_GET_DATABASE_NAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
+                            ham_trace(("parameter 'HAM_PARAM_DATABASE_NAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
                             return (HAM_INV_PARAMETER);
                         }
                         break;
@@ -663,10 +663,10 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_GET_FLAGS:
-            case HAM_PARAM_GET_FILEMODE:
-            case HAM_PARAM_GET_FILENAME:
-            case HAM_PARAM_GET_KEYS_PER_PAGE:
+            case HAM_PARAM_FLAGS:
+            case HAM_PARAM_FILEMODE:
+            case HAM_PARAM_FILENAME:
+            case HAM_PARAM_MAX_KEYS_PER_PAGE:
             default:
 default_case:
                 ham_trace(("unsupported/unknown parameter %d (%s)",
@@ -860,7 +860,7 @@ default_case:
 
         l /= sizeof(db_indexdata_t);
         if (dbs > l) {
-            ham_trace(("parameter HAM_PARAM_MAX_ENV_DATABASES too high for "
+            ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
                         "this pagesize; the maximum allowed is %u",
                         (unsigned)l));
             return (HAM_INV_PARAMETER);
@@ -1652,7 +1652,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     env_param[0].value=(flags&HAM_IN_MEMORY) ? 0 : cachesize;
     env_param[1].name=HAM_PARAM_PAGESIZE;
     env_param[1].value=pagesize;
-    env_param[2].name=HAM_PARAM_MAX_ENV_DATABASES;
+    env_param[2].name=HAM_PARAM_MAX_DATABASES;
     env_param[2].value=maxdbs;
     if (logdir.size()) {
         env_param[3].name=HAM_PARAM_LOG_DIRECTORY;

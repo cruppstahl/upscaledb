@@ -98,7 +98,7 @@ namespace Hamster
         /// A Database Environment is a collection of Databases, which are all
         /// stored in one physical file (or in-memory). Per default, up to 16
         /// Databases can be stored in one file (<see
-        /// cref="HamConst.HAM_PARAM_MAX_ENV_DATABASES" />
+        /// cref="HamConst.HAM_PARAM_MAX_DATABASES" />
         /// on how to store even more Databases).
         /// <br />
         /// Each Database is identified by a positive 16bit value (except
@@ -170,7 +170,7 @@ namespace Hamster
         ///         to change the default size. The default size depends on
         ///         hardware and operating system. Page sizes must be 1024 or a
         ///         multiple of 2048.</item><br />
-        ///     <item><see cref="HamConst.HAM_PARAM_MAX_ENV_DATABASES" />
+        ///     <item><see cref="HamConst.HAM_PARAM_MAX_DATABASES" />
         ///         The number of maximum Databases in this Environment;
         ///         default: 16.</item>
         ///   </list>
@@ -180,7 +180,7 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
         ///         if an invalid combination of flags was specified</item>
         ///     <item><see cref="HamConst.HAM_INV_PARAMETER"/>
-        ///         if the value for HAM_PARAM_MAX_ENV_DATABASES is too
+        ///         if the value for HAM_PARAM_MAX_DATABASES is too
         ///         high (either decrease it or increase the page size)</item>
         ///     <item><see cref="HamConst.HAM_IO_ERROR"/>
         ///         if the file could not be opened or reading/writing failed</item>

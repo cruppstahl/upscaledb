@@ -224,16 +224,11 @@ message DbGetParametersRequest {
 
 message DbGetParametersReply {
     required sint32 status = 1;
-    optional uint32 cachesize = 2;
-    optional uint32 pagesize = 3;
-    optional uint32 max_env_databases = 4;
-    optional uint32 flags = 5;
-    optional uint32 filemode = 6;
-    optional string filename = 7;
-    optional uint32 keysize = 8;
-    optional uint32 dbname = 9;
-    optional uint32 keys_per_page = 10;
-    optional uint32 dam = 11;
+    optional uint32 max_env_databases = 2;
+    optional uint32 flags = 3;
+    optional uint32 keysize = 4;
+    optional uint32 dbname = 5;
+    optional uint32 keys_per_page = 6;
 };
 
 message TxnBeginRequest {

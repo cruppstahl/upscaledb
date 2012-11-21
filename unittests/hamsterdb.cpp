@@ -2130,9 +2130,6 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(ham_get_env(db), &ps[0]));
         BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
-        ps[0].value=0;
-        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &ps[0]));
-        BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 

@@ -192,23 +192,22 @@ public class Const {
     public final static int HAM_PARAM_KEYSIZE                   =    0x102;
 
     /** Parameter name for Environment.create() */
-    public final static int HAM_PARAM_MAX_ENV_DATABASES         =    0x103;
+    public final static int HAM_PARAM_MAX_DATABASES             =    0x103;
 
     /** Parameter name for Environment.getParameters(),... */
-    public final static int HAM_PARAM_GET_FLAGS                 =    0x200;
+    public final static int HAM_PARAM_FLAGS                     =    0x200;
 
     /** Parameter name for Environment.getParameters(),... */
-    public final static int HAM_PARAM_GET_FILEMODE              =    0x201;
+    public final static int HAM_PARAM_FILEMODE                  =    0x201;
 
     /** Parameter name for Environment.getParameters(),... */
-    public final static int HAM_PARAM_GET_FILENAME              =    0x202;
+    public final static int HAM_PARAM_FILENAME                  =    0x202;
 
     /** Parameter name for Database.getParameters() */
-    public final static int HAM_PARAM_DBNAME                    =    0x203;
-    public final static int HAM_PARAM_GET_DATABASE_NAME         =    0x203;
+    public final static int HAM_PARAM_DATABASE_NAME             =    0x203;
 
     /** Parameter name for Database.getParameters() */
-    public final static int HAM_PARAM_GET_KEYS_PER_PAGE         =    0x204;
+    public final static int HAM_PARAM_MAX_KEYS_PER_PAGE         =    0x204;
 
     /** Flag for Database.insert(), Cursor.insert() */
     public final static int HAM_OVERWRITE                       =        1;

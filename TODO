@@ -48,6 +48,7 @@ o clean up interface
         in... out
     o once more check all flags and #defines; remove deprecated and obsolete
         stuff (i.e. HAM_LOCK_EXCLUSIVE)
+    o HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close
@@ -61,6 +62,9 @@ o clean up the "close" functions
 o rewrite samples with new coding style
 
 o rewrite c++ API with new coding style
+
+o need the ham_export tool in THIS release - and make sure that it's linked
+    statically!!!
 
 o add transaction support for in-memory databases
 
