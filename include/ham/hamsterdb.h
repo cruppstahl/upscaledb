@@ -534,14 +534,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *     <li>@ref HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
- *     <li>@ref HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
- *      file. Only one process may hold an exclusive lock for
- *      a given file at a given time. Deprecated - this is now the
- *      default
  *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY
- *      and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *      Database.
  *      This flag implies @ref HAM_ENABLE_RECOVERY.
@@ -650,15 +644,10 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
- *     <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
- *      file. Only one process may hold an exclusive lock for
- *      a given file at a given time. Deprecated - this is now the
- *      default
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
@@ -1181,14 +1170,8 @@ ham_create(ham_db_t *db, const char *filename,
  *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
- *     <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
- *      file. Only one process may hold an exclusive lock for
- *      a given file at a given time. Deprecated - this is now the
- *      default
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY
- *      and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *      Database.
  *      This flag imples @ref HAM_ENABLE_RECOVERY.
@@ -1286,15 +1269,10 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
- *     <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
- *      file. Only one process may hold an exclusive lock for
- *      a given file at a given time. Deprecated - this is now the
- *      default
  *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY and @ref HAM_DISABLE_FREELIST_FLUSH.
+ *      with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
  *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
@@ -1353,8 +1331,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @ref ham_create, @ref ham_create_ex.
  * This flag is non persistent. */
 #define HAM_IN_MEMORY                               0x00000080
-/** @deprecated */
-#define HAM_IN_MEMORY_DB                            HAM_IN_MEMORY
 
 /* reserved: DB_USE_MMAP (not persistent)           0x00000100 */
 
@@ -1367,15 +1343,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * @ref ham_create_ex.
  * This flag is non persistent. */
 #define HAM_CACHE_STRICT                            0x00000400
-
-/** @deprecated Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex.
- * This flag is non persistent. */
-#define HAM_DISABLE_FREELIST_FLUSH                  0x00000800
-
-/** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex */
-#define HAM_LOCK_EXCLUSIVE                          0x00001000
 
 /** Flag for @ref ham_create, @ref ham_create_ex, @ref ham_env_create_db.
  * This flag is persisted in the Database. */

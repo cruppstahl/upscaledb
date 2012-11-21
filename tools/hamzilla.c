@@ -323,12 +323,9 @@ format_flags(char *flagstr)
     p=STRTOK_SAFE(flagstr, "|", &saveptr);
     while (p) {
         COMPARE_FLAG(HAM_ENABLE_FSYNC);
-        else COMPARE_FLAG(HAM_IN_MEMORY_DB);
         else COMPARE_FLAG(HAM_DISABLE_MMAP);
         else COMPARE_FLAG(HAM_CACHE_STRICT);
         else COMPARE_FLAG(HAM_CACHE_UNLIMITED);
-        else COMPARE_FLAG(HAM_DISABLE_FREELIST_FLUSH);
-        else COMPARE_FLAG(HAM_LOCK_EXCLUSIVE);
         else COMPARE_FLAG(HAM_ENABLE_RECOVERY);
         else COMPARE_FLAG(HAM_ENABLE_TRANSACTIONS);
         else COMPARE_FLAG(HAM_READ_ONLY);

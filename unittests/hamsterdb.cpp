@@ -1333,8 +1333,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env1));
         BFC_ASSERT_EQUAL(0, ham_new(&db1));
         BFC_ASSERT_EQUAL(0,
-                ham_env_create(env1, BFC_OPATH(".test"),
-                    HAM_LOCK_EXCLUSIVE, 0664));
+                ham_env_create(env1, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_flush(env1, 0));
@@ -1343,7 +1342,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db2));
         /* Exclusive locking is now the default */
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK,
-                ham_env_open(env2, BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE));
+                ham_env_open(env2, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK,
                 ham_env_open(env2, BFC_OPATH(".test"), 0));
@@ -1684,9 +1683,6 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create(m_db, BFC_OPATH(".test"),
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
@@ -1707,9 +1703,6 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create(env, BFC_OPATH(".test"),
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY, 0664));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_create(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }

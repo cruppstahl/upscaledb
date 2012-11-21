@@ -121,14 +121,6 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_CACHE_STRICT;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_CACHE_STRICT");
     }
-    if (flags & HAM_DISABLE_FREELIST_FLUSH) {
-        flags &= ~HAM_DISABLE_FREELIST_FLUSH;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_FREELIST_FLUSH");
-    }
-    if (flags & HAM_LOCK_EXCLUSIVE) {
-        flags &= ~HAM_LOCK_EXCLUSIVE;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_LOCK_EXCLUSIVE");
-    }
     if (flags & HAM_RECORD_NUMBER) {
         flags &= ~HAM_RECORD_NUMBER;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_RECORD_NUMBER");
@@ -221,11 +213,6 @@ __check_recovery_flags(ham_u32_t flags)
         if (flags&HAM_IN_MEMORY) {
             ham_trace(("combination of HAM_ENABLE_RECOVERY and "
                        "HAM_IN_MEMORY not allowed"));
-            return (HAM_FALSE);
-        }
-        if (flags&HAM_DISABLE_FREELIST_FLUSH) {
-            ham_trace(("combination of HAM_ENABLE_RECOVERY and "
-                       "HAM_DISABLE_FREELIST_FLUSH not allowed"));
             return (HAM_FALSE);
         }
     }
@@ -546,10 +533,8 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |(create ? HAM_IN_MEMORY : 0)
                         |(!env ? (HAM_ENABLE_FSYNC
                                 |HAM_DISABLE_MMAP
-                                |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
                                 |HAM_DONT_LOCK
-                                |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
@@ -567,9 +552,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                         |(create ? HAM_IN_MEMORY : 0)
                         |(!env ? (HAM_ENABLE_FSYNC
                                 |HAM_DISABLE_MMAP
-                                |HAM_DISABLE_FREELIST_FLUSH
                                 |HAM_CACHE_UNLIMITED
-                                |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
@@ -1561,10 +1544,8 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     flags &= ~(HAM_ENABLE_FSYNC
             |HAM_READ_ONLY
             |HAM_DISABLE_MMAP
-            |HAM_DISABLE_FREELIST_FLUSH
             |HAM_CACHE_UNLIMITED
             |HAM_CACHE_STRICT
-            |HAM_LOCK_EXCLUSIVE
             |HAM_ENABLE_TRANSACTIONS
             |HAM_ENABLE_RECOVERY
             |HAM_AUTO_RECOVERY
@@ -1680,10 +1661,8 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     flags &= ~(HAM_ENABLE_FSYNC
             |HAM_IN_MEMORY
             |HAM_DISABLE_MMAP
-            |HAM_DISABLE_FREELIST_FLUSH
             |HAM_CACHE_UNLIMITED
             |HAM_CACHE_STRICT
-            |HAM_LOCK_EXCLUSIVE
             |HAM_ENABLE_TRANSACTIONS
             |HAM_ENABLE_RECOVERY
             |HAM_AUTO_RECOVERY

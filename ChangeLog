@@ -1,4 +1,6 @@
 Nov 21, 2012 - chris ---------------------------------------------------
+o Removed deprecated flags HAM_DISABLE_FREELIST_FLUSH, HAM_LOCK_EXCLUSIVE,
+    HAM_IN_MEMORY_DB
 o Refactored ham_get_parameters, ham_env_get_parameters and HAM_PARAM_*:
     - HAM_PARAM_GET_FLAGS -> renamed to HAM_PARAM_FLAGS
     - HAM_PARAM_GET_FILEMODE -> renamed to HAM_PARAM_FILEMODE

@@ -149,17 +149,13 @@ public:
 #ifndef __CYGWIN__
         ham_fd_t fd, fd2;
 
-        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"),
-                    HAM_LOCK_EXCLUSIVE, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
         BFC_ASSERT_EQUAL(0, os_close(fd));
 
-        BFC_ASSERT_EQUAL(0,
-                         os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd));
-        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK,
-                os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, os_open(BFC_OPATH(".test"), 0, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd));
-        BFC_ASSERT_EQUAL(0,
-                         os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd2));
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd2));

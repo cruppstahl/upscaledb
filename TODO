@@ -38,16 +38,19 @@ o clean up interface
     x clean up ham_flush, ham_env_flush
     x rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
     x rename ham_cursor_find_ex to ham_cursor_find
-    o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
-        o ham_get_parameters and ham_env_get_parameters should not
+    x clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
+        x ham_get_parameters and ham_env_get_parameters should not
             allow the use of the same parameters
         x remove ham_get_flags since it's obsolete
+    x once more check all flags and #defines; remove deprecated and obsolete
+        stuff (i.e. HAM_LOCK_EXCLUSIVE)
+        HAM_DISABLE_FREELIST_FLUSH
+        HAM_LOCK_EXCLUSIVE
+        HAM_IN_MEMORY_DB
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
     o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters
         in... out
-    o once more check all flags and #defines; remove deprecated and obsolete
-        stuff (i.e. HAM_LOCK_EXCLUSIVE)
     o HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
 
 o clean up the "close" functions
