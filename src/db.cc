@@ -1701,7 +1701,7 @@ DatabaseImplementationLocal::erase(Transaction *txn, ham_key_t *key,
     be=m_db->get_backend();
     if (m_db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
-        return (HAM_DB_READ_ONLY);
+        return (HAM_WRITE_PROTECTED);
     }
 
     /* record number: make sure that we have a valid key structure */

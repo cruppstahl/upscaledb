@@ -204,7 +204,7 @@ public class Environment {
      *       <li><code>Const.HAM_READ_ONLY</code></li>
      *            Opens the file for reading only. Operations which need
      *            write access (i.e. <code>ham_insert</code>) will return
-     *            <code>Const.HAM_DB_READ_ONLY</code>.
+     *            <code>Const.HAM_WRITE_PROTECTED</code>.
      *       <li><code>Const.HAM_ENABLE_FSYNC</code></li>
      *            Immediately write modified pages to
      *            the disk. This slows down all Database operations, but may

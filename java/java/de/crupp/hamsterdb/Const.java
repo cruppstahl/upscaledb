@@ -51,7 +51,7 @@ public class Const {
     public final static int HAM_INTERNAL_ERROR                  =      -14;
 
     /** Tried to modify the Database, but the file was opened as read-only */
-    public final static int HAM_DB_READ_ONLY                    =      -15;
+    public final static int HAM_WRITE_PROTECTED                 =      -15;
 
     /** Database record not found */
     public final static int HAM_BLOB_NOT_FOUND                  =      -16;

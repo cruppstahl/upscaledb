@@ -49,11 +49,11 @@ o clean up interface
         HAM_IN_MEMORY_DB
     x rename ham_env_open_ex to ham_env_open
     x rename ham_env_create_ex to ham_env_create
+    x HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
     o remove ham_open[_ex]
     o remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
-    o HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
 
 o clean up the "close" functions
     o ham_close - move all functionality to Database::close

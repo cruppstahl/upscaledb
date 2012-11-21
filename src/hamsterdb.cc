@@ -346,7 +346,7 @@ ham_strerror(ham_status_t result)
             return ("Internal integrity violated");
         case HAM_INTERNAL_ERROR:
             return ("Internal error");
-        case HAM_DB_READ_ONLY:
+        case HAM_WRITE_PROTECTED:
             return ("Database opened in read-only mode");
         case HAM_BLOB_NOT_FOUND:
             return ("Data blob not found");
@@ -513,7 +513,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     }
     if (create && env && db && (env->get_flags() & HAM_READ_ONLY)) {
         ham_trace(("cannot create database in read-only mode"));
-        return (HAM_DB_READ_ONLY);
+        return (HAM_WRITE_PROTECTED);
     }
 
     /*
@@ -1884,7 +1884,7 @@ ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     }
     if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot insert in a read-only database"));
-        return (db->set_error(HAM_DB_READ_ONLY));
+        return (db->set_error(HAM_WRITE_PROTECTED));
     }
     if ((db->get_rt_flags()&HAM_DISABLE_VAR_KEYLEN) &&
             (key->size>db_get_keysize(db))) {
@@ -2269,7 +2269,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
         return (db->set_error(HAM_INV_PARAMETER));
     if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot overwrite in a read-only database"));
-        return (db->set_error(HAM_DB_READ_ONLY));
+        return (db->set_error(HAM_WRITE_PROTECTED));
     }
 
     return (db->set_error((*db)()->cursor_overwrite(cursor, record, flags)));
@@ -2448,7 +2448,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
 
     if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot insert to a read-only database"));
-        return (db->set_error(HAM_DB_READ_ONLY));
+        return (db->set_error(HAM_WRITE_PROTECTED));
     }
     if ((db->get_rt_flags()&HAM_DISABLE_VAR_KEYLEN) &&
             (key->size>db_get_keysize(db))) {
@@ -2543,7 +2543,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
 
     if (db->get_rt_flags()&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
-        return (db->set_error(HAM_DB_READ_ONLY));
+        return (db->set_error(HAM_WRITE_PROTECTED));
     }
     if (flags&HAM_HINT_PREPEND) {
         ham_trace(("flags HAM_HINT_PREPEND is only allowed in "

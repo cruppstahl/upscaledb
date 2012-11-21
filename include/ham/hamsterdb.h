@@ -306,7 +306,7 @@ typedef struct {
 /** Internal hamsterdb error */
 #define HAM_INTERNAL_ERROR              (-14)
 /** Tried to modify the Database, but the file was opened as read-only */
-#define HAM_DB_READ_ONLY                (-15)
+#define HAM_WRITE_PROTECTED             (-15)
 /** Database record not found */
 #define HAM_BLOB_NOT_FOUND              (-16)
 /** Prefix comparison function needs more data */
@@ -600,7 +600,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *    <ul>
  *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
  *      Operations that need write access (i.e. @ref ham_insert) will
- *      return @ref HAM_DB_READ_ONLY
+ *      return @ref HAM_WRITE_PROTECTED
  *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
@@ -1219,7 +1219,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *    <ul>
  *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
  *      Operations which need write access (i.e. @ref ham_insert) will
- *      return @ref HAM_DB_READ_ONLY.
+ *      return @ref HAM_WRITE_PROTECTED.
  *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
@@ -1645,7 +1645,7 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
  *        record->partial_offset+record->partial_size exceeds the
  *        record->size
- * @return @ref HAM_DB_READ_ONLY if you tried to insert a key in a read-only
+ * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key in a read-only
  *        Database
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
@@ -1747,7 +1747,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db or @a key is NULL
- * @return @ref HAM_DB_READ_ONLY if you tried to erase a key from a read-only
+ * @return @ref HAM_WRITE_PROTECTED if you tried to erase a key from a read-only
  *        Database
  * @return @ref HAM_KEY_NOT_FOUND if @a key was not found
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
@@ -2519,7 +2519,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *        @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *        was specified, but the Database was not created with
  *        flag @ref HAM_ENABLE_DUPLICATES.
- * @return @ref HAM_DB_READ_ONLY if you tried to insert a key to a read-only
+ * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key to a read-only
  *        Database.
  * @return @ref HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
  *        parameter specified for @ref ham_create_ex and variable
@@ -2551,7 +2551,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a cursor is NULL
- * @return @ref HAM_DB_READ_ONLY if you tried to erase a key from a read-only
+ * @return @ref HAM_WRITE_PROTECTED if you tried to erase a key from a read-only
  *        Database
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another

@@ -250,7 +250,7 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_READ_ONLY" />
         ///         Opens the file for reading only. Operations which need
         ///         write access (i.e. Database.Insert)
-        ///         will return <see cref="HamConst.HAM_DB_READ_ONLY" />.
+        ///         will return <see cref="HamConst.HAM_WRITE_PROTECTED" />.
         ///         </item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_FSYNC" />
         ///         Immediately write modified pages to the disk. This

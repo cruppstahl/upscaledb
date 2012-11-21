@@ -374,7 +374,7 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_READ_ONLY" />
         ///         Opens the file for reading only. Operations which need
         ///         write access (i.e. Database.Insert)
-        ///         will return <see cref="HamConst.HAM_DB_READ_ONLY" />.
+        ///         will return <see cref="HamConst.HAM_WRITE_PROTECTED" />.
         ///         </item><br />
         ///     <item><see cref="HamConst.HAM_ENABLE_FSYNC" />
         ///         Immediately write modified pages to the disk. This
@@ -667,7 +667,7 @@ namespace Hamster
         ///         HamConst.HAM_OVERWRITE were specified, or if
         ///         HamConst.HAM_DUPLICATE was specified but the Database
         ///         was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
-        ///     <item><see cref="HamConst.HAM_DB_READ_ONLY"/>
+        ///     <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
         ///         if you tried to insert a key in a read-only Database</item>
         ///     <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
         ///         if key size is larger than the key size parameter
@@ -715,7 +715,7 @@ namespace Hamster
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
         ///         if the key was not found</item>
-        ///     <item><see cref="HamConst.HAM_DB_READ_ONLY"/>
+        ///     <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
         ///         if you tried to insert a key in a read-only Database</item>
         ///   </list>
         /// </exception>

@@ -421,7 +421,7 @@ namespace Hamster
         ///         HamConst.HAM_OVERWRITE were specified, or if
         ///         HamConst.HAM_DUPLICATE was specified but the Database
         ///         was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
-        ///     <item><see cref="HamConst.HAM_DB_READ_ONLY"/>
+        ///     <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
         ///         if you tried to insert a key in a read-only Database</item>
         ///     <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
         ///         if key size is larger than the key size parameter
@@ -457,7 +457,7 @@ namespace Hamster
         ///   <list type="bullet">
         ///     <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
         ///         if the Cursor does not point to any item</item>
-        ///     <item><see cref="HamConst.HAM_DB_READ_ONLY"/>
+        ///     <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
         ///         if you tried to erase a key from a read-only Database</item>
         ///   </list>
         /// </exception>

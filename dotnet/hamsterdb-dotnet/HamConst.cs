@@ -45,7 +45,7 @@ namespace Hamster
         /// <summary>Internal hamsterdb error</summary>
         public const int HAM_INTERNAL_ERROR                 =      -14;
         /// <summary>Tried to modify the Database, but the file was opened as read-only</summary>
-        public const int HAM_DB_READ_ONLY                   =      -15;
+        public const int HAM_WRITE_PROTECTED                =      -15;
         /// <summary>Database record not found</summary>
         public const int HAM_BLOB_NOT_FOUND                 =      -16;
         /// <summary>Prefix comparison function needs more data</summary>

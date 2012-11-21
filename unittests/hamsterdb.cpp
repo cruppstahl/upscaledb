@@ -374,15 +374,15 @@ public:
         BFC_ASSERT_EQUAL(0, ham_open(db, BFC_OPATH(".test"), HAM_READ_ONLY));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
 
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY,
+        BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
                 ham_insert(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY,
+        BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
                 ham_erase(db, 0, &key, 0));
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY,
+        BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
                 ham_cursor_overwrite(cursor, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY,
+        BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
                 ham_cursor_insert(cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY,
+        BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
                 ham_cursor_erase(cursor, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
