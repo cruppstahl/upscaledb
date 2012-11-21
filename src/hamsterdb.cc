@@ -1137,13 +1137,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags)
-{
-    return (ham_env_open_ex(env, filename, flags, 0));
-}
-
-ham_status_t HAM_CALLCONV
-ham_env_open_ex(ham_env_t *henv, const char *filename,
+ham_env_open(ham_env_t *henv, const char *filename,
         ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -1531,7 +1525,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     if (st)
         goto bail;
 
-    st=ham_env_open_ex(env, filename, env_flags, &env_param[0]);
+    st=ham_env_open(env, filename, env_flags, &env_param[0]);
     if (st)
         goto bail;
 

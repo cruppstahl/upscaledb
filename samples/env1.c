@@ -206,7 +206,7 @@ main(int argc, char **argv)
     /*
      * now reopen the environment and the databases
      */
-    st=ham_env_open(env, "test.db", 0);
+    st=ham_env_open(env, "test.db", 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open", st);
     st=ham_env_open_db(env, db[0], DBNAME_CUSTOMER, 0, 0);

@@ -191,7 +191,7 @@ protected:
 
         if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
-            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0, 0));
             BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
@@ -241,7 +241,7 @@ protected:
             BFC_ASSERT_EQUAL(0u, ((Database *)db)->is_active());
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0, 0));
 
             BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
             BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -302,7 +302,7 @@ protected:
 
             BFC_ASSERT_EQUAL(0, ham_env_new(&env));
             BFC_ASSERT_EQUAL(0,
-                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters2));
+                ham_env_open(env, BFC_OPATH(".test"), m_flags, parameters2));
         }
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps));
@@ -397,7 +397,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
@@ -437,7 +437,7 @@ protected:
         if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
             BFC_ASSERT_EQUAL(0,
-                    ham_env_open(env, BFC_OPATH(".test"), m_flags));
+                    ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
         }
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
@@ -451,7 +451,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND,
-                ham_env_open(env, "xxxxxx...", 0));
+                ham_env_open(env, "xxxxxx...", 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -464,9 +464,9 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_ex(0, BFC_OPATH(".test"), m_flags, 0));
+                ham_env_open(0, BFC_OPATH(".test"), m_flags, 0));
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND,
-                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, 0));
+                ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -611,9 +611,9 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_env_new(&env));
             // pagesize param not allowed
             BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters2));
+                ham_env_open(env, BFC_OPATH(".test"), m_flags, parameters2));
             BFC_ASSERT_EQUAL(0,
-                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters3));
+                ham_env_open(env, BFC_OPATH(".test"), m_flags, parameters3));
             // keysize param not allowed
             BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, db[0], 1, 0, parameters));
@@ -1163,7 +1163,7 @@ protected:
 
         if (!(m_flags&HAM_IN_MEMORY)) {
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), m_flags));
+            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
@@ -1463,7 +1463,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0,
-            ham_env_open(env, BFC_OPATH(".test"), m_flags));
+            ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
 
         for (i=0; i<MAX_DB; i++) {
             BFC_ASSERT_EQUAL(0,
@@ -1495,10 +1495,10 @@ protected:
         // created by running sample env2
 #if defined(HAM_LITTLE_ENDIAN)
         BFC_ASSERT_EQUAL(0, ham_env_open(env,
-                    BFC_IPATH("data/env-endian-test-open-database-be.hdb"), 0));
+                    BFC_IPATH("data/env-endian-test-open-database-be.hdb"), 0, 0));
 #else
         BFC_ASSERT_EQUAL(0, ham_env_open(env,
-                    BFC_IPATH("data/env-endian-test-open-database-le.hdb"), 0));
+                    BFC_IPATH("data/env-endian-test-open-database-le.hdb"), 0, 0));
 #endif
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 1, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -1737,7 +1737,7 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
             BFC_ASSERT_EQUAL(0,
-                    ham_env_open(env, BFC_OPATH(".test"), m_flags));
+                    ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
             BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, db, 333, 0, 0));
         }
@@ -1768,7 +1768,7 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
             BFC_ASSERT_EQUAL(0,
-                    ham_env_open(env, BFC_OPATH(".test"), m_flags));
+                    ham_env_open(env, BFC_OPATH(".test"), m_flags, 0));
             for (int i=0; i<10; i++) {
                 BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, db[i], 333+i, 0, 0));

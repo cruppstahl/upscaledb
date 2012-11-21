@@ -81,7 +81,7 @@ insert(int argc, char **argv)
     // if db does not yet exist: create it, otherwise open it
     st=ham_env_open(env, "recovery.db",
                             (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-                            | HAM_ENABLE_RECOVERY);
+                            | HAM_ENABLE_RECOVERY, 0);
     if (st==HAM_FILE_NOT_FOUND) {
         ham_parameter_t params[]={
             { HAM_PARAM_PAGESIZE, 1024 },
@@ -190,7 +190,7 @@ erase(int argc, char **argv)
 
     st=ham_env_open(env, "recovery.db",
                     (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
-                    | HAM_ENABLE_RECOVERY);
+                    | HAM_ENABLE_RECOVERY, 0);
     if (st) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
@@ -273,7 +273,7 @@ recover(int argc, char **argv)
     ham_env_new(&env);
 
     st=ham_env_open(env, "recovery.db",
-                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_ENABLE_RECOVERY);
+                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_ENABLE_RECOVERY, 0);
     if (st==0)
         exit(0);
     if (st!=HAM_NEED_RECOVERY) {
@@ -282,7 +282,7 @@ recover(int argc, char **argv)
     }
 
     st=ham_env_open(env, "recovery.db",
-                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_AUTO_RECOVERY);
+                (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_AUTO_RECOVERY, 0);
     if (st!=0) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
@@ -334,7 +334,7 @@ verify(int argc, char **argv)
 
     ham_record_t rec2={0};
 
-    st=ham_env_open(env, "recovery.db", HAM_READ_ONLY);
+    st=ham_env_open(env, "recovery.db", HAM_READ_ONLY, 0);
     if (st) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);

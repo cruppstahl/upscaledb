@@ -858,7 +858,7 @@ public:
         BFC_ASSERT(HAM_ENABLE_RECOVERY&((Environment *)env)->get_flags());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0, 0));
         BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&((Environment *)env)->get_flags()));
         BFC_ASSERT(!(HAM_ENABLE_RECOVERY&((Environment *)env)->get_flags()));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -998,7 +998,7 @@ public:
 
         BFC_ASSERT_EQUAL(0,
                 ham_env_open(env, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS));
+                        HAM_ENABLE_TRANSACTIONS, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_env_open_db(env, db, 1, 0, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -1034,7 +1034,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_TXN_AUTO_COMMIT));
 
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_env_open_db(env, db, 1, 0, 0));
         BFC_ASSERT_EQUAL(0,

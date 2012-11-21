@@ -1069,8 +1069,7 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1open_1ex(JNIEnv *jenv,
     if (jfilename)
         filename=(*jenv)->GetStringUTFChars(jenv, jfilename, 0);
 
-    st=ham_env_open_ex((ham_env_t *)jhandle, filename, (ham_u32_t)jflags,
-            params);
+    st=ham_env_open((ham_env_t *)jhandle, filename, (ham_u32_t)jflags, params);
 
     if (params)
         free(params);

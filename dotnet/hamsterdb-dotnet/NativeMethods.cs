@@ -75,18 +75,10 @@ namespace Hamster
         static public extern int EnvCreate(IntPtr handle, String fileName, int flags,
                 int mode, Parameter[] parameters);
 
-        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_open_ex",
+        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_open",
            CallingConvention = CallingConvention.Cdecl)]
         static public extern int EnvOpen(IntPtr handle, String fileName, int flags,
             Parameter[] parameters);
-
-        // TODO this is new, but lots of effort b/c of complex
-        // marshalling. if you need this function pls drop me a mail.
-/*
-        [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_get_parameters",
-           CallingConvention = CallingConvention.Cdecl)]
-        static public extern int EnvGetParameters(IntPtr handle, Parameter[] parameters);
-*/
 
         [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_create_db",
            CallingConvention = CallingConvention.Cdecl)]

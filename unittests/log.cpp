@@ -482,7 +482,7 @@ public:
         BFC_ASSERT(((Environment *)env)->get_log()==0);
 
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0));
         BFC_ASSERT(((Environment *)env)->get_log()!=0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -504,7 +504,7 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+                ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0));
         BFC_ASSERT(((Environment *)env)->get_log()==0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -527,7 +527,7 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY, 0));
 
         /* make sure that the log files are deleted and that the lsn is 1 */
         Log *log=((Environment *)env)->get_log();

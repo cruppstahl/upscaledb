@@ -188,7 +188,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0,
-            ham_env_open(env, SERVER_URL, 0));
+            ham_env_open(env, SERVER_URL, 0, 0));
         BFC_ASSERT_EQUAL(1u, ((Environment *)env)->is_active());
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0u, ((Environment *)env)->is_active());

@@ -47,10 +47,12 @@ o clean up interface
         HAM_DISABLE_FREELIST_FLUSH
         HAM_LOCK_EXCLUSIVE
         HAM_IN_MEMORY_DB
-    o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
-    o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
+    x rename ham_env_open_ex to ham_env_open
+    o rename ham_env_create_ex to ham_env_create
+    o remove ham_open[_ex]
+    o remove ham_create[_ex]
     o review all interfaces whether they consequently sort parameters
-        in... out
+        in... out (at least make then consistent)
     o HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
 
 o clean up the "close" functions

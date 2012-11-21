@@ -358,7 +358,7 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
         /* First try to open the Environment */
         hlog(LOG_DBG, "Opening Environment %s (flags 0x%x)\n",
                 params->envs[e].path, flags);
-        st=ham_env_open_ex(env, params->envs[e].path, flags, 0);
+        st=ham_env_open(env, params->envs[e].path, flags, 0);
         if (st) {
             /* Not found? if open_exclusive is false then we create the
              * Environment */

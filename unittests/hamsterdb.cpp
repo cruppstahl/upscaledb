@@ -1342,14 +1342,14 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db2));
         /* Exclusive locking is now the default */
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK,
-                ham_env_open(env2, BFC_OPATH(".test"), 0));
+                ham_env_open(env2, BFC_OPATH(".test"), 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK,
-                ham_env_open(env2, BFC_OPATH(".test"), 0));
+                ham_env_open(env2, BFC_OPATH(".test"), 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env2, BFC_OPATH(".test"), HAM_READ_ONLY));
+                ham_env_open(env2, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
@@ -1826,7 +1826,7 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), 0));
+                ham_env_open(env, BFC_OPATH(".test"), 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, m_db,
                 HAM_DEFAULT_DATABASE_NAME, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -1844,7 +1844,7 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), 0));
+                ham_env_open(env, BFC_OPATH(".test"), 0, 0));
         BFC_ASSERT_EQUAL(0,
                 ham_env_open_db(env, m_db,
                         HAM_FIRST_DATABASE_NAME, 0, 0));

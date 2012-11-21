@@ -23,7 +23,7 @@ public class Environment {
     private native int ham_env_create_ex(long handle, String filename,
             int flags, int mode, Parameter[] params);
 
-    private native int ham_env_open_ex(long handle, String filename, int flags,
+    private native int ham_env_open(long handle, String filename, int flags,
             Parameter[] params);
 
     private native long ham_env_create_db(long handle, short name, int flags,
@@ -195,7 +195,7 @@ public class Environment {
     /**
      * Opens an existing Database Environment
      * <p>
-     * This method wraps the native ham_env_open_ex function.
+     * This method wraps the native ham_env_open function.
      * <p>
      * @param filename the filename of the Environment file
      * @param flags optional flags for opening the Environment, combined with
@@ -262,7 +262,7 @@ public class Environment {
             if (m_handle==0)
                 throw new DatabaseException(Const.HAM_OUT_OF_MEMORY);
         }
-        status=ham_env_open_ex(m_handle, filename, flags, params);
+        status=ham_env_open(m_handle, filename, flags, params);
         if (status!=0)
             throw new DatabaseException(status);
     }

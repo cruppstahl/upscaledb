@@ -36,7 +36,7 @@
  * <table>
  * <tr><td>@ref ham_env_new</td><td>Allocates a new Environment handle</td></tr>
  * <tr><td>@ref ham_env_create_ex</td><td>Creates an Environment</td></tr>
- * <tr><td>@ref ham_env_open_ex</td><td>Opens an Environment</td></tr>
+ * <tr><td>@ref ham_env_open</td><td>Opens an Environment</td></tr>
  * <tr><td>@ref ham_env_close</td><td>Closes an Environment</td></tr>
  * <tr><td>@ref ham_env_delete</td><td>Deletes the Environment handle</td></tr>
  * <tr><td>@ref ham_new</td><td>Allocates a new handle for a Database</td></tr>
@@ -590,17 +590,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 /**
  * Opens an existing Database Environment
  *
- * This function is a simplified version of @sa ham_env_open_ex.
- * It is recommended to use @ref ham_env_open_ex instead.
- *
- * @sa ham_env_open_ex
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
-
-/**
- * Opens an existing Database Environment - extended version
- *
  * This function opens an existing Database Environment.
  *
  * A Database Environment is a collection of Databases, which are all stored
@@ -680,7 +669,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  * @return @ref HAM_NETWORK_ERROR if a remote server is not reachable
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_open_ex(ham_env_t *env, const char *filename,
+ham_env_open(ham_env_t *env, const char *filename,
             ham_u32_t flags, const ham_parameter_t *param);
 
 /**
@@ -1116,9 +1105,6 @@ ham_create(ham_db_t *db, const char *filename,
  * It creates an (internal, hidden) Environment and in this Environment it
  * creates a Database with a reserved identifier - HAM_DEFAULT_DATABASE_NAME.
  *
- * As a consequence, it is no problem to create a Database with
- * @ref ham_create_ex, and later open it with @ref ham_env_open_ex.
- *
  * The internal Environment handle can be retrieved with @ref ham_get_env.
  *
  * @param db A valid Database handle
@@ -1353,16 +1339,16 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #define HAM_ENABLE_DUPLICATES                       0x00004000
 
 /** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create_ex,
- * @ref ham_env_open_ex.
+ * @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_ENABLE_RECOVERY                         0x00008000
 
-/** Flag for @ref ham_open_ex, @ref ham_env_open_ex.
+/** Flag for @ref ham_open_ex, @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_AUTO_RECOVERY                           0x00010000
 
 /** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create_ex,
- * @ref ham_env_open_ex.
+ * @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_ENABLE_TRANSACTIONS                     0x00020000
 
@@ -1843,7 +1829,7 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
-/** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex,
+/** Parameter name for @ref ham_env_open, @ref ham_env_create_ex,
  * @ref ham_open_ex, @ref ham_create_ex; sets the cache size */
 #define HAM_PARAM_CACHESIZE             0x00000100
 
@@ -1858,7 +1844,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * Databases */
 #define HAM_PARAM_MAX_DATABASES         0x00000103
 
-/** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex,
+/** Parameter name for @ref ham_env_open, @ref ham_env_create_ex,
  * @ref ham_open_ex, @ref ham_create_ex; sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
 

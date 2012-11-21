@@ -1,4 +1,5 @@
 Nov 21, 2012 - chris ---------------------------------------------------
+o Removed ham_env_open; renamed ham_env_open_ex to ham_env_open
 o Removed deprecated flags HAM_DISABLE_FREELIST_FLUSH, HAM_LOCK_EXCLUSIVE,
     HAM_IN_MEMORY_DB
 o Refactored ham_get_parameters, ham_env_get_parameters and HAM_PARAM_*:

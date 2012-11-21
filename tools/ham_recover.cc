@@ -106,7 +106,7 @@ main(int argc, char **argv)
     st=ham_env_new(&env);
     if (st!=HAM_SUCCESS)
         error("ham_env_new", st);
-    st=ham_env_open_ex(env, filename,
+    st=ham_env_open(env, filename,
                 HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0);
     if (st==HAM_FILE_NOT_FOUND) {
         printf("File `%s' not found or unable to open it\n", filename);
@@ -117,13 +117,13 @@ main(int argc, char **argv)
         return (0);
     }
     else if (st!=HAM_NEED_RECOVERY)
-        error("ham_env_open_ex", st);
+        error("ham_env_open", st);
 
     /* now start the recovery */
-    st=ham_env_open_ex(env, filename,
+    st=ham_env_open(env, filename,
                 HAM_AUTO_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0);
     if (st)
-        error("ham_env_open_ex", st);
+        error("ham_env_open", st);
 
     /* we're already done */
     st=ham_env_close(env, 0);

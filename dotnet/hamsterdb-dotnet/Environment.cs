@@ -240,7 +240,7 @@ namespace Hamster
         /// Opens an existing Environment
         /// </summary>
         /// <remarks>
-        /// This method wraps the native ham_env_open_ex function.
+        /// This method wraps the native ham_env_open function.
         /// </remarks>
         ///
         /// <param name="fileName">The file name of the Environment file.</param>

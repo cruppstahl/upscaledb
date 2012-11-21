@@ -312,7 +312,7 @@ public:
                 ham_env_create_ex(env, ".test.db", 0, 0644, &param[0]));
         ham_env_close(env, 0);
         BFC_ASSERT_EQUAL(0,
-                ham_env_open_ex(env, ".test.db", 0, &param[0]));
+                ham_env_open(env, ".test.db", 0, &param[0]));
         Cache *cache=((Environment *)env)->get_cache();
 
         BFC_ASSERT_EQUAL(100*1024u, cache->get_capacity());

@@ -642,7 +642,7 @@ public:
             if (st)
                 throw error(st);
         }
-        st=ham_env_open_ex(m_env, filename, flags, param);
+        st=ham_env_open(m_env, filename, flags, param);
         if (st)
             throw error(st);
     }

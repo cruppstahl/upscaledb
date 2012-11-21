@@ -126,7 +126,7 @@ public:
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_env_open(m_env, BFC_OPATH(".test"), 0));
+                ham_env_open(m_env, BFC_OPATH(".test"), 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         os::unlink(BFC_OPATH(".test"));
@@ -135,7 +135,7 @@ public:
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_env_open(m_env, BFC_OPATH(".test"), 0));
+                ham_env_open(m_env, BFC_OPATH(".test"), 0, 0));
     }
 
     ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name)
@@ -219,7 +219,7 @@ public:
                                 0664, &set_params[0]));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0,
-                ham_env_open_ex(env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
+                ham_env_open(env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
 

@@ -137,7 +137,7 @@ class Environment
     /*
      * following here: function pointers which implement access to
      * local or remote databases. they are initialized in ham_env_create_ex
-     * and ham_env_open_ex after the Environment handle was initialized and
+     * and ham_env_open after the Environment handle was initialized and
      * an allocator was created.
      *
      * @see env_initialize_local
@@ -402,12 +402,12 @@ class Environment
         m_pagesize=ps;
     }
 
-    /** get the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
+    /** get the cachesize as specified in ham_env_create_ex/ham_env_open */
     ham_u64_t get_cachesize() {
         return (m_cachesize);
     }
 
-    /** set the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
+    /** set the cachesize as specified in ham_env_create_ex/ham_env_open */
     void set_cachesize(ham_u64_t cs) {
         m_cachesize=cs;
     }
