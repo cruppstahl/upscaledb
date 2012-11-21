@@ -25,10 +25,10 @@ o involve everyone in decisions on the new interface
     x Remove ham_calc_maxkeys_per_page
     x Remove other stuff from hamsterdb_int.h
     x Get rid of sorted duplicates
-    o Do you use any of the HAM_HINT_* flags?
+    x Do you use any of the HAM_HINT_* flags?
       Yes, leave APPEND and PREPEND; check when they are used. are they really
         needed? the histogram should do that automatically
-    o Do you use any of the HAM_DAM_* flags?
+    x Remove the DAM flags
       DAM is currently used to decide about split point; really necessary? The
       hinter should do this automatically
     o update README
@@ -37,7 +37,7 @@ o involve everyone in decisions on the new interface
 o clean up interface
     x clean up ham_flush, ham_env_flush
     x rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
-    o rename ham_cursor_find_ex to ham_cursor_find
+    x rename ham_cursor_find_ex to ham_cursor_find
     o clean up ham_get_parameters, ham_env_get_parameters, ham_get_flags
     o rename ham_env_open_ex to ham_env_open, remove ham_open[_ex]
     o rename ham_env_create_ex to ham_env_create, remove ham_create[_ex]
@@ -71,6 +71,13 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         ==> described in github wiki
         ==> need a migration path (i.e. allow forward-cursors if db is
             read-only, no transactions)
+    o need migration path:
+        o ham_dump: rename to ham_export, write json or protobuf
+        o ham_import: read from file or stdin; either merge into or overwrite
+            an existing file or create a new file
+        o ham_export test.db | ham_import test2.db --stdin
+
+o remove backend.h, directly use BtreeBackend
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator

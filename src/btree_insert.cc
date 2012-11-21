@@ -382,7 +382,7 @@ class BtreeInsertAction
        * inserted at the very end, then we select the same pivot as for
        * sequential access
        */
-      if (db->get_data_access_mode() & HAM_DAM_SEQUENTIAL_INSERT)
+      if (m_hints.flags & HAM_HINT_APPEND && m_hints.append_count > 5)
         pivot_at_end = true;
       else if (obtp->get_right() == 0) {
         cmp = m_backend->compare_keys(page, key, obtp->get_count() - 1);

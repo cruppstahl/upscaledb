@@ -20,11 +20,6 @@ namespace Hamster
         private HamConst() {
         }
 
-        /// <summary>Data Access Mode: random writes</summary>
-        public const int HAM_DAM_RANDOM_WRITE               =        1;
-        /// <summary>Data Access Mode: sequential inserts</summary>
-        public const int HAM_DAM_SEQUENTIAL_INSERT          =        2;
-
         /// <summary>Operation completed successfully</summary>
         public const int HAM_SUCCESS                        =        0;
         /// <summary>Invalid key size</summary>
@@ -149,8 +144,6 @@ namespace Hamster
         public const int HAM_PARAM_KEYSIZE                  =    0x102;
         /// <summary>Parameter name for Environment.Create</summary>
         public const int HAM_PARAM_MAX_ENV_DATABASES        =    0x103;
-        /// <summary>Parameter name for Database.Create, Database.Open</summary>
-        public const int HAM_PARAM_DATA_ACCESS_MODE         =    0x104;
 
         // Database operations
         /// <summary>Parameter for GetParameters</summary>
@@ -162,11 +155,9 @@ namespace Hamster
         /// <summary>Parameter for GetParameters</summary>
         public const int HAM_PARAM_DBNAME               =        0x00000203;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_KEYS_PER_PAGE        =        0x00000204;
+        public const int HAM_PARAM_GET_KEYS_PER_PAGE    =        0x00000204;
         /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_DAM                  =        0x00000205;
-        /// <summary>Parameter for GetParameters</summary>
-        public const int HAM_PARAM_GET_STATISTICS               =        0x00000206;
+        public const int HAM_PARAM_GET_STATISTICS       =        0x00000206;
 
         // Database operations
         /// <summary>Flag for Database.Insert, Cursor.Insert</summary>

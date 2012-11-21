@@ -493,7 +493,7 @@ Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
         0,
         0,
         0,
-        db ? db->get_data_access_mode() : 0, /* mgt_mode */
+        0,
         HAM_FALSE,
         0,
         0,
@@ -575,14 +575,13 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
     FreelistPayload *fp = NULL;
     Page *page=0;
     ham_s32_t s=-1;
-    ham_u16_t mgt_mode = db ? db->get_data_access_mode() : 0;
     freelist_global_hints_t global_hints =
     {
         0,
         1,
         0,
         m_entries.size(),
-        mgt_mode,
+        0,
         0, /* span_width will be set by the hinter */
         aligned,
         lower_bound_address,
@@ -2604,60 +2603,7 @@ Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
             return -1;
         }
 
-        if (dam_is_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT)) {
-            if (1) {
-                /*
-                 * SEQUENTIAL:
-                 *
-                 * assume the last pages have the optimum chance to
-                 * serve a suitable free chunk: start at the last
-                 * freelist page and scan IN REVERSE to locate a
-                 * suitable freelist page of the bunch at the tail end
-                 * (~ latest entries) of the freelist page collective.
-                 *
-                 * Usually, this will get you a VERY strong preferrence
-                 * for the last freelist page, but when that one gets
-                 * filled up, we postpone the need to allocate extra
-                 * storage on disc by checking out the 'older' freelist
-                 * pages as well: those may have a few free slots
-                 * available, assuming there've been
-                 * records deleted (erased) before now.
-                 *
-                 * In a sense, this mode is good for everyone: it
-                 * quickly finds free space, while still utilizing all
-                 * the free space available in the current DB file,
-                 * before we go off and require the DB file to be expanded.
-                 */
-                if (start_index == -1) {
-                    /* first round: position ourselves at the end of the list: */
-                    start_index = get_count() - hints->page_span_width;
-                }
-                else {
-                    start_index -= hints->skip_init_offset;
-                    /* only apply the init_offset at the first increment
-                     * cycle to break repetitiveness */
-                    hints->skip_init_offset = 0;
-
-                    start_index -= hints->skip_step;
-                    /*
-                     * We don't have to be a very good SRNG here, so
-                     * the 32-bit int wrap around and the case where the
-                     * result lands below the 'start_index' limit are resolved in an (overly)
-                     * simple way:
-                     */
-                    if (start_index < 0) {
-                        /* we happen to have this large prime which we'll
-                         * assume will be larger than any sane freelist entry
-                         * list will ever get in this millenium ;-) */
-                        start_index += 295075153;
-                    }
-                    start_index %= (get_count() - hints->start_entry
-                            - hints->page_span_width + 1);
-                    start_index += hints->start_entry;
-                }
-            }
-        }
-        else {
+        {
             /*
              * 'regular' modes: does this freelist entry have enough
              * allocated blocks to satisfy the request?
@@ -2798,7 +2744,7 @@ Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
         }
         dst->endpos = entry->max_bits;
         dst->skip_distance = hints->size_bits;
-        dst->mgt_mode = hints->mgt_mode;
+        dst->mgt_mode = HAM_DAM_RANDOM_WRITE; // hardcoded for now
         dst->aligned = hints->aligned;
         dst->lower_bound_address = hints->lower_bound_address;
         dst->size_bits = hints->size_bits;

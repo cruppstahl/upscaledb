@@ -533,16 +533,6 @@ class Database
         m_indexdata_offset=offset;
     }
 
-    /** get the expected data access mode for this database */
-    ham_u16_t get_data_access_mode(void) {
-        return (m_data_access_mode);
-    }
-
-    /** set the expected data access mode for this database */
-    void set_data_access_mode(ham_u16_t dam) {
-        m_data_access_mode=dam;
-    }
-
     /** check whether this database has been opened/created */
     bool is_active() {
         return (m_is_active);
@@ -753,9 +743,6 @@ class Database
 
     /** the offset of this database in the environment _indexdata */
     ham_u16_t m_indexdata_offset;
-
-    /** current data access mode (DAM) */
-    ham_u16_t m_data_access_mode;
 
     /** non-zero after this istem has been opened/created */
     bool m_is_active;

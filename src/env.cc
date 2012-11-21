@@ -47,8 +47,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_u32_t *pflags, const ham_parameter_t *param,
         ham_size_t *ppagesize, ham_u16_t *pkeysize,
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode,
-        std::string &logdir, bool create);
+        ham_u16_t *pmaxdbs, std::string &logdir, bool create);
 
 namespace ham {
 
@@ -891,7 +890,6 @@ _local_fun_create_db(Environment *env, Database *db,
     ham_status_t st;
     ham_u16_t keysize = 0;
     ham_u64_t cachesize = 0;
-    ham_u16_t dam = 0;
     ham_u16_t dbi;
     ham_size_t i;
     Backend *be;
@@ -902,7 +900,7 @@ _local_fun_create_db(Environment *env, Database *db,
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param,
-            0, &keysize, &cachesize, &dbname, 0, &dam, logdir, true);
+            0, &keysize, &cachesize, &dbname, 0, logdir, true);
     if (st)
         return (st);
 
@@ -1017,14 +1015,6 @@ _local_fun_create_db(Environment *env, Database *db,
     }
     env->set_dirty(true);
 
-    /* finally calculate and store the data access mode */
-    if (!dam) {
-        dam=(flags&HAM_RECORD_NUMBER)
-            ? HAM_DAM_SEQUENTIAL_INSERT
-            : HAM_DAM_RANDOM_WRITE;
-    }
-    db->set_data_access_mode(dam);
-
     /*
      * set the key compare function
      */
@@ -1062,7 +1052,6 @@ _local_fun_open_db(Environment *env, Database *db,
 {
     Database *head;
     ham_status_t st;
-    ham_u16_t dam = 0;
     ham_u64_t cachesize = 0;
     Backend *be = 0;
     ham_u16_t dbi;
@@ -1080,7 +1069,7 @@ _local_fun_open_db(Environment *env, Database *db,
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param,
-            0, 0, &cachesize, &name, 0, &dam, logdir, false);
+            0, 0, &cachesize, &name, 0, logdir, false);
     if (st)
         return (st);
 
@@ -1181,14 +1170,6 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
     ham_assert(!(be->get_flags()&DB_USE_MMAP));
-
-    /* finally calculate and store the data access mode */
-    if (!dam) {
-        dam=(db->get_rt_flags()&HAM_RECORD_NUMBER)
-            ? HAM_DAM_SEQUENTIAL_INSERT
-            : HAM_DAM_RANDOM_WRITE;
-    }
-    db->set_data_access_mode(dam);
 
     /*
      * set the key compare function

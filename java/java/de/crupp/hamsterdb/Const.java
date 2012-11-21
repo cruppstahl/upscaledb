@@ -14,12 +14,6 @@ package de.crupp.hamsterdb;
 
 public class Const {
 
-    /** Data Access Mode - random read/write */
-    public final static int HAM_DAM_RANDOM_WRITE                =        1;
-
-    /** Data Access Mode - Sequential inserts */
-    public final static int HAM_DAM_SEQUENTIAL_INSERT           =        2;
-
     /** Operation completed successfully */
     public final static int HAM_SUCCESS                         =        0;
 
@@ -200,9 +194,6 @@ public class Const {
     /** Parameter name for Environment.create() */
     public final static int HAM_PARAM_MAX_ENV_DATABASES         =    0x103;
 
-    /** Parameter name for Environment.create(),... */
-    public final static int HAM_PARAM_DATA_ACCESS_MODE          =    0x104;
-
     /** Parameter name for Environment.getParameters(),... */
     public final static int HAM_PARAM_GET_FLAGS                 =    0x200;
 
@@ -218,10 +209,6 @@ public class Const {
 
     /** Parameter name for Database.getParameters() */
     public final static int HAM_PARAM_GET_KEYS_PER_PAGE         =    0x204;
-
-    /** Parameter name for Database.getParameters() */
-    public final static int HAM_PARAM_GET_DAM                   =    0x205;
-    public final static int HAM_PARAM_GET_DATA_ACCESS_MODE      =    0x205;
 
     /** Flag for Database.insert(), Cursor.insert() */
     public final static int HAM_OVERWRITE                       =        1;

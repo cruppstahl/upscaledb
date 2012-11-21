@@ -177,7 +177,6 @@ public:
         ham_parameter_t params[]={
             { HAM_PARAM_PAGESIZE, 1024 },
             { HAM_PARAM_KEYSIZE, 128 },
-            { HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_SEQUENTIAL_INSERT },
             { 0, 0 }
         };
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));

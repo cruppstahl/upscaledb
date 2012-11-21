@@ -732,10 +732,6 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
       ham_assert(reply->db_get_parameters_reply().has_keys_per_page());
       p->value = reply->db_get_parameters_reply().keys_per_page();
       break;
-    case HAM_PARAM_GET_DATA_ACCESS_MODE:
-      ham_assert(reply->db_get_parameters_reply().has_dam());
-      p->value = reply->db_get_parameters_reply().dam();
-      break;
     default:
       ham_trace(("unknown parameter %d", (int)p->name));
       break;

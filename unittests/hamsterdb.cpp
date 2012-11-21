@@ -82,9 +82,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, createPagesizeReopenTest);
         BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
-        BFC_REGISTER_TEST(HamsterdbTest, invalidDamInEnvTest);
-        BFC_REGISTER_TEST(HamsterdbTest, recnoUsesSequentialDamTest);
-        BFC_REGISTER_TEST(HamsterdbTest, unknownDamTest);
         BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
@@ -427,61 +424,6 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE,
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
-    }
-
-    void invalidDamInEnvTest(void)
-    {
-        ham_env_t *env;
-        ham_parameter_t p[]={
-            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_RANDOM_WRITE},
-            {0, 0}
-        };
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_create_ex(env, BFC_OPATH(".test"), 0, 0664, &p[0]));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_ex(env, BFC_OPATH(".test"), 0, &p[0]));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-    }
-
-    void recnoUsesSequentialDamTest(void)
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0,
-                ham_create(db, BFC_OPATH(".test"), HAM_RECORD_NUMBER, 0664));
-        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT
-                & ((Database *)db)->get_data_access_mode());
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(0,
-                ham_open(db, BFC_OPATH(".test"), 0));
-        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT
-                & ((Database *)db)->get_data_access_mode());
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
-
-    void unknownDamTest(void)
-    {
-        ham_db_t *db;
-        ham_parameter_t p[]={
-            {HAM_PARAM_DATA_ACCESS_MODE, 99},
-            {0, 0}
-        };
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_open_ex(db, BFC_OPATH(".test"), 0, &p[0]));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
     }
 
     void getErrorTest(void)

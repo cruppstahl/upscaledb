@@ -187,14 +187,8 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_MAX_ENV_DATABASES:
         return "HAM_PARAM_MAX_ENV_DATABASES";
 
-    case HAM_PARAM_DATA_ACCESS_MODE:
-        return "HAM_PARAM_DATA_ACCESS_MODE";
-
     case HAM_PARAM_GET_FLAGS:
         return "HAM_PARAM_GET_FLAGS";
-
-    case HAM_PARAM_GET_DATA_ACCESS_MODE:
-        return "HAM_PARAM_GET_DATA_ACCESS_MODE";
 
     case HAM_PARAM_GET_FILEMODE:
         return "HAM_PARAM_GET_FILEMODE";
@@ -481,8 +475,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_u32_t *pflags, const ham_parameter_t *param,
         ham_size_t *ppagesize, ham_u16_t *pkeysize,
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode,
-        std::string &logdir, bool create)
+        ham_u16_t *pmaxdbs, std::string &logdir, bool create)
 {
     ham_size_t pagesize=0;
     ham_u16_t keysize=0;
@@ -490,7 +483,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
     ham_u64_t cachesize=0;
     ham_bool_t no_mmap=HAM_FALSE;
     ham_u16_t dbs=0;
-    ham_u16_t dam=0;
     ham_u32_t flags = 0;
     ham_bool_t set_abs_max_dbs = HAM_FALSE;
     ham_status_t st = 0;
@@ -514,8 +506,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         pagesize = *ppagesize;
     if (pdbname && *pdbname)
         dbname = *pdbname;
-    if (pdata_access_mode && *pdata_access_mode)
-        dam = *pdata_access_mode;
     if (pmaxdbs && *pmaxdbs)
         dbs = *pmaxdbs;
 
@@ -638,30 +628,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_DATA_ACCESS_MODE:
-                /* not allowed for Environments, only for Databases */
-                if (!db) {
-                    ham_trace(("invalid parameter HAM_PARAM_DATA_ACCESS_MODE"));
-                    return (HAM_INV_PARAMETER);
-                }
-                if (pdata_access_mode) {
-                    switch (param->value) {
-                    case 0: /* ignore 0 */
-                        break;
-                    case HAM_DAM_SEQUENTIAL_INSERT:
-                    case HAM_DAM_RANDOM_WRITE:
-                        dam=(ham_u16_t)param->value;
-                        break;
-                    default:
-                        ham_trace(("invalid value 0x%04x specified for "
-                                "parameter HAM_PARAM_DATA_ACCESS_MODE",
-                                (unsigned)param->value));
-                        return (HAM_INV_PARAMETER);
-                    }
-                    break;
-                }
-                goto default_case;
-
             case HAM_PARAM_MAX_ENV_DATABASES:
                 if (pmaxdbs) {
                     if (param->value==0 || param->value >= HAM_DEFAULT_DATABASE_NAME) {
@@ -697,7 +663,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_GET_DATA_ACCESS_MODE:
             case HAM_PARAM_GET_FLAGS:
             case HAM_PARAM_GET_FILEMODE:
             case HAM_PARAM_GET_FILENAME:
@@ -710,17 +675,6 @@ default_case:
                 return (HAM_INV_PARAMETER);
             }
         }
-    }
-
-    /*
-     * when creating a database we can calculate the DAM depending on the
-     * create flags; when opening a database, the recno-flag is persistent
-     * and not yet loaded, therefore it's handled by the caller
-     */
-    if (!dam && create) {
-        dam=(flags & HAM_RECORD_NUMBER)
-            ? HAM_DAM_SEQUENTIAL_INSERT
-            : HAM_DAM_RANDOM_WRITE;
     }
 
     if ((env && !db) || (!env && db)) {
@@ -950,8 +904,6 @@ default_case:
         *ppagesize = pagesize;
     if (pdbname)
         *pdbname = dbname;
-    if (pdata_access_mode)
-        *pdata_access_mode = dam;
     if (pmaxdbs)
         *pmaxdbs = dbs;
 
@@ -1052,7 +1004,7 @@ ham_env_create_ex(ham_env_t *henv, const char *filename,
 
     /* check (and modify) the parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param,
-            &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, logdir, true);
+            &pagesize, &keysize, &cachesize, 0, &maxdbs, logdir, true);
     if (st)
         return (st);
 
@@ -1238,7 +1190,7 @@ ham_env_open_ex(ham_env_t *henv, const char *filename,
 
     /* parse parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param,
-            0, 0, &cachesize, 0, 0, 0, logdir, false);
+            0, 0, &cachesize, 0, 0, logdir, false);
     if (st)
         return (st);
 
@@ -1553,12 +1505,10 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     ham_status_t st;
     ham_u16_t dbname=HAM_FIRST_DATABASE_NAME;
     ham_u64_t cachesize=0;
-    ham_u16_t dam = 0;
     ham_env_t *env;
     ham_u32_t env_flags;
     std::string logdir;
     ham_parameter_t env_param[8]={{0, 0}};
-    ham_parameter_t db_param[8]={{0, 0}};
     Database *db=(Database *)hdb;
 
     if (!db) {
@@ -1576,7 +1526,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
 
     /* parse parameters */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
-            0, 0, &cachesize, &dbname, 0, &dam, logdir, false);
+            0, 0, &cachesize, &dbname, 0, logdir, false);
     if (st)
         return (st);
 
@@ -1621,12 +1571,8 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
             |DB_USE_MMAP
             |DB_ENV_IS_PRIVATE);
 
-    db_param[0].name=HAM_PARAM_DATA_ACCESS_MODE;
-    db_param[0].value=dam;
-    db_param[1].name=0;
-
     /* now open the Database in this Environment */
-    st=ham_env_open_db(env, (ham_db_t *)db, dbname, flags, db_param);
+    st=ham_env_open_db(env, (ham_db_t *)db, dbname, flags, 0);
     if (st)
         goto bail;
 
@@ -1663,11 +1609,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_u16_t dam=(flags & HAM_RECORD_NUMBER)
-        ? HAM_DAM_SEQUENTIAL_INSERT
-        : HAM_DAM_RANDOM_WRITE;
     Database *db=(Database *)hdb;
-
     ham_size_t pagesize = 0;
     ham_u16_t maxdbs = 0;
     ham_u16_t keysize = 0;
@@ -1696,8 +1638,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
      * check (and modify) the parameters
      */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
-            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, &dam,
-            logdir, true);
+            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, logdir, true);
     if (st)
         return (db->set_error(st));
 
@@ -1751,9 +1692,7 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
 
     db_param[0].name=HAM_PARAM_KEYSIZE;
     db_param[0].value=keysize;
-    db_param[1].name=HAM_PARAM_DATA_ACCESS_MODE;
-    db_param[1].value=dam;
-    db_param[2].name=0;
+    db_param[1].name=0;
 
     /* now create the Database */
     st=ham_env_create_db(env, (ham_db_t *)db,

@@ -288,10 +288,6 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
       reply.mutable_db_get_parameters_reply()->set_keys_per_page(
               (int)params[i].value);
       break;
-    case HAM_PARAM_GET_DATA_ACCESS_MODE:
-      reply.mutable_db_get_parameters_reply()->set_dam(
-              (int)params[i].value);
-      break;
     default:
       ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
       break;

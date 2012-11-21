@@ -277,55 +277,6 @@ typedef struct {
 
 
 /**
- * @defgroup ham_data_access_modes hamsterdb Data Access Mode Codes
- * @{
- *
- * which can be passed in the @ref HAM_PARAM_DATA_ACCESS_MODE parameter
- * when creating a new Database (see @ref ham_create_ex) or
- * opening an existing Database (see @ref ham_open_ex).
- *
- * @remark The Data Access Mode describes the typical application behaviour
- * (i.e. if data is only inserted sequentially) and allows hamsterdb to
- * optimize its routines for this behaviour.
- *
- * @remark The Data Access Mode is not persisted in the Database.
- * It is stored per Database basis. This means different Databases within the
- * same Environment can have different Data Access Modes.
- *
- * @sa ham_create_ex
- * @sa ham_open_ex
- * @sa ham_hinting_flags
- */
-
-/**
- * Assume random access (a mixed bag of random insert and delete).
- *
- * This is the default setting for (non-RECNO) Databases created with versions
- * newer than 1.0.9.
- *
- * Note: RECNO-based Databases will start in the implicit
- * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
- *
- * This flag is non persistent.
-*/
-#define HAM_DAM_RANDOM_WRITE      0x0001
-
-/**
- * Assume sequential insert (and few or no delete) operations.
- *
- * This is the default setting for RECNO based Databases created with versions
- * newer than 1.0.9.
- *
- * This flag is non persistent.
- */
-#define HAM_DAM_SEQUENTIAL_INSERT    0x0002
-
-/**
- * @}
- */
-
-
-/**
  * @defgroup ham_status_codes hamsterdb Status Codes
  * @{
  */
@@ -720,16 +671,6 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *    <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
- *    <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data
- *      access patterns. The default setting optimizes hamsterdb
- *      for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
- *      Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *      is automatically set for record number Databases).
- *      Data Access Mode hints can be set for individual Databases, too
- *      (see also @ref ham_create_ex) but are applied globally to all
- *      Databases within a single Environment.
- *      For more information about available DAM (Data Access Mode)
- *      flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file
@@ -833,16 +774,6 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <ul>
  *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *      index. The default size is 21 bytes.
- *    <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data
- *      access patterns. The default setting optimizes hamsterdb
- *      for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
- *      Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *      is automatically set for record number Databases).
- *      Data Access Mode hints can be set for individual Databases, too
- *      (see also @ref ham_create_ex) but are applied globally to all
- *      Databases within a single Environment.
- *      For more information about available DAM (Data Access Mode)
- *      flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -883,20 +814,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *   </ul>
- * @param params An array of ham_parameter_t structures. The following
- *      parameters are available:
- *    <ul>
- *    <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data
- *      access patterns. The default setting optimizes hamsterdb
- *      for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
- *      Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *      is automatically set for record number Databases).
- *      Data Access Mode hints can be set for individual Databases, too
- *      (see also @ref ham_create_ex) but are applied globally to all
- *      Databases within a single Environment.
- *      For more information about available DAM (Data Access Mode)
- *      flags, see @ref ham_data_access_modes. The DAM is not persistent.
- *    </ul>
+ * @param params Reserved; set to NULL
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an
@@ -1290,13 +1208,6 @@ ham_create(ham_db_t *db, const char *filename,
  *      Page sizes must be 1024 or a multiple of 2048.
  *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *      index. The default size is 21 bytes.
- *    <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data
- *      access patterns. The default setting optimizes hamsterdb
- *      for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
- *      Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *      is automatically set for record number Databases).
- *      For more information about available DAM (Data Access Mode)
- *      flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1397,16 +1308,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *    <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
  *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
- *    <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data
- *      access patterns. The default setting optimizes hamsterdb
- *      for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
- *      Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *      is automatically set for record number Databases).
- *      Data Access Mode hints can be set for individual Databases, too
- *      (see also @ref ham_create_ex) but are applied globally to all
- *      Databases within a single Environment.
- *      For more information about available DAM (Data Access Mode)
- *      flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1975,7 +1876,6 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_GET_DATABASE_NAME</li> returns the Database name
  *    <li>HAM_PARAM_GET_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
- *    <li>HAM_PARAM_GET_DATA_ACCESS_MODE</li> returns the Data Access Mode
  *    </ul>
  *
  * @param db A valid Database handle
@@ -2002,11 +1902,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_create_ex; sets the number of maximum
  * Databases */
 #define HAM_PARAM_MAX_ENV_DATABASES     0x00000103
-
-/** Parameter name for @ref ham_create_ex, @ref ham_open_ex; set the
- * expected access mode.
- */
-#define HAM_PARAM_DATA_ACCESS_MODE      0x00000104
 
 /** Parameter name for @ref ham_env_open_ex, @ref ham_env_create_ex,
  * @ref ham_open_ex, @ref ham_create_ex; sets the path of the log files */
@@ -2054,12 +1949,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * ball park value for this one.
  */
 #define HAM_PARAM_GET_KEYS_PER_PAGE     0x00000204
-
-/**
- * Retrieve the Data Access mode for the Database
- */
-#define HAM_PARAM_GET_DATA_ACCESS_MODE  0x00000205
-#define HAM_PARAM_GET_DAM               HAM_PARAM_GET_DATA_ACCESS_MODE
 
 /**
  * Retrieve the flags which were specified when the Database was created

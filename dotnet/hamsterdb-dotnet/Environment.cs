@@ -392,13 +392,6 @@ namespace Hamster
         ///     <item><see cref="HamConst.HAM_PARAM_KEYSIZE" />
         ///         The size of the keys in the B+Tree index. The default size
         ///         is 21 bytes.</item><br />
-        ///     <item><see cref="HamConst.HAM_PARAM_DATA_ACCESS_MODE" />
-        ///         Gives a hint regarding data access patterns. The default
-        ///         setting optimizes hamsterdb for random read/write access
-        ///         (<see cref="HamConst.HAM_DAM_RANDOM_WRITE"/>).
-        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for
-        ///         sequential inserts (this is automatically set for
-        ///         record number Databases). This flag is not persistent.</item>
         ///     </list>
         /// </param>
         /// <exception cref="DatabaseException">
@@ -479,13 +472,6 @@ namespace Hamster
         /// <param name="parameters">An array of <see cref="Parameter" />
         /// structures. The following parameters are available:<br />
         ///   <list type="bullet">
-        ///     <item><see cref="HamConst.HAM_PARAM_DATA_ACCESS_MODE" />
-        ///         Gives a hint regarding data access patterns. The default
-        ///         setting optimizes hamsterdb for random read/write access
-        ///         (<see cref="HamConst.HAM_DAM_RANDOM_WRITE"/>).
-        ///         Use <see cref="HamConst.HAM_DAM_SEQUENTIAL_INSERT"/> for
-        ///         sequential inserts (this is automatically set for
-        ///         record number Databases). This flag is not persistent.</item>
         ///     </list>
         /// </param>
         /// <exception cref="DatabaseException">

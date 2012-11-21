@@ -208,7 +208,6 @@ public class DatabaseTest extends TestCase {
         params[6].name=Const.HAM_PARAM_GET_FILEMODE;
         params[7].name=Const.HAM_PARAM_GET_FILENAME;
         params[8].name=Const.HAM_PARAM_GET_KEYS_PER_PAGE;
-        params[9].name=Const.HAM_PARAM_GET_DAM;
         Database db=new Database();
         try {
             db.create("jtest.db");
@@ -228,7 +227,6 @@ public class DatabaseTest extends TestCase {
         assertEquals("jtest.db", params[7].stringValue);
         // 510: linux/darwin; 2046: win32
         assert(params[8].value==510 || params[8].value==2046);
-        assertEquals(1, params[9].value);
         db.close();
     }
 

@@ -189,13 +189,7 @@ struct EnvironmentStatistics
    * at an average monitored cost increase of 10-20 per
    * insert/delete trial and, for very large databases using an
    * overly conservative freelist management setting, ~50-200 trials
-   * per insert/delete API invocation (which should be a hint to the
-   * user that another DAM mode is preferred; after all, 'classical'
-   * is only there for backwards compatibility, and in the old
-   * days, hamsterdb was a snail when you'd be storing 1M+ records
-   * in a single DB table), the resulting statistics additive step
-   * is a nominal worst case of 20 * 200 = 4000 cost points per
-   * insert/delete.
+   * per insert/delete API invocation.
    *
    * Assuming a high water mark for signed int, i.e. 2^31 ~ 2.14
    * billion, dividing ('rescaling') that number down to 2^(31-8) ~ 8M

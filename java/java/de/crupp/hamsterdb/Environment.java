@@ -319,7 +319,6 @@ public class Environment {
      *        The following parameters are available:
      *      <ul>
      *        <li><code>Const.HAM_PARAM_KEYSIZE</code></li>
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
      *      </ul>
      * <p>
      * More information about flags, parameters and possible exceptions:
@@ -366,23 +365,16 @@ public class Environment {
      *            a key, which is larger than the B+Tree index key size,
      *            returns <code>Const.HAM_INV_KEYSIZE</code>.
      *      </ul>
-     * @param params An array of <code>Parameter</code> structures.
-     *        The following parameters are available:
-     *      <ul>
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
-     *      </ul>
-     *
      * <p>
      * More information about flags, parameters and possible exceptions:
      * <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__env.html#ga5fc90a1a4c2e4a69d737c804b5159931">C documentation</a>
      *
      * @return a Database object
      */
-    public synchronized Database openDatabase(short name, int flags,
-            Parameter[] params)
+    public synchronized Database openDatabase(short name, int flags)
             throws DatabaseException {
         // ham_env_open_db will throw an DatabaseException if it fails
-        return new Database(ham_env_open_db(m_handle, name, flags, params));
+        return new Database(ham_env_open_db(m_handle, name, flags, null));
     }
 
     /**

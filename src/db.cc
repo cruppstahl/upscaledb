@@ -209,8 +209,7 @@ __cache_needs_purge(Environment *env)
 Database::Database()
   : m_error(0), m_context(0), m_backend(0), m_cursors(0), m_prefix_func(0),
     m_cmp_func(0), m_rt_flags(0), m_env(0), m_next(0), m_extkey_cache(0),
-    m_indexdata_offset(0), m_data_access_mode(0), m_is_active(0),
-    m_optree(this), m_impl(0)
+    m_indexdata_offset(0), m_is_active(0), m_optree(this), m_impl(0)
 {
 #if HAM_ENABLE_REMOTE
     m_remote_handle=0;
@@ -1513,9 +1512,6 @@ DatabaseImplementationLocal::get_parameters(ham_parameter_t *param)
                         return (st);
                     p->value=count;
                 }
-                break;
-            case HAM_PARAM_GET_DATA_ACCESS_MODE:
-                p->value=m_db->get_data_access_mode();
                 break;
             default:
                 ham_trace(("unknown parameter %d", (int)p->name));

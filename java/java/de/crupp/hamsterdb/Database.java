@@ -242,7 +242,6 @@ public class Database {
      *        <li><code>Const.HAM_DEFAULT_CACHESIZE</code></li>
      *        <li><code>Const.HAM_PARAM_PAGESIZE</code></li>
      *        <li><code>Const.HAM_PARAM_KEYSIZE</code></li>
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
      *      </ul>
      * <p>
      * More information about flags, parameters and possible exceptions:
@@ -337,7 +336,6 @@ public class Database {
      *        following parameters are available:
      *      <ul>
      *        <li><code>Const.HAM_PARAM_CACHESIZE</code></li>
-     *        <li><code>Const.HAM_PARAM_DATA_ACCESS_MODE</code></li>
      *      </ul>
      * <p>
      * More information about flags, parameters and possible exceptions:

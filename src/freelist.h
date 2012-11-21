@@ -24,6 +24,9 @@
 
 namespace ham {
 
+#define HAM_DAM_RANDOM_WRITE                1
+#define HAM_DAM_SEQUENTIAL_INSERT           2
+
 /**
  * an entry in the freelist cache
  */
