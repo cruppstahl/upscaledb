@@ -365,11 +365,8 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
 
     /* open the file */
     st=device->open(filename, flags);
-    if (st) {
-        (void)ham_env_close((ham_env_t *)env,
-                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
+    if (st)
         return (st);
-    }
 
     /*
      * read the database header
@@ -472,11 +469,8 @@ fail_with_fake_cleansing:
             env->set_header_page(0);
 
         /* exit when an error was signaled */
-        if (st) {
-            (void)ham_env_close((ham_env_t *)env,
-                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
+        if (st)
             return (st);
-        }
 
         /* now read the "real" header page and store it in the Environment */
         page=new Page(env);
@@ -484,8 +478,6 @@ fail_with_fake_cleansing:
         st=page->fetch(0);
         if (st) {
             delete page;
-            (void)ham_env_close((ham_env_t *)env,
-                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
             return (st);
         }
         env->set_header_page(page);
@@ -511,11 +503,8 @@ fail_with_fake_cleansing:
      */
     if (env->get_flags()&HAM_ENABLE_RECOVERY) {
         st=__recover(env, flags);
-        if (st) {
-            (void)ham_env_close((ham_env_t *)env,
-                        HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
+        if (st)
             return (st);
-        }
     }
 
     return (HAM_SUCCESS);
@@ -594,15 +583,10 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     /*
      * temporarily load the database
      */
-    st=ham_new((ham_db_t **)&db);
+    st=ham_env_open_db((ham_env_t *)env, (ham_db_t **)&db, name,
+                HAM_DONT_LOCK, 0);
     if (st)
         return (st);
-    st=ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, name,
-                HAM_DONT_LOCK, 0);
-    if (st) {
-        delete db;
-        return (st);
-    }
 
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -629,7 +613,6 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     st=be->enumerate(__free_inmemory_blobs_cb, &context);
     if (st) {
         (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
-        delete db;
         return (st);
     }
 
@@ -649,7 +632,6 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 
     /* clean up and return */
     (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
-    delete db;
 
     return (0);
 }
@@ -939,10 +921,8 @@ _local_fun_create_db(Environment *env, Database *db,
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(i));
         if (!name)
             continue;
-        if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME) {
-            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME)
             return (HAM_DATABASE_ALREADY_EXISTS);
-        }
     }
 
     /*
@@ -958,10 +938,8 @@ _local_fun_create_db(Environment *env, Database *db,
             break;
         }
     }
-    if (dbi==env->get_max_databases()) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (dbi==env->get_max_databases())
         return (HAM_LIMITS_REACHED);
-    }
 
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -977,7 +955,6 @@ _local_fun_create_db(Environment *env, Database *db,
         be=new BtreeBackend(db, flags);
         if (!be) {
             st=HAM_OUT_OF_MEMORY;
-            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             goto bail;
         }
         /* store the backend in the database */
@@ -986,10 +963,8 @@ _local_fun_create_db(Environment *env, Database *db,
 
     /* initialize the backend */
     st=be->create(keysize, pflags);
-    if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (st)
         goto bail;
-    }
 
     ham_assert(be->is_active()!=0);
 
@@ -997,10 +972,8 @@ _local_fun_create_db(Environment *env, Database *db,
      * initialize the remaining function pointers in Database
      */
     st=db->initialize_local();
-    if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (st)
         goto bail;
-    }
 
     /*
      * set the default key compare functions
@@ -1056,14 +1029,6 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_u16_t dbi;
     std::string logdir;
 
-    /*
-     * make sure that this database is not yet open/created
-     */
-    if (db->is_active()) {
-        ham_trace(("parameter 'db' is already initialized"));
-        return (HAM_DATABASE_ALREADY_OPEN);
-    }
-
     db->set_rt_flags(0);
 
     /* parse parameters */
@@ -1105,29 +1070,21 @@ _local_fun_open_db(Environment *env, Database *db,
         }
     }
 
-    if (dbi==env->get_max_databases()) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (dbi==env->get_max_databases())
         return (HAM_DATABASE_NOT_FOUND);
-    }
 
     /* create the backend */
     be=db->get_backend();
     if (be==NULL) {
-        be=new BtreeBackend(db, flags);
-        if (!be) {
-            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
-            return (HAM_OUT_OF_MEMORY);
-        }
         /* store the backend in the database */
-        db->set_backend(be);
+        db->set_backend(new BtreeBackend(db, flags));
+        be=db->get_backend();
     }
 
     /* initialize the backend */
     st=be->open(flags);
-    if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (st)
         return (st);
-    }
 
     ham_assert(be->is_active()!=0);
 
@@ -1135,10 +1092,8 @@ _local_fun_open_db(Environment *env, Database *db,
      * initialize the remaining function pointers in Database
      */
     st=db->initialize_local();
-    if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    if (st)
         return (st);
-    }
 
     /*
      * set the database flags; strip off the persistent flags that may have been
@@ -1186,7 +1141,6 @@ _local_fun_open_db(Environment *env, Database *db,
         st = (*db)()->finalize_open();
         if (st) {
             ham_trace(("Database could not be opened"));
-            (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
             return (st);
         }
     }

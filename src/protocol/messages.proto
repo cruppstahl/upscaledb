@@ -182,8 +182,8 @@ message EnvCreateDbRequest {
 
 message EnvCreateDbReply {
     required sint32 status = 1;
-    required uint64 db_handle = 2;
-    required uint32 db_flags = 3;
+    optional uint64 db_handle = 2;
+    optional uint32 db_flags = 3;
 };
 
 message EnvOpenDbRequest {
@@ -195,8 +195,8 @@ message EnvOpenDbRequest {
 
 message EnvOpenDbReply {
     required sint32 status = 1;
-    required uint64 db_handle = 2;
-    required uint32 db_flags = 3;
+    optional uint64 db_handle = 2;
+    optional uint32 db_flags = 3;
 };
 
 message EnvEraseDbRequest {

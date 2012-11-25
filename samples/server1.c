@@ -35,29 +35,27 @@ main(void)
     ham_status_t st;
     char input[1024];
 
-    ham_env_new(&env);
-    st=ham_env_create(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
+    st=ham_env_create(&env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
     if (st) {
         printf("ham_env_create: %d\n", st);
         exit(-1);
     }
 
-    ham_new(&db);
-    st=ham_env_create_db(env, db, 12, HAM_ENABLE_DUPLICATES, 0);
+    st=ham_env_create_db(env, &db, 12, HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
     }
     ham_close(db, 0);
 
-    st=ham_env_create_db(env, db, 13, HAM_ENABLE_DUPLICATES, 0);
+    st=ham_env_create_db(env, &db, 13, HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
     }
     ham_close(db, 0);
 
-    st=ham_env_create_db(env, db, 33,
+    st=ham_env_create_db(env, &db, 33,
                 HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
@@ -86,8 +84,6 @@ main(void)
 
     ham_srv_close(srv);
     ham_env_close(env, HAM_AUTO_CLEANUP);
-    ham_env_delete(env);
-    ham_delete(db);
 
     return (0);
 }

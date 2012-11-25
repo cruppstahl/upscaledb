@@ -95,7 +95,6 @@ static void *
 __get_handle(struct env_t *envh, ham_u64_t handle)
 {
   srv_handle_t *h = &envh->handles[handle & 0xffffffff];
-  ham_assert(h->handle == handle);
   if (h->handle != handle)
     return (0);
   return h->ptr;
@@ -354,8 +353,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
   }
 
   /* create the database */
-  ham_new(&db);
-  st = ham_env_create_db(env, db,
+  st = ham_env_create_db(env, &db,
             request->env_create_db_request().dbname(),
             request->env_create_db_request().flags(), &params[0]);
 
@@ -363,15 +361,14 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     /* allocate a new database handle in the Env wrapper structure */
     db_handle = __store_handle(envh, db, HANDLE_TYPE_DATABASE);
   }
-  else {
-    ham_delete(db);
-  }
 
   Protocol reply(Protocol::ENV_CREATE_DB_REPLY);
   reply.mutable_env_create_db_reply()->set_status(st);
-  reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
-  reply.mutable_env_create_db_reply()->set_db_flags(
-      ((Database *)db)->get_rt_flags(true));
+  if (db_handle) {
+    reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
+    reply.mutable_env_create_db_reply()->set_db_flags(
+        ((Database *)db)->get_rt_flags(true));
+  }
 
   send_wrapper(env, conn, &reply);
 }
@@ -404,8 +401,10 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     if (envh->handles[i].ptr != 0) {
       if (envh->handles[i].type == HANDLE_TYPE_DATABASE) {
         db = (ham_db_t *)envh->handles[i].ptr;
-        if (((Database *)db)->get_name() == dbname)
+        if (((Database *)db)->get_name() == dbname) {
+          db_handle = envh->handles[i].handle;
           break;
+        }
         else
           db = 0;
       }
@@ -414,24 +413,22 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
 
   /* if not found: open the database */
   if (!db) {
-    ham_new(&db);
-    st = ham_env_open_db(env, db, dbname,
+    st = ham_env_open_db(env, &db, dbname,
                 request->env_open_db_request().flags(), &params[0]);
 
     if (st == 0) {
       /* allocate a new database handle in the Env wrapper structure */
       db_handle = __store_handle(envh, db, HANDLE_TYPE_DATABASE);
     }
-    else {
-      ham_delete(db);
-    }
   }
 
   Protocol reply(Protocol::ENV_OPEN_DB_REPLY);
   reply.mutable_env_open_db_reply()->set_status(st);
-  reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
-  reply.mutable_env_open_db_reply()->set_db_flags(
-      ((Database *)db)->get_rt_flags(true));
+  if (st == 0) {
+    reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
+    reply.mutable_env_open_db_reply()->set_db_flags(
+        ((Database *)db)->get_rt_flags(true));
+  }
 
   send_wrapper(env, conn, &reply);
 }
@@ -472,10 +469,8 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
   }
   else {
     st = ham_close(db, request->db_close_request().flags());
-    if (st == 0) {
-      ham_delete(db);
+    if (st == 0)
       __remove_handle(envh, request->db_close_request().db_handle());
-    }
   }
 
   Protocol reply(Protocol::DB_CLOSE_REPLY);

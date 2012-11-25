@@ -445,11 +445,7 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
   }
 
   /* not found - open it */
-  st = ham_new((ham_db_t **)&db);
-  if (st)
-    return (st);
-
-  st = ham_env_open_db((ham_env_t *)env, (ham_db_t *)db, dbname,
+  st = ham_env_open_db((ham_env_t *)env, (ham_db_t **)&db, dbname,
                     HAM_DONT_LOCK, 0);
   if (st)
     return (st);
@@ -485,8 +481,6 @@ __close_all_databases(Environment *env)
       ham_log(("ham_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       return (st);
     }
-
-    delete db;
   }
 
   return (0);

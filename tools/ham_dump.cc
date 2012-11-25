@@ -386,10 +386,7 @@ main(int argc, char **argv)
     /*
      * open the environment
      */
-    st=ham_env_new(&env);
-    if (st!=HAM_SUCCESS)
-        error("ham_env_new", st);
-    st=ham_env_open(env, filename, HAM_READ_ONLY, 0);
+    st=ham_env_open(&env, filename, HAM_READ_ONLY, 0);
     if (st==HAM_FILE_NOT_FOUND) {
         printf("File `%s' not found or unable to open it\n", filename);
         return (-1);
@@ -408,11 +405,7 @@ main(int argc, char **argv)
      * did the user specify a database name? if yes, show only this database
      */
     if (dbname!=0xffff) {
-        st=ham_new(&db);
-        if (st)
-            error("ham_new", st);
-
-        st=ham_env_open_db(env, db, dbname, 0, 0);
+        st=ham_env_open_db(env, &db, dbname, 0, 0);
         if (st==HAM_DATABASE_NOT_FOUND) {
             printf("Database %u (0x%x) not found\n", dbname, dbname);
             return (-1);
@@ -425,18 +418,13 @@ main(int argc, char **argv)
         st=ham_close(db, 0);
         if (st)
             error("ham_close", st);
-        ham_delete(db);
     }
     else {
         /*
          * otherwise: for each database: print information about the database
          */
         for (i=0; i<names_count; i++) {
-            st=ham_new(&db);
-            if (st)
-                error("ham_new", st);
-
-            st=ham_env_open_db(env, db, names[i], 0, 0);
+            st=ham_env_open_db(env, &db, names[i], 0, 0);
             if (st)
                 error("ham_env_open_db", st);
 
@@ -445,7 +433,6 @@ main(int argc, char **argv)
             st=ham_close(db, 0);
             if (st)
                 error("ham_close", st);
-            ham_delete(db);
         }
     }
     /*
@@ -454,8 +441,6 @@ main(int argc, char **argv)
     st=ham_env_close(env, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
-
-    ham_env_delete(env);
 
     return (0);
 }

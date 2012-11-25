@@ -745,13 +745,9 @@ default_case:
      * if this is not the first database we're creating (or opening),
      * we'd better copy the pagesize values from the env / device
      */
-    if (env)
+    if (env) {
         device = env->get_device();
 
-    /*
-     * inherit defaults from ENV for DB
-     */
-    if (env && env->is_active()) {
         if (!cachesize)
             cachesize = env->get_cachesize();
         if (!dbs && env->get_header_page())
@@ -915,37 +911,7 @@ ham_get_license(const char **licensee, const char **product)
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_new(ham_env_t **env)
-{
-    if (!env) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    *env=(ham_env_t *)new Environment();
-    if (!(*env))
-        return (HAM_OUT_OF_MEMORY);
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t HAM_CALLCONV
-ham_env_delete(ham_env_t *henv)
-{
-    if (!henv) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    Environment *env=(Environment *)henv;
-
-    delete (Environment *)env;
-
-    return (0);
-}
-
-ham_status_t HAM_CALLCONV
-ham_env_create(ham_env_t *henv, const char *filename,
+ham_env_create(ham_env_t **henv, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -954,49 +920,31 @@ ham_env_create(ham_env_t *henv, const char *filename,
     ham_u64_t cachesize = 0;
     ham_u16_t maxdbs = 0;
     std::string logdir;
-    Environment *env=(Environment *)henv;
 
-    if (!env) {
+    if (!henv) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock(env->get_mutex());
+    *henv = 0;
+
+    Environment *env = new Environment;
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(Protocol::shutdown);
 #endif
 
-    /*
-     * make sure that this environment is not yet open/created
-     */
-    if (env->is_active()) {
-        ham_trace(("parameter 'env' is already initialized"));
-        return (HAM_ENVIRONMENT_ALREADY_OPEN);
-    }
-
-    env->set_flags(0);
-
     /* check (and modify) the parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param,
             &pagesize, &keysize, &cachesize, 0, &maxdbs, logdir, true);
     if (st)
-        return (st);
+        goto bail;
 
     if (!cachesize)
         cachesize=HAM_DEFAULT_CACHESIZE;
     if (logdir.size())
         env->set_log_directory(logdir);
-
-    /*
-     * if we do not yet have an allocator: create a new one
-     */
-    if (!env->get_allocator()) {
-        env->set_allocator(Allocator::create());
-        if (!env->get_allocator())
-            return (HAM_OUT_OF_MEMORY);
-    }
 
     /* store the parameters */
     env->set_flags(flags);
@@ -1006,157 +954,154 @@ ham_env_create(ham_env_t *henv, const char *filename,
     env->set_max_databases_cached(maxdbs);
     if (filename)
         env->set_filename(filename);
+    env->set_allocator(Allocator::create());
 
     /* initialize function pointers */
-    if (__filename_is_local(filename)) {
+    if (__filename_is_local(filename))
         st=env_initialize_local(env);
-    }
-    else {
+    else
         st=env_initialize_remote(env);
-    }
     if (st)
-        return (st);
+        goto bail;
 
     /* and finish the initialization of the Environment */
     st=env->_fun_create(env, filename, flags, mode, param);
     if (st)
-        return (st);
-
-    env->set_active(true);
+        goto bail;
 
     /* flush the environment to make sure that the header page is written
      * to disk */
-    return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
+    st = ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
+
+bail:
+    if (st) {
+        delete env;
+        return (st);
+    }
+    
+    *henv = (ham_env_t *)env;
+    return 0;
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_create_db(ham_env_t *henv, ham_db_t *hdb,
+ham_env_create_db(ham_env_t *henv, ham_db_t **hdb,
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
-    Database *db=(Database *)hdb;
     Environment *env=(Environment *)henv;
 
-    if (!db) {
+    if (!hdb) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock(env->get_mutex());
+    *hdb = 0;
 
-    if (env->is_private()) {
-        ham_trace(("Environment was not properly created with ham_env_create, "
-                   "ham_env_open"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
-    /* make sure that this database is not yet open/created */
-    if (db->is_active()) {
-        ham_trace(("parameter 'db' is already initialized"));
-        return (db->set_error(HAM_DATABASE_ALREADY_OPEN));
-    }
     if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME
             && dbname!=HAM_DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * the function handler will do the rest
-     */
+    Database *db=new Database;
+
+    ScopedLock lock(env->get_mutex());
+
+    /* the function handler will do the rest */
     st=env->_fun_create_db(env, db, dbname, flags, param);
     if (st)
-        return (st);
-
-    db->set_active(HAM_TRUE);
+        goto bail;
 
     /* flush the environment to make sure that the header page is written
      * to disk */
-    return (ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK));
+    st=ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
+
+bail:
+    if (st) {
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        return (st);
+    }
+
+    *hdb = (ham_db_t *)db;
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open_db(ham_env_t *henv, ham_db_t *hdb,
+ham_env_open_db(ham_env_t *henv, ham_db_t **hdb,
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
-    Database *db=(Database *)hdb;
     Environment *env=(Environment *)henv;
 
-    if (!db) {
+    if (!hdb) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock;
-    if (!(flags&HAM_DONT_LOCK))
-        lock=ScopedLock(env->get_mutex());
+    *hdb = 0;
 
-    if (env->is_private()) {
-        ham_trace(("Environment was not properly created with ham_env_create, "
-                   "ham_env_open"));
-        return (db->set_error(HAM_INV_PARAMETER));
-    }
     if (!dbname) {
         ham_trace(("parameter 'dbname' must not be 0"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
     if (dbname!=HAM_FIRST_DATABASE_NAME
           && (dbname!=HAM_DUMMY_DATABASE_NAME
                 && dbname>HAM_DEFAULT_DATABASE_NAME)) {
         ham_trace(("database name must be lower than 0xf000"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
     if (env->get_flags()&HAM_IN_MEMORY) {
         ham_trace(("cannot open a Database in an In-Memory Environment"));
-        return (db->set_error(HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
+
+    Database *db = new Database;
+
+    ScopedLock lock;
+    if (!(flags&HAM_DONT_LOCK))
+        lock=ScopedLock(env->get_mutex());
 
     /* the function handler will do the rest */
     st=env->_fun_open_db(env, db, dbname, flags, param);
-    if (st)
+
+    if (st) {
+        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
+    }
 
-    db->set_active(HAM_TRUE);
-
-    return (db->set_error(0));
+    *hdb = (ham_db_t *)db;
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV
-ham_env_open(ham_env_t *henv, const char *filename,
+ham_env_open(ham_env_t **henv, const char *filename,
         ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
     ham_u64_t cachesize=0;
     std::string logdir;
-    Environment *env=(Environment *)henv;
 
-    if (!env) {
+    if (!henv) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock(env->get_mutex());
+    *henv = 0;
+
+    Environment *env=new Environment;
 
 #if HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(Protocol::shutdown);
 #endif
-
-    /* make sure that this environment is not yet open/created */
-    if (env->is_active()) {
-        ham_trace(("parameter 'env' is already initialized"));
-        return (HAM_ENVIRONMENT_ALREADY_OPEN);
-    }
-
-    env->set_flags(0);
 
     /* parse parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param,
@@ -1167,47 +1112,36 @@ ham_env_open(ham_env_t *henv, const char *filename,
     if (logdir.size())
         env->set_log_directory(logdir);
 
-    /*
-     * if we do not yet have an allocator: create a new one
-     */
-    if (!env->get_allocator()) {
-        env->set_allocator(Allocator::create());
-        if (!env->get_allocator())
-            return (HAM_OUT_OF_MEMORY);
-    }
-
-    /*
-     * store the parameters
-     */
+    /* store the parameters */
     env->set_pagesize(0);
     env->set_cachesize(cachesize);
     env->set_flags(flags);
     env->set_file_mode(0644);
     if (filename)
         env->set_filename(filename);
+    env->set_allocator(Allocator::create());
 
-    /*
-     * initialize function pointers
-     */
-    if (__filename_is_local(filename)) {
+    /* initialize function pointers */
+    if (__filename_is_local(filename))
         st=env_initialize_local(env);
-    }
-    else {
+    else
         st=env_initialize_remote(env);
-    }
     if (st)
-        return (st);
+        goto bail;
 
-    /*
-     * and finish the initialization of the Environment
-     */
+    /* and finish the initialization of the Environment */
     st=env->_fun_open(env, filename, flags, param);
     if (st)
+        goto bail;
+
+bail:
+    if (st) {
+        (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
         return (st);
+    }
 
-    env->set_active(true);
-
-    return (st);
+    *henv = (ham_env_t *)env;
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV
@@ -1354,21 +1288,21 @@ ham_env_flush(ham_env_t *henv, ham_u32_t flags)
 ham_status_t HAM_CALLCONV
 ham_env_close(ham_env_t *henv, ham_u32_t flags)
 {
-    Environment *env=(Environment *)henv;
     ham_status_t st;
+    Environment *env=(Environment *)henv;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    ScopedLock lock;
-    if (!(flags&HAM_DONT_LOCK))
-        lock=ScopedLock(env->get_mutex());
-
     /* it's ok to close an uninitialized Environment */
-    if (!env->_fun_close)
+    if (!env->_fun_close) {
+        delete env;
         return (0);
+    }
+
+    ScopedLock lock=ScopedLock(env->get_mutex());
 
     /* make sure that the changeset is empty */
     ham_assert(env->get_changeset().is_empty());
@@ -1418,90 +1352,48 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (st);
 
     /* when all transactions have been properly closed... */
-    if (env->is_active() && env->get_oldest_txn()) {
+    if (env->get_oldest_txn()) {
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs");
         return (HAM_INTERNAL_ERROR);
     }
 
-    /* finally, close the memory allocator */
-    if (env->get_allocator()) {
-        delete env->get_allocator();
-        env->set_allocator(0);
-    }
-
-    env->set_active(false);
-
+    lock.unlock();
+    delete env;
     return (0);
 }
 
 ham_status_t HAM_CALLCONV
-ham_new(ham_db_t **hdb)
-{
-    Database **db=(Database **)hdb;
-    if (!db) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    *db=new Database();
-    return (HAM_SUCCESS);
-}
-
-ham_status_t HAM_CALLCONV
-ham_delete(ham_db_t *hdb)
-{
-    Database *db=(Database *)hdb;
-
-    if (!db) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    delete (Database *)db;
-    return (0);
-}
-
-ham_status_t HAM_CALLCONV
-ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
-{
-    return (ham_open_ex(db, filename, flags, 0));
-}
-
-ham_status_t HAM_CALLCONV
-ham_open_ex(ham_db_t *hdb, const char *filename,
+ham_open_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
         ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
     ham_u16_t dbname=HAM_FIRST_DATABASE_NAME;
     ham_u64_t cachesize=0;
-    ham_env_t *env;
     ham_u32_t env_flags;
     std::string logdir;
     ham_parameter_t env_param[8]={{0, 0}};
-    Database *db=(Database *)hdb;
 
-    if (!db) {
+    if (!hdb) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-
-    /*
-     * make sure that this database is not yet open/created
-     */
-    if (db->is_active()) {
-        ham_trace(("parameter 'db' is already initialized"));
-        return (HAM_DATABASE_ALREADY_OPEN);
+    if (!henv) {
+        ham_trace(("parameter 'env' must not be NULL"));
+        return (HAM_INV_PARAMETER);
     }
+
+    *hdb = 0;
+    *henv = 0;
+
+    Environment *env = new Environment;
+    Database *db = new Database;
 
     /* parse parameters */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
             0, 0, &cachesize, &dbname, 0, logdir, false);
     if (st)
-        return (st);
-
-    db->set_error(0);
-    db->set_rt_flags(0);
+        goto bail;
 
     /*
      * create an Environment handle and open the Environment
@@ -1514,11 +1406,7 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
     }
     env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
 
-    st=ham_env_new(&env);
-    if (st)
-        goto bail;
-
-    st=ham_env_open(env, filename, env_flags, &env_param[0]);
+    st=ham_env_open(henv, filename, env_flags, &env_param[0]);
     if (st)
         goto bail;
 
@@ -1536,82 +1424,68 @@ ham_open_ex(ham_db_t *hdb, const char *filename,
             |HAM_ENABLE_TRANSACTIONS
             |HAM_ENABLE_RECOVERY
             |HAM_AUTO_RECOVERY
-            |DB_USE_MMAP
-            |DB_ENV_IS_PRIVATE);
+            |DB_USE_MMAP);
 
     /* now open the Database in this Environment */
-    st=ham_env_open_db(env, (ham_db_t *)db, dbname, flags, 0);
+    st=ham_env_open_db(*henv, hdb, dbname, flags, 0);
     if (st)
         goto bail;
 
-    /*
-     * this Environment is 0wned by the Database (and will be deleted in
-     * ham_close)
-     */
-    db->set_rt_flags(db->get_rt_flags()|DB_ENV_IS_PRIVATE);
-
 bail:
     if (st) {
-        if (db)
+        if (db) {
             (void)ham_close((ham_db_t *)db, 0);
-        if (env) {
-            /* despite the IS_PRIVATE the env will destroy the DB,
-            which is the responsibility of the caller: detach the DB now. */
-            ((Environment *)env)->set_databases(0);
-            (void)ham_env_close(env, 0);
-            delete (Environment *)env;
         }
+        if (env) {
+            env->set_databases(0);
+            (void)ham_env_close((ham_env_t *)env, 0);
+        }
+        delete db;
+        delete env;
+    }
+    else {
+        *henv = (ham_env_t *)env;
+        *hdb = (ham_db_t *)db;
     }
 
-    return (st);
+    return (db->set_error(st));
 }
 
 ham_status_t HAM_CALLCONV
-ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
-{
-    return (ham_create_ex(db, filename, flags, mode, 0));
-}
-
-ham_status_t HAM_CALLCONV
-ham_create_ex(ham_db_t *hdb, const char *filename,
+ham_create_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st;
-    Database *db=(Database *)hdb;
     ham_size_t pagesize = 0;
     ham_u16_t maxdbs = 0;
     ham_u16_t keysize = 0;
     ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
     ham_u64_t cachesize = 0;
-    ham_env_t *env=0;
     ham_u32_t env_flags;
     std::string logdir;
     ham_parameter_t env_param[8]={{0, 0}};
     ham_parameter_t db_param[5]={{0, 0}};
 
-    if (!db) {
+    if (!hdb) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-
-    /*
-     * make sure that this database is not yet open/created
-     */
-    if (db->is_active()) {
-        ham_trace(("parameter 'db' is already initialized"));
-        return (db->set_error(HAM_DATABASE_ALREADY_OPEN));
+    if (!henv) {
+        ham_trace(("parameter 'env' must not be NULL"));
+        return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * check (and modify) the parameters
-     */
+    *henv = 0;
+    *hdb = 0;
+
+    Database *db=new Database;
+    Environment *env=new Environment;
+
+    /* check (and modify) the parameters */
     st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
             &pagesize, &keysize, &cachesize, &dbname, &maxdbs, logdir, true);
     if (st)
-        return (db->set_error(st));
-
-    db->set_error(0);
-    db->set_rt_flags(0);
+        goto bail;
 
     /*
      * setup the parameters for ham_env_create
@@ -1629,18 +1503,14 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
     env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
 
     /*
-     * create a new Environment
+     * create the new Environment
      */
-    st=ham_env_new(&env);
-    if (st)
-        goto bail;
-
-    st=ham_env_create(env, filename, env_flags, mode, env_param);
+    st=ham_env_create(henv, filename, env_flags, mode, env_param);
     if (st)
         goto bail;
 
     /*
-     * now create the Database in this Environment
+     * Now create the Database in this Environment
      *
      * for this, we first strip off flags which are not allowed/needed
      * in ham_env_create_db; then set up the parameter list
@@ -1653,24 +1523,17 @@ ham_create_ex(ham_db_t *hdb, const char *filename,
             |HAM_ENABLE_TRANSACTIONS
             |HAM_ENABLE_RECOVERY
             |HAM_AUTO_RECOVERY
-            |DB_USE_MMAP
-            |DB_ENV_IS_PRIVATE);
+            |DB_USE_MMAP);
 
     db_param[0].name=HAM_PARAM_KEYSIZE;
     db_param[0].value=keysize;
     db_param[1].name=0;
 
     /* now create the Database */
-    st=ham_env_create_db(env, (ham_db_t *)db,
-            HAM_DEFAULT_DATABASE_NAME, flags, db_param);
+    st=ham_env_create_db(*henv, hdb, HAM_DEFAULT_DATABASE_NAME, flags,
+                db_param);
     if (st)
         goto bail;
-
-    /*
-     * this Environment is 0wned by the Database (and will be deleted in
-     * ham_close)
-     */
-    db->set_rt_flags(db->get_rt_flags()|DB_ENV_IS_PRIVATE);
 
 bail:
     if (st) {
@@ -1678,12 +1541,15 @@ bail:
             (void)ham_close((ham_db_t *)db, 0);
         }
         if (env) {
-            /* despite the IS_PRIVATE the env will destroy the DB,
-            which is the responsibility of the caller: detach the DB now. */
-            ((Environment *)env)->set_databases(0);
-            (void)ham_env_close(env, 0);
-            delete (Environment *)env;
+            env->set_databases(0);
+            (void)ham_env_close((ham_env_t *)env, 0);
         }
+        delete db;
+        delete env;
+    }
+    else {
+        *henv = (ham_env_t *)env;
+        *hdb = (ham_db_t *)db;
     }
 
     return (db->set_error(st));
@@ -2045,8 +1911,10 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     env=db->get_env();
 
     /* it's ok to close an uninitialized Database */
-    if (!env || !(*db)())
+    if (!env || !(*db)()) {
+        delete db;
         return (0);
+    }
 
     ScopedLock lock;
     if (!(flags&HAM_DONT_LOCK))
@@ -2054,7 +1922,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
 
     /* check if this database is modified by an active transaction */
     TransactionTree *tree=db->get_optree();
-    if (tree && !(db->get_rt_flags(true)&DB_ENV_IS_PRIVATE)) {
+    if (tree) {
         txn_opnode_t *node=txn_tree_get_first(tree);
         while (node) {
             txn_op_t *op=txn_opnode_get_newest_op(node);
@@ -2083,8 +1951,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     }
 
     /* auto-abort (or commit) all pending transactions */
-    if (env && env->get_newest_txn()
-            && db->get_rt_flags(true)&DB_ENV_IS_PRIVATE) {
+    if (env && env->get_newest_txn()) {
         Transaction *n, *t=env->get_newest_txn();
         while (t) {
             n=t->get_older();
@@ -2115,8 +1982,6 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (st)
         return (db->set_error(st));
 
-    bool delete_env = false;
-
     /* remove this database from the environment */
     if (env) {
         Database *prev=0;
@@ -2132,22 +1997,11 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
             prev=head;
             head=head->get_next();
         }
-        if (db->get_rt_flags()&DB_ENV_IS_PRIVATE) {
-            (void)ham_env_close((ham_env_t *)db->get_env(),
-                            flags|HAM_DONT_LOCK);
-            delete_env = true;
-        }
         db->set_env(0);
     }
 
-    db->set_active(HAM_FALSE);
-
-    if (!(flags&HAM_DONT_LOCK) && delete_env) {
-        lock.unlock();
-        delete env;
-    }
-
-    return (db->set_error(st));
+    delete db;
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV

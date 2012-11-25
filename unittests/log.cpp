@@ -65,6 +65,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_henv;
     Environment *m_env;
 
 public:
@@ -75,8 +76,10 @@ public:
         (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"),
-                        HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_henv));
+        BFC_ASSERT_EQUAL(0,
+                ham_create_easy(m_henv, m_db, BFC_OPATH(".test"),
+                        HAM_ENABLE_TRANSACTIONS, 0));
 
         m_env=(Environment *)ham_get_env(m_db);
     }
@@ -85,8 +88,9 @@ public:
     {
         __super::teardown();
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_henv, 0));
         ham_delete(m_db);
+        ham_env_delete(m_henv);
     }
 
     Log *disconnect_log_and_create_new_log(void)
@@ -266,10 +270,13 @@ public:
             delete page;
         }
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        BFC_ASSERT_EQUAL(0,
+                ham_env_close(m_henv,
+                        HAM_AUTO_CLEANUP|HAM_DONT_CLEAR_LOG));
 
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=(Environment *)ham_get_env(m_db);
+        BFC_ASSERT_EQUAL(0,
+                ham_open_easy(m_henv, m_db, BFC_OPATH(".test"), 0, 0));
+        m_env=(Environment *)m_henv;
         BFC_ASSERT_EQUAL((Log *)0, m_env->get_log());
         log=new Log(m_env);
         BFC_ASSERT_EQUAL(0, log->open());
@@ -346,6 +353,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_henv;
     Environment *m_env;
 
 public:
@@ -356,11 +364,12 @@ public:
         (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_henv));
         BFC_ASSERT_EQUAL(0,
-                ham_create(m_db, BFC_OPATH(".test"),
+                ham_create_easy(m_henv, m_db, BFC_OPATH(".test"),
                         HAM_ENABLE_TRANSACTIONS
                         | HAM_ENABLE_RECOVERY
-                        | HAM_ENABLE_DUPLICATES, 0644));
+                        | HAM_ENABLE_DUPLICATES, 0));
 
         m_env=(Environment *)ham_get_env(m_db);
     }
@@ -368,7 +377,8 @@ public:
     void open(void)
     {
         // open without recovery and transactions (they imply recovery)!
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_easy(m_henv, m_db, BFC_OPATH(".test"), 0, 0));
         m_env=(Environment *)ham_get_env(m_db);
     }
 
@@ -376,11 +386,9 @@ public:
     {
         __super::teardown();
 
-        if (m_db) {
-            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-            ham_delete(m_db);
-        }
-        m_db=0;
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_henv, 0));
+        ham_delete(m_db);
+        ham_env_delete(m_henv);
     }
 
     void createCloseTest(void)
@@ -411,7 +419,7 @@ public:
     {
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+                ham_env_open(m_henv, m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         m_env=(Environment *)ham_get_env(m_db);
         BFC_ASSERT(m_env->get_log()!=0);
     }

@@ -21,7 +21,8 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 10
+#define LOOP            10
+#define DATABASE_NAME    1
 
 void
 error(const char *foo, ham_status_t st)
@@ -46,6 +47,7 @@ main(int argc, char **argv)
 {
     int i;
     ham_status_t st;       /* status variable */
+    ham_env_t *env;        /* hamsterdb environment object */
     ham_db_t *db;          /* hamsterdb database object */
     ham_key_t key;         /* the structure for a key */
     ham_record_t record;   /* the structure for a record */
@@ -54,19 +56,16 @@ main(int argc, char **argv)
     memset(&record, 0, sizeof(record));
 
     /*
-     * first step: create a new hamsterdb object
+     * create a new hamsterdb Environment
      */
-    st=ham_new(&db);
+    st=ham_env_create(&env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
-        error("ham_new", st);
+        error("ham_create", st);
 
     /*
-     * second step: create a new hamsterdb database
-     *
-     * we could also use ham_create_ex() if we wanted to specify the
-     * page size, key size or cache size limits
+     * and in this Environment we create a new Database
      */
-    st=ham_create_ex(db, "test.db", 0, 0664, 0);
+    st=ham_env_create_db(env, &db, DATABASE_NAME, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_create", st);
 
@@ -113,15 +112,22 @@ main(int argc, char **argv)
     }
 
     /*
-     * close the database handle, then re-open it (to demonstrate the
-     * call ham_open)
+     * close the database handle, then re-open it (to demonstrate how to open
+     * an Environment and a Database)
      */
     st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
-    st=ham_open_ex(db, "test.db", 0, 0);
+    st=ham_env_close(env, 0);
     if (st!=HAM_SUCCESS)
-        error("ham_open", st);
+        error("ham_env_close", st);
+
+    st=ham_env_open(&env, "test.db", 0, 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_open", st);
+    st=ham_env_open_db(env, &db, DATABASE_NAME, 0, 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_open_db", st);
 
     /*
      * now erase all values
@@ -149,16 +155,14 @@ main(int argc, char **argv)
     }
 
     /*
-     * we're done! close the database handle
+     * we're done! close the handles
      */
     st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
-
-    /*
-     * delete the database object to avoid memory leaks
-     */
-    ham_delete(db);
+    st=ham_env_close(env, 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_close", st);
 
 #if UNDER_CE
     error("success", 0);

@@ -40,27 +40,20 @@ main(int argc, char **argv)
     memset(&key, 0, sizeof(key));
     memset(&record, 0, sizeof(record));
 
-    st=ham_new(&db);
-    if (st!=HAM_SUCCESS)
-        error("ham_new", st);
-    st=ham_env_new(&env);
-    if (st!=HAM_SUCCESS)
-        error("ham_env_new", st);
-
     /*
      * now connect to the server which should listen at 8080
      *
      * ham_env_create() will not create a new Environment at the specified
      * location but open an already existing one instead
      */
-    st=ham_env_create(env, "http://localhost:8080/env1.db", 0, 0, 0);
+    st=ham_env_create(&env, "http://localhost:8080/env1.db", 0, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 
     /*
      * now open a Database in this Environment
      */
-    st=ham_env_open_db(env, db, 13, 0, 0);
+    st=ham_env_open_db(env, &db, 13, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open_db", st);
 
@@ -129,11 +122,6 @@ main(int argc, char **argv)
     st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
-
-    /*
-     * delete the database object to avoid memory leaks
-     */
-    ham_delete(db);
 
     printf("success!\n");
     return (0);

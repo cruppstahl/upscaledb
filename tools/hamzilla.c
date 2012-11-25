@@ -353,18 +353,16 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
         ham_u32_t flags=format_flags(params->envs[e].flags);
         ham_bool_t created_env=HAM_FALSE;
 
-        ham_env_new(&env);
-
         /* First try to open the Environment */
         hlog(LOG_DBG, "Opening Environment %s (flags 0x%x)\n",
                 params->envs[e].path, flags);
-        st=ham_env_open(env, params->envs[e].path, flags, 0);
+        st=ham_env_open(&env, params->envs[e].path, flags, 0);
         if (st) {
             /* Not found? if open_exclusive is false then we create the
              * Environment */
             if (st==HAM_FILE_NOT_FOUND && !params->envs[e].open_exclusive) {
                 hlog(LOG_DBG, "Env was not found; trying to create it\n");
-                st=ham_env_create(env, params->envs[e].path, flags, 0644, 0);
+                st=ham_env_create(&env, params->envs[e].path, flags, 0644, 0);
                 if (st) {
                     hlog(LOG_FATAL, "Failed to create Env %s: %s\n",
                             params->envs[e].path, ham_strerror(st));
@@ -389,11 +387,9 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
             for (d=0; d<params->envs[e].db_count; d++) {
                 ham_u32_t flags=format_flags(params->envs[e].dbs[d].flags);
 
-                ham_new(&db);
-
                 hlog(LOG_DBG, "Creating Database %u\n",
                         params->envs[e].dbs[d].name);
-                st=ham_env_create_db(env, db, params->envs[e].dbs[d].name,
+                st=ham_env_create_db(env, &db, params->envs[e].dbs[d].name,
                                     flags, 0);
                 if (st) {
                     hlog(LOG_FATAL, "Failed to create Database %u: %s\n",
@@ -405,7 +401,6 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
                         params->envs[e].dbs[d].name);
 
                 ham_close(db, 0);
-                ham_delete(db);
             }
         }
 

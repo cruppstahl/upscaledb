@@ -15,7 +15,7 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-o involve everyone in decisions on the new interface
+o clean up APIs
     x Do you use AES encryption?
       Remove including all file filters, 3rdparty, dotnet, java, win32
     x Do you use zlib compression?
@@ -31,10 +31,6 @@ o involve everyone in decisions on the new interface
     x Remove the DAM flags
       DAM is currently used to decide about split point; really necessary? The
       hinter should do this automatically
-    o update README
-    o update Webpage
-
-o clean up interface
     x clean up ham_flush, ham_env_flush
     x rename HAM_WRITE_THROUGH to HAM_ENABLE_FSYNC
     x rename ham_cursor_find_ex to ham_cursor_find
@@ -52,10 +48,29 @@ o clean up interface
     x HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
     o remove ham_open[_ex]
     o remove ham_create[_ex]
+    o remove ham_new, ham_env_new, ham_delete, ham_env_delete
+        x fix tools
+        x fix samples
+==============================================================
+        o fix unittests
+==============================================================
+        o fix c++ api - currently broken in the unittests
+        o fix java api
+        o fix dotnet api
+        o also delete db->set_active, env->set_active
+        o also clean up PRIVATE flag
+    o prefix all database functions with ham_db_*
+    o make HAM_AUTO_CLEANUP the default??
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
+    o update README
+    o update Webpage
+
+o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
+    not set; this would require a cursor
 
 o clean up the "close" functions
+    o get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
     o ham_close - move all functionality to Database::close
     o ham_env_close - move all functionality to Environment::close
     o ~Database: call close(), then simplify all code
@@ -67,6 +82,10 @@ o clean up the "close" functions
 o rewrite samples with new coding style
 
 o rewrite c++ API with new coding style
+
+o review usage of mmap; when opening, should we just map the whole file into
+    memory (in a single mmap)? when creating the file then os_mmap anyway
+    should never be called
 
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
@@ -116,6 +135,7 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
     o backend.h/btree.h: check the TODOs
+    o hamserver.cc: replace handles-structure with std::map
 
     o configuration: move into separate file
         o use for runtime-configuration

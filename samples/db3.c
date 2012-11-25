@@ -18,20 +18,28 @@
 #include <string.h>
 #include <ham/hamsterdb.h>
 
+#define DATABASE_NAME           1
+
 static int
 my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length,
                   const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     (void)db;
 
-    return strncmp((const char *)lhs, (const char *)rhs,
+    int s = strncmp((const char *)lhs, (const char *)rhs,
             lhs_length<rhs_length ? lhs_length : rhs_length);
+    if (s < 0)
+        return -1;
+    if (s > 0)
+        return +1;
+    return 0;
 }
 
 int
 main(int argc, char **argv)
 {
     ham_status_t st;      /* status variable */
+    ham_env_t *env;       /* hamsterdb environment object */
     ham_db_t *db;         /* hamsterdb database object */
     ham_cursor_t *cursor; /* a database cursor */
     char line[1024*4];    /* a buffer for reading lines */
@@ -45,33 +53,30 @@ main(int argc, char **argv)
     printf("Reading from stdin...\n");
 
     /*
-     * first step: create a new hamsterdb handle
+     * third step: create a new hamsterdb database
+     *
+     * we could create an in-memory-environment to speed up the sorting.
      */
-    st=ham_new(&db);
+    st=ham_env_create(&env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS) {
-        printf("ham_new() failed with error %d\n", st);
+        printf("ham_env_create() failed with error %d\n", st);
+        return (-1);
+    }
+
+    st=ham_env_create_db(env, &db, DATABASE_NAME, HAM_ENABLE_DUPLICATES, 0);
+    if (st!=HAM_SUCCESS) {
+        printf("ham_env_create_db() failed with error %d\n", st);
         return (-1);
     }
 
     /*
-     * second step: since we use strings as our database-keys, we use
+     * since we use strings as our database-keys, we use
      * our own comparison function based on strcmp instead of the default
      * memcmp function.
      */
     st=ham_set_compare_func(db, my_string_compare);
     if (st) {
         printf("ham_set_compare_func() failed with error %d\n", st);
-        return (-1);
-    }
-
-    /*
-     * third step: create a new hamsterdb database
-     *
-     * we could create an in-memory-database to speed up the sorting.
-     */
-    st=ham_create_ex(db, "test.db", 0, 0664, 0);
-    if (st!=HAM_SUCCESS) {
-        printf("ham_create() failed with error %d\n", st);
         return (-1);
     }
 
@@ -131,20 +136,15 @@ main(int argc, char **argv)
     }
 
     /*
-     * then close the database handle; the flag
-     * HAM_AUTO_CLEANUP will automatically close all cursors, and we
-     * do not need to call ham_cursor_close
+     * then close the handles; the flag
+     * HAM_AUTO_CLEANUP will automatically close all database and cursors,
+     * and we do not need to call ham_cursor_close
      */
-    st=ham_close(db, HAM_AUTO_CLEANUP);
+    st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS) {
-        printf("ham_close() failed with error %d\n", st);
+        printf("ham_env_close() failed with error %d\n", st);
         return (-1);
     }
-
-    /*
-     * delete the database object to avoid memory leaks
-     */
-    ham_delete(db);
 
     /*
      * success!

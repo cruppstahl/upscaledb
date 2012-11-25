@@ -317,34 +317,6 @@ public:
         return (*this);
     }
 
-    /** Creates a Database. */
-    void create(const char *filename, ham_u32_t flags=0,
-            ham_u32_t mode=0644, const ham_parameter_t *param=0) {
-        ham_status_t st;
-        if (!m_db) {
-            st=ham_new(&m_db);
-            if (st)
-                throw error(st);
-        }
-        st=ham_create_ex(m_db, filename, flags, mode, param);
-        if (st)
-            throw error(st);
-    }
-
-    /** Opens an existing Database. */
-    void open(const char *filename, ham_u32_t flags=0,
-            const ham_parameter_t *param=0) {
-        ham_status_t st;
-        if (!m_db) {
-            st=ham_new(&m_db);
-            if (st)
-                throw error(st);
-        }
-        st=ham_open_ex(m_db, filename, flags, param);
-        if (st)
-            throw error(st);
-    }
-
     /** Returns the last Database error. */
     ham_status_t get_error() {
         if (!m_db)
@@ -433,9 +405,6 @@ public:
         if (!m_db)
             return;
         ham_status_t st=ham_close(m_db, flags);
-        if (st)
-            throw error(st);
-        st=ham_delete(m_db);
         if (st)
             throw error(st);
         m_db=0;
@@ -622,13 +591,7 @@ public:
     /** Creates a new Environment. */
     void create(const char *filename, ham_u32_t flags=0,
             ham_u32_t mode=0644, const ham_parameter_t *param=0) {
-        ham_status_t st;
-        if (!m_env) {
-            st=ham_env_new(&m_env);
-            if (st)
-                throw error(st);
-        }
-        st=ham_env_create(m_env, filename, flags, mode, param);
+        ham_status_t st=ham_env_create(&m_env, filename, flags, mode, param);
         if (st)
             throw error(st);
     }
@@ -636,13 +599,7 @@ public:
     /** Opens an existing Environment. */
     void open(const char *filename, ham_u32_t flags=0,
             const ham_parameter_t *param=0) {
-        ham_status_t st;
-        if (!m_env) {
-            st=ham_env_new(&m_env);
-            if (st)
-                throw error(st);
-        }
-        st=ham_env_open(m_env, filename, flags, param);
+        ham_status_t st=ham_env_open(&m_env, filename, flags, param);
         if (st)
             throw error(st);
     }
@@ -661,14 +618,9 @@ public:
         ham_status_t st;
         ham_db_t *dbh;
 
-        st=ham_new(&dbh);
+        st=ham_env_create_db(m_env, &dbh, name, flags, param);
         if (st)
             throw error(st);
-        st=ham_env_create_db(m_env, dbh, name, flags, param);
-        if (st) {
-            ham_delete(dbh);
-            throw error(st);
-        }
 
         return (ham::db(dbh));
     }
@@ -679,14 +631,9 @@ public:
         ham_status_t st;
         ham_db_t *dbh;
 
-        st=ham_new(&dbh);
+        st=ham_env_open_db(m_env, &dbh, name, flags, param);
         if (st)
             throw error(st);
-        st=ham_env_open_db(m_env, dbh, name, flags, param);
-        if (st) {
-            ham_delete(dbh);
-            throw error(st);
-        }
 
         return (ham::db(dbh));
     }
@@ -716,13 +663,10 @@ public:
 
 
     /** Closes the Environment. */
-    void close(void) {
+    void close(ham_u32_t flags=0) {
         if (!m_env)
             return;
-        ham_status_t st=ham_env_close(m_env, 0);
-        if (st)
-            throw error(st);
-        st=ham_env_delete(m_env);
+        ham_status_t st=ham_env_close(m_env, flags);
         if (st)
             throw error(st);
         m_env=0;

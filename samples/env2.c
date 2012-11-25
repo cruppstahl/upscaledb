@@ -115,25 +115,9 @@ main(int argc, char **argv)
     memset(&c2o_record, 0, sizeof(c2o_record));
 
     /*
-     * first, create a new hamsterdb environment
-     */
-    st=ham_env_new(&env);
-    if (st!=HAM_SUCCESS)
-        error("ham_env_new", st);
-
-    /*
-     * then create the database objects
-     */
-    for (i=0; i<MAX_DBS; i++) {
-        st=ham_new(&db[i]);
-        if (st!=HAM_SUCCESS)
-            error("ham_new", st);
-    }
-
-    /*
      * Now create a new database file for the Environment
      */
-    st=ham_env_create(env, "test.db", 0, 0664, 0);
+    st=ham_env_create(&env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 
@@ -143,13 +127,13 @@ main(int argc, char **argv)
      * is for the "orders"; the third manages our 1:n relation and
      * therefore needs to enable duplicate keys
      */
-    st=ham_env_create_db(env, db[DBIDX_CUSTOMER], DBNAME_CUSTOMER, 0, 0);
+    st=ham_env_create_db(env, &db[DBIDX_CUSTOMER], DBNAME_CUSTOMER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create_db(customer)", st);
-    st=ham_env_create_db(env, db[DBIDX_ORDER], DBNAME_ORDER, 0, 0);
+    st=ham_env_create_db(env, &db[DBIDX_ORDER], DBNAME_ORDER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create_db(order)", st);
-    st=ham_env_create_db(env, db[DBIDX_C2O], DBNAME_C2O,
+    st=ham_env_create_db(env, &db[DBIDX_C2O], DBNAME_C2O,
             HAM_ENABLE_DUPLICATES, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create_db(c2o)", st);
@@ -313,12 +297,6 @@ main(int argc, char **argv)
     st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
-
-    for (i=0; i<MAX_DBS; i++)
-         ham_delete(db[i]);
-
-    ham_env_delete(env);
-
 
 #if UNDER_CE
     error("success", 0);

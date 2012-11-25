@@ -22,14 +22,16 @@ int
 run_demo(void)
 {
     int i;
+    ham::env env;          /* hamsterdb environment object */
     ham::db db;            /* hamsterdb database object */
     ham::key key;          /* a key */
     ham::record record;    /* a record */
 
     /*
-     * first, create a new database file
+     * first, create a new environment file and a database in this environment
      */
-    db.create("test.db");
+    env.create("test.db");
+    db = env.create_db(1);
 
     /*
      * now we can insert, delete or lookup values in the database
@@ -74,7 +76,9 @@ run_demo(void)
      * to open a database file)
      */
     db.close();
-    db.open("test.db");
+    env.close();
+    env.open("test.db");
+    db=env.open_db(1);
 
     /*
      * now erase all values

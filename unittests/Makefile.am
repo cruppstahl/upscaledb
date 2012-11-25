@@ -5,16 +5,31 @@ noinst_PROGRAMS = test bfc_sample recovery
 
 AM_CPPFLAGS     = -I$(top_builddir)/include
 
-test_SOURCES    = log.cpp \
-                  journal.cpp \
-                  approx.cpp \
-                  api110.cpp \
-                  btree_erase.cpp \
-                  btree_insert.cpp \
+test_SOURCES    = bfc-testsuite.cpp \
+                  bfc-testsuite.hpp \
+                  os.hpp \
+                  hamster_fixture.hpp \
+                  bfc-signal.h \
+                  bfc-signal.c \
                   check.cpp \
                   error.cpp \
-                  cppapi.cpp \
+                  os.cpp \
+                  endian.cpp \
+                  journal.cpp \
+                  device.cpp \
+                  approx.cpp \
                   recno.cpp \
+                  cache.cpp \
+                  changeset.cpp \
+                  misc.cpp \
+                  freelist.cpp \
+                  btree_erase.cpp \
+                  btree_insert.cpp \
+                  main.cpp
+
+asdf =            log.cpp \
+                  page.cpp \
+                  api110.cpp \
                   duplicates.cpp \
                   env.cpp \
                   hamsterdb.cpp \
@@ -23,26 +38,11 @@ test_SOURCES    = log.cpp \
                   btree_key.cpp \
                   partial.cpp \
                   btree_cursor.cpp \
-                  misc.cpp \
-                  device.cpp \
-                  os.cpp \
-                  cache.cpp \
-                  freelist.cpp \
                   db.cpp \
-                  main.cpp \
-                  endian.cpp \
-                  page.cpp \
-                  changeset.cpp \
                   txn.cpp \
                   txn_cursor.cpp \
-                  cursor.cpp \
-                  empty_sample.cpp \
-                  bfc-testsuite.cpp \
-                  bfc-testsuite.hpp \
-                  os.hpp \
-                  hamster_fixture.hpp \
-                  bfc-signal.h \
-                  bfc-signal.c
+                  cppapi.cpp \
+                  cursor.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
 

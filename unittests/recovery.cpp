@@ -56,9 +56,6 @@ insert(int argc, char **argv)
     ham_db_t *db;
     ham_env_t *env;
 
-    ham_env_new(&env);
-    ham_new(&db);
-
     int keysize=(int)strtol(argv[2], 0, 0);
     int recsize=(int)strtol(argv[3], 0, 0);
     int i      =(int)strtol(argv[4], 0, 0);
@@ -79,7 +76,7 @@ insert(int argc, char **argv)
     memset(rec.data, 0, rec.size);
 
     // if db does not yet exist: create it, otherwise open it
-    st=ham_env_open(env, "recovery.db",
+    st=ham_env_open(&env, "recovery.db",
                             (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                             | HAM_ENABLE_RECOVERY, 0);
     if (st==HAM_FILE_NOT_FOUND) {
@@ -88,7 +85,7 @@ insert(int argc, char **argv)
             { HAM_PARAM_KEYSIZE, 200 },
             { 0, 0 }
         };
-        st=ham_env_create(env, "recovery.db",
+        st=ham_env_create(&env, "recovery.db",
                         (dupes ? HAM_ENABLE_DUPLICATES : 0)
                             | (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                             | HAM_ENABLE_RECOVERY, 0644,
@@ -97,7 +94,7 @@ insert(int argc, char **argv)
             printf("ham_env_create failed: %d\n", (int)st);
             exit(-1);
         }
-        st=ham_env_create_db(env, db, 1, 0, 0);
+        st=ham_env_create_db(env, &db, 1, 0, 0);
         if (st) {
             printf("ham_env_create_db failed: %d\n", (int)st);
             exit(-1);
@@ -108,7 +105,7 @@ insert(int argc, char **argv)
         exit(-1);
     }
     else {
-        st=ham_env_open_db(env, db, 1, 0, 0);
+        st=ham_env_open_db(env, &db, 1, 0, 0);
         if (st) {
             printf("ham_env_open_db failed: %d\n", (int)st);
             exit(-1);
@@ -172,9 +169,6 @@ erase(int argc, char **argv)
     ham_db_t *db;
     ham_env_t *env;
 
-    ham_env_new(&env);
-    ham_new(&db);
-
     int keysize=(int)strtol(argv[2], 0, 0);
     int i      =(int)strtol(argv[3], 0, 0);
     int dupes  =(int)strtol(argv[4], 0, 0);
@@ -188,14 +182,14 @@ erase(int argc, char **argv)
     key.size=keysize;
     memset(key.data, 0, key.size);
 
-    st=ham_env_open(env, "recovery.db",
+    st=ham_env_open(&env, "recovery.db",
                     (use_txn ? HAM_ENABLE_TRANSACTIONS : 0)
                     | HAM_ENABLE_RECOVERY, 0);
     if (st) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
     }
-    st=ham_env_open_db(env, db, 1, 0, 0);
+    st=ham_env_open_db(env, &db, 1, 0, 0);
     if (st) {
         printf("ham_env_open_db failed: %d\n", (int)st);
         exit(-1);
@@ -270,9 +264,7 @@ recover(int argc, char **argv)
     ham_status_t st;
     ham_env_t *env;
 
-    ham_env_new(&env);
-
-    st=ham_env_open(env, "recovery.db",
+    st=ham_env_open(&env, "recovery.db",
                 (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_ENABLE_RECOVERY, 0);
     if (st==0)
         exit(0);
@@ -281,7 +273,7 @@ recover(int argc, char **argv)
         exit(-1);
     }
 
-    st=ham_env_open(env, "recovery.db",
+    st=ham_env_open(&env, "recovery.db",
                 (use_txn ? HAM_ENABLE_TRANSACTIONS : 0 ) |HAM_AUTO_RECOVERY, 0);
     if (st!=0) {
         printf("ham_env_open failed: %d\n", (int)st);
@@ -294,7 +286,6 @@ recover(int argc, char **argv)
         exit(-1);
     }
 
-    ham_env_delete(env);
     exit(0);
 }
 
@@ -319,9 +310,6 @@ verify(int argc, char **argv)
     ham_db_t *db;
     ham_env_t *env;
 
-    ham_env_new(&env);
-    ham_new(&db);
-
     ham_key_t key={0};
     key.data=malloc(keysize);
     key.size=keysize;
@@ -334,12 +322,12 @@ verify(int argc, char **argv)
 
     ham_record_t rec2={0};
 
-    st=ham_env_open(env, "recovery.db", HAM_READ_ONLY, 0);
+    st=ham_env_open(&env, "recovery.db", HAM_READ_ONLY, 0);
     if (st) {
         printf("ham_env_open failed: %d\n", (int)st);
         exit(-1);
     }
-    st=ham_env_open_db(env, db, 1, 0, 0);
+    st=ham_env_open_db(env, &db, 1, 0, 0);
     if (st) {
         printf("ham_env_open_db failed: %d\n", (int)st);
         exit(-1);

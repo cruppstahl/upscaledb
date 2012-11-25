@@ -34,18 +34,14 @@
  * If you want to create or open Databases or Environments (a collection of
  * multiple Databases), the following functions will be interesting for you:
  * <table>
- * <tr><td>@ref ham_env_new</td><td>Allocates a new Environment handle</td></tr>
  * <tr><td>@ref ham_env_create</td><td>Creates an Environment</td></tr>
  * <tr><td>@ref ham_env_open</td><td>Opens an Environment</td></tr>
  * <tr><td>@ref ham_env_close</td><td>Closes an Environment</td></tr>
- * <tr><td>@ref ham_env_delete</td><td>Deletes the Environment handle</td></tr>
- * <tr><td>@ref ham_new</td><td>Allocates a new handle for a Database</td></tr>
  * <tr><td>@ref ham_env_create_db</td><td>Creates a Database in an
   Environment</td></tr>
  * <tr><td>@ref ham_env_open_db</td><td>Opens a Database from an
   Environment</td></tr>
  * <tr><td>@ref ham_close</td><td>Closes a Database</td></tr>
- * <tr><td>@ref ham_delete</td><td>Deletes the Database handle</td></tr>
  * </table>
  *
  * To insert, lookup or delete key/value pairs, the following functions are
@@ -95,8 +91,9 @@
  * </table>
  *
  * If you need help then you're always welcome to use the <a
-  href="http://hamsterdb-support.1045726.n5.nabble.com/">forum</a>,
- * drop a message (chris at crupp dot de) or with the <a
+  href="https://groups.google.com/forum/?fromgroups#!forum/hamsterdb-user">
+    mailing list</a>,
+ * drop a message (chris at crupp dot de) or use the <a
   href="http://hamsterdb.com/index/contact">contact form</a>.
  *
  * Have fun!
@@ -115,14 +112,15 @@ extern "C" {
  * The interface revision
  *  undefined: hamsterdb 1.x
  *      1: hamsterdb 2.0 - ham_txn_begin() was changed
+ *      2: various interface updates for 2.0.6
  */
-#define HAM_API_REVISION        1
+#define HAM_API_REVISION        2
 
 /**
  * The hamsterdb Database structure
  *
- * This structure is allocated with @ref ham_new and deleted with
- * @ref ham_delete.
+ * This structure is allocated in @ref ham_env_create_db and
+ * @ref ham_env_open_db. It is deleted in @a ham_close.
  */
 struct ham_db_t;
 typedef struct ham_db_t ham_db_t;
@@ -130,8 +128,8 @@ typedef struct ham_db_t ham_db_t;
 /**
  * The hamsterdb Environment structure
  *
- * This structure is allocated with @ref ham_env_new and deleted with
- * @ref ham_env_delete.
+ * This structure is allocated with @ref ham_env_create and @ref ham_env_open
+ * and is deleted in @ref ham_env_close.
  */
 struct ham_env_t;
 typedef struct ham_env_t ham_env_t;
@@ -171,8 +169,7 @@ typedef struct ham_cursor_t ham_cursor_t;
  * recommended to use @a HAM_RECORD_USER_ALLOC or have each thread manage its
  * own Transaction.
  */
-typedef struct
-{
+typedef struct {
   /** The size of the record data, in bytes */
   ham_size_t size;
 
@@ -197,8 +194,7 @@ typedef struct
 } ham_record_t;
 
 /** Flag for @ref ham_record_t (only really useful in combination with
- * @ref ham_cursor_move, @ref ham_cursor_find, @ref ham_cursor_find_ex
- * and @ref ham_find)
+ * @ref ham_cursor_move, @ref ham_cursor_find and @ref ham_find)
  */
 #define HAM_RECORD_USER_ALLOC   1
 
@@ -228,8 +224,7 @@ typedef struct
  * recommended to use @a HAM_KEY_USER_ALLOC or have each thread manage its
  * own Transaction.
  */
-typedef struct
-{
+typedef struct {
   /** The size of the key, in bytes */
   ham_u16_t size;
 
@@ -244,16 +239,15 @@ typedef struct
 } ham_key_t;
 
 /** Flag for @ref ham_key_t (only really useful in combination with
- * @ref ham_cursor_move, @ref ham_cursor_find, @ref ham_cursor_find_ex
- * and @ref ham_find)
+ * @ref ham_cursor_move, @ref ham_cursor_find and @ref ham_find)
  */
 #define HAM_KEY_USER_ALLOC    1
 
 /**
  * A named parameter.
  *
- * These parameter structures are used for functions like @ref ham_open_ex,
- * @ref ham_create_ex, etc. to pass variable length parameter lists.
+ * These parameter structures are used for functions like @ref ham_env_open,
+ * @ref ham_env_create, etc. to pass variable length parameter lists.
  *
  * The lists are always arrays of type ham_parameter_t, with a terminating
  * element of { 0, NULL}, e.g.
@@ -452,31 +446,6 @@ ham_get_license(const char **licensee, const char **product);
  */
 
 /**
- * Allocates a ham_env_t handle
- *
- * @param env Pointer to the pointer which is allocated
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_new(ham_env_t **env);
-
-/**
- * Frees a ham_env_t handle
- *
- * Frees the ham_env_t structure, but does not close the
- * Environment. Call this function <b>AFTER</b> you have closed the
- * Environment using @ref ham_env_close, or you will lose your data!
- *
- * @param env A valid Environment handle
- *
- * @return @ref HAM_INV_PARAMETER if @a env is NULL
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_delete(ham_env_t *env);
-
-/**
  * Creates a Database Environment
  *
  * A Database Environment is a collection of Databases, which are all stored
@@ -488,8 +457,7 @@ ham_env_delete(ham_env_t *env);
  * Databases in an Environment can be created with @ref ham_env_create_db
  * or opened with @ref ham_env_open_db.
  *
- * @param env A valid Environment handle, which was created with
- *      @ref ham_env_new
+ * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
  *      Environment.
@@ -566,12 +534,12 @@ ham_env_delete(ham_env_t *env);
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  *
- * @sa ham_create_ex
+ * @sa ham_env_create
  * @sa ham_env_close
- * @sa ham_env_open_ex
+ * @sa ham_env_open
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_create(ham_env_t *env, const char *filename,
+ham_env_create(ham_env_t **env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
 
 /**
@@ -656,7 +624,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @ref HAM_NETWORK_ERROR if a remote server is not reachable
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_open(ham_env_t *env, const char *filename,
+ham_env_open(ham_env_t **env, const char *filename,
             ham_u32_t flags, const ham_parameter_t *param);
 
 /**
@@ -752,7 +720,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_create_db(ham_env_t *env, ham_db_t *db,
+ham_env_create_db(ham_env_t *env, ham_db_t **db,
             ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
 
 /**
@@ -792,7 +760,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_open_db(ham_env_t *env, ham_db_t *db,
+ham_env_open_db(ham_env_t *env, ham_db_t **db,
             ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
 
 /**
@@ -893,9 +861,8 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
 /**
  * Closes the Database Environment
  *
- * This function closes the Database Environment. It does not free the
- * memory resources allocated in the @a env handle - use @ref ham_env_delete
- * to free @a env.
+ * This function closes the Database Environment. It also frees the
+ * memory resources allocated in the @a env handle.
  *
  * If the flag @ref HAM_AUTO_CLEANUP is specified, hamsterdb automatically
  * calls @ref ham_close with flag @ref HAM_AUTO_CLEANUP on all open Databases
@@ -1046,301 +1013,63 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * @{
  */
 
-/**
- * Allocates a ham_db_t handle
- *
- * @param db Pointer to the pointer which is allocated
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_new(ham_db_t **db);
-
-/**
- * Frees a ham_db_t handle
- *
- * Frees the memory and resources of a ham_db_t structure, but does not
- * close the Database. Call this function <b>AFTER</b> you have closed the
- * Database using @ref ham_close, or you will lose your data!
- *
- * @param db A valid Database handle
- *
- * @return @ref HAM_INV_PARAMETER if @a db is NULL
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_delete(ham_db_t *db);
-
-/**
- * Creates a Database
- *
- * This function is a simplified version of @sa ham_create_ex.
- * It is recommended to use @ref ham_create_ex instead.
- *
- * @sa ham_create_ex
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_create(ham_db_t *db, const char *filename,
-            ham_u32_t flags, ham_u32_t mode);
-
-/**
- * Creates a Database - extended version
- *
- * This function is a shortcut for a sequence of @ref ham_env_create
- * followed by @ref ham_env_create_db.
- *
- * It creates an (internal, hidden) Environment and in this Environment it
- * creates a Database with a reserved identifier - HAM_DEFAULT_DATABASE_NAME.
- *
- * The internal Environment handle can be retrieved with @ref ham_get_env.
- *
- * @param db A valid Database handle
- * @param filename The filename of the Database file. If the file already
- *      exists, it will be overwritten. Can be NULL if you create an
- *      In-Memory Database
- * @param flags Optional flags for opening the Database, combined with
- *    bitwise OR. Possible flags are:
- *    <ul>
- *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
- *      committing or aborting a Transaction using fsync(), fdatasync()
- *      or FlushFileBuffers(). This file has no effect
- *      if Transactions are disabled. Slows down performance but makes
- *      sure that all file handles and operating system caches are
- *      transferred to disk, thus providing a stronger durability.
- *     <li>@ref HAM_USE_BTREE </li> Use a B+Tree for the index structure.
- *      Currently enabled by default, but future releases
- *      of hamsterdb will offer additional index structures,
- *      i.e. hash tables.
- *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
- *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
- *     <li>@ref HAM_IN_MEMORY </li> Creates an In-Memory Database. No file
- *      will be created, and the Database contents are lost after
- *      the Database is closed. The @a filename parameter can
- *      be NULL. Do <b>NOT</b> use in combination with
- *      @ref HAM_CACHE_STRICT and do <b>NOT</b> specify @a cachesize
- *      other than 0.
- *     <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
- *      Keys in Record Number Databases are automatically assigned an
- *      incrementing 64bit value. If key->data is not NULL
- *      (and key->flags is @ref HAM_KEY_USER_ALLOC and key->size is 8),
- *      the value of the current key is returned in @a key (a
- *      host-endian 64bit number of type ham_u64_t). If key-data is NULL
- *      and key->size is 0, key->data is temporarily allocated by
- *      hamsterdb.
- *     <li>@ref HAM_ENABLE_DUPLICATES </li> Enable duplicate keys for this
- *      Database. By default, duplicate keys are disabled.
- *     <li>@ref HAM_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
- *      By default, hamsterdb checks if it can use mmap,
- *      since mmap is faster than read/write. For performance
- *      reasons, this flag should not be used.
- *     <li>@ref HAM_CACHE_STRICT </li> Do not allow the cache to grow larger
- *      than @a cachesize. If a Database operation needs to resize the
- *      cache, it will return @ref HAM_CACHE_FULL.
- *      If the flag is not set, the cache is allowed to allocate
- *      more pages than the maximum cache size, but only if it's
- *      necessary and only for a short time.
- *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
- *      fast as an In-Memory Database. Not allowed in combination
- *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
- *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
- *      Database.
- *      This flag imples @ref HAM_ENABLE_RECOVERY.
- *    </ul>
- *
- * @param mode File access rights for the new file. This is the @a mode
- *    parameter for creat(2). Ignored on Microsoft Windows.
- * @param param An array of ham_parameter_t structures. The following
- *    parameters are available:
- *    <ul>
- *    <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
- *      in bytes. The default size is defined in src/config.h
- *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
- *    <li>@ref HAM_PARAM_PAGESIZE </li> The size of a file page, in
- *      bytes. It is recommended not to change the default size. The
- *      default size depends on hardware and operating system.
- *      Page sizes must be 1024 or a multiple of 2048.
- *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
- *      index. The default size is 21 bytes.
- *    </ul>
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a db pointer is NULL or an
- *        invalid combination of flags was specified
- * @return @ref HAM_IO_ERROR if the file could not be opened or
- *        reading/writing failed
- * @return @ref HAM_INV_FILE_VERSION if the Database version is not
- *        compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_INV_PAGESIZE if @a pagesize is not 1024 or
- *        a multiple of 2048
- * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
- *        keys must fit in a page)
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
- *
- * @sa ham_data_access_modes
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_create_ex(ham_db_t *db, const char *filename,
-            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
-
-/**
- * Opens an existing Database
- *
- * This function is a simplified version of @sa ham_open_ex.
- * It is recommended to use @ref ham_open_ex instead.
- *
- * @sa ham_open_ex
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
-
-/**
- * Opens an existing Database - extended version
- *
- * This function is a shortcut for a sequence of @ref ham_env_open_ex
- * followed by @ref ham_env_open_db.
- *
- * It opens an (internal, hidden) Environment and in this Environment it
- * opens the first Database that was created.
- *
- * As a consequence, it is no problem to open a Database with
- * @ref ham_open_ex, even if it was created with @ref ham_env_create.
- *
- * The internal Environment handle can be retrieved with @ref ham_get_env.
- *
- * @param db A valid Database handle
- * @param filename The filename of the Database file
- * @param flags Optional flags for opening the Database, combined with
- *    bitwise OR. Possible flags are:
- *    <ul>
- *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
- *      Operations which need write access (i.e. @ref ham_insert) will
- *      return @ref HAM_WRITE_PROTECTED.
- *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
- *      committing or aborting a Transaction using fsync(), fdatasync()
- *      or FlushFileBuffers(). This file has no effect
- *      if Transactions are disabled. Slows down performance but makes
- *      sure that all file handles and operating system caches are
- *      transferred to disk, thus providing a stronger durability.
- *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
- *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
- *     <li>@ref HAM_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
- *      By default, hamsterdb checks if it can use mmap,
- *      since mmap is faster than read/write. For performance
- *      reasons, this flag should not be used.
- *     <li>@ref HAM_CACHE_STRICT </li> Do not allow the cache to grow larger
- *      than @a cachesize. If a Database operation needs to resize the
- *      cache, it will return @ref HAM_CACHE_FULL.
- *      If the flag is not set, the cache is allowed to allocate
- *      more pages than the maximum cache size, but only if it's
- *      necessary and only for a short time.
- *     <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
- *      fast as an In-Memory Database. Not allowed in combination
- *      with @ref HAM_CACHE_STRICT or a limited cache size.
- *     <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Database. Will return @ref HAM_NEED_RECOVERY, if the Database
- *      is in an inconsistent state. Not allowed in combination
- *      with @ref HAM_IN_MEMORY.
- *     <li>@ref HAM_AUTO_RECOVERY </li> Automatically recover the Database,
- *      if necessary. This flag implies @ref HAM_ENABLE_RECOVERY.
- *     <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
- *      Database.
- *      This flag imples @ref HAM_ENABLE_RECOVERY.
- *    </ul>
- *
- * @param param An array of ham_parameter_t structures. The following
- *    parameters are available:
- *    <ul>
- *    <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
- *      in bytes. The default size is defined in src/config.h
- *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
- *    </ul>
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a db pointer is NULL or an
- *        invalid combination of flags was specified
- * @return @ref HAM_FILE_NOT_FOUND if the file does not exist
- * @return @ref HAM_IO_ERROR if the file could not be opened or reading failed
- * @return @ref HAM_INV_FILE_VERSION if the Database version is not
- *        compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_NEED_RECOVERY if the Database is in an inconsistent state
- * @return @ref HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
- * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_open_ex(ham_db_t *db, const char *filename,
-            ham_u32_t flags, const ham_parameter_t *param);
-
-/** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex.
+/** Flag for @ref @ref ham_env_open, @ @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_ENABLE_FSYNC                            0x00000001
 
 /* unused                                           0x00000002 */
 
-/** Flag for @ref ham_open, @ref ham_open_ex.
+/** Flag for @ref ham_env_open, @ref ham_env_open_db.
  * This flag is non persistent. */
 #define HAM_READ_ONLY                               0x00000004
 
 /* unused                                           0x00000008 */
 
-/** Flag for @ref ham_create, @ref ham_create_ex.
+/** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
 #define HAM_USE_BTREE                               0x00000010
 
 /* reserved                                         0x00000020 */
 
-/** Flag for @ref ham_create, @ref ham_create_ex.
+/** Flag for @ref ham_env_create_db.
  * This flag is non persistent. */
 #define HAM_DISABLE_VAR_KEYLEN                      0x00000040
 
-/** Flag for @ref ham_create, @ref ham_create_ex.
+/** Flag for @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_IN_MEMORY                               0x00000080
 
 /* reserved: DB_USE_MMAP (not persistent)           0x00000100 */
 
-/** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex.
+/** Flag for @ref ham_env_open, @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_DISABLE_MMAP                            0x00000200
 
-/** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex.
+/** Flag for @ref ham_env_open, @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_CACHE_STRICT                            0x00000400
 
-/** Flag for @ref ham_create, @ref ham_create_ex, @ref ham_env_create_db.
+/** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
 #define HAM_RECORD_NUMBER                           0x00002000
 
-/** Flag for @ref ham_create, @ref ham_create_ex.
+/** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
 #define HAM_ENABLE_DUPLICATES                       0x00004000
 
-/** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create,
- * @ref ham_env_open.
+/** Flag for @ref ham_env_create, @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_ENABLE_RECOVERY                         0x00008000
 
-/** Flag for @ref ham_open_ex, @ref ham_env_open.
+/** Flag for @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_AUTO_RECOVERY                           0x00010000
 
-/** Flag for @ref ham_create_ex, @ref ham_open_ex, @ref ham_env_create,
- * @ref ham_env_open.
+/** Flag for @ref ham_env_create, @ref ham_env_open.
  * This flag is non persistent. */
 #define HAM_ENABLE_TRANSACTIONS                     0x00020000
 
-/** Flag for @ref ham_open, @ref ham_open_ex, @ref ham_create,
- * @ref ham_create_ex.
+/** Flag for @ref ham_env_open, @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_CACHE_UNLIMITED                         0x00040000
 
@@ -1650,9 +1379,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
  * @return @ref HAM_INV_KEYSIZE if the key size is larger than the @a keysize
- *        parameter specified for @ref ham_create_ex and variable
+ *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
- *        OR if the @a keysize parameter specified for @ref ham_create_ex
+ *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8.
  *
  * @sa HAM_DISABLE_VAR_KEYLEN
@@ -1689,11 +1418,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 /** Flag for @ref ham_cursor_insert */
 #define HAM_DUPLICATE_INSERT_LAST       0x0020
 
-/** Flag for @ref ham_find, @ref ham_cursor_find_ex, @ref ham_cursor_move */
+/** Flag for @ref ham_find, @ref ham_cursor_find, @ref ham_cursor_move */
 #define HAM_DIRECT_ACCESS               0x0040
 
 /** Flag for @ref ham_insert, @ref ham_cursor_insert, @ref ham_find,
- * @ref ham_cursor_find_ex, @ref ham_cursor_move */
+ * @ref ham_cursor_find, @ref ham_cursor_move */
 #define HAM_PARTIAL                     0x0080
 
 /**
@@ -1816,36 +1545,33 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
-/** Parameter name for @ref ham_env_open, @ref ham_env_create,
- * @ref ham_open_ex, @ref ham_create_ex; sets the cache size */
+/** Parameter name for @ref ham_env_open, @ref ham_env_create;
+ * sets the cache size */
 #define HAM_PARAM_CACHESIZE             0x00000100
 
-/** Parameter name for @ref ham_env_create, @ref ham_create_ex; sets the page
- * size */
+/** Parameter name for @ref ham_env_create; sets the page size */
 #define HAM_PARAM_PAGESIZE              0x00000101
 
-/** Parameter name for @ref ham_create_ex; sets the key size */
+/** Parameter name for @ref ham_env_create_db; sets the key size */
 #define HAM_PARAM_KEYSIZE               0x00000102
 
 /** Parameter name for @ref ham_env_create; sets the number of maximum
  * Databases */
 #define HAM_PARAM_MAX_DATABASES         0x00000103
 
-/** Parameter name for @ref ham_env_open, @ref ham_env_create,
- * @ref ham_open_ex, @ref ham_create_ex; sets the path of the log files */
+/** Parameter name for @ref ham_env_open, @ref ham_env_create;
+ * sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
 
 /**
  * Retrieve the Database/Environment flags as were specified at the time of
- * @ref ham_create/@ref ham_env_create/@ref ham_open/@ref ham_env_open
- * invocation.
+ * @ref ham_env_create/@ref ham_env_open invocation.
  */
 #define HAM_PARAM_FLAGS                 0x00000200
 
 /**
  * Retrieve the filesystem file access mode as was specified at the time
- * of @ref ham_create/@ref ham_env_create/@ref ham_open/@ref ham_env_open
- * invocation.
+ * of @ref @ref ham_env_create/@ref ham_env_open invocation.
  */
 #define HAM_PARAM_FILEMODE              0x00000201
 
@@ -1880,12 +1606,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /**
  * Retrieve the Environment handle of a Database
  *
- * Every Database belongs to an Environment, even if it was created with
- * ham_create[_ex] or ham_open[_ex].
- *
- * Therefore this function always returns a valid handle, if the Database
- * handle was also valid and initialized (otherwise it returns NULL).
- *
  * @param db A valid Database handle
  *
  * @return The Environment handle
@@ -1895,12 +1615,11 @@ ham_get_env(ham_db_t *db);
 
 /**
  * Returns the kind of key match which produced this key as it was
- * returned by one of the @ref ham_find(), @ref ham_cursor_find() or
- * @ref ham_cursor_find_ex() functions
+ * returned by one of the @ref ham_find() and @ref ham_cursor_find().
  *
- * This routine assumes the key was passed back by one of the @ref ham_find,
- * @ref ham_cursor_find or @ref ham_cursor_find_ex functions and not used
- * by any other hamsterdb functions after that.
+ * This routine assumes the key was passed back by one of the @ref ham_find and
+ * @ref ham_cursor_find functions and not used by any other hamsterdb functions
+ * after that.
  *
  * As such, this function produces an answer akin to the 'sign' of the
  * specified key as it was returned by the find operation.
@@ -1924,8 +1643,7 @@ ham_key_get_approximate_match_type(ham_key_t *key);
  * Closes the Database
  *
  * This function flushes the Database and then closes the file handle.
- * It does not free the memory resources allocated in the @a db handle -
- * use @ref ham_delete to free @a db.
+ * It also free the memory resources allocated in the @a db handle.
  *
  * If the flag @ref HAM_AUTO_CLEANUP is specified, hamsterdb automatically
  * calls @ref ham_cursor_close on all open Cursors. This invalidates the
@@ -2522,9 +2240,9 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key to a read-only
  *        Database.
  * @return @ref HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
- *        parameter specified for @ref ham_create_ex and variable
+ *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
- *        OR if the @a keysize parameter specified for @ref ham_create_ex
+ *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8.
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another

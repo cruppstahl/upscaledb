@@ -9,8 +9,9 @@
  * See files COPYING.* for License information.
  *
  *
- * This example copies one database into another. this works also for
- * copying in-memory-databases to on-disk-databases and vice versa.
+ * This example opens an Environment and copies one Database into another.
+ * With small modifications this sample would also be able to copy
+ * In Memory-Environments to On Disk-Environments and vice versa.
  */
 
 #include <stdio.h>
@@ -28,7 +29,7 @@ error(const char *foo, ham_status_t st)
 void
 usage(void)
 {
-    printf("usage: ./db2 <source> <destination>\n");
+    printf("usage: ./db2 <environment> <source-db> <destination-db>\n");
     exit(-1);
 }
 
@@ -82,55 +83,56 @@ int
 main(int argc, char **argv)
 {
     ham_status_t st;
-    ham_db_t *src, *dest;
-    const char *src_path=0, *dest_path=0;
+    ham_env_t *env = 0;
+    ham_db_t *src_db = 0;
+    ham_db_t *dest_db = 0;
+    ham_u16_t src_name;
+    ham_u16_t dest_name;
+    const char *env_path;
 
     /*
      * check and parse the command line parameters
      */
-    if (argc!=3)
+    if (argc!=4)
         usage();
-    src_path =argv[1];
-    dest_path=argv[2];
+    env_path =argv[1];
+    src_name =atoi(argv[2]);
+    dest_name=atoi(argv[3]);
+    if (src_name == 0 || dest_name == 0)
+        usage();
+
+    /*
+     * open the Environment database
+     */
+    st=ham_env_open(&env, env_path, 0, 0);
+    if (st)
+        error("ham_env_open", st);
 
     /*
      * open the source database
      */
-    st=ham_new(&src);
+    st=ham_env_open_db(env, &src_db, src_name, 0, 0);
     if (st)
-        error("ham_new", st);
-
-    st=ham_open(src, src_path, 0);
-    if (st)
-        error("ham_open", st);
+        error("ham_env_open_db", st);
 
     /*
      * create the destination database
      */
-    st=ham_new(&dest);
+    st=ham_env_create_db(env, &dest_db, dest_name, HAM_ENABLE_DUPLICATES, 0);
     if (st)
-        error("ham_new", st);
-
-    st=ham_create_ex(dest, dest_path, HAM_ENABLE_DUPLICATES, 0664, 0);
-    if (st)
-        error("ham_create", st);
+        error("ham_env_create_db", st);
 
     /*
      * copy the data
      */
-    copy_db(src, dest);
+    copy_db(src_db, dest_db);
 
     /*
      * clean up and return
      */
-    st=ham_close(src, 0);
+    st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st)
-        error("ham_close", st);
-    st=ham_close(dest, 0);
-    if (st)
-        error("ham_close", st);
-    ham_delete(src);
-    ham_delete(dest);
+        error("ham_env_close", st);
 
     printf("\nsuccess!\n");
     return (0);

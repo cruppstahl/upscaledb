@@ -105,25 +105,9 @@ main(int argc, char **argv)
     memset(&ord_record, 0, sizeof(ord_record));
 
     /*
-     * first, create a new hamsterdb environment
-     */
-    st=ham_env_new(&env);
-    if (st!=HAM_SUCCESS)
-        error("ham_env_new", st);
-
-    /*
-     * then create the database objects
-     */
-    for (i=0; i<MAX_DBS; i++) {
-        st=ham_new(&db[i]);
-        if (st!=HAM_SUCCESS)
-            error("ham_new", st);
-    }
-
-    /*
      * now create a new database file for the environment
      */
-    st=ham_env_create(env, "test.db", 0, 0664, 0);
+    st=ham_env_create(&env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 
@@ -132,10 +116,10 @@ main(int argc, char **argv)
      * has a name - the first is our "customer" database, the second
      * is for the "orders"
      */
-    st=ham_env_create_db(env, db[0], DBNAME_CUSTOMER, 0, 0);
+    st=ham_env_create_db(env, &db[0], DBNAME_CUSTOMER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create_db (customer)", st);
-    st=ham_env_create_db(env, db[1], DBNAME_ORDER, 0, 0);
+    st=ham_env_create_db(env, &db[1], DBNAME_ORDER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create_db (order)", st);
 
@@ -203,13 +187,13 @@ main(int argc, char **argv)
     /*
      * now reopen the environment and the databases
      */
-    st=ham_env_open(env, "test.db", 0, 0);
+    st=ham_env_open(&env, "test.db", 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open", st);
-    st=ham_env_open_db(env, db[0], DBNAME_CUSTOMER, 0, 0);
+    st=ham_env_open_db(env, &db[0], DBNAME_CUSTOMER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open_db (customer)", st);
-    st=ham_env_open_db(env, db[1], DBNAME_ORDER, 0, 0);
+    st=ham_env_open_db(env, &db[1], DBNAME_ORDER, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open_db (order)", st);
 
@@ -293,11 +277,6 @@ main(int argc, char **argv)
     st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
-
-    for (i=0; i<MAX_DBS; i++)
-         ham_delete(db[i]);
-
-    ham_env_delete(env);
 
 #if UNDER_CE
     error("success", 0);
