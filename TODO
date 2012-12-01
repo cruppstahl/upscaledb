@@ -53,6 +53,7 @@ o clean up APIs
         x fix samples
 ==============================================================
         o fix unittests
+    weiter mit hamsterdb.cpp - alle tests gehen, aber viele memory leaks
 ==============================================================
         o fix c++ api - currently broken in the unittests
         o fix java api
@@ -60,11 +61,11 @@ o clean up APIs
         o also delete db->set_active, env->set_active
         o also clean up PRIVATE flag
     o prefix all database functions with ham_db_*
-    o make HAM_AUTO_CLEANUP the default??
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
     o update README
     o update Webpage
+    o update Tutorial
 
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
     not set; this would require a cursor

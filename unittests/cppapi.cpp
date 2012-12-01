@@ -47,12 +47,10 @@ my_prefix_compare_func(ham_db_t *db,
   return (0);
 }
 
-class CppApiTest : public hamsterDB_fixture
-{
+class CppApiTest : public hamsterDB_fixture {
 public:
   CppApiTest()
-    : hamsterDB_fixture("CppApiTest")
-  {
+    : hamsterDB_fixture("CppApiTest") {
     testrunner::get_instance()->register_fixture(this);
     BFC_REGISTER_TEST(CppApiTest, keyTest);
     BFC_REGISTER_TEST(CppApiTest, recordTest);
@@ -448,7 +446,7 @@ public:
     txn = env.begin("name");
     db.insert(&txn, &k, &r);
     std::string n = txn.get_name();
-    BFC_ASSERT_EQUAL(n, "name");
+    BFC_ASSERT_EQUAL(n.c_str(), "name");
     txn.commit();
     out = db.find(&k);
   }

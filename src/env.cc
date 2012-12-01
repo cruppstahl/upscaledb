@@ -161,26 +161,18 @@ _local_fun_create(Environment *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
     ham_status_t st=0;
-    Device *device=0;
     ham_size_t pagesize=env->get_pagesize();
 
     ham_assert(!env->get_header_page());
 
     /* initialize the device if it does not yet exist */
-    if (!env->get_device()) {
-        device=new Device(env, flags);
-        device->set_pagesize(env->get_pagesize());
-        env->set_device(device);
+    Device *device=new Device(env, flags);
+    device->set_pagesize(env->get_pagesize());
+    env->set_device(device);
 
-        /* now make sure the pagesize is a multiple of
-         * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
-        ham_assert(0 == (env->get_pagesize()
-                    % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
-    }
-    else {
-        device=env->get_device();
-    }
-    ham_assert(device == env->get_device());
+    /* now make sure the pagesize is a multiple of
+     * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
+    ham_assert(0 == (env->get_pagesize() % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
 
     /* create the file */
     st=device->create(filename, flags, mode);
@@ -246,8 +238,13 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY)
-        return (env->get_header_page()->flush());
+    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
+        st=env->get_header_page()->flush();
+        if (st) {
+            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
+            return (st);
+        }
+    }
 
     return (0);
 }
@@ -351,22 +348,18 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         const ham_parameter_t *param)
 {
     ham_status_t st;
-    Device *device=0;
     ham_u32_t pagesize=0;
 
     /* initialize the device if it does not yet exist */
-    if (!env->get_device()) {
-        device=new Device(env, flags);
-        env->set_device(device);
-    }
-    else {
-        device=env->get_device();
-    }
+    Device *device=new Device(env, flags);
+    env->set_device(device);
 
     /* open the file */
     st=device->open(filename, flags);
-    if (st)
+    if (st) {
+        delete device;
         return (st);
+    }
 
     /*
      * read the database header
@@ -464,9 +457,13 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
 fail_with_fake_cleansing:
 
         /* undo the headerpage fake first! */
-        if (hdrpage_faked)
+        if (hdrpage_faked) {
             fakepage.set_pers(0);
             env->set_header_page(0);
+        }
+
+        delete device;
+        env->set_device(0);
 
         /* exit when an error was signaled */
         if (st)

@@ -16,6 +16,7 @@
 #include <time.h>
 
 #include <ham/hamsterdb.h>
+
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/version.h"
@@ -31,344 +32,315 @@ using namespace bfc;
 using namespace ham;
 
 
-class APIv110Test : public hamsterDB_fixture
-{
-    define_super(hamsterDB_fixture);
+class APIv110Test : public hamsterDB_fixture {
+  define_super(hamsterDB_fixture);
 
 public:
-    APIv110Test()
-    :   hamsterDB_fixture("APIv110Test"), m_db(NULL)
-    {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(APIv110Test, transactionTest);
-        BFC_REGISTER_TEST(APIv110Test, v10xDBformatDetectTest);
-        BFC_REGISTER_TEST(APIv110Test, getInitializedEnvParamsTest);
-        BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyEnvParamsTest);
-        BFC_REGISTER_TEST(APIv110Test, getInitializedDbParamsTest);
-        BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyDbParamsTest);
-        BFC_REGISTER_TEST(APIv110Test, negativeApproxMatchingTest);
-        BFC_REGISTER_TEST(APIv110Test, issue7Test);
-    }
+  APIv110Test()
+    : hamsterDB_fixture("APIv110Test"), m_db(NULL) {
+    testrunner::get_instance()->register_fixture(this);
+    BFC_REGISTER_TEST(APIv110Test, transactionTest);
+    BFC_REGISTER_TEST(APIv110Test, v10xDBformatDetectTest);
+    BFC_REGISTER_TEST(APIv110Test, getInitializedEnvParamsTest);
+    BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyEnvParamsTest);
+    BFC_REGISTER_TEST(APIv110Test, getInitializedDbParamsTest);
+    BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyDbParamsTest);
+    BFC_REGISTER_TEST(APIv110Test, negativeApproxMatchingTest);
+    BFC_REGISTER_TEST(APIv110Test, issue7Test);
+  }
 
 protected:
-    ham_db_t *m_db;
-    ham_env_t *m_env;
+  ham_db_t *m_db;
+  ham_env_t *m_env;
 
 public:
-    virtual void setup()
-    {
-        __super::setup();
+  virtual void setup() {
+    __super::setup();
 
-        os::unlink(BFC_OPATH(".test"));
-        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+    os::unlink(BFC_OPATH(".test"));
+    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+  }
 
-        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY, 0));
+  virtual void teardown() {
+    __super::teardown();
+
+    if (m_env)
+      BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  }
+
+  void transactionTest() {
+    ham_txn_t *txn;
+    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_abort(txn, 0));
+
+    // reopen the database, check the transaction flag vs. actual
+    // use of transactions
+    teardown();
+
+    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, BFC_OPATH(".test"),
+          HAM_ENABLE_TRANSACTIONS, 0644, 0));
+    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+  };
+
+  void v10xDBformatDetectTest() {
+    teardown();
+    os::unlink(BFC_OPATH(".test"));
+
+    BFC_ASSERT_EQUAL(true,
+      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
+        BFC_OPATH(".test")));
+    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+
+    teardown();
+    os::unlink(BFC_OPATH(".test"));
+
+    BFC_ASSERT_EQUAL(true,
+      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
+        BFC_OPATH(".test")));
+    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+
+    teardown();
+    os::unlink(BFC_OPATH(".test"));
+
+    /* now the same, environment-based */
+    BFC_ASSERT_EQUAL(true,
+      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
+        BFC_OPATH(".test")));
+    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+
+    teardown();
+    os::unlink(BFC_OPATH(".test"));
+
+    BFC_ASSERT_EQUAL(true,
+      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
+        BFC_OPATH(".test")));
+
+    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+  }
+
+  ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name) {
+    for (; param->name; param++) {
+      if (param->name == name)
+        return (param->value);
     }
+    return ((ham_offset_t)-1);
+  }
 
-    virtual void teardown()
-    {
-        __super::teardown();
-
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
-        ham_delete(m_db);
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
-        ham_env_delete(m_env);
-    }
-
-    void transactionTest(void)
-    {
-        ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_env, 0, 0, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_abort(txn, 0));
-
-        // reopen the database, check the transaction flag vs. actual
-        // use of transactions
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        ham_delete(m_db);
-        m_db=0;
-
-        BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        BFC_ASSERT_EQUAL(HAM_SUCCESS,
-                ham_create(m_db, BFC_OPATH(".test"),
-                    HAM_ENABLE_TRANSACTIONS, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(m_db), 0, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+  void getInitializedEnvParamsTest() {
+    ham_parameter_t params[] = {
+      { HAM_PARAM_CACHESIZE, 0 },
+      { HAM_PARAM_PAGESIZE, 0 },
+      { HAM_PARAM_MAX_DATABASES, 0 },
+      { HAM_PARAM_FLAGS, 0 },
+      { HAM_PARAM_FILEMODE, 0 },
+      { HAM_PARAM_FILENAME, 0 },
+      { 0,0 }
+    };
+    ham_parameter_t set_params[] = {
+      { HAM_PARAM_CACHESIZE, 1024*32 },
+      { HAM_PARAM_PAGESIZE, 1024*64 },
+      { HAM_PARAM_MAX_DATABASES, 32 },
+      { 0,0 }
     };
 
-    void v10xDBformatDetectTest(void)
-    {
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        os::unlink(BFC_OPATH(".test"));
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+                0664, &set_params[0]));
 
-        BFC_ASSERT_EQUAL(true,
-            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-                BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_open(m_db, BFC_OPATH(".test"), 0));
+    BFC_ASSERT_EQUAL(0, ham_env_get_parameters(m_env, params));
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        os::unlink(BFC_OPATH(".test"));
+    BFC_ASSERT_EQUAL(1024 * 32u,
+        get_param_value(params, HAM_PARAM_CACHESIZE));
+    BFC_ASSERT_EQUAL(1024 * 64u,
+        get_param_value(params, HAM_PARAM_PAGESIZE));
+    BFC_ASSERT_EQUAL((ham_offset_t)32,
+        get_param_value(params, HAM_PARAM_MAX_DATABASES));
+    BFC_ASSERT_EQUAL((ham_offset_t)HAM_DISABLE_MMAP,
+        get_param_value(params, HAM_PARAM_FLAGS));
+    BFC_ASSERT_EQUAL((ham_offset_t)0664,
+        get_param_value(params, HAM_PARAM_FILEMODE));
+    BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
+        (char *)get_param_value(params, HAM_PARAM_FILENAME)));
+  }
 
-        BFC_ASSERT_EQUAL(true,
-            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-                BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_open(m_db, BFC_OPATH(".test"), 0));
+  void getInitializedReadonlyEnvParamsTest() {
+    ham_parameter_t params[] = {
+      { HAM_PARAM_CACHESIZE, 0 },
+      { HAM_PARAM_PAGESIZE, 0 },
+      { HAM_PARAM_MAX_DATABASES, 0 },
+      { HAM_PARAM_FLAGS, 0 },
+      { HAM_PARAM_FILEMODE, 0 },
+      { HAM_PARAM_FILENAME, 0 },
+      { 0,0 }
+    };
+    ham_parameter_t set_params[] = {
+      { HAM_PARAM_CACHESIZE, 1024*32 },
+      { HAM_PARAM_PAGESIZE, 1024*64 },
+      { HAM_PARAM_MAX_DATABASES, 32 },
+      { 0,0 }
+    };
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        os::unlink(BFC_OPATH(".test"));
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+                0664, &set_params[0]));
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_open(&m_env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
 
-        /* now the same, environment-based */
-        BFC_ASSERT_EQUAL(true,
-            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-                BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_env_open(m_env, BFC_OPATH(".test"), 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_env_get_parameters(m_env, params));
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
-        os::unlink(BFC_OPATH(".test"));
+    BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_CACHESIZE,
+        get_param_value(params, HAM_PARAM_CACHESIZE));
+    BFC_ASSERT_EQUAL(1024 * 64u,
+        get_param_value(params, HAM_PARAM_PAGESIZE));
+    BFC_ASSERT_EQUAL((ham_offset_t)32,
+        get_param_value(params, HAM_PARAM_MAX_DATABASES));
+    BFC_ASSERT_EQUAL((ham_offset_t)HAM_READ_ONLY,
+        get_param_value(params, HAM_PARAM_FLAGS));
+    BFC_ASSERT_EQUAL((ham_offset_t)0644,
+        get_param_value(params, HAM_PARAM_FILEMODE));
+    BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
+        (char *)get_param_value(params, HAM_PARAM_FILENAME)));
+  }
 
-        BFC_ASSERT_EQUAL(true,
-            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-                BFC_OPATH(".test")));
-        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-                ham_env_open(m_env, BFC_OPATH(".test"), 0, 0));
-    }
+  void getInitializedDbParamsTest() {
+    ham_parameter_t params[] = {
+      { HAM_PARAM_KEYSIZE, 0 },
+      { HAM_PARAM_DATABASE_NAME, 0 },
+      { HAM_PARAM_FLAGS, 0 },
+      { HAM_PARAM_MAX_KEYS_PER_PAGE, 0 },
+      { 0,0 }
+    };
 
-    ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name)
-    {
-        for (; param->name; param++) {
-            if (param->name == name)
-                return param->value;
-        }
-        return (ham_offset_t)-1;
-    }
+    ham_parameter_t env_params[] = {
+      { HAM_PARAM_CACHESIZE, 1024 * 32 },
+      { HAM_PARAM_KEYSIZE, 16 },
+      { HAM_PARAM_PAGESIZE, 1024 },
+      { 0,0 }
+    };
 
-    void getInitializedEnvParamsTest(void)
-    {
-        ham_env_t *env;
-        ham_parameter_t params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 0},
-            {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_DATABASES, 0},
-            {HAM_PARAM_FLAGS, 0},
-            {HAM_PARAM_FILEMODE, 0},
-            {HAM_PARAM_FILENAME, 0},
-            {0,0}
-        };
-        ham_parameter_t set_params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 1024*32},
-            {HAM_PARAM_PAGESIZE, 1024*64},
-            {HAM_PARAM_MAX_DATABASES, 32},
-            {0,0}
-        };
+    ham_parameter_t db_params[] = {
+      { HAM_PARAM_KEYSIZE, 16 },
+      { 0,0 }
+    };
 
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0,
-                ham_env_create(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
-                                0664, &set_params[0]));
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+            HAM_CACHE_STRICT, 0644, &env_params[0]));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
+    BFC_ASSERT_EQUAL(0, ham_get_parameters(m_db, params));
+    BFC_ASSERT_EQUAL(16u,
+        get_param_value(params, HAM_PARAM_KEYSIZE));
+    BFC_ASSERT_EQUAL((ham_offset_t)36,
+        get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
+    BFC_ASSERT_EQUAL((ham_offset_t)1,
+        get_param_value(params, HAM_PARAM_DATABASE_NAME));
+    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT
+        | HAM_DISABLE_MMAP,
+        get_param_value(params, HAM_PARAM_FLAGS));
+  }
 
-        BFC_ASSERT_EQUAL(1024*32u,
-                get_param_value(params, HAM_PARAM_CACHESIZE));
-        BFC_ASSERT_EQUAL(1024*64u,
-                get_param_value(params, HAM_PARAM_PAGESIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)32,
-                get_param_value(params, HAM_PARAM_MAX_DATABASES));
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_FLAGS));
-        BFC_ASSERT_EQUAL((ham_offset_t)0664,
-                get_param_value(params, HAM_PARAM_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
-                (char *)get_param_value(params, HAM_PARAM_FILENAME)));
+  void getInitializedReadonlyDbParamsTest() {
+    ham_parameter_t params[] = {
+      { HAM_PARAM_KEYSIZE, 0 },
+      { HAM_PARAM_DATABASE_NAME, 0 },
+      { HAM_PARAM_FLAGS, 0 },
+      { HAM_PARAM_MAX_KEYS_PER_PAGE, 0 },
+      { 0,0 }
+    };
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        ham_env_delete(env);
-    }
+    ham_parameter_t env_params[] = {
+      { HAM_PARAM_CACHESIZE, 1024 * 32 },
+      { HAM_PARAM_PAGESIZE, 1024 },
+      { 0,0 }
+    };
 
-    void getInitializedReadonlyEnvParamsTest(void)
-    {
-        ham_env_t *env;
-        ham_parameter_t params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 0},
-            {HAM_PARAM_PAGESIZE, 0},
-            {HAM_PARAM_MAX_DATABASES, 0},
-            {HAM_PARAM_FLAGS, 0},
-            {HAM_PARAM_FILEMODE, 0},
-            {HAM_PARAM_FILENAME, 0},
-            {0,0}
-        };
-        ham_parameter_t set_params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 1024*32},
-            {HAM_PARAM_PAGESIZE, 1024*64},
-            {HAM_PARAM_MAX_DATABASES, 32},
-            {0,0}
-        };
+    ham_parameter_t db_params[] = {
+      { HAM_PARAM_KEYSIZE, 16 },
+      { 0,0 }
+    };
 
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0,
-                ham_env_create(env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
-                                0664, &set_params[0]));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0,
-                ham_env_open(env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+            HAM_CACHE_STRICT, 0644, &env_params[0]));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
+    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_open_db(m_env, &m_db, 1, HAM_READ_ONLY, 0));
 
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_CACHESIZE,
-                get_param_value(params, HAM_PARAM_CACHESIZE));
-        BFC_ASSERT_EQUAL(1024*64u,
-                get_param_value(params, HAM_PARAM_PAGESIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)32,
-                get_param_value(params, HAM_PARAM_MAX_DATABASES));
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_READ_ONLY,
-                get_param_value(params, HAM_PARAM_FLAGS));
-        BFC_ASSERT_EQUAL((ham_offset_t)0644,
-                get_param_value(params, HAM_PARAM_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
-                (char *)get_param_value(params, HAM_PARAM_FILENAME)));
+    BFC_ASSERT_EQUAL(0, ham_get_parameters(m_db, params));
+    BFC_ASSERT_EQUAL(16u,
+        get_param_value(params, HAM_PARAM_KEYSIZE));
+    BFC_ASSERT_EQUAL((ham_offset_t)36,
+        get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
+    BFC_ASSERT_EQUAL((ham_offset_t)1,
+        get_param_value(params, HAM_PARAM_DATABASE_NAME));
+    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT
+        | HAM_DISABLE_MMAP
+        | HAM_READ_ONLY,
+        get_param_value(params, HAM_PARAM_FLAGS));
+  }
 
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        ham_env_delete(env);
-    }
+  void negativeApproxMatchingTest() {
+    ham_key_t key = {};
+    ham_cursor_t *cursor;
 
-    void getInitializedDbParamsTest(void)
-    {
-        ham_db_t *db;
-        ham_parameter_t params[] =
-        {
-            {HAM_PARAM_KEYSIZE, 0},
-            {HAM_PARAM_DATABASE_NAME, 0},
-            {HAM_PARAM_FLAGS, 0},
-            {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
-            {0,0}
-        };
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+            HAM_ENABLE_TRANSACTIONS, 0644, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        ham_parameter_t set_params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 1024*32},
-            {HAM_PARAM_KEYSIZE, 16},
-            {HAM_PARAM_PAGESIZE, 1024},
-            {0,0}
-        };
+    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+          ham_cursor_find(cursor, &key, 0, HAM_FIND_GEQ_MATCH));
 
-        ham_new(&db);
-        BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, ".test.db",
-                        HAM_CACHE_STRICT, 0644, &set_params[0]));
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+  }
 
-        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-        BFC_ASSERT_EQUAL(16u,
-                get_param_value(params, HAM_PARAM_KEYSIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)36,
-                get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_DATABASE_NAME,
-                get_param_value(params, HAM_PARAM_DATABASE_NAME));
-        BFC_ASSERT_EQUAL((ham_offset_t)DB_ENV_IS_PRIVATE|HAM_CACHE_STRICT|HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_FLAGS));
+  void issue7Test() {
+    ham_key_t key1 = {};
+    ham_key_t key2 = {};
+    ham_record_t rec1 = {};
+    ham_record_t rec2 = {};
+    ham_txn_t *txn;
 
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
+    key1.data = (void *)"FooBar";
+    key1.size = strlen("FooBar")+1;
+    key2.data = (void *)"Foo";
+    key2.size = strlen("Foo")+1;
 
-    void getInitializedReadonlyDbParamsTest(void)
-    {
-        ham_db_t *db;
-        ham_parameter_t params[] =
-        {
-            {HAM_PARAM_KEYSIZE, 0},
-            {HAM_PARAM_DATABASE_NAME, 0},
-            {HAM_PARAM_FLAGS, 0},
-            {HAM_PARAM_MAX_KEYS_PER_PAGE, 0},
-            {0,0}
-        };
+    teardown();
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+            HAM_ENABLE_TRANSACTIONS, 0644, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-        ham_parameter_t set_params[] =
-        {
-            {HAM_PARAM_CACHESIZE, 1024*32},
-            {HAM_PARAM_KEYSIZE, 16},
-            {HAM_PARAM_PAGESIZE, 1024},
-            {0,0}
-        };
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key1, &rec1, 0));
+    BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
+    BFC_ASSERT_EQUAL(0, strcmp((const char *)key2.data, "FooBar"));
 
-        ham_new(&db);
-        BFC_ASSERT_EQUAL(0,
-                ham_create_ex(db, ".test.db",
-                        HAM_CACHE_STRICT, 0644, &set_params[0]));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0,
-                ham_open_ex(db, ".test.db",
-                        HAM_READ_ONLY, 0));
-
-        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-        BFC_ASSERT_EQUAL(16u,
-                get_param_value(params, HAM_PARAM_KEYSIZE));
-        BFC_ASSERT_EQUAL((ham_offset_t)36,
-                get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-        BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_DATABASE_NAME,
-                get_param_value(params, HAM_PARAM_DATABASE_NAME));
-        BFC_ASSERT_EQUAL((ham_offset_t)DB_ENV_IS_PRIVATE|HAM_READ_ONLY|HAM_DISABLE_MMAP,
-                get_param_value(params, HAM_PARAM_FLAGS));
-
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
-
-    void negativeApproxMatchingTest(void)
-    {
-        ham_db_t *db;
-        ham_key_t key={0};
-        ham_cursor_t *cursor;
-
-        ham_new(&db);
-        BFC_ASSERT_EQUAL(0,
-                ham_create(db, ".test.db",
-                        HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                    ham_cursor_find(cursor, &key, 0, HAM_FIND_GEQ_MATCH));
-
-        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
-
-    void issue7Test(void)
-    {
-        ham_db_t *db;
-        ham_key_t key1={0};
-        ham_key_t key2={0};
-        ham_record_t rec1={0};
-        ham_record_t rec2={0};
-        ham_txn_t *txn;
-
-        key1.data=(void *)"FooBar";
-        key1.size=strlen("FooBar")+1;
-        key2.data=(void *)"Foo";
-        key2.size=strlen("Foo")+1;
-
-        ham_new(&db);
-        BFC_ASSERT_EQUAL(0,
-                ham_create(db, ".test.db",
-                        HAM_ENABLE_TRANSACTIONS, 0644));
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, txn, &key1, &rec1, 0));
-        BFC_ASSERT_EQUAL(0, ham_find(db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
-        BFC_ASSERT_EQUAL(0, strcmp((const char *)key2.data, "FooBar"));
-
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        ham_delete(db);
-    }
+    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+  }
 };
 
 

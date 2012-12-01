@@ -202,7 +202,6 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
         break;
     }
 
-    ham_assert(!"shouldn't be here");
     return ("???");
 }
 
@@ -974,10 +973,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
     st = ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
 
 bail:
-    if (st) {
-        delete env;
+    if (st)
         return (st);
-    }
     
     *henv = (ham_env_t *)env;
     return 0;
@@ -1135,10 +1132,8 @@ ham_env_open(ham_env_t **henv, const char *filename,
         goto bail;
 
 bail:
-    if (st) {
-        (void)ham_env_close((ham_env_t *)env, HAM_DONT_CLEAR_LOG|HAM_DONT_LOCK);
+    if (st)
         return (st);
-    }
 
     *henv = (ham_env_t *)env;
     return (0);

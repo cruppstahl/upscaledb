@@ -16,6 +16,7 @@ test_SOURCES    = bfc-testsuite.cpp \
                   os.cpp \
                   endian.cpp \
                   journal.cpp \
+                  duplicates.cpp \
                   device.cpp \
                   approx.cpp \
                   recno.cpp \
@@ -25,17 +26,16 @@ test_SOURCES    = bfc-testsuite.cpp \
                   freelist.cpp \
                   btree_erase.cpp \
                   btree_insert.cpp \
+                  page.cpp \
+                  extkeys.cpp \
+                  api110.cpp \
+                  blob.cpp \
+                  btree_key.cpp \
+                  env.cpp \
+                  hamsterdb.cpp \
                   main.cpp
 
 asdf =            log.cpp \
-                  page.cpp \
-                  api110.cpp \
-                  duplicates.cpp \
-                  env.cpp \
-                  hamsterdb.cpp \
-                  blob.cpp \
-                  extkeys.cpp \
-                  btree_key.cpp \
                   partial.cpp \
                   btree_cursor.cpp \
                   db.cpp \
