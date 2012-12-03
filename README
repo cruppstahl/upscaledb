@@ -49,9 +49,7 @@ To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- API cleanups, code refactoring
-- Enabling Transactions for In-Memory Databases
-- Rewriting the freelist
+- See https://github.com/cruppstahl/hamsterdb/wiki/Roadmap
 
 4. Features
 
@@ -76,7 +74,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Supports rudimentary live-reorganization by automatically
   merging freelist entries
 - Open source and released under the GPL 2.0 or later
-- Wrappers for C++, Python, Java and .NET
+- Wrappers for C++, Python, Java, .NET, Erlang, Ada
 
 5. Known Issues/Bugs
 

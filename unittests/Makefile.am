@@ -30,19 +30,19 @@ test_SOURCES    = bfc-testsuite.cpp \
                   extkeys.cpp \
                   api110.cpp \
                   blob.cpp \
+                  btree_cursor.cpp \
                   btree_key.cpp \
                   env.cpp \
                   hamsterdb.cpp \
-                  main.cpp
-
-asdf =            log.cpp \
                   partial.cpp \
-                  btree_cursor.cpp \
                   db.cpp \
                   txn.cpp \
                   txn_cursor.cpp \
-                  cppapi.cpp \
-                  cursor.cpp
+                  cursor.cpp \
+                  log.cpp \
+                  main.cpp
+
+asdf =            cppapi.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
 

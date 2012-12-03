@@ -233,7 +233,7 @@ class Environment
     }
 
     /** set the filename */
-    void set_filename(std::string filename) {
+    void set_filename(const std::string &filename) {
         m_filename=filename;
     }
 
@@ -440,20 +440,6 @@ class Environment
         m_max_databases_cached=md;
     }
 
-    /** set the 'active' flag of this Environment */
-    void set_active(bool a) {
-        m_is_active=a;
-    }
-
-    /** check whether this environment has been opened/created.  */
-    bool is_active() {
-        return (m_is_active);
-    }
-
-    /** returns true if this Environment is private to a Database
-     * (was implicitly created in ham_create/ham_open) */
-    bool is_private();
-
     /** set the dirty-flag - this is the same as db_set_dirty() */
     void set_dirty(bool dirty) {
         get_header_page()->set_dirty(dirty);
@@ -640,9 +626,6 @@ class Environment
     /** the max. number of databases which was specified when the env
      * was created */
     ham_u16_t m_max_databases_cached;
-
-    /** true after this object is already in use */
-    bool m_is_active;
 
 #if HAM_ENABLE_REMOTE
     /** libcurl remote handle */

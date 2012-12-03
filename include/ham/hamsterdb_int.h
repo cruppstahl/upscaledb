@@ -79,26 +79,6 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn);
 
 /**
- * Convenience function to open an Environment and a Database
- *
- * The Database name is HAM_DEFAULT_DATABASE_NAME. All flags and parameters
- * are forwarded to @ref ham_env_open and @ref ham_env_open_db.
- */
-ham_status_t HAM_CALLCONV
-ham_open_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
-            ham_u32_t flags, const ham_parameter_t *param);
-
-/**
- * Convenience function to create an Environment and a Database
- *
- * The Database name is HAM_DEFAULT_DATABASE_NAME. All flags and parameters
- * are forwarded to @ref ham_env_create and @ref ham_env_create_db.
- */
-ham_status_t HAM_CALLCONV
-ham_create_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
-            ham_u32_t flags, const ham_parameter_t *param);
-
-/**
  * Set a user-provided context pointer
  *
  * This function sets a user-provided context pointer. This can be any

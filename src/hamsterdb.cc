@@ -973,8 +973,10 @@ ham_env_create(ham_env_t **henv, const char *filename,
     st = ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
 
 bail:
-    if (st)
+    if (st) {
+        delete env;
         return (st);
+    }
     
     *henv = (ham_env_t *)env;
     return 0;
@@ -1103,8 +1105,10 @@ ham_env_open(ham_env_t **henv, const char *filename,
     /* parse parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param,
             0, 0, &cachesize, 0, 0, logdir, false);
-    if (st)
+    if (st) {
+        delete env;
         return (st);
+    }
 
     if (logdir.size())
         env->set_log_directory(logdir);
@@ -1132,8 +1136,10 @@ ham_env_open(ham_env_t **henv, const char *filename,
         goto bail;
 
 bail:
-    if (st)
+    if (st) {
+        delete env;
         return (st);
+    }
 
     *henv = (ham_env_t *)env;
     return (0);
@@ -1356,198 +1362,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     lock.unlock();
     delete env;
     return (0);
-}
-
-ham_status_t HAM_CALLCONV
-ham_open_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
-        ham_u32_t flags, const ham_parameter_t *param)
-{
-    ham_status_t st;
-    ham_u16_t dbname=HAM_FIRST_DATABASE_NAME;
-    ham_u64_t cachesize=0;
-    ham_u32_t env_flags;
-    std::string logdir;
-    ham_parameter_t env_param[8]={{0, 0}};
-
-    if (!hdb) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-    if (!henv) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    *hdb = 0;
-    *henv = 0;
-
-    Environment *env = new Environment;
-    Database *db = new Database;
-
-    /* parse parameters */
-    st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
-            0, 0, &cachesize, &dbname, 0, logdir, false);
-    if (st)
-        goto bail;
-
-    /*
-     * create an Environment handle and open the Environment
-     */
-    env_param[0].name=HAM_PARAM_CACHESIZE;
-    env_param[0].value=cachesize;
-    if (logdir.size()) {
-        env_param[1].name=HAM_PARAM_LOG_DIRECTORY;
-        env_param[1].value=(ham_u64_t)logdir.c_str();
-    }
-    env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
-
-    st=ham_env_open(henv, filename, env_flags, &env_param[0]);
-    if (st)
-        goto bail;
-
-    /*
-     * now open the Database in this Environment
-     *
-     * for this, we first strip off flags which are not allowed/needed
-     * in ham_env_open_db; then set up the parameter list
-     */
-    flags &= ~(HAM_ENABLE_FSYNC
-            |HAM_READ_ONLY
-            |HAM_DISABLE_MMAP
-            |HAM_CACHE_UNLIMITED
-            |HAM_CACHE_STRICT
-            |HAM_ENABLE_TRANSACTIONS
-            |HAM_ENABLE_RECOVERY
-            |HAM_AUTO_RECOVERY
-            |DB_USE_MMAP);
-
-    /* now open the Database in this Environment */
-    st=ham_env_open_db(*henv, hdb, dbname, flags, 0);
-    if (st)
-        goto bail;
-
-bail:
-    if (st) {
-        if (db) {
-            (void)ham_close((ham_db_t *)db, 0);
-        }
-        if (env) {
-            env->set_databases(0);
-            (void)ham_env_close((ham_env_t *)env, 0);
-        }
-        delete db;
-        delete env;
-    }
-    else {
-        *henv = (ham_env_t *)env;
-        *hdb = (ham_db_t *)db;
-    }
-
-    return (db->set_error(st));
-}
-
-ham_status_t HAM_CALLCONV
-ham_create_easy(ham_env_t **henv, ham_db_t **hdb, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
-{
-    ham_status_t st;
-    ham_size_t pagesize = 0;
-    ham_u16_t maxdbs = 0;
-    ham_u16_t keysize = 0;
-    ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
-    ham_u64_t cachesize = 0;
-    ham_u32_t env_flags;
-    std::string logdir;
-    ham_parameter_t env_param[8]={{0, 0}};
-    ham_parameter_t db_param[5]={{0, 0}};
-
-    if (!hdb) {
-        ham_trace(("parameter 'db' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-    if (!henv) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return (HAM_INV_PARAMETER);
-    }
-
-    *henv = 0;
-    *hdb = 0;
-
-    Database *db=new Database;
-    Environment *env=new Environment;
-
-    /* check (and modify) the parameters */
-    st=__check_create_parameters(db->get_env(), db, filename, &flags, param,
-            &pagesize, &keysize, &cachesize, &dbname, &maxdbs, logdir, true);
-    if (st)
-        goto bail;
-
-    /*
-     * setup the parameters for ham_env_create
-     */
-    env_param[0].name=HAM_PARAM_CACHESIZE;
-    env_param[0].value=(flags&HAM_IN_MEMORY) ? 0 : cachesize;
-    env_param[1].name=HAM_PARAM_PAGESIZE;
-    env_param[1].value=pagesize;
-    env_param[2].name=HAM_PARAM_MAX_DATABASES;
-    env_param[2].value=maxdbs;
-    if (logdir.size()) {
-        env_param[3].name=HAM_PARAM_LOG_DIRECTORY;
-        env_param[3].value=(ham_u64_t)logdir.c_str();
-    }
-    env_flags=flags & ~(HAM_ENABLE_DUPLICATES);
-
-    /*
-     * create the new Environment
-     */
-    st=ham_env_create(henv, filename, env_flags, mode, env_param);
-    if (st)
-        goto bail;
-
-    /*
-     * Now create the Database in this Environment
-     *
-     * for this, we first strip off flags which are not allowed/needed
-     * in ham_env_create_db; then set up the parameter list
-     */
-    flags &= ~(HAM_ENABLE_FSYNC
-            |HAM_IN_MEMORY
-            |HAM_DISABLE_MMAP
-            |HAM_CACHE_UNLIMITED
-            |HAM_CACHE_STRICT
-            |HAM_ENABLE_TRANSACTIONS
-            |HAM_ENABLE_RECOVERY
-            |HAM_AUTO_RECOVERY
-            |DB_USE_MMAP);
-
-    db_param[0].name=HAM_PARAM_KEYSIZE;
-    db_param[0].value=keysize;
-    db_param[1].name=0;
-
-    /* now create the Database */
-    st=ham_env_create_db(*henv, hdb, HAM_DEFAULT_DATABASE_NAME, flags,
-                db_param);
-    if (st)
-        goto bail;
-
-bail:
-    if (st) {
-        if (db) {
-            (void)ham_close((ham_db_t *)db, 0);
-        }
-        if (env) {
-            env->set_databases(0);
-            (void)ham_env_close((ham_env_t *)env, 0);
-        }
-        delete db;
-        delete env;
-    }
-    else {
-        *henv = (ham_env_t *)env;
-        *hdb = (ham_db_t *)db;
-    }
-
-    return (db->set_error(st));
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV

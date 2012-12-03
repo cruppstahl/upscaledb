@@ -62,8 +62,8 @@ Environment::Environment()
   : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
     m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
-    m_cachesize(0), m_max_databases_cached(0), m_is_active(false),
-    m_blob_manager(this), m_duplicate_manager(this)
+    m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
+    m_duplicate_manager(this)
 {
 #if HAM_ENABLE_REMOTE
     m_curl=0;
@@ -105,19 +105,6 @@ Environment::~Environment()
         delete get_allocator();
         set_allocator(0);
     }
-}
-
-bool
-Environment::is_private()
-{
-    // must have exactly 1 database with the ENV_IS_PRIVATE flag
-    if (!get_databases())
-        return (false);
-
-    Database *db=get_databases();
-    if (db->get_next())
-        return (false);
-    return ((db->get_rt_flags()&DB_ENV_IS_PRIVATE) ? true : false);
 }
 
 struct db_indexdata_t *
@@ -177,7 +164,8 @@ _local_fun_create(Environment *env, const char *filename,
     /* create the file */
     st=device->create(filename, flags, mode);
     if (st) {
-        (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
+        delete device;
+        env->set_device(0);
         return (st);
     }
 
@@ -189,7 +177,6 @@ _local_fun_create(Environment *env, const char *filename,
         st=page->allocate();
         if (st) {
             delete page;
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
             return (st);
         }
         memset(page->get_pers(), 0, pagesize);
@@ -219,7 +206,6 @@ _local_fun_create(Environment *env, const char *filename,
         st=log->create();
         if (st) {
             delete log;
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
             return (st);
         }
         env->set_log(log);
@@ -227,7 +213,7 @@ _local_fun_create(Environment *env, const char *filename,
         Journal *journal=new Journal(env);
         st=journal->create();
         if (st) {
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
+            delete journal;
             return (st);
         }
         env->set_journal(journal);
@@ -238,13 +224,8 @@ _local_fun_create(Environment *env, const char *filename,
 
     /* flush the header page - this will write through disk if logging is
      * enabled */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        st=env->get_header_page()->flush();
-        if (st) {
-            (void)ham_env_close((ham_env_t *)env, HAM_DONT_LOCK);
-            return (st);
-        }
-    }
+    if (env->get_flags()&HAM_ENABLE_RECOVERY)
+        return (env->get_header_page()->flush());
 
     return (0);
 }
@@ -358,6 +339,7 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     st=device->open(filename, flags);
     if (st) {
         delete device;
+        env->set_device(0);
         return (st);
     }
 
@@ -377,14 +359,12 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         env_header_t *hdr;
         ham_u8_t hdrbuf[512];
         Page fakepage(env);
-        ham_bool_t hdrpage_faked = HAM_FALSE;
 
         /*
          * in here, we're going to set up a faked headerpage for the
          * duration of this call; BE VERY CAREFUL: we MUST clean up
          * at the end of this section or we'll be in BIG trouble!
          */
-        hdrpage_faked = HAM_TRUE;
         fakepage.set_pers((PageData *)hdrbuf);
         env->set_header_page(&fakepage);
 
@@ -457,22 +437,21 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
 fail_with_fake_cleansing:
 
         /* undo the headerpage fake first! */
-        if (hdrpage_faked) {
-            fakepage.set_pers(0);
-            env->set_header_page(0);
-        }
-
-        delete device;
-        env->set_device(0);
+        fakepage.set_pers(0);
+        env->set_header_page(0);
 
         /* exit when an error was signaled */
-        if (st)
+        if (st) {
+            delete device;
+            env->set_device(0);
             return (st);
+        }
 
         /* now read the "real" header page and store it in the Environment */
         page=new Page(env);
         page->set_device(device);
         st=page->fetch(0);
+
         if (st) {
             delete page;
             return (st);
@@ -901,8 +880,7 @@ _local_fun_create_db(Environment *env, Database *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
-             |DB_USE_MMAP
-             |DB_ENV_IS_PRIVATE);
+             |DB_USE_MMAP);
 
     /*
      * transfer the ownership of the header page to this Database
@@ -1106,8 +1084,7 @@ _local_fun_open_db(Environment *env, Database *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
-             |DB_USE_MMAP
-             |DB_ENV_IS_PRIVATE);
+             |DB_USE_MMAP);
     db->set_rt_flags(flags|be->get_flags());
     ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
     ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));

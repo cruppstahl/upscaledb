@@ -533,20 +533,6 @@ class Database
         m_indexdata_offset=offset;
     }
 
-    /** check whether this database has been opened/created */
-    bool is_active() {
-        return (m_is_active);
-    }
-
-    /**
-     * set the 'active' flag of the database: a non-zero value
-     * for @a s sets the @a db to 'active', zero(0) sets the @a db
-     * to 'inactive' (closed)
-     */
-    void set_active(bool b) {
-        m_is_active=b;
-    }
-
     /** Get the memory buffer for the key data */
     ByteArray &get_key_arena() {
         return (m_key_arena);
@@ -743,9 +729,6 @@ class Database
 
     /** the offset of this database in the environment _indexdata */
     ham_u16_t m_indexdata_offset;
-
-    /** non-zero after this istem has been opened/created */
-    bool m_is_active;
 
 #if HAM_ENABLE_REMOTE
     /** the remote database handle */
@@ -960,12 +943,6 @@ db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
 
 /** An internal database flag - use mmap instead of read(2).  */
 #define DB_USE_MMAP                  0x00000100
-
-/**
- * An internal database flag - env handle is private to
- * the @ref Database instance
- */
-#define DB_ENV_IS_PRIVATE            0x00080000
 
 /** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                 0x00200000

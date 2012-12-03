@@ -32,8 +32,8 @@
 #include <vector>
 
 #if defined(_MSC_VER) && defined(_DEBUG) && !defined(_CRTDBG_MAP_ALLOC) && !defined(UNDER_CE)
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
+#  define _CRTDBG_MAP_ALLOC
+#  include <crtdbg.h>
 #endif
 
 /**
@@ -84,13 +84,13 @@ private:
  * This class wraps structures of type ham_key_t.
  */
 class key {
-public:
+  public:
     /** Constructor */
-    key(void *data=0, ham_size_t size=0, ham_u32_t flags=0) {
+    key(void *data = 0, ham_size_t size = 0, ham_u32_t flags = 0) {
         memset(&m_key, 0, sizeof(m_key));
-        m_key.data=data;
-        m_key.size=(ham_u16_t)size;
-        m_key.flags=flags;
+        m_key.data = data;
+        m_key.size = (ham_u16_t)size;
+        m_key.flags = flags;
         if (m_key.size != size) // check for overflow
             throw error(HAM_INV_KEYSIZE);
     }
@@ -102,7 +102,7 @@ public:
     /** Assignment operator. */
     key &operator=(const key &other) {
         if (&other != this)
-            m_key=other.m_key;
+            m_key = other.m_key;
         return (*this);
     }
 
@@ -113,7 +113,7 @@ public:
 
     /** Sets the key data. */
     void set_data(void *data) {
-        m_key.data=data;
+        m_key.data = data;
     }
 
     /** Returns the size of the key. */
@@ -123,7 +123,7 @@ public:
 
     /** Sets the size of the key. */
     void set_size(ham_size_t size) {
-        m_key.size=(ham_u16_t)size;
+        m_key.size = (ham_u16_t)size;
         if (m_key.size != size)
             throw error(HAM_INV_KEYSIZE);
     }
@@ -142,7 +142,7 @@ public:
 
     /** Sets the flags of the key. */
     void set_flags(ham_u32_t flags) {
-        m_key.flags=flags;
+        m_key.flags = flags;
     }
 
     /** Returns a pointer to the internal ham_key_t structure. */
@@ -166,13 +166,13 @@ private:
  * This class wraps structures of type ham_record_t.
  */
 class record {
-public:
+  public:
     /** Constructor */
-    record(void *data=0, ham_size_t size=0, ham_u32_t flags=0) {
+    record(void *data = 0, ham_size_t size = 0, ham_u32_t flags = 0) {
         memset(&m_rec, 0, sizeof(m_rec));
-        m_rec.data=data;
-        m_rec.size=size;
-        m_rec.flags=flags;
+        m_rec.data = data;
+        m_rec.size = size;
+        m_rec.flags = flags;
     }
 
     /** Copy constructor. */
@@ -181,7 +181,7 @@ public:
 
     /** Assignment operator. */
     record &operator=(const record &other) {
-        m_rec=other.m_rec;
+        m_rec = other.m_rec;
         return (*this);
     }
 
@@ -192,7 +192,7 @@ public:
 
     /** Sets the record data. */
     void set_data(void *data) {
-        m_rec.data=data;
+        m_rec.data = data;
     }
 
     /** Returns the size of the record. */
@@ -202,7 +202,7 @@ public:
 
     /** Sets the size of the record. */
     void set_size(ham_size_t size) {
-        m_rec.size=size;
+        m_rec.size = size;
     }
 
     /** Returns the flags of the record. */
@@ -212,7 +212,7 @@ public:
 
     /** Sets the flags of the record. */
     void set_flags(ham_u32_t flags) {
-        m_rec.flags=flags;
+        m_rec.flags = flags;
     }
 
     /** Returns a pointer to the internal ham_record_t structure. */
@@ -231,29 +231,28 @@ protected:
  * This class wraps structures of type ham_txn_t.
  */
 class txn {
-public:
+  public:
     /** Constructor */
-    txn(ham_txn_t *t=0) : m_txn(t) {
+    txn(ham_txn_t *t = 0)
+      : m_txn(t) {
     }
 
     /** Abort the Transaction */
     void abort() {
-        ham_status_t st;
-        st=ham_txn_abort(m_txn, 0);
+        ham_status_t st = ham_txn_abort(m_txn, 0);
         if (st)
             throw error(st);
     }
 
     /** Commit the Transaction */
     void commit() {
-        ham_status_t st;
-        st=ham_txn_commit(m_txn, 0);
+        ham_status_t st = ham_txn_commit(m_txn, 0);
         if (st)
             throw error(st);
     }
 
     std::string get_name() {
-        const char *p=ham_txn_get_name(m_txn);
+        const char *p = ham_txn_get_name(m_txn);
         return (p ? p : "");
     }
 
@@ -293,7 +292,8 @@ public:
     }
 
     /** Constructor */
-    db() : m_db(0) {
+    db()
+      : m_db(0) {
     }
 
     /** Destructor - automatically closes the Database, if necessary. */
@@ -308,12 +308,12 @@ public:
      * Database handle.
      */
     db &operator=(const db &other) {
-        db &rhs=(db &)other;
-        if (this==&other)
+        db &rhs = (db &)other;
+        if (this == &other)
             return (*this);
         close();
-        m_db=rhs.m_db;
-        rhs.m_db=0;
+        m_db = rhs.m_db;
+        rhs.m_db = 0;
         return (*this);
     }
 
@@ -326,22 +326,22 @@ public:
 
     /** Sets the prefix comparison function. */
     void set_prefix_compare_func(ham_prefix_compare_func_t foo) {
-        ham_status_t st=ham_set_prefix_compare_func(m_db, foo);
+        ham_status_t st = ham_set_prefix_compare_func(m_db, foo);
         if (st)
             throw error(st);
     }
 
     /** Sets the comparison function. */
     void set_compare_func(ham_compare_func_t foo) {
-        ham_status_t st=ham_set_compare_func(m_db, foo);
+        ham_status_t st = ham_set_compare_func(m_db, foo);
         if (st)
             throw error(st);
     }
 
     /** Finds a record by looking up the key. */
-    record find(txn *t, key *k, ham_u32_t flags=0) {
+    record find(txn *t, key *k, ham_u32_t flags = 0) {
         record r;
-        ham_status_t st=ham_find(m_db,
+        ham_status_t st = ham_find(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
                 r.get_handle(), flags);
@@ -351,13 +351,13 @@ public:
     }
 
     /** Finds a record by looking up the key. */
-    record find(key *k, ham_u32_t flags=0) {
+    record find(key *k, ham_u32_t flags = 0) {
         return (find(0, k, flags));
     }
 
     /** Inserts a key/record pair. */
-    void insert(txn *t, key *k, record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_insert(m_db,
+    void insert(txn *t, key *k, record *r, ham_u32_t flags = 0) {
+        ham_status_t st = ham_insert(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
                 r ? r->get_handle() : 0, flags);
@@ -371,13 +371,13 @@ public:
     }
 
     /** Erases a key/record pair. */
-    void erase(key *k, ham_u32_t flags=0) {
+    void erase(key *k, ham_u32_t flags = 0) {
         erase(0, k, flags);
     }
 
     /** Erases a key/record pair. */
-    void erase(txn *t, key *k, ham_u32_t flags=0) {
-        ham_status_t st=ham_erase(m_db,
+    void erase(txn *t, key *k, ham_u32_t flags = 0) {
+        ham_status_t st = ham_erase(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0, flags);
         if (st)
@@ -385,9 +385,9 @@ public:
     }
 
     /** Returns number of items in the Database. */
-    ham_u64_t get_key_count(ham_txn_t *txn=0, ham_u32_t flags=0) {
-        ham_u64_t count=0;
-        ham_status_t st=ham_get_key_count(m_db, txn, flags, &count);
+    ham_u64_t get_key_count(ham_txn_t *txn = 0, ham_u32_t flags = 0) {
+        ham_u64_t count = 0;
+        ham_status_t st = ham_get_key_count(m_db, txn, flags, &count);
         if (st)
             throw error(st);
         return (count);
@@ -395,19 +395,19 @@ public:
 
     /** Retrieves Database parameters. */
     void get_parameters(ham_parameter_t *param) {
-        ham_status_t st=ham_get_parameters(m_db, param);
+        ham_status_t st = ham_get_parameters(m_db, param);
         if (st)
             throw error(st);
     }
 
     /** Closes the Database. */
-    void close(ham_u32_t flags=0) {
+    void close(ham_u32_t flags = 0) {
         if (!m_db)
             return;
-        ham_status_t st=ham_close(m_db, flags);
+        ham_status_t st = ham_close(m_db, flags);
         if (st)
             throw error(st);
-        m_db=0;
+        m_db = 0;
     }
 
     /** Returns a pointer to the internal ham_db_t structure. */
@@ -419,7 +419,8 @@ protected:
     friend class env;
 
     /* Copy Constructor. Is protected and should not be used. */
-    db(ham_db_t *db) : m_db(db) {
+    db(ham_db_t *db)
+      : m_db(db) {
     }
 
 private:

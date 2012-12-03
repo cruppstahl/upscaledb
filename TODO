@@ -15,10 +15,14 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
+x rewrite samples with new coding style
+
+x rewrite tools with new coding style
+
 o clean up APIs
-    x Do you use AES encryption?
+    x Remove AES encryption
       Remove including all file filters, 3rdparty, dotnet, java, win32
-    x Do you use zlib compression?
+    x Remove zlib compression
       Remove including all record filters, 3rdparty, dotnet, java, win32
     x Remove unittests/filter.cpp
     x Remove ham_get_keycount_per_page (make available through other function?)
@@ -46,29 +50,23 @@ o clean up APIs
     x rename ham_env_open_ex to ham_env_open
     x rename ham_env_create_ex to ham_env_create
     x HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
-    o remove ham_open[_ex]
-    o remove ham_create[_ex]
+    x remove ham_open[_ex]
+    x remove ham_create[_ex]
     o remove ham_new, ham_env_new, ham_delete, ham_env_delete
         x fix tools
         x fix samples
-==============================================================
-        o fix unittests
-    weiter mit hamsterdb.cpp - alle tests gehen, aber viele memory leaks
-==============================================================
+        x fix unittests
+        x also delete db->set_active, env->set_active
+        x also clean up PRIVATE flag
         o fix c++ api - currently broken in the unittests
         o fix java api
         o fix dotnet api
-        o also delete db->set_active, env->set_active
-        o also clean up PRIVATE flag
     o prefix all database functions with ham_db_*
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
     o update README
     o update Webpage
     o update Tutorial
-
-o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
-    not set; this would require a cursor
 
 o clean up the "close" functions
     o get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
@@ -80,9 +78,20 @@ o clean up the "close" functions
         Database::close_cursor()
     o do not have st2/st; just fail if there's a serious problem
 
-o rewrite samples with new coding style
+    o support scenarios like
+        ham_env_close(env, 0);
+        ham_db_close(db, 0);
+        ham_txn_close(txn, 0);
+        ham_cursor_close(txn, 0);
 
 o rewrite c++ API with new coding style
+
+o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
+    not set; this would require a cursor
+
+o btree_insert.cc: when appending or prepending: there's no key compare
+    necessary with the last (first) key in the page because this
+    compare already took place in the hinter
 
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
@@ -91,7 +100,25 @@ o review usage of mmap; when opening, should we just map the whole file into
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
 
-o add transaction support for in-memory databases
+o improve fsync performance; do not fsync in Journal::abort. 
+    How else can we reduce the fsyncs? How can we merge multiple operations
+    into one single atomic btree op?
+
+o preallocate file space
+    pages should be optimized in a way that the growing index will be written
+    sequentially
+
+
+
+
+
+
+
+
+
+
+
+
 
 o freelist rewrite - make files smaller, make hamsterdb faster
     o freelist.h
@@ -108,8 +135,12 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         o ham_import: read from file or stdin; either merge into or overwrite
             an existing file or create a new file
         o ham_export test.db | ham_import test2.db --stdin
+    o also adjust file format for the upcoming btree changes!
 
 o remove backend.h, directly use BtreeBackend
+
+o c++ api: derive Exception from std::exception
+o c++ api: should use functors for callbacks?
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
@@ -132,6 +163,8 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o txn_op_node_t -> TransactionTreeNode
         o txn_op_t -> TransactionOperation
         o convert to clean c++ code
+
+o add transaction support for in-memory databases
 
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
