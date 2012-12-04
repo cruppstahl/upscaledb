@@ -19,6 +19,8 @@ x rewrite samples with new coding style
 
 x rewrite tools with new coding style
 
+x rewrite c++ API with new coding style
+
 o clean up APIs
     x Remove AES encryption
       Remove including all file filters, 3rdparty, dotnet, java, win32
@@ -83,8 +85,6 @@ o clean up the "close" functions
         ham_db_close(db, 0);
         ham_txn_close(txn, 0);
         ham_cursor_close(txn, 0);
-
-o rewrite c++ API with new coding style
 
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
     not set; this would require a cursor
