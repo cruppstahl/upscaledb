@@ -33,38 +33,6 @@ JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1errhandler
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_new
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Database_ham_1new
-  (JNIEnv *, jobject);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_delete
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1delete
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_create_ex
- * Signature: (JLjava/lang/String;II[Lde/crupp/hamsterdb/Parameter;)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1create_1ex
-  (JNIEnv *, jobject, jlong, jstring, jint, jint, jobjectArray);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_open_ex
- * Signature: (JLjava/lang/String;I[Lde/crupp/hamsterdb/Parameter;)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1open_1ex
-  (JNIEnv *, jobject, jlong, jstring, jint, jobjectArray);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
  * Method:    ham_get_error
  * Signature: (J)I
  */
@@ -89,43 +57,11 @@ JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1prefix_1compar
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_set_duplicate_compare_func
- * Signature: (JLde/crupp/hamsterdb/DuplicateCompareCallback;)V
- */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1duplicate_1compare_1func
-  (JNIEnv *, jobject, jlong, jobject);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_enable_compression
- * Signature: (JII)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1enable_1compression
-  (JNIEnv *, jobject, jlong, jint, jint);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_get_env
- * Signature: (J)Lde/crupp/hamsterdb/Environment;
- */
-JNIEXPORT jobject JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1env
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
  * Method:    ham_find
  * Signature: (JJ[BI)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_de_crupp_hamsterdb_Database_ham_1find
   (JNIEnv *, jobject, jlong, jlong, jbyteArray, jint);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_flush
- * Signature: (JI)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1flush
-  (JNIEnv *, jobject, jlong, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Database

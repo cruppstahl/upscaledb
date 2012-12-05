@@ -99,11 +99,14 @@ ham_set_context_data(ham_db_t *db, void *data);
  * arbitrary pointer which was previously stored with @a ham_set_context_data.
  *
  * @param db A valid Database handle
+ * @param dont_lock Whether the Environment mutex should be locked or not
+ *      this is used to avoid recursive locks when retrieving the context
+ *      data in a compare function
  *
  * @return The pointer to the context data
  */
 HAM_EXPORT void * HAM_CALLCONV
-ham_get_context_data(ham_db_t *db);
+ham_get_context_data(ham_db_t *db, ham_bool_t dont_lock);
 
 /**
  * Install a custom device object

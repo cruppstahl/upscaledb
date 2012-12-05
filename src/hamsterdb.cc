@@ -2323,11 +2323,14 @@ ham_set_context_data(ham_db_t *hdb, void *data)
 }
 
 void * HAM_CALLCONV
-ham_get_context_data(ham_db_t *hdb)
+ham_get_context_data(ham_db_t *hdb, ham_bool_t dont_lock)
 {
     Database *db=(Database *)hdb;
     if (!db)
         return (0);
+
+    if (dont_lock)
+        return (db->get_context_data());
 
     ScopedLock lock(db->get_env()->get_mutex());
     return (db->get_context_data());

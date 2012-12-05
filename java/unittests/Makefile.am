@@ -22,11 +22,11 @@ TransactionTest.class: TransactionTest.java
 	$(JDK)/bin/javac -cp $(CP) TransactionTest.java
 
 test: all
+	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseTest
+	$(RUN) -cp $(CP) org.junit.runner.JUnitCore CursorTest
 	$(RUN) -cp $(CP) org.junit.runner.JUnitCore TransactionTest
 	$(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseTest
 	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseExceptionTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore CursorTest
 
 clean:
 	\rm -rf *.class *.db*

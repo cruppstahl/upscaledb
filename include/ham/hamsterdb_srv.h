@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -29,16 +29,15 @@ extern "C" {
  * It is always recommended to initialize the full structure with zeroes
  * before using it.
  */
-typedef struct
-{
-    /** The server port */
-    ham_u16_t port;
+typedef struct {
+  /** The server port */
+  ham_u16_t port;
 
-    /** Path of the access log, or NULL if no log should be written */
-    const char *access_log_path;
+  /** Path of the access log, or NULL if no log should be written */
+  const char *access_log_path;
 
-    /** Path of the error log, or NULL if no log should be written */
-    const char *error_log_path;
+  /** Path of the error log, or NULL if no log should be written */
+  const char *error_log_path;
 
 } ham_srv_config_t;
 
@@ -56,7 +55,7 @@ typedef struct ham_srv_t ham_srv_t;
  *
  * @param config A configuration structure
  * @param srv A pointer to a ham_srv_t pointer; will be allocated
- *      if this function returns successfully
+ *    if this function returns successfully
  *
  * @return HAM_SUCCESS on success
  * @return HAM_OUT_OF_MEMORY if memory could not be allocated
@@ -82,7 +81,7 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **srv);
  *
  * @return HAM_SUCCESS on success
  * @return HAM_LIMITS_REACHED if more than the max. number of Environments
- *      were added (default limit: 128)
+ *    were added (default limit: 128)
  */
 extern ham_status_t
 ham_srv_add_env(ham_srv_t *srv, ham_env_t *env, const char *urlname);

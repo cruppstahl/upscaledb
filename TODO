@@ -60,25 +60,25 @@ o clean up APIs
         x fix unittests
         x also delete db->set_active, env->set_active
         x also clean up PRIVATE flag
-        o fix c++ api - currently broken in the unittests
-        o fix java api
+        x fix java api
         o fix dotnet api
     o prefix all database functions with ham_db_*
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
-    o update README
-    o update Webpage
-    o update Tutorial
+    o remove the HINT flags in hamsterdb_int.h
+    o we can completely get rid of ham_bool_t; it's not used in the exported
+        API
 
 o clean up the "close" functions
-    o get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
-    o ham_close - move all functionality to Database::close
-    o ham_env_close - move all functionality to Environment::close
-    o ~Database: call close(), then simplify all code
-    o ~Environment: call close(), then simplify all code
+    x get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
+    o ham_close - calls db->close, delete db
+    o Database::close() must be idempotent
+    o ham_env_close - calls env->close, delete env
+    o Environment::close() must be idempotent
     o Cursor::close: currently (nearly) empty; merge with ~Cursor and
         Database::close_cursor()
-    o do not have st2/st; just fail if there's a serious problem
+    o do not have st2/st; only fail if there's a problem that the user can
+        recover from
 
     o support scenarios like
         ham_env_close(env, 0);
@@ -86,8 +86,13 @@ o clean up the "close" functions
         ham_txn_close(txn, 0);
         ham_cursor_close(txn, 0);
 
+o rewrite c++ API with new coding style
+    o make sure unittests are working (cppapi.cpp)
+    o derive Exception from std::exception
+    o c++ api: should use functors for callbacks?
+
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
-    not set; this would require a cursor
+    not set, therefore the optimization does not work
 
 o btree_insert.cc: when appending or prepending: there's no key compare
     necessary with the last (first) key in the page because this
@@ -102,13 +107,15 @@ o need the ham_export tool in THIS release - and make sure that it's linked
 
 o improve fsync performance; do not fsync in Journal::abort. 
     How else can we reduce the fsyncs? How can we merge multiple operations
-    into one single atomic btree op?
+    into one single atomic btree op? especially when looking at the new
+    freelist implementation
 
-o preallocate file space
-    pages should be optimized in a way that the growing index will be written
-    sequentially
+o finalize API changes
+    o update README
+    o update Webpage
+    o update Tutorial
 
-
+------------------- release 2.0.6 -----------------------------------------
 
 
 
@@ -137,10 +144,18 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         o ham_export test.db | ham_import test2.db --stdin
     o also adjust file format for the upcoming btree changes!
 
-o remove backend.h, directly use BtreeBackend
+o preallocate file space
+    pages should be optimized in a way that the growing index will be written
+    sequentially
 
-o c++ api: derive Exception from std::exception
-o c++ api: should use functors for callbacks?
+o DatabaseImplementation: get rid of these, they are no longer required
+    with the new API. 
+    o have an abstract Database
+    o derive LocalDatabase
+    o derive RemoteDatabase
+    o same for Environment
+
+o remove backend.h, directly use BtreeBackend
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator

@@ -1,3 +1,10 @@
+Dec 02, 2012 - chris ---------------------------------------------------
+o Removed ham_env_new, ham_env_delete, ham_new, ham_delete and modified
+	the parameters of ham_env_create, ham_env_open, ham_env_create_db 
+	and ham_env_open_db
+o Removed ham_open, ham_open_ex, ham_create, ham_create_ex; creating an
+	Environment is now mandatory
+
 Nov 21, 2012 - chris ---------------------------------------------------
 o Renamed HAM_DB_READ_ONLY to HAM_WRITE_PROTECTED
 o Removed ham_env_create; renamed ham_env_create_ex to ham_env_create

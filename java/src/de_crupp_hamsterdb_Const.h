@@ -7,10 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef de_crupp_hamsterdb_Const_HAM_DAM_RANDOM_WRITE
-#define de_crupp_hamsterdb_Const_HAM_DAM_RANDOM_WRITE 1L
-#undef de_crupp_hamsterdb_Const_HAM_DAM_SEQUENTIAL_INSERT
-#define de_crupp_hamsterdb_Const_HAM_DAM_SEQUENTIAL_INSERT 2L
 #undef de_crupp_hamsterdb_Const_HAM_SUCCESS
 #define de_crupp_hamsterdb_Const_HAM_SUCCESS 0L
 #undef de_crupp_hamsterdb_Const_HAM_INV_KEYSIZE
@@ -35,8 +31,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_INTEGRITY_VIOLATED -13L
 #undef de_crupp_hamsterdb_Const_HAM_INTERNAL_ERROR
 #define de_crupp_hamsterdb_Const_HAM_INTERNAL_ERROR -14L
-#undef de_crupp_hamsterdb_Const_HAM_DB_READ_ONLY
-#define de_crupp_hamsterdb_Const_HAM_DB_READ_ONLY -15L
+#undef de_crupp_hamsterdb_Const_HAM_WRITE_PROTECTED
+#define de_crupp_hamsterdb_Const_HAM_WRITE_PROTECTED -15L
 #undef de_crupp_hamsterdb_Const_HAM_BLOB_NOT_FOUND
 #define de_crupp_hamsterdb_Const_HAM_BLOB_NOT_FOUND -16L
 #undef de_crupp_hamsterdb_Const_HAM_PREFIX_REQUEST_FULLKEY
@@ -67,6 +63,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_FILTER_NOT_FOUND -30L
 #undef de_crupp_hamsterdb_Const_HAM_TXN_CONFLICT
 #define de_crupp_hamsterdb_Const_HAM_TXN_CONFLICT -31L
+#undef de_crupp_hamsterdb_Const_HAM_TXN_STILL_OPEN
+#define de_crupp_hamsterdb_Const_HAM_TXN_STILL_OPEN -33L
 #undef de_crupp_hamsterdb_Const_HAM_CURSOR_IS_NIL
 #define de_crupp_hamsterdb_Const_HAM_CURSOR_IS_NIL -100L
 #undef de_crupp_hamsterdb_Const_HAM_DATABASE_NOT_FOUND
@@ -91,8 +89,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_TXN_READ_ONLY 1L
 #undef de_crupp_hamsterdb_Const_HAM_TXN_FORCE_WRITE
 #define de_crupp_hamsterdb_Const_HAM_TXN_FORCE_WRITE 1L
-#undef de_crupp_hamsterdb_Const_HAM_WRITE_THROUGH
-#define de_crupp_hamsterdb_Const_HAM_WRITE_THROUGH 1L
+#undef de_crupp_hamsterdb_Const_HAM_ENABLE_FSYNC
+#define de_crupp_hamsterdb_Const_HAM_ENABLE_FSYNC 1L
 #undef de_crupp_hamsterdb_Const_HAM_READ_ONLY
 #define de_crupp_hamsterdb_Const_HAM_READ_ONLY 4L
 #undef de_crupp_hamsterdb_Const_HAM_USE_BTREE
@@ -121,22 +119,22 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_TRANSACTIONS 131072L
 #undef de_crupp_hamsterdb_Const_HAM_CACHE_UNLIMITED
 #define de_crupp_hamsterdb_Const_HAM_CACHE_UNLIMITED 262144L
-#undef de_crupp_hamsterdb_Const_HAM_SORT_DUPLICATES
-#define de_crupp_hamsterdb_Const_HAM_SORT_DUPLICATES 1048576L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_CACHESIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_CACHESIZE 256L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_PAGESIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_PAGESIZE 257L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_KEYSIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_KEYSIZE 258L
+#undef de_crupp_hamsterdb_Const_HAM_PARAM_MAX_DATABASES
+#define de_crupp_hamsterdb_Const_HAM_PARAM_MAX_DATABASES 259L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_FLAGS
 #define de_crupp_hamsterdb_Const_HAM_PARAM_FLAGS 512L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_FILEMODE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_FILEMODE 513L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_FILENAME
 #define de_crupp_hamsterdb_Const_HAM_PARAM_FILENAME 514L
-#undef de_crupp_hamsterdb_Const_HAM_PARAM_GET_DATABASE_NAME
-#define de_crupp_hamsterdb_Const_HAM_PARAM_GET_DATABASE_NAME 515L
+#undef de_crupp_hamsterdb_Const_HAM_PARAM_DATABASE_NAME
+#define de_crupp_hamsterdb_Const_HAM_PARAM_DATABASE_NAME 515L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_MAX_KEYS_PER_PAGE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_MAX_KEYS_PER_PAGE 516L
 #undef de_crupp_hamsterdb_Const_HAM_OVERWRITE

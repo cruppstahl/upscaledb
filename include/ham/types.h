@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,45 +27,45 @@ extern "C" {
  * Check the operating system and word size
  */
 #ifdef UNDER_CE
-#   undef WIN32
-#   define WIN32 1
-#   define HAM_OS_WINCE 1
+#  undef WIN32
+#  define WIN32 1
+#  define HAM_OS_WINCE 1
 #endif
 
 #ifdef WIN32
-#   undef  HAM_OS_WIN32
-#   define HAM_OS_WIN32 1
-#   ifdef WIN64
-#       undef  HAM_64BIT
-#       define HAM_64BIT 1
-#   elif WIN32
-#       undef  HAM_32BIT
-#       define HAM_32BIT 1
-#   else
-#       error "Neither WIN32 nor WIN64 defined!"
-#   endif
+#  undef  HAM_OS_WIN32
+#  define HAM_OS_WIN32 1
+#  ifdef WIN64
+#    undef  HAM_64BIT
+#    define HAM_64BIT 1
+#  elif WIN32
+#    undef  HAM_32BIT
+#    define HAM_32BIT 1
+#  else
+#    error "Neither WIN32 nor WIN64 defined!"
+#  endif
 #else /* posix? */
-#   undef  HAM_OS_POSIX
-#   define HAM_OS_POSIX 1
-#   if defined(__LP64__) || defined(__LP64) || __WORDSIZE==64
-#       undef  HAM_64BIT
-#       define HAM_64BIT 1
-#   else
-#       undef  HAM_32BIT
-#       define HAM_32BIT 1
-#   endif
+#  undef  HAM_OS_POSIX
+#  define HAM_OS_POSIX 1
+#  if defined(__LP64__) || defined(__LP64) || __WORDSIZE == 64
+#    undef  HAM_64BIT
+#    define HAM_64BIT 1
+#  else
+#    undef  HAM_32BIT
+#    define HAM_32BIT 1
+#  endif
 #endif
 
 #if defined(HAM_OS_POSIX) && defined(HAM_OS_WIN32)
-#    error "Unknown arch - neither HAM_OS_POSIX nor HAM_OS_WIN32 defined"
+#  error "Unknown arch - neither HAM_OS_POSIX nor HAM_OS_WIN32 defined"
 #endif
 
 /*
  * windows.h is needed for for HANDLE
  */
 #if defined(HAM_OS_WIN32)
-#   define WIN32_MEAN_AND_LEAN
-#   include <windows.h>
+#  define WIN32_MEAN_AND_LEAN
+#  include <windows.h>
 #endif
 
 /*
@@ -75,46 +75,46 @@ extern "C" {
  * make sure crtdbg.h is loaded before malloc.h!
  */
 #if defined(_MSC_VER) && defined(HAM_OS_WIN32)
-#   if (defined(WIN32) || defined(__WIN32)) && !defined(UNDER_CE)
-#      if defined(DEBUG) || defined(_DEBUG)
-#         ifndef _CRTDBG_MAP_ALLOC
-#            define _CRTDBG_MAP_ALLOC 1
-#         endif
+#  if (defined(WIN32) || defined(__WIN32)) && !defined(UNDER_CE)
+#    if defined(DEBUG) || defined(_DEBUG)
+#      ifndef _CRTDBG_MAP_ALLOC
+#        define _CRTDBG_MAP_ALLOC 1
 #      endif
-#      include <crtdbg.h>
-#      include <malloc.h>
-#   endif
+#    endif
+#  include <crtdbg.h>
+#  include <malloc.h>
+#  endif
 #endif
 
 /*
  * Create the EXPORT macro for Microsoft Visual C++
  */
 #ifndef HAM_EXPORT
-#   ifdef _MSC_VER
-#       define HAM_EXPORT __declspec(dllexport)
-#   else
-#       define HAM_EXPORT extern
-#   endif
+#  ifdef _MSC_VER
+#    define HAM_EXPORT __declspec(dllexport)
+#  else
+#    define HAM_EXPORT extern
+#  endif
 #endif
 
 /*
  * The default calling convention is cdecl
  */
 #ifndef HAM_CALLCONV
-#   define HAM_CALLCONV
+#  define HAM_CALLCONV
 #endif
 
 /**
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
-#   ifdef _MSC_VER
+#  ifdef _MSC_VER
 typedef signed __int64     ham_s64_t;
 typedef unsigned __int64   ham_u64_t;
-#   else
+#  else
 typedef signed long long   ham_s64_t;
 typedef unsigned long long ham_u64_t;
-#   endif
+#  endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
@@ -128,13 +128,13 @@ typedef unsigned char      ham_u8_t;
  * longs do not always have 64bit!
  */
 #ifdef HAM_64BIT
-#   ifdef _MSC_VER
+#  ifdef _MSC_VER
 typedef signed __int64     ham_s64_t;
 typedef unsigned __int64   ham_u64_t;
-#   else
+#  else
 typedef signed long        ham_s64_t;
 typedef unsigned long      ham_u64_t;
-#   endif
+#  endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
@@ -155,19 +155,19 @@ typedef unsigned char      ham_u8_t;
  */
 #ifdef HAM_OS_POSIX
 typedef int                ham_fd_t;
-#   define HAM_INVALID_FD  (-1)
+#  define HAM_INVALID_FD  (-1)
 #endif
 
 /*
  * typedefs for Windows 32- and 64-bit
  */
 #ifdef HAM_OS_WIN32
-#   ifdef CYGWIN
+#  ifdef CYGWIN
 typedef int                ham_fd_t;
-#   else
+#  else
 typedef HANDLE             ham_fd_t;
-#   endif
-#   define HAM_INVALID_FD  (0)
+#  endif
+#  define HAM_INVALID_FD   (0)
 #endif
 
 /**

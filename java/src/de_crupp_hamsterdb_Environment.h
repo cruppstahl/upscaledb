@@ -9,35 +9,19 @@ extern "C" {
 #endif
 /*
  * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_new
- * Signature: ()J
+ * Method:    ham_env_create
+ * Signature: (Ljava/lang/String;II[Lde/crupp/hamsterdb/Parameter;)J
  */
-JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1new
-  (JNIEnv *, jobject);
+JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1create
+  (JNIEnv *, jobject, jstring, jint, jint, jobjectArray);
 
 /*
  * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_delete
- * Signature: (J)V
+ * Method:    ham_env_open
+ * Signature: (Ljava/lang/String;I[Lde/crupp/hamsterdb/Parameter;)J
  */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1delete
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_create_ex
- * Signature: (JLjava/lang/String;II[Lde/crupp/hamsterdb/Parameter;)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1create_1ex
-  (JNIEnv *, jobject, jlong, jstring, jint, jint, jobjectArray);
-
-/*
- * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_open_ex
- * Signature: (JLjava/lang/String;I[Lde/crupp/hamsterdb/Parameter;)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1open_1ex
-  (JNIEnv *, jobject, jlong, jstring, jint, jobjectArray);
+JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1open
+  (JNIEnv *, jobject, jstring, jint, jobjectArray);
 
 /*
  * Class:     de_crupp_hamsterdb_Environment
@@ -81,14 +65,6 @@ JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1erase_1db
 
 /*
  * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_enable_encryption
- * Signature: (J[BI)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1enable_1encryption
-  (JNIEnv *, jobject, jlong, jbyteArray, jint);
-
-/*
- * Class:     de_crupp_hamsterdb_Environment
  * Method:    ham_env_get_database_names
  * Signature: (J)[S
  */
@@ -118,14 +94,6 @@ JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Environment_ham_1txn_1begin
  */
 JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1close
   (JNIEnv *, jobject, jlong, jint);
-
-/*
- * Class:     de_crupp_hamsterdb_Environment
- * Method:    ham_env_get_asynchronous_error
- * Signature: (J)I
- */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Environment_ham_1env_1get_1asynchronous_1error
-  (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus
 }

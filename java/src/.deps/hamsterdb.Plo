@@ -16,9 +16,13 @@ hamsterdb.lo: hamsterdb.c /usr/include/stdlib.h /usr/include/features.h \
  /usr/include/x86_64-linux-gnu/bits/select.h \
  /usr/include/x86_64-linux-gnu/bits/sigset.h \
  /usr/include/x86_64-linux-gnu/bits/time.h \
+ /usr/include/x86_64-linux-gnu/bits/select2.h \
  /usr/include/x86_64-linux-gnu/sys/sysmacros.h \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h /usr/include/alloca.h \
- /usr/include/string.h /usr/include/xlocale.h /usr/include/assert.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h /usr/include/string.h \
+ /usr/include/xlocale.h /usr/include/x86_64-linux-gnu/bits/string.h \
+ /usr/include/x86_64-linux-gnu/bits/string2.h \
+ /usr/include/x86_64-linux-gnu/bits/string3.h /usr/include/assert.h \
  ../../include/ham/hamsterdb_int.h ../../include/ham/hamsterdb.h \
  ../../include/ham/types.h de_crupp_hamsterdb_Cursor.h \
  /usr/lib/jvm/java-1.6.0-openjdk-amd64/include/jni.h /usr/include/stdio.h \
@@ -26,6 +30,8 @@ hamsterdb.lo: hamsterdb.c /usr/include/stdlib.h /usr/include/features.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.7/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/sys_errlist.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2.h \
  /usr/lib/jvm/java-1.6.0-openjdk-amd64/include/jni_md.h \
  de_crupp_hamsterdb_DatabaseException.h de_crupp_hamsterdb_Database.h \
  de_crupp_hamsterdb_Environment.h
@@ -72,15 +78,25 @@ hamsterdb.lo: hamsterdb.c /usr/include/stdlib.h /usr/include/features.h \
 
 /usr/include/x86_64-linux-gnu/bits/time.h:
 
+/usr/include/x86_64-linux-gnu/bits/select2.h:
+
 /usr/include/x86_64-linux-gnu/sys/sysmacros.h:
 
 /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h:
 
 /usr/include/alloca.h:
 
+/usr/include/x86_64-linux-gnu/bits/stdlib.h:
+
 /usr/include/string.h:
 
 /usr/include/xlocale.h:
+
+/usr/include/x86_64-linux-gnu/bits/string.h:
+
+/usr/include/x86_64-linux-gnu/bits/string2.h:
+
+/usr/include/x86_64-linux-gnu/bits/string3.h:
 
 /usr/include/assert.h:
 
@@ -107,6 +123,10 @@ de_crupp_hamsterdb_Cursor.h:
 /usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 
 /usr/include/x86_64-linux-gnu/bits/sys_errlist.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:
 
 /usr/lib/jvm/java-1.6.0-openjdk-amd64/include/jni_md.h:
 
