@@ -1334,17 +1334,15 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (st)
         return (st);
 
-    /* close all databases?  */
-    if (env->get_databases()) {
+    /* close all databases */
+    while (env->get_databases()) {
         Database *db=env->get_databases();
-        while (db) {
-            Database *next=db->get_next();
+        if (flags & HAM_AUTO_CLEANUP)
             st=ham_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
-            if (st)
-                return (st);
-            db=next;
-        }
-        env->set_databases(0);
+        else
+            st=(*db)()->close(flags);
+        if (st)
+            return (st);
     }
 
     /* close the environment */
@@ -1352,14 +1350,8 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (st)
         return (st);
 
-    /* when all transactions have been properly closed... */
-    if (env->get_oldest_txn()) {
-        ham_assert(!"Should never get here; the db close loop above "
-                    "should've taken care of all TXNs");
-        return (HAM_INTERNAL_ERROR);
-    }
-
     lock.unlock();
+
     delete env;
     return (0);
 }
@@ -1704,7 +1696,6 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
     ham_status_t st = HAM_SUCCESS;
-    Environment *env=0;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -1717,7 +1708,7 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    env=db->get_env();
+    Environment *env=db->get_env();
 
     /* it's ok to close an uninitialized Database */
     if (!env || !(*db)()) {
@@ -1729,85 +1720,10 @@ ham_close(ham_db_t *hdb, ham_u32_t flags)
     if (!(flags&HAM_DONT_LOCK))
         lock=ScopedLock(env->get_mutex());
 
-    /* check if this database is modified by an active transaction */
-    TransactionTree *tree=db->get_optree();
-    if (tree) {
-        txn_opnode_t *node=txn_tree_get_first(tree);
-        while (node) {
-            txn_op_t *op=txn_opnode_get_newest_op(node);
-            while (op) {
-                Transaction *optxn = txn_op_get_txn(op);
-                if (!optxn->is_committed() && !optxn->is_aborted()) {
-                    ham_trace(("cannot close a Database that is modified by "
-                               "a currently active Transaction"));
-                    return (HAM_TXN_STILL_OPEN);
-                }
-                op=txn_op_get_previous_in_node(op);
-            }
-            node=txn_opnode_get_next_sibling(node);
-        }
-    }
-
-    /*
-     * check if there are Database Cursors - they will be closed
-     * in the function handler, but the error check is here
-     */
-    if (!(flags&HAM_AUTO_CLEANUP)) {
-        if (db->get_cursors()) {
-            ham_trace(("cannot close Database if Cursors are still open"));
-            return (db->set_error(HAM_CURSOR_STILL_OPEN));
-        }
-    }
-
-    /* auto-abort (or commit) all pending transactions */
-    if (env && env->get_newest_txn()) {
-        Transaction *n, *t=env->get_newest_txn();
-        while (t) {
-            n=t->get_older();
-            if (t->is_aborted() || t->is_committed())
-                ; /* nop */
-            else {
-                if (flags&HAM_TXN_AUTO_COMMIT) {
-                    if ((st=ham_txn_commit((ham_txn_t *)t, HAM_DONT_LOCK)))
-                        return (st);
-                }
-                else { /* if (flags&HAM_TXN_AUTO_ABORT) */
-                    if ((st=ham_txn_abort((ham_txn_t *)t, HAM_DONT_LOCK)))
-                        return (st);
-                }
-            }
-            t=n;
-        }
-    }
-    // make sure all Transactions are flushed
-    st=env->flush_committed_txns();
-    if (st)
-        return (st);
-
-    db->set_error(0);
-
     /* the function pointer will do the actual implementation */
     st=(*db)()->close(flags);
     if (st)
         return (db->set_error(st));
-
-    /* remove this database from the environment */
-    if (env) {
-        Database *prev=0;
-        Database *head=env->get_databases();
-        while (head) {
-            if (head==db) {
-                if (!prev)
-                    db->get_env()->set_databases(db->get_next());
-                else
-                    prev->set_next(db->get_next());
-                break;
-            }
-            prev=head;
-            head=head->get_next();
-        }
-        db->set_env(0);
-    }
 
     delete db;
     return (0);

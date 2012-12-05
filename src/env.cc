@@ -649,12 +649,8 @@ bail:
 static ham_status_t
 _local_fun_close(Environment *env, ham_u32_t flags)
 {
-    ham_status_t st;
-    ham_status_t st2=HAM_SUCCESS;
-    Device *device;
-
     /* flush all committed transactions */
-    st=env->flush_committed_txns();
+    ham_status_t st = env->flush_committed_txns();
     if (st)
         return (st);
 
@@ -673,11 +669,10 @@ _local_fun_close(Environment *env, ham_u32_t flags)
             && env->get_device()
             && env->get_device()->is_open()
             && (!(env->get_flags()&HAM_READ_ONLY))) {
-        st=env->get_header_page()->flush();
-        if (!st2) st2 = st;
+        env->get_header_page()->flush();
     }
 
-    device=env->get_device();
+    Device *device = env->get_device();
 
     /*
      * close the header page
@@ -690,11 +685,8 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     if (env->get_header_page()) {
         Page *page=env->get_header_page();
         ham_assert(device);
-        if (page->get_pers()) {
-            st=device->free_page(page);
-            if (!st2)
-                st2=st;
-        }
+        if (page->get_pers())
+            device->free_page(page);
         delete page;
         env->set_header_page(0);
     }
@@ -710,13 +702,9 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     if (device) {
         if (device->is_open()) {
             if (!(env->get_flags()&HAM_READ_ONLY)) {
-                st=device->flush();
-                if (!st2)
-                    st2=st;
+                device->flush();
             }
-            st=device->close();
-            if (!st2)
-                st2=st;
+            device->close();
         }
         delete device;
         env->set_device(0);
@@ -725,22 +713,18 @@ _local_fun_close(Environment *env, ham_u32_t flags)
     /* close the log and the journal */
     if (env->get_log()) {
         Log *log=env->get_log();
-        st=log->close(!!(flags&HAM_DONT_CLEAR_LOG));
-        if (!st2)
-            st2 = st;
+        log->close(!!(flags&HAM_DONT_CLEAR_LOG));
         delete log;
         env->set_log(0);
     }
     if (env->get_journal()) {
         Journal *journal=env->get_journal();
-        st=journal->close(!!(flags&HAM_DONT_CLEAR_LOG));
-        if (!st2)
-            st2 = st;
+        journal->close(!!(flags&HAM_DONT_CLEAR_LOG));
         delete journal;
         env->set_journal(0);
     }
 
-    return st2;
+    return 0;
 }
 
 static ham_status_t

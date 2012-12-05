@@ -161,7 +161,7 @@ public:
   }
 
   void createOpenCloseDbTest() {
-    ham::env env, tmp;
+    ham::env env;
 
     try {
       env.create("data/");
@@ -180,7 +180,6 @@ public:
 
     env.open(BFC_OPATH(".test"));
     env = env;
-    tmp = env;
     env.close();
   }
 
@@ -446,7 +445,7 @@ public:
     txn = env.begin("name");
     db.insert(&txn, &k, &r);
     std::string n = txn.get_name();
-    BFC_ASSERT_EQUAL(n.c_str(), "name");
+    BFC_ASSERT_EQUAL(0, strcmp("name", n.c_str()));
     txn.commit();
     out = db.find(&k);
   }

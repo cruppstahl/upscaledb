@@ -40,9 +40,8 @@ test_SOURCES    = bfc-testsuite.cpp \
                   txn_cursor.cpp \
                   cursor.cpp \
                   log.cpp \
+                  cppapi.cpp \
                   main.cpp
-
-asdf =            cppapi.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
 

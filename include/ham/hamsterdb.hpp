@@ -401,6 +401,9 @@ class db {
     void close(ham_u32_t flags = 0) {
       if (!m_db)
         return;
+      // disable auto-cleanup; all objects will be destroyed when 
+      // going out of scope
+      flags &= ~HAM_AUTO_CLEANUP;
       ham_status_t st = ham_close(m_db, flags);
       if (st)
         throw error(st);
@@ -660,6 +663,9 @@ class env {
     void close(ham_u32_t flags = 0) {
       if (!m_env)
         return;
+      // disable auto-cleanup; all objects will be destroyed when 
+      // going out of scope
+      flags &= ~HAM_AUTO_CLEANUP;
       ham_status_t st = ham_env_close(m_env, flags);
       if (st)
         throw error(st);

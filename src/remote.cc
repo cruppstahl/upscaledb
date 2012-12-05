@@ -1343,6 +1343,22 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
   if (st == 0)
     m_db->set_remote_handle(0);
 
+  /* remove this database from the environment */
+  Database *prev = 0;
+  Database *head = env->get_databases();
+  while (head) {
+    if (head == m_db) {
+      if (!prev)
+        env->set_databases(m_db->get_next());
+      else
+        prev->set_next(m_db->get_next());
+      break;
+    }
+    prev = head;
+    head = head->get_next();
+  }
+  m_db->set_env(0);
+
   delete reply;
   return (st);
 }

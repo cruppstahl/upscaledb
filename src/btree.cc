@@ -233,20 +233,6 @@ BtreeBackend::do_flush_indexdata()
 void
 BtreeBackend::do_close(ham_u32_t flags)
 {
-  /* auto-cleanup cursors? */
-  if (m_db->get_cursors()) {
-    Cursor *c = m_db->get_cursors();
-    while (c) {
-      Cursor *next = c->get_next();
-      if (flags & HAM_AUTO_CLEANUP)
-        m_db->close_cursor(c);
-      else
-        c->close();
-      c = next;
-    }
-    m_db->set_cursors(0);
-  }
-
   /* even when an error occurred, the backend has now been de-activated */
   set_active(false);
 }

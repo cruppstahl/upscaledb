@@ -1465,10 +1465,10 @@ public:
     void *ptr = (void *)0x13;
     ham_set_context_data(0, 0);
     ham_set_context_data(m_db, ptr);
-    BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(0));
-    BFC_ASSERT_EQUAL((void *)0x13, ham_get_context_data(m_db));
+    BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(0, 0));
+    BFC_ASSERT_EQUAL((void *)0x13, ham_get_context_data(m_db, 0));
     ham_set_context_data(m_db, 0);
-    BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(m_db));
+    BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(m_db, 0));
   }
 
   void recoveryTest() {

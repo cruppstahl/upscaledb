@@ -21,6 +21,21 @@ x rewrite tools with new coding style
 
 x rewrite c++ API with new coding style
 
+x clean up the "close" functions
+    x get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
+    x ham_close - move all functionality to Database::close
+    x ham_env_close - move all functionality to Environment::close
+    x ~Database: call close(), then simplify all code
+    x ~Environment: call close(), then simplify all code
+    x Cursor::close: currently (nearly) empty; merge with ~Cursor and
+        Database::close_cursor()
+    x do not have st2/st; just fail if there's a serious problem
+
+    x support scenarios like
+        ham_env_close(env, 0);
+        ham_close(db, 0);
+    x test with c++ api unittests
+
 o clean up APIs
     x Remove AES encryption
       Remove including all file filters, 3rdparty, dotnet, java, win32
@@ -54,14 +69,14 @@ o clean up APIs
     x HAM_DB_READ_ONLY -> HAM_READ_ONLY (or would this get a conflict)
     x remove ham_open[_ex]
     x remove ham_create[_ex]
-    o remove ham_new, ham_env_new, ham_delete, ham_env_delete
+    x remove ham_new, ham_env_new, ham_delete, ham_env_delete
         x fix tools
         x fix samples
         x fix unittests
         x also delete db->set_active, env->set_active
         x also clean up PRIVATE flag
         x fix java api
-        o fix dotnet api
+        x fix dotnet api
     o prefix all database functions with ham_db_*
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
@@ -69,24 +84,7 @@ o clean up APIs
     o we can completely get rid of ham_bool_t; it's not used in the exported
         API
 
-o clean up the "close" functions
-    x get rid of the "private" bit in the Database (DB_ENV_IS_PRIVATE)
-    o ham_close - calls db->close, delete db
-    o Database::close() must be idempotent
-    o ham_env_close - calls env->close, delete env
-    o Environment::close() must be idempotent
-    o Cursor::close: currently (nearly) empty; merge with ~Cursor and
-        Database::close_cursor()
-    o do not have st2/st; only fail if there's a problem that the user can
-        recover from
-
-    o support scenarios like
-        ham_env_close(env, 0);
-        ham_db_close(db, 0);
-        ham_txn_close(txn, 0);
-        ham_cursor_close(txn, 0);
-
-o rewrite c++ API with new coding style
+o rewrite c++ API
     o make sure unittests are working (cppapi.cpp)
     o derive Exception from std::exception
     o c++ api: should use functors for callbacks?
@@ -144,6 +142,7 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         o ham_export test.db | ham_import test2.db --stdin
     o also adjust file format for the upcoming btree changes!
 
+<<<<<<< Updated upstream
 o preallocate file space
     pages should be optimized in a way that the growing index will be written
     sequentially
@@ -156,6 +155,12 @@ o DatabaseImplementation: get rid of these, they are no longer required
     o same for Environment
 
 o remove backend.h, directly use BtreeBackend
+=======
+o remove backend.h, directly use BtreeBackend
+    also clean up, i.e. remove do_close, set_active etc
+
+o c++ api: should use functors for callbacks?
+>>>>>>> Stashed changes
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator

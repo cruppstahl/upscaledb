@@ -216,6 +216,11 @@ Database::Database()
 #endif
 }
 
+Database::~Database()
+{
+    delete m_impl;
+}
+
 ham_u16_t
 Database::get_name(void)
 {
@@ -229,11 +234,6 @@ Database::remove_extkey(ham_offset_t blobid)
   if (get_extkey_cache())
     get_extkey_cache()->remove(blobid);
   return (get_env()->get_blob_manager()->free(this, blobid, 0));
-}
-
-Database::~Database()
-{
-    delete m_impl;
 }
 
 int HAM_CALLCONV
@@ -2557,42 +2557,50 @@ ham_status_t
 DatabaseImplementationLocal::close(ham_u32_t flags)
 {
     Environment *env=m_db->get_env();
-    ham_status_t st=HAM_SUCCESS;
-    ham_status_t st2=HAM_SUCCESS;
-    Backend *be;
-    Database *newowner=0;
+    Backend *be = m_db->get_backend();
 
-    /*
-     * if this Database is the last database in the environment:
-     * delete all environment-members
-     */
-    if (env) {
-        Database *n=env->get_databases();
-        while (n) {
-            if (n!=m_db)
-                break;
-            n=n->get_next();
+    /* check if this database is modified by an active transaction */
+    TransactionTree *tree=m_db->get_optree();
+    if (tree) {
+        txn_opnode_t *node=txn_tree_get_first(tree);
+        while (node) {
+            txn_op_t *op=txn_opnode_get_newest_op(node);
+            while (op) {
+                Transaction *optxn = txn_op_get_txn(op);
+                if (!optxn->is_committed() && !optxn->is_aborted()) {
+                    ham_trace(("cannot close a Database that is modified by "
+                               "a currently active Transaction"));
+                    return (m_db->set_error(HAM_TXN_STILL_OPEN));
+                }
+                op=txn_op_get_previous_in_node(op);
+            }
+            node=txn_opnode_get_next_sibling(node);
         }
     }
 
-    be=m_db->get_backend();
+    /* auto-cleanup cursors?  */
+    if (flags & HAM_AUTO_CLEANUP) {
+        Cursor *cursor = m_db->get_cursors();
+        while ((cursor = m_db->get_cursors()))
+            m_db->close_cursor(cursor);
+    }
+    else if (m_db->get_cursors()) {
+        ham_trace(("cannot close Database if Cursors are still open"));
+        return (m_db->set_error(HAM_CURSOR_STILL_OPEN));
+    }
 
     /*
      * if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk
      */
-    if (env
-            && env->get_header_page()
+    if (env->get_header_page()
+            && env->is_dirty()
             && !(env->get_flags()&HAM_IN_MEMORY)
             && env->get_device()
             && env->get_device()->is_open()
-            && (!(m_db->get_rt_flags()&HAM_READ_ONLY))) {
+            && (!(env->get_flags()&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
-        if (env->is_dirty()) {
-            st=env->get_header_page()->flush();
-            if (st && st2==0)
-                st2=st;
-        }
+        env->get_header_page()->flush();
     }
 
     /* get rid of the extkey-cache */
@@ -2612,14 +2620,13 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     }
 
     /* clear the changeset */
-    if (env)
-        env->get_changeset().clear();
+    env->get_changeset().clear();
 
     /*
      * flush all pages of this database (but not the header page,
      * it's still required and will be flushed below)
      */
-    if (env && env->get_cache())
+    if (env->get_cache())
         (void)env->get_cache()->visit(db_close_callback, m_db, 0);
 
     /* clean up the transaction tree */
@@ -2638,27 +2645,29 @@ DatabaseImplementationLocal::close(ham_u32_t flags)
     m_db->get_key_arena().clear();
     m_db->get_record_arena().clear();
 
-    /*
-     * environment: move the ownership to another database.
-     * it's possible that there's no other database, then set the
-     * ownership to 0
-     */
-    if (env) {
-        Database *head=env->get_databases();
-        while (head) {
-            if (head!=m_db) {
-                newowner=head;
-                break;
-            }
-            head=head->get_next();
+    /* remove this database from the environment */
+    Database *prev=0;
+    Database *head=env->get_databases();
+    while (head) {
+        if (head==m_db) {
+            if (!prev)
+                env->set_databases(m_db->get_next());
+            else
+                prev->set_next(m_db->get_next());
+            break;
         }
+        prev=head;
+        head=head->get_next();
     }
-    if (env && env->get_header_page()) {
-        ham_assert(env->get_header_page());
-        env->get_header_page()->set_db(newowner);
-    }
+    m_db->set_env(0);
 
-    return (st2);
+    /* move the ownership of the header page to a different database */
+    /* TODO is this really required? the header page should not have
+     * an owner! */
+    if (env->get_header_page())
+        env->get_header_page()->set_db(env->get_databases());
+
+    return (0);
 }
 
 } // namespace ham
