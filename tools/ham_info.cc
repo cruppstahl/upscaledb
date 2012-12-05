@@ -92,9 +92,9 @@ print_environment(ham_env_t *env) {
             ((ham::Environment *)env)->get_max_databases());
   }
 
-  st = ham_close(db, 0);
+  st = ham_db_close(db, 0);
   if (st)
-    error("ham_close", st);
+    error("ham_db_close", st);
 }
 
 static void
@@ -293,9 +293,9 @@ main(int argc, char **argv) {
 
     print_database(db, dbname, full);
 
-    st = ham_close(db, 0);
+    st = ham_db_close(db, 0);
     if (st)
-      error("ham_close", st);
+      error("ham_db_close", st);
   }
   else {
     /* otherwise: for each database: print information about the database */
@@ -306,9 +306,9 @@ main(int argc, char **argv) {
 
       print_database(db, names[i], full);
 
-      st = ham_close(db, 0);
+      st = ham_db_close(db, 0);
       if (st)
-        error("ham_close", st);
+        error("ham_db_close", st);
     }
   }
   /* clean up */

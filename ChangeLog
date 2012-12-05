@@ -1,3 +1,16 @@
+Dec 05, 2012 - chris ---------------------------------------------------
+o Renamed several functions to improve consistency:
+    ham_get_error -> ham_db_get_error
+    ham_set_prefix_compare_func -> ham_db_set_prefix_compare_func
+    ham_set_compare_func -> ham_db_set_compare_func
+    ham_find -> ham_db_find
+    ham_insert -> ham_db_insert
+    ham_erase -> ham_db_erase
+    ham_get_key_count -> ham_db_get_key_count
+    ham_get_parameter -> ham_db_get_parameter
+    ham_get_env -> ham_db_get_env
+    ham_close -> ham_db_close
+
 Dec 02, 2012 - chris ---------------------------------------------------
 o Removed ham_env_new, ham_env_delete, ham_new, ham_delete and modified
 	the parameters of ham_env_create, ham_env_open, ham_env_create_db 

@@ -92,7 +92,7 @@ public:
     r.data = k.data;
     r.size = k.size;
 
-    return (ham_insert(m_db, m_txn, &k, &r, flags));
+    return (ham_db_insert(m_db, m_txn, &k, &r, flags));
   }
 
   ham_status_t eraseTxn(const char *s) {
@@ -100,7 +100,7 @@ public:
     k.data = (void *)s;
     k.size = strlen(s)+1;
 
-    return (ham_erase(m_db, m_txn, &k, 0));
+    return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
   ham_status_t find(ham_u32_t flags, const char *search, const char *expected) {
@@ -109,7 +109,7 @@ public:
     k.size = strlen(search) + 1;
     ham_record_t r = {};
 
-    ham_status_t st = ham_find(m_db, m_txn, &k, &r, flags);
+    ham_status_t st = ham_db_find(m_db, m_txn, &k, &r, flags);
     if (st)
       return (st);
     if (strcmp(expected, (const char *)k.data))

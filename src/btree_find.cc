@@ -345,7 +345,7 @@ class BtreeFindAction
     /** the key that is retrieved */
     ham_record_t *m_record;
 
-    /* flags of ham_find() */
+    /* flags of ham_db_find() */
     ham_u32_t m_flags;
 };
 

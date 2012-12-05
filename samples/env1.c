@@ -116,9 +116,9 @@ main(int argc, char **argv) {
     record.size = sizeof(customer_t);
     record.data = &customers[i];
 
-    st = ham_insert(db[0], 0, &key, &record, 0);
+    st = ham_db_insert(db[0], 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert (customer)", st);
+      error("ham_db_insert (customer)", st);
   }
 
   /* And now the orders in the second database */
@@ -129,16 +129,16 @@ main(int argc, char **argv) {
     record.size = sizeof(order_t);
     record.data = &orders[i];
 
-    st = ham_insert(db[1], 0, &key, &record, 0);
+    st = ham_db_insert(db[1], 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert (order)", st);
+      error("ham_db_insert (order)", st);
   }
 
   /*
    * To demonstrate even more functions: close all objects, then
    * re-open the environment and the two databases.
    *
-   * Note that ham_env_close automatically calls ham_close on all
+   * Note that ham_env_close automatically calls ham_db_close on all
    * databases.
    */
   for (i = 0; i < MAX_DBS; i++) {

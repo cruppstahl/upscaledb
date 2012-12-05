@@ -1047,7 +1047,7 @@ cleanup:
     /* id of the duplicate to erase */
     ham_u32_t m_dupe_id;
 
-    /* flags of ham_find() */
+    /* flags of ham_db_find() */
     ham_u32_t m_flags;
 
     /* a page which needs rebalancing */

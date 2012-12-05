@@ -33,74 +33,74 @@ JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1errhandler
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_get_error
+ * Method:    ham_db_get_error
  * Signature: (J)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1error
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1get_1error
   (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_set_compare_func
+ * Method:    ham_db_set_compare_func
  * Signature: (JLde/crupp/hamsterdb/CompareCallback;)V
  */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1compare_1func
+JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1set_1compare_1func
   (JNIEnv *, jobject, jlong, jobject);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_set_prefix_compare_func
+ * Method:    ham_db_set_prefix_compare_func
  * Signature: (JLde/crupp/hamsterdb/PrefixCompareCallback;)V
  */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1set_1prefix_1compare_1func
+JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1set_1prefix_1compare_1func
   (JNIEnv *, jobject, jlong, jobject);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_find
+ * Method:    ham_db_find
  * Signature: (JJ[BI)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_de_crupp_hamsterdb_Database_ham_1find
+JNIEXPORT jbyteArray JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1find
   (JNIEnv *, jobject, jlong, jlong, jbyteArray, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_get_parameters
+ * Method:    ham_db_get_parameters
  * Signature: (J[Lde/crupp/hamsterdb/Parameter;)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1parameters
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1get_1parameters
   (JNIEnv *, jobject, jlong, jobjectArray);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_insert
+ * Method:    ham_db_insert
  * Signature: (JJ[B[BI)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1insert
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1insert
   (JNIEnv *, jobject, jlong, jlong, jbyteArray, jbyteArray, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_erase
+ * Method:    ham_db_erase
  * Signature: (JJ[BI)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1erase
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1erase
   (JNIEnv *, jobject, jlong, jlong, jbyteArray, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_get_key_count
+ * Method:    ham_db_get_key_count
  * Signature: (JJI)J
  */
-JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Database_ham_1get_1key_1count
+JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1get_1key_1count
   (JNIEnv *, jobject, jlong, jlong, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_close
+ * Method:    ham_db_close
  * Signature: (JI)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1close
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1close
   (JNIEnv *, jobject, jlong, jint);
 
 #ifdef __cplusplus

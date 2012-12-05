@@ -57,9 +57,9 @@ copy_db(ham_db_t *source, ham_db_t *dest) {
 
   do {
     /* insert this element into the new database */
-    st = ham_insert(dest, 0, &key, &rec, HAM_DUPLICATE);
+    st = ham_db_insert(dest, 0, &key, &rec, HAM_DUPLICATE);
     if (st)
-      error("ham_insert", st);
+      error("ham_db_insert", st);
 
     /* give some feedback to the user */
     printf(".");

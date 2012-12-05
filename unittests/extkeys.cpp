@@ -121,7 +121,7 @@ public:
     for (int i = 0; i < 20; i++)
       c->insert((ham_offset_t)i, sizeof(buffer), buffer);
 
-    ham_env_t *env = ham_get_env(m_db);
+    ham_env_t *env = ham_db_get_env(m_db);
     Environment *e = (Environment *)env;
     e->set_txn_id(e->get_txn_id() + 2000);
 

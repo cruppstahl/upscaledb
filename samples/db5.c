@@ -70,9 +70,9 @@ main(int argc, char **argv) {
       record.data = &lineno;
       record.size = sizeof(lineno);
 
-      st = ham_insert(db, 0, &key, &record, HAM_DUPLICATE);
+      st = ham_db_insert(db, 0, &key, &record, HAM_DUPLICATE);
       if (st != HAM_SUCCESS) {
-        printf("ham_insert() failed with error %d\n", st);
+        printf("ham_db_insert() failed with error %d\n", st);
         return (-1);
       }
       printf(".");
@@ -109,7 +109,7 @@ main(int argc, char **argv) {
   /*
    * Then close the handles; the flag HAM_AUTO_CLEANUP will automatically
    * close all cursors and we do not need to call ham_cursor_close and
-   * ham_close
+   * ham_db_close
    */
   st = ham_env_close(env, HAM_AUTO_CLEANUP);
   if (st != HAM_SUCCESS) {

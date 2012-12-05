@@ -135,9 +135,9 @@ main(int argc, char **argv) {
     record.size = sizeof(customer_t);
     record.data = &customers[i];
 
-    st = ham_insert(db[0], 0, &key, &record, 0);
+    st = ham_db_insert(db[0], 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert (customer)", st);
+      error("ham_db_insert (customer)", st);
   }
 
   /*
@@ -154,9 +154,9 @@ main(int argc, char **argv) {
     record.size = sizeof(orders[i].assignee);
     record.data = orders[i].assignee;
 
-    st = ham_insert(db[1], 0, &key, &record, 0);
+    st = ham_db_insert(db[1], 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert (order)", st);
+      error("ham_db_insert (order)", st);
   }
 
   /*
@@ -174,9 +174,9 @@ main(int argc, char **argv) {
     record.size = sizeof(int);
     record.data = &orders[i].id;
 
-    st = ham_insert(db[2], 0, &key, &record, HAM_DUPLICATE);
+    st = ham_db_insert(db[2], 0, &key, &record, HAM_DUPLICATE);
     if (st != HAM_SUCCESS)
-      error("ham_insert(c2o)", st);
+      error("ham_db_insert(c2o)", st);
   }
 
   /*
@@ -240,9 +240,9 @@ main(int argc, char **argv) {
        * load the order
        * SELECT * FROM orders WHERE id = order_id;
        */
-      st = ham_find(db[1], 0, &ord_key, &ord_record, 0);
+      st = ham_db_find(db[1], 0, &ord_key, &ord_record, 0);
       if (st != HAM_SUCCESS)
-        error("ham_find(order)", st);
+        error("ham_db_find(order)", st);
 
       printf("  order: %d (assigned to %s)\n",
           order_id, (char *)ord_record.data);

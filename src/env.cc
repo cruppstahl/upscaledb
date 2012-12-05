@@ -588,7 +588,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
 
     st=be->enumerate(__free_inmemory_blobs_cb, &context);
     if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -607,7 +607,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     }
 
     /* clean up and return */
-    (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
     return (0);
 }

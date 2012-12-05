@@ -94,7 +94,7 @@ public:
   virtual void teardown() {
     __super::teardown();
 
-    /* clear the changeset, otherwise ham_close will complain */
+    /* clear the changeset, otherwise ham_db_close will complain */
     if (!m_inmemory && m_env)
       ((Environment *)m_env)->get_changeset().clear();
 

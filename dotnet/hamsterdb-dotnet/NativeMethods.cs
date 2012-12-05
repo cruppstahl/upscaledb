@@ -144,40 +144,26 @@ namespace Hamster
       CallingConvention = CallingConvention.Cdecl)]
     static public extern void DeleteDatabaseHandle(IntPtr handle);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_get_error",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_get_error",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetLastError(IntPtr handle);
-
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_env_get_asynchronous_error",
-      CallingConvention = CallingConvention.Cdecl)]
-    static public extern int GetAsynchronousError(IntPtr handle);
-
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_create_ex",
-      CallingConvention = CallingConvention.Cdecl)]
-    static public extern int Create(IntPtr handle, String fileName, int flags,
-        int mode, Parameter[] parameters);
-
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_open_ex",
-      CallingConvention = CallingConvention.Cdecl)]
-    static public extern int Open(IntPtr handle, String fileName, int flags,
-        Parameter[] parameters);
 
     // TODO this is new, but lots of effort b/c of complex
     // marshalling. if you need this function pls drop me a mail.
 /*
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_get_parameters",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_get_parameters",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetParameters(IntPtr handle, Parameter[] parameters);
 */
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_get_env",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_get_env",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern IntPtr GetEnv(IntPtr handle);
 
     // TODO this is new, but lots of effort b/c of complex
     // marshalling. if you need this function pls drop me a mail.
 /*
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_key_get_approximate_match",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_key_get_approximate_match",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int KeyGetApproximateMatch(ref KeyStruct key);
 */
@@ -187,7 +173,7 @@ namespace Hamster
         IntPtr lhs, int lhsLength,
         IntPtr rhs, int rhsLength);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_set_compare_func",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_set_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetCompareFunc(IntPtr handle,
         NativeMethods.CompareFunc foo);
@@ -197,7 +183,7 @@ namespace Hamster
         byte[] lhs, int lhsLength, int lhsRealLength,
         byte[] rhs, int rhsLength, int rhsRealLength);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_set_prefix_compare_func",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_set_prefix_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetPrefixCompareFunc(IntPtr handle,
         NativeMethods.PrefixCompareFunc foo);
@@ -207,21 +193,18 @@ namespace Hamster
         byte[] lhs, int lhsLength,
         byte[] rhs, int rhsLength);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_set_duplicate_compare_func",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_set_duplicate_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetDuplicateCompareFunc(IntPtr handle,
         NativeMethods.DuplicateCompareFunc foo);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_enable_compression",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern int EnableCompression(IntPtr handle, int level);
-
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_find",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int FindLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
 
-    static public unsafe byte[] Find(IntPtr handle, IntPtr txnhandle, byte[] data, int flags) {
+    static public unsafe byte[] Find(IntPtr handle, IntPtr txnhandle,
+                byte[] data, int flags) {
       KeyStruct key = new KeyStruct();
       RecordStruct record = new RecordStruct();
       key.size = (short)data.GetLength(0);
@@ -239,7 +222,7 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_insert",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_insert",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int InsertLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -257,12 +240,13 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_erase",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int EraseLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, int flags);
 
-    static public unsafe int Erase(IntPtr handle, IntPtr txnhandle, byte[] data, int flags) {
+    static public unsafe int Erase(IntPtr handle, IntPtr txnhandle,
+                byte[] data, int flags) {
       KeyStruct key = new KeyStruct();
       fixed (byte* b = data) {
         key.data = b;
@@ -271,12 +255,12 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_get_key_count",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_get_key_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetKeyCount(IntPtr handle, IntPtr txnhandle,
         int flags, out Int64 keycount);
 
-    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_close",
+    [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_db_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int Close(IntPtr handle, int flags);
 

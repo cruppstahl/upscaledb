@@ -476,9 +476,9 @@ __close_all_databases(Environment *env)
   Database *db;
 
   while ((db = env->get_databases())) {
-    st = ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+    st = ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
     if (st) {
-      ham_log(("ham_close() failed w/ error %d (%s)", st, ham_strerror(st)));
+      ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       return (st);
     }
   }
@@ -611,7 +611,7 @@ Journal::recover()
         st = __recover_get_db(m_env, entry.dbname, &db);
         if (st)
           break;
-        st = ham_insert((ham_db_t *)db, (ham_txn_t *)txn, 
+        st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, 
                     &key, &record, ins->insert_flags|HAM_DONT_LOCK);
         break;
       }
@@ -635,7 +635,7 @@ Journal::recover()
           break;
         key.data = e->get_key_data();
         key.size = e->key_size;
-        st = ham_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
+        st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
                       e->erase_flags|HAM_DONT_LOCK);
         // key might have already been erased when the changeset
         // was flushed

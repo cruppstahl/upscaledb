@@ -241,7 +241,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_get_parameters(m_db, params));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
     BFC_ASSERT_EQUAL(16u,
         get_param_value(params, HAM_PARAM_KEYSIZE));
     BFC_ASSERT_EQUAL((ham_offset_t)36,
@@ -280,11 +280,11 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_env, &m_db, 1, HAM_READ_ONLY, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_get_parameters(m_db, params));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
     BFC_ASSERT_EQUAL(16u,
         get_param_value(params, HAM_PARAM_KEYSIZE));
     BFC_ASSERT_EQUAL((ham_offset_t)36,
@@ -335,8 +335,8 @@ public:
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key1, &rec1, 0));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key1, &rec1, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
     BFC_ASSERT_EQUAL(0, strcmp((const char *)key2.data, "FooBar"));
 
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));

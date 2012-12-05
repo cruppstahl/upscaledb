@@ -77,7 +77,7 @@ o clean up APIs
         x also clean up PRIVATE flag
         x fix java api
         x fix dotnet api
-    o prefix all database functions with ham_db_*
+    x prefix all database functions with ham_db_*
     o review all interfaces whether they consequently sort parameters
         in... out (at least make then consistent)
     o remove the HINT flags in hamsterdb_int.h

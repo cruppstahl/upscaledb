@@ -56,7 +56,7 @@ public:
   virtual void teardown() {
     __super::teardown();
 
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
   }
 
@@ -74,7 +74,7 @@ public:
     for (int i = 0; i < 5; i++) {
       key.size = sizeof(i);
       key.data = &i;
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     BFC_ASSERT_EQUAL(0, ham_check_integrity(m_db, 0));
@@ -102,7 +102,7 @@ public:
     for (int i = 0; i < 100; i++) {
       key.size = sizeof(i);
       key.data = &i;
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     BFC_ASSERT_EQUAL(0, ham_check_integrity(m_db, 0));

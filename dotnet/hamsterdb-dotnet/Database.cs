@@ -196,7 +196,7 @@ namespace Hamster
     /// Sets the comparison function
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_set_compare_func function.<br />
+    /// This method wraps the native ham_db_set_compare_func function.<br />
     /// <br />
     /// The <see cref="CompareFunc" /> delegate compares two index keys.
     /// It returns -1 if the first key is smaller, +1 if the second key
@@ -233,7 +233,7 @@ namespace Hamster
     /// Sets the prefix comparison function
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_set_prefix_compare_func function.<br />
+    /// This method wraps the native ham_db_set_prefix_compare_func function.<br />
     /// <br />
     /// The <see cref="PrefixCompareFunc" /> delegate is called when an index
     /// uses keys with variable length, and at least one of the keys
@@ -260,7 +260,7 @@ namespace Hamster
     /// Returns the last error code
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_get_error function.
+    /// This method wraps the native ham_db_get_error function.
     /// </remarks>
     /// <returns>The error code of the last operation</returns>
     public int GetLastError() {
@@ -281,7 +281,7 @@ namespace Hamster
     /// Searches an item in the Database, returns the record
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_find function.<br />
+    /// This method wraps the native ham_db_find function.<br />
     /// <br />
     /// This function searches the Database for a key. If the key
     /// is found, the method will return the record of this item.
@@ -346,7 +346,7 @@ namespace Hamster
     /// Inserts a Database Item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_insert function.
+    /// This method wraps the native ham_db_insert function.
     /// <br />
     /// This function inserts a key/record pair as a new Database item.
     /// <br />
@@ -417,7 +417,7 @@ namespace Hamster
     /// Erases a Database Item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_erase function.
+    /// This method wraps the native ham_db_erase function.
     /// <br />
     /// This function erases a Database item. If the item with the
     /// specified key does not exist in the Database, error code
@@ -473,7 +473,7 @@ namespace Hamster
     /// Returns the number of keys in this Database
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_get_key_count function.
+    /// This method wraps the native ham_db_get_key_count function.
     /// <br />
     /// You can specify HAM_SKIP_DUPLICATES if you do now want
     /// to include any duplicates in the count; if all you're after is
@@ -509,7 +509,7 @@ namespace Hamster
     /// Closes the Database
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_close function.
+    /// This method wraps the native ham_db_close function.
     /// <br />
     /// Before closing the Database, the cache is flushed to Disk.
     /// </remarks>

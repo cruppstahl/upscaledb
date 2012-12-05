@@ -23,29 +23,29 @@ public class Database {
 
   private native static void ham_set_errhandler(ErrorHandler eh);
 
-  private native int ham_get_error(long handle);
+  private native int ham_db_get_error(long handle);
 
-  private native void ham_set_compare_func(long handle,
+  private native void ham_db_set_compare_func(long handle,
       CompareCallback cmp);
 
-  private native void ham_set_prefix_compare_func(long handle,
+  private native void ham_db_set_prefix_compare_func(long handle,
       PrefixCompareCallback cmp);
 
-  private native byte[] ham_find(long handle, long txnhandle,
+  private native byte[] ham_db_find(long handle, long txnhandle,
       byte[] key, int flags);
 
-  private native int ham_get_parameters(long handle, Parameter[] params);
+  private native int ham_db_get_parameters(long handle, Parameter[] params);
 
-  private native int ham_insert(long handle, long txnhandle,
+  private native int ham_db_insert(long handle, long txnhandle,
       byte[] key, byte[] record, int flags);
 
-  private native int ham_erase(long handle, long txnhandle,
+  private native int ham_db_erase(long handle, long txnhandle,
       byte[] key, int flags);
 
-  private native long ham_get_key_count(long handle, long txnhandle,
+  private native long ham_db_get_key_count(long handle, long txnhandle,
       int flags);
 
-  private native int ham_close(long handle, int flags);
+  private native int ham_db_close(long handle, int flags);
 
   /**
    * Sets the global error handler.
@@ -130,20 +130,20 @@ public class Database {
   /**
    * Returns the last error code
    * <p>
-   * This method wraps the native ham_get_error function.
+   * This method wraps the native ham_db_get_error function.
    * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
    *
    * @return the error code of the last operation
    */
   public synchronized int getError() {
-    return ham_get_error(m_handle);
+    return ham_db_get_error(m_handle);
   }
 
   /**
    * Sets the comparison function
    * <p>
-   * This method wraps the native ham_set_compare_func function.
+   * This method wraps the native ham_db_set_compare_func function.
    * <p>
    * The <code>CompareCallback.compare</code> method compares two index
    * keys. It returns -1 if the first key is smaller, +1 if the second
@@ -165,13 +165,13 @@ public class Database {
    */
   public synchronized void setComparator(CompareCallback cmp) {
     m_cmp = cmp;
-    ham_set_compare_func(m_handle, m_cmp);
+    ham_db_set_compare_func(m_handle, m_cmp);
   }
 
   /**
    * Sets the prefix comparison function
    * <p>
-   * This method wraps the native ham_set_prefix_compare_func function.
+   * This method wraps the native ham_db_set_prefix_compare_func function.
    * <p>
    * The prefix comparison function is called when an index uses
    * keys with variable length, and at least one of the two keys is loaded
@@ -189,13 +189,13 @@ public class Database {
    */
   public synchronized void setPrefixComparator(PrefixCompareCallback cmp) {
     m_prefix_cmp = cmp;
-    ham_set_prefix_compare_func(m_handle, cmp);
+    ham_db_set_prefix_compare_func(m_handle, cmp);
   }
 
   /**
    * Searches an item in the Database, returns the record
    * <p>
-   * This method wraps the native ham_find function.
+   * This method wraps the native ham_db_find function.
    * <p>
    * This function searches the Database for a key. If the key
    * is found, the method will return the record of this item.
@@ -215,7 +215,7 @@ public class Database {
     if (key == null)
       throw new NullPointerException();
     byte[] r;
-    r = ham_find(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
+    r = ham_db_find(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
     if (r == null)
       throw new DatabaseException(getError());
     return r;
@@ -265,7 +265,7 @@ public class Database {
   /**
    * Inserts a Database item
    * <p>
-   * This method wraps the native ham_insert function.
+   * This method wraps the native ham_db_insert function.
    * <p>
    * This function inserts a key/record pair as a new Database item.
    * <p>
@@ -302,7 +302,7 @@ public class Database {
       throws DatabaseException {
     if (key == null || record == null)
       throw new NullPointerException();
-    int status = ham_insert(m_handle, txn != null ? txn.getHandle() : 0,
+    int status = ham_db_insert(m_handle, txn != null ? txn.getHandle() : 0,
                 key, record, flags);
     if (status != 0)
       throw new DatabaseException(status);
@@ -321,7 +321,7 @@ public class Database {
   /**
    * Erases a Database item
    * <p>
-   * This method wraps the native ham_erase function.
+   * This method wraps the native ham_db_erase function.
    * <p>
    * This function erases a Database item. If the item with the specified key
    * does not exist, <code>Const.HAM_KEY_NOT_FOUND</code> is thrown.
@@ -341,7 +341,7 @@ public class Database {
       throws DatabaseException {
     if (key == null)
       throw new NullPointerException();
-    int status = ham_erase(m_handle, txn != null ? txn.getHandle() : 0,
+    int status = ham_db_erase(m_handle, txn != null ? txn.getHandle() : 0,
           key, 0);
     if (status != 0)
       throw new DatabaseException(status);
@@ -358,7 +358,7 @@ public class Database {
    */
   public synchronized void getParameters(Parameter[] params)
       throws DatabaseException {
-    int status = ham_get_parameters(m_handle, params);
+    int status = ham_db_get_parameters(m_handle, params);
     if (status != 0)
       throw new DatabaseException(status);
   }
@@ -401,7 +401,7 @@ public class Database {
   public synchronized long getKeyCount(Transaction txn, int flags)
       throws DatabaseException {
     // native function will throw exception
-    return ham_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
+    return ham_db_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
                 flags);
   }
 
@@ -415,7 +415,7 @@ public class Database {
   /**
    * Closes the Database
    * <p>
-   * This method wraps the native ham_close function.
+   * This method wraps the native ham_db_close function.
    * <p>
    * This function flushes the Database and then closes the file handle.
    * <p>
@@ -424,7 +424,7 @@ public class Database {
   public synchronized void close(int flags) {
     if (m_handle != 0) {
       closeCursors();
-      ham_close(m_handle, flags);
+      ham_db_close(m_handle, flags);
       m_handle = 0;
     }
   }

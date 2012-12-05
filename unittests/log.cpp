@@ -78,7 +78,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_henv, &m_db, 1, 0, 0));
 
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
   }
 
   virtual void teardown() {
@@ -348,7 +348,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_henv, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
   }
 
   void open() {
@@ -357,7 +357,7 @@ public:
         ham_env_open(&m_henv, BFC_OPATH(".test"), 0, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
   }
 
   virtual void teardown() {
@@ -380,7 +380,7 @@ public:
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
     BFC_ASSERT_EQUAL(0, ham_env_create_db(m_henv, &m_db, 333, 0, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
   }
 
   void createCloseOpenCloseTest() {
@@ -416,7 +416,7 @@ public:
             HAM_AUTO_RECOVERY, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
 
     /* make sure that the log file was deleted and that the lsn is 1 */
     Log *log = m_env->get_log();
@@ -459,7 +459,7 @@ public:
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
     BFC_ASSERT_EQUAL(0, ham_env_create_db(m_henv, &m_db, 333, 0, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
     BFC_ASSERT_EQUAL(0, ham_env_close(m_henv, 0));
 
@@ -612,7 +612,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
     BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps * 2, 0));
     /* verify that the page contains the marker */
     for (int i = 0; i < 200; i++)
@@ -666,7 +666,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
       /* verify that the pages contain the markers */
@@ -717,7 +717,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
     BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps * 2, 0));
     /* verify that the page does not contain the "XXX..." */
     for (int i = 0; i < 20; i++)
@@ -774,7 +774,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages does not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps * (2 + i), 0));
@@ -835,7 +835,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
-    m_env = (Environment *)ham_get_env(m_db);
+    m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages do not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps * (2 + i), 0));
@@ -858,7 +858,7 @@ public:
           HAM_ENABLE_RECOVERY, 0664, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_create_db(m_henv, &m_db, 333, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_rename_db(m_henv, 333, 444, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_erase_db(m_henv, 444, 0));

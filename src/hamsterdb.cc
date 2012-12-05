@@ -1021,7 +1021,7 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb,
 
 bail:
     if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -1072,7 +1072,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb,
     st=env->_fun_open_db(env, db, dbname, flags, param);
 
     if (st) {
-        (void)ham_close((ham_db_t *)db, HAM_DONT_LOCK);
+        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
         return (st);
     }
 
@@ -1338,7 +1338,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     while (env->get_databases()) {
         Database *db=env->get_databases();
         if (flags & HAM_AUTO_CLEANUP)
-            st=ham_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
+            st=ham_db_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
         else
             st=(*db)()->close(flags);
         if (st)
@@ -1357,7 +1357,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
+ham_db_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
 {
     Database *db=(Database *)hdb;
     if (!db) {
@@ -1377,7 +1377,7 @@ ham_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
 }
 
 ham_status_t HAM_CALLCONV
-ham_get_error(ham_db_t *hdb)
+ham_db_get_error(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
     if (!db) {
@@ -1393,7 +1393,7 @@ ham_get_error(ham_db_t *hdb)
 }
 
 ham_status_t HAM_CALLCONV
-ham_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
+ham_db_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
 {
     Database *db=(Database *)hdb;
     if (!db) {
@@ -1409,7 +1409,7 @@ ham_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
 }
 
 ham_status_t HAM_CALLCONV
-ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
+ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 {
     Database *db=(Database *)hdb;
     if (!db) {
@@ -1427,7 +1427,7 @@ ham_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
 }
 
 ham_status_t HAM_CALLCONV
-ham_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
+ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
@@ -1509,7 +1509,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
 }
 
 ham_status_t HAM_CALLCONV
-ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
+ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
@@ -1629,7 +1629,7 @@ ham_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 }
 
 ham_status_t HAM_CALLCONV
-ham_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
+ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
     Transaction *txn=(Transaction *)htxn;
@@ -1692,7 +1692,7 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
  * 'non-essential' element of the process fails.
  */
 ham_status_t HAM_CALLCONV
-ham_close(ham_db_t *hdb, ham_u32_t flags)
+ham_db_close(ham_db_t *hdb, ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
     ham_status_t st = HAM_SUCCESS;
@@ -2287,7 +2287,7 @@ ham_cursor_get_database(ham_cursor_t *hcursor)
 }
 
 ham_env_t * HAM_CALLCONV
-ham_get_env(ham_db_t *hdb)
+ham_db_get_env(ham_db_t *hdb)
 {
     Database *db=(Database *)hdb;
     if (!db)
@@ -2297,7 +2297,7 @@ ham_get_env(ham_db_t *hdb)
 }
 
 ham_status_t HAM_CALLCONV
-ham_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
+ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
     Database *db=(Database *)hdb;

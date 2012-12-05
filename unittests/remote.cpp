@@ -98,16 +98,16 @@ protected:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 14, HAM_ENABLE_DUPLICATES, 0));
-    ham_close(m_db, 0);
+    ham_db_close(m_db, 0);
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
-    ham_close(m_db, 0);
+    ham_db_close(m_db, 0);
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 33,
             HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0));
-    ham_close(m_db, 0);
+    ham_db_close(m_db, 0);
 
     BFC_ASSERT_EQUAL(0,
         ham_srv_init(&cfg, &m_srv));
@@ -261,7 +261,7 @@ protected:
         ham_env_create_db(env, &db, 22, 0, 0));
     BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -280,10 +280,10 @@ protected:
     BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
 
     params[0].value=0;
-    BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &params[0]));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, &params[0]));
     BFC_ASSERT_EQUAL(5ull, params[0].value);
 
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -297,12 +297,12 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
     BFC_ASSERT_EQUAL(0x100000000ull, ((Database *)db)->get_remote_handle());
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
 
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 22, 0, 0));
     BFC_ASSERT_EQUAL(0x200000000ull, ((Database *)db)->get_remote_handle());
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
@@ -348,12 +348,12 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, params));
 
     BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY), params[0].value);
 
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -366,7 +366,7 @@ protected:
         ham_env_create(&env, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), "name", 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(db), "name", 0, 0));
     BFC_ASSERT_EQUAL(0, strcmp("name", ham_txn_get_name(txn)));
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -383,7 +383,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_get_env(db), 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(db), 0, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -412,7 +412,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -435,16 +435,16 @@ protected:
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
 
@@ -471,16 +471,16 @@ protected:
     rec.size = BUFSIZE;
     memset(rec.data, 0, BUFSIZE);
 
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
 
@@ -507,10 +507,10 @@ protected:
     rec.partial_size = 5;
 
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-            ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
+            ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
 
 #if 0 /* TODO - partial r/w is disabled with transactions */
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec2.data,
           "hello\0\0\0\0\0\0\0\0\0"));
@@ -519,9 +519,9 @@ protected:
     rec.partial_size=7;
     rec.data=(void *)" chris";
     BFC_ASSERT_EQUAL(0,
-                ham_insert(db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+                ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp("hello chris", (char *)rec2.data));
 #endif
@@ -543,12 +543,12 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 33, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
     BFC_ASSERT_EQUAL(1ull, *(ham_offset_t *)key.data);
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
     BFC_ASSERT_EQUAL(2ull, *(ham_offset_t *)key.data);
 
@@ -574,21 +574,21 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 33, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -616,21 +616,21 @@ protected:
     ham_env_erase_db(env, 33, 0);
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 33, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, HAM_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
-    BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -653,38 +653,38 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 33, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(8, key.size);
     recno = *(ham_offset_t *)key.data;
     BFC_ASSERT_EQUAL(1ull, recno);
 
-    BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
     recno = *(ham_offset_t *)key.data;
     BFC_ASSERT_EQUAL(2ull, recno);
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(3ull, keycount);
     recno = *(ham_offset_t *)key.data;
     BFC_ASSERT_EQUAL(3ull, recno);
 
-    BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_erase(db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_erase(db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
 
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -710,7 +710,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_cursor_create(db, 0, 0, &cursor));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
@@ -824,7 +824,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_cursor_create(db, 0, 0, &cursor));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
@@ -840,7 +840,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -868,7 +868,7 @@ protected:
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(8, key.size);
     recno = *(ham_offset_t *)key.data;
@@ -880,21 +880,21 @@ protected:
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
     recno = *(ham_offset_t *)key.data;
     BFC_ASSERT_EQUAL(2ull, recno);
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(3ull, keycount);
     recno = *(ham_offset_t *)key.data;
     BFC_ASSERT_EQUAL(3ull, recno);
 
     BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -926,7 +926,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_cursor_create(db, 0, 0, &cursor));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec2, 0));
     BFC_ASSERT_EQUAL(rec.size, rec2.size);
@@ -941,7 +941,7 @@ protected:
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
     BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -1143,7 +1143,7 @@ protected:
 
     BFC_ASSERT_EQUAL(0, ham_cursor_close(src));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(dest));
-    BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -1170,7 +1170,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db, 1, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_close(db, HAM_TXN_AUTO_ABORT));
+    BFC_ASSERT_EQUAL(0, ham_db_close(db, HAM_TXN_AUTO_ABORT));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
@@ -1186,37 +1186,37 @@ protected:
 
     /* empty DB: LT/GT must turn up error */
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
 
     /* insert some values (0, 2, 4) */
     key.data = (void *)&i;
     key.size = sizeof(i);
     for (i = 0; i < 6; i += 2)
-      BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
 
     /* and search for them */
     i = 3;
     key.data = (void *)&i;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
 
     i = 3;
     key.data = (void *)&i;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
 
     i = 3;
     key.data = (void *)&i;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+        ham_db_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }

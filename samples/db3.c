@@ -70,7 +70,7 @@ main(int argc, char **argv) {
    * Since we use strings as our database keys we use our own comparison
    * function based on strcmp instead of the default memcmp function.
    */
-  st = ham_set_compare_func(db, my_string_compare);
+  st = ham_db_set_compare_func(db, my_string_compare);
   if (st) {
     printf("ham_set_compare_func() failed with error %d\n", st);
     return (-1);
@@ -92,9 +92,9 @@ main(int argc, char **argv) {
       key.size = (ham_size_t)strlen(p) + 1; /* also store the terminating
                            * 0-byte */
 
-      st = ham_insert(db, 0, &key, &record, 0);
+      st = ham_db_insert(db, 0, &key, &record, 0);
       if (st != HAM_SUCCESS && st!=HAM_DUPLICATE_KEY) {
-        printf("ham_insert() failed with error %d\n", st);
+        printf("ham_db_insert() failed with error %d\n", st);
         return (-1);
       }
       printf(".");
@@ -130,7 +130,7 @@ main(int argc, char **argv) {
   /*
    * Then close the handles; the flag HAM_AUTO_CLEANUP will automatically
    * close all database and cursors, and we do not need to call
-   * ham_cursor_close and ham_close
+   * ham_cursor_close and ham_db_close
    */
   st = ham_env_close(env, HAM_AUTO_CLEANUP);
   if (st != HAM_SUCCESS) {

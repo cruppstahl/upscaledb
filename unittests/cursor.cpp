@@ -1135,7 +1135,7 @@ public:
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
 
-    /* we have to manually clear the changeset, otherwise ham_close will
+    /* we have to manually clear the changeset, otherwise ham_db_close will
      * fail. The changeset was filled in be->insert(0, but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
@@ -1464,7 +1464,7 @@ public:
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
 
-    /* we have to manually clear the changeset, otherwise ham_close will
+    /* we have to manually clear the changeset, otherwise ham_db_close will
      * fail. The changeset was filled in be->insert(but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
@@ -1807,7 +1807,7 @@ public:
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_erase(m_db, m_txn, &key, 0));
+          ham_db_erase(m_db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -1843,15 +1843,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -1897,15 +1897,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -1940,7 +1940,7 @@ public:
 
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, m_txn, &key, &rec, 0));
     Backend *be = ((Database *)m_db)->get_backend();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
@@ -1956,15 +1956,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -2015,15 +2015,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -2070,20 +2070,20 @@ public:
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, 0));
+          ham_db_insert(m_db, m_txn, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -2135,7 +2135,7 @@ public:
     if (cursor)
       return (ham_cursor_insert(cursor, &k, &r, flags));
     else
-      return (ham_insert(m_db, m_txn, &k, &r, flags));
+      return (ham_db_insert(m_db, m_txn, &k, &r, flags));
   }
 
   ham_status_t eraseTxn(const char *key) {
@@ -2143,7 +2143,7 @@ public:
     k.data = (void *)key;
     k.size = strlen(key) + 1;
 
-    return (ham_erase(m_db, m_txn, &k, 0));
+    return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
 #define BTREE 1
@@ -2579,7 +2579,7 @@ public:
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_erase(m_db, m_txn, &key, 0));
+          ham_db_erase(m_db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
     BFC_ASSERT_EQUAL(0,
@@ -2615,15 +2615,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
     BFC_ASSERT_EQUAL(0,
@@ -2669,15 +2669,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
     BFC_ASSERT_EQUAL(0,
@@ -2712,7 +2712,7 @@ public:
 
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, m_txn, &key, &rec, 0));
     Backend *be = ((Database *)m_db)->get_backend();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
@@ -2728,15 +2728,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
     BFC_ASSERT_EQUAL(0,
@@ -2787,15 +2787,15 @@ public:
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
     BFC_ASSERT_EQUAL(0,
@@ -2842,20 +2842,20 @@ public:
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, 0));
+          ham_db_insert(m_db, m_txn, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     BFC_ASSERT_EQUAL(0,
-          ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+          ham_db_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
 
     /* this moves the cursor to the last item */
     BFC_ASSERT_EQUAL(0,
@@ -3501,7 +3501,7 @@ public:
           ham_cursor_insert(cursor3, &key, &rec, HAM_OVERWRITE));
 
     BFC_ASSERT_EQUAL(0,
-          ham_erase(m_db, m_txn, &key, 0));
+          ham_db_erase(m_db, m_txn, &key, 0));
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor3, 0));
@@ -3525,9 +3525,9 @@ public:
           ham_cursor_find(cursor2, &key, 0, 0));
 
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
-          ham_erase(m_db, 0, &key, 0));
+          ham_db_erase(m_db, 0, &key, 0));
     BFC_ASSERT_EQUAL(0,
-          ham_erase(m_db, m_txn, &key, 0));
+          ham_db_erase(m_db, m_txn, &key, 0));
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)cursor2, 0));
 
@@ -3566,7 +3566,7 @@ public:
 
     /* now erase the key */
     BFC_ASSERT_EQUAL(0,
-          ham_erase(m_db, m_txn, &key, 0));
+          ham_db_erase(m_db, m_txn, &key, 0));
 
     /* cursor must be nil */
     BFC_ASSERT_EQUAL(true, cursor_is_nil((Cursor *)m_cursor, 0));
@@ -3663,7 +3663,7 @@ public:
 
   virtual void teardown() {
     BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, HAM_TXN_AUTO_COMMIT));
     BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
@@ -3959,7 +3959,7 @@ public:
     m_cursor = 0;
     if (m_txn)
       BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, HAM_TXN_AUTO_COMMIT));
     BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
@@ -3981,7 +3981,7 @@ public:
     k.data = (void *)key;
     k.size = strlen(key) + 1;
 
-    return (ham_erase(m_db, m_txn, &k, 0));
+    return (ham_db_erase(m_db, m_txn, &k, 0));
   }
 
   ham_status_t move(const char *key, const char *rec, ham_u32_t flags,
@@ -4018,7 +4018,7 @@ public:
   ham_status_t find(const char *key, const char *rec) {
     ham_key_t k = {0};
     ham_record_t r = {0};
-    ham_status_t st = ham_find(m_db, m_txn, &k, &r, 0);
+    ham_status_t st = ham_db_find(m_db, m_txn, &k, &r, 0);
     if (st)
       return (st);
     if (strcmp(key, (char *)k.data))
@@ -4279,35 +4279,35 @@ public:
     key.size = 3;
 
     key.data = (void *)"k1";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r1.1"));
 
     key.data = (void *)"k2";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r2.1"));
 
     key.data = (void *)"k3";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r3.1"));
 
     key.data = (void *)"k4";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r4.1"));
 
     key.data = (void *)"k5";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r5.1"));
 
     key.data = (void *)"k6";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r6.1"));
 
     key.data = (void *)"k7";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r7.1"));
 
     key.data = (void *)"k8";
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, m_txn, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r8.1"));
   }
 
@@ -4451,7 +4451,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_cursor_find(c, &key, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
@@ -4471,10 +4471,10 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, HAM_DUPLICATE));
+    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_db_erase(m_db, 0, &key, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
@@ -6108,7 +6108,7 @@ public:
     key.size = 6;
     key.data = (void *)"11111";
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
-          ham_insert(m_db, txn2, &key, &rec, 0));
+          ham_db_insert(m_db, txn2, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
   }
@@ -6124,7 +6124,7 @@ public:
     key.size = 6;
     key.data = (void *)"11111";
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
-          ham_erase(m_db, txn2, &key, 0));
+          ham_db_erase(m_db, txn2, &key, 0));
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
   }
@@ -6141,7 +6141,7 @@ public:
     key.size = 6;
     key.data = (void *)"11111";
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
-          ham_find(m_db, txn2, &key, &rec, 0));
+          ham_db_find(m_db, txn2, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
   }

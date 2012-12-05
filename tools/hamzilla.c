@@ -391,7 +391,7 @@ initialize_server(ham_srv_t *srv, config_table_t *params) {
         hlog(LOG_DBG, "Created Database %u successfully\n",
             params->envs[e].dbs[d].name);
 
-        ham_close(db, 0);
+        ham_db_close(db, 0);
       }
     }
 

@@ -411,9 +411,9 @@ main(int argc, char **argv) {
 
       dump_database(db, dbname, key, keysize, rec, recsize);
 
-      st = ham_close(db, 0);
+      st = ham_db_close(db, 0);
       if (st)
-          error("ham_close", st);
+          error("ham_db_close", st);
   }
   else {
       /* otherwise: for each database: print information about the database */
@@ -424,9 +424,9 @@ main(int argc, char **argv) {
 
           dump_database(db, names[i], key, keysize, rec, recsize);
 
-          st = ham_close(db, 0);
+          st = ham_db_close(db, 0);
           if (st)
-              error("ham_close", st);
+              error("ham_db_close", st);
       }
   }
   /* clean up */

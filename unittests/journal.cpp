@@ -707,7 +707,7 @@ public:
             Journal::ENTRY_TYPE_TXN_BEGIN, 0);
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
@@ -740,7 +740,7 @@ public:
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
     }
   }
 
@@ -762,7 +762,7 @@ public:
             Journal::ENTRY_TYPE_TXN_BEGIN, 0);
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
     }
@@ -815,7 +815,7 @@ public:
     for (int i = 0; i < 5; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
@@ -839,7 +839,7 @@ public:
             Journal::ENTRY_TYPE_TXN_BEGIN, 0);
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn[i], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
@@ -890,7 +890,7 @@ public:
     for (int i = 0; i < 2; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
     }
 #endif
   }
@@ -913,7 +913,7 @@ public:
     for (int i = 0; i < 100; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i&1], &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn[i&1], &key, &rec, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i&1])->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
     }
@@ -951,9 +951,9 @@ public:
       key.data = &i;
       key.size = sizeof(i);
       if (i & 1)
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(m_db, 0, &key, &rec, 0));
       else
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
     }
   }
 
@@ -975,7 +975,7 @@ public:
       int val = i % 10;
       key.data = &val;
       key.size = sizeof(val);
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, HAM_DUPLICATE));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::ENTRY_TYPE_INSERT, 1);
     }
@@ -983,7 +983,7 @@ public:
     for (int i = 0; i < 10; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn, &key, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn, &key, 0));
       vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
             Journal::ENTRY_TYPE_ERASE, 1);
     }
@@ -1015,7 +1015,7 @@ public:
     /* now verify that the committed transaction was re-played from
      * the journal; the database must be empty */
     ham_u64_t keycount;
-    BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &keycount));
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(0ull, keycount);
   }
 

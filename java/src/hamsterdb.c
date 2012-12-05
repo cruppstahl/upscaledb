@@ -555,23 +555,23 @@ Java_de_crupp_hamsterdb_Database_ham_1set_1errhandler(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1get_1error(JNIEnv *jenv, jobject jobj,
-    jlong jhandle)
+Java_de_crupp_hamsterdb_Database_ham_1db_1get_1error(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
 {
-  return (ham_get_error((ham_db_t *)jhandle));
+  return (ham_db_get_error((ham_db_t *)jhandle));
 }
 
 JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1set_1compare_1func(JNIEnv *jenv,
+Java_de_crupp_hamsterdb_Database_ham_1db_1set_1compare_1func(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jobject jcmp)
 {
   /* jcmp==null: set default compare function */
   if (!jcmp) {
-    ham_set_compare_func((ham_db_t *)jhandle, 0);
+    ham_db_set_compare_func((ham_db_t *)jhandle, 0);
     return;
   }
 
-  ham_set_compare_func((ham_db_t *)jhandle, jni_compare_func);
+  ham_db_set_compare_func((ham_db_t *)jhandle, jni_compare_func);
 }
 
 JNIEXPORT void JNICALL
@@ -584,11 +584,11 @@ Java_de_crupp_hamsterdb_Database_ham_1set_1prefix_1compare_1func(JNIEnv *jenv,
     return;
   }
 
-  ham_set_prefix_compare_func((ham_db_t *)jhandle, jni_prefix_compare_func);
+  ham_db_set_prefix_compare_func((ham_db_t *)jhandle, jni_prefix_compare_func);
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1find(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_hamsterdb_Database_ham_1db_1find(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey, jint jflags)
 {
   ham_status_t st;
@@ -604,8 +604,8 @@ Java_de_crupp_hamsterdb_Database_ham_1find(JNIEnv *jenv, jobject jobj,
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
   hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
 
-  st = ham_find((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
-          &hkey, &hrec, (ham_u32_t)jflags);
+  st = ham_db_find((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
+            &hkey, &hrec, (ham_u32_t)jflags);
 
   (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
   if (st)
@@ -620,7 +620,7 @@ Java_de_crupp_hamsterdb_Database_ham_1find(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1insert(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_hamsterdb_Database_ham_1db_1insert(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey,
     jbyteArray jrecord, jint jflags)
 {
@@ -638,8 +638,8 @@ Java_de_crupp_hamsterdb_Database_ham_1insert(JNIEnv *jenv, jobject jobj,
   hrec.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
   hrec.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jrecord);
 
-  st = ham_insert((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
-          &hkey, &hrec, (ham_u32_t)jflags);
+  st = ham_db_insert((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
+            &hkey, &hrec, (ham_u32_t)jflags);
 
   (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
   (*jenv)->ReleaseByteArrayElements(jenv, jrecord, (jbyte *)hrec.data, 0);
@@ -648,7 +648,7 @@ Java_de_crupp_hamsterdb_Database_ham_1insert(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1erase(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_hamsterdb_Database_ham_1db_1erase(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey, jint jflags)
 {
   ham_status_t st;
@@ -661,8 +661,8 @@ Java_de_crupp_hamsterdb_Database_ham_1erase(JNIEnv *jenv, jobject jobj,
   hkey.data = (ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
   hkey.size = (ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
 
-  st = ham_erase((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
-        &hkey, (ham_u32_t)jflags);
+  st = ham_db_erase((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
+            &hkey, (ham_u32_t)jflags);
 
   (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
 
@@ -670,10 +670,10 @@ Java_de_crupp_hamsterdb_Database_ham_1erase(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1close(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_hamsterdb_Database_ham_1db_1close(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jint jflags)
 {
-  return (ham_close((ham_db_t *)jhandle, (ham_u32_t)jflags));
+  return (ham_db_close((ham_db_t *)jhandle, (ham_u32_t)jflags));
 }
 
 JNIEXPORT jlong JNICALL

@@ -104,7 +104,7 @@ public:
     __super::teardown();
 
     BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
-    BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
   }
 
@@ -442,7 +442,7 @@ public:
       r.data = (void *)record;
       r.size = sizeof(record);
     }
-    return (ham_insert(m_db, txn, &k, &r, flags));
+    return (ham_db_insert(m_db, txn, &k, &r, flags));
   }
 
   ham_status_t insertCursor(txn_cursor_t *cursor, const char *key,
@@ -475,7 +475,7 @@ public:
       k.data = (void *)key;
       k.size = strlen(key) + 1;
     }
-    return (ham_erase(m_db, txn, &k, 0));
+    return (ham_db_erase(m_db, txn, &k, 0));
   }
 
   ham_status_t findCursor(txn_cursor_t *cursor, const char *key,

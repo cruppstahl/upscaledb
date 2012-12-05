@@ -318,19 +318,19 @@ class db {
     ham_status_t get_error() {
       if (!m_db)
         return (HAM_NOT_INITIALIZED);
-      return (ham_get_error(m_db));
+      return (ham_db_get_error(m_db));
     }
 
     /** Sets the prefix comparison function. */
     void set_prefix_compare_func(ham_prefix_compare_func_t foo) {
-      ham_status_t st = ham_set_prefix_compare_func(m_db, foo);
+      ham_status_t st = ham_db_set_prefix_compare_func(m_db, foo);
       if (st)
         throw error(st);
     }
 
     /** Sets the comparison function. */
     void set_compare_func(ham_compare_func_t foo) {
-      ham_status_t st = ham_set_compare_func(m_db, foo);
+      ham_status_t st = ham_db_set_compare_func(m_db, foo);
       if (st)
         throw error(st);
     }
@@ -338,7 +338,7 @@ class db {
     /** Finds a record by looking up the key. */
     record find(txn *t, key *k, ham_u32_t flags = 0) {
       record r;
-      ham_status_t st = ham_find(m_db,
+      ham_status_t st = ham_db_find(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
                 r.get_handle(), flags);
@@ -354,7 +354,7 @@ class db {
 
     /** Inserts a key/record pair. */
     void insert(txn *t, key *k, record *r, ham_u32_t flags = 0) {
-      ham_status_t st = ham_insert(m_db,
+      ham_status_t st = ham_db_insert(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0,
                 r ? r->get_handle() : 0, flags);
@@ -374,7 +374,7 @@ class db {
 
     /** Erases a key/record pair. */
     void erase(txn *t, key *k, ham_u32_t flags = 0) {
-      ham_status_t st = ham_erase(m_db,
+      ham_status_t st = ham_db_erase(m_db,
                 t ? t->get_handle() : 0,
                 k ? k->get_handle() : 0, flags);
       if (st)
@@ -384,7 +384,7 @@ class db {
     /** Returns number of items in the Database. */
     ham_u64_t get_key_count(ham_txn_t *txn = 0, ham_u32_t flags = 0) {
       ham_u64_t count = 0;
-      ham_status_t st = ham_get_key_count(m_db, txn, flags, &count);
+      ham_status_t st = ham_db_get_key_count(m_db, txn, flags, &count);
       if (st)
         throw error(st);
       return (count);
@@ -392,7 +392,7 @@ class db {
 
     /** Retrieves Database parameters. */
     void get_parameters(ham_parameter_t *param) {
-      ham_status_t st = ham_get_parameters(m_db, param);
+      ham_status_t st = ham_db_get_parameters(m_db, param);
       if (st)
         throw error(st);
     }
@@ -404,7 +404,7 @@ class db {
       // disable auto-cleanup; all objects will be destroyed when 
       // going out of scope
       flags &= ~HAM_AUTO_CLEANUP;
-      ham_status_t st = ham_close(m_db, flags);
+      ham_status_t st = ham_db_close(m_db, flags);
       if (st)
         throw error(st);
       m_db = 0;

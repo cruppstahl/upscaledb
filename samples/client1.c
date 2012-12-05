@@ -56,9 +56,9 @@ main(int argc, char **argv) {
     record.size = key.size;
     record.data = key.data;
 
-    st = ham_insert(db, 0, &key, &record, 0);
+    st = ham_db_insert(db, 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert", st);
+      error("ham_db_insert", st);
   }
 
   /* now lookup all values */
@@ -66,13 +66,13 @@ main(int argc, char **argv) {
     key.data = &i;
     key.size = sizeof(i);
 
-    st = ham_find(db, 0, &key, &record, 0);
+    st = ham_db_find(db, 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_find", st);
+      error("ham_db_find", st);
 
     /* check if the value is ok */
     if (*(int *)record.data != i) {
-      printf("ham_find() ok, but returned bad value\n");
+      printf("ham_db_find() ok, but returned bad value\n");
       return (-1);
     }
   }
@@ -82,9 +82,9 @@ main(int argc, char **argv) {
     key.data = &i;
     key.size = sizeof(i);
 
-    st = ham_erase(db, 0, &key, 0);
+    st = ham_db_erase(db, 0, &key, 0);
     if (st != HAM_SUCCESS)
-      error("ham_erase", st);
+      error("ham_db_erase", st);
   }
 
   /* and make sure that the database is empty */
@@ -92,15 +92,15 @@ main(int argc, char **argv) {
     key.data = &i;
     key.size = sizeof(i);
 
-    st = ham_find(db, 0, &key, &record, 0);
+    st = ham_db_find(db, 0, &key, &record, 0);
     if (st != HAM_KEY_NOT_FOUND)
-      error("ham_find", st);
+      error("ham_db_find", st);
   }
 
   /* close the database handle */
-  st = ham_close(db, 0);
+  st = ham_db_close(db, 0);
   if (st != HAM_SUCCESS)
-    error("ham_close", st);
+    error("ham_db_close", st);
 
   printf("success!\n");
   return (0);

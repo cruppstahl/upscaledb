@@ -234,7 +234,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
   if (!db)
     st = HAM_INV_PARAMETER;
   else
-    st = ham_get_parameters((ham_db_t *)db, &params[0]);
+    st = ham_db_get_parameters((ham_db_t *)db, &params[0]);
 
   Protocol reply(Protocol::DB_GET_PARAMETERS_REPLY);
   reply.mutable_db_get_parameters_reply()->set_status(st);
@@ -468,7 +468,7 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
     st = 0;
   }
   else {
-    st = ham_close(db, request->db_close_request().flags());
+    st = ham_db_close(db, request->db_close_request().flags());
     if (st == 0)
       __remove_handle(envh, request->db_close_request().db_handle());
   }
@@ -625,7 +625,7 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
     if (!db)
       st = HAM_INV_PARAMETER;
     else
-      st = ham_get_key_count(db, txn,
+      st = ham_db_get_key_count(db, txn,
                 request->db_get_key_count_request().flags(), &keycount);
   }
 
@@ -683,7 +683,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
         rec.flags = request->db_insert_request().record().flags()
                     & (~HAM_RECORD_USER_ALLOC);
       }
-      st = ham_insert(db, txn, &key, &rec,
+      st = ham_db_insert(db, txn, &key, &rec,
                     request->db_insert_request().flags());
 
       /* recno: return the modified key */
@@ -744,7 +744,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
       rec.flags = request->db_find_request().record().flags()
                   & (~HAM_RECORD_USER_ALLOC);
 
-      st = ham_find(db, txn, &key, &rec, request->db_find_request().flags());
+      st = ham_db_find(db, txn, &key, &rec, request->db_find_request().flags());
       if (st == 0) {
         /* approx matching: key->_flags was modified! */
         if (key._flags)
@@ -795,7 +795,7 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
       key.flags = request->db_erase_request().key().flags()
                   & (~HAM_KEY_USER_ALLOC);
 
-      st = ham_erase(db, txn, &key, request->db_erase_request().flags());
+      st = ham_db_erase(db, txn, &key, request->db_erase_request().flags());
     }
   }
 

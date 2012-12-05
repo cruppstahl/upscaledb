@@ -58,15 +58,15 @@ main(int argc, char **argv) {
     record.size = key.size;
     record.data = key.data;
 
-    st = ham_insert(db, 0, &key, &record, 0);
+    st = ham_db_insert(db, 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_insert", st);
+      error("ham_db_insert", st);
   }
 
   /*
    * now lookup all values
    *
-   * for ham_find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
+   * for ham_db_find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
    * allocate record.data (otherwise the memory is automatically allocated
    * by hamsterdb)
    */
@@ -74,15 +74,15 @@ main(int argc, char **argv) {
     key.data = &i;
     key.size = sizeof(i);
 
-    st = ham_find(db, 0, &key, &record, 0);
+    st = ham_db_find(db, 0, &key, &record, 0);
     if (st != HAM_SUCCESS)
-      error("ham_find", st);
+      error("ham_db_find", st);
 
     /*
      * check if the value is ok
      */
     if (*(int *)record.data!=i) {
-      printf("ham_find() ok, but returned bad value\n");
+      printf("ham_db_find() ok, but returned bad value\n");
       return (-1);
     }
   }
@@ -91,9 +91,9 @@ main(int argc, char **argv) {
    * close the database handle, then re-open it (to demonstrate how to open
    * an Environment and a Database)
    */
-  st = ham_close(db, 0);
+  st = ham_db_close(db, 0);
   if (st != HAM_SUCCESS)
-    error("ham_close", st);
+    error("ham_db_close", st);
   st = ham_env_close(env, 0);
   if (st != HAM_SUCCESS)
     error("ham_env_close", st);
@@ -110,22 +110,22 @@ main(int argc, char **argv) {
     key.size = sizeof(i);
     key.data = &i;
 
-    st = ham_erase(db, 0, &key, 0);
+    st = ham_db_erase(db, 0, &key, 0);
     if (st != HAM_SUCCESS)
-      error("ham_erase", st);
+      error("ham_db_erase", st);
   }
 
   /*
-   * once more we try to find all values... every ham_find() call must
+   * once more we try to find all values... every ham_db_find() call must
    * now fail with HAM_KEY_NOT_FOUND
    */
   for (i = 0; i < LOOP; i++) {
     key.size = sizeof(i);
     key.data = &i;
 
-    st = ham_find(db, 0, &key, &record, 0);
+    st = ham_db_find(db, 0, &key, &record, 0);
     if (st != HAM_KEY_NOT_FOUND)
-      error("ham_find", st);
+      error("ham_db_find", st);
   }
 
   /* we're done! close the handles. HAM_AUTO_CLEANUP will also close the

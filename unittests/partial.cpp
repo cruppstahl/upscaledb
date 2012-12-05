@@ -90,11 +90,11 @@ public:
     rec.partial_size = 50;
     rec.size = 50;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(50u, rec.size);
     BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
@@ -115,11 +115,11 @@ public:
     rec.partial_size = partial_size;
     rec.size = record_size;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -470,7 +470,7 @@ public:
     fillBufferReverse(&buffer[0], record_size);
     rec.size = record_size;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -481,11 +481,11 @@ public:
     rec.size = record_size;
     rec.data = buffer;
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
 
     fillBufferReverse(&buffer[0], record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -617,7 +617,7 @@ public:
     fillBufferReverse(&buffer[0], record_size*2);
     rec.size = record_size * 2;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -628,11 +628,11 @@ public:
     rec.size = record_size;
     rec.data = buffer;
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL | HAM_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
 
     fillBufferReverse(&buffer[0], record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -764,7 +764,7 @@ public:
     fillBufferReverse(&buffer[0], record_size);
     rec.size = record_size / 2;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* then fill the buffer with another pattern and insert the partial
      * record */
@@ -775,11 +775,11 @@ public:
     rec.size = record_size;
     rec.data = buffer;
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL|HAM_OVERWRITE));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL|HAM_OVERWRITE));
 
     /* verify the key */
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[partial_offset], 0, partial_size);
@@ -1093,14 +1093,14 @@ public:
     /* write a record of 50 bytes */
     rec.size = 50;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* read at 0, 50 (no gap) */
     memset(&rec, 0, sizeof(rec));
     rec.partial_offset = 0;
     rec.partial_size = 50;
     BFC_ASSERT_EQUAL(0,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
 
     BFC_ASSERT_EQUAL(50u, rec.size);
     BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
@@ -1118,14 +1118,14 @@ public:
     /* write the record */
     rec.size = record_size;
     rec.data = buffer;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* now do the partial read */
     memset(&rec, 0, sizeof(rec));
     rec.partial_offset = partial_offset;
     rec.partial_size = partial_size;
     BFC_ASSERT_EQUAL(0,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[0], partial_offset, partial_size);
@@ -1387,9 +1387,9 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATES, 0));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(0,
-        ham_insert(db, 0, &key, &rec, 0));
+        ham_db_insert(db, 0, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -1433,7 +1433,7 @@ public:
     rec.partial_offset = 600;
     rec.partial_size = 50;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
 
@@ -1441,7 +1441,7 @@ public:
     rec.partial_offset = 100;
     rec.partial_size = 450;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
 
@@ -1449,7 +1449,7 @@ public:
     rec.partial_offset = 0;
     rec.partial_size = 600;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
 
@@ -1467,13 +1467,13 @@ public:
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, 0));
+        ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* partial_offset > size */
     rec.partial_offset = 600;
     rec.partial_size = 50;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
     BFC_ASSERT_EQUAL(0,
         ham_cursor_find(c, &key, 0, 0));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
@@ -1493,13 +1493,13 @@ public:
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, 0));
+        ham_db_insert(m_db, 0, &key, &rec, 0));
 
     /* partial_offset + partial_size > size */
     rec.partial_offset = 100;
     rec.partial_size = 450;
     BFC_ASSERT_EQUAL(0,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
     BFC_ASSERT_EQUAL(400u, rec.size);
     BFC_ASSERT_EQUAL(0,
         ham_cursor_find(c, &key, 0, 0));
@@ -1511,7 +1511,7 @@ public:
     rec.partial_offset = 0;
     rec.partial_size = 600;
     BFC_ASSERT_EQUAL(0,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
     BFC_ASSERT_EQUAL(500u, rec.size);
     BFC_ASSERT_EQUAL(0,
         ham_cursor_find(c, &key, 0, 0));
@@ -1530,44 +1530,44 @@ public:
     rec.data = (void *)&buffer[0];
     rec.size = 8;
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key, &rec, 0));
+        ham_db_insert(m_db, 0, &key, &rec, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     rec.size = 5;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     rec.size = 8;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     rec.size = 5;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
 
     rec.size = 8;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL));
   }
 
   void disabledTransactionsTest() {
@@ -1589,21 +1589,21 @@ public:
     rec.data = (void *)&buffer[0];
     rec.size = 16;
     BFC_ASSERT_EQUAL(0,
-        ham_insert(db, 0, &key, &rec, 0));
+        ham_db_insert(db, 0, &key, &rec, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = 1;
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
 
     rec.partial_offset = 0;
     rec.partial_size = 1;
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_find(db, 0, &key, &rec, HAM_PARTIAL));
+        ham_db_find(db, 0, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_find(c, &key, &rec, HAM_PARTIAL));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,

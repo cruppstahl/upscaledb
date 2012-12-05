@@ -133,11 +133,11 @@ insert(int argc, char **argv) {
       *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
     else
       *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS)+j;
-    st = ham_insert(db, txn, &key, &rec, dupes ? HAM_DUPLICATE : 0);
+    st = ham_db_insert(db, txn, &key, &rec, dupes ? HAM_DUPLICATE : 0);
     if (st) {
       if (st == HAM_INTERNAL_ERROR && !use_txn)
         break;
-      printf("ham_insert failed: %d (%s)\n", (int)st, ham_strerror(st));
+      printf("ham_db_insert failed: %d (%s)\n", (int)st, ham_strerror(st));
       exit(-1);
     }
     // only loop once if transactions are disabled
@@ -213,22 +213,22 @@ erase(int argc, char **argv) {
     char *p = (char *)key.data;
     if (dupes) {
       *(int *)&p[key.size - sizeof(int)] = i * NUM_STEPS;
-      st = ham_erase(db, txn, &key, 0);
+      st = ham_db_erase(db, txn, &key, 0);
       if (st) {
         if (st == HAM_INTERNAL_ERROR && !use_txn)
           break;
-        printf("ham_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
+        printf("ham_db_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
         exit(-1);
       }
       break;
     }
     else {
       *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
-      st = ham_erase(db, txn, &key, 0);
+      st = ham_db_erase(db, txn, &key, 0);
       if (st) {
         if (st == HAM_INTERNAL_ERROR && !use_txn)
           break;
-        printf("ham_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
+        printf("ham_db_erase failed: %d (%s)\n", (int)st, ham_strerror(st));
         exit(-1);
       }
     }
@@ -337,13 +337,13 @@ verify(int argc, char **argv) {
     else
       *(int *)&p[key.size - sizeof(int)] = (i * NUM_STEPS) + j;
 
-    st = ham_find(db, 0, &key, &rec2, 0);
+    st = ham_db_find(db, 0, &key, &rec2, 0);
     if (exist && st != 0) {
-      printf("ham_find failed but shouldn't: %d\n", (int)st);
+      printf("ham_db_find failed but shouldn't: %d\n", (int)st);
       exit(-1);
     }
     if (!exist && st != HAM_KEY_NOT_FOUND) {
-      printf("ham_find succeeded but shouldn't: %d\n", (int)st);
+      printf("ham_db_find succeeded but shouldn't: %d\n", (int)st);
       exit(-1);
     }
 

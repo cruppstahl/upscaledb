@@ -81,7 +81,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -122,7 +122,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -163,7 +163,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in

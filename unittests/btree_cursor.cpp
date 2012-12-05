@@ -166,7 +166,7 @@ public:
       rec.size = sizeof(i);
       rec.data = &i;
 
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     BFC_ASSERT_EQUAL(0,
@@ -281,15 +281,15 @@ public:
     key.size = sizeof(value);
 
     value = 1;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     value = 2;
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
     BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
     value = 1;
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
     BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
         ham_cursor_move(cursor, &key, 0, 0));
     BFC_ASSERT_EQUAL(0,
@@ -330,7 +330,7 @@ public:
     BFC_ASSERT(!btc->is_uncoupled());
 
     /* after insert: cursor is NIL */
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key2, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key2, &rec, 0));
     BFC_ASSERT(!btc->is_coupled());
     BFC_ASSERT(!btc->is_uncoupled());
 
@@ -344,7 +344,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
 
     /* insert item BEFORE the first item - cursor is uncoupled */
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key1, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key1, &rec, 0));
     BFC_ASSERT(!btc->is_coupled());
     BFC_ASSERT(btc->is_uncoupled());
 
@@ -355,13 +355,13 @@ public:
 
     /* insert duplicate - cursor stays coupled */
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
+        ham_db_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
     BFC_ASSERT(btc->is_coupled());
     BFC_ASSERT(!btc->is_uncoupled());
 
     /* insert item AFTER the middle item - cursor stays coupled */
     BFC_ASSERT_EQUAL(0,
-        ham_insert(m_db, 0, &key3, &rec, 0));
+        ham_db_insert(m_db, 0, &key3, &rec, 0));
     BFC_ASSERT(btc->is_coupled());
     BFC_ASSERT(!btc->is_uncoupled());
 

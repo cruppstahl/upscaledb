@@ -86,7 +86,7 @@ public:
       key.size = sizeof(i);
       rec.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
   }
 
@@ -95,13 +95,13 @@ public:
 
     prepare(8);
 
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_erase(m_db, 0, &key, 0));
 
     for (int i = 0; i < 80; i += 10) {
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
     }
   }
 
@@ -114,7 +114,7 @@ public:
     key.data = &i;
     key.size = sizeof(i);
 
-    BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
   }
 
   void shiftFromLeftTest() {
@@ -129,34 +129,34 @@ public:
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     i = 22;
     key.data = &i;
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     i = 23;
     key.data = &i;
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
     i = 70;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
 
     i = 60;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
 
     i = 50;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
   }
 
   void mergeWithLeftTest() {
@@ -168,7 +168,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+      BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
     }
   }
 };
