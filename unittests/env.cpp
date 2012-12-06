@@ -223,7 +223,7 @@ protected:
     for (int i = 0; i < 3; i++)
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i], i+1, 0, 0));
     for (int i = 0; i < 5; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(db[0], 0, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], db[0], 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -256,7 +256,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_env_open(&env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
     BFC_ASSERT_EQUAL(0, ham_env_open_db(env, &db, 333, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
         ham_env_open_db(env, &db2, 333, 0, 0));
     BFC_ASSERT_EQUAL(HAM_WRITE_PROTECTED,
@@ -789,7 +789,7 @@ protected:
     for (i = 0; i < MAX_DB; i++) {
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i],
             (ham_u16_t)i + 1, 0, 0));
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 0, &cursor[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], db[i], 0, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         memset(&key, 0, sizeof(key));
@@ -842,7 +842,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_db_close(db[i], 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, &db[i],
               (ham_u16_t)i + 1, 0, 0));
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 0, &cursor[i]));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], db[i], 0, 0));
         for (int j = 0; j < MAX_ITEMS; j++) {
           memset(&key, 0, sizeof(key));
           memset(&rec, 0, sizeof(rec));

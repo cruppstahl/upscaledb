@@ -457,9 +457,8 @@ class cursor {
       if (m_cursor)
         close();
       if (db) {
-        ham_status_t st = ham_cursor_create(db->get_handle(),
-                    t ? t->get_handle() : 0,
-                    flags, &m_cursor);
+        ham_status_t st = ham_cursor_create(&m_cursor, db->get_handle(),
+                    t ? t->get_handle() : 0, flags);
         if (st)
           throw error(st);
       }

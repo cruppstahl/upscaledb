@@ -42,7 +42,7 @@ copy_db(ham_db_t *source, ham_db_t *dest) {
   memset(&rec, 0, sizeof(rec));
 
   /* create a new cursor */
-  st = ham_cursor_create(source, 0, 0, &cursor);
+  st = ham_cursor_create(&cursor, source, 0, 0);
   if (st)
     error("ham_cursor_create", st);
 

@@ -116,7 +116,7 @@ main(int argc, char **argv) {
 
   /* Create a Cursor for each Database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(db[i], 0, 0, &cursor[i]);
+    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
     if (st != HAM_SUCCESS)
       error("ham_cursor_create" , st);
   }

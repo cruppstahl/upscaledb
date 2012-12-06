@@ -822,7 +822,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
     BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
     BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -860,7 +860,7 @@ public:
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
             
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));

@@ -1730,8 +1730,8 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_create(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
-                ham_cursor_t **hcursor)
+ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
+                ham_u32_t flags)
 {
     Database *db=(Database *)hdb;
     Transaction *txn=(Transaction *)htxn;

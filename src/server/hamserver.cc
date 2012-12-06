@@ -835,8 +835,8 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
   }
 
   /* create the cursor */
-  st = ham_cursor_create(db, txn,
-        request->cursor_create_request().flags(), &cursor);
+  st = ham_cursor_create(&cursor, db, txn,
+        request->cursor_create_request().flags());
 
   if (st == 0) {
     /* allocate a new handle in the Env wrapper structure */

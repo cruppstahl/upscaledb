@@ -50,7 +50,7 @@ protected:
 
 public:
   virtual ham_status_t createCursor(ham_cursor_t **p) {
-    return (ham_cursor_create(m_db, 0, 0, p));
+    return (ham_cursor_create(p, m_db, 0, 0));
   }
 
   virtual void setup() {
@@ -84,7 +84,7 @@ public:
     ham_cursor_t *c;
     char data[16];
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, m_txn, 0));
 
     for (int i = 0; i < MAX; i++) {
       rec.data = data;
@@ -116,7 +116,7 @@ public:
     ham_cursor_t *c;
     char data[16];
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, m_txn, 0));
 
     for (int i = 0; i < MAX; i++) {
       key.data = data;
@@ -396,7 +396,7 @@ public:
   }
 
   virtual ham_status_t createCursor(ham_cursor_t **p) {
-    return (ham_cursor_create(m_db, m_txn, 0, p));
+    return (ham_cursor_create(p, m_db, m_txn, 0));
   }
 
   LongTxnCursorTest()
@@ -3483,9 +3483,9 @@ public:
     BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
     ham_cursor_t *cursor2, *cursor3;
     BFC_ASSERT_EQUAL(0,
-          ham_cursor_create(m_db, m_txn, 0, &cursor2));
+          ham_cursor_create(&cursor2, m_db, m_txn, 0));
     BFC_ASSERT_EQUAL(0,
-          ham_cursor_create(m_db, m_txn, 0, &cursor3));
+          ham_cursor_create(&cursor3, m_db, m_txn, 0));
 
     ham_key_t key = {0};
     key.size = 6;
@@ -3544,7 +3544,7 @@ public:
 
     ham_cursor_t *cursor2;
     BFC_ASSERT_EQUAL(0,
-          ham_cursor_create(m_db, txn2, 0, &cursor2));
+          ham_cursor_create(&cursor2, m_db, txn2, 0));
 
     ham_key_t key = {0};
     ham_record_t rec = {0};
@@ -3579,7 +3579,7 @@ public:
     ham_status_t st;
 
     if (!cursor)
-      cursor=m_cursor;
+      cursor = m_cursor;
 
     st = ham_cursor_move(cursor, &k, &r, flags);
     if (st)
@@ -3658,7 +3658,7 @@ public:
           HAM_ENABLE_DUPLICATES, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&m_cursor, m_db, 0, 0));
   }
 
   virtual void teardown() {
@@ -3951,7 +3951,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&m_cursor, m_db, m_txn, 0));
   }
 
   virtual void teardown() {
@@ -4450,7 +4450,7 @@ public:
     /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn2, 0));
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_cursor_find(c, &key, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -4470,7 +4470,7 @@ public:
     /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn2, 0));
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, HAM_DUPLICATE));
@@ -4564,7 +4564,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -4586,7 +4586,7 @@ public:
     rec.size = 5;
     rec.data = (void *)"r1.2";
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(c[0], &key, &rec,
-          HAM_DUPLICATE|HAM_DUPLICATE_INSERT_FIRST));
+          HAM_DUPLICATE | HAM_DUPLICATE_INSERT_FIRST));
 
     /* now verify that the keys were inserted in the correct order */
     BFC_ASSERT_EQUAL(0, move     ("k1", "r1.2", HAM_CURSOR_FIRST));
@@ -4606,7 +4606,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -4649,7 +4649,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -4732,8 +4732,8 @@ public:
     /* B 1 3   */
     /* T   5 7 */
     ham_cursor_t *c[C];
-    for (int i=0; i<C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+    for (int i = 0; i < C; i++)
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -5583,7 +5583,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -5623,7 +5623,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -5663,7 +5663,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -5717,7 +5717,7 @@ public:
     /* T   5 7 */
     ham_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
@@ -5923,7 +5923,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&m_cursor, m_db, m_txn, 0));
 
     BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
     BFC_ASSERT_EQUAL(1u, count("k1"));
@@ -6004,7 +6004,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
           move("k1", "1", HAM_CURSOR_FIRST, c));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -6020,7 +6020,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, move(0, 0, HAM_CURSOR_FIRST, c));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
@@ -6033,7 +6033,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
           move("k1", "1", HAM_CURSOR_LAST, c));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -6049,7 +6049,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
           move("k3", "1", HAM_CURSOR_LAST, c));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
@@ -6067,7 +6067,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_FIRST, c));
     BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_NEXT, c));
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -6087,7 +6087,7 @@ public:
     ham_txn_t *txn;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn, 0));
     BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_LAST, c));
     BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_PREVIOUS, c));
     BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
@@ -6153,7 +6153,7 @@ public:
     ham_txn_t *txn2;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn2, 0));
 
     ham_key_t key = {0};
     ham_record_t rec = {0};
@@ -6173,7 +6173,7 @@ public:
     ham_txn_t *txn2;
     ham_cursor_t *c;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn2, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, txn2, 0));
 
     ham_key_t key = {0};
     key.size = 6;
@@ -6200,7 +6200,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
     BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&m_cursor, m_db, m_txn, 0));
 
     /* verify that the duplicate was erased */
     BFC_ASSERT_EQUAL(0, move("k1", "1", HAM_CURSOR_FIRST));

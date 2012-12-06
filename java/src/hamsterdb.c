@@ -687,8 +687,8 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1create(JNIEnv *jenv, jobject jobj,
    * in case of an error, return 0; the java library will check for
    * 0 and return ham_get_error(db)
    */
-  st = ham_cursor_create((ham_db_t *)jdbhandle, (ham_txn_t *)jtxnhandle,
-              0, &cursor);
+  st = ham_cursor_create(&cursor, (ham_db_t *)jdbhandle,
+            (ham_txn_t *)jtxnhandle, 0);
   if (st)
     return (0);
   return ((jlong)cursor);

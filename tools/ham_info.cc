@@ -127,7 +127,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
   if (!full)
     return;
 
-  st = ham_cursor_create(db, 0, 0, &cursor);
+  st = ham_cursor_create(&cursor, db, 0, 0);
   if (st != HAM_SUCCESS)
     error("ham_cursor_create", st);
 

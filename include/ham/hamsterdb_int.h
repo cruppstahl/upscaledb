@@ -182,15 +182,6 @@ ham_env_set_allocator(ham_env_t *env, void *alloc);
  * @}
  */
 
-/* internal flag - do not use!! */
-#define HAM_HINT_UBER_FAST_ACCESS       0x00040000
-
-/* internal flag - do not use!! */
-#define HAM_HINT_RANDOM_ACCESS          0x00020000
-
-/* internal flag - do not use!! */
-#define HAM_HINT_SEQUENTIAL             0x00010000
-
 #ifdef __cplusplus
 } // extern "C"
 #endif

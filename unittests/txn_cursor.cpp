@@ -97,7 +97,7 @@ public:
             | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&m_cursor, m_db, 0, 0));
   }
 
   virtual void teardown() {

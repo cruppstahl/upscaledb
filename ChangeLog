@@ -1,4 +1,14 @@
+Dec 06, 2012 - chris ---------------------------------------------------
+o Removed the deprecated flags HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS
+    and HAM_HINT_SEQUENTIAL
+
 Dec 05, 2012 - chris ---------------------------------------------------
+o Changed interface of ham_cursor_create from
+        ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_cursor_t **cursor);
+    to
+        ham_cursor_create(ham_cursor_t **cursor, ham_db_t *db, ham_txn_t *txn,
+            ham_u32_t flags);
 o Renamed several functions to improve consistency:
     ham_get_error -> ham_db_get_error
     ham_set_prefix_compare_func -> ham_db_set_prefix_compare_func

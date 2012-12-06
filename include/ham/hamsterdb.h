@@ -236,6 +236,7 @@ typedef struct {
 
   /** For internal use */
   ham_u32_t _flags;
+
 } ham_key_t;
 
 /** Flag for @ref ham_key_t (only really useful in combination with
@@ -1711,8 +1712,8 @@ ham_db_close(ham_db_t *db, ham_u32_t flags);
  * @return @ref HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_cursor_t **cursor);
+ham_cursor_create(ham_cursor_t **cursor, ham_db_t *db, ham_txn_t *txn,
+            ham_u32_t flags);
 
 /**
  * Clones a Database Cursor

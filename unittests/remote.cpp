@@ -708,7 +708,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
@@ -748,7 +748,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
           ham_env_create_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-          ham_cursor_create(db, 0, 0, &cursor));
+          ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
           ham_cursor_insert(cursor, &key, &rec, HAM_PARTIAL));
 
@@ -788,7 +788,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
@@ -822,7 +822,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
@@ -864,7 +864,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
@@ -924,7 +924,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 33, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
@@ -971,7 +971,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 14, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(db, txn, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, db, txn, 0));
 
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_get_duplicate_count(0, &count, 0));
@@ -1031,7 +1031,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db, 14, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
 
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec2, 0));
@@ -1064,7 +1064,7 @@ protected:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 14, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
 
     key.data = (void *)"key1";
     rec.data = (void *)"rec1";
@@ -1121,7 +1121,7 @@ protected:
         ham_env_open_db(env, &db, 33, 0, 0));
 
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &cursor));
+        ham_cursor_create(&cursor, db, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -1137,7 +1137,7 @@ protected:
         ham_env_open_db(env, &db, 33, 0, 0));
 
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_create(db, 0, 0, &src));
+        ham_cursor_create(&src, db, 0, 0));
     BFC_ASSERT_EQUAL(0,
         ham_cursor_clone(src, &dest));
 
@@ -1156,7 +1156,7 @@ protected:
     for (int i = 0; i < 3; i++)
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i], i+1, 0, 0));
     for (int i = 0; i < 5; i++)
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(db[0], 0, 0, &c[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c[i], db[0], 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }

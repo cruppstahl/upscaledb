@@ -101,7 +101,7 @@ main(int argc, char **argv) {
 
   /* Create a Cursor for each Database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(db[i], 0, 0, &cursor[i]);
+    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
     if (st != HAM_SUCCESS) {
       printf("ham_cursor_create() failed with error %d\n", st);
       return (-1);
@@ -163,7 +163,7 @@ main(int argc, char **argv) {
 
   /* Re-create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++) {
-    st = ham_cursor_create(db[i], 0, 0, &cursor[i]);
+    st = ham_cursor_create(&cursor[i], db[i], 0, 0);
     if (st != HAM_SUCCESS) {
       printf("ham_cursor_create() failed with error %d\n", st);
       return (-1);

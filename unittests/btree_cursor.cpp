@@ -89,14 +89,14 @@ public:
   void createCloseTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
   }
 
   void cloneTest() {
     ham_cursor_t *cursor, *clone;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
     BFC_ASSERT(cursor != 0);
     Cursor *c = new Cursor(*(Cursor *)cursor);
     clone = (ham_cursor_t *)c;
@@ -117,7 +117,7 @@ public:
     rec.size = sizeof(x);
     rec.data = &x;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
 
@@ -156,9 +156,9 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor3));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor2, m_db, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor3, m_db, 0, 0));
 
     for (int i = 0; i < 64; i++) {
       key.size = sizeof(i);
@@ -203,7 +203,7 @@ public:
   void moveTest() {
     ham_cursor_t *cursor;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
 
     /* no move, and cursor is nil: returns 0 if key/rec is 0 */
     BFC_ASSERT_EQUAL(0,
@@ -227,7 +227,7 @@ public:
     BFC_ASSERT_EQUAL((ham_cursor_t *)0, ((Database *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], m_db, 0, 0));
       BFC_ASSERT_EQUAL(cursor[i], ((Database *)m_db)->get_cursors());
     }
 
@@ -250,7 +250,7 @@ public:
     BFC_ASSERT_EQUAL((ham_cursor_t *)0, ((Database *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor[i]));
+      BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], m_db, 0, 0));
       BFC_ASSERT(cursor[i] != 0);
       BFC_ASSERT_EQUAL(cursor[i], ((Database *)m_db)->get_cursors());
     }
@@ -285,8 +285,8 @@ public:
     value = 2;
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor2, m_db, 0, 0));
     value = 1;
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
@@ -323,7 +323,7 @@ public:
     key3.data = (void *)&v3;
     memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
     btc = ((Cursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
     BFC_ASSERT(!btc->is_coupled());

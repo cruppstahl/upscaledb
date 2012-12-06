@@ -266,8 +266,8 @@ namespace Hamster
 
     [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_cursor_create",
        CallingConvention = CallingConvention.Cdecl)]
-    static public extern int CursorCreate(IntPtr dbhandle, IntPtr txnhandle,
-        int flags, out IntPtr chandle);
+    static public extern int CursorCreate(out IntPtr chandle, IntPtr dbhandle,
+        IntPtr txnhandle, int flags);
 
     [DllImport("hamsterdb-2.0.5.dll", EntryPoint = "ham_cursor_clone",
        CallingConvention = CallingConvention.Cdecl)]

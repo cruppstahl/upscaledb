@@ -1781,8 +1781,8 @@ DatabaseImplementationLocal::find(Transaction *txn, ham_key_t *key,
      * only available in ham_cursor_find */
     if (m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES) {
         Cursor *c;
-        st=ham_cursor_create((ham_db_t *)m_db, (ham_txn_t *)txn,
-                HAM_DONT_LOCK, (ham_cursor_t **)&c);
+        st=ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)m_db,
+                (ham_txn_t *)txn, HAM_DONT_LOCK);
         if (st)
             return (st);
         st=ham_cursor_find((ham_cursor_t *)c, key, record, flags|HAM_DONT_LOCK);

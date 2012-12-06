@@ -224,7 +224,7 @@ dump_database(ham_db_t *db, ham_u16_t dbname, int key_fmt, int max_keysize,
 
   printf("database %d (0x%x)\n", (int)dbname, (int)dbname);
 
-  st=ham_cursor_create(db, 0, 0, &cursor);
+  st=ham_cursor_create(&cursor, db, 0, 0);
   if (st!=HAM_SUCCESS)
       error("ham_cursor_create", st);
 

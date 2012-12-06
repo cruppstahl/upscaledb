@@ -36,7 +36,7 @@ x clean up the "close" functions
         ham_close(db, 0);
     x test with c++ api unittests
 
-o clean up APIs
+x clean up APIs
     x Remove AES encryption
       Remove including all file filters, 3rdparty, dotnet, java, win32
     x Remove zlib compression
@@ -78,16 +78,11 @@ o clean up APIs
         x fix java api
         x fix dotnet api
     x prefix all database functions with ham_db_*
-    o review all interfaces whether they consequently sort parameters
-        in... out (at least make then consistent)
-    o remove the HINT flags in hamsterdb_int.h
-    o we can completely get rid of ham_bool_t; it's not used in the exported
-        API
-
-o rewrite c++ API
-    o make sure unittests are working (cppapi.cpp)
-    o derive Exception from std::exception
-    o c++ api: should use functors for callbacks?
+    x review all interfaces whether they consequently sort parameters
+    x remove the HINT flags in hamsterdb_int.h
+        HAM_HINT_UBER_FAST_ACCESS
+        HAM_HINT_RANDOM_ACCESS
+        HAM_HINT_SEQUENTIAL
 
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
     not set, therefore the optimization does not work
@@ -96,22 +91,24 @@ o btree_insert.cc: when appending or prepending: there's no key compare
     necessary with the last (first) key in the page because this
     compare already took place in the hinter
 
-o review usage of mmap; when opening, should we just map the whole file into
-    memory (in a single mmap)? when creating the file then os_mmap anyway
-    should never be called
-
-o need the ham_export tool in THIS release - and make sure that it's linked
-    statically!!!
-
 o improve fsync performance; do not fsync in Journal::abort. 
     How else can we reduce the fsyncs? How can we merge multiple operations
     into one single atomic btree op? especially when looking at the new
     freelist implementation
 
+o review usage of mmap; when opening, should we just map the whole file into
+    memory (in a single mmap)? when creating the file then os_mmap anyway
+    should never be called
+
 o finalize API changes
     o update README
     o update Webpage
     o update Tutorial
+    o increment libtool version
+    x increment version in header file
+
+o need the ham_export tool in THIS release - and make sure that it's linked
+    statically!!!
 
 ------------------- release 2.0.6 -----------------------------------------
 

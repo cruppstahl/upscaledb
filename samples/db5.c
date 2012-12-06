@@ -82,7 +82,7 @@ main(int argc, char **argv) {
   }
 
   /* Create a cursor */
-  st = ham_cursor_create(db, 0, 0, &cursor);
+  st = ham_cursor_create(&cursor, db, 0, 0);
   if (st != HAM_SUCCESS) {
     printf("ham_cursor_create() failed with error %d\n", st);
     return (-1);

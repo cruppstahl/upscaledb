@@ -1407,7 +1407,7 @@ public:
         ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATES, 0));
 
     ham_cursor_t *c;
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
 
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_cursor_insert(c, &key, &rec, HAM_PARTIAL));
@@ -1424,7 +1424,7 @@ public:
     ham_u8_t buffer[500];
 
     ham_cursor_t *c;
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
@@ -1462,7 +1462,7 @@ public:
     ham_u8_t buffer[500];
 
     ham_cursor_t *c;
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
@@ -1488,7 +1488,7 @@ public:
     ham_u8_t buffer[500];
 
     ham_cursor_t *c;
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
 
     rec.data = (void *)&buffer[0];
     rec.size = sizeof(buffer);
@@ -1580,7 +1580,7 @@ public:
         ham_env_create_db(env, &db, 1, 0, 0));
 
     ham_cursor_t *c;
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &c));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, db, 0, 0));
 
     ham_key_t key = {};
     ham_record_t rec = {};
