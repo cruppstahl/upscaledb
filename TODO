@@ -84,17 +84,14 @@ x clean up APIs
         HAM_HINT_RANDOM_ACCESS
         HAM_HINT_SEQUENTIAL
 
+o improve fsync performance; do not fsync in Journal::abort. 
+
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
     not set, therefore the optimization does not work
 
 o btree_insert.cc: when appending or prepending: there's no key compare
     necessary with the last (first) key in the page because this
     compare already took place in the hinter
-
-o improve fsync performance; do not fsync in Journal::abort. 
-    How else can we reduce the fsyncs? How can we merge multiple operations
-    into one single atomic btree op? especially when looking at the new
-    freelist implementation
 
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
@@ -110,7 +107,23 @@ o finalize API changes
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
 
+o DatabaseImplementation: get rid of these, they are no longer required
+    with the new API. 
+    o have an abstract Database
+    o derive LocalDatabase
+    o derive RemoteDatabase
+    o same for Environment
+
+o remove backend.h, directly use BtreeBackend
+    also clean up, i.e. remove do_close, set_active etc
+
+o add transaction support for in-memory databases
+
+o also remove locking from C# and Java APIs
+
 ------------------- release 2.0.6 -----------------------------------------
+
+
 
 
 
@@ -139,25 +152,9 @@ o freelist rewrite - make files smaller, make hamsterdb faster
         o ham_export test.db | ham_import test2.db --stdin
     o also adjust file format for the upcoming btree changes!
 
-<<<<<<< Updated upstream
 o preallocate file space
     pages should be optimized in a way that the growing index will be written
     sequentially
-
-o DatabaseImplementation: get rid of these, they are no longer required
-    with the new API. 
-    o have an abstract Database
-    o derive LocalDatabase
-    o derive RemoteDatabase
-    o same for Environment
-
-o remove backend.h, directly use BtreeBackend
-=======
-o remove backend.h, directly use BtreeBackend
-    also clean up, i.e. remove do_close, set_active etc
-
-o c++ api: should use functors for callbacks?
->>>>>>> Stashed changes
 
 o optimize memory usage in transaction tree: avoid malloc/free use page
     allocator
@@ -180,8 +177,6 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o txn_op_node_t -> TransactionTreeNode
         o txn_op_t -> TransactionOperation
         o convert to clean c++ code
-
-o add transaction support for in-memory databases
 
 o continue with refacoring - indention, coding style, better design etc...
     o move duplicates into btree namespace (btree_dup.cc)
@@ -214,7 +209,7 @@ o continue with refacoring - indention, coding style, better design etc...
     o hamsterdb.cc
 
     o unittests
-        o code formatting
+        x code formatting
         o reduce bfc to a single header file, or use boost unittest framework
             http://www.boost.org/doc/libs/1_35_0/libs/test/doc/components/utf/index.html
             http://www.beroux.com/english/articles/boost_unit_testing/
@@ -223,9 +218,6 @@ o continue with refacoring - indention, coding style, better design etc...
     o get rid of ham_bool_t, replace with bool whenever possible
 
 o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
-
-o should in-memory databases rather use a std::map with a custom allocator?
-    this would reduce the memory usage
 
 o changeset: instead of simply adding pages to the changeset, the caller
     could already specify whether this page needs logging or not;
@@ -238,8 +230,6 @@ o is there a way to group all changeset flushes of a Transaction into one
     o but we can use that assert prior to txn_begin
 
 o is the recovery working if there's a crash during ham_close?
-
-o also remove locking from C# and Java APIs
 
 o why do tests with 20 threads fail with oom when using mmap? the cache limits
     should still work

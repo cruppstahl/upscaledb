@@ -237,8 +237,7 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
   st = append_entry(idx, &entry, sizeof(entry));
   if (st)
     return (st);
-  if (m_env->get_flags() & HAM_ENABLE_FSYNC)
-    return (os_flush(m_fd[idx]));
+  /* no need for fsync - incomplete transactions will be aborted anyway */
   return (0);
 }
 
