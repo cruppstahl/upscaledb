@@ -88,11 +88,6 @@ x improve fsync performance; do not fsync in Journal::abort.
 
 x btree_insert.cc:120: the append/prepend logic does not work
 
-o btree_insert.cc: when appending or prepending: there's no key compare
-    necessary with the last (first) key in the page if this compare
-    already took place in the hinter (only compare again in debug mode)
-    -> also, HAM_HINT_PREPEND is not checked
-
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
@@ -102,10 +97,29 @@ o need the ham_export tool in THIS release - and make sure that it's linked
 
 . DatabaseImplementation: get rid of these, they are no longer required
     with the new API. 
-    o have an abstract Database
-    o derive LocalDatabase
-    o derive RemoteDatabase
-    o same for Environment
+    x have an abstract Database
+    x derive LocalDatabase
+    x derive RemoteDatabase
+    x remove dam_is_set
+    x merge cursor_clone and clone_cursor
+    x merge close_cursor and cursor_close
+    x clean up code
+    o remove static/global functions
+    o rewrite db_get_keysize()
+    o review header page ownership; it's currently assigned when creating
+        a new database
+    o remove linked list of Databases; use std::map<short, db> instead
+    o remove linked list of cursors, use boost::intrusive_list
+    o make db->set_error() private
+    o use ByteArray for extended keys
+    o should extkeycache become part of backend? - btree_extkeys
+
+    . same for Environment
+    . same for Transaction
+    . same for Cursor
+
+. Split Transaction into local and remote class
+    o hamsterdb.cc directly calls into Transaction class instead of Environment
 
 . remove backend.h, directly use BtreeBackend
     also clean up, i.e. remove do_close, set_active etc

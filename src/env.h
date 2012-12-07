@@ -188,14 +188,14 @@ class Environment
     /**
      * create a database in the environment
      */
-    ham_status_t (*_fun_create_db)(Environment *env, Database *db,
+    ham_status_t (*_fun_create_db)(Environment *env, Database **db,
                 ham_u16_t dbname, ham_u32_t flags,
                 const ham_parameter_t *param);
 
     /**
      * open a database in the environment
      */
-    ham_status_t (*_fun_open_db)(Environment *env, Database *db,
+    ham_status_t (*_fun_open_db)(Environment *env, Database **db,
                 ham_u16_t dbname, ham_u32_t flags,
                 const ham_parameter_t *param);
 

@@ -1006,12 +1006,10 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb,
         return (HAM_INV_PARAMETER);
     }
 
-    Database *db=new Database;
-
     ScopedLock lock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st=env->_fun_create_db(env, db, dbname, flags, param);
+    st=env->_fun_create_db(env, (Database **)hdb, dbname, flags, param);
     if (st)
         goto bail;
 
@@ -1021,11 +1019,12 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb,
 
 bail:
     if (st) {
-        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+        if (*hdb)
+            (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
+        *hdb = 0;
         return (st);
     }
 
-    *hdb = (ham_db_t *)db;
     return (0);
 }
 
@@ -1062,21 +1061,20 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb,
         return (HAM_INV_PARAMETER);
     }
 
-    Database *db = new Database;
-
     ScopedLock lock;
     if (!(flags&HAM_DONT_LOCK))
         lock=ScopedLock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st=env->_fun_open_db(env, db, dbname, flags, param);
+    st=env->_fun_open_db(env, (Database **)hdb, dbname, flags, param);
 
     if (st) {
-        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+        if (*hdb)
+            (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
+        *hdb = 0;
         return (st);
     }
 
-    *hdb = (ham_db_t *)db;
     return (0);
 }
 
@@ -1340,7 +1338,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         if (flags & HAM_AUTO_CLEANUP)
             st=ham_db_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
         else
-            st=(*db)()->close(flags);
+            st=db->close(flags);
         if (st)
             return (st);
     }
@@ -1373,7 +1371,7 @@ ham_db_get_parameters(ham_db_t *hdb, ham_parameter_t *param)
     }
 
     /* get the parameters */
-    return ((*db)()->get_parameters(param));
+    return (db->get_parameters(param));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1494,7 +1492,7 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error((*db)()->find(txn, key, record, flags)));
+    return (db->set_error(db->find(txn, key, record, flags)));
 }
 
 int HAM_CALLCONV
@@ -1625,7 +1623,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
         }
     }
 
-    return (db->set_error((*db)()->insert(txn, key, record, flags)));
+    return (db->set_error(db->insert(txn, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1668,7 +1666,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
     if (!__prepare_key(key))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error((*db)()->erase(txn, key, flags)));
+    return (db->set_error(db->erase(txn, key, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1684,7 +1682,7 @@ ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
 
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error((*db)()->check_integrity(txn)));
+    return (db->set_error(db->check_integrity(txn)));
 }
 
 /*
@@ -1711,7 +1709,7 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
     Environment *env=db->get_env();
 
     /* it's ok to close an uninitialized Database */
-    if (!env || !(*db)()) {
+    if (!env) {
         delete db;
         return (0);
     }
@@ -1721,7 +1719,7 @@ ham_db_close(ham_db_t *hdb, ham_u32_t flags)
         lock=ScopedLock(env->get_mutex());
 
     /* the function pointer will do the actual implementation */
-    st=(*db)()->close(flags);
+    st=db->close(flags);
     if (st)
         return (db->set_error(st));
 
@@ -1760,12 +1758,7 @@ ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
     if (!(flags&HAM_DONT_LOCK))
         lock=ScopedLock(env->get_mutex());
 
-    if (!(*db)()) {
-        ham_trace(("Database was not initialized"));
-        return (db->set_error(HAM_NOT_INITIALIZED));
-    }
-
-    *cursor=(*db)()->cursor_create(txn, flags);
+    *cursor=db->cursor_create(txn, flags);
 
     /* fix the linked list of cursors */
     (*cursor)->set_next(db->get_cursors());
@@ -1808,7 +1801,7 @@ ham_cursor_clone(ham_cursor_t *hsrc, ham_cursor_t **hdest)
 
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->clone_cursor(src, dest);
+    *dest = db->cursor_clone(src);
 
     return (db->set_error(0));
 }
@@ -1851,7 +1844,7 @@ ham_cursor_overwrite(ham_cursor_t *hcursor, ham_record_t *record,
         return (db->set_error(HAM_WRITE_PROTECTED));
     }
 
-    return (db->set_error((*db)()->cursor_overwrite(cursor, record, flags)));
+    return (db->set_error(db->cursor_overwrite(cursor, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1909,7 +1902,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
     if (record && !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    st=(*db)()->cursor_move(cursor, key, record, flags);
+    st=db->cursor_move(cursor, key, record, flags);
 
     /* make sure that the changeset is empty */
     ham_assert(env->get_changeset().is_empty());
@@ -1985,7 +1978,7 @@ ham_cursor_find(ham_cursor_t *hcursor, ham_key_t *key,
     if (record &&  !__prepare_record(record))
         return (db->set_error(HAM_INV_PARAMETER));
 
-    return (db->set_error((*db)()->cursor_find(cursor, key, record, flags)));
+    return (db->set_error(db->cursor_find(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2096,7 +2089,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
         }
     }
 
-    return (db->set_error((*db)()->cursor_insert(cursor, key, record, flags)));
+    return (db->set_error(db->cursor_insert(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2135,7 +2128,7 @@ ham_cursor_erase(ham_cursor_t *hcursor, ham_u32_t flags)
         return (db->set_error(HAM_INV_PARAMETER));
     }
 
-    return (db->set_error((*db)()->cursor_erase(cursor, flags)));
+    return (db->set_error(db->cursor_erase(cursor, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2166,8 +2159,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
 
     *count=0;
 
-    return (db->set_error(
-                (*db)()->cursor_get_duplicate_count(cursor, count, flags)));
+    return (db->set_error(db->cursor_get_duplicate_count(cursor, count, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2197,8 +2189,7 @@ ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_offset_t *size)
 
     *size=0;
 
-    return (db->set_error(
-                (*db)()->cursor_get_record_size(cursor, size)));
+    return (db->set_error(db->cursor_get_record_size(cursor, size)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2221,7 +2212,7 @@ ham_cursor_close(ham_cursor_t *hcursor)
 
     ScopedLock lock(db->get_env()->get_mutex());
 
-    db->close_cursor(cursor);
+    db->cursor_close(cursor);
 
     return (0);
 }
@@ -2316,7 +2307,7 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
 
     ScopedLock lock(db->get_env()->get_mutex());
 
-    return (db->set_error((*db)()->get_key_count(txn, flags, keycount)));
+    return (db->set_error(db->get_key_count(txn, flags, keycount)));
 }
 
 ham_status_t HAM_CALLCONV

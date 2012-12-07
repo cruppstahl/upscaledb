@@ -826,7 +826,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
 }
 
 static ham_status_t
-_local_fun_create_db(Environment *env, Database *db,
+_local_fun_create_db(Environment *env, Database **pdb,
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
@@ -838,22 +838,19 @@ _local_fun_create_db(Environment *env, Database *db,
     ham_u32_t pflags;
     std::string logdir;
 
-    db->set_rt_flags(0);
+    /* create a new Database object */
+    *pdb = new LocalDatabase(env, flags);
 
     /* parse parameters */
-    st=__check_create_parameters(env, db, 0, &flags, param,
+    st=__check_create_parameters(env, *pdb, 0, &flags, param,
             0, &keysize, &cachesize, &dbname, 0, logdir, true);
     if (st)
         return (st);
-
-    /* store the env pointer in the database */
-    db->set_env(env);
 
     /*
      * set the flags; strip off run-time (per session) flags for the
      * backend::create() method though.
      */
-    db->set_rt_flags(flags);
     pflags=flags;
     pflags&=~(HAM_DISABLE_VAR_KEYLEN
              |HAM_CACHE_STRICT
@@ -868,13 +865,12 @@ _local_fun_create_db(Environment *env, Database *db,
 
     /*
      * transfer the ownership of the header page to this Database
+     * TODO why?
      */
-    env->get_header_page()->set_db(db);
+    env->get_header_page()->set_db(*pdb);
     ham_assert(env->get_header_page());
 
-    /*
-     * check if this database name is unique
-     */
+    /* check if this database name is unique */
     ham_assert(env->get_max_databases() > 0);
     for (i=0; i<env->get_max_databases(); i++) {
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(i));
@@ -893,7 +889,7 @@ _local_fun_create_db(Environment *env, Database *db,
         ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(dbi));
         if (!name) {
             index_set_dbname(env->get_indexdata_ptr(dbi), dbname);
-            db->set_indexdata_offset(dbi);
+            (*pdb)->set_indexdata_offset(dbi);
             break;
         }
     }
@@ -909,16 +905,9 @@ _local_fun_create_db(Environment *env, Database *db,
 #endif
 
     /* create the backend */
-    be=db->get_backend();
-    if (be==NULL) {
-        be=new BtreeBackend(db, flags);
-        if (!be) {
-            st=HAM_OUT_OF_MEMORY;
-            goto bail;
-        }
-        /* store the backend in the database */
-        db->set_backend(be);
-    }
+    // TODO move to Database::create
+    be=new BtreeBackend(*pdb, flags);
+    (*pdb)->set_backend(be);
 
     /* initialize the backend */
     st=be->create(keysize, pflags);
@@ -927,42 +916,23 @@ _local_fun_create_db(Environment *env, Database *db,
 
     ham_assert(be->is_active()!=0);
 
-    /*
-     * initialize the remaining function pointers in Database
-     */
-    st=db->initialize_local();
-    if (st)
-        goto bail;
-
-    /*
-     * set the default key compare functions
-     */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        db->set_compare_func(db_default_recno_compare);
+    /* set the default key compare functions */
+    // TODO move to Database::create
+    if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
+        (*pdb)->set_compare_func(db_default_recno_compare);
     }
     else {
-        db->set_compare_func(db_default_compare);
-        db->set_prefix_compare_func(db_default_prefix_compare);
+        (*pdb)->set_compare_func(db_default_compare);
+        (*pdb)->set_prefix_compare_func(db_default_prefix_compare);
     }
     env->set_dirty(true);
-
-    /*
-     * set the key compare function
-     */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        db->set_compare_func(db_default_recno_compare);
-    }
-    else {
-        db->set_compare_func(db_default_compare);
-        db->set_prefix_compare_func(db_default_prefix_compare);
-    }
 
     /*
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    db->set_next(env->get_databases());
-    env->set_databases(db);
+    (*pdb)->set_next(env->get_databases());
+    env->set_databases((*pdb));
 
 bail:
     /* if logging is enabled: flush the changeset and the header page */
@@ -978,7 +948,7 @@ bail:
 }
 
 static ham_status_t
-_local_fun_open_db(Environment *env, Database *db,
+_local_fun_open_db(Environment *env, Database **pdb,
         ham_u16_t name, ham_u32_t flags, const ham_parameter_t *param)
 {
     Database *head;
@@ -988,17 +958,16 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_u16_t dbi;
     std::string logdir;
 
-    db->set_rt_flags(0);
+    /* create a new Database object */
+    *pdb = new LocalDatabase(env, flags);
 
     /* parse parameters */
-    st=__check_create_parameters(env, db, 0, &flags, param,
+    st=__check_create_parameters(env, *pdb, 0, &flags, param,
             0, 0, &cachesize, &name, 0, logdir, false);
     if (st)
         return (st);
 
-    /*
-     * make sure that this database is not yet open
-     */
+    /* make sure that this database is not yet open */
     head=env->get_databases();
     while (head) {
         db_indexdata_t *ptr=env->get_indexdata_ptr(head->get_indexdata_offset());
@@ -1012,19 +981,14 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(0 != env->get_header_page());
     ham_assert(env->get_max_databases() > 0);
 
-    /* store the env pointer in the database */
-    db->set_env(env);
-
-    /*
-     * search for a database with this name
-     */
+    /* search for a database with this name */
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         db_indexdata_t *idx=env->get_indexdata_ptr(dbi);
         ham_u16_t dbname = index_get_dbname(idx);
         if (!dbname)
             continue;
         if (name==HAM_FIRST_DATABASE_NAME || name==dbname) {
-            db->set_indexdata_offset(dbi);
+            (*pdb)->set_indexdata_offset(dbi);
             break;
         }
     }
@@ -1033,12 +997,9 @@ _local_fun_open_db(Environment *env, Database *db,
         return (HAM_DATABASE_NOT_FOUND);
 
     /* create the backend */
-    be=db->get_backend();
-    if (be==NULL) {
-        /* store the backend in the database */
-        db->set_backend(new BtreeBackend(db, flags));
-        be=db->get_backend();
-    }
+    // TODO move to Database::open
+    (*pdb)->set_backend(new BtreeBackend((*pdb), flags));
+    be=(*pdb)->get_backend();
 
     /* initialize the backend */
     st=be->open(flags);
@@ -1046,13 +1007,6 @@ _local_fun_open_db(Environment *env, Database *db,
         return (st);
 
     ham_assert(be->is_active()!=0);
-
-    /*
-     * initialize the remaining function pointers in Database
-     */
-    st=db->initialize_local();
-    if (st)
-        return (st);
 
     /*
      * set the database flags; strip off the persistent flags that may have been
@@ -1069,7 +1023,7 @@ _local_fun_open_db(Environment *env, Database *db,
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
              |DB_USE_MMAP);
-    db->set_rt_flags(flags|be->get_flags());
+    (*pdb)->set_rt_flags(flags|be->get_flags());
     ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
     ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
     ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED));
@@ -1081,34 +1035,29 @@ _local_fun_open_db(Environment *env, Database *db,
     ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
     ham_assert(!(be->get_flags()&DB_USE_MMAP));
 
-    /*
-     * set the key compare function
-     */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        db->set_compare_func(db_default_recno_compare);
+    /* set the compare functions */
+    // TODO move to Database::open
+    if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
+        (*pdb)->set_compare_func(db_default_recno_compare);
     }
     else {
-        db->set_compare_func(db_default_compare);
-        db->set_prefix_compare_func(db_default_prefix_compare);
+        (*pdb)->set_compare_func(db_default_compare);
+        (*pdb)->set_prefix_compare_func(db_default_prefix_compare);
     }
 
-    /*
-     * if this is a recno database: read the highest recno
-     */
-    if (db->get_rt_flags()&HAM_RECORD_NUMBER) {
-        st = (*db)()->finalize_open();
-        if (st) {
-            ham_trace(("Database could not be opened"));
-            return (st);
-        }
+    /* open the database */
+    st = (*pdb)->open();
+    if (st) {
+        ham_trace(("Database could not be opened"));
+        return (st);
     }
 
     /*
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    db->set_next(env->get_databases());
-    env->set_databases(db);
+    (*pdb)->set_next(env->get_databases());
+    env->set_databases(*pdb);
 
     return (0);
 }

@@ -427,7 +427,7 @@ _remote_fun_env_flush(Environment *env, ham_u32_t flags)
 }
 
 static ham_status_t
-_remote_fun_create_db(Environment *env, Database *db, ham_u16_t dbname,
+_remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
                 ham_u32_t flags, const ham_parameter_t *param)
 {
   Protocol *reply = 0;
@@ -460,11 +460,10 @@ _remote_fun_create_db(Environment *env, Database *db, ham_u16_t dbname,
     return (st);
   }
 
-  db->set_remote_handle(reply->env_create_db_reply().db_handle());
-  db->set_rt_flags(reply->env_create_db_reply().db_flags());
+  RemoteDatabase *rdb = new RemoteDatabase(env, reply->env_create_db_reply().db_flags());
 
-  /* store the env pointer in the database */
-  db->set_env(env);
+  rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
+  *pdb = rdb;
 
   delete reply;
 
@@ -472,15 +471,14 @@ _remote_fun_create_db(Environment *env, Database *db, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  db->set_next(env->get_databases());
-  env->set_databases(db);
+  (*pdb)->set_next(env->get_databases());
+  env->set_databases((*pdb));
 
-  /* initialize the remaining function pointers in Database */
-  return (db->initialize_remote());
+  return (0);
 }
 
 static ham_status_t
-_remote_fun_open_db(Environment *env, Database *db, ham_u16_t dbname,
+_remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
                 ham_u32_t flags, const ham_parameter_t *param)
 {
   Protocol *reply = 0;
@@ -513,10 +511,9 @@ _remote_fun_open_db(Environment *env, Database *db, ham_u16_t dbname,
     return (st);
   }
 
-  /* store the env pointer in the database */
-  db->set_env(env);
-  db->set_remote_handle(reply->env_open_db_reply().db_handle());
-  db->set_rt_flags(reply->env_open_db_reply().db_flags());
+  RemoteDatabase *rdb = new RemoteDatabase(env, reply->env_open_db_reply().db_flags());
+  rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
+  *pdb = rdb;
 
   delete reply;
 
@@ -524,11 +521,10 @@ _remote_fun_open_db(Environment *env, Database *db, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  db->set_next(env->get_databases());
-  env->set_databases(db);
+  (*pdb)->set_next(env->get_databases());
+  env->set_databases((*pdb));
 
-  /* initialize the remaining function pointers in Database */
-  return (db->initialize_remote());
+  return (0);
 }
 
 static ham_status_t
@@ -659,15 +655,15 @@ env_initialize_remote(Environment *env)
 
 
 ham_status_t
-DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
+RemoteDatabase::get_parameters(ham_parameter_t *param)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
   ham_parameter_t *p;
 
   Protocol request(Protocol::DB_GET_PARAMETERS_REQUEST);
-  request.mutable_db_get_parameters_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_get_parameters_request()->set_db_handle(get_remote_handle());
 
   p = param;
   if (p) {
@@ -721,14 +717,14 @@ DatabaseImplementationRemote::get_parameters(ham_parameter_t *param)
 }
 
 ham_status_t
-DatabaseImplementationRemote::check_integrity(Transaction *txn)
+RemoteDatabase::check_integrity(Transaction *txn)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_CHECK_INTEGRITY_REQUEST);
-  request.mutable_db_check_integrity_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_check_integrity_request()->set_db_handle(get_remote_handle());
   request.mutable_db_check_integrity_request()->set_txn_handle(txn
             ? txn->get_remote_handle()
             : 0);
@@ -750,15 +746,15 @@ DatabaseImplementationRemote::check_integrity(Transaction *txn)
 
 
 ham_status_t
-DatabaseImplementationRemote::get_key_count(Transaction *txn, ham_u32_t flags,
+RemoteDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
               ham_offset_t *keycount)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_GET_KEY_COUNT_REQUEST);
-  request.mutable_db_get_key_count_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_get_key_count_request()->set_db_handle(get_remote_handle());
   request.mutable_db_get_key_count_request()->set_txn_handle(txn
             ? txn->get_remote_handle()
             : 0);
@@ -782,19 +778,19 @@ DatabaseImplementationRemote::get_key_count(Transaction *txn, ham_u32_t flags,
 }
 
 ham_status_t
-DatabaseImplementationRemote::insert(Transaction *txn, ham_key_t *key,
+RemoteDatabase::insert(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_key_arena()
+                ? &get_key_arena()
                 : &txn->get_key_arena();
 
   /* recno: do not send the key */
-  if (m_db->get_rt_flags() & HAM_RECORD_NUMBER) {
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
     /* allocate memory for the key */
     if (!key->data) {
       arena->resize(sizeof(ham_u64_t));
@@ -804,12 +800,12 @@ DatabaseImplementationRemote::insert(Transaction *txn, ham_key_t *key,
   }
 
   Protocol request(Protocol::DB_INSERT_REQUEST);
-  request.mutable_db_insert_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_insert_request()->set_db_handle(get_remote_handle());
   request.mutable_db_insert_request()->set_txn_handle(txn
                 ? txn->get_remote_handle()
                 : 0);
   request.mutable_db_insert_request()->set_flags(flags);
-  if (key && !(m_db->get_rt_flags() & HAM_RECORD_NUMBER))
+  if (key && !(get_rt_flags() & HAM_RECORD_NUMBER))
     Protocol::assign_key(request.mutable_db_insert_request()->mutable_key(),
                     key);
   if (record)
@@ -842,14 +838,14 @@ DatabaseImplementationRemote::insert(Transaction *txn, ham_key_t *key,
 }
 
 ham_status_t
-DatabaseImplementationRemote::erase(Transaction *txn, ham_key_t *key,
+RemoteDatabase::erase(Transaction *txn, ham_key_t *key,
             ham_u32_t flags)
 {
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_ERASE_REQUEST);
-  request.mutable_db_erase_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_erase_request()->set_db_handle(get_remote_handle());
   request.mutable_db_erase_request()->set_txn_handle(txn
                 ? txn->get_remote_handle()
                 : 0);
@@ -873,15 +869,15 @@ DatabaseImplementationRemote::erase(Transaction *txn, ham_key_t *key,
 
 
 ham_status_t
-DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
+RemoteDatabase::find(Transaction *txn, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_FIND_REQUEST);
-  request.mutable_db_find_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_find_request()->set_db_handle(get_remote_handle());
   request.mutable_db_find_request()->set_txn_handle(txn
                 ? txn->get_remote_handle()
                 : 0);
@@ -900,10 +896,10 @@ DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
   }
 
   ByteArray *key_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_key_arena()
+                ? &get_key_arena()
                 : &txn->get_key_arena();
   ByteArray *rec_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_record_arena()
+                ? &get_record_arena()
                 : &txn->get_record_arena();
 
   ham_assert(reply != 0);
@@ -939,14 +935,14 @@ DatabaseImplementationRemote::find(Transaction *txn, ham_key_t *key,
 }
 
 Cursor *
-DatabaseImplementationRemote::cursor_create(Transaction *txn, ham_u32_t flags)
+RemoteDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
 {
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   ham_status_t st;
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_CREATE_REQUEST);
-  request.mutable_cursor_create_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_cursor_create_request()->set_db_handle(get_remote_handle());
   request.mutable_cursor_create_request()->set_txn_handle(txn
                     ? txn->get_remote_handle()
                     : 0);
@@ -967,7 +963,7 @@ DatabaseImplementationRemote::cursor_create(Transaction *txn, ham_u32_t flags)
     return (0);
   }
 
-  Cursor *c = new Cursor(m_db);
+  Cursor *c = new Cursor(this);
   c->set_remote_handle(reply->cursor_create_reply().cursor_handle());
 
   delete reply;
@@ -975,7 +971,7 @@ DatabaseImplementationRemote::cursor_create(Transaction *txn, ham_u32_t flags)
 }
 
 Cursor *
-DatabaseImplementationRemote::cursor_clone(Cursor *src)
+RemoteDatabase::cursor_clone_impl(Cursor *src)
 {
   Environment *env = src->get_db()->get_env();
   ham_status_t st;
@@ -1007,21 +1003,21 @@ DatabaseImplementationRemote::cursor_clone(Cursor *src)
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
+RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
   bool send_key = true;
   Transaction *txn = cursor->get_txn();
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_key_arena()
+                ? &get_key_arena()
                 : &txn->get_key_arena();
 
   /* recno: do not send the key */
-  if (m_db->get_rt_flags() & HAM_RECORD_NUMBER) {
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
     send_key = false;
 
     /* allocate memory for the key */
@@ -1068,10 +1064,10 @@ DatabaseImplementationRemote::cursor_insert(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_erase(Cursor *cursor, ham_u32_t flags)
+RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_ERASE_REQUEST);
@@ -1094,11 +1090,11 @@ DatabaseImplementationRemote::cursor_erase(Cursor *cursor, ham_u32_t flags)
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
+RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_FIND_REQUEST);
@@ -1120,7 +1116,7 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
   Transaction *txn = cursor->get_txn();
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_record_arena()
+                ? &get_record_arena()
                 : &txn->get_record_arena();
 
   ham_assert(reply != 0);
@@ -1148,11 +1144,11 @@ DatabaseImplementationRemote::cursor_find(Cursor *cursor, ham_key_t *key,
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_get_duplicate_count(Cursor *cursor,
+RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
                 ham_size_t *count, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_GET_DUPLICATE_COUNT_REQUEST);
@@ -1178,7 +1174,7 @@ DatabaseImplementationRemote::cursor_get_duplicate_count(Cursor *cursor,
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_get_record_size(Cursor *cursor,
+RemoteDatabase::cursor_get_record_size(Cursor *cursor,
             ham_offset_t *size)
 {
   (void)cursor;
@@ -1188,11 +1184,11 @@ DatabaseImplementationRemote::cursor_get_record_size(Cursor *cursor,
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_overwrite(Cursor *cursor,
+RemoteDatabase::cursor_overwrite(Cursor *cursor,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_OVERWRITE_REQUEST);
@@ -1217,19 +1213,19 @@ DatabaseImplementationRemote::cursor_overwrite(Cursor *cursor,
 }
 
 ham_status_t
-DatabaseImplementationRemote::cursor_move(Cursor *cursor, ham_key_t *key,
+RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   Transaction *txn = cursor->get_txn();
   ByteArray *key_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_key_arena()
+                ? &get_key_arena()
                 : &txn->get_key_arena();
   ByteArray *rec_arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                ? &m_db->get_record_arena()
+                ? &get_record_arena()
                 : &txn->get_record_arena();
 
   Protocol request(Protocol::CURSOR_MOVE_REQUEST);
@@ -1286,7 +1282,7 @@ bail:
 }
 
 void
-DatabaseImplementationRemote::cursor_close(Cursor *cursor)
+RemoteDatabase::cursor_close_impl(Cursor *cursor)
 {
   Environment *env = cursor->get_db()->get_env();
   Protocol *reply = 0;
@@ -1307,23 +1303,23 @@ DatabaseImplementationRemote::cursor_close(Cursor *cursor)
 }
 
 ham_status_t
-DatabaseImplementationRemote::close(ham_u32_t flags)
+RemoteDatabase::close(ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = m_db->get_env();
+  Environment *env = get_env();
   Protocol *reply = 0;
 
   /* auto-cleanup cursors?  */
   if (flags & HAM_AUTO_CLEANUP) {
-    Cursor *cursor = m_db->get_cursors();
-    while ((cursor = m_db->get_cursors()))
-      m_db->close_cursor(cursor);
+    Cursor *cursor = get_cursors();
+    while ((cursor = get_cursors()))
+      cursor_close(cursor);
   }
-  else if (m_db->get_cursors())
+  else if (get_cursors())
     return (HAM_CURSOR_STILL_OPEN);
 
   Protocol request(Protocol::DB_CLOSE_REQUEST);
-  request.mutable_db_close_request()->set_db_handle(m_db->get_remote_handle());
+  request.mutable_db_close_request()->set_db_handle(get_remote_handle());
   request.mutable_db_close_request()->set_flags(flags);
 
   st = _perform_request(env, env->get_curl(), &request, &reply);
@@ -1333,31 +1329,31 @@ DatabaseImplementationRemote::close(ham_u32_t flags)
   }
 
   /* free cached memory */
-  m_db->get_key_arena().clear();
-  m_db->get_record_arena().clear();
+  get_key_arena().clear();
+  get_record_arena().clear();
 
   ham_assert(reply != 0);
   ham_assert(reply->has_db_close_reply());
 
   st = reply->db_close_reply().status();
   if (st == 0)
-    m_db->set_remote_handle(0);
+    set_remote_handle(0);
 
   /* remove this database from the environment */
   Database *prev = 0;
   Database *head = env->get_databases();
   while (head) {
-    if (head == m_db) {
+    if (head == this) {
       if (!prev)
-        env->set_databases(m_db->get_next());
+        env->set_databases(get_next());
       else
-        prev->set_next(m_db->get_next());
+        prev->set_next(get_next());
       break;
     }
     prev = head;
     head = head->get_next();
   }
-  m_db->set_env(0);
+  m_env = 0;
 
   delete reply;
   return (st);

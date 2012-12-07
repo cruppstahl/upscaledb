@@ -189,27 +189,26 @@ ham_status_t
 Cursor::check_if_btree_key_is_erased_or_overwritten(void)
 {
     ham_key_t key={0};
-    Cursor *clone;
     txn_op_t *op;
     ham_status_t st;
-    get_db()->clone_cursor(this, &clone);
+    Cursor *clone = get_db()->cursor_clone(this);
     txn_cursor_t *txnc=clone->get_txn_cursor();
     st=get_btree_cursor()->move(&key, 0, 0);
     if (st) {
-        get_db()->close_cursor(clone);
+        get_db()->cursor_close(clone);
         return (st);
     }
 
     st=txn_cursor_find(txnc, &key, 0);
     if (st) {
-        get_db()->close_cursor(clone);
+        get_db()->cursor_close(clone);
         return (st);
     }
 
     op=txn_cursor_get_coupled_op(txnc);
     if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
         st=HAM_KEY_NOT_FOUND;
-    get_db()->close_cursor(clone);
+    get_db()->cursor_close(clone);
     return (st);
 }
 
@@ -243,12 +242,11 @@ Cursor::sync(ham_u32_t flags, ham_bool_t *equal_keys)
             *equal_keys=HAM_TRUE;
     }
     else if (is_nil(CURSOR_TXN)) {
-        Cursor *clone;
         ham_key_t *k;
-        get_db()->clone_cursor(this, &clone);
+        Cursor *clone = get_db()->cursor_clone(this);
         st=clone->get_btree_cursor()->uncouple();
         if (st) {
-            get_db()->close_cursor(clone);
+            get_db()->cursor_close(clone);
             goto bail;
         }
         k=clone->get_btree_cursor()->get_uncoupled_key();
@@ -262,7 +260,7 @@ Cursor::sync(ham_u32_t flags, ham_bool_t *equal_keys)
         * will move the btree cursor again */
         if (st==0 && equal_keys && !ham_key_get_approximate_match_type(k))
             *equal_keys=HAM_TRUE;
-        get_db()->close_cursor(clone);
+        get_db()->cursor_close(clone);
     }
 
     get_db()->get_env()->get_changeset().clear();
@@ -357,18 +355,17 @@ Cursor::compare(void)
          *      not necessary
          *  -> fix it!
          */
-        Cursor *clone;
-        get_db()->clone_cursor(this, &clone);
+        Cursor *clone = get_db()->cursor_clone(this);
         ham_status_t st=clone->get_btree_cursor()->uncouple();
         if (st) {
-            get_db()->close_cursor(clone);
+            get_db()->cursor_close(clone);
             return (0); /* TODO throw */
         }
         /* TODO error codes are swallowed */
         cmp=get_db()->compare_keys(
                 clone->get_btree_cursor()->get_uncoupled_key(),
                 txnk);
-        get_db()->close_cursor(clone);
+        get_db()->cursor_close(clone);
 
         set_lastcmp(cmp);
         return (cmp);

@@ -298,8 +298,7 @@ public:
 
     BFC_ASSERT(compare_sizes(OFFSETOF(BtreeNode, _entries), 28));
     Page page;
-    Database db;
-    db.set_env((Environment *)m_env);
+    LocalDatabase db((Environment *)m_env, 0);
     BtreeBackend be(&db, 0);
 
     page.set_self(1000);

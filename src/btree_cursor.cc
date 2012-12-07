@@ -355,17 +355,16 @@ BtreeCursor::points_to(ham_key_t *key)
       return (false);
 
     bool ret = false;
-    Cursor *clone = 0;
-    db->clone_cursor(parent, &clone);
+    Cursor *clone = db->cursor_clone(parent);
     ham_status_t st = clone->get_btree_cursor()->uncouple();
     if (st) {
-      db->close_cursor(clone);
+      db->cursor_close(clone);
       return (false);
     }
     if (0 == db->compare_keys(key,
                 clone->get_btree_cursor()->get_uncoupled_key()))
       ret = true;
-    db->close_cursor(clone);
+    db->cursor_close(clone);
     return (ret);
   }
 
