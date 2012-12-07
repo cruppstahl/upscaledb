@@ -64,7 +64,7 @@ BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
 {
   ham_offset_t old = m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_INSERT];
   if (old != page->get_self()) {
-    m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_INSERT] = 0;
+    m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_INSERT] = page->get_self();
     m_perf_data.last_leaf_count[HAM_OPERATION_STATS_INSERT] = 0;
   }
   else
@@ -98,7 +98,7 @@ BtreeStatistics::erase_succeeded(Page *page)
 {
   ham_offset_t old = m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_ERASE];
   if (old != page->get_self()) {
-    m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_ERASE] = 0;
+    m_perf_data.last_leaf_pages[HAM_OPERATION_STATS_ERASE] = page->get_self();
     m_perf_data.last_leaf_count[HAM_OPERATION_STATS_ERASE] = 0;
   }
   else

@@ -84,7 +84,7 @@ class BtreeInsertAction
        * already full, it will remove the HINT_APPEND (or HINT_PREPEND)
        * flag and recursively call do_insert_cursor()
        */
-      if (m_hints.flags & HAM_HINT_APPEND)
+      if (m_hints.flags & HAM_HINT_APPEND || m_hints.flags & HAM_HINT_PREPEND)
         st = append_or_prepend_key();
       else
         st = insert();
@@ -131,9 +131,9 @@ class BtreeInsertAction
        * when we APPEND or the left-most node when we PREPEND
        * OR the new key is not the highest key: perform a normal insert
        */
-      if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() == 0)
-              || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() == 0)
-              || node->get_count() >= m_backend->get_maxkeys())
+      if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
+              || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
+              || node->get_count() >= m_backend->get_maxkeys() - 1)
         return (insert());
 
       /*

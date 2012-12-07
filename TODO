@@ -86,9 +86,7 @@ x clean up APIs
 
 x improve fsync performance; do not fsync in Journal::abort. 
 
-o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
-    not set, therefore the optimization does not work
-    -> really? verify this; i think everything works fine
+x btree_insert.cc:120: the append/prepend logic does not work
 
 o btree_insert.cc: when appending or prepending: there's no key compare
     necessary with the last (first) key in the page if this compare

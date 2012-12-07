@@ -109,6 +109,8 @@ public:
     BFC_REGISTER_TEST(HamsterdbTest, recoveryNegativeTest);
     BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvTest);
     BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvNegativeTest);
+    BFC_REGISTER_TEST(HamsterdbTest, insertAppendTest);
+    BFC_REGISTER_TEST(HamsterdbTest, insertPrependTest);
     BFC_REGISTER_TEST(HamsterdbTest, cursorInsertAppendTest);
     BFC_REGISTER_TEST(HamsterdbTest, negativeCursorInsertAppendTest);
     BFC_REGISTER_TEST(HamsterdbTest, recordCountTest);
@@ -1499,6 +1501,46 @@ public:
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_env_create(&env, BFC_OPATH(".test"),
             HAM_ENABLE_RECOVERY | HAM_IN_MEMORY, 0664, 0));
+  }
+
+  void insertAppendTest() {
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    for (unsigned i = 0; i < 100; i++) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      rec.size = sizeof(i);
+      rec.data = (void *)&i;
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+    for (unsigned i = 0; i < 100; i++) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL((unsigned)key.size, rec.size);
+      BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
+    }
+  }
+
+  void insertPrependTest() {
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    for (int i = 100; i >= 0; i--) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      rec.size = sizeof(i);
+      rec.data = (void *)&i;
+      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    }
+    for (int i = 100; i >= 0; i--) {
+      key.size = sizeof(i);
+      key.data = (void *)&i;
+      BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
+      BFC_ASSERT_EQUAL((unsigned)key.size, rec.size);
+      BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
+    }
   }
 
   void cursorInsertAppendTest() {
