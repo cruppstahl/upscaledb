@@ -82,7 +82,7 @@ None.
 
 6. Compiling
 
-6.1 Linux and Cygwin/Win32
+6.1 Linux, MacOS and other Unix systems
 
 To compile hamsterdb Embedded Storage, run ./configure, make, make install.
 
@@ -108,6 +108,7 @@ dependencies from here:
     http://code.google.com/p/protobuf/
     http://curl.haxx.se/libcurl/
     http://www.boost.org
+
 On Ubuntu, you can install the following packages:
     protobuf-compiler
     libprotobuf-dev
@@ -140,17 +141,16 @@ HAM_BIG_ENDIAN          compile for big endian machines (most other
                         architectures)
 HAM_32BIT               compile for 32bit (alias: WIN32)
 HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
-HAM_DISABLE_COMPRESSION build without support for zlib compression
-HAM_DISABLE_ENCRYPTION  build without support for AES encryption
 
-Also, if you compile for windows, you have to compile the file 'src/os_win32.c',
-and ignore the file 'src/os_posix.c'. Vice versa on non-Windows platforms.
+Also, if you compile for windows, you have to compile the file
+'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on
+non-Windows platforms.
 
 10. Porting hamsterdb Embedded Storage
 
 Porting hamsterdb Embedded Storage shouldn't be too difficult. All operating
 system dependend functions are declared in 'src/os.h' and defined
-in 'src/os_win32.c' or 'src/os_posix.c'.
+in 'src/os_win32.cc' or 'src/os_posix.cc'.
 Other compiler- and OS-specific macros are in 'include/ham/types.h'.
 Most likely, these are the only files which have to be touched. Also see item
 9) for important macros.
@@ -176,43 +176,6 @@ Author of hamsterdb Embedded Storage is
     web: http://www.hamsterdb.com
 
 13. Other Copyrights
-
-The AES library in '3rdparty/aes' is (C) Karl Malbrain, malbrain@yahoo.com
-(http://www.geocities.com/malbrain). It has the following license:
-
-    This work, including the source code, documentation
-    and related data, is placed into the public domain.
-
-    The orginal author is Karl Malbrain.
-
-    THIS SOFTWARE IS PROVIDED AS-IS WITHOUT WARRANTY
-    OF ANY KIND, NOT EVEN THE IMPLIED WARRANTY OF
-    MERCHANTABILITY. THE AUTHOR OF THIS SOFTWARE,
-    ASSUMES _NO_ RESPONSIBILITY FOR ANY CONSEQUENCE
-    RESULTING FROM THE USE, MODIFICATION, OR
-    REDISTRIBUTION OF THIS SOFTWARE.
-
-The zlib library in '3rdparty/zlib' is (C) Jean-loup Gailly and Mark Adler.
-It has the following license:
-
-    This software is provided 'as-is', without any express or implied
-    warranty.  In no event will the authors be held liable for any damages
-    arising from the use of this software.
-
-    Permission is granted to anyone to use this software for any purpose,
-    including commercial applications, and to alter it and redistribute it
-    freely, subject to the following restrictions:
-
-    1. The origin of this software must not be misrepresented; you must not
-       claim that you wrote the original software. If you use this software
-       in a product, an acknowledgment in the product documentation would be
-       appreciated but is not required.
-    2. Altered source versions must be plainly marked as such, and must not be
-       misrepresented as being the original software.
-    3. This notice may not be removed or altered from any source distribution.
-
-    Jean-loup Gailly        Mark Adler
-    jloup@gzip.org          madler@alumni.caltech.edu
 
 The mongoose http server in '3rdparty/mongoose' is (C) Sergey Lyubka and
 Gilbert Wellisch.
