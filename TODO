@@ -84,42 +84,49 @@ x clean up APIs
         HAM_HINT_RANDOM_ACCESS
         HAM_HINT_SEQUENTIAL
 
-o improve fsync performance; do not fsync in Journal::abort. 
+x improve fsync performance; do not fsync in Journal::abort. 
 
 o btree_insert.cc:120 usually returns false because m_hints.leaf_page_addr is
     not set, therefore the optimization does not work
+    -> really? verify this; i think everything works fine
 
 o btree_insert.cc: when appending or prepending: there's no key compare
-    necessary with the last (first) key in the page because this
-    compare already took place in the hinter
+    necessary with the last (first) key in the page if this compare
+    already took place in the hinter (only compare again in debug mode)
+    -> also, HAM_HINT_PREPEND is not checked
 
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
 
-o finalize API changes
-    o update README
-    o update Webpage
-    o update Tutorial
-    o increment libtool version
-    x increment version in header file
-
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
 
-o DatabaseImplementation: get rid of these, they are no longer required
+. DatabaseImplementation: get rid of these, they are no longer required
     with the new API. 
     o have an abstract Database
     o derive LocalDatabase
     o derive RemoteDatabase
     o same for Environment
 
-o remove backend.h, directly use BtreeBackend
+. remove backend.h, directly use BtreeBackend
     also clean up, i.e. remove do_close, set_active etc
 
 o add transaction support for in-memory databases
+    in the source, never use HAM_ENABLE_RECOVERY; only check if env->get_log()
+        is null. Same regarding journal.
 
-o also remove locking from C# and Java APIs
+. also remove locking from C# and Java APIs
+
+o finalize for the next release
+    o update README w/ API updates
+    o update Webpage w/ API updates
+    o update Tutorial w/ API updates
+    o update FAQ/Documentation regarding mmap
+    o need documentation for ham_export, ham_import
+    o increment libtool version
+    x increment version in header file
+
 
 ------------------- release 2.0.6 -----------------------------------------
 
