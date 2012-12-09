@@ -36,7 +36,7 @@ DeviceImplDisk::alloc_page(Page *page)
   if (st)
     return (st);
 
-  st = os_truncate(m_fd, pos+size);
+  st = os_truncate(m_fd, pos + size);
   if (st)
     return (st);
 
@@ -66,7 +66,7 @@ DeviceImplDisk::read_page(Page *page)
    * in such a case, the os_mmap function will return HAM_LIMITS_REACHED
    * and we force a fallback to read/write.
    */
-  if (!(m_device->m_flags&HAM_DISABLE_MMAP)) {
+  if (!(m_device->m_flags & HAM_DISABLE_MMAP)) {
     st = os_mmap(m_fd, page->get_mmap_handle_ptr(), page->get_self(), size,
                 m_device->m_flags&HAM_READ_ONLY, &buffer);
     if (st && st != HAM_LIMITS_REACHED)

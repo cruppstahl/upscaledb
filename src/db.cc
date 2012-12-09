@@ -205,20 +205,13 @@ __cache_needs_purge(Environment *env)
   return (HAM_FALSE);
 }
 
-Database::Database(Environment *env, ham_u16_t flags)
-  : m_env(env), m_error(0), m_context(0), m_backend(0), m_cursors(0),
-    m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags), m_next(0),
+Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
+  : m_env(env), m_name(name), m_error(0), m_context(0), m_backend(0),
+    m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
     m_extkey_cache(0), m_indexdata_offset(0), m_optree(this)
 {
   m_key_arena.set_allocator(env->get_allocator());
   m_record_arena.set_allocator(env->get_allocator());
-}
-
-ham_u16_t
-Database::get_name()
-{
-  db_indexdata_t *idx = m_env->get_indexdata_ptr(get_indexdata_offset());
-  return (index_get_dbname(idx));
 }
 
 ham_status_t
@@ -370,7 +363,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   }
 
   /* almost the same as: blobid = key->get_extended_rid(db); */
-  memcpy(&blobid, key_data + (db_get_keysize(this) - sizeof(ham_offset_t)),
+  memcpy(&blobid, key_data + (get_keysize() - sizeof(ham_offset_t)),
       sizeof(blobid));
   blobid = ham_db2h_offset(blobid);
 
@@ -401,7 +394,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
    * The key is fetched in two parts: we already have the front
    * part of the key in key_data and now we only need to fetch the blob
    * remainder, which size is:
-   *  key_length - (db_get_keysize(db)-sizeof(ham_offset_t))
+   *  key_length - (get_keysize() - sizeof(ham_offset_t))
    *
    * To prevent another round of memcpy and heap allocation here, we
    * simply allocate sufficient space for the entire key as it should be
@@ -414,13 +407,13 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
       return (HAM_OUT_OF_MEMORY);
   }
 
-  memmove(ext_key->data, key_data, db_get_keysize(this) - sizeof(ham_offset_t));
+  memmove(ext_key->data, key_data, get_keysize() - sizeof(ham_offset_t));
 
   /* now read the remainder of the key */
   memset(&record, 0, sizeof(record));
   record.data = (((ham_u8_t *)ext_key->data) +
-          db_get_keysize(this) - sizeof(ham_offset_t));
-  record.size = key_length - (db_get_keysize(this) - sizeof(ham_offset_t));
+          get_keysize() - sizeof(ham_offset_t));
+  record.size = key_length - (get_keysize() - sizeof(ham_offset_t));
   record.flags = HAM_RECORD_USER_ALLOC;
 
   st = m_env->get_blob_manager()->read(this, 0, blobid, &record, 0);
@@ -675,6 +668,36 @@ Database::cursor_close(Cursor *cursor)
   cursor->set_previous(0);
 
   delete cursor;
+}
+
+ham_status_t
+Database::close(ham_u32_t flags)
+{
+  /* auto-cleanup cursors?  */
+  if (flags & HAM_AUTO_CLEANUP) {
+    Cursor *cursor;
+    while ((cursor = get_cursors()))
+      cursor_close(cursor);
+  }
+  else if (get_cursors()) {
+    ham_trace(("cannot close Database if Cursors are still open"));
+    return (set_error(HAM_CURSOR_STILL_OPEN));
+  }
+
+  /* the derived classes can now do the bulk of the work */
+  ham_status_t st = close_impl(flags);
+  if (st)
+    return (set_error(st));
+
+  /* remove from the Environment's list */
+  m_env->get_database_map().erase(m_name);
+
+  /* free cached memory */
+  get_key_arena().clear();
+  get_record_arena().clear();
+
+  m_env = 0;
+  return (0);
 }
 
 struct keycount_t
@@ -1424,7 +1447,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_KEYSIZE:
-        p->value = get_backend() ? db_get_keysize(this) : 21;
+        p->value = get_backend() ? get_keysize() : 21;
         break;
       case HAM_PARAM_FLAGS:
         p->value = (ham_offset_t)get_rt_flags();
@@ -1434,7 +1457,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         if (get_backend()) {
-          ham_size_t count = 0, size = db_get_keysize(this);
+          ham_size_t count = 0, size = get_keysize();
           Backend *be = get_backend();
           ham_status_t st;
 
@@ -1710,8 +1733,8 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
       return (st);
   }
 
-  if ((db_get_keysize(this) < sizeof(ham_offset_t)) &&
-      (key->size > db_get_keysize(this))) {
+  if ((get_keysize() < sizeof(ham_offset_t)) &&
+      (key->size > get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
@@ -1801,8 +1824,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ? &get_key_arena()
             : &txn->get_key_arena();
 
-  if ((db_get_keysize(this) < sizeof(ham_offset_t)) &&
-      (key->size > db_get_keysize(this))) {
+  if ((get_keysize() < sizeof(ham_offset_t)) && (key->size > get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
@@ -2470,10 +2492,8 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 }
 
 ham_status_t
-LocalDatabase::close(ham_u32_t flags)
+LocalDatabase::close_impl(ham_u32_t flags)
 {
-  Backend *be = get_backend();
-
   /* check if this database is modified by an active transaction */
   TransactionTree *tree = get_optree();
   if (tree) {
@@ -2493,36 +2513,13 @@ LocalDatabase::close(ham_u32_t flags)
     }
   }
 
-  /* auto-cleanup cursors?  */
-  if (flags & HAM_AUTO_CLEANUP) {
-    Cursor *cursor;
-    while ((cursor = get_cursors()))
-      cursor_close(cursor);
-  }
-  else if (get_cursors()) {
-    ham_trace(("cannot close Database if Cursors are still open"));
-    return (set_error(HAM_CURSOR_STILL_OPEN));
-  }
-
-  /*
-   * if we're not in read-only mode, and not an in-memory-database,
-   * and the dirty-flag is true: flush the page-header to disk
-   */
-  if (m_env->get_header_page()
-      && m_env->is_dirty()
-      && !(m_env->get_flags() & HAM_IN_MEMORY)
-      && m_env->get_device()
-      && m_env->get_device()->is_open()
-      && (!(m_env->get_flags() & HAM_READ_ONLY))) {
-    /* flush the database header, if it's dirty */
-    m_env->get_header_page()->flush();
-  }
-
   /* get rid of the extkey-cache */
   if (get_extkey_cache()) {
     delete get_extkey_cache();
     set_extkey_cache(0);
   }
+
+  Backend *be = get_backend();
 
   /* in-memory-database: free all allocated blobs */
   if (be && be->is_active() && m_env->get_flags() & HAM_IN_MEMORY) {
@@ -2555,26 +2552,6 @@ LocalDatabase::close(ham_u32_t flags)
     delete be;
     set_backend(0);
   }
-
-  /* free cached memory */
-  get_key_arena().clear();
-  get_record_arena().clear();
-
-  /* remove this database from the environment */
-  Database *prev = 0;
-  Database *head = m_env->get_databases();
-  while (head) {
-    if (head == this) {
-      if (!prev)
-        m_env->set_databases(get_next());
-      else
-        prev->set_next(get_next());
-      break;
-    }
-    prev = head;
-    head = head->get_next();
-  }
-  m_env = 0;
 
   return (0);
 }

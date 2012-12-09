@@ -115,7 +115,7 @@ BtreeStatistics::erase_failed()
 void
 BtreeStatistics::reset_page(Page *page)
 {
-  for (int i = 0; i <= HAM_OPERATION_STATS_MAX; i++) {
+  for (int i = 0; i < HAM_OPERATION_STATS_MAX; i++) {
     m_perf_data.last_leaf_pages[i] = 0;
     m_perf_data.last_leaf_count[i] = 0;
   }

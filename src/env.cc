@@ -61,7 +61,7 @@ typedef struct free_cb_context_t
 Environment::Environment()
   : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
     m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
-    m_journal(0), m_freelist(0), m_flags(0), m_databases(0), m_pagesize(0),
+    m_journal(0), m_freelist(0), m_flags(0), m_pagesize(0),
     m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
     m_duplicate_manager(this)
 {
@@ -494,13 +494,6 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
     ham_u16_t slot;
 
     /*
-     * make sure that the environment was either created or opened, and
-     * a valid device exists
-     */
-    if (!env->get_device())
-        return (HAM_NOT_READY);
-
-    /*
      * check if a database with the new name already exists; also search
      * for the database with the old name
      */
@@ -522,6 +515,14 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
 
     env->set_dirty(true);
 
+    /* if the database with the old name is currently open: notify it */
+    Environment::DatabaseMap::iterator it = env->get_database_map().find(oldname);
+    if (it != env->get_database_map().end()) {
+        it->second->set_name(newname);
+        env->get_database_map().erase(oldname);
+        env->get_database_map()[newname] = it->second;
+    }
+
     /* flush the header page if logging is enabled */
     if (env->get_flags()&HAM_ENABLE_RECOVERY)
         return (env->get_header_page()->flush());
@@ -537,17 +538,9 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     free_cb_context_t context;
     Backend *be;
 
-    /*
-     * check if this database is still open
-     */
-    db=env->get_databases();
-    while (db) {
-        ham_u16_t dbname=index_get_dbname(env->get_indexdata_ptr(
-                            db->get_indexdata_offset()));
-        if (dbname==name)
-            return (HAM_DATABASE_ALREADY_OPEN);
-        db=db->get_next();
-    }
+    /* check if this database is still open */
+    if (env->get_database_map().find(name) != env->get_database_map().end())
+        return (HAM_DATABASE_ALREADY_OPEN);
 
     /*
      * if it's an in-memory environment: no need to go on, if the
@@ -649,8 +642,23 @@ bail:
 static ham_status_t
 _local_fun_close(Environment *env, ham_u32_t flags)
 {
+    ham_status_t st;
+
+    /* close all databases */
+    Environment::DatabaseMap::iterator it = env->get_database_map().begin();
+    while (it != env->get_database_map().end()) {
+        Environment::DatabaseMap::iterator it2 = it; it++;
+        Database *db = it2->second;
+        if (flags & HAM_AUTO_CLEANUP)
+            st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
+        else
+            st = db->close(flags);
+        if (st)
+            return (st);
+    }
+
     /* flush all committed transactions */
-    ham_status_t st = env->flush_committed_txns();
+    st = env->flush_committed_txns();
     if (st)
         return (st);
 
@@ -791,8 +799,9 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
         return (st);
 
     /* flush the open backends */
-    db=env->get_databases();
-    while (db) {
+    Environment::DatabaseMap::iterator it = env->get_database_map().begin();
+    while (it != env->get_database_map().end()) {
+        db = it->second;
         Backend *be=db->get_backend();
 
         if (!be || !be->is_active())
@@ -800,7 +809,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
         st=be->flush_indexdata();
         if (st)
             return st;
-        db=db->get_next();
+        it++;
     }
 
     /*
@@ -839,7 +848,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
     std::string logdir;
 
     /* create a new Database object */
-    *pdb = new LocalDatabase(env, flags);
+    *pdb = new LocalDatabase(env, dbname, flags);
 
     /* parse parameters */
     st=__check_create_parameters(env, *pdb, 0, &flags, param,
@@ -931,8 +940,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    (*pdb)->set_next(env->get_databases());
-    env->set_databases((*pdb));
+    env->get_database_map()[dbname] = *pdb;
 
 bail:
     /* if logging is enabled: flush the changeset and the header page */
@@ -949,9 +957,8 @@ bail:
 
 static ham_status_t
 _local_fun_open_db(Environment *env, Database **pdb,
-        ham_u16_t name, ham_u32_t flags, const ham_parameter_t *param)
+        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
-    Database *head;
     ham_status_t st;
     ham_u64_t cachesize = 0;
     Backend *be = 0;
@@ -959,22 +966,17 @@ _local_fun_open_db(Environment *env, Database **pdb,
     std::string logdir;
 
     /* create a new Database object */
-    *pdb = new LocalDatabase(env, flags);
+    *pdb = new LocalDatabase(env, dbname, flags);
 
     /* parse parameters */
     st=__check_create_parameters(env, *pdb, 0, &flags, param,
-            0, 0, &cachesize, &name, 0, logdir, false);
+            0, 0, &cachesize, &dbname, 0, logdir, false);
     if (st)
         return (st);
 
     /* make sure that this database is not yet open */
-    head=env->get_databases();
-    while (head) {
-        db_indexdata_t *ptr=env->get_indexdata_ptr(head->get_indexdata_offset());
-        if (index_get_dbname(ptr)==name)
-            return (HAM_DATABASE_ALREADY_OPEN);
-        head=head->get_next();
-    }
+    if (env->get_database_map().find(dbname) != env->get_database_map().end())
+        return (HAM_DATABASE_ALREADY_OPEN);
 
     ham_assert(env->get_allocator());
     ham_assert(env->get_device());
@@ -984,10 +986,10 @@ _local_fun_open_db(Environment *env, Database **pdb,
     /* search for a database with this name */
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
         db_indexdata_t *idx=env->get_indexdata_ptr(dbi);
-        ham_u16_t dbname = index_get_dbname(idx);
-        if (!dbname)
+        ham_u16_t name = index_get_dbname(idx);
+        if (!name)
             continue;
-        if (name==HAM_FIRST_DATABASE_NAME || name==dbname) {
+        if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name) {
             (*pdb)->set_indexdata_offset(dbi);
             break;
         }
@@ -1056,8 +1058,7 @@ _local_fun_open_db(Environment *env, Database **pdb,
      * on success: store the open database in the environment's list of
      * opened databases
      */
-    (*pdb)->set_next(env->get_databases());
-    env->set_databases(*pdb);
+    env->get_database_map()[dbname] = *pdb;
 
     return (0);
 }

@@ -345,7 +345,7 @@ protected:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 333, 0, parameters2));
-    BFC_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize((Database *)db));
+    BFC_ASSERT_EQUAL((ham_u16_t)64, ((Database *)db)->get_keysize());
     BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }

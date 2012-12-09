@@ -88,13 +88,6 @@ x improve fsync performance; do not fsync in Journal::abort.
 
 x btree_insert.cc:120: the append/prepend logic does not work
 
-o review usage of mmap; when opening, should we just map the whole file into
-    memory (in a single mmap)? when creating the file then os_mmap anyway
-    should never be called
-
-o need the ham_export tool in THIS release - and make sure that it's linked
-    statically!!!
-
 . DatabaseImplementation: get rid of these, they are no longer required
     with the new API. 
     x have an abstract Database
@@ -104,25 +97,53 @@ o need the ham_export tool in THIS release - and make sure that it's linked
     x merge cursor_clone and clone_cursor
     x merge close_cursor and cursor_close
     x clean up code
+    x rewrite db_get_keysize() as db->get_keysize()
+    x review header page ownership; it's currently assigned when creating
+        a new database - already removed
+    x remove linked list of Databases; use std::map<short, db> instead
+    o search env.cc for "TODO why?"
     o remove static/global functions
-    o rewrite db_get_keysize()
-    o review header page ownership; it's currently assigned when creating
-        a new database
-    o remove linked list of Databases; use std::map<short, db> instead
-    o remove linked list of cursors, use boost::intrusive_list
-    o make db->set_error() private
-    o use ByteArray for extended keys
-    o should extkeycache become part of backend? - btree_extkeys
 
-    . same for Environment
-    . same for Transaction
-    . same for Cursor
+o review usage of mmap; when opening, should we just map the whole file into
+    memory (in a single mmap)? when creating the file then os_mmap anyway
+    should never be called
+    o Page::free: do not unmap and do not move to cache if it's mmapped!
+    o DeviceImplDisk::open: map the whole file
+    o DeviceImplDisk::close: unmap immediately before closing the device
+    o DeviceImplDisk::read_page: if page is mapped then simply return a
+        pointer
+    o Cache::purge_max20: do not purge mmapped caches (use madvice if page
+        is old enough?)
+    o Environment: do not fallback to read/write if mmap fails
 
-. Split Transaction into local and remote class
-    o hamsterdb.cc directly calls into Transaction class instead of Environment
+o need the ham_export tool in THIS release - and make sure that it's linked
+    statically!!!
+    o export as json
+    o export as binary (based on protobuffer)
+
+. ham_import: a tool that can create Environments from exported data
+    (or merge into existing Environments)
 
 . remove backend.h, directly use BtreeBackend
-    also clean up, i.e. remove do_close, set_active etc
+    o rename to Btree??
+    o also clean up, i.e. remove do_close, set_active etc
+
+. move Extended Keys to backend/btree_extkeys
+    o also try to remove the cache and use boost::unsorted_map
+    o use ByteArray for extended keys
+    o this includes all functions that are currently kept in Database
+
+. move duplicates into btree namespace (btree_dupkeys.cc)
+
+. split Environment into baseclass, derive local and remote Environment
+    o remove function pointers
+    o clean up code
+    o try to reduce the TODOs
+
+. split Transaction into local and remote class
+    o hamsterdb.cc directly calls into Transaction class instead of Environment
+    o then continue with db.cc and move txn-related functions to LocalDatabase
+    o try to get the methods/design analoguous to the Btree (rename to Ttree?)
 
 o add transaction support for in-memory databases
     in the source, never use HAM_ENABLE_RECOVERY; only check if env->get_log()
@@ -198,7 +219,6 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o convert to clean c++ code
 
 o continue with refacoring - indention, coding style, better design etc...
-    o move duplicates into btree namespace (btree_dup.cc)
     o backend.h/btree.h: check the TODOs
     o hamserver.cc: replace handles-structure with std::map
 

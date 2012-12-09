@@ -87,7 +87,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
    * elements "after" get_count() */
   BtreeKey *get_key(Database *db, int i) {
     return ((BtreeKey *)&((const char *)_entries)
-              [(db_get_keysize(db) + BtreeKey::ms_sizeof_overhead) * i]);
+              [(db->get_keysize() + BtreeKey::ms_sizeof_overhead) * i]);
   }
 
   /**

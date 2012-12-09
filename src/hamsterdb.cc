@@ -1068,6 +1068,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb,
     /* the function handler will do the rest */
     st=env->_fun_open_db(env, (Database **)hdb, dbname, flags, param);
 
+    /* TODO move cleanup code to Environment::open_db() */
     if (st) {
         if (*hdb)
             (void)ham_db_close((ham_db_t *)*hdb, HAM_DONT_LOCK);
@@ -1332,17 +1333,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (st)
         return (st);
 
-    /* close all databases */
-    while (env->get_databases()) {
-        Database *db=env->get_databases();
-        if (flags & HAM_AUTO_CLEANUP)
-            st=ham_db_close((ham_db_t *)db, flags|HAM_DONT_LOCK);
-        else
-            st=db->close(flags);
-        if (st)
-            return (st);
-    }
-
     /* close the environment */
     st=env->_fun_close(env, flags);
     if (st)
@@ -1552,7 +1542,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
         return (db->set_error(HAM_WRITE_PROTECTED));
     }
     if ((db->get_rt_flags()&HAM_DISABLE_VAR_KEYLEN) &&
-            (key->size>db_get_keysize(db))) {
+            (key->size > db->get_keysize())) {
         ham_trace(("database does not support variable length keys"));
         return (db->set_error(HAM_INV_KEYSIZE));
     }
@@ -2023,7 +2013,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
         return (db->set_error(HAM_WRITE_PROTECTED));
     }
     if ((db->get_rt_flags()&HAM_DISABLE_VAR_KEYLEN) &&
-            (key->size>db_get_keysize(db))) {
+            (key->size > db->get_keysize())) {
         ham_trace(("database does not support variable length keys"));
         return (db->set_error(HAM_INV_KEYSIZE));
     }

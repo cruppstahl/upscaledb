@@ -18,6 +18,8 @@
 #define HAM_ENV_H__
 
 #include "internal_fwd_decl.h"
+
+#include <map>
 #include <string>
 
 #include <ham/hamsterdb.h>
@@ -120,14 +122,15 @@ typedef struct db_indexdata_t db_indexdata_t;
     (sizeof(env_header_t)+                                                  \
      (env)->get_max_databases()*sizeof(db_indexdata_t))
 
-class Worker;
-
 /**
  * the Environment structure
  */
 class Environment
 {
   public:
+    /** A map of all opened Databases */
+    typedef std::map<ham_u16_t, Database *> DatabaseMap;
+
     /** default constructor initializes all members */
     Environment();
 
@@ -372,16 +375,6 @@ class Environment
         m_flags=flags;
     }
 
-    /** get the linked list of all open databases */
-    Database *get_databases() {
-        return (m_databases);
-    }
-
-    /** set the linked list of all open databases */
-    void set_databases(Database *db) {
-        m_databases=db;
-    }
-
     /** get the current changeset */
     Changeset &get_changeset() {
         return (m_changeset);
@@ -563,6 +556,12 @@ class Environment
       return (m_mutex);
     }
 
+    /** get the Database Map */
+    /* TODO make this private */
+    DatabaseMap &get_database_map() {
+      return (m_database_map);
+    }
+
   private:
     /** a mutex for this Environment */
     Mutex m_mutex;
@@ -578,6 +577,9 @@ class Environment
 
     /** the user-provided context data */
     void *m_context;
+
+    /** a map of all opened Databases */
+    DatabaseMap m_database_map;
 
     /** the device (either a file or an in-memory-db) */
     Device *m_device;
@@ -609,9 +611,6 @@ class Environment
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t m_flags;
-
-    /** a linked list of all open databases */
-    Database *m_databases;
 
     /** the changeset - a list of all pages that were modified during
      * one database operation */

@@ -62,9 +62,6 @@ namespace ham {
 /* the size of an index data */
 #define DB_INDEX_SIZE                   sizeof(db_indexdata_t) /* 32 */
 
-/** get the key size */
-#define db_get_keysize(db)              ((db)->get_backend()->get_keysize())
-
 /** get the (non-persisted) flags of a key */
 #define ham_key_get_intflags(key)       (key)->_flags
 
@@ -138,7 +135,7 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 class Database
 {
   public:
-    Database(Environment *env, ham_u16_t flags);
+    Database(Environment *env, ham_u16_t name, ham_u16_t flags);
 
     virtual ~Database() {
     }
@@ -174,7 +171,7 @@ class Database
     virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags) = 0;
 
     /** clone a cursor */
-    virtual Cursor *cursor_clone(Cursor *src);
+    Cursor *cursor_clone(Cursor *src);
 
     /** insert a key with a cursor */
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
@@ -204,10 +201,10 @@ class Database
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags) = 0;
 
     /** close a cursor */
-    virtual void cursor_close(Cursor *cursor);
+    void cursor_close(Cursor *cursor);
 
     /** close the Database */
-    virtual ham_status_t close(ham_u32_t flags) = 0;
+    ham_status_t close(ham_u32_t flags);
 
     /** get the last error code */
     ham_status_t get_error() {
@@ -290,16 +287,6 @@ class Database
         return (m_env);
     }
 
-    /** get the next database in a linked list of databases */
-    Database *get_next() {
-        return (m_next);
-    }
-
-    /** set the pointer to the next database */
-    void set_next(Database *next) {
-        m_next = next;
-    }
-
     /** get the cache for extended keys */
     ExtKeyCache *get_extkey_cache() {
         return (m_extkey_cache);
@@ -336,10 +323,22 @@ class Database
     }
 
     /** get the database name */
-    ham_u16_t get_name();
+    ham_u16_t get_name() {
+        return (m_name);
+    }
+
+    /** set the database name */
+    void set_name(ham_u16_t name) {
+        m_name = name;
+    }
 
     /** remove an extendex key from the cache and the blob */
     ham_status_t remove_extkey(ham_offset_t blobid);
+
+    /** get the key size */
+    ham_u16_t get_keysize() {
+        return (get_backend()->get_keysize());
+    }
 
     /**
      * function which compares two keys
@@ -367,15 +366,15 @@ class Database
         if (prefoo) {
             ham_size_t lhsprefixlen, rhsprefixlen;
             if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-                lhsprefixlen = db_get_keysize(this)-sizeof(ham_offset_t);
+                lhsprefixlen = get_keysize() - sizeof(ham_offset_t);
             else
                 lhsprefixlen = lhs->size;
             if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-                rhsprefixlen = db_get_keysize(this)-sizeof(ham_offset_t);
+                rhsprefixlen = get_keysize() - sizeof(ham_offset_t);
             else
                 rhsprefixlen = rhs->size;
 
-            cmp=prefoo((::ham_db_t *)this,
+            cmp = prefoo((::ham_db_t *)this,
                         (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size,
                         (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
             if (cmp <- 1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
@@ -471,8 +470,14 @@ class Database
     /** close a cursor; this is the actual implementation */
     virtual void cursor_close_impl(Cursor *c) = 0;
 
+    /** close a database; this is the actual implementation */
+    virtual ham_status_t close_impl(ham_u32_t flags) = 0;
+
     /** the environment of this database - can be NULL */
     Environment *m_env;
+
+    /** the Database name */
+    ham_u16_t m_name;
 
     /** the last error code */
     ham_status_t m_error;
@@ -481,31 +486,34 @@ class Database
     void *m_context;
 
     /** the backend pointer - btree, hashtable etc */
+    /* TODO move to LocalDatabase */
     Backend *m_backend;
 
     /** linked list of all cursors */
     Cursor *m_cursors;
 
     /** the prefix-comparison function */
+    /* TODO move to LocalDatabase */
     ham_prefix_compare_func_t m_prefix_func;
 
     /** the comparison function */
+    /* TODO move to LocalDatabase */
     ham_compare_func_t m_cmp_func;
 
     /** the database flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t m_rt_flags;
 
-    /** the next database in a linked list of databases */
-    Database *m_next;
-
     /** the cache for extended keys */
+    /* TODO move to LocalDatabase or Btree */
     ExtKeyCache *m_extkey_cache;
 
     /** the offset of this database in the environment _indexdata */
+    /* TODO move to LocalDatabase */
     ham_u16_t m_indexdata_offset;
 
     /** the transaction tree */
+    /* TODO move to LocalDatabase */
     TransactionTree m_optree;
 
     /** this is where key->data points to when returning a
@@ -523,8 +531,8 @@ class Database
 class LocalDatabase : public Database
 {
   public:
-    LocalDatabase(Environment *env, ham_u16_t flags)
-        : Database(env, flags), m_recno(0) {
+    LocalDatabase(Environment *env, ham_u16_t name, ham_u16_t flags)
+        : Database(env, name, flags), m_recno(0) {
     }
 
     /** opens a Database */
@@ -581,9 +589,6 @@ class LocalDatabase : public Database
     virtual ham_status_t cursor_move(Cursor *cursor,
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
-    /** close the Database */
-    virtual ham_status_t close(ham_u32_t flags);
-
     /** returns the next record number */
     ham_u64_t get_incremented_recno() {
       return (++m_recno);
@@ -595,6 +600,9 @@ class LocalDatabase : public Database
 
     /** close a cursor; this is the actual implementation */
     virtual void cursor_close_impl(Cursor *c);
+
+    /** closes a database; this is the actual implementation */
+    virtual ham_status_t close_impl(ham_u32_t flags);
 
   private:
     /** the current record number */
@@ -609,8 +617,8 @@ class LocalDatabase : public Database
 class RemoteDatabase : public Database
 {
   public:
-    RemoteDatabase(Environment *env, ham_u16_t flags)
-      : Database(env, flags), m_remote_handle(0) {
+    RemoteDatabase(Environment *env, ham_u16_t name, ham_u16_t flags)
+      : Database(env, name, flags), m_remote_handle(0) {
     }
 
     /** get Database parameters */
@@ -664,9 +672,6 @@ class RemoteDatabase : public Database
     virtual ham_status_t cursor_move(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
 
-    /** close the Database */
-    virtual ham_status_t close(ham_u32_t flags);
-
     /** get the remote database handle */
     ham_u64_t get_remote_handle() {
         return (m_remote_handle);
@@ -683,6 +688,9 @@ class RemoteDatabase : public Database
 
     /** close a cursor; this is the actual implementation */
     virtual void cursor_close_impl(Cursor *c);
+
+    /** close a database; this is the actual implementation */
+    virtual ham_status_t close_impl(ham_u32_t flags);
 
   private:
     /** the remote database handle */

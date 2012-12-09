@@ -153,7 +153,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     if (rec.size > max_rec_size)
       max_rec_size = rec.size;
 
-    if (key.size > db_get_keysize((ham::Database *)db))
+    if (key.size > ((ham::Database *)db)->get_keysize())
       ext_keys++;
 
     total_key_size += key.size;

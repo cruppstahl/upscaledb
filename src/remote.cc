@@ -460,7 +460,8 @@ _remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
     return (st);
   }
 
-  RemoteDatabase *rdb = new RemoteDatabase(env, reply->env_create_db_reply().db_flags());
+  RemoteDatabase *rdb = new RemoteDatabase(env, dbname,
+          reply->env_create_db_reply().db_flags());
 
   rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
   *pdb = rdb;
@@ -471,8 +472,7 @@ _remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  (*pdb)->set_next(env->get_databases());
-  env->set_databases((*pdb));
+  env->get_database_map()[dbname] = *pdb;
 
   return (0);
 }
@@ -511,7 +511,8 @@ _remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
     return (st);
   }
 
-  RemoteDatabase *rdb = new RemoteDatabase(env, reply->env_open_db_reply().db_flags());
+  RemoteDatabase *rdb = new RemoteDatabase(env, dbname,
+          reply->env_open_db_reply().db_flags());
   rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
   *pdb = rdb;
 
@@ -521,8 +522,7 @@ _remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  (*pdb)->set_next(env->get_databases());
-  env->set_databases((*pdb));
+  env->get_database_map()[dbname] = *pdb;
 
   return (0);
 }
@@ -1303,34 +1303,20 @@ RemoteDatabase::cursor_close_impl(Cursor *cursor)
 }
 
 ham_status_t
-RemoteDatabase::close(ham_u32_t flags)
+RemoteDatabase::close_impl(ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
   Protocol *reply = 0;
-
-  /* auto-cleanup cursors?  */
-  if (flags & HAM_AUTO_CLEANUP) {
-    Cursor *cursor = get_cursors();
-    while ((cursor = get_cursors()))
-      cursor_close(cursor);
-  }
-  else if (get_cursors())
-    return (HAM_CURSOR_STILL_OPEN);
 
   Protocol request(Protocol::DB_CLOSE_REQUEST);
   request.mutable_db_close_request()->set_db_handle(get_remote_handle());
   request.mutable_db_close_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = _perform_request(m_env, m_env->get_curl(), &request, &reply);
   if (st) {
     delete reply;
     return (st);
   }
-
-  /* free cached memory */
-  get_key_arena().clear();
-  get_record_arena().clear();
 
   ham_assert(reply != 0);
   ham_assert(reply->has_db_close_reply());
@@ -1338,22 +1324,6 @@ RemoteDatabase::close(ham_u32_t flags)
   st = reply->db_close_reply().status();
   if (st == 0)
     set_remote_handle(0);
-
-  /* remove this database from the environment */
-  Database *prev = 0;
-  Database *head = env->get_databases();
-  while (head) {
-    if (head == this) {
-      if (!prev)
-        env->set_databases(get_next());
-      else
-        prev->set_next(get_next());
-      break;
-    }
-    prev = head;
-    head = head->get_next();
-  }
-  m_env = 0;
 
   delete reply;
   return (st);

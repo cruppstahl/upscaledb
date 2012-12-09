@@ -104,7 +104,7 @@ class DeviceImplementation {
 
     /** sets the pagesize */
     void set_pagesize(ham_size_t ps) {
-      m_pagesize=ps;
+      m_pagesize = ps;
     }
 
     /** gets the pagesize */

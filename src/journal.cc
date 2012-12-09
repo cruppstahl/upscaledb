@@ -429,28 +429,16 @@ Journal::close(bool noclear)
 static ham_status_t
 __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
 {
-  ham_status_t st;
-
   /* first check if the Database is already open */
-  Database *db = env->get_databases();
-  while (db) {
-    ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(
-                            db->get_indexdata_offset()));
-    if (dbname == name) {
-      *pdb = db;
-      return (0);
-    }
-    db = db->get_next();
+  Environment::DatabaseMap::iterator it = env->get_database_map().find(dbname);
+  if (it != env->get_database_map().end()) {
+    *pdb = it->second;
+    return (0);
   }
 
   /* not found - open it */
-  st = ham_env_open_db((ham_env_t *)env, (ham_db_t **)&db, dbname,
-                    HAM_DONT_LOCK, 0);
-  if (st)
-    return (st);
-
-  *pdb = db;
-  return (0);
+  return (ham_env_open_db((ham_env_t *)env, (ham_db_t **)pdb, dbname,
+                    HAM_DONT_LOCK, 0));
 }
 
 static void
@@ -472,10 +460,11 @@ static ham_status_t
 __close_all_databases(Environment *env)
 {
   ham_status_t st = 0;
-  Database *db;
 
-  while ((db = env->get_databases())) {
-    st = ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+  Environment::DatabaseMap::iterator it = env->get_database_map().begin();
+  while (it != env->get_database_map().end()) {
+    Environment::DatabaseMap::iterator it2 = it; it++;
+    st = ham_db_close((ham_db_t *)it2->second, HAM_DONT_LOCK);
     if (st) {
       ham_log(("ham_db_close() failed w/ error %d (%s)", st, ham_strerror(st)));
       return (st);

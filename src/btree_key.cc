@@ -32,7 +32,7 @@ ham_offset_t
 BtreeKey::get_extended_rid(Database *db)
 {
   ham_offset_t rid;
-  memcpy(&rid, get_key() + (db_get_keysize(db) - sizeof(ham_offset_t)),
+  memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_offset_t)),
           sizeof(rid));
   return (ham_db2h_offset(rid));
 }
@@ -41,7 +41,7 @@ void
 BtreeKey::set_extended_rid(Database *db, ham_offset_t rid)
 {
   rid = ham_h2db_offset(rid);
-  memcpy(get_key() + (db_get_keysize(db) - sizeof(ham_offset_t)),
+  memcpy(get_key() + (db->get_keysize() - sizeof(ham_offset_t)),
           &rid, sizeof(rid));
 }
 

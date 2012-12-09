@@ -59,13 +59,15 @@ struct FreelistEntry {
 class Freelist
 {
   public:
-
     /** constructor */
     Freelist(Environment *env)
       : m_env(env) { }
 
     /** destructor */
-    ~Freelist() { flush_statistics(); }
+    ~Freelist() {
+        if (m_entries.size() > 0)
+            flush_statistics();
+    }
 
     /**
      * mark an area in the file as "free"

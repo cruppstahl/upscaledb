@@ -127,11 +127,6 @@ public:
     BFC_ASSERT(0!=m_dbp->get_rt_flags());
 
     BFC_ASSERT(m_dbp->get_env() != 0);
-
-    BFC_ASSERT_EQUAL((void *)0, m_dbp->get_next());
-    m_dbp->set_next((Database *)40);
-    BFC_ASSERT_EQUAL((Database *)40, m_dbp->get_next());
-    m_dbp->set_next((Database *)0);
   }
 
   void envStructureTest() {
@@ -149,7 +144,6 @@ public:
     env->set_device((Device *)0x00);
     env->set_cache((Cache *)0x00);
     env->set_flags(0);
-    env->set_databases(0);
     env->set_header_page(0);
 
     delete env;
@@ -298,7 +292,7 @@ public:
 
     BFC_ASSERT(compare_sizes(OFFSETOF(BtreeNode, _entries), 28));
     Page page;
-    LocalDatabase db((Environment *)m_env, 0);
+    LocalDatabase db((Environment *)m_env, 1, 0);
     BtreeBackend be(&db, 0);
 
     page.set_self(1000);
