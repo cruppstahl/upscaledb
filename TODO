@@ -105,9 +105,6 @@ x DatabaseImplementation: get rid of these, they are no longer required
     x remove static/global functions
         x remove ONLY_FROM_CACHE
 
-btree refactoring: reimplement extended keys; then get rid of the prefix compare function, and have the compare function ONLY return -1, 0, +1 (and no status
- codes)
-
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
@@ -118,7 +115,7 @@ o review usage of mmap; when opening, should we just map the whole file into
     o DeviceImplDisk::read_page: if page is mapped then simply return a
         pointer
     o Cache::purge_max20: do not purge mmapped caches (use madvice if page
-        is old enough?)
+        is old enough (MADV_DONTNEED))
     o Environment: do not fallback to read/write if mmap fails
 
 o need the ham_export tool in THIS release - and make sure that it's linked
@@ -132,6 +129,8 @@ o need the ham_export tool in THIS release - and make sure that it's linked
 . remove backend.h, directly use BtreeBackend
     o rename to Btree??
     o also clean up, i.e. remove do_close, set_active etc
+    o the whole btree backend should use a LocalDatabase instead of a
+        Database pointer (and try to remove some of the TODOs in db.h)
 
 . move Extended Keys to backend/btree_extkeys
     o also try to remove the cache and use boost::unsorted_map
