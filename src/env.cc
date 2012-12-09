@@ -131,16 +131,15 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_status_t
 env_fetch_page(Page **page_ref, Environment *env,
-        ham_offset_t address, ham_u32_t flags)
+        ham_offset_t address, bool only_from_cache)
 {
-    return (db_fetch_page_impl(page_ref, env, 0, address, flags));
+    return (db_fetch_page_impl(page_ref, env, 0, address, only_from_cache));
 }
 
 ham_status_t
-env_alloc_page(Page **page_ref, Environment *env,
-                ham_u32_t type, ham_u32_t flags)
+env_alloc_page(Page **page, Environment *env, ham_u32_t type, ham_u32_t flags)
 {
-    return (db_alloc_page_impl(page_ref, env, 0, type, flags));
+    return (db_alloc_page_impl(page, env, 0, type, flags));
 }
 
 static ham_status_t
@@ -914,11 +913,11 @@ _local_fun_create_db(Environment *env, Database **pdb,
     /* set the default key compare functions */
     // TODO move to Database::create
     if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
-        (*pdb)->set_compare_func(db_default_recno_compare);
+        (*pdb)->set_compare_func(Database::default_recno_compare);
     }
     else {
-        (*pdb)->set_compare_func(db_default_compare);
-        (*pdb)->set_prefix_compare_func(db_default_prefix_compare);
+        (*pdb)->set_compare_func(Database::default_compare);
+        (*pdb)->set_prefix_compare_func(Database::default_prefix_compare);
     }
     env->set_dirty(true);
 
@@ -1026,11 +1025,11 @@ _local_fun_open_db(Environment *env, Database **pdb,
     /* set the compare functions */
     // TODO move to Database::open
     if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
-        (*pdb)->set_compare_func(db_default_recno_compare);
+        (*pdb)->set_compare_func(Database::default_recno_compare);
     }
     else {
-        (*pdb)->set_compare_func(db_default_compare);
-        (*pdb)->set_prefix_compare_func(db_default_prefix_compare);
+        (*pdb)->set_compare_func(Database::default_compare);
+        (*pdb)->set_prefix_compare_func(Database::default_prefix_compare);
     }
 
     /* open the database */

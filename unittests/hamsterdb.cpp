@@ -1233,7 +1233,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_db_set_compare_func(m_db, f));
     BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_compare_func());
 
-    f = db_default_compare;
+    f = Database::default_compare;
     BFC_ASSERT_EQUAL(0, ham_db_set_compare_func(m_db, 0));
     BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_compare_func());
   }

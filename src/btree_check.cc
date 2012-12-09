@@ -45,7 +45,7 @@ class BtreeCheckAction
       ham_assert(m_backend->get_rootpage() != 0);
 
       /* get the root page of the tree */
-      ham_status_t st = db_fetch_page(&page, db, m_backend->get_rootpage(), 0);
+      ham_status_t st = db->fetch_page(&page, m_backend->get_rootpage());
       if (st)
         return (st);
 
@@ -62,7 +62,7 @@ class BtreeCheckAction
 
         /* follow the pointer to the smallest child */
         if (ptr_left) {
-          st = db_fetch_page(&page, db, ptr_left, 0);
+          st = db->fetch_page(&page, ptr_left);
           if (st)
             return (st);
         }
@@ -109,7 +109,7 @@ class BtreeCheckAction
         /* get the right sibling */
         BtreeNode *node = BtreeNode::from_page(page);
         if (node->get_right()) {
-          st = db_fetch_page(&child, db, node->get_right(), 0);
+          st = db->fetch_page(&child, node->get_right());
           if (st)
             return (st);
         }

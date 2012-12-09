@@ -603,7 +603,7 @@ BtreeCursor::move_first(ham_u32_t flags)
   /* get the root page */
   if (!be->get_rootpage())
     return (HAM_KEY_NOT_FOUND);
-  st = db_fetch_page(&page, db, be->get_rootpage(), 0);
+  st = db->fetch_page(&page, be->get_rootpage());
   if (st)
     return (st);
 
@@ -620,7 +620,7 @@ BtreeCursor::move_first(ham_u32_t flags)
     if (node->is_leaf())
       break;
 
-    st=db_fetch_page(&page, db, node->get_ptr_left(), 0);
+    st = db->fetch_page(&page, node->get_ptr_left());
     if (st)
       return (st);
   }
@@ -694,7 +694,7 @@ BtreeCursor::move_next(ham_u32_t flags)
 
   page->remove_cursor(get_parent());
 
-  st = db_fetch_page(&page, db, node->get_right(), 0);
+  st = db->fetch_page(&page, node->get_right());
   if (st)
     return (st);
 
@@ -765,7 +765,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
 
     page->remove_cursor(get_parent());
 
-    st = db_fetch_page(&page, db, node->get_left(), 0);
+    st = db->fetch_page(&page, node->get_left());
     if (st)
       return (st);
     node = BtreeNode::from_page(page);
@@ -807,7 +807,7 @@ BtreeCursor::move_last(ham_u32_t flags)
   /* get the root page */
   if (!be->get_rootpage())
     return (HAM_KEY_NOT_FOUND);
-  ham_status_t st = db_fetch_page(&page, db, be->get_rootpage(), 0);
+  ham_status_t st = db->fetch_page(&page, be->get_rootpage());
   if (st)
     return (st);
   /* hack: prior to 2.0, the type of btree root pages was not set
@@ -828,7 +828,7 @@ BtreeCursor::move_last(ham_u32_t flags)
       break;
 
     BtreeKey *key = node->get_key(db, node->get_count() - 1);
-    st = db_fetch_page(&page, db, key->get_ptr(), 0);
+    st = db->fetch_page(&page, key->get_ptr());
     if (st)
       return (st);
   }

@@ -1410,7 +1410,7 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
         lock=ScopedLock(db->get_env()->get_mutex());
 
     db->set_error(0);
-    db->set_compare_func(foo ? foo : db_default_compare);
+    db->set_compare_func(foo ? foo : Database::default_compare);
     return (db->set_error(HAM_SUCCESS));
 }
 

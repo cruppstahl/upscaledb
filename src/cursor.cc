@@ -1187,11 +1187,10 @@ Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
         if (txn_cursor_is_nil(get_txn_cursor())
                 && !(is_nil(0))) {
             st=get_btree_cursor()->uncouple();
-            if (st==0)
-                st=db_insert_txn(m_db, txn,
-                    get_btree_cursor()->get_uncoupled_key(),
-                        record, flags|HAM_OVERWRITE,
-                        get_txn_cursor());
+            if (st == 0)
+                st = ((LocalDatabase *)m_db)->insert_txn(txn,
+                        get_btree_cursor()->get_uncoupled_key(),
+                            record, flags | HAM_OVERWRITE, get_txn_cursor());
         }
         else {
             st=txn_cursor_overwrite(get_txn_cursor(), record);

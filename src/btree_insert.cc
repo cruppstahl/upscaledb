@@ -117,7 +117,7 @@ class BtreeInsertAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      st = db_fetch_page(&page, db, m_hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
+      st = db->fetch_page(&page, m_hints.leaf_page_addr, true);
       if (st)
         return st;
       if (!page)
@@ -195,7 +195,7 @@ class BtreeInsertAction
       Database *db = m_backend->get_db();
 
       /* get the root-page...  */
-      st = db_fetch_page(&root, db, m_backend->get_rootpage(), 0);
+      st = db->fetch_page(&root, m_backend->get_rootpage());
       if (st)
         return (st);
 
@@ -216,7 +216,7 @@ class BtreeInsertAction
       /* allocate a new root page */
       Page *newroot;
       Database *db = m_backend->get_db();
-      ham_status_t st = db_alloc_page(&newroot, db, Page::TYPE_B_ROOT, 0);
+      ham_status_t st = db->alloc_page(&newroot, Page::TYPE_B_ROOT, 0);
       if (st)
         return (st);
       ham_assert(newroot->get_db());
@@ -359,7 +359,7 @@ class BtreeInsertAction
       bool pivot_at_end = false;
 
       /* allocate a new page */
-      ham_status_t st = db_alloc_page(&newpage, db, Page::TYPE_B_INDEX, 0);
+      ham_status_t st = db->alloc_page(&newpage, Page::TYPE_B_INDEX, 0);
       if (st)
         return st;
 
@@ -482,7 +482,7 @@ class BtreeInsertAction
 
       /* fix the double-linked list of pages, and mark the pages as dirty */
       if (obtp->get_right()) {
-        st = db_fetch_page(&oldsib, db, obtp->get_right(), 0);
+        st = db->fetch_page(&oldsib, obtp->get_right());
         if (st)
           goto fail_dramatically;
       }

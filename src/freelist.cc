@@ -534,7 +534,7 @@ Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
         }
         /* otherwise just fetch the page from the cache or the disk */
         else {
-            st=env_fetch_page(&page, m_env, entry->page_id, 0);
+            st=env_fetch_page(&page, m_env, entry->page_id);
             if (st)
                 return (st);
             fp=page_get_freelist(page);

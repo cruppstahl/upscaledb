@@ -106,7 +106,7 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
     if (txn_cursor_conflicts(cursor))
         return (HAM_TXN_CONFLICT);
 
-    return (db_insert_txn(db, txn, txn_opnode_get_key(node),
+    return (((LocalDatabase *)db)->insert_txn(txn, txn_opnode_get_key(node),
                 record, HAM_OVERWRITE, cursor));
 }
 
@@ -342,7 +342,7 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
     Database *db=txn_cursor_get_db(cursor);
     Transaction *txn=txn_cursor_get_parent(cursor)->get_txn();
 
-    return (db_insert_txn(db, txn, key, record, flags, cursor));
+    return (((LocalDatabase *)db)->insert_txn(txn, key, record, flags, cursor));
 }
 
 ham_status_t
@@ -470,7 +470,8 @@ txn_cursor_erase(txn_cursor_t *cursor)
             if (st)
                 return (st);
         }
-        st=db_erase_txn(db, txn, btc->get_uncoupled_key(), 0, cursor);
+        st=((LocalDatabase *)db)->erase_txn(txn, btc->get_uncoupled_key(),
+                            0, cursor);
         if (st)
             return (st);
     }
@@ -478,7 +479,8 @@ txn_cursor_erase(txn_cursor_t *cursor)
     else {
         op=txn_cursor_get_coupled_op(cursor);
         node=txn_op_get_node(op);
-        st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0, cursor);
+        st=((LocalDatabase *)db)->erase_txn(txn, txn_opnode_get_key(node),
+                0, cursor);
         if (st)
             return (st);
     }

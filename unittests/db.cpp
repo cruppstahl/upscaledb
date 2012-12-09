@@ -150,57 +150,57 @@ public:
   }
 
   void defaultCompareTest() {
-    BFC_ASSERT_EQUAL( 0,  db_default_compare(0,
+    BFC_ASSERT_EQUAL( 0, Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"abc", 3));
-    BFC_ASSERT_EQUAL(-1, db_default_compare(0,
+    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
             (ham_u8_t *)"ab",  2, (ham_u8_t *)"abc", 3));
-    BFC_ASSERT_EQUAL(-1, db_default_compare(0,
+    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"bcd", 3));
-    BFC_ASSERT_EQUAL(+1, db_default_compare(0,
+    BFC_ASSERT_EQUAL(+1, Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)0,   0));
-    BFC_ASSERT_EQUAL(-1, db_default_compare(0,
+    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
             (ham_u8_t *)0,   0, (ham_u8_t *)"abc", 3));
   }
 
   void defaultPrefixCompareTest() {
     BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"abc", 3, 3));
     // comparison code has become 'smarter' so can resolve this one 
     // without the need for further help
     BFC_ASSERT_EQUAL(-1,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 2,
             (ham_u8_t *)"abc", 3, 3));
     BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 3,
             (ham_u8_t *)"abc", 3, 3));
     BFC_ASSERT_EQUAL(-1,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"bcd", 3, 3));
     // comparison code has become 'smarter' so can resolve this 
     // one without the need for further help
     BFC_ASSERT_EQUAL(+1,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 0));
     BFC_ASSERT_EQUAL(-1,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 0,
             (ham_u8_t *)"abc", 3, 3));
     BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 3));
     BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 3,
             (ham_u8_t *)"abc", 3, 3));
     BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
-        db_default_prefix_compare(0,
+        Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 80239,
             (ham_u8_t *)"abc", 3, 2));
   }
@@ -208,7 +208,7 @@ public:
   void allocPageTest() {
     Page *page;
     BFC_ASSERT_EQUAL(0,
-        db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
+        m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
     BFC_ASSERT_EQUAL(m_dbp, page->get_db());
     BFC_ASSERT_EQUAL(0, page->free());
     ((Environment *)m_env)->get_cache()->remove_page(page);
@@ -218,10 +218,9 @@ public:
   void fetchPageTest() {
     Page *p1, *p2;
     BFC_ASSERT_EQUAL(0,
-        db_alloc_page(&p1, m_dbp, 0, PAGE_IGNORE_FREELIST));
+        m_dbp->alloc_page(&p1, 0, PAGE_IGNORE_FREELIST));
     BFC_ASSERT_EQUAL(m_dbp, p1->get_db());
-    BFC_ASSERT_EQUAL(0,
-        db_fetch_page(&p2, m_dbp, p1->get_self(), 0));
+    BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&p2, p1->get_self()));
     BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
     BFC_ASSERT_EQUAL(0, p1->free());
     ((Environment *)m_env)->get_cache()->remove_page(p1);
@@ -233,8 +232,7 @@ public:
     ham_offset_t address;
     ham_u8_t *p;
 
-    BFC_ASSERT_EQUAL(0,
-        db_alloc_page(&page, m_dbp, 0, PAGE_IGNORE_FREELIST));
+    BFC_ASSERT_EQUAL(0, m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
 
     BFC_ASSERT_EQUAL(m_dbp, page->get_db());
     p = page->get_raw_payload();
@@ -247,7 +245,7 @@ public:
     ((Environment *)m_env)->get_cache()->remove_page(page);
     delete page;
 
-    BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_dbp, address, 0));
+    BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&page, address));
     BFC_ASSERT(page != 0);
     BFC_ASSERT_EQUAL(address, page->get_self());
     p = page->get_raw_payload();

@@ -90,7 +90,7 @@ class BtreeEraseAction
         m_backend->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }
-      ham_status_t st = db_fetch_page(&root, db, rootaddr, 0);
+      ham_status_t st = db->fetch_page(&root, rootaddr);
       if (st)
         return (st);
 
@@ -310,7 +310,7 @@ free_all:
           if (!left)
             next_left = 0;
           else {
-            st = db_fetch_page(&tempp, db, left, 0);
+            st = db->fetch_page(&tempp, left);
             if (st)
               return (st);
             BtreeNode *n = BtreeNode::from_page(tempp);
@@ -333,7 +333,7 @@ free_all:
           if (!right)
             next_right = 0;
           else {
-            st = db_fetch_page(&tempp, db, right, 0);
+            st = db->fetch_page(&tempp, right);
             if (st)
               return (st);
             BtreeNode *n = BtreeNode::from_page(tempp);
@@ -415,7 +415,7 @@ free_all:
 
       /* get the left and the right sibling of this page */
       if (left) {
-        st = db_fetch_page(&leftpage, page->get_db(), node->get_left(), 0);
+        st = page->get_db()->fetch_page(&leftpage, node->get_left());
         if (st)
           return (st);
         if (leftpage) {
@@ -424,7 +424,7 @@ free_all:
         }
       }
       if (right) {
-        st = db_fetch_page(&rightpage, page->get_db(), node->get_right(), 0);
+        st = page->get_db()->fetch_page(&rightpage, node->get_right());
         if (st)
           return (st);
         if (rightpage) {
@@ -438,8 +438,7 @@ free_all:
         if (node->is_leaf())
           return (0);
         else
-          return (db_fetch_page(newpage_ref, page->get_db(),
-                                  node->get_ptr_left(), 0));
+          return (page->get_db()->fetch_page(newpage_ref, node->get_ptr_left()));
       }
 
       /*
@@ -506,7 +505,7 @@ free_all:
       BtreeNode *sibnode = BtreeNode::from_page(sibpage);
       ham_size_t keysize = m_backend->get_keysize();
       bool intern  = !node->is_leaf();
-      ham_status_t st = db_fetch_page(&ancpage, db, anchor, 0);
+      ham_status_t st = db->fetch_page(&ancpage, anchor);
       if (st)
         return (st);
       BtreeNode *ancnode = BtreeNode::from_page(ancpage);
@@ -818,7 +817,7 @@ cleanup:
       *newpage_ref = 0;
 
       if (anchor) {
-        st = db_fetch_page(&ancpage, page->get_db(), anchor, 0);
+        st = page->get_db()->fetch_page(&ancpage, anchor);
         if (st)
           return (st);
         ancnode = BtreeNode::from_page(ancpage);
@@ -877,7 +876,7 @@ cleanup:
         if (sibnode->get_left()) {
           Page *p;
 
-          st=db_fetch_page(&p, page->get_db(), sibnode->get_left(), 0);
+          st = page->get_db()->fetch_page(&p, sibnode->get_left());
           if (st)
             return (st);
           BtreeNode *n = BtreeNode::from_page(p);
@@ -892,7 +891,7 @@ cleanup:
         if (sibnode->get_right()) {
           Page *p;
 
-          st=db_fetch_page(&p, page->get_db(), sibnode->get_right(), 0);
+          st = page->get_db()->fetch_page(&p, sibnode->get_right());
           if (st)
             return (st);
           BtreeNode *n = BtreeNode::from_page(p);

@@ -61,7 +61,7 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        st = db_fetch_page(&page, db, hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
+        st = db->fetch_page(&page, hints.leaf_page_addr, true);
         if (st == 0 && page) {
           node = BtreeNode::from_page(page);
           ham_assert(node->is_leaf());
@@ -90,7 +90,7 @@ class BtreeFindAction
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
-        st = db_fetch_page(&page, db, m_backend->get_rootpage(), 0);
+        st = db->fetch_page(&page, m_backend->get_rootpage());
         if (st)
           return (st);
 
@@ -158,7 +158,7 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db_fetch_page(&page, db, node->get_left(), 0);
+              st = db->fetch_page(&page, node->get_left());
               if (st)
                 return (st);
               node = BtreeNode::from_page(page);
@@ -179,7 +179,7 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db_fetch_page(&page, db, node->get_right(), 0);
+              st = db->fetch_page(&page, node->get_right());
               if (st)
                 return (st);
               node = BtreeNode::from_page(page);
@@ -231,7 +231,7 @@ class BtreeFindAction
                       return (HAM_KEY_NOT_FOUND);
                     }
 
-                    st = db_fetch_page(&page, db, node->get_right(), 0);
+                    st = db->fetch_page(&page, node->get_right());
                     if (st)
                       return (st);
                     node = BtreeNode::from_page(page);
@@ -246,7 +246,7 @@ class BtreeFindAction
                 }
               }
               else {
-                st = db_fetch_page(&page, db, node->get_left(), 0);
+                st = db->fetch_page(&page, node->get_left());
                 if (st)
                   return (st);
                 node = BtreeNode::from_page(page);
@@ -268,7 +268,7 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db_fetch_page(&page, db, node->get_right(), 0);
+              st = db->fetch_page(&page, node->get_right());
               if (st)
                 return (st);
               node = BtreeNode::from_page(page);

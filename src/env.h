@@ -652,7 +652,7 @@ class Environment
  */
 extern ham_status_t
 env_fetch_page(Page **page_ref, Environment *env,
-        ham_offset_t address, ham_u32_t flags);
+        ham_offset_t address, bool only_from_cache = false);
 
 /**
  * allocate a page.

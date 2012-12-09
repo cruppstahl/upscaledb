@@ -248,12 +248,12 @@ public:
     unsigned int max_pages = HAM_DEFAULT_CACHESIZE / (1024 * 128);
     unsigned int i;
     for (i = 0; i < max_pages; i++)
-      BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], (Database *)m_db, 0, 0));
+      BFC_ASSERT_EQUAL(0, ((Database *)m_db)->alloc_page(&p[i], 0, 0));
 
     BFC_ASSERT_EQUAL(HAM_CACHE_FULL,
-      db_alloc_page(&p[i], (Database *)m_db, 0, 0));
+        ((Database *)m_db)->alloc_page(&p[i], 0, 0));
     BFC_ASSERT_EQUAL(0, env_purge_cache((Environment *)m_env));
-    BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], (Database *)m_db, 0, 0));
+    BFC_ASSERT_EQUAL(0, ((Database *)m_db)->alloc_page(&p[i], 0, 0));
   }
 
   void setSizeEnvCreateTest() {

@@ -74,6 +74,16 @@ namespace ham {
  */
 #define ham_key_set_intflags(key, f)    (key)->_flags=(f)
 
+/** An internal database flag - use mmap instead of read(2).  */
+#define DB_USE_MMAP                  0x00000100
+
+/** An internal database flag - env handle is remote */
+#define DB_IS_REMOTE                 0x00200000
+
+#define PAGE_IGNORE_FREELIST          8
+
+#define PAGE_CLEAR_WITH_ZERO         16
+
 
 #include "packstart.h"
 
@@ -463,6 +473,71 @@ class Database
         return (HAM_SUCCESS);
     }
 
+    /**
+     * default comparison function for two keys, implemented with memcmp
+     *
+     * @return -1, 0, +1 or higher positive values are the result of a
+     *    successful key comparison (0 if both keys match, -1 when LHS < RHS
+     *    key, +1 when LHS > RHS key).
+     *
+     * @return values less than -1 are @ref ham_status_t error codes and
+     *    indicate a failed comparison execution
+     */
+    static int HAM_CALLCONV
+    default_compare(ham_db_t *db,
+                const ham_u8_t *lhs, ham_size_t lhs_length,
+                const ham_u8_t *rhs, ham_size_t rhs_length);
+
+    /**
+     * compare two recno-keys
+     *
+     * @return -1, 0, +1 or higher positive values are the result of a
+     *    successful key comparison (0 if both keys match, -1 when LHS < RHS
+     *    key, +1 when LHS > RHS key).
+     *
+     * @return values less than -1 are @ref ham_status_t error codes and
+     *    indicate a failed comparison execution
+     */
+    static int HAM_CALLCONV
+    default_recno_compare(ham_db_t *db,
+                const ham_u8_t *lhs, ham_size_t lhs_length,
+                const ham_u8_t *rhs, ham_size_t rhs_length);
+
+    /**
+     * the default prefix compare function - uses memcmp
+     *
+     * @return -1, 0, +1 or higher positive values are the result of a
+     *    successful key comparison (0 if both keys match, -1 when LHS < RHS
+     *    key, +1 when LHS > RHS key).
+     *
+     * @return values less than -1 are @ref ham_status_t error codes and
+     *    indicate a failed comparison execution
+     */
+    static int HAM_CALLCONV
+    default_prefix_compare(ham_db_t *db,
+                const ham_u8_t *lhs, ham_size_t lhs_length,
+                ham_size_t lhs_real_length,
+                const ham_u8_t *rhs, ham_size_t rhs_length,
+                ham_size_t rhs_real_length);
+
+    /**
+     * Fetches a page. Checks Changeset and Cache for the page; if it's not
+     * found then the page is read from disk 
+     * TODO move to LocalDatabase
+     */
+    ham_status_t fetch_page(Page **page, ham_offset_t address,
+                bool only_from_cache = false);
+
+    /**
+     * Allocate a new page.
+     *
+     * @param flags optional allocation request flags. @a flags can be a mix
+     *        of the following bits:
+     *        - PAGE_IGNORE_FREELIST        ignores all freelist-operations
+     *        - PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
+     */
+    ham_status_t alloc_page(Page **page, ham_u32_t type, ham_u32_t flags);
+
   protected:
     /** clone a cursor; this is the actual implementation */
     virtual Cursor *cursor_clone_impl(Cursor *src) = 0;
@@ -594,6 +669,21 @@ class LocalDatabase : public Database
       return (++m_recno);
     }
 
+    /*
+     * insert a key/record pair in a txn node; if cursor is not NULL it will
+     * be attached to the new txn_op structure
+     * TODO this should be private
+     */
+    ham_status_t insert_txn(Transaction *txn, ham_key_t *key,
+                ham_record_t *record, ham_u32_t flags,
+                struct txn_cursor_t *cursor);
+
+    /*
+     * erase a key/record pair from a txn; on success, cursor will be set to nil
+     */
+    ham_status_t erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
+                struct txn_cursor_t *cursor);
+
   protected:
     /** clone a cursor; this is the actual implementation */
     virtual Cursor *cursor_clone_impl(Cursor *src);
@@ -605,6 +695,18 @@ class LocalDatabase : public Database
     virtual ham_status_t close_impl(ham_u32_t flags);
 
   private:
+    /*
+     * checks if an insert operation conflicts with another txn
+     */
+    ham_status_t check_insert_conflicts(Transaction *txn,
+                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+
+    /*
+     * checks if an erase operation conflicts with another txn
+     */
+    ham_status_t check_erase_conflicts(Transaction *txn,
+                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+
     /** the current record number */
     ham_u64_t m_recno;
 };
@@ -698,111 +800,13 @@ class RemoteDatabase : public Database
 };
 #endif // HAM_ENABLE_REMOTE
 
-/**
- * compare two keys
- *
- * this function will call the prefix-compare function and the
- * default compare function whenever it's necessary.
- *
- * This is the default key compare function, which uses memcmp to compare two keys.
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate
- *         a failed comparison execution: these are listed in
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes
- */
-extern int HAM_CALLCONV
-db_default_compare(ham_db_t *db,
-                    const ham_u8_t *lhs, ham_size_t lhs_length,
-                    const ham_u8_t *rhs, ham_size_t rhs_length);
-
-/**
- * compare two recno-keys
- *
- * this function compares two record numbers
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate
- *         a failed comparison execution: these are listed in
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes
- */
-extern int HAM_CALLCONV
-db_default_recno_compare(ham_db_t *db,
-                    const ham_u8_t *lhs, ham_size_t lhs_length,
-                    const ham_u8_t *rhs, ham_size_t rhs_length);
-
-/**
- * the default prefix compare function - uses memcmp
- *
- * compares the prefix of two keys
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate
- *         a failed comparison execution: these are listed in
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes
- */
-extern int HAM_CALLCONV
-db_default_prefix_compare(ham_db_t *db,
-                    const ham_u8_t *lhs, ham_size_t lhs_length,
-                    ham_size_t lhs_real_length,
-                    const ham_u8_t *rhs, ham_size_t rhs_length,
-                    ham_size_t rhs_real_length);
-
-/**
- * compare two records for a duplicate key
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate
- *         a failed comparison execution: these are listed in
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes
- */
-extern int HAM_CALLCONV
-db_default_dupe_compare(ham_db_t *db,
-                    const ham_u8_t *lhs, ham_size_t lhs_length,
-                    const ham_u8_t *rhs, ham_size_t rhs_length);
-
-/**
- * fetch a page.
- *
- * @param page_ref call-by-reference variable which will be set to
- *      point to the retrieved @ref Page instance.
- * @param db the database handle - if it's not available then please
- *      use env_fetch_page()
- * @param address the storage address (a.k.a. 'RID') where the page is
- *      located in the device store (file, memory, ...).
- * @param flags An optional, bit-wise combined set of the
- *      @ref db_fetch_page_flags flag collection.
- *
- * @return the retrieved page in @a *page_ref and HAM_SUCCESS as a
- *      function return value.
- * @return a NULL value in @a *page_ref and HAM_SUCCESS when the page
- *      could not be retrieved because the set conditions were not be
- *      met (see @ref DB_ONLY_FROM_CACHE)
- * @return one of the @ref ham_status_codes error codes as an error occurred.
+/*
+ * this is an internal function. do not use it unless you know what you're
+ * doing.
  */
 extern ham_status_t
-db_fetch_page(Page **page_ref, Database *db,
-                    ham_offset_t address, ham_u32_t flags);
+db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
+                ham_u32_t type, ham_u32_t flags);
 
 /*
  * this is an internal function. do not use it unless you know what you're
@@ -810,32 +814,12 @@ db_fetch_page(Page **page_ref, Database *db,
  */
 extern ham_status_t
 db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
-                    ham_offset_t address, ham_u32_t flags);
-
-/**
- * @defgroup db_fetch_page_flags @ref db_fetch_page Flags
- * @{
- *
- * These flags can be bitwise-OR mixed with the @ref HAM_HINTS_MASK flags,
- * i.e. the hint bits as listed in @ref ham_hinting_flags
- *
- * @sa ham_hinting_flags
- */
-
-/**
- * Force @ref db_fetch_page to only return a valid @ref Page instance
- * reference when it is still stored in the cache, otherwise a NULL pointer
- * will be returned instead (and no error code)!
- */
-#define DB_ONLY_FROM_CACHE                0x0002
-
-/**
- * @}
- */
-
+                    ham_offset_t address, bool only_from_cache);
 
 /**
  * Flush all pages, and clear the cache.
+ *
+ * TODO move to Environment
  *
  * @param flags Set to DB_FLUSH_NODELETE if you do NOT want the cache to
  * be cleared
@@ -845,70 +829,6 @@ extern ham_status_t
 db_flush_all(Cache *cache, ham_u32_t flags);
 
 #define DB_FLUSH_NODELETE       1
-
-/**
- * Allocate a new page.
- *
- * @param page_ref call-by-reference result: will store the @ref Page
- *        instance reference.
- * @param db the database; if the database handle is not available, you
- *        can use env_alloc_page
- * @param type the page type of the new page. See @ref page_type_codes for
- *        a list of supported types.
- * @param flags optional allocation request flags. @a flags can be a mix
- *        of the following bits:
- *        - PAGE_IGNORE_FREELIST        ignores all freelist-operations
- *        - PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
- *
- * @note The page will be aligned at the current page size. Any wasted
- * space (due to the alignment) is added to the freelist.
- */
-extern ham_status_t
-db_alloc_page(Page **page_ref, Database *db,
-                ham_u32_t type, ham_u32_t flags);
-
-/*
- * this is an internal function. do not use it unless you know what you're
- * doing.
- */
-extern ham_status_t
-db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
-                ham_u32_t type, ham_u32_t flags);
-
-#define PAGE_IGNORE_FREELIST          8
-#define PAGE_CLEAR_WITH_ZERO         16
-
-/**
-* @defgroup ham_database_flags
-* @{
-*/
-
-/** An internal database flag - use mmap instead of read(2).  */
-#define DB_USE_MMAP                  0x00000100
-
-/** An internal database flag - env handle is remote */
-#define DB_IS_REMOTE                 0x00200000
-
-/**
- * @}
- */
-
-/*
- * insert a key/record pair in a txn node; if cursor is not NULL it will
- * be attached to the new txn_op structure
- */
-struct txn_cursor_t;
-extern ham_status_t
-db_insert_txn(Database *db, Transaction *txn, ham_key_t *key,
-                ham_record_t *record, ham_u32_t flags,
-                struct txn_cursor_t *cursor);
-
-/*
- * erase a key/record pair from a txn; on success, cursor will be set to nil
- */
-extern ham_status_t
-db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
-                struct txn_cursor_t *cursor);
 
 } // namespace ham
 

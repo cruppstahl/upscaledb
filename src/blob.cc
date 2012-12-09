@@ -81,9 +81,7 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = env_fetch_page(&page, m_env, pageid,
-                cacheonly ? DB_ONLY_FROM_CACHE :
-                    at_blob_edge ? 0 : 0/*DB_NEW_PAGE_DOES_THRASH_CACHE*/);
+        st = env_fetch_page(&page, m_env, pageid, cacheonly);
         /* blob pages don't have a page header */
         if (page)
           page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
@@ -147,11 +145,9 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
      */
     if (!page) {
       if (db)
-        st = db_fetch_page(&page, db, pageid,
-                blob_from_cache(size) ? 0 : DB_ONLY_FROM_CACHE);
+        st = db->fetch_page(&page, pageid, !blob_from_cache(size));
       else
-        st = env_fetch_page(&page, m_env, pageid,
-                blob_from_cache(size) ? 0 : DB_ONLY_FROM_CACHE);
+        st = env_fetch_page(&page, m_env, pageid, !blob_from_cache(size));
       if (st)
         return st;
       /* blob pages don't have a page header */
@@ -292,7 +288,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
      * through the cache
      */
     if (blob_from_cache(alloc_size)) {
-      st = db_alloc_page(&page, db, Page::TYPE_BLOB, PAGE_IGNORE_FREELIST);
+      st = db->alloc_page(&page, Page::TYPE_BLOB, PAGE_IGNORE_FREELIST);
       if (st)
           return (st);
       /* blob pages don't have a page header */

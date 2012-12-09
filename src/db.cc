@@ -133,14 +133,14 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
   BtreeKey *key;
   free_cb_context_t *c;
 
-  c=(free_cb_context_t *)context;
+  c = (free_cb_context_t *)context;
 
   switch (event) {
   case HAM_ENUM_EVENT_DESCEND:
     break;
 
   case HAM_ENUM_EVENT_PAGE_START:
-    c->is_leaf=*(bool *)param2;
+    c->is_leaf = *(bool *)param2;
     break;
 
   case HAM_ENUM_EVENT_PAGE_STOP:
@@ -148,26 +148,24 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
     break;
 
   case HAM_ENUM_EVENT_ITEM:
-    key=(BtreeKey *)param1;
+    key = (BtreeKey *)param1;
 
     if (key->get_flags()&BtreeKey::KEY_IS_EXTENDED) {
-      ham_offset_t blobid=key->get_extended_rid(c->db);
+      ham_offset_t blobid = key->get_extended_rid(c->db);
       /* delete the extended key */
-      st=c->db->remove_extkey(blobid);
+      st = c->db->remove_extkey(blobid);
       if (st)
         return (st);
     }
 
-    if (key->get_flags()&(BtreeKey::KEY_BLOB_SIZE_TINY
-              |BtreeKey::KEY_BLOB_SIZE_SMALL
-              |BtreeKey::KEY_BLOB_SIZE_EMPTY))
+    if (key->get_flags() & (BtreeKey::KEY_BLOB_SIZE_TINY
+              | BtreeKey::KEY_BLOB_SIZE_SMALL
+              | BtreeKey::KEY_BLOB_SIZE_EMPTY))
       break;
 
-    /*
-     * if we're in the leaf page, delete the blob
-     */
+    /* if we're in the leaf page, delete the blob */
     if (c->is_leaf) {
-      st=key->erase_record(c->db, 0, 0, true);
+      st = key->erase_record(c->db, 0, 0, true);
       if (st)
         return (st);
     }
@@ -218,12 +216,12 @@ ham_status_t
 Database::remove_extkey(ham_offset_t blobid)
 {
   if (get_extkey_cache())
-  get_extkey_cache()->remove(blobid);
+    get_extkey_cache()->remove(blobid);
   return (m_env->get_blob_manager()->free(this, blobid, 0));
 }
 
 int HAM_CALLCONV
-db_default_prefix_compare(ham_db_t *db,
+Database::default_prefix_compare(ham_db_t *db,
            const ham_u8_t *lhs, ham_size_t lhs_length,
            ham_size_t lhs_real_length,
            const ham_u8_t *rhs, ham_size_t rhs_length,
@@ -282,14 +280,14 @@ db_default_prefix_compare(ham_db_t *db,
 }
 
 int HAM_CALLCONV
-db_default_compare(ham_db_t *db,
+Database::default_compare(ham_db_t *db,
            const ham_u8_t *lhs, ham_size_t lhs_length,
            const ham_u8_t *rhs, ham_size_t rhs_length)
 {
   (void)db;
 
   /* the default compare uses memcmp. treat shorter strings as "higher" */
-  if (lhs_length<rhs_length) {
+  if (lhs_length < rhs_length) {
     int m = memcmp(lhs, rhs, lhs_length);
     if (m < 0)
       return (-1);
@@ -316,9 +314,9 @@ db_default_compare(ham_db_t *db,
 }
 
 int HAM_CALLCONV
-db_default_recno_compare(ham_db_t *db,
-        const ham_u8_t *lhs, ham_size_t lhs_length,
-        const ham_u8_t *rhs, ham_size_t rhs_length)
+Database::default_recno_compare(ham_db_t *db,
+           const ham_u8_t *lhs, ham_size_t lhs_length,
+           const ham_u8_t *rhs, ham_size_t rhs_length)
 {
   ham_u64_t ulhs, urhs;
 
@@ -505,36 +503,32 @@ done:
 }
 
 ham_status_t
-db_alloc_page(Page **page_ref, Database *db,
-        ham_u32_t type, ham_u32_t flags)
+Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 {
   ham_status_t st;
-  st = db_alloc_page_impl(page_ref, db->get_env(), db, type, flags);
+  st = db_alloc_page_impl(page, m_env, this, type, flags);
   if (st)
     return (st);
 
   /* hack: prior to 2.0, the type of btree root pages was not set
    * correctly */
-  BtreeBackend *be = (BtreeBackend *)db->get_backend();
-  if ((*page_ref)->get_self() == be->get_rootpage()
-      && !(db->get_rt_flags() & HAM_READ_ONLY))
-    (*page_ref)->set_type(Page::TYPE_B_ROOT);
+  BtreeBackend *be = (BtreeBackend *)m_backend;
+  if ((*page)->get_self() == be->get_rootpage()
+      && !((*page)->get_db()->get_rt_flags() & HAM_READ_ONLY))
+    (*page)->set_type(Page::TYPE_B_ROOT);
   return (0);
 }
 
 ham_status_t
 db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
-        ham_offset_t address, ham_u32_t flags)
+            ham_offset_t address, bool only_from_cache)
 {
-  Page *page = 0;
   ham_status_t st;
-
-  ham_assert(0 == (flags & ~(HAM_HINTS_MASK|DB_ONLY_FROM_CACHE)));
 
   *page_ref = 0;
 
   /* fetch the page from the cache */
-  page = env->get_cache()->get_page(address, Cache::NOREMOVE);
+  Page *page = env->get_cache()->get_page(address, Cache::NOREMOVE);
   if (page) {
     *page_ref = page;
     ham_assert(page->get_pers());
@@ -544,7 +538,7 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
     return (HAM_SUCCESS);
   }
 
-  if (flags & DB_ONLY_FROM_CACHE)
+  if (only_from_cache)
     return (HAM_SUCCESS);
 
 #if HAM_DEBUG
@@ -578,10 +572,9 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
 }
 
 ham_status_t
-db_fetch_page(Page **page_ref, Database *db,
-        ham_offset_t address, ham_u32_t flags)
+Database::fetch_page(Page **page, ham_offset_t address, bool only_from_cache)
 {
-  return (db_fetch_page_impl(page_ref, db->get_env(), db, address, flags));
+  return (db_fetch_page_impl(page, m_env, this, address, only_from_cache));
 }
 
 static bool
@@ -792,13 +785,12 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
   }
 }
 
-static ham_status_t
-db_check_insert_conflicts(Database *db, Transaction *txn,
+ham_status_t
+LocalDatabase::check_insert_conflicts(Transaction *txn,
         txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
   ham_status_t st;
   txn_op_t *op = 0;
-  Backend *be = db->get_backend();
 
   /*
    * pick the tree_node of this key, and walk through each operation
@@ -816,7 +808,7 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
     Transaction *optxn = txn_op_get_txn(op);
     if (optxn->is_aborted())
       ; /* nop */
-    else if (optxn->is_committed() || txn==optxn) {
+    else if (optxn->is_committed() || txn == optxn) {
       /* if key was erased then it doesn't exist and can be
        * inserted without problems */
       if (txn_op_get_flags(op) & TXN_OP_FLUSHED)
@@ -857,7 +849,7 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
    */
   if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
     return (0);
-  st = be->find(0, key, 0, flags);
+  st = m_backend->find(0, key, 0, flags);
   if (st == HAM_KEY_NOT_FOUND)
     return (0);
   if (st == HAM_SUCCESS)
@@ -865,12 +857,11 @@ db_check_insert_conflicts(Database *db, Transaction *txn,
   return (st);
 }
 
-static ham_status_t
-db_check_erase_conflicts(Database *db, Transaction *txn,
+ham_status_t
+LocalDatabase::check_erase_conflicts(Transaction *txn,
         txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
   txn_op_t *op = 0;
-  Backend *be = db->get_backend();
 
   /*
    * pick the tree_node of this key, and walk through each operation
@@ -921,7 +912,7 @@ db_check_erase_conflicts(Database *db, Transaction *txn,
    * were no conflicts. Now check all transactions which are already
    * flushed - basically that's identical to a btree lookup.
    */
-  return (be->find(0, key, 0, flags));
+  return (m_backend->find(0, key, 0, flags));
 }
 
 static void
@@ -961,7 +952,7 @@ next:
 }
 
 ham_status_t
-db_insert_txn(Database *db, Transaction *txn, ham_key_t *key,
+LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags,
             struct txn_cursor_t *cursor)
 {
@@ -972,9 +963,9 @@ db_insert_txn(Database *db, Transaction *txn, ham_key_t *key,
   ham_u64_t lsn = 0;
 
   /* get (or create) the node for this key */
-  node = txn_opnode_get(db, key, 0);
+  node = txn_opnode_get(this, key, 0);
   if (!node) {
-    node = txn_opnode_create(db, key);
+    node = txn_opnode_create(this, key);
     if (!node)
       return (HAM_OUT_OF_MEMORY);
     node_created = true;
@@ -983,22 +974,22 @@ db_insert_txn(Database *db, Transaction *txn, ham_key_t *key,
   /* check for conflicts of this key
    *
    * !!
-   * afterwards, clear the changeset; db_check_insert_conflicts() sometimes
+   * afterwards, clear the changeset; check_insert_conflicts() sometimes
    * checks if a key already exists, and this fills the changeset
    */
-  st = db_check_insert_conflicts(db, txn, node, key, flags);
-  db->get_env()->get_changeset().clear();
+  st = check_insert_conflicts(txn, node, key, flags);
+  m_env->get_changeset().clear();
   if (st) {
     if (node_created)
-      txn_opnode_free(db->get_env(), node);
+      txn_opnode_free(m_env, node);
     return (st);
   }
 
   /* get the next lsn */
-  st = env_get_incremented_lsn(db->get_env(), &lsn);
+  st = env_get_incremented_lsn(m_env, &lsn);
   if (st) {
     if (node_created)
-      txn_opnode_free(db->get_env(), node);
+      txn_opnode_free(m_env, node);
     return (st);
   }
 
@@ -1027,14 +1018,14 @@ db_insert_txn(Database *db, Transaction *txn, ham_key_t *key,
 
     /* all other cursors need to increment their dupe index, if their
      * index is > this cursor's index */
-    __increment_dupe_index(db, node, c, c->get_dupecache_index());
+    __increment_dupe_index(this, node, c, c->get_dupecache_index());
   }
 
   /* append journal entry */
-  if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY
-      && db->get_env()->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    Journal *j = db->get_env()->get_journal();
-    st = j->append_insert(db, txn, key, record,
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    Journal *j = m_env->get_journal();
+    st = j->append_insert(this, txn, key, record,
               flags & HAM_DUPLICATE ? flags : flags | HAM_OVERWRITE,
               txn_op_get_lsn(op));
   }
@@ -1131,7 +1122,7 @@ next:
 }
 
 ham_status_t
-db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
+LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
         txn_cursor_t *cursor)
 {
   ham_status_t st = 0;
@@ -1144,9 +1135,9 @@ db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
     pc = txn_cursor_get_parent(cursor);
 
   /* get (or create) the node for this key */
-  node = txn_opnode_get(db, key, 0);
+  node = txn_opnode_get(this, key, 0);
   if (!node) {
-    node = txn_opnode_create(db, key);
+    node = txn_opnode_create(this, key);
     if (!node)
       return (HAM_OUT_OF_MEMORY);
     node_created = true;
@@ -1155,20 +1146,20 @@ db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
   /* check for conflicts of this key - but only if we're not erasing a
    * duplicate key. dupes are checked for conflicts in _local_cursor_move */
   if (!pc || (!pc->get_dupecache_index())) {
-    st = db_check_erase_conflicts(db, txn, node, key, flags);
-    db->get_env()->get_changeset().clear();
+    st = check_erase_conflicts(txn, node, key, flags);
+    m_env->get_changeset().clear();
     if (st) {
       if (node_created)
-        txn_opnode_free(db->get_env(), node);
+        txn_opnode_free(m_env, node);
       return (st);
     }
   }
 
   /* get the next lsn */
-  st = env_get_incremented_lsn(db->get_env(), &lsn);
+  st = env_get_incremented_lsn(m_env, &lsn);
   if (st) {
     if (node_created)
-      txn_opnode_free(db->get_env(), node);
+      txn_opnode_free(m_env, node);
     return (st);
   }
 
@@ -1190,13 +1181,13 @@ db_erase_txn(Database *db, Transaction *txn, ham_key_t *key, ham_u32_t flags,
   __nil_all_cursors_in_node(txn, pc, node);
 
   /* in addition we nil all btree cursors which are coupled to this key */
-  __nil_all_cursors_in_btree(db, pc, txn_opnode_get_key(node));
+  __nil_all_cursors_in_btree(this, pc, txn_opnode_get_key(node));
 
   /* append journal entry */
-  if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY
-      && db->get_env()->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    Journal *j = db->get_env()->get_journal();
-    st = j->append_erase(db, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    Journal *j = m_env->get_journal();
+    st = j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
               txn_op_get_lsn(op));
   }
 
@@ -1614,7 +1605,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
    * the Transaction structure. Otherwise immediately write to the btree.
    */
   if (txn || local_txn) {
-    st = db_insert_txn(this, txn ? txn : local_txn, key, record, flags, 0);
+    st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
   }
   else
     st = m_backend->insert(txn, key, record, flags);
@@ -1688,7 +1679,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
    * the txn tree; otherwise immediately erase the key from disk
    */
   if (txn || local_txn)
-    st = db_erase_txn(this, txn ? txn : local_txn, key, flags, 0);
+    st = erase_txn(txn ? txn : local_txn, key, flags, 0);
   else
     st = m_backend->erase(txn, key, flags);
 
@@ -1879,8 +1870,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   if (cursor->get_txn() || local_txn) {
-    st = db_insert_txn(this,
-            cursor->get_txn()
+    st = insert_txn(cursor->get_txn()
               ? cursor->get_txn()
               : local_txn,
             key, record, flags, cursor->get_txn_cursor());
@@ -1934,8 +1924,8 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     return (st);
   }
 
-  /* no need to append the journal entry - it's appended in db_insert_txn(),
-   * which is called by db_insert_txn() */
+  /* no need to append the journal entry - it's appended in insert_txn(),
+   * which is called by insert_txn() */
 
   /*
    * record numbers: return key in host endian! and store the incremented
@@ -2003,7 +1993,7 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 
   ham_assert(st == 0);
 
-  /* no need to append the journal entry - it's appended in db_erase_txn(),
+  /* no need to append the journal entry - it's appended in erase_txn(),
    * which is called by txn_cursor_erase() */
 
   if (local_txn) {
@@ -2346,7 +2336,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
 
   ham_assert(st == 0);
 
-  /* the journal entry is appended in db_insert_txn() */
+  /* the journal entry is appended in insert_txn() */
 
   if (local_txn) {
     m_env->get_changeset().clear();

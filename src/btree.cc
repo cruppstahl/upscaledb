@@ -155,7 +155,7 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
   /* allocate a new root page */
   Page *root;
   ham_status_t st;
-  st = db_alloc_page(&root, m_db, Page::TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+  st = m_db->alloc_page(&root, Page::TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
   if (st)
     return (st);
 
@@ -302,12 +302,12 @@ BtreeBackend::find_internal(Page *page, ham_key_t *key, Page **page_ref,
     *idxptr = slot;
 
   if (slot == -1)
-    return (db_fetch_page(page_ref, m_db, node->get_ptr_left(), 0));
+    return (m_db->fetch_page(page_ref, node->get_ptr_left()));
   else {
     BtreeKey *bte = node->get_key(m_db, slot);
     ham_assert(bte->get_flags() == 0
                 || bte->get_flags() == BtreeKey::KEY_IS_EXTENDED);
-    return (db_fetch_page(page_ref, m_db, bte->get_ptr(), 0));
+    return (m_db->fetch_page(page_ref, bte->get_ptr()));
   }
 }
 

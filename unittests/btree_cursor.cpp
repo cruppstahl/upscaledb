@@ -124,7 +124,7 @@ public:
     BtreeBackend *be = (BtreeBackend *)((Database *)m_db)->get_backend();
     Page *page;
     BFC_ASSERT_EQUAL(0,
-        db_fetch_page(&page, (Database *)m_db, be->get_rootpage(), 0));
+        ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));
     BFC_ASSERT(page != 0);
     BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
 

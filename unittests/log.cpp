@@ -584,7 +584,7 @@ public:
     Page *page;
 
     BFC_ASSERT_EQUAL(0,
-        db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -613,7 +613,7 @@ public:
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
-    BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps * 2, 0));
+    BFC_ASSERT_EQUAL(0, db->fetch_page(&page, ps * 2));
     /* verify that the page contains the marker */
     for (int i = 0; i < 200; i++)
       BFC_ASSERT_EQUAL((ham_u8_t)i, page->get_payload()[i]);
@@ -634,7 +634,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -668,7 +668,7 @@ public:
     db = (Database *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
     for (int i = 0; i < 10; i++) {
-      BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps*(2+i), 0));
+      BFC_ASSERT_EQUAL(0, db->fetch_page(&page[i], ps*(2+i)));
       /* verify that the pages contain the markers */
       for (int j = 0; j < 200; j++)
         BFC_ASSERT_EQUAL((ham_u8_t)(i + j), page[i]->get_payload()[j]);
@@ -689,7 +689,7 @@ public:
     Database *db = (Database *)m_db;
 
     BFC_ASSERT_EQUAL(0,
-        db_alloc_page(&page, db, 0, PAGE_IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -718,7 +718,7 @@ public:
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
     db = (Database *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
-    BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db, ps * 2, 0));
+    BFC_ASSERT_EQUAL(0, db->fetch_page(&page, ps * 2));
     /* verify that the page does not contain the "XXX..." */
     for (int i = 0; i < 20; i++)
       BFC_ASSERT_NOTEQUAL('X', page->get_raw_payload()[i]);
@@ -739,7 +739,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -777,7 +777,7 @@ public:
     m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages does not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
-      BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps * (2 + i), 0));
+      BFC_ASSERT_EQUAL(0, db->fetch_page(&page[i], ps * (2 + i)));
       for (int j = 0; j < 20; j++)
         BFC_ASSERT_NOTEQUAL('X', page[i]->get_raw_payload()[i]);
     }
@@ -798,7 +798,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db_alloc_page(&page[i], db, 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -838,7 +838,7 @@ public:
     m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages do not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
-      BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], db, ps * (2 + i), 0));
+      BFC_ASSERT_EQUAL(0, db->fetch_page(&page[i], ps * (2 + i)));
       for (int j = 0; j < 20; j++)
         BFC_ASSERT_NOTEQUAL('X', page[i]->get_raw_payload()[i]);
     }

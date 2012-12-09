@@ -88,7 +88,7 @@ x improve fsync performance; do not fsync in Journal::abort.
 
 x btree_insert.cc:120: the append/prepend logic does not work
 
-. DatabaseImplementation: get rid of these, they are no longer required
+x DatabaseImplementation: get rid of these, they are no longer required
     with the new API. 
     x have an abstract Database
     x derive LocalDatabase
@@ -102,11 +102,16 @@ x btree_insert.cc:120: the append/prepend logic does not work
         a new database - already removed
     x remove linked list of Databases; use std::map<short, db> instead
     x search env.cc for "TODO why?"
-    o remove static/global functions
+    x remove static/global functions
+        x remove ONLY_FROM_CACHE
+
+btree refactoring: reimplement extended keys; then get rid of the prefix compare function, and have the compare function ONLY return -1, 0, +1 (and no status
+ codes)
 
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
+    o merge the Device classes: Device (abstract), DiskDevice, MemoryDevice
     o Page::free: do not unmap and do not move to cache if it's mmapped!
     o DeviceImplDisk::open: map the whole file
     o DeviceImplDisk::close: unmap immediately before closing the device
@@ -136,6 +141,7 @@ o need the ham_export tool in THIS release - and make sure that it's linked
 . move duplicates into btree namespace (btree_dupkeys.cc)
 
 . split Environment into baseclass, derive local and remote Environment
+    o move db_flush_all into LocalEnvironment
     o remove function pointers
     o clean up code
     o try to reduce the TODOs

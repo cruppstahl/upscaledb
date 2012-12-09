@@ -235,8 +235,8 @@ Log::recover()
      * Was the page appended or overwritten?
      *
      * Either way we have to bypass the cache and all upper layers. We
-     * cannot call db_alloc_page() or db_fetch_page() since we do not have
-     * a Database handle. env_alloc_page()/env_fetch_page() would work,
+     * cannot call Database::alloc_page() or Database::fetch_page() since there 
+     * is no Database handle. env_alloc_page()/env_fetch_page() would work,
      * but then the page ownership is not set correctly (the
      * ownership is verified later, and this would fail).
      */
