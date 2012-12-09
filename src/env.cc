@@ -682,14 +682,7 @@ _local_fun_close(Environment *env, ham_u32_t flags)
 
     Device *device = env->get_device();
 
-    /*
-     * close the header page
-     *
-     * !!
-     * the last database, which was closed, has set the owner of the
-     * page to 0, which means that we can't call Page::free
-     * etc. We have to use the device-routines.
-     */
+    /* close the header page */
     if (env->get_header_page()) {
         Page *page=env->get_header_page();
         ham_assert(device);
@@ -871,13 +864,6 @@ _local_fun_create_db(Environment *env, Database **pdb,
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
              |DB_USE_MMAP);
-
-    /*
-     * transfer the ownership of the header page to this Database
-     * TODO why?
-     */
-    env->get_header_page()->set_db(*pdb);
-    ham_assert(env->get_header_page());
 
     /* check if this database name is unique */
     ham_assert(env->get_max_databases() > 0);

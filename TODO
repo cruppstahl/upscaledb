@@ -101,7 +101,7 @@ x btree_insert.cc:120: the append/prepend logic does not work
     x review header page ownership; it's currently assigned when creating
         a new database - already removed
     x remove linked list of Databases; use std::map<short, db> instead
-    o search env.cc for "TODO why?"
+    x search env.cc for "TODO why?"
     o remove static/global functions
 
 o review usage of mmap; when opening, should we just map the whole file into
