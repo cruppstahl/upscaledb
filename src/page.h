@@ -201,17 +201,6 @@ class Page {
       m_dirty = dirty;
     }
 
-    /** win32: get a pointer to the mmap handle */
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-    ham_fd_t *get_mmap_handle_ptr() {
-      return (&m_win32mmap);
-    }
-#else
-    ham_fd_t *get_mmap_handle_ptr() {
-      return (0);
-    }
-#endif
-
     /** get linked list of cursors */
     Cursor *get_cursors() {
       return (m_cursors);
@@ -283,7 +272,7 @@ class Page {
 
     /** frees a page - deletes the persistent part and moves the page to
      * the freelist (if a freelist is available) */
-    ham_status_t free();
+    void free();
 
     /** returns true if this page is in a linked list */
     bool is_in_list(Page *list_head, int which) {
@@ -360,11 +349,6 @@ class Page {
 
     /** is this page dirty and needs to be flushed to disk? */
     bool m_dirty;
-
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-    /** handle for win32 mmap */
-    HANDLE m_win32mmap;
-#endif
 
     /** linked list of all cursors which point to that page */
     Cursor *m_cursors;

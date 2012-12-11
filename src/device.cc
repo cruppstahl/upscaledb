@@ -26,13 +26,12 @@ using namespace ham;
 
 
 ham_status_t
-DeviceImplDisk::alloc_page(Page *page)
+DiskDevice::alloc_page(Page *page)
 {
-  ham_status_t st;
   ham_offset_t pos;
   ham_size_t size = m_pagesize;
 
-  st = os_get_filesize(m_fd, &pos);
+  ham_status_t st = os_get_filesize(m_fd, &pos);
   if (st)
     return (st);
 
@@ -45,125 +44,32 @@ DeviceImplDisk::alloc_page(Page *page)
 }
 
 ham_status_t
-DeviceImplDisk::read(ham_offset_t offset, void *buffer, ham_offset_t size)
+DiskDevice::read_page(Page *page)
 {
-  return (os_pread(m_fd, offset, buffer, size));
-}
-
-ham_status_t
-DeviceImplDisk::read_page(Page *page)
-{
-  ham_u8_t *buffer = 0;
-  ham_status_t st = 0;
-  ham_size_t size = m_pagesize;
-  bool alloc = false;
-
   /*
-   * first, try to mmap the file (if mmap is available/enabled).
-   *
-   * however, in some scenarios on win32, mmap can fail because resources
-   * are exceeded (non-paged memory pool).
-   * in such a case, the os_mmap function will return HAM_LIMITS_REACHED
-   * and we force a fallback to read/write.
+   * if this page is in the mapped area: return a pointer into that area.
+   * otherwise fall back to read/write.
    */
-  if (!(m_device->m_flags & HAM_DISABLE_MMAP)) {
-    st = os_mmap(m_fd, page->get_mmap_handle_ptr(), page->get_self(), size,
-                m_device->m_flags&HAM_READ_ONLY, &buffer);
-    if (st && st != HAM_LIMITS_REACHED)
-      return (st);
-    if (st == HAM_LIMITS_REACHED) {
-      m_device->m_flags = m_device->m_flags | HAM_DISABLE_MMAP;
-      goto fallback_rw;
-    }
-  }
-  else {
-fallback_rw:
-    if (page->get_pers() == 0) {
-      buffer = (ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
-      if (!buffer)
-        return (HAM_OUT_OF_MEMORY);
-      page->set_pers((PageData *)buffer);
-      page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
-      alloc = true;
-    }
-    else
-      ham_assert(!(page->get_flags() & Page::NPERS_MALLOC));
+  if (page->get_self() < m_open_filesize && m_mmapptr != 0) {
+    /* ok, this page is mapped. If the Page object has a memory buffer:
+     * free it */
+    if (page->get_pers() != 0)
+      get_env()->get_allocator()->free(page->get_pers());
 
-    st = read(page->get_self(), page->get_pers(), size);
-    if (st) {
-      if (alloc) {
-        m_device->m_env->get_allocator()->free(buffer);
-        page->set_pers(0);
-        page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-      }
-      return (st);
-    }
+    page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
+    page->set_pers((PageData *)&m_mmapptr[page->get_self()]);
+    return (0);
   }
 
-  page->set_pers((PageData *)buffer);
-  return (0);
-}
-
-ham_status_t
-DeviceImplDisk::write_page(Page *page)
-{
-  return (write(page->get_self(), page->get_pers(), m_pagesize));
-}
-
-ham_status_t
-DeviceImplDisk::write(ham_offset_t offset, void *buffer, ham_offset_t size)
-{
-  return (os_pwrite(m_fd, offset, buffer, size));
-}
-
-ham_status_t
-DeviceImplDisk::free_page(Page *page)
-{
-  ham_status_t st;
-
-  if (page->get_pers()) {
-    if (page->get_flags() & Page::NPERS_MALLOC) {
-      m_device->m_env->get_allocator()->free(page->get_pers());
-      page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-    }
-    else {
-      st = os_munmap(page->get_mmap_handle_ptr(), page->get_pers(), m_pagesize);
-      if (st)
-        return (st);
-    }
+  /* this page is not in the mapped area; allocate a buffer */
+  if (page->get_pers() == 0) {
+    ham_u8_t *p = (ham_u8_t *)get_env()->get_allocator()->alloc(m_pagesize);
+    if (!p)
+      return (HAM_OUT_OF_MEMORY);
+    page->set_pers((PageData *)p);
+    page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
   }
 
-  page->set_pers(0);
-  return (0);
+  return (os_pread(m_fd, page->get_self(), page->get_pers(), m_pagesize));
 }
 
-ham_status_t
-DeviceImplInMemory::alloc_page(Page *page)
-{
-  ham_u8_t *buffer;
-  ham_size_t size = m_pagesize;
-
-  ham_assert(page->get_pers() == 0);
-
-  buffer = (ham_u8_t *)m_device->m_env->get_allocator()->alloc(size);
-  if (!buffer)
-    return (HAM_OUT_OF_MEMORY);
-  page->set_pers((PageData *)buffer);
-  page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
-  page->set_self((ham_offset_t)PTR_TO_U64(buffer));
-
-  return (HAM_SUCCESS);
-}
-
-ham_status_t
-DeviceImplInMemory::free_page(Page *page)
-{
-  ham_assert(page->get_pers() != 0);
-  ham_assert(page->get_flags() | Page::NPERS_MALLOC);
-
-  m_device->m_env->get_allocator()->free(page->get_pers());
-  page->set_pers(0);
-  page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-
-  return (HAM_SUCCESS);
-}

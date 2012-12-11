@@ -84,7 +84,9 @@ class BtreeInsertAction
        * already full, it will remove the HINT_APPEND (or HINT_PREPEND)
        * flag and recursively call do_insert_cursor()
        */
-      if (m_hints.flags & HAM_HINT_APPEND || m_hints.flags & HAM_HINT_PREPEND)
+      if (m_hints.leaf_page_addr
+          && (m_hints.flags & HAM_HINT_APPEND
+              || m_hints.flags & HAM_HINT_PREPEND))
         st = append_or_prepend_key();
       else
         st = insert();

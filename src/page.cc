@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,15 +28,12 @@
 
 namespace ham {
 
-int Page::sizeof_persistent_header=(OFFSETOF(PageData, _s._payload));
+int Page::sizeof_persistent_header = (OFFSETOF(PageData, _s._payload));
 
 Page::Page(Environment *env, Database *db)
   : m_self(0), m_db(db), m_device(0), m_flags(0), m_dirty(false),
-  m_cursors(0), m_pers(0)
+    m_cursors(0), m_pers(0)
 {
-#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-  m_win32mmap = 0;
-#endif
   if (env)
     m_device = env->get_device();
   memset(&m_prev[0], 0, sizeof(m_prev));
@@ -76,12 +73,11 @@ Page::flush()
   return (HAM_SUCCESS);
 }
 
-ham_status_t
+void
 Page::free()
 {
   ham_assert(get_cursors() == 0);
-
-  return (get_device()->free_page(this));
+  get_device()->free_page(this);
 }
 
 void

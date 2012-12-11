@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,14 +28,14 @@
 namespace ham {
 
 Cache::Cache(Environment *env, ham_u64_t capacity_bytes)
-  : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0), m_totallist(0),
-  m_totallist_tail(0)
+  : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
+    m_alloc_elements(0), m_totallist(0), m_totallist_tail(0)
 {
   if (m_capacity == 0)
-  m_capacity = HAM_DEFAULT_CACHESIZE;
+    m_capacity = HAM_DEFAULT_CACHESIZE;
 
   for (ham_size_t i = 0; i < CACHE_BUCKET_SIZE; i++)
-  m_buckets.push_back(0);
+    m_buckets.push_back(0);
 }
 
 ham_status_t

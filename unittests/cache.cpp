@@ -101,11 +101,8 @@ public:
     page->set_self(0x123ull);
     page->set_pers(&pers);
     cache->put_page(page);
-    BFC_ASSERT_EQUAL(1u, cache->get_cur_elements());
     BFC_ASSERT_EQUAL(page, cache->get_page(0x123ull, 0));
-    BFC_ASSERT_EQUAL(0u, cache->get_cur_elements());
     cache->remove_page(page);
-    BFC_ASSERT_EQUAL(0u, cache->get_cur_elements());
     BFC_ASSERT_EQUAL((Page *)0, cache->get_page(0x123ull));
     delete cache;
     page->set_pers(0);
@@ -127,15 +124,10 @@ public:
     page2->set_self(0x456ull);
     page2->set_pers(&pers2);
     cache->put_page(page1);
-    BFC_ASSERT_EQUAL(1u, cache->get_cur_elements());
     cache->remove_page(page1);
-    BFC_ASSERT_EQUAL(0u, cache->get_cur_elements());
     cache->put_page(page2);
-    BFC_ASSERT_EQUAL(1u, cache->get_cur_elements());
     BFC_ASSERT_EQUAL((Page *)0, cache->get_page(0x123ull));
-    BFC_ASSERT_EQUAL(1u, cache->get_cur_elements());
     BFC_ASSERT_EQUAL(page2, cache->get_page(0x456ull));
-    BFC_ASSERT_EQUAL(0u, cache->get_cur_elements());
     delete cache;
     page1->set_pers(0);
     delete page1;
@@ -176,14 +168,14 @@ public:
   }
 
   void overflowTest() {
-    Cache *cache = new Cache((Environment *)m_env, 15 * os_get_pagesize());
+    Cache *cache = new Cache((Environment *)m_env, 15 * HAM_DEFAULT_PAGESIZE);
     PageData pers;
     memset(&pers, 0, sizeof(pers));
     std::vector<Page *> v;
 
     for (unsigned int i = 0; i < 15; i++) {
       Page *p = new Page((Environment *)m_env);
-      p->set_flags(Page::NPERS_NO_HEADER);
+      p->set_flags(Page::NPERS_NO_HEADER | Page::NPERS_MALLOC);
       p->set_self((i + 1) * 1024);
       p->set_pers(&pers);
       v.push_back(p);
@@ -193,7 +185,7 @@ public:
 
     for (unsigned int i = 0; i < 5; i++) {
       Page *p = new Page((Environment *)m_env);
-      p->set_flags(Page::NPERS_NO_HEADER);
+      p->set_flags(Page::NPERS_NO_HEADER | Page::NPERS_MALLOC);
       p->set_self((i + 1) * 1024);
       p->set_pers(&pers);
       v.push_back(p);
@@ -237,7 +229,7 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create(&m_env, BFC_OPATH(".test"),  
-            HAM_CACHE_STRICT, 0644, &param[0]));
+            HAM_CACHE_STRICT | HAM_DISABLE_MMAP, 0644, &param[0]));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
 

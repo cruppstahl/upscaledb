@@ -74,9 +74,6 @@ namespace ham {
  */
 #define ham_key_set_intflags(key, f)    (key)->_flags=(f)
 
-/** An internal database flag - use mmap instead of read(2).  */
-#define DB_USE_MMAP                  0x00000100
-
 /** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                 0x00200000
 

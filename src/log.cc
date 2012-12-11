@@ -268,9 +268,7 @@ Log::recover()
     st = page->flush();
     if (st)
       goto bail;
-    st = page->free();
-    if (st)
-      goto bail;
+    page->free();
     delete page;
 
     /* store the lsn in the log - will be needed later when recovering

@@ -84,7 +84,7 @@ public:
     Page *page;
     page = new Page((Environment *)m_env);
     BFC_ASSERT_EQUAL(0, page->allocate());
-    BFC_ASSERT_EQUAL(0, page->free());
+    page->free();
     delete page;
   }
 
@@ -100,7 +100,7 @@ public:
        * for the root page */
       if (!m_inmemory)
         BFC_ASSERT_EQUAL((i + 2) * ps, page->get_self());
-      BFC_ASSERT_EQUAL(0, page->free());
+      page->free();
       delete page;
     }
   }
@@ -113,7 +113,7 @@ public:
     temp = new Page((Environment *)m_env);
     BFC_ASSERT_EQUAL(0, page->allocate());
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
-    BFC_ASSERT_EQUAL(0, page->free());
+    page->free();
 
     BFC_ASSERT_EQUAL(0, page->fetch(page->get_self()));
     memset(page->get_pers(), 0x13, ps);
@@ -121,11 +121,11 @@ public:
     BFC_ASSERT_EQUAL(0, page->flush());
 
     BFC_ASSERT_EQUAL(false, page->is_dirty());
-    BFC_ASSERT_EQUAL(0, temp->fetch(ps*2));
+    BFC_ASSERT_EQUAL(0, temp->fetch(ps * 2));
     BFC_ASSERT_EQUAL(0, memcmp(page->get_pers(), temp->get_pers(), ps));
 
-    BFC_ASSERT_EQUAL(0, page->free());
-    BFC_ASSERT_EQUAL(0, temp->free());
+    page->free();
+    temp->free();
 
     delete temp;
     delete page;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -40,13 +40,12 @@ class Cache
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    Cache(Environment *env, ham_u64_t capacity_bytes=HAM_DEFAULT_CACHESIZE);
+    Cache(Environment *env, ham_u64_t capacity_bytes = HAM_DEFAULT_CACHESIZE);
 
     /**
      * get a page from the cache
      *
      * @remark the page is removed from the cache
-     *
      * @return 0 if the page was not cached
      */
     Page *get_page(ham_offset_t address, ham_u32_t flags=0) {
@@ -71,8 +70,8 @@ class Cache
        * head of the "totallist", and therefore it will automatically move
        * far away from the tail. And the pages at the tail are highest
        * candidates to be deleted when the cache is purged. */
-      if (flags&Cache::NOREMOVE)
-          put_page(page);
+      if (flags & Cache::NOREMOVE)
+        put_page(page);
       return (page);
     }
 
@@ -97,6 +96,8 @@ class Cache
       m_totallist = page->list_insert(m_totallist, Page::LIST_CACHED);
 
       m_cur_elements++;
+      if (page->get_flags() & Page::NPERS_MALLOC)
+        m_alloc_elements++;
 
       /*
        * insert it in the cache buckets
@@ -140,8 +141,11 @@ class Cache
         removed = true;
       }
       /* decrease the number of cached elements */
-      if (removed)
+      if (removed) {
         m_cur_elements--;
+        if (page->get_flags() & Page::NPERS_MALLOC)
+          m_alloc_elements--;
+      }
 
       ham_assert(check_integrity() == 0);
     }
@@ -151,12 +155,13 @@ class Cache
     /** purges the cache; the callback is called for every page that needs
      * to be purged */
     ham_status_t purge(PurgeCallback cb, bool strict) {
-      ham_status_t st;
-      do {
-        st = purge_max20(cb, strict);
-        if (st && st != HAM_LIMITS_REACHED)
+      while (is_too_big()) {
+        ham_status_t st = purge_max20(cb, strict);
+        if (st == HAM_LIMITS_REACHED)
+          continue;
+        if (st);
           return (st);
-      } while (st == HAM_LIMITS_REACHED && is_too_big());
+      }
 
       return (0);
     }
@@ -183,12 +188,7 @@ class Cache
 
     /** returns true if the caller should purge the cache */
     bool is_too_big() {
-      return (m_cur_elements * m_env->get_pagesize() > m_capacity);
-    }
-
-    /** get number of currently stored pages */
-    ham_u64_t get_cur_elements() {
-      return (m_cur_elements);
+      return (m_alloc_elements * m_env->get_pagesize() > m_capacity);
     }
 
     /** get the capacity (in bytes) */
@@ -202,7 +202,7 @@ class Cache
   private:
     /**
      * get an unused page (or an unreferenced page, if no unused page
-     * was available (w/o mutex)
+     * was available)
      */
     Page *get_unused_page() {
       /* get the chronologically oldest page */
@@ -215,9 +215,10 @@ class Cache
        * pages) */
       Page *page = oldest;
       do {
-        /* pick the first unused page (not in a changeset) */
-        if (!m_env->get_changeset().contains(page))
-            break;
+        /* pick the first unused page (not in a changeset) that is NOT mapped */
+        if (page->get_flags() & Page::NPERS_MALLOC
+            && !m_env->get_changeset().contains(page))
+          break;
 
         page = page->get_previous(Page::LIST_CACHED);
         ham_assert(page != oldest);
@@ -293,6 +294,10 @@ class Cache
 
     /** the current number of cached elements */
     ham_u64_t m_cur_elements;
+
+    /** the current number of cached elements that were allocated (and not
+     * mapped) */
+    ham_u64_t m_alloc_elements;
 
     /** linked list of ALL cached pages */
     Page *m_totallist;

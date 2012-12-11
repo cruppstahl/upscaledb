@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -122,21 +122,8 @@ calc_wlen4str(const char *str)
   return (int)len;
 }
 
-/*
- * The typical pagesize of win32 is 4kb - described in info.dwPageSize.
- * However, pages have to be aligned to dwAllocationGranularity (64k),
- * therefore we're also forced to use this as a pagesize.
- */
 ham_size_t
-os_get_pagesize(void)
-{
-  SYSTEM_INFO info;
-  GetSystemInfo(&info);
-  return (ham_size_t)info.dwAllocationGranularity;
-}
-
-ham_size_t
-os_get_granularity(void)
+os_get_granularity()
 {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
@@ -160,9 +147,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     *buffer = 0;
     st = (ham_status_t)GetLastError();
     ham_log(("CreateFileMapping failed with OS status %u (%s)",
-        st, DisplayError(buf, sizeof(buf), st)));
-    if (st == ERROR_NOT_ENOUGH_QUOTA) // not enough resources - fallback to r/w
-      return (HAM_LIMITS_REACHED);
+            st, DisplayError(buf, sizeof(buf), st)));
     return (HAM_IO_ERROR);
   }
 

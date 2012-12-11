@@ -108,26 +108,74 @@ x DatabaseImplementation: get rid of these, they are no longer required
 o review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
-    o merge the Device classes: Device (abstract), DiskDevice, MemoryDevice
-    o Page::free: do not unmap and do not move to cache if it's mmapped!
-    o DeviceImplDisk::open: map the whole file
-    o DeviceImplDisk::close: unmap immediately before closing the device
-    o DeviceImplDisk::read_page: if page is mapped then simply return a
-        pointer
-    o Cache::purge_max20: do not purge mmapped caches (use madvice if page
-        is old enough (MADV_DONTNEED))
-    o Environment: do not fallback to read/write if mmap fails
+    x merge the Device classes: Device (abstract), DiskDevice, MemoryDevice
+    x Page::free: do not unmap and do not move to cache if it's mmapped!
+    x Environment: do not fallback to read/write if mmap fails
+    x what is the flag DB_USE_MMAP good for?? - removed
+    x when trying to figure out if mmap can be used (ham_env_open):
+        just try it. if it fails then fallback to r/w
+    x support HAM_DISABLE_MMAP
+    x DiskDevice::open: map the whole file; if this fails: fallback to r/w
+        check all supported platforms: what happens if we map a file that
+        is not aligned? we have to extend the map!
+    x can we remove os_get_pagesize()?
+    x DiskDevice::close: unmap immediately before closing the device
+    x DiskDevice::read_page: if page is mapped then simply return a
+        pointer; do not fallback to r/w. Make sure that we do not read past
+        the map!
+    x Database.cc:__cache_needs_purge: move to Database, adjust?
+    x Cache::too_big(): must ignore mapped pages
+    x Cache::purge_max20: do not purge mmapped caches
+    x some unittests are failing
+    x compare performance to previous mmap implementation
+      2.0.5 vs 2.0.6: 1.2 GB Database file, 2 million items (w/ duplicates)
+        real    1m28.088s
+        user    0m9.425s
+        sys 1m17.957s
+
+        real    1m0.222s
+        user    0m11.633s
+        sys 0m48.107s
+    o the implementation of Cache::purge is bad. get_unused() always traverses
+        the cache's list from tail to head. can this be improved? i.e. by
+        calling the callback function from get_unused_page(), and merge
+        purge_max20 with get_unused_page?
+
+    o update unittests
+    o update documentation
+
+o can we perform better with O_DIRECT? run some benchmarks
+
+o adjust monster.sh
+    o need changes for the new API
+    o re-enable mmap with threads in monster.sh?!
 
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
     o export as json
     o export as binary (based on protobuffer)
 
-. ham_import: a tool that can create Environments from exported data
+o ham_import: a tool that can create Environments from exported data
     (or merge into existing Environments)
 
+o documentation: collect performance improvements
+    o reduce keys/records as much as possible
+    o play around with keysize/pagesize
+    o increase cache size
+    o use mmap when opening files, but be aware of the problems
+    o transactions: use HAM_OVERWRITE
+    o transactions: store log/journal on different disk
+
+o finalize for the next release
+    o update README w/ API updates
+    o update Webpage w/ API updates
+    o update Tutorial w/ API updates
+    o update FAQ/Documentation regarding mmap
+    o need documentation for ham_export, ham_import
+    o increment libtool version
+    x increment version in header file
+
 . remove backend.h, directly use BtreeBackend
-    o rename to Btree??
     o also clean up, i.e. remove do_close, set_active etc
     o the whole btree backend should use a LocalDatabase instead of a
         Database pointer (and try to remove some of the TODOs in db.h)
@@ -136,8 +184,10 @@ o need the ham_export tool in THIS release - and make sure that it's linked
     o also try to remove the cache and use boost::unsorted_map
     o use ByteArray for extended keys
     o this includes all functions that are currently kept in Database
+    o enforce use of LocalDatabase throughout the code
 
 . move duplicates into btree namespace (btree_dupkeys.cc)
+    o enforce use of LocalDatabase throughout the code
 
 . split Environment into baseclass, derive local and remote Environment
     o move db_flush_all into LocalEnvironment
@@ -156,14 +206,13 @@ o add transaction support for in-memory databases
 
 . also remove locking from C# and Java APIs
 
-o finalize for the next release
-    o update README w/ API updates
-    o update Webpage w/ API updates
-    o update Tutorial w/ API updates
-    o update FAQ/Documentation regarding mmap
-    o need documentation for ham_export, ham_import
-    o increment libtool version
-    x increment version in header file
+. write a custom memory allocator, based on 4kb pages
+    if memory is allocated: pick the current page; if it has enough free space
+    then return a pointer and decrease the amount of free space.
+    If memory is freed than increase the amount of freed memory. If this amount
+    == 4kb then the page is stored in a lookaside-list and will be used later.
+    If the page does not have enough memory for alloc then either fetch
+    another free page from the lookaside-list or allocate a new one.
 
 
 ------------------- release 2.0.6 -----------------------------------------

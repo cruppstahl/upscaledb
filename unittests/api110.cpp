@@ -248,8 +248,7 @@ public:
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     BFC_ASSERT_EQUAL((ham_offset_t)1,
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT
-        | HAM_DISABLE_MMAP,
+    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 
@@ -292,7 +291,6 @@ public:
     BFC_ASSERT_EQUAL((ham_offset_t)1,
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT
-        | HAM_DISABLE_MMAP
         | HAM_READ_ONLY,
         get_param_value(params, HAM_PARAM_FLAGS));
   }

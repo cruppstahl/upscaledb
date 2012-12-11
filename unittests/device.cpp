@@ -129,7 +129,7 @@ public:
     BFC_ASSERT_EQUAL(1, m_dev->is_open());
     BFC_ASSERT_EQUAL(0, m_dev->alloc_page(&page));
     BFC_ASSERT(page.get_pers() != 0);
-    BFC_ASSERT_EQUAL(0, m_dev->free_page(&page));
+    m_dev->free_page(&page);
   }
 
   void flushTest() {
@@ -159,14 +159,14 @@ public:
     for (i = 0; i < 10; i++) {
       ham_u8_t *buffer;
       memset(temp, i, ps);
-      BFC_ASSERT_EQUAL(0, m_dev->free_page(&pages[i]));
+      m_dev->free_page(&pages[i]);
 
       BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
       buffer = (ham_u8_t *)pages[i].get_pers();
       BFC_ASSERT_EQUAL(0, memcmp(buffer, temp, ps));
     }
     for (i = 0; i < 10; i++)
-      BFC_ASSERT_EQUAL(0, m_dev->free_page(&pages[i]));
+      m_dev->free_page(&pages[i]);
     free(temp);
   }
 
@@ -215,7 +215,7 @@ public:
       BFC_ASSERT(pages[i]->get_flags() & Page::NPERS_MALLOC);
       memset(pages[i]->get_pers(), i + 1, ps);
       BFC_ASSERT_EQUAL(0, m_dev->write_page(pages[i]));
-      BFC_ASSERT_EQUAL(0, pages[i]->free());
+      pages[i]->free();
       delete pages[i];
     }
 
@@ -226,7 +226,7 @@ public:
       pages[i]->set_self(ps * i);
       BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
       BFC_ASSERT_EQUAL(0, memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
-      BFC_ASSERT_EQUAL(0, pages[i]->free());
+      pages[i]->free();
       delete pages[i];
     }
   }

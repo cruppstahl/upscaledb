@@ -40,7 +40,6 @@
 
 namespace ham {
 
-#define PURGE_THRESHOLD     (500 * 1024 * 1024) /* 500 mb */
 #define DUMMY_LSN                 1
 
 typedef struct
@@ -177,30 +176,6 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
   }
 
   return (HAM_ENUM_CONTINUE);
-}
-
-inline ham_bool_t
-__cache_needs_purge(Environment *env)
-{
-  Cache *cache=env->get_cache();
-  if (!cache)
-    return (HAM_FALSE);
-
-  /* purge the cache, if necessary. if cache is unlimited, then we purge very
-   * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
-   * which can happen on 32bit Windows) */
-  if (cache && !(env->get_flags()&HAM_IN_MEMORY)) {
-    ham_bool_t purge=cache->is_too_big();
-#if defined(WIN32) && defined(HAM_32BIT)
-    if (env->get_flags()&HAM_CACHE_UNLIMITED) {
-      if (cache->get_cur_elements()*env->get_pagesize()
-          > PURGE_THRESHOLD)
-        return (HAM_FALSE);
-    }
-#endif
-    return (purge);
-  }
-  return (HAM_FALSE);
 }
 
 Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
@@ -1481,11 +1456,9 @@ LocalDatabase::check_integrity(Transaction *txn)
   }
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(get_env())) {
-    st = env_purge_cache(get_env());
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(get_env());
+  if (st)
+    return (st);
 
   /* call the backend function */
   st = m_backend->check_integrity();
@@ -1509,11 +1482,9 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
   }
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   /*
    * call the backend function - this will retrieve the number of keys
@@ -1556,11 +1527,9 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
             : &txn->get_key_arena();
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
     local_txn = new Transaction(m_env, 0, HAM_TXN_TEMPORARY);
@@ -1718,11 +1687,9 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   ham_offset_t recno = 0;
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   if ((get_keysize() < sizeof(ham_offset_t)) &&
       (key->size > get_keysize())) {
@@ -1856,11 +1823,9 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -2032,11 +1997,9 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -2190,11 +2153,9 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
   txn_cursor_t *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
     return (HAM_CURSOR_IS_NIL);
@@ -2247,11 +2208,9 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
   txn_cursor_t *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
     return (HAM_CURSOR_IS_NIL);
@@ -2305,11 +2264,9 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
@@ -2357,11 +2314,9 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  if (__cache_needs_purge(m_env)) {
-    st = env_purge_cache(m_env);
-    if (st)
-      return (st);
-  }
+  st = env_purge_cache(m_env);
+  if (st)
+    return (st);
 
   /*
    * if the cursor was never used before and the user requests a NEXT then

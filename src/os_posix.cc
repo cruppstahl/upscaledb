@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -85,19 +85,9 @@ enable_largefile(int fd)
 }
 
 ham_size_t
-os_get_pagesize(void)
+os_get_granularity()
 {
-#ifdef __CYGWIN__
-  return ((ham_size_t)getpagesize());
-#else
-  return (1024 * 16);
-#endif
-}
-
-ham_size_t
-os_get_granularity(void)
-{
-  return ((ham_size_t)getpagesize());
+  return ((ham_size_t)sysconf(_SC_PAGE_SIZE));
 }
 
 ham_status_t

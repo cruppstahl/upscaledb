@@ -1305,26 +1305,14 @@ protected:
         ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-    if (os_get_pagesize() == 1024 * 16 || m_flags & HAM_IN_MEMORY) {
-      ps[0].value = 493;
-      BFC_ASSERT_EQUAL(0,
-          ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
-      BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+    ps[0].value = 493;
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-      ps[0].value = 507;
-      BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-          ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
-    }
-    else if (os_get_pagesize() == 1024 * 64) {
-      ps[0].value = 2029;
-      BFC_ASSERT_EQUAL(0,
-          ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
-      BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-      ps[0].value = 2030;
-      BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-          ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
-    }
+    ps[0].value = 507;
+    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        ham_env_create(&env, BFC_OPATH(".test"), m_flags, 0664, ps));
   }
 
   void maxDatabasesReopenTest() {

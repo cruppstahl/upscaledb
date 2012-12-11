@@ -463,12 +463,11 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
         ham_u64_t *pcachesize, ham_u16_t *pdbname,
         ham_u16_t *pmaxdbs, std::string &logdir, bool create)
 {
-    ham_size_t pagesize=0;
-    ham_u16_t keysize=0;
-    ham_u16_t dbname=HAM_DEFAULT_DATABASE_NAME;
-    ham_u64_t cachesize=0;
-    ham_bool_t no_mmap=HAM_FALSE;
-    ham_u16_t dbs=0;
+    ham_size_t pagesize = HAM_DEFAULT_PAGESIZE;
+    ham_u16_t keysize = 0;
+    ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
+    ham_u64_t cachesize = 0;
+    ham_u16_t dbs = 0;
     ham_u32_t flags = 0;
     ham_bool_t set_abs_max_dbs = HAM_FALSE;
     ham_status_t st = 0;
@@ -758,47 +757,8 @@ default_case:
     if (!pagesize && device)
         pagesize = device->get_pagesize();
 
-    /*
-     * in-memory-db? use a default pagesize of 16kb
-     */
-    if (flags&HAM_IN_MEMORY) {
-        if (!pagesize) {
-            pagesize = 16*1024;
-            no_mmap = HAM_TRUE;
-        }
-    }
-
-    /*
-     * can we use mmap?
-     */
-#if HAVE_MMAP
-    if (!(flags&HAM_DISABLE_MMAP)) {
-        if (pagesize) {
-            if (pagesize % os_get_granularity() != 0)
-                no_mmap=HAM_TRUE;
-        }
-        else {
-            pagesize = os_get_pagesize();
-        }
-    }
-#else
-    no_mmap=HAM_TRUE;
-#endif
-
-    /*
-     * if we still don't have a raw pagesize, try to get a good default
-     * value
-     */
-    if (!pagesize)
-        pagesize = os_get_pagesize();
-
-    /*
-     * set the database flags if we can't use mmapped I/O
-     */
-    if (no_mmap) {
-        flags &= ~DB_USE_MMAP;
-        flags |= HAM_DISABLE_MMAP;
-    }
+    if (pagesize == 0)
+        pagesize = HAM_DEFAULT_PAGESIZE;
 
     /*
      * initialize the keysize with a good default value;

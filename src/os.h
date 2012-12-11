@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -78,10 +78,6 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
 #  define HAM_OS_SEEK_CUR   FILE_CURRENT
 #  define HAM_OS_MAX_PATH   MAX_PATH
 #endif
-
-/** get the preferred pagesize of the operating system */
-extern ham_size_t
-os_get_pagesize(void);
 
 /** get the page allocation granularity of the operating system */
 extern ham_size_t

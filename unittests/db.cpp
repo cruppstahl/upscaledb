@@ -210,7 +210,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
     BFC_ASSERT_EQUAL(m_dbp, page->get_db());
-    BFC_ASSERT_EQUAL(0, page->free());
+    page->free();
     ((Environment *)m_env)->get_cache()->remove_page(page);
     delete page;
   }
@@ -222,7 +222,7 @@ public:
     BFC_ASSERT_EQUAL(m_dbp, p1->get_db());
     BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&p2, p1->get_self()));
     BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
-    BFC_ASSERT_EQUAL(0, p1->free());
+    p1->free();
     ((Environment *)m_env)->get_cache()->remove_page(p1);
     delete p1;
   }
@@ -241,7 +241,7 @@ public:
     page->set_dirty(true);
     address = page->get_self();
     BFC_ASSERT_EQUAL(0, page->flush());
-    BFC_ASSERT_EQUAL(0, page->free());
+    page->free();
     ((Environment *)m_env)->get_cache()->remove_page(page);
     delete page;
 
@@ -249,7 +249,7 @@ public:
     BFC_ASSERT(page != 0);
     BFC_ASSERT_EQUAL(address, page->get_self());
     p = page->get_raw_payload();
-    BFC_ASSERT_EQUAL(0, page->free());
+    page->free();
     ((Environment *)m_env)->get_cache()->remove_page(page);
     delete page;
   }

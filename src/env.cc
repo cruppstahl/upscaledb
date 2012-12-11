@@ -152,7 +152,11 @@ _local_fun_create(Environment *env, const char *filename,
     ham_assert(!env->get_header_page());
 
     /* initialize the device if it does not yet exist */
-    Device *device=new Device(env, flags);
+    Device *device;
+    if (flags&HAM_IN_MEMORY)
+        device=new InMemoryDevice(env, flags);
+    else
+        device=new DiskDevice(env, flags);
     device->set_pagesize(env->get_pagesize());
     env->set_device(device);
 
@@ -331,7 +335,11 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
     ham_u32_t pagesize=0;
 
     /* initialize the device if it does not yet exist */
-    Device *device=new Device(env, flags);
+    Device *device;
+    if (flags&HAM_IN_MEMORY)
+        device=new InMemoryDevice(env, flags);
+    else
+        device=new DiskDevice(env, flags);
     env->set_device(device);
 
     /* open the file */
@@ -387,26 +395,6 @@ _local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
         pagesize=env->get_persistent_pagesize();
         env->set_pagesize(pagesize);
         device->set_pagesize(pagesize);
-
-        /*
-         * can we use mmap?
-         * TODO really necessary? code is already handled in
-         * __check_parameters() above
-         */
-#if HAVE_MMAP
-        if (!(flags&HAM_DISABLE_MMAP)) {
-            if (pagesize % os_get_granularity()==0)
-                flags|=DB_USE_MMAP;
-            else
-                device->set_flags(flags|HAM_DISABLE_MMAP);
-        }
-        else {
-            device->set_flags(flags|HAM_DISABLE_MMAP);
-        }
-        flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
-#else
-        device->set_flags(flags|HAM_DISABLE_MMAP);
-#endif
 
         /** check the file magic */
         if (!env->compare_magic('H', 'A', 'M', '\0')) {
@@ -861,8 +849,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
              |HAM_READ_ONLY
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
-             |HAM_ENABLE_TRANSACTIONS
-             |DB_USE_MMAP);
+             |HAM_ENABLE_TRANSACTIONS);
 
     /* check if this database name is unique */
     ham_assert(env->get_max_databases() > 0);
@@ -1008,8 +995,7 @@ _local_fun_open_db(Environment *env, Database **pdb,
              |HAM_READ_ONLY
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
-             |HAM_ENABLE_TRANSACTIONS
-             |DB_USE_MMAP);
+             |HAM_ENABLE_TRANSACTIONS);
     (*pdb)->set_rt_flags(flags|be->get_flags());
     ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
     ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
@@ -1020,7 +1006,6 @@ _local_fun_open_db(Environment *env, Database **pdb,
     ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
-    ham_assert(!(be->get_flags()&DB_USE_MMAP));
 
     /* set the compare functions */
     // TODO move to Database::open
@@ -1370,9 +1355,7 @@ purge_callback(Page *page)
     if (st)
         return (st);
 
-    st=page->free();
-    if (st)
-        return (st);
+    page->free();
     delete page;
     return (0);
 }

@@ -62,7 +62,12 @@
 /*
  * the default cache size is 2 MB
  */
-#define HAM_DEFAULT_CACHESIZE    (2*1024*1024)
+#define HAM_DEFAULT_CACHESIZE    (2 * 1024 * 1024)
+
+/*
+ * the default page size is 16 kb
+ */
+#define HAM_DEFAULT_PAGESIZE     (16 * 1024)
 
 
 #endif /* __HAM_CONFIG_H__ */
