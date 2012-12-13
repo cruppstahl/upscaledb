@@ -1,3 +1,7 @@
+Dec 13, 2012 - chris ---------------------------------------------------
+o Updated mmap support; mmap is now about 30% faster compared to the previous
+	implementation
+
 Dec 07, 2012 - chris ---------------------------------------------------
 o Minor performance improvement if HAM_ENABLE_FSYNC and HAM_ENABLE_TRANSACTIONS
 

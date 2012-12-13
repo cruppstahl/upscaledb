@@ -105,7 +105,7 @@ x DatabaseImplementation: get rid of these, they are no longer required
     x remove static/global functions
         x remove ONLY_FROM_CACHE
 
-o review usage of mmap; when opening, should we just map the whole file into
+x review usage of mmap; when opening, should we just map the whole file into
     memory (in a single mmap)? when creating the file then os_mmap anyway
     should never be called
     x merge the Device classes: Device (abstract), DiskDevice, MemoryDevice
@@ -136,15 +136,11 @@ o review usage of mmap; when opening, should we just map the whole file into
         real    1m0.222s
         user    0m11.633s
         sys 0m48.107s
-    o the implementation of Cache::purge is bad. get_unused() always traverses
+    x the implementation of Cache::purge is bad. get_unused() always traverses
         the cache's list from tail to head. can this be improved? i.e. by
         calling the callback function from get_unused_page(), and merge
         purge_max20 with get_unused_page?
-
-    o update unittests
-    o update documentation
-
-o can we perform better with O_DIRECT? run some benchmarks
+    x update unittests
 
 o adjust monster.sh
     o need changes for the new API
@@ -179,6 +175,8 @@ o finalize for the next release
     o also clean up, i.e. remove do_close, set_active etc
     o the whole btree backend should use a LocalDatabase instead of a
         Database pointer (and try to remove some of the TODOs in db.h)
+
+. can we perform better with O_DIRECT? run some benchmarks
 
 . move Extended Keys to backend/btree_extkeys
     o also try to remove the cache and use boost::unsorted_map

@@ -152,16 +152,55 @@ class Cache
 
     typedef ham_status_t (*PurgeCallback)(Page *page);
 
-    /** purges the cache; the callback is called for every page that needs
-     * to be purged */
-    ham_status_t purge(PurgeCallback cb, bool strict) {
-      while (is_too_big()) {
-        ham_status_t st = purge_max20(cb, strict);
-        if (st == HAM_LIMITS_REACHED)
-          continue;
-        if (st);
-          return (st);
+    /**
+     * purges the cache; the callback is called for every page that needs
+     * to be purged
+     *
+     * By default this is capped to 20 pages to avoid I/O spikes.
+     * In benchmarks this has proven to be a good limit.
+     */
+    ham_status_t purge(PurgeCallback cb, bool strict, unsigned limit = 20) {
+      if (!is_too_big())
+        return (0);
+
+      unsigned i = 0;
+      unsigned max_pages = (unsigned)m_cur_elements;
+
+      if (!strict) {
+        max_pages /= 10;
+        if (max_pages == 0)
+          max_pages = 1;
+        /* but still we set an upper limit to avoid IO spikes */
+        else if (max_pages > limit)
+          max_pages = limit;
       }
+
+      /* get the chronologically oldest page */
+      Page *oldest = m_totallist_tail;
+      if (!oldest)
+        return (strict ? HAM_CACHE_FULL : 0);
+
+      /* now iterate through all pages, starting from the oldest
+       * (which is the tail of the "totallist", the list of ALL cached
+       * pages) */
+      Page *page = oldest;
+      do {
+        /* pick the first unused page (not in a changeset) that is NOT mapped */
+        if (page->get_flags() & Page::NPERS_MALLOC
+            && !m_env->get_changeset().contains(page)) {
+          remove_page(page);
+          ham_status_t st = cb(page);
+          if (st)
+            return (st);
+          i++;
+        }
+
+        page = page->get_previous(Page::LIST_CACHED);
+        ham_assert(page != oldest);
+      } while (i < max_pages && page && page != oldest);
+
+      if (i == 0 && strict)
+        return (HAM_CACHE_FULL);
 
       return (0);
     }
@@ -200,82 +239,6 @@ class Cache
     ham_status_t check_integrity();
 
   private:
-    /**
-     * get an unused page (or an unreferenced page, if no unused page
-     * was available)
-     */
-    Page *get_unused_page() {
-      /* get the chronologically oldest page */
-      Page *oldest = m_totallist_tail;
-      if (!oldest)
-          return (0);
-
-      /* now iterate through all pages, starting from the oldest
-       * (which is the tail of the "totallist", the list of ALL cached
-       * pages) */
-      Page *page = oldest;
-      do {
-        /* pick the first unused page (not in a changeset) that is NOT mapped */
-        if (page->get_flags() & Page::NPERS_MALLOC
-            && !m_env->get_changeset().contains(page))
-          break;
-
-        page = page->get_previous(Page::LIST_CACHED);
-        ham_assert(page != oldest);
-      } while (page && page != oldest);
-
-      if (!page)
-        return (0);
-
-      /* remove the page from the cache and return it */
-      remove_page(page);
-      return (page);
-    }
-
-    /** purges max. 20 pages (and not more to avoid I/O spikes) */
-    ham_status_t purge_max20(PurgeCallback cb, bool strict) {
-      ham_status_t st;
-      Page *page;
-      unsigned i, max_pages = (unsigned)m_cur_elements;
-
-      if (!is_too_big())
-        return (0);
-
-      /*
-       * max_pages specifies how many pages we try to flush in case the
-       * cache is full. some benchmarks showed that 10% is a good value.
-       *
-       * if STRICT cache limits are enabled then purge as much as we can
-       */
-      if (!strict) {
-        max_pages /= 10;
-        if (max_pages == 0)
-          max_pages = 1;
-        /* but still we set an upper limit to avoid IO spikes */
-        else if (max_pages > 20)
-          max_pages = 20;
-      }
-
-      /* now free those pages */
-      for (i = 0; i < max_pages; i++) {
-        page = get_unused_page();
-        if (!page) {
-          if (i == 0 && strict)
-            return (HAM_CACHE_FULL);
-          else
-            break;
-        }
-
-        st = cb(page);
-        if (st)
-          return (st);
-      }
-
-      if (i == max_pages && max_pages != 0)
-        return (HAM_LIMITS_REACHED);
-      return (0);
-    }
-
     /** calculate the hash of a page address */
     ham_u64_t calc_hash(ham_offset_t o) {
       return (o % CACHE_BUCKET_SIZE);
