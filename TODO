@@ -149,10 +149,20 @@ o adjust monster.sh
 o need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
     o export as json
-    o export as binary (based on protobuffer)
+    o export as binary (based on protobuffer - this is the default)
+    o support these switches:
+        ham_export --help
+        ham_export <database>       # dumps to stdout
+        ham_export --output=file <database> # dumps to file
+        ham_export --encoding=binary|json <database>
 
 o ham_import: a tool that can create Environments from exported data
     (or merge into existing Environments)
+    o support these switches:
+        ham_import --help
+        ham_import --stdin <database> # reads from stdin
+        ham_import <dump-file> <database>   # fails if db already exists
+        ham_import <dump-file> --merge <database> # merges into database
 
 o documentation: collect performance improvements
     o reduce keys/records as much as possible
@@ -176,8 +186,6 @@ o finalize for the next release
     o the whole btree backend should use a LocalDatabase instead of a
         Database pointer (and try to remove some of the TODOs in db.h)
 
-. can we perform better with O_DIRECT? run some benchmarks
-
 . move Extended Keys to backend/btree_extkeys
     o also try to remove the cache and use boost::unsorted_map
     o use ByteArray for extended keys
@@ -193,12 +201,14 @@ o finalize for the next release
     o clean up code
     o try to reduce the TODOs
 
+. can we perform better with O_DIRECT? run some benchmarks
+
 . split Transaction into local and remote class
     o hamsterdb.cc directly calls into Transaction class instead of Environment
     o then continue with db.cc and move txn-related functions to LocalDatabase
     o try to get the methods/design analoguous to the Btree (rename to Ttree?)
 
-o add transaction support for in-memory databases
+. add transaction support for in-memory databases
     in the source, never use HAM_ENABLE_RECOVERY; only check if env->get_log()
         is null. Same regarding journal.
 
@@ -211,7 +221,6 @@ o add transaction support for in-memory databases
     == 4kb then the page is stored in a lookaside-list and will be used later.
     If the page does not have enough memory for alloc then either fetch
     another free page from the lookaside-list or allocate a new one.
-
 
 ------------------- release 2.0.6 -----------------------------------------
 
