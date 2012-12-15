@@ -6,7 +6,10 @@
 *.exe
 *.db
 *.db.*
+export.pb.*
 ham_dump
 ham_info
+ham_export
+ham_import
 hamzilla
 ham_recover

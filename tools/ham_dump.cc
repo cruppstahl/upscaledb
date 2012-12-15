@@ -332,7 +332,7 @@ main(int argc, char **argv) {
               filename = param;
               break;
           case ARG_HELP:
-              printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2007 "
+              printf("hamsterdb %d.%d.%d - Copyright (C) 2005-2012 "
                      "Christoph Rupp (chris@crupp.de).\n\n",
                      maj, min, rev);
 
@@ -388,7 +388,7 @@ main(int argc, char **argv) {
       return (-1);
   }
   else if (st != HAM_SUCCESS)
-      error("ham_env_open_ex", st);
+      error("ham_env_open", st);
 
   /*
    * get a list of all databases

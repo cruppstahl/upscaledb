@@ -1,0 +1,22 @@
+
+package HamsterTool;
+
+option optimize_for = LITE_RUNTIME;
+
+message Environment {
+  required uint32 flags = 1;
+  required uint32 pagesize = 2;
+  required uint32 max_databases = 3;
+};
+
+message Database {
+  required uint32 name = 1;
+  required uint32 flags = 2;
+  required uint32 keysize = 3;
+};
+
+message Item {
+  required bytes key = 1;
+  required bytes record = 2;
+};
+

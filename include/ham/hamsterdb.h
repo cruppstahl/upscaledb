@@ -1517,6 +1517,7 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
  *        open or create this Database
  *    <li>HAM_PARAM_DATABASE_NAME</li> returns the Database name
+ *    <li>HAM_PARAM_KEYSIZE</li> returns the Btree key size
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
  *    </ul>

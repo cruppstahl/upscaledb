@@ -12,11 +12,17 @@ ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la
 ham_dump_SOURCES    = ham_dump.cc getopts.c
 ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la
 
+ham_export_SOURCES  = ham_export.cc getopts.c export.pb.cc
+ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a -lprotobuf -lcurl
+
 ham_recover_SOURCES = ham_recover.cc getopts.c
 ham_recover_LDADD   = $(top_builddir)/src/libhamsterdb.la
 
 bin_PROGRAMS        = ham_info ham_dump ham_recover
 if ENABLE_REMOTE
-bin_PROGRAMS        += hamzilla
+bin_PROGRAMS        += hamzilla ham_export
 endif
+
+export.pb.cc proto: export.proto
+	protoc export.proto --cpp_out=.
 
