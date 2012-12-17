@@ -182,6 +182,7 @@ o documentation: collect performance improvements
     o ham_export/ham_import
 
 o finalize for the next release
+    -> version is 2.1.0!!
     o update README w/ API updates
     o update Webpage w/ API updates
     o update Tutorial w/ API updates
