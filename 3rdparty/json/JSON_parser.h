@@ -33,7 +33,8 @@ typedef long JSON_int_t;
 #endif
 
 /* Determine the floating point type use to parse floating point numbers */
-#ifdef HAVE_WORKING_STRTOLD == 1 /* see also: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=260377 */
+/* see also: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=260377 */
+#ifdef HAVE_WORKING_STRTOLD == 1
 typedef long double JSON_float_t;
 #define JSON_PARSER_FLOAT_SSCANF_TOKEN "%Lf"
 #define JSON_PARSER_FLOAT_SPRINTF_TOKEN "%Lf"

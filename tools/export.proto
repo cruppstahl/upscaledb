@@ -3,6 +3,19 @@ package HamsterTool;
 
 option optimize_for = LITE_RUNTIME;
 
+message Datum {
+  enum Type {
+    ENVIRONMENT = 1;
+    DATABASE = 2;
+    ITEM = 3;
+  };
+
+  required Type type = 1;
+  optional Environment env = 2;
+  optional Database db = 3;
+  optional Item item = 4;
+};
+
 message Environment {
   required uint32 flags = 1;
   required uint32 pagesize = 2;
@@ -17,6 +30,6 @@ message Database {
 
 message Item {
   required bytes key = 1;
-  required bytes record = 2;
+  optional bytes record = 2;
 };
 

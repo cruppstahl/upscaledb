@@ -144,13 +144,11 @@ x review usage of mmap; when opening, should we just map the whole file into
 
 x need the ham_export tool in THIS release - and make sure that it's linked
     statically!!!
-    x export as json
     x export as binary (based on protobuffer - this is the default)
     x support these switches:
         ham_export --help
         ham_export <env>       # dumps to stdout
         ham_export --output=file <env> # dumps to file
-        ham_export --encoding=binary|json <env>
     x make sure this links statically against hamsterdb!
     x do not build ham_export if protobuffer is not installed
 
@@ -158,19 +156,25 @@ x merge Automake patch from Daniel (see email)
 
 o ham_import: a tool that can create Environments from exported data
     (or merge into existing Environments)
-    o support these switches:
+    x do not build ham_import if protobuffer is not installed
+    x support these switches:
         ham_import --help
         ham_import --stdin <database> # reads from stdin
         ham_import <dump-file> <database>   # fails if db already exists
         ham_import <dump-file> --merge <database> # merges into database
-    o do not build ham_import if protobuffer is not installed
-    o need tests for the whole ham_export/ham_import flow
+    o need tests for the whole ham_export/ham_import flow; simply use
+        ham_info -f on source and destination database, then compare
+        (or use .golden file)
+        o with duplicates
+        o with extended keys
+        o with multiple databases
+        o with merging stuff
+
+o remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
 
 o adjust monster.sh
     o need changes for the new API
     o re-enable mmap with threads in monster.sh?!
-
-o remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
 
 o documentation: collect performance improvements
     o reduce keys/records as much as possible
@@ -231,6 +235,7 @@ o finalize for the next release
     == 4kb then the page is stored in a lookaside-list and will be used later.
     If the page does not have enough memory for alloc then either fetch
     another free page from the lookaside-list or allocate a new one.
+    o use this in the TransactionTree to avoid small allocations
 
 ------------------- release 2.0.6 -----------------------------------------
 
@@ -290,24 +295,11 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o convert to clean c++ code
 
 o continue with refacoring - indention, coding style, better design etc...
-    o backend.h/btree.h: check the TODOs
-    o hamserver.cc: replace handles-structure with std::map
+    o hamserver.cc: replace handles-structure with unsorted_set
 
     o configuration: move into separate file
         o use for runtime-configuration
         o and for persistent configuration
-
-    o db.h
-    o db.cc
-        o should use arena for get_extended_key
-        o completely hide the local/remote implementation in the database
-        o move more members from Database to the Implementation classes
-        o improve abstraction
-    o env.h
-    o env.cc
-        o completely hide the local/remote implementation in the Environment
-        o move more members from Environment to the Implementation classes
-        o improve abstraction
 
     o cursor.cc
     o cursor.h
@@ -340,9 +332,6 @@ o is there a way to group all changeset flushes of a Transaction into one
     o but we can use that assert prior to txn_begin
 
 o is the recovery working if there's a crash during ham_close?
-
-o why do tests with 20 threads fail with oom when using mmap? the cache limits
-    should still work
 
 o BtreeFindAction: always use a cursor, and when doing approx matching
     then simply move left or right with that cursor

@@ -18,12 +18,10 @@
 #include <ham/hamsterdb.h>
 
 #include "getopts.h"
-#include "base64.h"
 #include "export.pb.h"
 
 #define ARG_HELP          1
-#define ARG_ENCODING      2
-#define ARG_OUTPUT        3
+#define ARG_OUTPUT        2
 
 
 /*
@@ -36,12 +34,6 @@ static option_t opts[] = {
     "help",                 // long option
     "this help screen",     // help string
     0 },                    // no flags
-  {
-    ARG_ENCODING,
-    "enc",
-    "encoding",
-    "the encoding of the exported data; either json or binary (default)",
-    GETOPTS_NEED_ARGUMENT },
   {
     ARG_OUTPUT,
     "out",
@@ -66,89 +58,6 @@ class Exporter {
     virtual void append_item(ham_key_t *key, ham_record_t *record) = 0;
     virtual void close_environment(ham_env_t *env) { }
     virtual void close_database(ham_db_t *db) { }
-};
-
-class JsonExporter : public Exporter {
-  public:
-    JsonExporter(const char *outfilename) {
-      if (outfilename) {
-        f = fopen(outfilename, "wb");
-        if (!f) {
-          printf("File %s was not created: %s\n", outfilename, strerror(errno));
-          exit(-1);
-        }
-      }
-      else
-        f = stdout;
-    }
-
-    ~JsonExporter() {
-      fclose(f);
-    }
-
-    virtual void append_environment(ham_env_t *env) {
-      ham_parameter_t params[] = {
-        { HAM_PARAM_FLAGS, 0 },
-        { HAM_PARAM_PAGESIZE, 0 },
-        { HAM_PARAM_MAX_DATABASES, 0 },
-        { 0, 0 },
-      };
-      ham_status_t st = ham_env_get_parameters(env, params);
-      if (st)
-        error("ham_env_get_parameters", st);
-      fprintf(f, "{\n\t\"flags\": %u,\n"
-            "\t\"pagesize\": %u,\n"
-            "\t\"max_databases\": %u,\n"
-            "\t\"databases\": [\n",
-            (unsigned)params[0].value,
-            (unsigned)params[1].value,
-            (unsigned)params[2].value);
-    }
-
-    virtual void close_environment(ham_env_t *env) {
-      fprintf(f, "\t]\n}\n");
-    }
-
-    virtual void append_database(ham_db_t *db) {
-      ham_parameter_t params[] = {
-        { HAM_PARAM_DATABASE_NAME, 0 },
-        { HAM_PARAM_FLAGS, 0 },
-        { HAM_PARAM_KEYSIZE, 0 },
-        { 0, 0 },
-      };
-      ham_status_t st = ham_db_get_parameters(db, params);
-      if (st)
-        error("ham_db_get_parameters", st);
-      fprintf(f, "\t{\n\t\t\"name\": %u,\n"
-            "\t\t\"flags\": %u,\n"
-            "\t\t\"keysize\": %u,\n"
-            "\t\t\"items\": [\n",
-            (unsigned)params[0].value,
-            (unsigned)params[1].value,
-            (unsigned)params[2].value);
-    }
-
-    virtual void close_database(ham_db_t *db) {
-      fprintf(f, "\t\t]\n\t},\n");
-    }
-
-    virtual void append_item(ham_key_t *key, ham_record_t *rec) {
-      size_t enckey_length;
-      size_t encrec_length;
-      char *enckey = m_base64.encode((unsigned char *)key->data, key->size,
-                                    &enckey_length);
-      char *encrec = m_base64.encode((unsigned char *)rec->data, rec->size,
-                                    &encrec_length);
-      fprintf(f, "\t\t\t{ \"key\": \"%s\",\n"
-            "\t\t\t  \"record\": \"%s\" },\n",
-            enckey, encrec);
-      free(enckey);
-      free(encrec);
-    }
-
-  private:
-    FILE *f;
-    Base64Encoder m_base64;
 };
 
 class BinaryExporter : public Exporter {
@@ -184,19 +93,21 @@ class BinaryExporter : public Exporter {
       if (st)
         error("ham_env_get_parameters", st);
 
-      HamsterTool::Environment e;
-      e.set_flags(params[0].value);
-      e.set_pagesize(params[1].value);
-      e.set_max_databases(params[2].value);
+      params[0].value &= ~HAM_READ_ONLY;
+
+      HamsterTool::Datum d;
+      d.set_type(HamsterTool::Datum::ENVIRONMENT);
+      HamsterTool::Environment *e = d.mutable_env();
+      e->set_flags(params[0].value);
+      e->set_pagesize(params[1].value);
+      e->set_max_databases(params[2].value);
+
       std::string s;
-      if (!e.SerializeToString(&s)) {
+      if (!d.SerializeToString(&s)) {
         printf("Error serializing Environment\n");
         exit(-1);
       }
-      if (s.size() != fwrite(s.data(), 1, s.size(), f)) {
-        printf("Error writing to file: %s\n", strerror(errno));
-        exit(-1);
-      }
+      write_string(s);
     }
 
     virtual void append_database(ham_db_t *db) {
@@ -210,37 +121,51 @@ class BinaryExporter : public Exporter {
       if (st)
         error("ham_db_get_parameters", st);
 
-      HamsterTool::Database d;
-      d.set_name(params[0].value);
-      d.set_flags(params[1].value);
-      d.set_keysize(params[2].value);
+      params[1].value &= ~HAM_READ_ONLY;
+
+      HamsterTool::Datum d;
+      d.set_type(HamsterTool::Datum::DATABASE);
+      HamsterTool::Database *pdb = d.mutable_db();
+      pdb->set_name(params[0].value);
+      pdb->set_flags(params[1].value);
+      pdb->set_keysize(params[2].value);
+
       std::string s;
       if (!d.SerializeToString(&s)) {
         printf("Error serializing Database\n");
         exit(-1);
       }
-      if (s.size() != fwrite(s.data(), 1, s.size(), f)) {
-        printf("Error writing to file: %s\n", strerror(errno));
-        exit(-1);
-      }
+      write_string(s);
     }
 
     virtual void append_item(ham_key_t *key, ham_record_t *record) {
-      HamsterTool::Item item;
-      item.set_key(key->data, key->size);
-      item.set_record(record->data, record->size);
+      HamsterTool::Datum d;
+      d.set_type(HamsterTool::Datum::ITEM);
+      HamsterTool::Item *item = d.mutable_item();
+      item->set_key(key->data, key->size);
+      item->set_record(record->data, record->size);
+
       std::string s;
-      if (!item.SerializeToString(&s)) {
+      if (!d.SerializeToString(&s)) {
         printf("Error serializing Item\n");
         exit(-1);
       }
-      if (s.size() != fwrite(s.data(), 1, s.size(), f)) {
+      write_string(s);
+    }
+
+  private:
+    virtual void write_string(const std::string &s) {
+      unsigned size = s.size();
+      if (sizeof(size) != fwrite(&size, 1, sizeof(size), f)) {
+        printf("Error writing to file: %s\n", strerror(errno));
+        exit(-1);
+      }
+      if (size != fwrite(s.data(), 1, size, f)) {
         printf("Error writing to file: %s\n", strerror(errno));
         exit(-1);
       }
     }
 
-  private:
     FILE *f;
 };
 
@@ -279,7 +204,6 @@ int
 main(int argc, char **argv) {
   unsigned opt;
   char *param, *infilename = 0, *outfilename = 0;
-  bool use_json = false;
 
   ham_u32_t maj, min, rev;
   const char *licensee, *product;
@@ -297,14 +221,6 @@ main(int argc, char **argv) {
           return (-1);
         }
         outfilename = param;
-        break;
-      case ARG_ENCODING:
-        if (!strcmp(param, "json"))
-          use_json = true;
-        else if (strcmp(param, "binary")) {
-          printf("Unknown encoding; supported values: 'binary', 'json'\n");
-          return (-1);
-        }
         break;
       case GETOPTS_PARAMETER:
         if (infilename) {
@@ -330,11 +246,10 @@ main(int argc, char **argv) {
           printf("Commercial version; licensed for %s (%s)\n\n",
                  licensee, product);
 
-        printf("usage: ham_export [--output=file] [--encoding=binary|json] [file]\n");
+        printf("usage: ham_export [--output=file] [file]\n");
         printf("usage: ham_export --help\n");
         printf("       --help:       this help screen\n");
         printf("       --output:     filename of exported file (stdout if empty)\n");
-        printf("       --encoding:   encoding of exported data (binary is default)\n");
         return (0);
       default:
         printf("Invalid or unknown parameter `%s'. "
@@ -351,11 +266,7 @@ main(int argc, char **argv) {
   ham_env_t *env;
   ham_db_t *db;
 
-  Exporter *exporter;
-  if (use_json)
-    exporter = new JsonExporter(outfilename);
-  else
-    exporter = new BinaryExporter(outfilename);
+  Exporter *exporter = new BinaryExporter(outfilename);
 
   /* open the environment */
   ham_status_t st = ham_env_open(&env, infilename, HAM_READ_ONLY, 0);
