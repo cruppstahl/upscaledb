@@ -22,7 +22,7 @@
 #endif
 
 #include "../src/error.h"
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
 #  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
 #  include <curl/curl.h>
 #  include <curl/easy.h>
@@ -307,7 +307,7 @@ main(int argc, char **argv)
     return (r);
 }
 
-#if UNDER_CE
+#ifdef UNDER_CE
 int
 _tmain(int argc, _TCHAR* argv[])
 {

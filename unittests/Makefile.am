@@ -1,9 +1,9 @@
 
-EXTRA_DIST      = suppressions.valgrind
+EXTRA_DIST      = recovery.pl suppressions.valgrind data/*
 
 noinst_PROGRAMS = test bfc_sample recovery
 
-AM_CPPFLAGS     = -I$(top_builddir)/include
+AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
 test_SOURCES    = bfc-testsuite.cpp \
                   bfc-testsuite.hpp \
@@ -47,7 +47,7 @@ test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
-CFLAGS         += -DHAM_ENABLE_REMOTE
+AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
 test_LDADD     += $(top_builddir)/src/server/libhamserver.la -lprotobuf
 endif
 
@@ -70,12 +70,6 @@ recovery_SOURCES = recovery.cpp
 recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la -ldl
 
 noinst_BIN       = test bfc_sample recovery
-
-#
-# make sure that our modified CFLAGS are also respected by g++
-#
-AM_CXXFLAGS     = $(CFLAGS)
-CXXFLAGS        = $(CFLAGS)
 
 test_recovery:
 	perl recovery.pl

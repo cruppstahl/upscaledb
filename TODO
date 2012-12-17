@@ -154,6 +154,8 @@ x need the ham_export tool in THIS release - and make sure that it's linked
     x make sure this links statically against hamsterdb!
     x do not build ham_export if protobuffer is not installed
 
+x merge Automake patch from Daniel (see email)
+
 o ham_import: a tool that can create Environments from exported data
     (or merge into existing Environments)
     o support these switches:
@@ -169,8 +171,6 @@ o adjust monster.sh
     o re-enable mmap with threads in monster.sh?!
 
 o remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
-
-o merge Automake patch from Daniel (see email)
 
 o documentation: collect performance improvements
     o reduce keys/records as much as possible

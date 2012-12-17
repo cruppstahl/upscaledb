@@ -711,7 +711,7 @@ class LocalDatabase : public Database
 /**
  * The database implementation for remote file access
  */
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
 
 class RemoteDatabase : public Database
 {

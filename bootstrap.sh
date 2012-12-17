@@ -1,8 +1,8 @@
 #!/bin/sh
 
 libtoolize --force \
-&& aclocal \
-&& automake --add-missing --foreign \
-&& autoconf \
-&& autoheader
+&& aclocal --warnings=all \
+&& automake --add-missing --foreign --warnings=all \
+&& autoconf --warnings=all \
+&& autoheader --warnings=all
 

@@ -2,12 +2,8 @@ if ENABLE_JAVA
 SUBDIRS = src java
 endif
 
-EXTRA_DIST = src java unittests
+DIST_SUBDIRS = src java unittests
+EXTRA_DIST = README
 
 test:
-	cd unittests && make test
-
-clean:
-	cd unittests && make clean
-	cd java && make clean
-	cd src && make clean
+	cd unittests && $(MAKE) test

@@ -92,7 +92,7 @@ dbg_log(const char *format, ...)
 
   va_list ap;
   va_start(ap, format);
-#if HAM_DEBUG
+#ifdef HAM_DEBUG
   s = dbg_snprintf(buffer,   sizeof(buffer), "%s[%d]: ", g_file, g_line);
   util_vsnprintf(buffer + s, sizeof(buffer) - s, format, ap);
 #else

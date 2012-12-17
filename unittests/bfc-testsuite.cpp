@@ -1091,7 +1091,7 @@ void testrunner::print_errors(bool panic_flush) {
                 : ""));
             buf[sizeof(buf)-1] = 0;
 
-#   if UNDER_CE
+#   ifdef UNDER_CE
             wchar_t wbuf[1024*2];
             MultiByteToWideChar(CP_ACP, 0, buf, -1, wbuf,
                     sizeof(wbuf)/sizeof(wchar_t));

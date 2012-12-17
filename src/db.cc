@@ -516,9 +516,7 @@ db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
   if (only_from_cache)
     return (HAM_SUCCESS);
 
-#if HAM_DEBUG
   ham_assert(env->get_cache()->get_page(address) == 0);
-#endif
 
   /* can we allocate a new page for the cache? */
   if (env->get_cache()->is_too_big()) {

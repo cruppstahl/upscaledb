@@ -65,7 +65,7 @@ Environment::Environment()
     m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
     m_duplicate_manager(this)
 {
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
     m_curl=0;
 #endif
 

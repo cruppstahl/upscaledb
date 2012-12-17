@@ -190,7 +190,7 @@ public:
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
         ham_env_open(&env, "test.db", HAM_ENABLE_DUPLICATES, params));
 
-#if WIN32
+#ifdef WIN32
     BFC_ASSERT_EQUAL(HAM_IO_ERROR,
         ham_env_open(&env, "c:\\windows", 0, 0));
 #else
@@ -247,7 +247,7 @@ public:
         ham_env_create(&env, 0, HAM_READ_ONLY, 0, 0));
     BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE,
         ham_env_create(&env, BFC_OPATH(".test"), 0, 0, &ps[0]));
-#if WIN32
+#ifdef WIN32
     BFC_ASSERT_EQUAL(HAM_IO_ERROR,
         ham_env_create(&env, "c:\\windows", 0, 0664, 0));
 #else

@@ -2,9 +2,17 @@
 CP=.:../java/hamsterdb-$(PACKAGE_VERSION).jar:junit-4.4.jar
 RUN=LD_LIBRARY_PATH=../../src/.libs/ $(JDK)/bin/java -Djava.library.path=../src/.libs
 
+EXTRA_DIST = \
+	CursorTest.java \
+	DatabaseExceptionTest.java \
+	DatabaseTest.java \
+	EnvironmentTest.java \
+	TransactionTest.java \
+	junit-4.4.jar \
+	win32.bat
+
 all: CursorTest.class DatabaseTest.class DatabaseExceptionTest.class \
         EnvironmentTest.class TransactionTest.class
-
 
 CursorTest.class: CursorTest.java
 	$(JDK)/bin/javac -cp $(CP) CursorTest.java
@@ -28,5 +36,5 @@ test: all
 	$(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
 	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseExceptionTest
 
-clean:
-	\rm -rf *.class *.db*
+clean-local:
+	rm -rf *.class *.db*

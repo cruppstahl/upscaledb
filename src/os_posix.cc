@@ -43,7 +43,7 @@ namespace ham {
 static ham_status_t
 lock_exclusive(int fd, bool lock)
 {
-#if HAM_SOLARIS
+#ifdef HAM_SOLARIS
   /*
    * SunOS 5.9 doesn't have LOCK_* unless i include /usr/ucbinclude; but then,
    * mmap behaves strangely (the first write-access to the mmapped buffer

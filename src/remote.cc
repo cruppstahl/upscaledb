@@ -20,7 +20,7 @@
 #include "mem.h"
 #include "cursor.h"
 
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
 
 #define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
 #include <curl/curl.h>

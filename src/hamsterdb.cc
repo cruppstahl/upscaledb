@@ -19,7 +19,7 @@
 #endif
 #include <string.h>
 
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
 #  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
 #  include <curl/curl.h>
 #  include <curl/easy.h>
@@ -889,7 +889,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
     Environment *env = new Environment;
 
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(Protocol::shutdown);
 #endif
@@ -1056,7 +1056,7 @@ ham_env_open(ham_env_t **henv, const char *filename,
 
     Environment *env=new Environment;
 
-#if HAM_ENABLE_REMOTE
+#ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
     atexit(Protocol::shutdown);
 #endif

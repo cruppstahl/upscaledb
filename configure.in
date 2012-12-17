@@ -13,7 +13,7 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/hamsterdb.cc)
 AC_CONFIG_MACRO_DIR(m4)
 AC_CANONICAL_HOST
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_COPYRIGHT([
 Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de)
 ])
@@ -21,8 +21,7 @@ Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de)
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+LT_INIT(win32-dll)
 AC_PROG_INSTALL
 AC_PROG_SED
 AC_HEADER_STDC
@@ -55,7 +54,7 @@ CFLAGS="${CFLAGS} -Wall"
 # Enable debug mode?
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(debug,
-    AC_HELP_STRING([--enable-debug],
+    AS_HELP_STRING([--enable-debug],
         [Build with diagnostics and debug symbols (slow!)]))
 if test "$enable_debug" = "yes"
 then
@@ -83,7 +82,7 @@ fi
 # Disable java wrapper?
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(java,
-    AC_HELP_STRING([--disable-java],
+    AS_HELP_STRING([--disable-java],
         [Do not build the Java wrapper]))
 if test "$enable_java" = "no"; then
     settings="$settings (no java)"
@@ -112,7 +111,7 @@ fi
 # Enable profiling mode
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(profile,
-    AC_HELP_STRING([--enable-profile],
+    AS_HELP_STRING([--enable-profile],
         [Build with profiling information (gprof)]))
 if test "$enable_profile" = "yes"
 then
@@ -124,8 +123,8 @@ fi
 # Enable test coverage
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(gcov,
-    AC_HELP_STRING([--enable-gcov],
-        [Build with test coverage information (gconf)]))
+    AS_HELP_STRING([--enable-gcov],
+        [Build with test coverage information (gcov)]))
 if test "$enable_gcov" = "yes"
 then
     CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
@@ -133,17 +132,10 @@ then
 fi
 
 # -------------------------------------------------------------------------
-# Enable internal functions (obsolete)
-# -------------------------------------------------------------------------
-AC_ARG_ENABLE(internal,
-    AC_HELP_STRING([--enable-internal],
-        [obsolete; internal functions are now enabled by default]))
-
-# -------------------------------------------------------------------------
 # Disable server
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(server,
-    AC_HELP_STRING([--disable-server],
+    AS_HELP_STRING([--disable-server],
                    [Disable build of the server (hamsvr)]))
 if test "$enable_server" = "no"; then
     settings="$settings (no server)"
@@ -170,11 +162,11 @@ fi
 # -------------------------------------------------------------------------
 AC_CACHE_CHECK(whether the compiler supports __FUNCTION__ macro,
                ac_cv_FUNCTION1,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 int main(void) {
     char *p=__FUNCTION__;
     return 0;
-}],ac_cv_FUNCTION1=yes,ac_cv_FUNCTION1=no,ac_cv_FUNCTION1=no)])
+}]])],ac_cv_FUNCTION1=yes,ac_cv_FUNCTION1=no,ac_cv_FUNCTION1=no)])
 if test $ac_cv_FUNCTION1 = yes; then
     AC_DEFINE(HAVE_FUNCTION_MACRO,1,[__FUNCTION__ is supported])
 fi
@@ -184,13 +176,13 @@ fi
 # -------------------------------------------------------------------------
 AC_CACHE_CHECK(whether we need -fno-tree-vectorize,
                ac_cv_FUNCTION2,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 int main(void) {
 #if !(__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
 #error "this gcc is ok"
 #endif
     return 0;
-}],ac_cv_FUNCTION2=yes,ac_cv_FUNCTION2=no,ac_cv_FUNCTION2=no)])
+}]])],ac_cv_FUNCTION2=yes,ac_cv_FUNCTION2=no,ac_cv_FUNCTION2=no)])
 if test $ac_cv_FUNCTION2 = yes; then
     CFLAGS="${CFLAGS} -fno-tree-vectorize"
 fi
@@ -199,7 +191,7 @@ fi
 # Check for O_LARGEFILE
 # -------------------------------------------------------------------------
 AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
 #include <stdio.h>
 #include <unistd.h>
@@ -208,7 +200,7 @@ AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
 int main(void) {
     int i=(int)O_LARGEFILE;
     return 0;
-}],ac_cv_largefile=yes,ac_cv_largefile=no,ac_cv_largefile=no)])
+}]])],ac_cv_largefile=yes,ac_cv_largefile=no,ac_cv_largefile=no)])
 if test $ac_cv_largefile = yes; then
     AC_DEFINE(HAVE_O_LARGEFILE,1,[flag O_LARGEFILE is supported])
     CFLAGS="${CFLAGS} -D_FILE_OFFSET_BITS=64"
@@ -218,7 +210,7 @@ fi
 # Check for O_NOATIME
 # -------------------------------------------------------------------------
 AC_CACHE_CHECK(for support of the O_NOATIME flag,ac_cv_noatime,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #define _GNU_SOURCE   1 /* for O_NOATIME */
 #include <stdio.h>
 #include <unistd.h>
@@ -227,7 +219,7 @@ AC_CACHE_CHECK(for support of the O_NOATIME flag,ac_cv_noatime,
 int main(void) {
     int i=(int)O_NOATIME;
     return i;
-}],ac_cv_noatime=yes,ac_cv_noatime=no,ac_cv_noatime=no)])
+}]])],ac_cv_noatime=yes,ac_cv_noatime=no,ac_cv_noatime=no)])
 if test $ac_cv_noatime = yes; then
     AC_DEFINE(HAVE_O_NOATIME,1,[flag O_NOATIME is supported])
 fi
@@ -237,11 +229,11 @@ fi
 # -------------------------------------------------------------------------
 AC_LANG(C++)
 AC_CACHE_CHECK(if google protocol buffers are installed,ac_cv_protobuf,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <google/protobuf/message.h>
 int main(void) {
     return 0;
-}],ac_cv_protobuf=yes,ac_cv_protobuf=no,ac_cv_protobuf=no)])
+}]])],ac_cv_protobuf=yes,ac_cv_protobuf=no,ac_cv_protobuf=no)])
 if test "x$enable_remote" != "xno"; then
     if test "x$ac_cv_protobuf" = "xno"; then
         settings="$settings (protobuf missing - remote disabled)"
@@ -254,11 +246,11 @@ AC_LANG(C)
 # Check if libcurl is installed
 # -------------------------------------------------------------------------
 AC_CACHE_CHECK(if libcurl is installed,ac_cv_libcurl,
-    [AC_TRY_RUN([
+    [AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <curl/curl.h>
 int main(void) {
     return 0;
-}],ac_cv_libcurl=yes,ac_cv_libcurl=no,ac_cv_libcurl=no)])
+}]])],ac_cv_libcurl=yes,ac_cv_libcurl=no,ac_cv_libcurl=no)])
 if test "x$enable_remote" != "xno"; then
     if test "x$ac_cv_libcurl" = "xno"; then
         settings="$settings (libcurl missing - remote disabled)"
@@ -270,7 +262,7 @@ fi
 # Disable remote client
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(remote,
-    AC_HELP_STRING([--disable-remote],
+    AS_HELP_STRING([--disable-remote],
                    [Disable access to remote databases]))
 if test "$enable_remote" = "no"; then
     settings="$settings (no remote access)"

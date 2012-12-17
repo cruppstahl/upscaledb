@@ -702,7 +702,7 @@ class env {
     ham_env_t *m_env;
 };
 
-}; // namespace ham
+} // namespace ham
 
 /**
  * @}

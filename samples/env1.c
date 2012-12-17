@@ -24,13 +24,13 @@ error(const char *foo, ham_status_t st) {
   exit(-1);
 }
 
-#define MAX_DBS       2
+#define MAX_DBS           2
 
 #define DBNAME_CUSTOMER   1
-#define DBNAME_ORDER    2
+#define DBNAME_ORDER      2
 
 #define MAX_CUSTOMERS     4
-#define MAX_ORDERS      8
+#define MAX_ORDERS        8
 
 /* A structure for the "customer" database */
 typedef struct {
