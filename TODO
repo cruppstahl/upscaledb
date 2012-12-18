@@ -174,24 +174,24 @@ x ham_import: a tool that can create Environments from exported data
     x print statistics when done (number of databases, number of keys)
         x also for ham_export
 
-o remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
+x remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
 
 o adjust monster.sh
     o need changes for the new API
     o re-enable mmap with threads in monster.sh?!
 
-o documentation: collect performance improvements
+o write extra documentation about getting the best performance
     o reduce keys/records as much as possible
     o play around with keysize/pagesize
     o increase cache size
     o use mmap when opening files, but be aware of the problems
     o transactions: use HAM_OVERWRITE
     o transactions: store log/journal on different disk
-    o ham_export/ham_import
 
 o finalize for the next release
     o version is 2.1.0!!
     o increment libtool version
+    o run valgrind tests
     o update README w/ API updates
     o update Webpage w/ API updates
     o update Tutorial w/ API updates

@@ -1,4 +1,8 @@
 Dec 18, 2012 - chris ---------------------------------------------------
+o Removed HAM_FAST_ESTIMATE and improved performance of ham_db_get_key_count
+	if use of duplicate keys are disabled
+
+Dec 18, 2012 - chris ---------------------------------------------------
 o Added two new tools: ham_export to export a database into a binary format,
 	ham_import to create an Environment from the exported data (or to merge
 	the data into an existing Environment). ham_export is linked statically.

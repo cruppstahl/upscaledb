@@ -239,9 +239,6 @@ public class Const {
     /** Flag for Database.insert(), ... */
     public final static int HAM_HINT_PREPEND                    =     0x100000;
 
-    /** Flag for Database.getKeyCount(), ... */
-    public final static int HAM_FAST_ESTIMATE                   =     0x1;
-
     /** Flag for Database.close(), Environment.close() */
     public final static int HAM_AUTO_CLEANUP                    =        1;
 

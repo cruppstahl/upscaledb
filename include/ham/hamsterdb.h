@@ -1475,14 +1475,11 @@ ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 #define HAM_ERASE_ALL_DUPLICATES                1
 
 /**
- * Calculates the number of keys stored in the Database
+ * Returns the number of keys stored in the Database
  *
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want
- * to include any duplicates in the count.
- *
- * If all you're after is a quick estimate, you can specify the flag
- * @ref HAM_FAST_ESTIMATE (which implies @ref HAM_SKIP_DUPLICATES), which
- * will improve the execution speed of this operation significantly.
+ * to include any duplicates in the count. This will also speed up the
+ * counting.
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
@@ -1490,8 +1487,6 @@ ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
  *     <ul>
  *     <li>@ref HAM_SKIP_DUPLICATES. Excludes any duplicates from
  *       the count
- *     <li>@ref HAM_FAST_ESTIMATE. Get a fast estimate; can produce
- *       slightly incorrect results and ignores duplicates
  *     </ul>
  * @param keycount A reference to a variable which will receive
  *         the calculated key count per page
@@ -1503,9 +1498,6 @@ ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount);
-
-/** Flag for @ref ham_db_get_key_count */
-#define HAM_FAST_ESTIMATE               0x0001
 
 /**
  * Retrieve the current value for a given Database setting

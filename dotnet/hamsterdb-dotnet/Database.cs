@@ -476,10 +476,7 @@ namespace Hamster
     /// This method wraps the native ham_db_get_key_count function.
     /// <br />
     /// You can specify HAM_SKIP_DUPLICATES if you do now want
-    /// to include any duplicates in the count; if all you're after is
-    /// a quick estimate, you can specify the flag HAM_FAST_ESTIMATE
-    /// (which implies HAM_SKIP_DUPLICATES), which will improve the
-    /// execution speed of this operation significantly.
+    /// to include any duplicates in the count.
     /// </remarks>
     public Int64 GetKeyCount(Transaction txn, int flags) {
       int st;

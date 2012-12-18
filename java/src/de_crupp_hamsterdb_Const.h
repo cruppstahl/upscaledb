@@ -157,8 +157,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_HINT_APPEND 524288L
 #undef de_crupp_hamsterdb_Const_HAM_HINT_PREPEND
 #define de_crupp_hamsterdb_Const_HAM_HINT_PREPEND 1048576L
-#undef de_crupp_hamsterdb_Const_HAM_FAST_ESTIMATE
-#define de_crupp_hamsterdb_Const_HAM_FAST_ESTIMATE 1L
 #undef de_crupp_hamsterdb_Const_HAM_AUTO_CLEANUP
 #define de_crupp_hamsterdb_Const_HAM_AUTO_CLEANUP 1L
 #undef de_crupp_hamsterdb_Const_HAM_DONT_CLEAR_LOG

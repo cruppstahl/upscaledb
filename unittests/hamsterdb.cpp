@@ -1631,10 +1631,6 @@ public:
 
     count = 0;
     BFC_ASSERT_EQUAL(0,
-        ham_db_get_key_count(m_db, 0, HAM_FAST_ESTIMATE, &count));
-    BFC_ASSERT_EQUAL((unsigned)4000, count);
-
-    BFC_ASSERT_EQUAL(0,
         ham_db_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
     BFC_ASSERT_EQUAL((unsigned)4000, count);
 

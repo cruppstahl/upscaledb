@@ -178,8 +178,6 @@ namespace Hamster
     public const int HAM_HINT_APPEND          =     0x0080000;
     /// <summary>Flag for Database.Insert</summary>
     public const int HAM_HINT_PREPEND           =     0x0100000;
-    /// <summary>Flag for Database.GetKeyCount</summary>
-    public const int HAM_FAST_ESTIMATE          =     1;
     /// <summary>Flag for Database.Close</summary>
     public const int HAM_AUTO_CLEANUP           =    1;
     /// <summary>Private flag for testing</summary>

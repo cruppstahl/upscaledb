@@ -81,8 +81,12 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
     if (c->is_leaf) {
       ham_size_t dupcount=1;
 
-      if (!(c->flags&HAM_SKIP_DUPLICATES)
-          && (key->get_flags()&BtreeKey::KEY_HAS_DUPLICATES)) {
+      if (c->flags&HAM_SKIP_DUPLICATES
+          || (c->db->get_rt_flags()&HAM_ENABLE_DUPLICATES) == 0) {
+        c->total_count+=count;
+        return (HAM_ENUM_DO_NOT_DESCEND);
+      }
+      if (key->get_flags()&BtreeKey::KEY_HAS_DUPLICATES) {
         ham_status_t st=c->db->get_env()->get_duplicate_manager()->get_count(
               key->get_ptr(), &dupcount, 0);
         if (st)
@@ -91,18 +95,6 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
       }
       else {
         c->total_count++;
-      }
-
-      if (c->flags&HAM_FAST_ESTIMATE) {
-        /*
-         * fast mode: just grab the keys-per-page value and
-         * call it a day for this page.
-         *
-         * Assume all keys in this page have the same number
-         * of dupes (=1 if no dupes)
-         */
-        c->total_count+=(count-1)*dupcount;
-        return (HAM_ENUM_DO_NOT_DESCEND);
       }
     }
     break;
@@ -716,33 +708,24 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
           || (txn_op_get_flags(op) & TXN_OP_INSERT_OW)) {
         /* check if the key already exists in the btree - if yes,
          * we do not count it (it will be counted later) */
-        if (kc->flags & HAM_FAST_ESTIMATE)
-          kc->c++;
-        else if (HAM_KEY_NOT_FOUND == be->find(0,
-                  txn_opnode_get_key(node), 0, 0))
+        if (HAM_KEY_NOT_FOUND == be->find(0, txn_opnode_get_key(node), 0, 0))
           kc->c++;
         return;
       }
       else if (txn_op_get_flags(op) & TXN_OP_INSERT_DUP) {
-        /* check if the key already exists in the btree - if yes,
-         * we do not count it (it will be counted later) */
-        if (kc->flags & HAM_FAST_ESTIMATE)
-          kc->c++;
-        else {
-          /* check if btree has other duplicates */
-          if (0 == be->find(0, txn_opnode_get_key(node), 0, 0)) {
-            /* yes, there's another one */
-            if (kc->flags & HAM_SKIP_DUPLICATES)
-              return;
-            else
-              kc->c++;
-          }
-          else {
-            /* check if other key is in this node */
+        /* check if btree has other duplicates */
+        if (0 == be->find(0, txn_opnode_get_key(node), 0, 0)) {
+          /* yes, there's another one */
+          if (kc->flags & HAM_SKIP_DUPLICATES)
+            return;
+          else
             kc->c++;
-            if (kc->flags & HAM_SKIP_DUPLICATES)
-              return;
-          }
+        }
+        else {
+          /* check if other key is in this node */
+          kc->c++;
+          if (kc->flags & HAM_SKIP_DUPLICATES)
+            return;
         }
       }
       else {
@@ -1473,9 +1456,9 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
 
   calckeys_context_t ctx = {this, flags, 0, HAM_FALSE};
 
-  if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
+  if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
-          flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
+          flags & ~(HAM_SKIP_DUPLICATES)));
     return (HAM_INV_PARAMETER);
   }
 
