@@ -154,7 +154,7 @@ x need the ham_export tool in THIS release - and make sure that it's linked
 
 x merge Automake patch from Daniel (see email)
 
-o ham_import: a tool that can create Environments from exported data
+x ham_import: a tool that can create Environments from exported data
     (or merge into existing Environments)
     x do not build ham_import if protobuffer is not installed
     x support these switches:
@@ -162,13 +162,17 @@ o ham_import: a tool that can create Environments from exported data
         ham_import --stdin <database> # reads from stdin
         ham_import <dump-file> <database>   # fails if db already exists
         ham_import <dump-file> --merge <database> # merges into database
-    o need tests for the whole ham_export/ham_import flow; simply use
-        ham_info -f on source and destination database, then compare
+    x need tests for the whole ham_export/ham_import flow; simply use
+        ham_info -f or ham_dump on source and destination database, then compare
         (or use .golden file)
-        o with duplicates
-        o with extended keys
-        o with multiple databases
-        o with merging stuff
+        x with multiple databases - env1.c
+        x with duplicates - env3.c
+        x with extended keys
+        x merge into existing database: extkeys.db in env3.db
+    x write errors to stderr, not stdout
+        x also for ham_export
+    x print statistics when done (number of databases, number of keys)
+        x also for ham_export
 
 o remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
 
@@ -186,13 +190,14 @@ o documentation: collect performance improvements
     o ham_export/ham_import
 
 o finalize for the next release
-    -> version is 2.1.0!!
+    o version is 2.1.0!!
+    o increment libtool version
     o update README w/ API updates
     o update Webpage w/ API updates
     o update Tutorial w/ API updates
     o update FAQ/Documentation regarding mmap
     o need documentation for ham_export, ham_import
-    o increment libtool version
+    o MSVC project files for ham_import, ham_export
     x increment version in header file
 
 . remove backend.h, directly use BtreeBackend

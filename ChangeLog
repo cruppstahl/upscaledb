@@ -1,3 +1,10 @@
+Dec 18, 2012 - chris ---------------------------------------------------
+o Added two new tools: ham_export to export a database into a binary format,
+	ham_import to create an Environment from the exported data (or to merge
+	the data into an existing Environment). ham_export is linked statically.
+	ham_export/ham_import will provide an upgrade path for newer hamsterdb
+	versions.
+
 Dec 17, 2012 - chris ---------------------------------------------------
 o Applied patch with many automake/autoconf related cleanups (thanks,
 	Daniel Richard G. <skunk@iskunk.org>)

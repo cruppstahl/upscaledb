@@ -3,6 +3,9 @@
 ../../samples/db1
 mv test.db db1.db
 
+../../samples/env1
+mv test.db env1.db
+
 ../../samples/env3
 mv test.db env3.db
 

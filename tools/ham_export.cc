@@ -45,7 +45,7 @@ static option_t opts[] = {
 
 static void
 error(const char *foo, ham_status_t st) {
-  printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+  fprintf(stderr, "%s() returned error %d: %s\n", foo, st, ham_strerror(st));
   exit(-1);
 }
 
@@ -62,11 +62,13 @@ class Exporter {
 
 class BinaryExporter : public Exporter {
   public:
-    BinaryExporter(const char *outfilename) {
+    BinaryExporter(const char *outfilename)
+      : m_db_counter(0), m_item_counter(0) {
       if (outfilename) {
         f = fopen(outfilename, "wb");
         if (!f) {
-          printf("File %s was not created: %s\n", outfilename, strerror(errno));
+          fprintf(stderr, "File %s was not created: %s\n", outfilename,
+                  strerror(errno));
           exit(-1);
         }
       }
@@ -79,6 +81,8 @@ class BinaryExporter : public Exporter {
     }
 
     ~BinaryExporter() {
+      fprintf(stderr, "Exported %u databases with %u items.\n",
+              (unsigned)m_db_counter, (unsigned)m_item_counter);
       fclose(f);
     }
 
@@ -104,13 +108,15 @@ class BinaryExporter : public Exporter {
 
       std::string s;
       if (!d.SerializeToString(&s)) {
-        printf("Error serializing Environment\n");
+        fprintf(stderr, "Error serializing Environment\n");
         exit(-1);
       }
       write_string(s);
     }
 
     virtual void append_database(ham_db_t *db) {
+      m_db_counter++;
+
       ham_parameter_t params[] = {
         { HAM_PARAM_DATABASE_NAME, 0 },
         { HAM_PARAM_FLAGS, 0 },
@@ -132,13 +138,15 @@ class BinaryExporter : public Exporter {
 
       std::string s;
       if (!d.SerializeToString(&s)) {
-        printf("Error serializing Database\n");
+        fprintf(stderr, "Error serializing Database\n");
         exit(-1);
       }
       write_string(s);
     }
 
     virtual void append_item(ham_key_t *key, ham_record_t *record) {
+      m_item_counter++;
+
       HamsterTool::Datum d;
       d.set_type(HamsterTool::Datum::ITEM);
       HamsterTool::Item *item = d.mutable_item();
@@ -147,7 +155,7 @@ class BinaryExporter : public Exporter {
 
       std::string s;
       if (!d.SerializeToString(&s)) {
-        printf("Error serializing Item\n");
+        fprintf(stderr, "Error serializing Item\n");
         exit(-1);
       }
       write_string(s);
@@ -157,16 +165,18 @@ class BinaryExporter : public Exporter {
     virtual void write_string(const std::string &s) {
       unsigned size = s.size();
       if (sizeof(size) != fwrite(&size, 1, sizeof(size), f)) {
-        printf("Error writing to file: %s\n", strerror(errno));
+        fprintf(stderr, "Error writing to file: %s\n", strerror(errno));
         exit(-1);
       }
       if (size != fwrite(s.data(), 1, size, f)) {
-        printf("Error writing to file: %s\n", strerror(errno));
+        fprintf(stderr, "Error writing to file: %s\n", strerror(errno));
         exit(-1);
       }
     }
 
     FILE *f;
+    size_t m_db_counter;
+    size_t m_item_counter;
 };
 
 static void
@@ -216,7 +226,7 @@ main(int argc, char **argv) {
     switch (opt) {
       case ARG_OUTPUT:
         if (outfilename) {
-          printf("Multiple files specified. Please specify only one "
+          fprintf(stderr, "Multiple files specified. Please specify only one "
                 "filename.\n");
           return (-1);
         }
@@ -224,7 +234,7 @@ main(int argc, char **argv) {
         break;
       case GETOPTS_PARAMETER:
         if (infilename) {
-          printf("Multiple files specified. Please specify only one "
+          fprintf(stderr, "Multiple files specified. Please specify only one "
                 "filename.\n");
           return (-1);
         }
@@ -252,14 +262,15 @@ main(int argc, char **argv) {
         printf("       --output:     filename of exported file (stdout if empty)\n");
         return (0);
       default:
-        printf("Invalid or unknown parameter `%s'. "
+        fprintf(stderr, "Invalid or unknown parameter `%s'. "
                "Enter `ham_export --help' for usage.", param);
         return (-1);
     }
   }
 
   if (!infilename) {
-      printf("Filename is missing. Enter `ham_export --help' for usage.\n");
+      fprintf(stderr, "Filename is missing. Enter `ham_export --help' for "
+              "usage.\n");
       return (-1);
   }
 
@@ -271,7 +282,7 @@ main(int argc, char **argv) {
   /* open the environment */
   ham_status_t st = ham_env_open(&env, infilename, HAM_READ_ONLY, 0);
   if (st == HAM_FILE_NOT_FOUND) {
-    printf("File `%s' not found or unable to open it\n", infilename);
+    fprintf(stderr, "File `%s' not found or unable to open it\n", infilename);
     return (-1);
   }
   else if (st != HAM_SUCCESS)
@@ -300,6 +311,7 @@ main(int argc, char **argv) {
   }
 
   exporter->close_environment(env);
+  delete exporter;
 
   st = ham_env_close(env, 0);
   if (st != HAM_SUCCESS)
