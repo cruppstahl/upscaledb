@@ -340,10 +340,6 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\src\backend.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\blob.cc"
 			>
 		</File>

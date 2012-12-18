@@ -101,7 +101,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /*
      * following here:
      *
-     * 1. the private data of the index backend(s)
+     * 1. the private data of the index btree(s)
      *      -> see env_get_indexdata()
      *
      * 2. the freelist data
@@ -445,7 +445,7 @@ class Environment
 
     /**
      * Get the private data of the specified database stored at index @a i;
-     * interpretation of the data is up to the backend.
+     * interpretation of the data is up to the btree.
      */
     db_indexdata_t *get_indexdata_ptr(int i);
 
@@ -665,13 +665,13 @@ env_alloc_page(Page **page_ref, Environment *env,
                 ham_u32_t type, ham_u32_t flags);
 
 /*
- * create a env_backend_t structure for accessing local files
+ * create a env_btree_t structure for accessing local files
  */
 extern ham_status_t
 env_initialize_local(Environment *env);
 
 /*
- * create a env_backend_t structure for accessing remote server
+ * create a env_btree_t structure for accessing remote server
  */
 extern ham_status_t
 env_initialize_remote(Environment *env);

@@ -171,7 +171,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 }
 
 Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
-  : m_env(env), m_name(name), m_error(0), m_context(0), m_backend(0),
+  : m_env(env), m_name(name), m_error(0), m_context(0), m_btree(0),
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
     m_extkey_cache(0), m_indexdata_offset(0), m_optree(this)
 {
@@ -479,8 +479,7 @@ Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 
   /* hack: prior to 2.0, the type of btree root pages was not set
    * correctly */
-  BtreeBackend *be = (BtreeBackend *)m_backend;
-  if ((*page)->get_self() == be->get_rootpage()
+  if ((*page)->get_self() == m_btree->get_rootpage()
       && !((*page)->get_db()->get_rt_flags() & HAM_READ_ONLY))
     (*page)->set_type(Page::TYPE_B_ROOT);
   return (0);
@@ -670,7 +669,7 @@ static void
 __get_key_count_txn(txn_opnode_t *node, void *data)
 {
   struct keycount_t *kc = (struct keycount_t *)data;
-  Backend *be = kc->db->get_backend();
+  BtreeIndex *be = kc->db->get_btree();
   txn_op_t *op;
 
   /*
@@ -708,13 +707,13 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
           || (txn_op_get_flags(op) & TXN_OP_INSERT_OW)) {
         /* check if the key already exists in the btree - if yes,
          * we do not count it (it will be counted later) */
-        if (HAM_KEY_NOT_FOUND == be->find(0, txn_opnode_get_key(node), 0, 0))
+        if (HAM_KEY_NOT_FOUND == be->find(0, 0, txn_opnode_get_key(node), 0, 0))
           kc->c++;
         return;
       }
       else if (txn_op_get_flags(op) & TXN_OP_INSERT_DUP) {
         /* check if btree has other duplicates */
-        if (0 == be->find(0, txn_opnode_get_key(node), 0, 0)) {
+        if (0 == be->find(0, 0, txn_opnode_get_key(node), 0, 0)) {
           /* yes, there's another one */
           if (kc->flags & HAM_SKIP_DUPLICATES)
             return;
@@ -805,7 +804,7 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
    */
   if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
     return (0);
-  st = m_backend->find(0, key, 0, flags);
+  st = m_btree->find(0, 0, key, 0, flags);
   if (st == HAM_KEY_NOT_FOUND)
     return (0);
   if (st == HAM_SUCCESS)
@@ -868,7 +867,7 @@ LocalDatabase::check_erase_conflicts(Transaction *txn,
    * were no conflicts. Now check all transactions which are already
    * flushed - basically that's identical to a btree lookup.
    */
-  return (m_backend->find(0, key, 0, flags));
+  return (m_btree->find(0, 0, key, 0, flags));
 }
 
 static void
@@ -1175,7 +1174,7 @@ db_find_txn(Database *db, Transaction *txn,
   TransactionTree *tree = 0;
   txn_opnode_t *node = 0;
   txn_op_t *op = 0;
-  Backend *be = db->get_backend();
+  BtreeIndex *be = db->get_btree();
   bool first_loop = true;
   bool exact_is_erased = false;
 
@@ -1289,7 +1288,7 @@ retry:
       flags = flags & (~HAM_FIND_EXACT_MATCH);
 
     // now lookup in the btree
-    st = be->find(txn, key, record, flags);
+    st = be->find(txn, 0, key, record, flags);
     if (st == HAM_KEY_NOT_FOUND) {
       if (!(key->flags & HAM_KEY_USER_ALLOC) && txnkey.data) {
         arena->resize(txnkey.size);
@@ -1364,7 +1363,7 @@ retry:
    * were no conflicts, and we have not found the key: now try to
    * lookup the key in the btree.
    */
-  return (be->find(txn, key, record, flags));
+  return (be->find(txn, 0, key, record, flags));
 }
 
 ham_status_t
@@ -1394,7 +1393,7 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_KEYSIZE:
-        p->value = get_backend() ? get_keysize() : 21;
+        p->value = get_btree() ? get_keysize() : 21;
         break;
       case HAM_PARAM_FLAGS:
         p->value = (ham_offset_t)get_rt_flags();
@@ -1403,9 +1402,9 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_offset_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        if (get_backend()) {
+        if (get_btree()) {
           ham_size_t count = 0, size = get_keysize();
-          Backend *be = get_backend();
+          BtreeIndex *be = get_btree();
           ham_status_t st;
 
           st = be->calc_keycount_per_page(&count, size);
@@ -1441,8 +1440,8 @@ LocalDatabase::check_integrity(Transaction *txn)
   if (st)
     return (st);
 
-  /* call the backend function */
-  st = m_backend->check_integrity();
+  /* call the btree function */
+  st = m_btree->check_integrity();
   m_env->get_changeset().clear();
 
   return (st);
@@ -1468,10 +1467,10 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
     return (st);
 
   /*
-   * call the backend function - this will retrieve the number of keys
+   * call the btree function - this will retrieve the number of keys
    * in the btree
    */
-  st = m_backend->enumerate(__calc_keys_cb, &ctx);
+  st = m_btree->enumerate(__calc_keys_cb, &ctx);
   if (st)
     goto bail;
   *keycount = ctx.total_count;
@@ -1558,7 +1557,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
     st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
   }
   else
-    st = m_backend->insert(txn, key, record, flags);
+    st = m_btree->insert(txn, key, record, flags);
 
   if (st) {
     if (local_txn)
@@ -1631,7 +1630,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
   if (txn || local_txn)
     st = erase_txn(txn ? txn : local_txn, key, flags, 0);
   else
-    st = m_backend->erase(txn, key, flags);
+    st = m_btree->erase(txn, key, flags);
 
   if (st) {
     if (local_txn)
@@ -1713,7 +1712,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   if (txn || local_txn)
     st = db_find_txn(this, txn ? txn : local_txn, key, record, flags);
   else
-    st = m_backend->find(txn, key, record, flags);
+    st = m_btree->find(txn, 0, key, record, flags);
 
   if (st) {
     if (local_txn)
@@ -2396,15 +2395,14 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
      * a B-Tree index page: remove all extended keys from the cache,
      * and/or free their blobs
      *
-     * TODO move BtreeBackend to backend
+     * TODO move to btree
      */
     if (page->get_pers() &&
         (!(page->get_flags() & Page::NPERS_NO_HEADER)) &&
           (page->get_type() == Page::TYPE_B_ROOT ||
             page->get_type() == Page::TYPE_B_INDEX)) {
       ham_assert(page->get_db());
-      Backend *backend = page->get_db()->get_backend();
-      BtreeBackend *be = dynamic_cast<BtreeBackend *>(backend);
+      BtreeIndex *be = page->get_db()->get_btree();
       if (be)
         (void)be->free_page_extkeys(page, flags);
     }
@@ -2445,10 +2443,10 @@ LocalDatabase::close_impl(ham_u32_t flags)
     set_extkey_cache(0);
   }
 
-  Backend *be = get_backend();
+  BtreeIndex *be = get_btree();
 
   /* in-memory-database: free all allocated blobs */
-  if (be && be->is_active() && m_env->get_flags() & HAM_IN_MEMORY) {
+  if (be && m_env->get_flags() & HAM_IN_MEMORY) {
     Transaction *txn;
     free_cb_context_t context = {0};
     context.db = this;
@@ -2471,15 +2469,19 @@ LocalDatabase::close_impl(ham_u32_t flags)
   if (get_optree())
     txn_free_optree(get_optree());
 
-  /* close the backend */
+  /* close the btree */
   if (be) {
-    if (be->is_active())
-      be->close(flags);
     delete be;
-    set_backend(0);
+    set_btree(0);
   }
 
   return (0);
+}
+
+ham_u16_t
+Database::get_keysize()
+{
+  return (get_btree()->get_keysize());
 }
 
 } // namespace ham

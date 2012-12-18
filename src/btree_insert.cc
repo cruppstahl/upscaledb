@@ -53,27 +53,27 @@ class BtreeInsertAction
   };
 
   public:
-    BtreeInsertAction(BtreeBackend *backend, Transaction *txn, Cursor *cursor,
+    BtreeInsertAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
-      : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
+      : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_split_rid(0), m_flags(flags) {
       memset(&m_split_key, 0, sizeof(m_split_key));
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
-        ham_assert(m_backend->get_db() == m_cursor->get_db());
+        ham_assert(m_btree->get_db() == m_cursor->get_db());
       }
     }
 
     ~BtreeInsertAction() {
       if (m_split_key.data) {
-        Environment *env = m_backend->get_db()->get_env();
+        Environment *env = m_btree->get_db()->get_env();
         env->get_allocator()->free(m_split_key.data);
       }
     }
 
     ham_status_t run() {
       ham_status_t st;
-      BtreeStatistics *stats = m_backend->get_statistics();
+      BtreeStatistics *stats = m_btree->get_statistics();
 
       m_hints = stats->get_insert_hints(m_flags);
 
@@ -108,7 +108,7 @@ class BtreeInsertAction
     ham_status_t append_or_prepend_key() {
       ham_status_t st = 0;
       Page *page;
-      Database *db = m_backend->get_db();
+      LocalDatabase *db = m_btree->get_db();
       bool force_append = false;
       bool force_prepend = false;
 
@@ -135,7 +135,7 @@ class BtreeInsertAction
        */
       if ((m_hints.flags & HAM_HINT_APPEND && node->get_right() != 0)
               || (m_hints.flags & HAM_HINT_PREPEND && node->get_left() != 0)
-              || node->get_count() >= m_backend->get_maxkeys() - 1)
+              || node->get_count() >= m_btree->get_maxkeys() - 1)
         return (insert());
 
       /*
@@ -150,7 +150,7 @@ class BtreeInsertAction
         int cmp_lo;
 
         if (m_hints.flags & HAM_HINT_APPEND) {
-          cmp_hi = m_backend->compare_keys(page, m_key, node->get_count() - 1);
+          cmp_hi = m_btree->compare_keys(page, m_key, node->get_count() - 1);
           /* key is in the middle */
           if (cmp_hi < -1)
             return ((ham_status_t)cmp_hi);
@@ -167,7 +167,7 @@ class BtreeInsertAction
         }
 
         if (m_hints.flags & HAM_HINT_PREPEND) {
-          cmp_lo = m_backend->compare_keys(page, m_key, 0);
+          cmp_lo = m_btree->compare_keys(page, m_key, 0);
           /* in the middle range */
           if (cmp_lo < -1)
             return ((ham_status_t)cmp_lo);
@@ -194,10 +194,10 @@ class BtreeInsertAction
     ham_status_t insert() {
       ham_status_t st;
       Page *root;
-      Database *db = m_backend->get_db();
+      LocalDatabase *db = m_btree->get_db();
 
       /* get the root-page...  */
-      st = db->fetch_page(&root, m_backend->get_rootpage());
+      st = db->fetch_page(&root, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -217,7 +217,7 @@ class BtreeInsertAction
     ham_status_t split_root(Page *root) {
       /* allocate a new root page */
       Page *newroot;
-      Database *db = m_backend->get_db();
+      LocalDatabase *db = m_btree->get_db();
       ham_status_t st = db->alloc_page(&newroot, Page::TYPE_B_ROOT, 0);
       if (st)
         return (st);
@@ -226,11 +226,11 @@ class BtreeInsertAction
       /* clear the node header */
       memset(newroot->get_payload(), 0, sizeof(BtreeNode));
 
-      m_backend->get_statistics()->reset_page(root);
+      m_btree->get_statistics()->reset_page(root);
 
       /* insert the pivot element and the ptr_left */
       BtreeNode *node = BtreeNode::from_page(newroot);
-      node->set_ptr_left(m_backend->get_rootpage());
+      node->set_ptr_left(m_btree->get_rootpage());
       st = insert_in_leaf(newroot, &m_split_key, m_split_rid);
       ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
       /* don't overwrite cursor if insert_in_leaf is called again */
@@ -245,8 +245,8 @@ class BtreeInsertAction
        * do NOT delete the old root page - it's still in use! also add the
        * root page to the changeset to make sure that the changes are logged
        */
-      m_backend->set_rootpage(newroot->get_self());
-      m_backend->do_flush_indexdata();
+      m_btree->set_rootpage(newroot->get_self());
+      m_btree->flush_metadata();
       if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY)
         db->get_env()->get_changeset().add_page(db->get_env()->get_header_page());
       root->set_type(Page::TYPE_B_INDEX);
@@ -270,7 +270,7 @@ class BtreeInsertAction
         return (insert_in_page(page, key, rid));
 
       /* otherwise traverse the root down to the leaf */
-      ham_status_t st = m_backend->find_internal(page, key, &child);
+      ham_status_t st = m_btree->find_internal(page, key, &child);
       if (st)
         return (st);
 
@@ -305,7 +305,7 @@ class BtreeInsertAction
      */
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_offset_t rid) {
       ham_status_t st;
-      ham_size_t maxkeys = m_backend->get_maxkeys();
+      ham_size_t maxkeys = m_btree->get_maxkeys();
       BtreeNode *node = BtreeNode::from_page(page);
 
       ham_assert(maxkeys > 1);
@@ -326,7 +326,7 @@ class BtreeInsertAction
        * but BEFORE we split, we check if the key already exists!
        */
       if (node->is_leaf()) {
-        ham_s32_t idx = m_backend->find_leaf(page, key, HAM_FIND_EXACT_MATCH);
+        ham_s32_t idx = m_btree->find_leaf(page, key, HAM_FIND_EXACT_MATCH);
         /* key exists! */
         if (idx >= 0) {
           ham_assert((m_hints.flags & (HAM_DUPLICATE_INSERT_BEFORE
@@ -353,8 +353,8 @@ class BtreeInsertAction
     ham_status_t insert_split(Page *page, ham_key_t *key, ham_offset_t rid) {
       int cmp;
       Page *newpage, *oldsib;
-      ham_size_t keysize = m_backend->get_keysize();
-      Database *db = page->get_db();
+      ham_size_t keysize = m_btree->get_keysize();
+      LocalDatabase *db = m_btree->get_db();
       Environment *env = db->get_env();
       ham_u16_t pivot;
       ham_offset_t pivotrid;
@@ -367,7 +367,7 @@ class BtreeInsertAction
 
       /* clear the header of the new node */
       memset(newpage->get_payload(), 0, sizeof(BtreeNode));
-      m_backend->get_statistics()->reset_page(page);
+      m_btree->get_statistics()->reset_page(page);
 
       /* move some of the key/rid-tuples to the new page */
       BtreeNode *nbtp = BtreeNode::from_page(newpage);
@@ -387,7 +387,7 @@ class BtreeInsertAction
       if (m_hints.flags & HAM_HINT_APPEND && m_hints.append_count > 5)
         pivot_at_end = true;
       else if (obtp->get_right() == 0) {
-        cmp = m_backend->compare_keys(page, key, obtp->get_count() - 1);
+        cmp = m_btree->compare_keys(page, key, obtp->get_count() - 1);
         if (cmp > 0)
           pivot_at_end = true;
       }
@@ -467,7 +467,7 @@ class BtreeInsertAction
       }
 
       /* insert the new element */
-      cmp = m_backend->compare_keys(page, key, pivot);
+      cmp = m_btree->compare_keys(page, key, pivot);
       if (cmp < -1) {
         st = (ham_status_t)cmp;
         goto fail_dramatically;
@@ -524,13 +524,13 @@ fail_dramatically:
                 bool force_prepend = false, bool force_append = false) {
       ham_status_t st;
       ham_size_t new_dupe_id = 0;
-      Database *db = page->get_db();
+      LocalDatabase *db = m_btree->get_db();
       bool exists = false;
       ham_s32_t slot;
 
       BtreeNode *node = BtreeNode::from_page(page);
       ham_u16_t count = node->get_count();
-      ham_size_t keysize = m_backend->get_keysize();
+      ham_size_t keysize = m_btree->get_keysize();
 
       if (node->get_count() == 0)
         slot = 0;
@@ -541,7 +541,7 @@ fail_dramatically:
       else {
         int cmp;
 
-        st = m_backend->get_slot(page, key, &slot, &cmp);
+        st = m_btree->get_slot(page, key, &slot, &cmp);
         if (st)
           return (st);
 
@@ -673,8 +673,8 @@ fail_dramatically:
     }
 
 
-    /** the current backend */
-    BtreeBackend *m_backend;
+    /** the current btree */
+    BtreeIndex *m_btree;
 
     /** the current transaction */
     Transaction *m_txn;
@@ -702,7 +702,15 @@ fail_dramatically:
 };
 
 ham_status_t
-BtreeBackend::do_insert_cursor(Transaction *txn, ham_key_t *key,
+BtreeIndex::insert(Transaction *txn, ham_key_t *key,
+                ham_record_t *record, ham_u32_t flags)
+{
+  BtreeInsertAction bia(this, txn, 0, key, record, flags);
+  return (bia.run());
+}
+
+ham_status_t
+BtreeIndex::insert_cursor(Transaction *txn, ham_key_t *key,
                 ham_record_t *record, Cursor *cursor, ham_u32_t flags)
 {
   BtreeInsertAction bia(this, txn, cursor, key, record, flags);
@@ -713,7 +721,7 @@ BtreeBackend::do_insert_cursor(Transaction *txn, ham_key_t *key,
 
 #if 0
 static void
-dump_page(Database *db, ham_offset_t address) {
+dump_page(LocalDatabase *db, ham_offset_t address) {
   Page *page;
   ham_status_t st=db_fetch_page(&page, db, address, 0);
   ham_assert(st==0);

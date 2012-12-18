@@ -33,19 +33,19 @@ namespace ham {
 class BtreeCheckAction
 {
   public:
-    BtreeCheckAction(BtreeBackend *backend)
-      : m_backend(backend) {
+    BtreeCheckAction(BtreeIndex *btree)
+      : m_btree(btree) {
     }
 
     ham_status_t run() {
       Page *page, *parent = 0;
       ham_u32_t level = 0;
-      Database *db = m_backend->get_db();
+      LocalDatabase *db = m_btree->get_db();
 
-      ham_assert(m_backend->get_rootpage() != 0);
+      ham_assert(m_btree->get_rootpage() != 0);
 
       /* get the root page of the tree */
-      ham_status_t st = db->fetch_page(&page, m_backend->get_rootpage());
+      ham_status_t st = db->fetch_page(&page, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -82,7 +82,7 @@ class BtreeCheckAction
      */
     ham_status_t verify_level(Page *parent, Page *page, ham_u32_t level) {
       Page *child, *leftsib = 0;
-      Database *db = page->get_db();
+      LocalDatabase *db = m_btree->get_db();
       BtreeNode *node = BtreeNode::from_page(page);
 
       /*
@@ -127,12 +127,12 @@ class BtreeCheckAction
     ham_status_t verify_page(Page *parent, Page *leftsib, Page *page,
                 ham_u32_t level) {
       int cmp;
-      Database *db = page->get_db();
+      LocalDatabase *db = m_btree->get_db();
       BtreeNode *node = BtreeNode::from_page(page);
 
       if (node->get_count() == 0) {
         /* a rootpage can be empty! check if this page is the rootpage */
-        if (page->get_self() == m_backend->get_rootpage())
+        if (page->get_self() == m_btree->get_rootpage())
           return (0);
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
@@ -161,12 +161,12 @@ class BtreeCheckAction
         ham_key_t lhs;
         ham_key_t rhs;
 
-        // TODO rewrite using BtreeBackend::compare_keys
+        // TODO rewrite using BtreeIndex::compare_keys
 
-        st = m_backend->prepare_key_for_compare(0, sibentry, &lhs);
+        st = m_btree->prepare_key_for_compare(0, sibentry, &lhs);
         if (st)
           return (st);
-        st = m_backend->prepare_key_for_compare(1, bte, &rhs);
+        st = m_btree->prepare_key_for_compare(1, bte, &rhs);
         if (st)
           return (st);
 
@@ -212,7 +212,7 @@ class BtreeCheckAction
       return (0);
     }
 
-    int compare_keys(Database *db, Page *page,
+    int compare_keys(LocalDatabase *db, Page *page,
             ham_u16_t lhs_int, ham_u16_t rhs_int) {
       ham_key_t lhs;
       ham_key_t rhs;
@@ -221,23 +221,23 @@ class BtreeCheckAction
       BtreeKey *l = node->get_key(page->get_db(), lhs_int);
       BtreeKey *r = node->get_key(page->get_db(), rhs_int);
 
-      // TODO rewrite using BtreeBackend::compare_keys
+      // TODO rewrite using BtreeIndex::compare_keys
 
-      ham_status_t st = m_backend->prepare_key_for_compare(0, l, &lhs);
+      ham_status_t st = m_btree->prepare_key_for_compare(0, l, &lhs);
       if (st)
         return (st);
-      st = m_backend->prepare_key_for_compare(1, r, &rhs);
+      st = m_btree->prepare_key_for_compare(1, r, &rhs);
       if (st)
         return (st);
 
       return (page->get_db()->compare_keys(&lhs, &rhs));
     }
 
-    BtreeBackend *m_backend;
+    BtreeIndex *m_btree;
 };
 
 ham_status_t
-BtreeBackend::do_check_integrity()
+BtreeIndex::check_integrity()
 {
   BtreeCheckAction bta(this);
   return (bta.run());

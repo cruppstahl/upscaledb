@@ -26,7 +26,6 @@
 #include "mem.h"
 #include "freelist.h"
 #include "extkeys.h"
-#include "backend.h"
 #include "cache.h"
 #include "log.h"
 #include "journal.h"
@@ -523,7 +522,7 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
     Database *db;
     ham_status_t st;
     free_cb_context_t context;
-    Backend *be;
+    BtreeIndex *be;
 
     /* check if this database is still open */
     if (env->get_database_map().find(name) != env->get_database_map().end())
@@ -560,8 +559,8 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
      * cached, delete them from the cache
      */
     context.db=db;
-    be=db->get_backend();
-    if (!be || !be->is_active()) {
+    be=db->get_btree();
+    if (!be) {
         ham_log(("database is not initialized"));
         return (HAM_INTERNAL_ERROR);
     }
@@ -764,7 +763,6 @@ static ham_status_t
 _local_fun_flush(Environment *env, ham_u32_t flags)
 {
     ham_status_t st;
-    Database *db;
     Device *device=env->get_device();
 
     (void)flags;
@@ -778,23 +776,7 @@ _local_fun_flush(Environment *env, ham_u32_t flags)
     if (st)
         return (st);
 
-    /* flush the open backends */
-    Environment::DatabaseMap::iterator it = env->get_database_map().begin();
-    while (it != env->get_database_map().end()) {
-        db = it->second;
-        Backend *be=db->get_backend();
-
-        if (!be || !be->is_active())
-            return HAM_NOT_INITIALIZED;
-        st=be->flush_indexdata();
-        if (st)
-            return st;
-        it++;
-    }
-
-    /*
-     * update the header page, if necessary
-     */
+    /* update the header page, if necessary */
     if (env->is_dirty()) {
         st=env->get_header_page()->flush();
         if (st)
@@ -823,7 +805,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
     ham_u64_t cachesize = 0;
     ham_u16_t dbi;
     ham_size_t i;
-    Backend *be;
+    BtreeIndex *be;
     ham_u32_t pflags;
     std::string logdir;
 
@@ -838,7 +820,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
 
     /*
      * set the flags; strip off run-time (per session) flags for the
-     * backend::create() method though.
+     * btree::create() method though.
      */
     pflags=flags;
     pflags&=~(HAM_DISABLE_VAR_KEYLEN
@@ -885,17 +867,15 @@ _local_fun_create_db(Environment *env, Database **pdb,
     }
 #endif
 
-    /* create the backend */
+    /* create the btree */
     // TODO move to Database::create
-    be=new BtreeBackend(*pdb, flags);
-    (*pdb)->set_backend(be);
+    be=new BtreeIndex((LocalDatabase *)*pdb, flags);
+    (*pdb)->set_btree(be);
 
-    /* initialize the backend */
+    /* initialize the btree */
     st=be->create(keysize, pflags);
     if (st)
         goto bail;
-
-    ham_assert(be->is_active()!=0);
 
     /* set the default key compare functions */
     // TODO move to Database::create
@@ -933,7 +913,7 @@ _local_fun_open_db(Environment *env, Database **pdb,
 {
     ham_status_t st;
     ham_u64_t cachesize = 0;
-    Backend *be = 0;
+    BtreeIndex *be = 0;
     ham_u16_t dbi;
     std::string logdir;
 
@@ -970,22 +950,20 @@ _local_fun_open_db(Environment *env, Database **pdb,
     if (dbi==env->get_max_databases())
         return (HAM_DATABASE_NOT_FOUND);
 
-    /* create the backend */
+    /* create the btree */
     // TODO move to Database::open
-    (*pdb)->set_backend(new BtreeBackend((*pdb), flags));
-    be=(*pdb)->get_backend();
+    be=new BtreeIndex((LocalDatabase *)*pdb, flags);
+    (*pdb)->set_btree(be);
 
-    /* initialize the backend */
+    /* initialize the btree */
     st=be->open(flags);
     if (st)
         return (st);
 
-    ham_assert(be->is_active()!=0);
-
     /*
      * set the database flags; strip off the persistent flags that may have been
      * set by the caller, before mixing in the persistent flags as obtained
-     * from the backend.
+     * from the btree.
      */
     flags &= (HAM_DISABLE_VAR_KEYLEN
              |HAM_CACHE_STRICT
@@ -1174,7 +1152,7 @@ __flush_txn(Environment *env, Transaction *txn)
 
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
-        Backend *be=txn_opnode_get_db(node)->get_backend();
+        BtreeIndex *be=txn_opnode_get_db(node)->get_btree();
         ham_assert(be!=0);
 
         if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
@@ -1236,7 +1214,7 @@ __flush_txn(Environment *env, Transaction *txn)
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
             if (txn_op_get_referenced_dupe(op)) {
-                st=((BtreeBackend *)be)->erase_duplicate(txn,
+                st=be->erase_duplicate(txn,
                         txn_opnode_get_key(node),
                         txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
             }

@@ -49,7 +49,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PageHeader {
   ham_u32_t _reserved2;
 
   /**
-   * this is just a blob - the backend (hashdb, btree etc)
+   * this is just a blob - the btree (hashdb, btree etc)
    * will use it appropriately
    */
   ham_u8_t _payload[1];

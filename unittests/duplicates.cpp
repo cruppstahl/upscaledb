@@ -21,7 +21,6 @@
 
 #include "../src/db.h"
 #include "../src/blob.h"
-#include "../src/backend.h"
 #include "../src/btree.h"
 #include "../src/endianswap.h"
 #include "../src/cursor.h"
@@ -695,7 +694,7 @@ public:
     insertData("222", "bbbbbbbbbb");
     insertData("333", "cccccccccc");
 
-    BtreeBackend *be = (BtreeBackend *)((Database *)m_db)->get_backend();
+    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     BFC_ASSERT_EQUAL(0, ((Database *)m_db)->fetch_page(&page,
                 be->get_rootpage()));
     BFC_ASSERT(page != 0);

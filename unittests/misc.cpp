@@ -29,6 +29,8 @@
 using namespace bfc;
 using namespace ham;
 
+namespace ham {
+
 class MiscTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
 
@@ -47,7 +49,7 @@ public:
 protected:
   ham_db_t *m_db;
   ham_env_t *m_env;
-  BtreeBackend *m_backend;
+  BtreeIndex *m_btree;
 
 public:
   virtual void setup() {
@@ -61,7 +63,7 @@ public:
           ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     Database *db = (Database *)m_db;
-    m_backend = (BtreeBackend *)db->get_backend();
+    m_btree = (BtreeIndex *)db->get_btree();
   }
 
   virtual void teardown() {
@@ -114,7 +116,7 @@ public:
     src.set_size(0);
     src.set_flags(0);
 
-    BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
+    BFC_ASSERT_EQUAL(0, m_btree->copy_key(&src, &dest));
     BFC_ASSERT_EQUAL(0, dest.size);
     BFC_ASSERT_EQUAL((void *)0, dest.data);
   }
@@ -130,7 +132,7 @@ public:
     src.set_flags(0);
     src._key[0] = 'a';
 
-    BFC_ASSERT_EQUAL(0, m_backend->copy_key(&src, &dest));
+    BFC_ASSERT_EQUAL(0, m_btree->copy_key(&src, &dest));
     BFC_ASSERT_EQUAL(1, dest.size);
     BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
     ((Environment *)m_env)->get_allocator()->free(dest.data);
@@ -147,7 +149,7 @@ public:
     src->set_flags(0);
     ::memcpy((char *)src->_key, "1234567\0", 8);
 
-    BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
+    BFC_ASSERT_EQUAL(0, m_btree->copy_key(src, &dest));
     BFC_ASSERT_EQUAL(dest.size, src->get_size());
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
     ((Environment *)m_env)->get_allocator()->free(dest.data);
@@ -164,7 +166,7 @@ public:
     src->set_flags(0);
     ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
 
-    BFC_ASSERT_EQUAL(0, m_backend->copy_key(src, &dest));
+    BFC_ASSERT_EQUAL(0, m_btree->copy_key(src, &dest));
     BFC_ASSERT_EQUAL(dest.size, src->get_size());
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
@@ -174,3 +176,4 @@ public:
 
 BFC_REGISTER_FIXTURE(MiscTest);
 
+} // namespace ham

@@ -35,9 +35,9 @@ namespace ham {
 class BtreeFindAction
 {
   public:
-    BtreeFindAction(BtreeBackend *backend, Transaction *txn, Cursor *cursor,
+    BtreeFindAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
-      : m_backend(backend), m_txn(txn), m_cursor(0), m_key(key),
+      : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_record(record), m_flags(flags) {
       if (cursor && cursor->get_btree_cursor()->get_parent())
         m_cursor = cursor->get_btree_cursor();
@@ -47,9 +47,9 @@ class BtreeFindAction
       ham_status_t st;
       Page *page = 0;
       ham_s32_t idx = -1;
-      Database *db = m_backend->get_db();
+      LocalDatabase *db = m_btree->get_db();
       BtreeNode *node;
-      BtreeStatistics *stats = m_backend->get_statistics();
+      BtreeStatistics *stats = m_btree->get_statistics();
       BtreeStatistics::FindHints hints = stats->get_find_hints(m_flags);
 
       if (hints.try_fast_track) {
@@ -66,7 +66,7 @@ class BtreeFindAction
           node = BtreeNode::from_page(page);
           ham_assert(node->is_leaf());
 
-          idx = m_backend->find_leaf(page, m_key, hints.flags);
+          idx = m_btree->find_leaf(page, m_key, hints.flags);
 
           /*
            * if we didn't hit a match OR a match at either edge, FAIL.
@@ -86,11 +86,11 @@ class BtreeFindAction
 
       if (idx == -1) {
         /* get the address of the root page */
-        if (!m_backend->get_rootpage())
+        if (!m_btree->get_rootpage())
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
-        st = db->fetch_page(&page, m_backend->get_rootpage());
+        st = db->fetch_page(&page, m_btree->get_rootpage());
         if (st)
           return (st);
 
@@ -103,7 +103,7 @@ class BtreeFindAction
             hints.flags |= (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH);
 
           for (;;) {
-            st = m_backend->find_internal(page, m_key, &page);
+            st = m_btree->find_internal(page, m_key, &page);
             if (!page) {
               stats->find_failed();
               return (st ? st : HAM_KEY_NOT_FOUND);
@@ -116,7 +116,7 @@ class BtreeFindAction
         }
 
         /* check the leaf page for the key */
-        idx = m_backend->find_leaf(page, m_key, hints.flags);
+        idx = m_btree->find_leaf(page, m_key, hints.flags);
         if (idx < -1) {
           stats->find_failed();
           return ((ham_status_t)idx);
@@ -310,7 +310,7 @@ class BtreeFindAction
        * is set: */
       if (m_key && (ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_APPROXIMATE)
           && !(m_flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
-        st = m_backend->read_key(m_txn, entry, m_key);
+        st = m_btree->read_key(m_txn, entry, m_key);
         if (st)
           return (st);
       }
@@ -318,7 +318,7 @@ class BtreeFindAction
       if (m_record) {
         m_record->_intflags = entry->get_flags();
         m_record->_rid = entry->get_ptr();
-        st = m_backend->read_record(m_txn, m_record,
+        st = m_btree->read_record(m_txn, m_record,
                         entry->get_rawptr(), m_flags);
         if (st)
           return (st);
@@ -330,8 +330,8 @@ class BtreeFindAction
     }
 
   private:
-    /** the current backend */
-    BtreeBackend *m_backend;
+    /** the current btree */
+    BtreeIndex *m_btree;
 
     /** the current transaction */
     Transaction *m_txn;
@@ -350,7 +350,7 @@ class BtreeFindAction
 };
 
 ham_status_t
-BtreeBackend::do_find(Transaction *txn, Cursor *cursor, ham_key_t *key,
+BtreeIndex::find(Transaction *txn, Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
 {
   BtreeFindAction bfa(this, txn, cursor, key, record, flags);

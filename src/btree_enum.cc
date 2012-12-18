@@ -33,20 +33,20 @@ namespace ham {
 class BtreeEnumAction
 {
   public:
-    BtreeEnumAction(BtreeBackend *backend, ham_enumerate_cb_t cb, void *context)
-      : m_backend(backend), m_cb(cb), m_context(context) {
-      ham_assert(m_backend->get_rootpage() != 0);
+    BtreeEnumAction(BtreeIndex *btree, ham_enumerate_cb_t cb, void *context)
+      : m_btree(btree), m_cb(cb), m_context(context) {
+      ham_assert(m_btree->get_rootpage() != 0);
       ham_assert(m_cb != 0);
     }
 
     ham_status_t run() {
       Page *page;
       ham_u32_t level = 0;
-      Database *db = m_backend->get_db();
+      Database *db = m_btree->get_db();
       ham_status_t cb_st = HAM_ENUM_CONTINUE;
 
       /* get the root page of the tree */
-      ham_status_t st = db->fetch_page(&page, m_backend->get_rootpage());
+      ham_status_t st = db->fetch_page(&page, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -100,7 +100,7 @@ class BtreeEnumAction
         /* get the right sibling */
         BtreeNode *node = BtreeNode::from_page(page);
         if (node->get_right()) {
-          st = m_backend->get_db()->fetch_page(&page, node->get_right());
+          st = m_btree->get_db()->fetch_page(&page, node->get_right());
           if (st)
             return (st);
         }
@@ -147,13 +147,13 @@ class BtreeEnumAction
         return (cb_st2);
     }
 
-    BtreeBackend *m_backend;
+    BtreeIndex *m_btree;
     ham_enumerate_cb_t m_cb;
     void *m_context;
 };
 
 ham_status_t
-BtreeBackend::do_enumerate(ham_enumerate_cb_t cb, void *context)
+BtreeIndex::enumerate(ham_enumerate_cb_t cb, void *context)
 {
   BtreeEnumAction bea(this, cb, context);
   return (bea.run());

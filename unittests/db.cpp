@@ -98,11 +98,11 @@ public:
     m_dbp->set_error(HAM_IO_ERROR);
     BFC_ASSERT_EQUAL(HAM_IO_ERROR, m_dbp->get_error());
 
-    BFC_ASSERT_NOTNULL(m_dbp->get_backend());// already initialized
-    Backend *oldbe = m_dbp->get_backend();
-    m_dbp->set_backend((Backend *)15);
-    BFC_ASSERT_EQUAL((Backend *)15, m_dbp->get_backend());
-    m_dbp->set_backend(oldbe);
+    BFC_ASSERT_NOTNULL(m_dbp->get_btree());// already initialized
+    BtreeIndex *oldbe = m_dbp->get_btree();
+    m_dbp->set_btree((BtreeIndex *)15);
+    BFC_ASSERT_EQUAL((BtreeIndex *)15, m_dbp->get_btree());
+    m_dbp->set_btree(oldbe);
 
     BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_cache());
 
@@ -291,11 +291,11 @@ public:
     BFC_ASSERT(compare_sizes(OFFSETOF(BtreeNode, _entries), 28));
     Page page;
     LocalDatabase db((Environment *)m_env, 1, 0);
-    BtreeBackend be(&db, 0);
+    BtreeIndex be(&db, 0);
 
     page.set_self(1000);
     page.set_db(&db);
-    db.set_backend(&be);
+    db.set_btree(&be);
     be.set_keysize(666);
     BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
     // make sure the 'header page' is at least as large as your usual

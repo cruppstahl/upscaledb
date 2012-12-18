@@ -121,7 +121,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
 
-    BtreeBackend *be = (BtreeBackend *)((Database *)m_db)->get_backend();
+    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     Page *page;
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));

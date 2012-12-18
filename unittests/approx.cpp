@@ -19,7 +19,6 @@
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/blob.h"
-#include "../src/backend.h"
 #include "../src/btree.h"
 #include "../src/endianswap.h"
 #include "../src/cursor.h"
@@ -80,7 +79,7 @@ public:
     r.data = k.data;
     r.size = k.size;
 
-    BtreeBackend *be = (BtreeBackend *)((Database *)m_db)->get_backend();
+    BtreeIndex *be = ((Database *)m_db)->get_btree();
     return (be->insert((Transaction *)m_txn, &k, &r, 0));
   }
 

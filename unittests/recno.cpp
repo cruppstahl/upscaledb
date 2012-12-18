@@ -575,7 +575,7 @@ public:
       BFC_ASSERT_EQUAL((ham_u64_t)i + 1, recno);
     }
 
-    BtreeBackend *be = (BtreeBackend *)((Database *)m_db)->get_backend();
+    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     Page *page;
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));

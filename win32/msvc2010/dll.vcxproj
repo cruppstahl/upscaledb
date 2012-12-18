@@ -180,7 +180,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\backend.h" />
     <ClInclude Include="..\..\src\blob.h" />
     <ClInclude Include="..\..\src\btree.h" />
     <ClInclude Include="..\..\src\btree_node.h" />

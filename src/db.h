@@ -26,8 +26,8 @@
 #include "util.h"
 #include "txn.h"
 #include "env.h"
-#include "btree_key.h"
 #include "btree.h"
+#include "btree_key.h"
 #include "mem.h"
 
 /**
@@ -36,7 +36,7 @@
  * struct satisfies the C compiler, and internally we just cast the pointers.
  */
 struct ham_db_t {
-    int dummy;
+  int dummy;
 };
 
 namespace ham {
@@ -76,9 +76,7 @@ namespace ham {
 
 /** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                 0x00200000
-
 #define PAGE_IGNORE_FREELIST          8
-
 #define PAGE_CLEAR_WITH_ZERO         16
 
 
@@ -89,29 +87,29 @@ namespace ham {
  */
 HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 {
-    /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
-    ham_u16_t _dbname;
+  /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
+  ham_u16_t _dbname;
 
-    /** maximum keys in an internal page */
-    ham_u16_t _maxkeys;
+  /** maximum keys in an internal page */
+  ham_u16_t _maxkeys;
 
-    /** key size in this page */
-    ham_u16_t _keysize;
+  /** key size in this page */
+  ham_u16_t _keysize;
 
-    /* reserved */
-    ham_u16_t _reserved1;
+  /* reserved */
+  ham_u16_t _reserved1;
 
-    /** address of this page */
-    ham_offset_t _self;
+  /** address of this page */
+  ham_offset_t _self;
 
-    /** flags for this database */
-    ham_u32_t _flags;
+  /** flags for this database */
+  ham_u32_t _flags;
 
-    /* reserved */
-    ham_u64_t _reserved2;
+  /* reserved */
+  ham_u64_t _reserved2;
 
-    /* reserved */
-    ham_u32_t _reserved3;
+  /* reserved */
+  ham_u32_t _reserved3;
 
 } HAM_PACK_2;
 
@@ -135,6 +133,9 @@ HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
 
 #define index_clear_reserved(p)           { (p)->_reserved1=0;            \
                                             (p)->_reserved2=0; }
+
+class BtreeIndex;
+
 /**
  * An abstract base class for a Database; is overwritten for local and
  * remote implementations
@@ -149,7 +150,7 @@ class Database
 
     /** opens a Database */
     virtual ham_status_t open() {
-        return (0);
+      return (0);
     }
 
     /** get Database parameters */
@@ -178,7 +179,7 @@ class Database
     virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags) = 0;
 
     /** clone a cursor */
-    Cursor *cursor_clone(Cursor *src);
+    virtual Cursor *cursor_clone(Cursor *src);
 
     /** insert a key with a cursor */
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
@@ -215,62 +216,68 @@ class Database
 
     /** get the last error code */
     ham_status_t get_error() {
-        return (m_error);
+      return (m_error);
     }
 
     /** set the last error code */
     ham_status_t set_error(ham_status_t e) {
-        return ((m_error = e));
+      return ((m_error = e));
     }
 
     /** get the user-provided context pointer */
     void *get_context_data() {
-        return (m_context);
+      return (m_context);
     }
 
     /** set the user-provided context pointer */
     void set_context_data(void *ctxt) {
-       m_context = ctxt;
+      m_context = ctxt;
     }
 
-    /** get the backend pointer */
-    Backend *get_backend() {
-        return (m_backend);
+    /** get the btree index pointer */
+    // TODO move to LocalDatabase
+    BtreeIndex *get_btree() {
+      return (m_btree);
     }
 
-    /** set the backend pointer */
-    void set_backend(Backend *b) {
-        m_backend = b;
+    /** set the btree index pointer */
+    // TODO move to LocalDatabase
+    void set_btree(BtreeIndex *b) {
+      m_btree = b;
     }
 
     /** get the linked list of all cursors */
     Cursor *get_cursors() {
-        return (m_cursors);
+      return (m_cursors);
     }
 
     /** set the linked list of all cursors */
     void set_cursors(Cursor *c) {
-        m_cursors = c;
+      m_cursors = c;
     }
 
     /** get the prefix comparison function */
+    // TODO move to LocalDatabase
     ham_prefix_compare_func_t get_prefix_compare_func() {
-        return (m_prefix_func);
+      return (m_prefix_func);
     }
 
     /** set the prefix comparison function */
+    // TODO move to LocalDatabase
     void set_prefix_compare_func(ham_prefix_compare_func_t f) {
-        m_prefix_func = f;
+      m_prefix_func = f;
     }
 
     /** get the default comparison function */
+    // TODO move to LocalDatabase
     ham_compare_func_t get_compare_func() {
-        return (m_cmp_func);
+      return (m_cmp_func);
     }
 
     /** set the default comparison function */
+    // TODO move to LocalDatabase
     void set_compare_func(ham_compare_func_t f) {
-        m_cmp_func = f;
+      m_cmp_func = f;
     }
 
     /**
@@ -278,74 +285,72 @@ class Database
      * the Environment
      */
     ham_u32_t get_rt_flags(bool raw = false) {
-        if (raw)
-            return (m_rt_flags);
-        else
-            return (m_env->get_flags() | m_rt_flags);
+      if (raw)
+        return (m_rt_flags);
+      else
+        return (m_env->get_flags() | m_rt_flags);
     }
 
     /** set the runtime-flags - NOT setting environment flags!  */
     void set_rt_flags(ham_u32_t flags) {
-        m_rt_flags = flags;
+      m_rt_flags = flags;
     }
 
     /** get the environment pointer */
     Environment *get_env() {
-        return (m_env);
+      return (m_env);
     }
 
     /** get the cache for extended keys */
     ExtKeyCache *get_extkey_cache() {
-        return (m_extkey_cache);
+      return (m_extkey_cache);
     }
 
     /** set the cache for extended keys */
     void set_extkey_cache(ExtKeyCache *c) {
-        m_extkey_cache = c;
+      m_extkey_cache = c;
     }
 
     /** get the index of this database in the indexdata array */
     ham_u16_t get_indexdata_offset() {
-        return (m_indexdata_offset);
+      return (m_indexdata_offset);
     }
 
     /** set the index of this database in the indexdata array */
     void set_indexdata_offset(ham_u16_t offset) {
-        m_indexdata_offset = offset;
+      m_indexdata_offset = offset;
     }
 
     /** Get the memory buffer for the key data */
     ByteArray &get_key_arena() {
-        return (m_key_arena);
+      return (m_key_arena);
     }
 
     /** Get the memory buffer for the record data */
     ByteArray &get_record_arena() {
-        return (m_record_arena);
+      return (m_record_arena);
     }
 
     /** get the transaction tree */
     TransactionTree *get_optree() {
-        return (&m_optree);
+      return (&m_optree);
     }
 
     /** get the database name */
     ham_u16_t get_name() {
-        return (m_name);
+      return (m_name);
     }
 
     /** set the database name */
     void set_name(ham_u16_t name) {
-        m_name = name;
+      m_name = name;
     }
 
     /** remove an extendex key from the cache and the blob */
     ham_status_t remove_extkey(ham_offset_t blobid);
 
     /** get the key size */
-    ham_u16_t get_keysize() {
-        return (get_backend()->get_keysize());
-    }
+    ham_u16_t get_keysize();
 
     /**
      * function which compares two keys
@@ -355,63 +360,63 @@ class Database
      *         LHS < RHS key, +1 when LHS > RHS key).
      */
     int compare_keys(ham_key_t *lhs, ham_key_t *rhs) {
-        int cmp = HAM_PREFIX_REQUEST_FULLKEY;
-        ham_compare_func_t foo = get_compare_func();
-        ham_prefix_compare_func_t prefoo = get_prefix_compare_func();
+      int cmp = HAM_PREFIX_REQUEST_FULLKEY;
+      ham_compare_func_t foo = get_compare_func();
+      ham_prefix_compare_func_t prefoo = get_prefix_compare_func();
 
-        set_error(0);
+      set_error(0);
 
-        /* need prefix compare? if no key is extended we can just call the
-         * normal compare function */
-        if (!(lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-                && !(rhs->_flags & BtreeKey::KEY_IS_EXTENDED)) {
-            return (foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
-                            (ham_u8_t *)rhs->data, rhs->size));
+      /* need prefix compare? if no key is extended we can just call the
+       * normal compare function */
+      if (!(lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
+              && !(rhs->_flags & BtreeKey::KEY_IS_EXTENDED)) {
+        return (foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
+                          (ham_u8_t *)rhs->data, rhs->size));
+      }
+
+      /* yes! - run prefix comparison */
+      if (prefoo) {
+        ham_size_t lhsprefixlen, rhsprefixlen;
+        if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
+          lhsprefixlen = get_keysize() - sizeof(ham_offset_t);
+        else
+          lhsprefixlen = lhs->size;
+        if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED)
+          rhsprefixlen = get_keysize() - sizeof(ham_offset_t);
+        else
+          rhsprefixlen = rhs->size;
+
+        cmp = prefoo((::ham_db_t *)this,
+                    (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size,
+                    (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
+        if (cmp <- 1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
+          return (cmp); /* unexpected error! */
+      }
+
+      if (cmp == HAM_PREFIX_REQUEST_FULLKEY) {
+        /* 1. load the first key, if needed */
+        if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED) {
+          ham_status_t st = get_extended_key((ham_u8_t *)lhs->data,
+                    lhs->size, lhs->_flags, lhs);
+          if (st)
+            return st;
+          lhs->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
         }
 
-        /* yes! - run prefix comparison */
-        if (prefoo) {
-            ham_size_t lhsprefixlen, rhsprefixlen;
-            if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-                lhsprefixlen = get_keysize() - sizeof(ham_offset_t);
-            else
-                lhsprefixlen = lhs->size;
-            if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-                rhsprefixlen = get_keysize() - sizeof(ham_offset_t);
-            else
-                rhsprefixlen = rhs->size;
-
-            cmp = prefoo((::ham_db_t *)this,
-                        (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size,
-                        (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
-            if (cmp <- 1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
-                return (cmp); /* unexpected error! */
+        /* 2. load the second key, if needed */
+        if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED) {
+          ham_status_t st = get_extended_key((ham_u8_t *)rhs->data,
+                    rhs->size, rhs->_flags, rhs);
+          if (st)
+            return st;
+          rhs->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
         }
 
-        if (cmp == HAM_PREFIX_REQUEST_FULLKEY) {
-            /* 1. load the first key, if needed */
-            if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED) {
-                ham_status_t st = get_extended_key((ham_u8_t *)lhs->data,
-                        lhs->size, lhs->_flags, lhs);
-                if (st)
-                    return st;
-                lhs->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
-            }
-
-            /* 2. load the second key, if needed */
-            if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED) {
-                ham_status_t st = get_extended_key((ham_u8_t *)rhs->data,
-                        rhs->size, rhs->_flags, rhs);
-                if (st)
-                    return st;
-                rhs->_flags &= ~BtreeKey::KEY_IS_EXTENDED;
-            }
-
-            /* 3. run the comparison function */
-            cmp=foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
-                            (ham_u8_t *)rhs->data, rhs->size);
-        }
-        return (cmp);
+        /* 3. run the comparison function */
+        cmp=foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
+                        (ham_u8_t *)rhs->data, rhs->size);
+      }
+      return (cmp);
     }
 
     /**
@@ -430,44 +435,44 @@ class Database
      * allocated.
      */
     ham_status_t copy_key(const ham_key_t *source, ham_key_t *dest) {
-        /* extended key: copy the whole key */
-        if (source->_flags & BtreeKey::KEY_IS_EXTENDED) {
-            ham_status_t st = get_extended_key((ham_u8_t *)source->data,
-                        source->size, source->_flags, dest);
-            if (st)
-                return st;
-            ham_assert(dest->data != 0);
-            /* dest->size is set by db->get_extended_key() */
-            ham_assert(dest->size == source->size);
-            /* the extended flag is set later, when this key is inserted */
-            dest->_flags = source->_flags & (~BtreeKey::KEY_IS_EXTENDED);
+      /* extended key: copy the whole key */
+      if (source->_flags & BtreeKey::KEY_IS_EXTENDED) {
+        ham_status_t st = get_extended_key((ham_u8_t *)source->data,
+                    source->size, source->_flags, dest);
+        if (st)
+          return st;
+        ham_assert(dest->data != 0);
+        /* dest->size is set by db->get_extended_key() */
+        ham_assert(dest->size == source->size);
+        /* the extended flag is set later, when this key is inserted */
+        dest->_flags = source->_flags & (~BtreeKey::KEY_IS_EXTENDED);
+      }
+      else if (source->size) {
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+          if (!dest->data || dest->size < source->size) {
+            if (dest->data)
+              get_env()->get_allocator()->free(dest->data);
+            dest->data = (ham_u8_t *)
+                      get_env()->get_allocator()->alloc(source->size);
+            if (!dest->data)
+              return (HAM_OUT_OF_MEMORY);
+          }
         }
-        else if (source->size) {
-            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-                if (!dest->data || dest->size < source->size) {
-                    if (dest->data)
-                        get_env()->get_allocator()->free(dest->data);
-                    dest->data = (ham_u8_t *)
-                                get_env()->get_allocator()->alloc(source->size);
-                    if (!dest->data)
-                        return (HAM_OUT_OF_MEMORY);
-                }
-            }
-            memcpy(dest->data, source->data, source->size);
-            dest->size = source->size;
-            dest->_flags = source->_flags;
+        memcpy(dest->data, source->data, source->size);
+        dest->size = source->size;
+        dest->_flags = source->_flags;
+      }
+      else {
+        /* key.size is 0 */
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+          if (dest->data)
+            get_env()->get_allocator()->free(dest->data);
+          dest->data = 0;
         }
-        else {
-            /* key.size is 0 */
-            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-                if (dest->data)
-                    get_env()->get_allocator()->free(dest->data);
-                dest->data = 0;
-            }
-            dest->size = 0;
-            dest->_flags = source->_flags;
-        }
-        return (HAM_SUCCESS);
+        dest->size = 0;
+        dest->_flags = source->_flags;
+      }
+      return (HAM_SUCCESS);
     }
 
     /**
@@ -480,8 +485,7 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
-    static int HAM_CALLCONV
-    default_compare(ham_db_t *db,
+    static int HAM_CALLCONV default_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length);
 
@@ -495,8 +499,7 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
-    static int HAM_CALLCONV
-    default_recno_compare(ham_db_t *db,
+    static int HAM_CALLCONV default_recno_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length);
 
@@ -510,8 +513,7 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
-    static int HAM_CALLCONV
-    default_prefix_compare(ham_db_t *db,
+    static int HAM_CALLCONV default_prefix_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 ham_size_t lhs_real_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length,
@@ -557,9 +559,9 @@ class Database
     /** the user-provided context data */
     void *m_context;
 
-    /** the backend pointer - btree, hashtable etc */
+    /** the btree index */
     /* TODO move to LocalDatabase */
-    Backend *m_backend;
+    BtreeIndex *m_btree;
 
     /** linked list of all cursors */
     Cursor *m_cursors;

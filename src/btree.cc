@@ -35,15 +35,15 @@ namespace ham {
 /** defines the maximum number of keys per node */
 #define MAX_KEYS_PER_NODE         0xFFFFU /* max(ham_u16_t) */
 
-BtreeBackend::BtreeBackend(Database *db, ham_u32_t flags)
-  : Backend(db, flags), m_rootpage(0), m_maxkeys(0),
+BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t flags)
+  : m_db(db), m_keysize(0), m_flags(flags), m_rootpage(0), m_maxkeys(0),
     m_keydata1(db->get_env()->get_allocator()),
     m_keydata2(db->get_env()->get_allocator()), m_statistics(db)
 {
 }
 
 ham_status_t
-BtreeBackend::get_slot(Page *page, ham_key_t *key, ham_s32_t *slot, int *pcmp)
+BtreeIndex::get_slot(Page *page, ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
   int cmp = -1;
   BtreeNode *node = BtreeNode::from_page(page);
@@ -110,7 +110,7 @@ bail:
 }
 
 ham_status_t
-BtreeBackend::do_calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
+BtreeIndex::calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
 {
   if (keysize == 0) {
     *maxkeys = get_maxkeys();
@@ -132,14 +132,10 @@ BtreeBackend::do_calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
 }
 
 ham_status_t
-BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
+BtreeIndex::create(ham_u16_t keysize, ham_u32_t flags)
 {
   db_indexdata_t *indexdata = m_db->get_env()->get_indexdata_ptr(
                 m_db->get_indexdata_offset());
-  if (is_active()) {
-    ham_trace(("backend has alread been initialized before!"));
-    return (HAM_ALREADY_INITIALIZED);
-  }
 
   /* prevent overflow - maxkeys only has 16 bit! */
   ham_size_t maxkeys = calc_maxkeys(m_db->get_env()->get_pagesize(), keysize);
@@ -180,13 +176,12 @@ BtreeBackend::do_create(ham_u16_t keysize, ham_u32_t flags)
   index_clear_reserved(indexdata);
 
   m_db->get_env()->set_dirty(true);
-  set_active(true);
 
   return (0);
 }
 
 ham_status_t
-BtreeBackend::do_open(ham_u32_t flags)
+BtreeIndex::open(ham_u32_t flags)
 {
   ham_offset_t rootadd;
   ham_u16_t maxkeys;
@@ -208,13 +203,11 @@ BtreeBackend::do_open(ham_u32_t flags)
   set_keysize(keysize);
   set_flags(flags);
 
-  set_active(true);
-
   return (0);
 }
 
 ham_status_t
-BtreeBackend::do_flush_indexdata()
+BtreeIndex::flush_metadata()
 {
   db_indexdata_t *indexdata = m_db->get_env()->get_indexdata_ptr(
                 m_db->get_indexdata_offset());
@@ -230,21 +223,14 @@ BtreeBackend::do_flush_indexdata()
   return (0);
 }
 
-void
-BtreeBackend::do_close(ham_u32_t flags)
-{
-  /* even when an error occurred, the backend has now been de-activated */
-  set_active(false);
-}
-
 ham_status_t
-BtreeBackend::do_uncouple_all_cursors(Page *page, ham_size_t start)
+BtreeIndex::uncouple_all_cursors(Page *page, ham_size_t start)
 {
   return (btree_uncouple_all_cursors(page, start));
 }
 
 ham_status_t
-BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
+BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
 {
   ham_assert(page->get_db() == m_db);
 
@@ -279,7 +265,7 @@ BtreeBackend::free_page_extkeys(Page *page, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeBackend::find_internal(Page *page, ham_key_t *key, Page **page_ref,
+BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **page_ref,
                 ham_s32_t *idxptr)
 {
   BtreeNode *node = BtreeNode::from_page(page);
@@ -312,7 +298,7 @@ BtreeBackend::find_internal(Page *page, ham_key_t *key, Page **page_ref,
 }
 
 ham_s32_t
-BtreeBackend::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
+BtreeIndex::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 {
   int cmp;
   BtreeNode *node=BtreeNode::from_page(page);
@@ -552,7 +538,7 @@ BtreeBackend::find_leaf(Page *page, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeBackend::prepare_key_for_compare(int which, BtreeKey *src,
+BtreeIndex::prepare_key_for_compare(int which, BtreeKey *src,
                 ham_key_t *dest)
 {
   ByteArray *arena;
@@ -583,7 +569,7 @@ BtreeBackend::prepare_key_for_compare(int which, BtreeKey *src,
 }
 
 int
-BtreeBackend::compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs_int)
+BtreeIndex::compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs_int)
 {
   BtreeNode *node = BtreeNode::from_page(page);
   ham_key_t rhs = {0};
@@ -614,7 +600,7 @@ BtreeBackend::compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs_int)
 }
 
 ham_status_t
-BtreeBackend::read_key(Transaction *txn, BtreeKey *source, ham_key_t *dest)
+BtreeIndex::read_key(Transaction *txn, BtreeKey *source, ham_key_t *dest)
 {
   Allocator *alloc = m_db->get_env()->get_allocator();
 
@@ -688,7 +674,7 @@ BtreeBackend::read_key(Transaction *txn, BtreeKey *source, ham_key_t *dest)
 }
 
 ham_status_t
-BtreeBackend::read_record(Transaction *txn, ham_record_t *record,
+BtreeIndex::read_record(Transaction *txn, ham_record_t *record,
             ham_u64_t *ridptr, ham_u32_t flags)
 {
   bool noblob = false;
@@ -770,7 +756,7 @@ BtreeBackend::read_record(Transaction *txn, ham_record_t *record,
 }
 
 ham_status_t
-BtreeBackend::copy_key(const BtreeKey *source, ham_key_t *dest)
+BtreeIndex::copy_key(const BtreeKey *source, ham_key_t *dest)
 {
   Allocator *alloc = m_db->get_env()->get_allocator();
 
@@ -815,7 +801,7 @@ BtreeBackend::copy_key(const BtreeKey *source, ham_key_t *dest)
 }
 
 ham_size_t
-BtreeBackend::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
+BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 {
   /* adjust page size and key size by adding the overhead */
   pagesize -= OFFSETOF(BtreeNode, _entries);

@@ -31,6 +31,8 @@
 using namespace bfc;
 using namespace ham;
 
+namespace ham {
+
 class KeyTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
 
@@ -198,7 +200,7 @@ public:
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
             &rec2, &rec2._rid, 0));
       BFC_ASSERT_EQUAL(rec.size, rec2.size);
       BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
@@ -240,7 +242,7 @@ public:
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
             &rec2, &rec2._rid, 0));
       BFC_ASSERT_EQUAL(rec.size, rec2.size);
       BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
@@ -278,7 +280,7 @@ public:
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
           &rec2, &rec2._rid, 0));
       BFC_ASSERT_EQUAL(rec.size, rec2.size);
       BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
@@ -375,7 +377,7 @@ public:
 
     rec._intflags = dupe_entry_get_flags(&entry);
     rec._rid = dupe_entry_get_rid(&entry);
-    BFC_ASSERT_EQUAL(0, m_dbp->get_backend()->read_record(0,
+    BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
           &rec, &rec._rid, 0));
     BFC_ASSERT_EQUAL(rec.size, size);
     if (size)
@@ -607,3 +609,4 @@ public:
 
 BFC_REGISTER_FIXTURE(KeyTest);
 
+} // namespace ham

@@ -99,7 +99,7 @@ BtreeCursor::uncouple(ham_u32_t flags)
       return (HAM_OUT_OF_MEMORY);
   }
 
-  st = ((BtreeBackend *)db->get_backend())->copy_key(entry, key);
+  st = db->get_btree()->copy_key(entry, key);
   if (st) {
     if (key->data)
       env->get_allocator()->free(key->data);
@@ -192,7 +192,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
   Database *db = get_db();
   Environment *env = db->get_env();
   Transaction *txn = get_parent()->get_txn();
-  BtreeBackend *be = (BtreeBackend *)db->get_backend();
+  BtreeIndex *be = (BtreeIndex *)db->get_btree();
 
   /* delete the cache of the current duplicate */
   memset(get_dupe_cache(), 0, sizeof(dupe_entry_t));
@@ -269,14 +269,14 @@ ham_status_t
 BtreeCursor::find(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  BtreeBackend *be = (BtreeBackend *)get_db()->get_backend();
+  BtreeIndex *be = get_db()->get_btree();
   Transaction *txn = get_parent()->get_txn();
 
   ham_assert(key);
 
   set_to_nil();
 
-  st = be->do_find(txn, get_parent(), key, record, flags);
+  st = be->find(txn, get_parent(), key, record, flags);
   if (st) {
     /* cursor is now NIL */
     return (st);
@@ -288,7 +288,7 @@ BtreeCursor::find(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 ham_status_t
 BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
-  BtreeBackend *be = (BtreeBackend *)get_db()->get_backend();
+  BtreeIndex *be = (BtreeIndex *)get_db()->get_btree();
   Transaction *txn = get_parent()->get_txn();
 
   ham_assert(key);
@@ -301,7 +301,7 @@ BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 ham_status_t
 BtreeCursor::erase(ham_u32_t flags)
 {
-  BtreeBackend *be = (BtreeBackend *)get_db()->get_backend();
+  BtreeIndex *be = (BtreeIndex *)get_db()->get_btree();
   Transaction *txn = get_parent()->get_txn();
 
   if (!is_uncoupled() && !is_coupled())
@@ -595,7 +595,7 @@ BtreeCursor::move_first(ham_u32_t flags)
   ham_status_t st;
   Database *db = get_db();
   Page *page;
-  BtreeBackend *be = (BtreeBackend *)db->get_backend();
+  BtreeIndex *be = (BtreeIndex *)db->get_btree();
 
   /* get a NIL cursor */
   set_to_nil();
@@ -799,7 +799,7 @@ BtreeCursor::move_last(ham_u32_t flags)
   Database *db = get_db();
   BtreeNode *node;
   Environment *env = db->get_env();
-  BtreeBackend *be = (BtreeBackend *)db->get_backend();
+  BtreeIndex *be = (BtreeIndex *)db->get_btree();
 
   /* get a NIL cursor */
   set_to_nil();

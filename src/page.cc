@@ -123,7 +123,7 @@ Page::uncouple_all_cursors(ham_size_t start)
   if (c) {
     Database *db = c->get_db();
     if (db) {
-      Backend *be = db->get_backend();
+      BtreeIndex *be = db->get_btree();
       if (be)
         return (be->uncouple_all_cursors(this, start));
     }

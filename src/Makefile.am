@@ -13,8 +13,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 EXTRA_DIST = os_win32.cc
 
-libhamsterdb_la_SOURCES = backend.h \
-	blob.cc \
+libhamsterdb_la_SOURCES = blob.cc \
 	blob.h \
 	btree.cc \
 	btree_check.cc \

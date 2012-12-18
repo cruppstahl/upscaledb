@@ -24,7 +24,6 @@
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/os.h"
-#include "../src/backend.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"

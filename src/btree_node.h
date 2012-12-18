@@ -92,7 +92,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
 
   /**
    * flags of this node - flags are always the first member
-   * of every page - regardless of the backend.
+   * of every page - regardless of the btree.
    * Currently only used for the page type.
    */
   ham_u16_t _flags;

@@ -176,6 +176,16 @@ x ham_import: a tool that can create Environments from exported data
 
 x remove HAM_FAST_ESTIMATE?! or rename to HAM_IGNORE_DUPLICATES?
 
+x remove backend.h, directly use BtreeBackend
+    x remove virtual functions
+    x remove m_is_active
+    x remove flush_indexdata or make private?
+    x rename to BtreeIndex
+    x clean up btree.h, remove some of the TODOs
+    x the whole btree backend should use a LocalDatabase instead of a
+        Database pointer
+    x clean up db.h, remove some of the TODOs
+
 o adjust monster.sh
     o need changes for the new API
     o re-enable mmap with threads in monster.sh?!
@@ -200,16 +210,18 @@ o finalize for the next release
     o MSVC project files for ham_import, ham_export
     x increment version in header file
 
-. remove backend.h, directly use BtreeBackend
-    o also clean up, i.e. remove do_close, set_active etc
-    o the whole btree backend should use a LocalDatabase instead of a
-        Database pointer (and try to remove some of the TODOs in db.h)
+. clean up db_indexdata_t and related functions
+    o rename to Metadata
+    o move to Btree?
+    o remove cached RecordNumber (but do not change the structure)
 
 . move Extended Keys to backend/btree_extkeys
     o also try to remove the cache and use boost::unsorted_map
     o use ByteArray for extended keys
     o this includes all functions that are currently kept in Database
     o enforce use of LocalDatabase throughout the code
+    o create one cache per backend
+    o make free_page_extkeys private (or remove it)
 
 . move duplicates into btree namespace (btree_dupkeys.cc)
     o enforce use of LocalDatabase throughout the code

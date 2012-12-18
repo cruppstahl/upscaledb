@@ -53,8 +53,6 @@ class Transaction;
 
 class Page;
 
-class Backend;
-
 class Cache;
 
 class Log;
