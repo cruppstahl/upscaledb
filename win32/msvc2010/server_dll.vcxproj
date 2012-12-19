@@ -72,10 +72,10 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\server_dll_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\server_dll_x64\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hamserver-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hamserver-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hamserver-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hamserver-2.0.5</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hamserver-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hamserver-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hamserver-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hamserver-2.1.0</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -92,7 +92,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)hamserver-2.0.5.dll</OutputFile>
+      <OutputFile>$(OutDir)hamserver-2.1.0.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -120,7 +120,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamserver-2.0.5.dll</OutputFile>
+      <OutputFile>$(OutDir)hamserver-2.1.0.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -141,7 +141,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)hamserver-2.0.5.dll</OutputFile>
+      <OutputFile>$(OutDir)hamserver-2.1.0.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -167,7 +167,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)hamserver-2.0.5.dll</OutputFile>
+      <OutputFile>$(OutDir)hamserver-2.1.0.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

@@ -210,8 +210,8 @@ o write extra documentation about getting the best performance
     o transactions: store log/journal on different disk
 
 o finalize for the next release
-    o version is 2.1.0!!
-    o increment libtool version
+    x version is 2.1.0!!
+    x increment libtool version
     o run valgrind tests
     o update README w/ API updates
     o update Webpage w/ API updates

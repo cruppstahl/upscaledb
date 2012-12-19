@@ -18,7 +18,6 @@
 
 #include "../src/db.h"
 #include "../src/env.h"
-#include "../src/backend.h"
 #include "../src/btree.h"
 
 #include "getopts.h"
@@ -99,7 +98,7 @@ print_environment(ham_env_t *env) {
 
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full) {
-  ham::BtreeBackend *be;
+  ham::BtreeIndex *be;
   ham_cursor_t *cursor;
   ham_status_t st;
   ham_key_t key;
@@ -108,7 +107,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
       max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
       total_key_size = 0, total_rec_size = 0;
 
-  be = (ham::BtreeBackend *)((ham::Database *)db)->get_backend();
+  be = ((ham::Database *)db)->get_btree();
 
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));

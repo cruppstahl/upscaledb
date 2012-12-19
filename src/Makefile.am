@@ -81,9 +81,7 @@ libhamsterdb_la_SOURCES = blob.cc \
 	util.h \
 	version.h
 
-
-
-libhamsterdb_la_LDFLAGS = -version-info 3:0:0 -lboost_thread -lpthread
+libhamsterdb_la_LDFLAGS = -version-info 4:0:0 -lboost_thread -lpthread
 
 if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl

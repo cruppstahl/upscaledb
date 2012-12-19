@@ -29,9 +29,9 @@
  * means the release is a bugfix with a compatible database format.
  */
 #define HAM_VERSION_MAJ 2
-#define HAM_VERSION_MIN 0
-#define HAM_VERSION_REV 5
-#define HAM_VERSION_STR "2.0.5"
+#define HAM_VERSION_MIN 1
+#define HAM_VERSION_REV 0
+#define HAM_VERSION_STR "2.1.0"
 
 
 #endif /* HAM_VERSION_H__ */

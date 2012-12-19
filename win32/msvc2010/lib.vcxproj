@@ -68,10 +68,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamsterdb-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamsterdb-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamsterdb-2.0.5</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamsterdb-2.0.5</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamsterdb-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamsterdb-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamsterdb-2.1.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamsterdb-2.1.0</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -92,7 +92,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x86_debug.lib;..\..\..\hamsterdb-alien\boost\msvc2010\x86\libboost_thread-vc100-mt-gd-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.0.5.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.0.lib</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,7 +117,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x64_debug.lib;..\..\..\hamsterdb-alien\boost\msvc2010\x64\libboost_thread-vc100-mt-gd-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)\libhamsterdb-2.0.5.lib</OutputFile>
+      <OutputFile>$(OutDir)\libhamsterdb-2.1.0.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Lib>
@@ -138,7 +138,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x86.lib;..\..\..\hamsterdb-alien\boost\msvc2010\x86\libboost_thread-vc100-mt-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.0.5.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.0.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -163,7 +163,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x64.lib;..\..\..\hamsterdb-alien\boost\msvc2010\x64\libboost_thread-vc100-mt-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.0.5.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamsterdb-2.1.0.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Lib>
