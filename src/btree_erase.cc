@@ -920,7 +920,6 @@ cleanup:
     /* collapse the root node */
     ham_status_t collapse_root(Page *newroot) {
       m_btree->set_rootpage(newroot->get_self());
-      m_btree->flush_metadata();
       ham_assert(newroot->get_db());
 
       Environment *env = newroot->get_db()->get_env();

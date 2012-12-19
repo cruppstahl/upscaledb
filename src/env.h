@@ -102,7 +102,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
      * following here:
      *
      * 1. the private data of the index btree(s)
-     *      -> see env_get_indexdata()
+     *      -> see env_get_descriptor()
      *
      * 2. the freelist data
      *      -> see env_get_freelist()
@@ -115,12 +115,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define envheader_get_version(hdr, i)  ((hdr))->_version[i]
 
 
-struct db_indexdata_t;
-typedef struct db_indexdata_t db_indexdata_t;
-
 #define SIZEOF_FULL_HEADER(env)                                             \
     (sizeof(env_header_t)+                                                  \
-     (env)->get_max_databases()*sizeof(db_indexdata_t))
+     (env)->get_max_databases()*sizeof(BtreeDescriptor))
+
+class BtreeDescriptor;
 
 /**
  * the Environment structure
@@ -447,7 +446,7 @@ class Environment
      * Get the private data of the specified database stored at index @a i;
      * interpretation of the data is up to the btree.
      */
-    db_indexdata_t *get_indexdata_ptr(int i);
+    BtreeDescriptor *get_descriptor(int i);
 
     /** get the maximum number of databases for this file */
     ham_u16_t get_max_databases() {

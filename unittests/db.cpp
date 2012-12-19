@@ -269,8 +269,7 @@ public:
     BFC_ASSERT(compare_sizes(sizeof(BtreeNode), 28+sizeof(BtreeKey)));
     BFC_ASSERT(compare_sizes(sizeof(BtreeKey), 12));
     BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
-    BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
-    BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
+    BFC_ASSERT(compare_sizes(sizeof(BtreeDescriptor), 32));
     BFC_ASSERT(compare_sizes(sizeof(FreelistPayload),
         16 + 13 + sizeof(freelist_page_statistics_t)));
     BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t),
@@ -313,7 +312,6 @@ public:
     env_header_t *hdrptr = (env_header_t *)(hdrpage.get_payload());
     BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr)
         - (ham_u8_t *)hdrpage.get_pers(), 12));
-    BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
     hdrpage.set_pers(0);
   }
 

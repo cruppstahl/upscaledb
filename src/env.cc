@@ -106,12 +106,12 @@ Environment::~Environment()
     }
 }
 
-struct db_indexdata_t *
-Environment::get_indexdata_ptr(int i)
+BtreeDescriptor *
+Environment::get_descriptor(int i)
 {
-    db_indexdata_t *dbi=(db_indexdata_t *)
+    BtreeDescriptor *d=(BtreeDescriptor *)
             (get_header_page()->get_payload()+sizeof(env_header_t));
-    return (dbi+i);
+    return (d+i);
 }
 
 FreelistPayload *
@@ -486,7 +486,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
     slot=env->get_max_databases();
     ham_assert(env->get_max_databases() > 0);
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        ham_u16_t name=index_get_dbname(env->get_indexdata_ptr(dbi));
+        ham_u16_t name=env->get_descriptor(dbi)->get_dbname();
         if (name==newname)
             return (HAM_DATABASE_ALREADY_EXISTS);
         if (name==oldname)
@@ -497,8 +497,7 @@ _local_fun_rename_db(Environment *env, ham_u16_t oldname,
         return (HAM_DATABASE_NOT_FOUND);
 
     /* replace the database name with the new name */
-    index_set_dbname(env->get_indexdata_ptr(slot), newname);
-
+    env->get_descriptor(slot)->set_dbname(newname);
     env->set_dirty(true);
 
     /* if the database with the old name is currently open: notify it */
@@ -571,11 +570,6 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
         return (st);
     }
 
-    /* set database name to 0 and set the header page to dirty */
-    index_set_dbname(env->get_indexdata_ptr(
-                        db->get_indexdata_offset()), 0);
-    env->get_header_page()->set_dirty(true);
-
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
         ham_u64_t lsn;
@@ -585,8 +579,14 @@ _local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
             st=env->get_changeset().flush(lsn);
     }
 
+    ham_u32_t descriptor = db->get_btree()->get_descriptor_index();
+
     /* clean up and return */
     (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+
+    /* now set database name to 0 and set the header page to dirty */
+    env->get_descriptor(descriptor)->set_dbname(0);
+    env->get_header_page()->set_dirty(true);
 
     return (0);
 }
@@ -608,7 +608,7 @@ _local_fun_get_database_names(Environment *env, ham_u16_t *names,
      */
     ham_assert(env->get_max_databases() > 0);
     for (i=0; i<env->get_max_databases(); i++) {
-        name = index_get_dbname(env->get_indexdata_ptr(i));
+        name = env->get_descriptor(i)->get_dbname();
         if (name==0)
             continue;
 
@@ -836,7 +836,7 @@ _local_fun_create_db(Environment *env, Database **pdb,
     /* check if this database name is unique */
     ham_assert(env->get_max_databases() > 0);
     for (i=0; i<env->get_max_databases(); i++) {
-        ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(i));
+        ham_u16_t name = env->get_descriptor(i)->get_dbname();
         if (!name)
             continue;
         if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME)
@@ -844,15 +844,14 @@ _local_fun_create_db(Environment *env, Database **pdb,
     }
 
     /*
-     * find a free slot in the indexdata array and store the
+     * find a free slot in the BtreeDescriptor array and store the
      * database name
      */
     ham_assert(env->get_max_databases() > 0);
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        ham_u16_t name = index_get_dbname(env->get_indexdata_ptr(dbi));
+        ham_u16_t name = env->get_descriptor(dbi)->get_dbname();
         if (!name) {
-            index_set_dbname(env->get_indexdata_ptr(dbi), dbname);
-            (*pdb)->set_indexdata_offset(dbi);
+            env->get_descriptor(dbi)->set_dbname(dbname);
             break;
         }
     }
@@ -869,11 +868,11 @@ _local_fun_create_db(Environment *env, Database **pdb,
 
     /* create the btree */
     // TODO move to Database::create
-    be=new BtreeIndex((LocalDatabase *)*pdb, flags);
+    be=new BtreeIndex((LocalDatabase *)*pdb, dbi, pflags);
     (*pdb)->set_btree(be);
 
     /* initialize the btree */
-    st=be->create(keysize, pflags);
+    st=be->create(keysize);
     if (st)
         goto bail;
 
@@ -937,44 +936,36 @@ _local_fun_open_db(Environment *env, Database **pdb,
 
     /* search for a database with this name */
     for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        db_indexdata_t *idx=env->get_indexdata_ptr(dbi);
-        ham_u16_t name = index_get_dbname(idx);
+        ham_u16_t name = env->get_descriptor(dbi)->get_dbname();
         if (!name)
             continue;
-        if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name) {
-            (*pdb)->set_indexdata_offset(dbi);
+        if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name)
             break;
-        }
     }
 
     if (dbi==env->get_max_databases())
         return (HAM_DATABASE_NOT_FOUND);
-
-    /* create the btree */
-    // TODO move to Database::open
-    be=new BtreeIndex((LocalDatabase *)*pdb, flags);
-    (*pdb)->set_btree(be);
-
-    /* initialize the btree */
-    st=be->open(flags);
-    if (st)
-        return (st);
 
     /*
      * set the database flags; strip off the persistent flags that may have been
      * set by the caller, before mixing in the persistent flags as obtained
      * from the btree.
      */
-    flags &= (HAM_DISABLE_VAR_KEYLEN
-             |HAM_CACHE_STRICT
-             |HAM_CACHE_UNLIMITED
-             |HAM_DISABLE_MMAP
-             |HAM_ENABLE_FSYNC
-             |HAM_READ_ONLY
-             |HAM_ENABLE_RECOVERY
-             |HAM_AUTO_RECOVERY
-             |HAM_ENABLE_TRANSACTIONS);
-    (*pdb)->set_rt_flags(flags|be->get_flags());
+    flags &= ~(HAM_DISABLE_VAR_KEYLEN
+               |HAM_CACHE_STRICT
+               |HAM_CACHE_UNLIMITED
+               |HAM_DISABLE_MMAP
+               |HAM_ENABLE_FSYNC
+               |HAM_READ_ONLY
+               |HAM_ENABLE_RECOVERY
+               |HAM_AUTO_RECOVERY
+               |HAM_ENABLE_TRANSACTIONS);
+
+    /* create the btree */
+    // TODO move to Database::open
+    be=new BtreeIndex((LocalDatabase *)*pdb, dbi, flags);
+    (*pdb)->set_btree(be);
+
     ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
     ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
     ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED));
@@ -984,6 +975,15 @@ _local_fun_open_db(Environment *env, Database **pdb,
     ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
     ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
+
+    /* initialize the btree */
+    st=be->open();
+    if (st)
+        return (st);
+
+    /* merge the non-persistent database flag with the persistent flags from
+     * the btree index */
+    (*pdb)->set_rt_flags((*pdb)->get_rt_flags(true) | be->get_flags());
 
     /* set the compare functions */
     // TODO move to Database::open

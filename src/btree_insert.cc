@@ -246,7 +246,6 @@ class BtreeInsertAction
        * root page to the changeset to make sure that the changes are logged
        */
       m_btree->set_rootpage(newroot->get_self());
-      m_btree->flush_metadata();
       if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY)
         db->get_env()->get_changeset().add_page(db->get_env()->get_header_page());
       root->set_type(Page::TYPE_B_INDEX);

@@ -173,7 +173,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
   : m_env(env), m_name(name), m_error(0), m_context(0), m_btree(0),
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
-    m_extkey_cache(0), m_indexdata_offset(0), m_optree(this)
+    m_extkey_cache(0), m_optree(this)
 {
   m_key_arena.set_allocator(env->get_allocator());
   m_record_arena.set_allocator(env->get_allocator());

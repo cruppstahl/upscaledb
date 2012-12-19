@@ -796,7 +796,7 @@ default_case:
         ham_size_t l = pagesize - sizeof(env_header_t)
                 - db_get_freelist_header_size() - 128;
 
-        l /= sizeof(db_indexdata_t);
+        l /= sizeof(BtreeDescriptor);
         if (dbs > l) {
             ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
                         "this pagesize; the maximum allowed is %u",

@@ -59,9 +59,6 @@ namespace ham {
  */
 #define DB_MAX_INDICES                  16 /* 16*32 = 512 byte wasted */
 
-/* the size of an index data */
-#define DB_INDEX_SIZE                   sizeof(db_indexdata_t) /* 32 */
-
 /** get the (non-persisted) flags of a key */
 #define ham_key_get_intflags(key)       (key)->_flags
 
@@ -79,60 +76,6 @@ namespace ham {
 #define PAGE_IGNORE_FREELIST          8
 #define PAGE_CLEAR_WITH_ZERO         16
 
-
-#include "packstart.h"
-
-/**
- * the persistent database index header
- */
-HAM_PACK_0 struct HAM_PACK_1 db_indexdata_t
-{
-  /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
-  ham_u16_t _dbname;
-
-  /** maximum keys in an internal page */
-  ham_u16_t _maxkeys;
-
-  /** key size in this page */
-  ham_u16_t _keysize;
-
-  /* reserved */
-  ham_u16_t _reserved1;
-
-  /** address of this page */
-  ham_offset_t _self;
-
-  /** flags for this database */
-  ham_u32_t _flags;
-
-  /* reserved */
-  ham_u64_t _reserved2;
-
-  /* reserved */
-  ham_u32_t _reserved3;
-
-} HAM_PACK_2;
-
-#include "packstop.h"
-
-
-#define index_get_dbname(p)               ham_db2h16((p)->_dbname)
-#define index_set_dbname(p, n)            (p)->_dbname=ham_h2db16(n)
-
-#define index_get_max_keys(p)             ham_db2h16((p)->_maxkeys)
-#define index_set_max_keys(p, n)          (p)->_maxkeys=ham_h2db16(n)
-
-#define index_get_keysize(p)              ham_db2h16((p)->_keysize)
-#define index_set_keysize(p, n)           (p)->_keysize=ham_h2db16(n)
-
-#define index_get_self(p)                 ham_db2h_offset((p)->_self)
-#define index_set_self(p, n)              (p)->_self=ham_h2db_offset(n)
-
-#define index_get_flags(p)                ham_db2h32((p)->_flags)
-#define index_set_flags(p, n)             (p)->_flags=ham_h2db32(n)
-
-#define index_clear_reserved(p)           { (p)->_reserved1=0;            \
-                                            (p)->_reserved2=0; }
 
 class BtreeIndex;
 
@@ -309,16 +252,6 @@ class Database
     /** set the cache for extended keys */
     void set_extkey_cache(ExtKeyCache *c) {
       m_extkey_cache = c;
-    }
-
-    /** get the index of this database in the indexdata array */
-    ham_u16_t get_indexdata_offset() {
-      return (m_indexdata_offset);
-    }
-
-    /** set the index of this database in the indexdata array */
-    void set_indexdata_offset(ham_u16_t offset) {
-      m_indexdata_offset = offset;
     }
 
     /** Get the memory buffer for the key data */
@@ -581,10 +514,6 @@ class Database
     /** the cache for extended keys */
     /* TODO move to LocalDatabase or Btree */
     ExtKeyCache *m_extkey_cache;
-
-    /** the offset of this database in the environment _indexdata */
-    /* TODO move to LocalDatabase */
-    ham_u16_t m_indexdata_offset;
 
     /** the transaction tree */
     /* TODO move to LocalDatabase */

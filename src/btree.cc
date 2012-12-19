@@ -35,11 +35,16 @@ namespace ham {
 /** defines the maximum number of keys per node */
 #define MAX_KEYS_PER_NODE         0xFFFFU /* max(ham_u16_t) */
 
-BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t flags)
-  : m_db(db), m_keysize(0), m_flags(flags), m_rootpage(0), m_maxkeys(0),
-    m_keydata1(db->get_env()->get_allocator()),
+BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
+  : m_db(db), m_keysize(0), m_descriptor_index(descriptor), m_flags(flags),
+    m_rootpage(0), m_maxkeys(0), m_keydata1(db->get_env()->get_allocator()),
     m_keydata2(db->get_env()->get_allocator()), m_statistics(db)
 {
+}
+
+BtreeIndex::~BtreeIndex()
+{
+  flush_descriptor();
 }
 
 ham_status_t
@@ -132,11 +137,8 @@ BtreeIndex::calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
 }
 
 ham_status_t
-BtreeIndex::create(ham_u16_t keysize, ham_u32_t flags)
+BtreeIndex::create(ham_u16_t keysize)
 {
-  db_indexdata_t *indexdata = m_db->get_env()->get_indexdata_ptr(
-                m_db->get_indexdata_offset());
-
   /* prevent overflow - maxkeys only has 16 bit! */
   ham_size_t maxkeys = calc_maxkeys(m_db->get_env()->get_pagesize(), keysize);
   if (maxkeys > MAX_KEYS_PER_NODE) {
@@ -165,38 +167,30 @@ BtreeIndex::create(ham_u16_t keysize, ham_u32_t flags)
    */
   set_maxkeys((ham_u16_t)maxkeys);
   set_keysize(keysize);
-  set_flags(flags);
   set_rootpage(root->get_self());
 
-  index_clear_reserved(indexdata);
-  index_set_max_keys(indexdata, (ham_u16_t)maxkeys);
-  index_set_keysize(indexdata, keysize);
-  index_set_self(indexdata, root->get_self());
-  index_set_flags(indexdata, flags);
-  index_clear_reserved(indexdata);
-
-  m_db->get_env()->set_dirty(true);
+  flush_descriptor();
 
   return (0);
 }
 
 ham_status_t
-BtreeIndex::open(ham_u32_t flags)
+BtreeIndex::open()
 {
   ham_offset_t rootadd;
   ham_u16_t maxkeys;
   ham_u16_t keysize;
-  db_indexdata_t *indexdata=m_db->get_env()->get_indexdata_ptr(
-                m_db->get_indexdata_offset());
+  ham_u32_t flags;
+  BtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
 
   /*
    * load root address and maxkeys (first two bytes are the
    * database name)
    */
-  maxkeys = index_get_max_keys(indexdata);
-  keysize = index_get_keysize(indexdata);
-  rootadd = index_get_self(indexdata);
-  flags = index_get_flags(indexdata);
+  maxkeys = desc->get_max_keys();
+  keysize = desc->get_keysize();
+  rootadd = desc->get_self();
+  flags = desc->get_flags();
 
   set_rootpage(rootadd);
   set_maxkeys(maxkeys);
@@ -206,21 +200,21 @@ BtreeIndex::open(ham_u32_t flags)
   return (0);
 }
 
-ham_status_t
-BtreeIndex::flush_metadata()
+void
+BtreeIndex::flush_descriptor()
 {
-  db_indexdata_t *indexdata = m_db->get_env()->get_indexdata_ptr(
-                m_db->get_indexdata_offset());
+  if (m_db->get_rt_flags() & HAM_READ_ONLY)
+    return;
 
-  index_set_max_keys(indexdata, get_maxkeys());
-  index_set_keysize(indexdata, get_keysize());
-  index_set_self(indexdata, get_rootpage());
-  index_set_flags(indexdata, get_flags());
-  index_clear_reserved(indexdata);
+  BtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
+
+  desc->set_dbname(m_db->get_name());
+  desc->set_max_keys(get_maxkeys());
+  desc->set_keysize(get_keysize());
+  desc->set_self(get_rootpage());
+  desc->set_flags(get_flags());
 
   m_db->get_env()->set_dirty(true);
-
-  return (0);
 }
 
 ham_status_t

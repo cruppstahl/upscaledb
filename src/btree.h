@@ -30,6 +30,87 @@
 
 namespace ham {
 
+#include "packstart.h"
+
+/**
+ * the persistent btree index descriptor
+ */
+HAM_PACK_0 struct HAM_PACK_1 BtreeDescriptor
+{
+  public:
+    BtreeDescriptor() {
+      memset(this, 0, sizeof(*this));
+    }
+
+    ham_u16_t get_dbname() {
+      return ham_db2h16(m_dbname);
+    }
+
+    void set_dbname(ham_u16_t n) {
+      m_dbname = ham_h2db16(n);
+    }
+
+    ham_u16_t get_max_keys() {
+      return ham_db2h16(m_maxkeys);
+    }
+
+    void set_max_keys(ham_u16_t n) {
+      m_maxkeys = ham_h2db16(n);
+    }
+
+    ham_u16_t get_keysize() {
+      return ham_db2h16(m_keysize);
+    }
+
+    void set_keysize(ham_u16_t n) {
+      m_keysize = ham_h2db16(n);
+    }
+
+    ham_u64_t get_self() {
+      return ham_db2h_offset(m_self);
+    }
+
+    void set_self(ham_u64_t n) {
+      m_self = ham_h2db_offset(n);
+    }
+
+    ham_u32_t get_flags() {
+      return ham_db2h32(m_flags);
+    }
+
+    void set_flags(ham_u32_t n) {
+      m_flags = ham_h2db32(n);
+    }
+
+  private:
+    /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
+    ham_u16_t m_dbname;
+
+    /** maximum keys in an internal page */
+    ham_u16_t m_maxkeys;
+
+    /** key size in this page */
+    ham_u16_t m_keysize;
+
+    /* reserved */
+    ham_u16_t m_reserved1;
+
+    /** address of the root-page */
+    ham_offset_t m_self;
+
+    /** flags for this database */
+    ham_u32_t m_flags;
+
+    /* reserved */
+    ham_u64_t m_reserved2;
+
+    /* reserved */
+    ham_u32_t m_reserved3;
+} HAM_PACK_2;
+
+#include "packstop.h"
+
+
 /** hamsterdb Backend Node/Page Enumerator Status Codes */
 enum {
   /** continue with the traversal */
@@ -76,7 +157,10 @@ class BtreeIndex
 {
   public:
     /** constructor; creates and initializes a new Backend */
-    BtreeIndex(LocalDatabase *db, ham_u32_t flags = 0);
+    BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags = 0);
+
+    /** destructor; flushes the BtreeDescriptor */
+    ~BtreeIndex();
 
     /**
      * create and initialize a btree
@@ -84,7 +168,7 @@ class BtreeIndex
      * @remark this function is called after the ham_db_t structure
      * was allocated and the file was opened
      */
-    ham_status_t create(ham_u16_t keysize, ham_u32_t flags);
+    ham_status_t create(ham_u16_t keysize);
 
     /**
      * open and initialize a btree
@@ -92,7 +176,7 @@ class BtreeIndex
      * @remark this function is called after the ham_db_t structure
      * was allocated and the file was opened
      */
-    ham_status_t open(ham_u32_t flags);
+    ham_status_t open();
 
     /**
      * close the btree
@@ -208,6 +292,7 @@ class BtreeIndex
     /** set the address of the root node */
     void set_rootpage(ham_u64_t rp) {
       m_rootpage = rp;
+      flush_descriptor();
     }
 
     /** get maximum number of keys per (internal) node */
@@ -238,7 +323,12 @@ class BtreeIndex
     /** get hinter */
     // TODO make this private
     BtreeStatistics *get_statistics() {
-      return (&m_statistics);
+      return &m_statistics;
+    }
+
+    // get index of BtreeDescriptor
+    ham_u32_t get_descriptor_index() const {
+      return m_descriptor_index;
     }
 
   private:
@@ -253,11 +343,8 @@ class BtreeIndex
     /** calculate the "maxkeys" values - the limit of keys per page */
     ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
-    /**
-     * flushes the btree's meta information to the index data;
-     * this does not flush the whole index!
-     */
-    ham_status_t flush_metadata();
+    /** flushes the BtreeDescriptor to the Environment's header page */
+    void flush_descriptor();
 
     /**
      * find the child page for a key
@@ -354,6 +441,9 @@ class BtreeIndex
 
     /** the keysize of this btree index */
     ham_u16_t m_keysize;
+
+    /** the index of the BtreeDescriptor */
+    ham_u32_t m_descriptor_index;
 
     /** the persistent flags of this btree index */
     ham_u32_t m_flags;

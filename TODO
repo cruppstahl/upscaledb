@@ -186,6 +186,17 @@ x remove backend.h, directly use BtreeBackend
         Database pointer
     x clean up db.h, remove some of the TODOs
 
+x clean up db_indexdata_t and related functions
+    x rename to BtreeDescriptor
+    x Btree::create: call index_set_name()
+    x move to Btree
+    x remove cached RecordNumber -- already removed
+    x combine Btree::flush_metadata with Btree::set_rootpage, remove
+        flush_metadata
+    x run unittests, some are failing/asserting
+
+o Remove HAM_USE_BTREE
+
 o adjust monster.sh
     o need changes for the new API
     o re-enable mmap with threads in monster.sh?!
@@ -209,11 +220,6 @@ o finalize for the next release
     o need documentation for ham_export, ham_import
     o MSVC project files for ham_import, ham_export
     x increment version in header file
-
-. clean up db_indexdata_t and related functions
-    o rename to Metadata
-    o move to Btree?
-    o remove cached RecordNumber (but do not change the structure)
 
 . move Extended Keys to backend/btree_extkeys
     o also try to remove the cache and use boost::unsorted_map
@@ -310,6 +316,8 @@ o optimize memory usage in transaction tree: avoid malloc/free use page
         o txn_op_node_t -> TransactionTreeNode
         o txn_op_t -> TransactionOperation
         o convert to clean c++ code
+
+. should database names still be reserved?
 
 o continue with refacoring - indention, coding style, better design etc...
     o hamserver.cc: replace handles-structure with unsorted_set
