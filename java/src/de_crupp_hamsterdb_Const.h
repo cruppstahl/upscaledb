@@ -93,8 +93,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_FSYNC 1L
 #undef de_crupp_hamsterdb_Const_HAM_READ_ONLY
 #define de_crupp_hamsterdb_Const_HAM_READ_ONLY 4L
-#undef de_crupp_hamsterdb_Const_HAM_USE_BTREE
-#define de_crupp_hamsterdb_Const_HAM_USE_BTREE 16L
 #undef de_crupp_hamsterdb_Const_HAM_DISABLE_VAR_KEYLEN
 #define de_crupp_hamsterdb_Const_HAM_DISABLE_VAR_KEYLEN 64L
 #undef de_crupp_hamsterdb_Const_HAM_IN_MEMORY_DB

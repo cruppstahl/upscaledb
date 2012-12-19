@@ -685,10 +685,6 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @param flags Optional flags for creating the Database, combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref HAM_USE_BTREE </li> Use a B+Tree for the index structure.
- *      Currently enabled by default, but future releases
- *      of hamsterdb will offer additional index structures,
- *      like hash tables.
  *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
@@ -1029,9 +1025,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /* unused                                           0x00000008 */
 
-/** Flag for @ref ham_env_create_db.
- * This flag is persisted in the Database. */
-#define HAM_USE_BTREE                               0x00000010
+/* unused                                           0x00000010 */
 
 /* reserved                                         0x00000020 */
 

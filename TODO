@@ -195,7 +195,7 @@ x clean up db_indexdata_t and related functions
         flush_metadata
     x run unittests, some are failing/asserting
 
-o Remove HAM_USE_BTREE
+x Remove HAM_USE_BTREE
 
 o adjust monster.sh
     o need changes for the new API

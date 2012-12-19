@@ -99,10 +99,6 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_READ_ONLY;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_READ_ONLY");
     }
-    if (flags & HAM_USE_BTREE) {
-        flags &= ~HAM_USE_BTREE;
-        buf = my_strncat_ex(buf, buflen, NULL, "HAM_USE_BTREE");
-    }
     if (flags & HAM_DISABLE_VAR_KEYLEN) {
         flags &= ~HAM_DISABLE_VAR_KEYLEN;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_DISABLE_VAR_KEYLEN");
@@ -537,7 +533,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT
-                        |HAM_USE_BTREE
                         |HAM_DONT_LOCK
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
@@ -555,7 +550,6 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT
-                        |HAM_USE_BTREE
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))));

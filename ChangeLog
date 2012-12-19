@@ -1,3 +1,6 @@
+Dec 19, 2012 - chris ---------------------------------------------------
+o Removed the flag HAM_USE_BTREE; it was not required.
+
 Dec 18, 2012 - chris ---------------------------------------------------
 o Removed HAM_FAST_ESTIMATE and improved performance of ham_db_get_key_count
 	if use of duplicate keys are disabled

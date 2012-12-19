@@ -109,8 +109,6 @@ namespace Hamster
     /// <summary>Flag for Database.Open</summary>
     public const int HAM_READ_ONLY            =  0x004;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_USE_BTREE            =  0x010;
-    /// <summary>Flag for Database.Create</summary>
     public const int HAM_DISABLE_VAR_KEYLEN       =  0x040;
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_IN_MEMORY_DB           =  0x080;

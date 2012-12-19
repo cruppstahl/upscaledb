@@ -279,10 +279,6 @@ public class Environment {
    * @param flags optional flags for creating the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_USE_BTREE</code></li>
-   *      Use a B+Tree for the index structure. Currently enabled
-   *      by default, but future releases of hamsterdb will
-   *      offer additional index structures, i.e. hash tables.
    *     <li><code>Const.HAM_DISABLE_VAR_KEYLEN</const></li>
    *      Do not allow the use of variable length keys.
    *      Inserting a key, which is larger than the B+Tree index

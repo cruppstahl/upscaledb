@@ -337,10 +337,6 @@ namespace Hamster
     /// <param name="flags">Optional flags for creating the Database,
     /// combined with bitwise OR. Possible values are:
     ///   <list>
-    ///   <item><see cref="HamConst.HAM_USE_BTREE" />
-    ///     Use a B+Tree for the index structure. Currently enabled
-    ///     by default, but future releases of hamsterdb will offer
-    ///     additional index structures, i.e. hash tables.</item><br />
     ///   <item><see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />
     ///     Do not allow the use of variable length keys. Inserting
     ///     a key, which is larger than the B+Tree index key size,
