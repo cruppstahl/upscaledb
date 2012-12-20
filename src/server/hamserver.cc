@@ -591,7 +591,7 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
     if (!db)
       st = HAM_INV_PARAMETER;
     else
-      st = ham_check_integrity(db, txn);
+      st = ham_db_check_integrity(db, txn);
   }
 
   Protocol reply(Protocol::DB_CHECK_INTEGRITY_REPLY);

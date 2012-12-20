@@ -197,40 +197,40 @@ x clean up db_indexdata_t and related functions
 
 x Remove HAM_USE_BTREE
 
-o adjust monster.sh
-    o need changes for the new API
-    o re-enable mmap with threads in monster.sh?!
+x adjust monster.sh
+    x need changes for the new API
+        x remove HAM_DAM*
+        x remove aes encryption, compression
+        x remove sort-duplicates
+        x remove HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL,
+            HAM_HINT_UBER_FAST_ACCESS
+        x remove HAM_LOCK_EXCLUSIVE
+    x re-enable mmap with threads in monster.sh
+    x re-enable the memory allocator
+    x refactor code, code formatting
 
-o write extra documentation about getting the best performance
-    o reduce keys/records as much as possible
-    o play around with keysize/pagesize
-    o increase cache size
-    o use mmap when opening files, but be aware of the problems
-    o transactions: use HAM_OVERWRITE
-    o transactions: store log/journal on different disk
+x Remove HAM_LOCK_EXCLUSIVE
+
+x Rename ham_check_integrity -> ham_db_check_integrity
+
+x write extra documentation about getting the best performance
+    x reduce keys/records as much as possible
+    x play around with keysize/pagesize
+    x increase cache size
+    x use mmap when opening files, but be aware of the problems
+    x transactions: use HAM_OVERWRITE
+    x transactions: store log/journal on different disk
 
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
-    o run valgrind tests
+    x run valgrind tests
     o update README w/ API updates
     o update Webpage w/ API updates
-    o update Tutorial w/ API updates
+    o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap
     o need documentation for ham_export, ham_import
     o MSVC project files for ham_import, ham_export
-    x increment version in header file
-
-. move Extended Keys to backend/btree_extkeys
-    o also try to remove the cache and use boost::unsorted_map
-    o use ByteArray for extended keys
-    o this includes all functions that are currently kept in Database
-    o enforce use of LocalDatabase throughout the code
-    o create one cache per backend
-    o make free_page_extkeys private (or remove it)
-
-. move duplicates into btree namespace (btree_dupkeys.cc)
-    o enforce use of LocalDatabase throughout the code
 
 . split Environment into baseclass, derive local and remote Environment
     o move db_flush_all into LocalEnvironment
@@ -238,16 +238,16 @@ o finalize for the next release
     o clean up code
     o try to reduce the TODOs
 
-. can we perform better with O_DIRECT? run some benchmarks
-
 . split Transaction into local and remote class
     o hamsterdb.cc directly calls into Transaction class instead of Environment
     o then continue with db.cc and move txn-related functions to LocalDatabase
-    o try to get the methods/design analoguous to the Btree (rename to Ttree?)
+    o try to get the methods/design analoguous to the Btree
 
 . add transaction support for in-memory databases
     in the source, never use HAM_ENABLE_RECOVERY; only check if env->get_log()
         is null. Same regarding journal.
+
+. can we perform better with O_DIRECT? run some benchmarks
 
 . also remove locking from C# and Java APIs
 

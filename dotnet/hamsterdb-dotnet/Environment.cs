@@ -137,13 +137,6 @@ namespace Hamster
     ///     If the flag is not set, the cache is allowed to allocate
     ///     more pages than the maximum cache size, but only if it's
     ///     necessary and only for a short time.</item><br />
-    ///   <item><see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" />
-    ///     This flag is deprecated.</item><br />
-    ///   <item><see cref="HamConst.HAM_LOCK_EXCLUSIVE" />
-    ///     Place an exclusive lock on the file. Only one process
-    ///     may hold an exclusive lock for a given file at a given
-    ///     time. Deprecated - this is now the default
-    ///     behaviour.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
     ///     Enables logging/recovery for this Database. Not allowed in
     ///     combination with <see cref="HamConst.HAM_IN_MEMORY_DB" />,

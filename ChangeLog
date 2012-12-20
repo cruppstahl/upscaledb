@@ -1,3 +1,7 @@
+Dec 20, 2012 - chris ---------------------------------------------------
+o Removed the deprecated flag HAM_LOCK_EXCLUSIVE
+o Renamed ham_check_integrity to ham_db_check_integrity
+
 Dec 19, 2012 - chris ---------------------------------------------------
 o Removed the flag HAM_USE_BTREE; it was not required.
 

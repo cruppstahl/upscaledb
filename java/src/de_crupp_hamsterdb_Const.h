@@ -103,8 +103,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_CACHE_STRICT 1024L
 #undef de_crupp_hamsterdb_Const_HAM_DISABLE_FREELIST_FLUSH
 #define de_crupp_hamsterdb_Const_HAM_DISABLE_FREELIST_FLUSH 2048L
-#undef de_crupp_hamsterdb_Const_HAM_LOCK_EXCLUSIVE
-#define de_crupp_hamsterdb_Const_HAM_LOCK_EXCLUSIVE 4096L
 #undef de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER
 #define de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER 8192L
 #undef de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATES

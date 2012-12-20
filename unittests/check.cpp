@@ -62,9 +62,9 @@ public:
 
   void emptyDatabaseTest() {
     BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_check_integrity(0, 0));
+        ham_db_check_integrity(0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_check_integrity(m_db, 0));
+        ham_db_check_integrity(m_db, 0));
   }
 
   void smallDatabaseTest() {
@@ -77,7 +77,7 @@ public:
       BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_check_integrity(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(m_db, 0));
   }
 
   void levelledDatabaseTest() {
@@ -105,7 +105,7 @@ public:
       BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_check_integrity(m_db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(m_db, 0));
   }
 };
 

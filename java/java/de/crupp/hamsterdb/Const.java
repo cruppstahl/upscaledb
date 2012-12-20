@@ -155,12 +155,6 @@ public class Const {
     /** Flag for Database.open(), Database.create() */
     public final static int HAM_CACHE_STRICT                    =    0x400;
 
-    /** Flag for Database.open(), Database.create() */
-    public final static int HAM_DISABLE_FREELIST_FLUSH          =    0x800;
-
-    /** Flag for Database.open(), Database.create() */
-    public final static int HAM_LOCK_EXCLUSIVE                  =   0x1000;
-
     /** Flag for Database.create() */
     public final static int HAM_RECORD_NUMBER                   =   0x2000;
 

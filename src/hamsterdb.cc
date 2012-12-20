@@ -1614,7 +1614,7 @@ ham_db_erase(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
+ham_db_check_integrity(ham_db_t *hdb, ham_txn_t *htxn)
 {
     Database *db=(Database *)hdb;
     Transaction *txn=(Transaction *)htxn;

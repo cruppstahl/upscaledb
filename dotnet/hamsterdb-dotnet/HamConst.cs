@@ -118,8 +118,6 @@ namespace Hamster
     public const int HAM_CACHE_STRICT           =  0x400;
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_FREELIST_FLUSH     =  0x800;
-    /// <summary>Flag for Database.Open, Database.Create</summary>
-    public const int HAM_LOCK_EXCLUSIVE         =   0x1000;
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_RECORD_NUMBER          =   0x2000;
     /// <summary>Flag for Database.Create</summary>

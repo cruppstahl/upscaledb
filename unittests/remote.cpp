@@ -401,7 +401,7 @@ protected:
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(env, &db, 22, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_check_integrity(db, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(db, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }

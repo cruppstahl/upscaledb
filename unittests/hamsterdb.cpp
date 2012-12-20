@@ -557,7 +557,7 @@ public:
 
     // std::cerr << std::endl;
 
-    BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(db, NULL));
 
     my_rec_t *r;
     my_key_t *k;
@@ -580,7 +580,7 @@ public:
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
     BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 
-    BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(db, NULL));
 
     /*
      * A)
