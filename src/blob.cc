@@ -81,7 +81,7 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = env_fetch_page(&page, m_env, pageid, cacheonly);
+        st = m_env->fetch_page(&page, 0, pageid, cacheonly);
         /* blob pages don't have a page header */
         if (page)
           page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
@@ -147,7 +147,7 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
       if (db)
         st = db->fetch_page(&page, pageid, !blob_from_cache(size));
       else
-        st = env_fetch_page(&page, m_env, pageid, !blob_from_cache(size));
+        st = m_env->fetch_page(&page, 0, pageid, !blob_from_cache(size));
       if (st)
         return st;
       /* blob pages don't have a page header */

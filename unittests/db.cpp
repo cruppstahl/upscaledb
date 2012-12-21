@@ -130,7 +130,7 @@ public:
   }
 
   void envStructureTest() {
-    Environment *env = new Environment;
+    Environment *env = new LocalEnvironment;
 
     env->set_txn_id(0x12345ull);
     env->set_file_mode(0666);

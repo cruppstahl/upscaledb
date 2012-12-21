@@ -244,7 +244,7 @@ public:
 
     BFC_ASSERT_EQUAL(HAM_CACHE_FULL,
         ((Database *)m_db)->alloc_page(&p[i], 0, 0));
-    BFC_ASSERT_EQUAL(0, env_purge_cache((Environment *)m_env));
+    BFC_ASSERT_EQUAL(0, ((Environment *)m_env)->purge_cache());
     BFC_ASSERT_EQUAL(0, ((Database *)m_db)->alloc_page(&p[i], 0, 0));
   }
 

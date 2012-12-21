@@ -113,9 +113,8 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
             return (HAM_INTERNAL_ERROR);                            \
           }
 
-static ham_status_t
-_perform_request(Environment *env, CURL *handle, Protocol *request,
-                Protocol **reply)
+ham_status_t
+RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 {
   CURLcode cc;
   long response = 0;
@@ -124,7 +123,7 @@ _perform_request(Environment *env, CURL *handle, Protocol *request,
   curl_buffer_t wbuf = {0};
   struct curl_slist *slist = 0;
 
-  wbuf.alloc = env->get_allocator();
+  wbuf.alloc = get_allocator();
 
   *reply = 0;
 
@@ -139,21 +138,21 @@ _perform_request(Environment *env, CURL *handle, Protocol *request,
   slist = curl_slist_append(slist, "Expect:");
 
 #ifdef HAM_DEBUG
-  SETOPT(handle, CURLOPT_VERBOSE, 1);
+  SETOPT(m_curl, CURLOPT_VERBOSE, 1);
 #endif
-  SETOPT(handle, CURLOPT_URL, env->get_filename().c_str());
-  SETOPT(handle, CURLOPT_READFUNCTION, __readfunc);
-  SETOPT(handle, CURLOPT_READDATA, &rbuf);
-  SETOPT(handle, CURLOPT_UPLOAD, 1);
-  SETOPT(handle, CURLOPT_PUT, 1);
-  SETOPT(handle, CURLOPT_WRITEFUNCTION, __writefunc);
-  SETOPT(handle, CURLOPT_WRITEDATA, &wbuf);
-  SETOPT(handle, CURLOPT_HTTPHEADER, slist);
+  SETOPT(m_curl, CURLOPT_URL, get_filename().c_str());
+  SETOPT(m_curl, CURLOPT_READFUNCTION, __readfunc);
+  SETOPT(m_curl, CURLOPT_READDATA, &rbuf);
+  SETOPT(m_curl, CURLOPT_UPLOAD, 1);
+  SETOPT(m_curl, CURLOPT_PUT, 1);
+  SETOPT(m_curl, CURLOPT_WRITEFUNCTION, __writefunc);
+  SETOPT(m_curl, CURLOPT_WRITEDATA, &wbuf);
+  SETOPT(m_curl, CURLOPT_HTTPHEADER, slist);
 
-  cc = curl_easy_perform(handle);
+  cc = curl_easy_perform(m_curl);
 
   if (rbuf.packed_data)
-    env->get_allocator()->free(rbuf.packed_data);
+    get_allocator()->free(rbuf.packed_data);
   curl_slist_free_all(slist);
 
   if (cc) {
@@ -161,7 +160,7 @@ _perform_request(Environment *env, CURL *handle, Protocol *request,
     return (HAM_NETWORK_ERROR);
   }
 
-  cc = curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response);
+  cc = curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &response);
   if (cc) {
     ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
     return (HAM_NETWORK_ERROR);
@@ -177,20 +176,21 @@ _perform_request(Environment *env, CURL *handle, Protocol *request,
   return (0);
 }
 
-static ham_status_t
-_remote_fun_create(Environment *env, const char *filename, ham_u32_t flags,
+ham_status_t
+RemoteEnvironment::create(const char *filename, ham_u32_t flags,
                 ham_u32_t mode, const ham_parameter_t *param)
 {
   ham_status_t st;
   Protocol *reply = 0;
-  CURL *handle = curl_easy_init();
+  m_curl = curl_easy_init();
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
-  st = _perform_request(env, handle, &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
-    curl_easy_cleanup(handle);
+    curl_easy_cleanup(m_curl);
+    m_curl = 0;
     delete reply;
     return (st);
   }
@@ -199,29 +199,28 @@ _remote_fun_create(Environment *env, const char *filename, ham_u32_t flags,
   ham_assert(reply->type() == Protocol::CONNECT_REPLY);
 
   st = reply->connect_reply().status();
-  if (st == 0) {
-    env->set_curl(handle);
-    env->set_flags(env->get_flags() | reply->connect_reply().env_flags());
-  }
+  if (st == 0)
+    set_flags(get_flags() | reply->connect_reply().env_flags());
 
   delete reply;
   return (st);
 }
 
-static ham_status_t
-_remote_fun_open(Environment *env, const char *filename, ham_u32_t flags,
+ham_status_t
+RemoteEnvironment::open(const char *filename, ham_u32_t flags,
                 const ham_parameter_t *param)
 {
   ham_status_t st;
   Protocol *reply = 0;
-  CURL *handle = curl_easy_init();
+  m_curl = curl_easy_init();
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
-  st = _perform_request(env, handle, &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
-    curl_easy_cleanup(handle);
+    curl_easy_cleanup(m_curl);
+    m_curl = 0;
     delete reply;
     return (st);
   }
@@ -230,19 +229,17 @@ _remote_fun_open(Environment *env, const char *filename, ham_u32_t flags,
   ham_assert(reply->type() == Protocol::CONNECT_REPLY);
 
   st = reply->connect_reply().status();
-  if (st == 0) {
-    env->set_curl(handle);
-    env->set_flags(env->get_flags() | reply->connect_reply().env_flags());
-  }
+  if (st == 0)
+    set_flags(get_flags() | reply->connect_reply().env_flags());
 
   delete reply;
 
   return (st);
 }
 
-static ham_status_t
-_remote_fun_rename_db(Environment *env, ham_u16_t oldname,
-                ham_u16_t newname, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
+        ham_u32_t flags)
 {
   ham_status_t st;
   Protocol *reply = 0;
@@ -252,7 +249,7 @@ _remote_fun_rename_db(Environment *env, ham_u16_t oldname,
   request.mutable_env_rename_request()->set_newname(newname);
   request.mutable_env_rename_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -267,8 +264,8 @@ _remote_fun_rename_db(Environment *env, ham_u16_t oldname,
   return (st);
 }
 
-static ham_status_t
-_remote_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 {
   ham_status_t st;
   Protocol *reply = 0;
@@ -277,7 +274,7 @@ _remote_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
   request.mutable_env_erase_db_request()->set_name(name);
   request.mutable_env_erase_db_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -292,9 +289,8 @@ _remote_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
   return (st);
 }
 
-static ham_status_t
-_remote_fun_get_database_names(Environment *env, ham_u16_t *names,
-            ham_size_t *count)
+ham_status_t
+RemoteEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
 {
   ham_status_t st;
   ham_size_t i;
@@ -303,7 +299,7 @@ _remote_fun_get_database_names(Environment *env, ham_u16_t *names,
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -332,10 +328,10 @@ _remote_fun_get_database_names(Environment *env, ham_u16_t *names,
   return (0);
 }
 
-static ham_status_t
-_remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
+ham_status_t
+RemoteEnvironment::get_parameters(ham_parameter_t *param)
 {
-  static char filename[1024];
+  static char filename[1024]; // TODO not threadsafe!!
   Protocol *reply = 0;
   ham_parameter_t *p = param;
 
@@ -348,7 +344,7 @@ _remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
     p++;
   }
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -404,15 +400,15 @@ _remote_fun_env_get_parameters(Environment *env, ham_parameter_t *param)
   return (0);
 }
 
-static ham_status_t
-_remote_fun_env_flush(Environment *env, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::flush(ham_u32_t flags)
 {
   Protocol *reply = 0;
 
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -426,9 +422,9 @@ _remote_fun_env_flush(Environment *env, ham_u32_t flags)
   return (st);
 }
 
-static ham_status_t
-_remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
-                ham_u32_t flags, const ham_parameter_t *param)
+ham_status_t
+RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
+        const ham_parameter_t *param)
 {
   Protocol *reply = 0;
   const ham_parameter_t *p;
@@ -445,7 +441,7 @@ _remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
     }
   }
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -460,7 +456,7 @@ _remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
     return (st);
   }
 
-  RemoteDatabase *rdb = new RemoteDatabase(env, dbname,
+  RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
           reply->env_create_db_reply().db_flags());
 
   rdb->set_remote_handle(reply->env_create_db_reply().db_handle());
@@ -472,14 +468,14 @@ _remote_fun_create_db(Environment *env, Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  env->get_database_map()[dbname] = *pdb;
+  get_database_map()[dbname] = *pdb;
 
   return (0);
 }
 
-static ham_status_t
-_remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
-                ham_u32_t flags, const ham_parameter_t *param)
+ham_status_t
+RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
+        const ham_parameter_t *param)
 {
   Protocol *reply = 0;
   const ham_parameter_t *p;
@@ -496,7 +492,7 @@ _remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
     }
   }
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -511,7 +507,7 @@ _remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
     return (st);
   }
 
-  RemoteDatabase *rdb = new RemoteDatabase(env, dbname,
+  RemoteDatabase *rdb = new RemoteDatabase(this, dbname,
           reply->env_open_db_reply().db_flags());
   rdb->set_remote_handle(reply->env_open_db_reply().db_handle());
   *pdb = rdb;
@@ -522,26 +518,26 @@ _remote_fun_open_db(Environment *env, Database **pdb, ham_u16_t dbname,
    * on success: store the open database in the environment's list of
    * opened databases
    */
-  env->get_database_map()[dbname] = *pdb;
+  get_database_map()[dbname] = *pdb;
 
   return (0);
 }
 
-static ham_status_t
-_remote_fun_env_close(Environment *env, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::close(ham_u32_t flags)
 {
   (void)flags;
 
-  if (env->get_curl()) {
-    curl_easy_cleanup(env->get_curl());
-    env->set_curl(0);
+  if (m_curl) {
+    curl_easy_cleanup(m_curl);
+    m_curl = 0;
   }
 
   return (0);
 }
 
-static ham_status_t
-_remote_fun_txn_begin(Environment *env, Transaction **txn, const char *name,
+ham_status_t
+RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
                 ham_u32_t flags)
 {
   ham_status_t st;
@@ -552,7 +548,7 @@ _remote_fun_txn_begin(Environment *env, Transaction **txn, const char *name,
   if (name)
     request.mutable_txn_begin_request()->set_name(name);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -567,15 +563,15 @@ _remote_fun_txn_begin(Environment *env, Transaction **txn, const char *name,
     return (st);
   }
 
-  *txn = new Transaction(env, name, flags);
+  *txn = new Transaction(this, name, flags);
   (*txn)->set_remote_handle(reply->txn_begin_reply().txn_handle());
 
   delete reply;
   return (0);
 }
 
-static ham_status_t
-_remote_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 {
   Protocol *reply = 0;
 
@@ -583,7 +579,7 @@ _remote_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
   request.mutable_txn_commit_request()->set_txn_handle(txn->get_remote_handle());
   request.mutable_txn_commit_request()->set_flags(flags);
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -594,7 +590,7 @@ _remote_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
 
   st = reply->txn_commit_reply().status();
   if (st == 0) {
-    env_remove_txn(env, txn);
+    remove_txn(txn);
     delete txn;
   }
 
@@ -602,8 +598,8 @@ _remote_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
   return (st);
 }
 
-static ham_status_t
-_remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
+ham_status_t
+RemoteEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
 {
   Protocol *reply = 0;
 
@@ -611,7 +607,7 @@ _remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
   request.mutable_txn_abort_request()->set_txn_handle(txn->get_remote_handle());
   request.mutable_txn_abort_request()->set_flags(flags);
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -622,7 +618,7 @@ _remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 
   st = reply->txn_abort_reply().status();
   if (st == 0) {
-    env_remove_txn(env, txn);
+    remove_txn(txn);
     delete txn;
   }
 
@@ -632,33 +628,10 @@ _remote_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
 
 
 ham_status_t
-env_initialize_remote(Environment *env)
-{
-  env->_fun_create             =_remote_fun_create;
-  env->_fun_open               =_remote_fun_open;
-  env->_fun_rename_db          =_remote_fun_rename_db;
-  env->_fun_erase_db           =_remote_fun_erase_db;
-  env->_fun_get_database_names =_remote_fun_get_database_names;
-  env->_fun_get_parameters     =_remote_fun_env_get_parameters;
-  env->_fun_flush              =_remote_fun_env_flush;
-  env->_fun_create_db          =_remote_fun_create_db;
-  env->_fun_open_db            =_remote_fun_open_db;
-  env->_fun_close              =_remote_fun_env_close;
-  env->_fun_txn_begin          =_remote_fun_txn_begin;
-  env->_fun_txn_commit         =_remote_fun_txn_commit;
-  env->_fun_txn_abort          =_remote_fun_txn_abort;
-
-  env->set_flags(env->get_flags() | DB_IS_REMOTE);
-
-  return (HAM_SUCCESS);
-}
-
-
-ham_status_t
 RemoteDatabase::get_parameters(ham_parameter_t *param)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
   ham_parameter_t *p;
 
@@ -671,7 +644,7 @@ RemoteDatabase::get_parameters(ham_parameter_t *param)
       request.mutable_db_get_parameters_request()->add_names(p->name);
   }
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -720,7 +693,7 @@ ham_status_t
 RemoteDatabase::check_integrity(Transaction *txn)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_CHECK_INTEGRITY_REQUEST);
@@ -729,7 +702,7 @@ RemoteDatabase::check_integrity(Transaction *txn)
             ? txn->get_remote_handle()
             : 0);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -750,7 +723,7 @@ RemoteDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
               ham_offset_t *keycount)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_GET_KEY_COUNT_REQUEST);
@@ -760,7 +733,7 @@ RemoteDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
             : 0);
   request.mutable_db_get_key_count_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -782,7 +755,7 @@ RemoteDatabase::insert(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
@@ -812,7 +785,7 @@ RemoteDatabase::insert(Transaction *txn, ham_key_t *key,
     Protocol::assign_record(request.mutable_db_insert_request()->mutable_record(),
                     record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -841,7 +814,7 @@ ham_status_t
 RemoteDatabase::erase(Transaction *txn, ham_key_t *key,
             ham_u32_t flags)
 {
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_ERASE_REQUEST);
@@ -852,7 +825,7 @@ RemoteDatabase::erase(Transaction *txn, ham_key_t *key,
   request.mutable_db_erase_request()->set_flags(flags);
   Protocol::assign_key(request.mutable_db_erase_request()->mutable_key(), key);
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -873,7 +846,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_FIND_REQUEST);
@@ -888,7 +861,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
   if (record)
     Protocol::assign_record(request.mutable_db_find_request()->mutable_record(), record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     if (reply)
       delete reply;
@@ -937,7 +910,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
 Cursor *
 RemoteDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
 {
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   ham_status_t st;
   Protocol *reply = 0;
 
@@ -948,7 +921,7 @@ RemoteDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
                     : 0);
   request.mutable_cursor_create_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (0);
@@ -973,14 +946,15 @@ RemoteDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
 Cursor *
 RemoteDatabase::cursor_clone_impl(Cursor *src)
 {
-  Environment *env = src->get_db()->get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>
+                                    (src->get_db()->get_env());
   ham_status_t st;
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_CLONE_REQUEST);
   request.mutable_cursor_clone_request()->set_cursor_handle(src->get_remote_handle());
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (0);
@@ -1007,7 +981,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
   bool send_key = true;
   Transaction *txn = cursor->get_txn();
@@ -1037,7 +1011,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   Protocol::assign_record(request.mutable_cursor_insert_request()->mutable_record(),
               record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1067,14 +1041,14 @@ ham_status_t
 RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_ERASE_REQUEST);
   request.mutable_cursor_erase_request()->set_cursor_handle(cursor->get_remote_handle());
   request.mutable_cursor_erase_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1094,7 +1068,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_FIND_REQUEST);
@@ -1107,7 +1081,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     Protocol::assign_record(request.mutable_cursor_find_request()->mutable_record(),
                 record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1148,7 +1122,7 @@ RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
                 ham_size_t *count, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_GET_DUPLICATE_COUNT_REQUEST);
@@ -1156,7 +1130,7 @@ RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
                   cursor->get_remote_handle());
   request.mutable_cursor_get_duplicate_count_request()->set_flags(flags);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1188,7 +1162,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_OVERWRITE_REQUEST);
@@ -1197,7 +1171,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
   Protocol::assign_record(request.mutable_cursor_overwrite_request()->mutable_record(),
                     record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1217,7 +1191,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  Environment *env = get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Transaction *txn = cursor->get_txn();
@@ -1238,7 +1212,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
     Protocol::assign_record(request.mutable_cursor_move_request()->mutable_record(),
                   record);
 
-  st = _perform_request(env, env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1284,13 +1258,14 @@ bail:
 void
 RemoteDatabase::cursor_close_impl(Cursor *cursor)
 {
-  Environment *env = cursor->get_db()->get_env();
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>
+                                (cursor->get_db()->get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_CLOSE_REQUEST);
   request.mutable_cursor_close_request()->set_cursor_handle(cursor->get_remote_handle());
 
-  ham_status_t st = _perform_request(env, env->get_curl(), &request, &reply);
+  ham_status_t st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return;
@@ -1306,13 +1281,14 @@ ham_status_t
 RemoteDatabase::close_impl(ham_u32_t flags)
 {
   ham_status_t st;
+  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_CLOSE_REQUEST);
   request.mutable_db_close_request()->set_db_handle(get_remote_handle());
   request.mutable_db_close_request()->set_flags(flags);
 
-  st = _perform_request(m_env, m_env->get_curl(), &request, &reply);
+  st = env->perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -1327,18 +1303,6 @@ RemoteDatabase::close_impl(ham_u32_t flags)
 
   delete reply;
   return (st);
-}
-
-} // namespace ham
-
-#else // HAM_ENABLE_REMOTE
-
-namespace ham {
-
-ham_status_t
-env_initialize_remote(Environment *env)
-{
-	return HAM_NOT_IMPLEMENTED;
 }
 
 } // namespace ham

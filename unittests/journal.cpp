@@ -247,7 +247,7 @@ public:
     BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[1]);
 
     ham_u64_t lsn;
-    BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_environ, &lsn));
+    BFC_ASSERT_EQUAL(0, m_environ->get_incremented_lsn(&lsn));
     BFC_ASSERT_EQUAL(0, j->append_txn_abort((Transaction *)txn, lsn));
     BFC_ASSERT_EQUAL(false, j->is_empty());
     BFC_ASSERT_EQUAL((ham_u64_t)3, j->get_lsn());
@@ -273,7 +273,7 @@ public:
     BFC_ASSERT_EQUAL((ham_size_t)0, j->m_closed_txn[1]);
 
     ham_u64_t lsn;
-    BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_environ, &lsn));
+    BFC_ASSERT_EQUAL(0, m_environ->get_incremented_lsn(&lsn));
     BFC_ASSERT_EQUAL(0, j->append_txn_commit((Transaction *)txn, lsn));
     BFC_ASSERT_EQUAL(false, j->is_empty());
     BFC_ASSERT_EQUAL((ham_u64_t)3, j->get_lsn());
@@ -297,7 +297,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn;
-    BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_environ, &lsn));
+    BFC_ASSERT_EQUAL(0, m_environ->get_incremented_lsn(&lsn));
     BFC_ASSERT_EQUAL(0,
           j->append_insert((Database *)m_db, (Transaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn));
@@ -344,7 +344,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn;
-    BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_environ, &lsn));
+    BFC_ASSERT_EQUAL(0, m_environ->get_incremented_lsn(&lsn));
     BFC_ASSERT_EQUAL(0,
           j->append_insert((Database *)m_db, (Transaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn));
@@ -386,7 +386,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u64_t lsn;
-    BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_environ, &lsn));
+    BFC_ASSERT_EQUAL(0, m_environ->get_incremented_lsn(&lsn));
     BFC_ASSERT_EQUAL(0, j->append_erase((Database *)m_db,
           (Transaction *)txn, &key, 1, 0, lsn));
     BFC_ASSERT_EQUAL((ham_u64_t)3, j->get_lsn());

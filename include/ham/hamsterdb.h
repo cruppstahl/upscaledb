@@ -569,7 +569,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <ul>
  *     <li>@ref HAM_READ_ONLY </li> Opens the file for reading only.
  *      Operations that need write access (i.e. @ref ham_db_insert) will
- *      return @ref HAM_WRITE_PROTECTED
+ *      return @ref HAM_WRITE_PROTECTED.
  *     <li>@ref HAM_ENABLE_FSYNC</li> Flushes all file handles after
  *      committing or aborting a Transaction using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
@@ -745,6 +745,9 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
+ *     <li>@ref HAM_READ_ONLY </li> Opens the Database for reading only.
+ *      Operations that need write access (i.e. @ref ham_db_insert) will
+ *      return @ref HAM_WRITE_PROTECTED.
  *   </ul>
  * @param params Reserved; set to NULL
  *

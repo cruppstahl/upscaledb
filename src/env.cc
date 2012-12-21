@@ -43,1312 +43,1341 @@ using namespace ham;
  */
 extern ham_status_t
 __check_create_parameters(Environment *env, Database *db, const char *filename,
-        ham_u32_t *pflags, const ham_parameter_t *param,
-        ham_size_t *ppagesize, ham_u16_t *pkeysize,
-        ham_u64_t *pcachesize, ham_u16_t *pdbname,
-        ham_u16_t *pmaxdbs, std::string &logdir, bool create);
+            ham_u32_t *pflags, const ham_parameter_t *param,
+            ham_size_t *ppagesize, ham_u16_t *pkeysize,
+            ham_u64_t *pcachesize, ham_u16_t *pdbname,
+            ham_u16_t *pmaxdbs, std::string &logdir, bool create);
 
 namespace ham {
 
 typedef struct free_cb_context_t
 {
-    Database *db;
-    ham_bool_t is_leaf;
-
+  Database *db;
+  ham_bool_t is_leaf;
 } free_cb_context_t;
 
 Environment::Environment()
   : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
-    m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
-    m_journal(0), m_freelist(0), m_flags(0), m_pagesize(0),
-    m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
-    m_duplicate_manager(this)
+  m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
+  m_journal(0), m_freelist(0), m_flags(0), m_pagesize(0),
+  m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
+  m_duplicate_manager(this)
 {
-#ifdef HAM_ENABLE_REMOTE
-    m_curl=0;
-#endif
-
-    memset(&m_perf_data, 0, sizeof(m_perf_data));
-
-    _fun_create=0;
-    _fun_open=0;
-    _fun_rename_db=0;
-    _fun_erase_db=0;
-    _fun_get_database_names=0;
-    _fun_get_parameters=0;
-    _fun_flush=0;
-    _fun_create_db=0;
-    _fun_open_db=0;
-    _fun_txn_begin=0;
-    _fun_txn_abort=0;
-    _fun_txn_commit=0;
-    _fun_close=0;
-    destroy=0;
+  memset(&m_perf_data, 0, sizeof(m_perf_data));
 }
 
 Environment::~Environment()
 {
-    /* close the device if it still exists */
-    if (get_device()) {
-        Device *device=get_device();
-        if (device->is_open()) {
-            (void)device->flush();
-            (void)device->close();
-        }
-        delete device;
-        set_device(0);
+  /* close the device if it still exists */
+  if (get_device()) {
+    Device *device = get_device();
+    if (device->is_open()) {
+      (void)device->flush();
+      (void)device->close();
     }
+    delete device;
+    set_device(0);
+  }
 
-    /* close the allocator */
-    if (get_allocator()) {
-        delete get_allocator();
-        set_allocator(0);
-    }
+  /* close the allocator */
+  if (get_allocator()) {
+    delete get_allocator();
+    set_allocator(0);
+  }
 }
 
 BtreeDescriptor *
 Environment::get_descriptor(int i)
 {
-    BtreeDescriptor *d=(BtreeDescriptor *)
-            (get_header_page()->get_payload()+sizeof(env_header_t));
-    return (d+i);
+  BtreeDescriptor *d = (BtreeDescriptor *)
+        (get_header_page()->get_payload() + sizeof(env_header_t));
+  return (d + i);
 }
 
 FreelistPayload *
 Environment::get_freelist_payload()
 {
-    return ((FreelistPayload *)(get_header_page()->get_payload()+
-                        SIZEOF_FULL_HEADER(this)));
-}
-
-/*
- * callback function for freeing blobs of an in-memory-database, implemented
- * in db.c
- */
-extern ham_status_t
-__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
-
-ham_status_t
-env_fetch_page(Page **page_ref, Environment *env,
-        ham_offset_t address, bool only_from_cache)
-{
-    return (db_fetch_page_impl(page_ref, env, 0, address, only_from_cache));
-}
-
-ham_status_t
-env_alloc_page(Page **page, Environment *env, ham_u32_t type, ham_u32_t flags)
-{
-    return (db_alloc_page_impl(page, env, 0, type, flags));
-}
-
-static ham_status_t
-_local_fun_create(Environment *env, const char *filename,
-            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
-{
-    ham_status_t st=0;
-    ham_size_t pagesize=env->get_pagesize();
-
-    ham_assert(!env->get_header_page());
-
-    /* initialize the device if it does not yet exist */
-    Device *device;
-    if (flags&HAM_IN_MEMORY)
-        device=new InMemoryDevice(env, flags);
-    else
-        device=new DiskDevice(env, flags);
-    device->set_pagesize(env->get_pagesize());
-    env->set_device(device);
-
-    /* now make sure the pagesize is a multiple of
-     * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
-    ham_assert(0 == (env->get_pagesize() % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
-
-    /* create the file */
-    st=device->create(filename, flags, mode);
-    if (st) {
-        delete device;
-        env->set_device(0);
-        return (st);
-    }
-
-    /* allocate the header page */
-    {
-        Page *page=new Page(env);
-        /* manually set the device pointer */
-        page->set_device(device);
-        st=page->allocate();
-        if (st) {
-            delete page;
-            return (st);
-        }
-        memset(page->get_pers(), 0, pagesize);
-        page->set_type(Page::TYPE_HEADER);
-        env->set_header_page(page);
-
-        /* initialize the header */
-        env->set_magic('H', 'A', 'M', '\0');
-        env->set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
-        env->set_serialno(HAM_SERIALNO);
-        env->set_persistent_pagesize(pagesize);
-        env->set_max_databases(env->get_max_databases_cached());
-        ham_assert(env->get_max_databases() > 0);
-
-        page->set_dirty(true);
-    }
-
-    /* create the freelist */
-    if (!(env->get_flags()&HAM_IN_MEMORY)) {
-        Freelist *f=new Freelist(env);
-        env->set_freelist(f);
-    }
-
-    /* create a logfile and a journal (if requested) */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham::Log *log=new ham::Log(env);
-        st=log->create();
-        if (st) {
-            delete log;
-            return (st);
-        }
-        env->set_log(log);
-
-        Journal *journal=new Journal(env);
-        st=journal->create();
-        if (st) {
-            delete journal;
-            return (st);
-        }
-        env->set_journal(journal);
-    }
-
-    /* initialize the cache */
-    env->set_cache(new Cache(env, env->get_cachesize()));
-
-    /* flush the header page - this will write through disk if logging is
-     * enabled */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY)
-        return (env->get_header_page()->flush());
-
-    return (0);
-}
-
-static ham_status_t
-__recover(Environment *env, ham_u32_t flags)
-{
-    ham_status_t st;
-    Log *log=new Log(env);
-    Journal *journal=new Journal(env);
-
-    ham_assert(env->get_flags()&HAM_ENABLE_RECOVERY);
-
-    /* open the log and the journal (if transactions are enabled) */
-    st=log->open();
-    env->set_log(log);
-    if (st==HAM_FILE_NOT_FOUND)
-        st=log->create();
-    if (st)
-        goto bail;
-    if (env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        st=journal->open();
-        env->set_journal(journal);
-        if (st==HAM_FILE_NOT_FOUND)
-            st=journal->create();
-        if (st)
-            goto bail;
-    }
-
-    /* success - check if we need recovery */
-    if (!log->is_empty()) {
-        if (flags&HAM_AUTO_RECOVERY) {
-            st=log->recover();
-            if (st)
-                goto bail;
-        }
-        else {
-            st=HAM_NEED_RECOVERY;
-            goto bail;
-        }
-    }
-
-    if (env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        if (!journal->is_empty()) {
-            if (flags&HAM_AUTO_RECOVERY) {
-                st=journal->recover();
-                if (st)
-                    goto bail;
-            }
-            else {
-                st=HAM_NEED_RECOVERY;
-                goto bail;
-            }
-        }
-    }
-
-goto success;
-
-bail:
-    /* in case of errors: close log and journal, but do not delete the files */
-    if (log) {
-        log->close(true);
-        delete log;
-        env->set_log(0);
-    }
-    if (journal) {
-        journal->close(true);
-        delete journal;
-        env->set_journal(0);
-    }
-    return (st);
-
-success:
-    /* done with recovering - if there's no log and/or no journal then
-     * create them and store them in the environment */
-    if (!log) {
-        log=new Log(env);
-        st=log->create();
-        if (st)
-            return (st);
-    }
-    env->set_log(log);
-
-    if (env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        if (!journal) {
-            journal=new Journal(env);
-            st=journal->create();
-            if (st)
-                return (st);
-        }
-        env->set_journal(journal);
-    }
-    else if (journal)
-        delete journal;
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_open(Environment *env, const char *filename, ham_u32_t flags,
-        const ham_parameter_t *param)
-{
-    ham_status_t st;
-    ham_u32_t pagesize=0;
-
-    /* initialize the device if it does not yet exist */
-    Device *device;
-    if (flags&HAM_IN_MEMORY)
-        device=new InMemoryDevice(env, flags);
-    else
-        device=new DiskDevice(env, flags);
-    env->set_device(device);
-
-    /* open the file */
-    st=device->open(filename, flags);
-    if (st) {
-        delete device;
-        env->set_device(0);
-        return (st);
-    }
-
-    /*
-     * read the database header
-     *
-     * !!!
-     * now this is an ugly problem - the database header is one page, but
-     * what's the size of this page? chances are good that it's the default
-     * page-size, but we really can't be sure.
-     *
-     * read 512 byte and extract the "real" page size, then read
-     * the real page. (but i really don't like this)
-     */
-    {
-        Page *page=0;
-        env_header_t *hdr;
-        ham_u8_t hdrbuf[512];
-        Page fakepage(env);
-
-        /*
-         * in here, we're going to set up a faked headerpage for the
-         * duration of this call; BE VERY CAREFUL: we MUST clean up
-         * at the end of this section or we'll be in BIG trouble!
-         */
-        fakepage.set_pers((PageData *)hdrbuf);
-        env->set_header_page(&fakepage);
-
-        /*
-         * now fetch the header data we need to get an estimate of what
-         * the database is made of really.
-         *
-         * Because we 'faked' a headerpage setup right here, we can now use
-         * the regular hamster macros to obtain data from the file
-         * header -- pre v1.1.0 code used specially modified copies of
-         * those macros here, but with the advent of dual-version database
-         * format support here this was getting hairier and hairier.
-         * So we now fake it all the way instead.
-         */
-        st=device->read(0, hdrbuf, sizeof(hdrbuf));
-        if (st)
-            goto fail_with_fake_cleansing;
-
-        hdr=env->get_header();
-
-        pagesize=env->get_persistent_pagesize();
-        env->set_pagesize(pagesize);
-        device->set_pagesize(pagesize);
-
-        /** check the file magic */
-        if (!env->compare_magic('H', 'A', 'M', '\0')) {
-            ham_log(("invalid file type"));
-            st = HAM_INV_FILE_HEADER;
-            goto fail_with_fake_cleansing;
-        }
-
-        /* check the database version; everything > 1.0.9 is ok */
-        if (envheader_get_version(hdr, 0)>HAM_VERSION_MAJ ||
-                (envheader_get_version(hdr, 0)==HAM_VERSION_MAJ
-                    && envheader_get_version(hdr, 1)>HAM_VERSION_MIN)) {
-            ham_log(("invalid file version"));
-            st=HAM_INV_FILE_VERSION;
-            goto fail_with_fake_cleansing;
-        }
-        else if (envheader_get_version(hdr, 0) == 1 &&
-            envheader_get_version(hdr, 1) == 0 &&
-            envheader_get_version(hdr, 2) <= 9) {
-            ham_log(("invalid file version; < 1.0.9 is not supported"));
-            st=HAM_INV_FILE_VERSION;
-            goto fail_with_fake_cleansing;
-        }
-
-        st=0;
-
-fail_with_fake_cleansing:
-
-        /* undo the headerpage fake first! */
-        fakepage.set_pers(0);
-        env->set_header_page(0);
-
-        /* exit when an error was signaled */
-        if (st) {
-            delete device;
-            env->set_device(0);
-            return (st);
-        }
-
-        /* now read the "real" header page and store it in the Environment */
-        page=new Page(env);
-        page->set_device(device);
-        st=page->fetch(0);
-
-        if (st) {
-            delete page;
-            return (st);
-        }
-        env->set_header_page(page);
-    }
-
-    /*
-     * initialize the cache; the cache is needed during recovery, therefore
-     * we have to create the cache BEFORE we attempt to recover
-     */
-    env->set_cache(new Cache(env, env->get_cachesize()));
-
-    /* create the freelist */
-    if (!(env->get_flags()&HAM_IN_MEMORY)
-            && !(env->get_flags()&HAM_READ_ONLY)) {
-        Freelist *f=new Freelist(env);
-        env->set_freelist(f);
-    }
-
-    /*
-     * open the logfile and check if we need recovery. first open the
-     * (physical) log and re-apply it. afterwards to the same with the
-     * (logical) journal.
-     */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        st=__recover(env, flags);
-        if (st)
-            return (st);
-    }
-
-    return (HAM_SUCCESS);
-}
-
-static ham_status_t
-_local_fun_rename_db(Environment *env, ham_u16_t oldname,
-                ham_u16_t newname, ham_u32_t flags)
-{
-    ham_u16_t dbi;
-    ham_u16_t slot;
-
-    /*
-     * check if a database with the new name already exists; also search
-     * for the database with the old name
-     */
-    slot=env->get_max_databases();
-    ham_assert(env->get_max_databases() > 0);
-    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        ham_u16_t name=env->get_descriptor(dbi)->get_dbname();
-        if (name==newname)
-            return (HAM_DATABASE_ALREADY_EXISTS);
-        if (name==oldname)
-            slot=dbi;
-    }
-
-    if (slot==env->get_max_databases())
-        return (HAM_DATABASE_NOT_FOUND);
-
-    /* replace the database name with the new name */
-    env->get_descriptor(slot)->set_dbname(newname);
-    env->set_dirty(true);
-
-    /* if the database with the old name is currently open: notify it */
-    Environment::DatabaseMap::iterator it = env->get_database_map().find(oldname);
-    if (it != env->get_database_map().end()) {
-        it->second->set_name(newname);
-        env->get_database_map().erase(oldname);
-        env->get_database_map()[newname] = it->second;
-    }
-
-    /* flush the header page if logging is enabled */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY)
-        return (env->get_header_page()->flush());
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_erase_db(Environment *env, ham_u16_t name, ham_u32_t flags)
-{
-    Database *db;
-    ham_status_t st;
-    free_cb_context_t context;
-    BtreeIndex *be;
-
-    /* check if this database is still open */
-    if (env->get_database_map().find(name) != env->get_database_map().end())
-        return (HAM_DATABASE_ALREADY_OPEN);
-
-    /*
-     * if it's an in-memory environment: no need to go on, if the
-     * database was closed, it does no longer exist
-     */
-    if (env->get_flags()&HAM_IN_MEMORY)
-        return (HAM_DATABASE_NOT_FOUND);
-
-    /*
-     * temporarily load the database
-     */
-    st=ham_env_open_db((ham_env_t *)env, (ham_db_t **)&db, name,
-                HAM_DONT_LOCK, 0);
-    if (st)
-        return (st);
-
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_assert(env->get_changeset().is_empty());
-        ham_assert(env->get_log()->is_empty());
-    }
-#endif
-
-    /*
-     * delete all blobs and extended keys, also from the cache and
-     * the extkey-cache
-     *
-     * also delete all pages and move them to the freelist; if they're
-     * cached, delete them from the cache
-     */
-    context.db=db;
-    be=db->get_btree();
-    if (!be) {
-        ham_log(("database is not initialized"));
-        return (HAM_INTERNAL_ERROR);
-    }
-
-    st=be->enumerate(__free_inmemory_blobs_cb, &context);
-    if (st) {
-        (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
-        return (st);
-    }
-
-    /* if logging is enabled: flush the changeset and the header page */
-    if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_u64_t lsn;
-        env->get_changeset().add_page(env->get_header_page());
-        st=env_get_incremented_lsn(env, &lsn);
-        if (st==0)
-            st=env->get_changeset().flush(lsn);
-    }
-
-    ham_u32_t descriptor = db->get_btree()->get_descriptor_index();
-
-    /* clean up and return */
-    (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
-
-    /* now set database name to 0 and set the header page to dirty */
-    env->get_descriptor(descriptor)->set_dbname(0);
-    env->get_header_page()->set_dirty(true);
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_get_database_names(Environment *env, ham_u16_t *names,
-            ham_size_t *count)
-{
-    ham_u16_t name;
-    ham_size_t i=0;
-    ham_size_t max_names=0;
-    ham_status_t st=0;
-
-    max_names=*count;
-    *count=0;
-
-    /*
-     * copy each database name in the array
-     */
-    ham_assert(env->get_max_databases() > 0);
-    for (i=0; i<env->get_max_databases(); i++) {
-        name = env->get_descriptor(i)->get_dbname();
-        if (name==0)
-            continue;
-
-        if (*count>=max_names) {
-            st=HAM_LIMITS_REACHED;
-            goto bail;
-        }
-
-        names[(*count)++]=name;
-    }
-
-bail:
-
-    return st;
-}
-
-static ham_status_t
-_local_fun_close(Environment *env, ham_u32_t flags)
-{
-    ham_status_t st;
-
-    /* close all databases */
-    Environment::DatabaseMap::iterator it = env->get_database_map().begin();
-    while (it != env->get_database_map().end()) {
-        Environment::DatabaseMap::iterator it2 = it; it++;
-        Database *db = it2->second;
-        if (flags & HAM_AUTO_CLEANUP)
-            st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
-        else
-            st = db->close(flags);
-        if (st)
-            return (st);
-    }
-
-    /* flush all committed transactions */
-    st = env->flush_committed_txns();
-    if (st)
-        return (st);
-
-    /* flush the freelist */
-    if (env->get_freelist()) {
-        delete env->get_freelist();
-        env->set_freelist(0);
-    }
-
-    /*
-     * if we're not in read-only mode, and not an in-memory-database,
-     * and the dirty-flag is true: flush the page-header to disk
-     */
-    if (env->get_header_page()
-            && !(env->get_flags()&HAM_IN_MEMORY)
-            && env->get_device()
-            && env->get_device()->is_open()
-            && (!(env->get_flags()&HAM_READ_ONLY))) {
-        env->get_header_page()->flush();
-    }
-
-    Device *device = env->get_device();
-
-    /* close the header page */
-    if (env->get_header_page()) {
-        Page *page=env->get_header_page();
-        ham_assert(device);
-        if (page->get_pers())
-            device->free_page(page);
-        delete page;
-        env->set_header_page(0);
-    }
-
-    /* flush all pages, get rid of the cache */
-    if (env->get_cache()) {
-        (void)db_flush_all(env->get_cache(), 0);
-        delete env->get_cache();
-        env->set_cache(0);
-    }
-
-    /* close the device */
-    if (device) {
-        if (device->is_open()) {
-            if (!(env->get_flags()&HAM_READ_ONLY)) {
-                device->flush();
-            }
-            device->close();
-        }
-        delete device;
-        env->set_device(0);
-    }
-
-    /* close the log and the journal */
-    if (env->get_log()) {
-        Log *log=env->get_log();
-        log->close(!!(flags&HAM_DONT_CLEAR_LOG));
-        delete log;
-        env->set_log(0);
-    }
-    if (env->get_journal()) {
-        Journal *journal=env->get_journal();
-        journal->close(!!(flags&HAM_DONT_CLEAR_LOG));
-        delete journal;
-        env->set_journal(0);
-    }
-
-    return 0;
-}
-
-static ham_status_t
-_local_fun_get_parameters(Environment *env, ham_parameter_t *param)
-{
-    ham_parameter_t *p=param;
-
-    if (p) {
-        for (; p->name; p++) {
-            switch (p->name) {
-            case HAM_PARAM_CACHESIZE:
-                p->value=env->get_cache()->get_capacity();
-                break;
-            case HAM_PARAM_PAGESIZE:
-                p->value=env->get_pagesize();
-                break;
-            case HAM_PARAM_MAX_DATABASES:
-                p->value=env->get_max_databases();
-                break;
-            case HAM_PARAM_FLAGS:
-                p->value=env->get_flags();
-                break;
-            case HAM_PARAM_FILEMODE:
-                p->value=env->get_file_mode();
-                break;
-            case HAM_PARAM_FILENAME:
-                if (env->get_filename().size())
-                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_filename().c_str()));
-                else
-                    p->value=0;
-                break;
-            case HAM_PARAM_LOG_DIRECTORY:
-                if (env->get_log_directory().size())
-                    p->value=(ham_u64_t)(PTR_TO_U64(env->get_log_directory().c_str()));
-                else
-                    p->value=0;
-                break;
-            default:
-                ham_trace(("unknown parameter %d", (int)p->name));
-                return (HAM_INV_PARAMETER);
-            }
-        }
-    }
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_flush(Environment *env, ham_u32_t flags)
-{
-    ham_status_t st;
-    Device *device=env->get_device();
-
-    (void)flags;
-
-    /* never flush an in-memory-database */
-    if (env->get_flags()&HAM_IN_MEMORY)
-        return (0);
-
-    /* flush all committed transactions */
-    st=env->flush_committed_txns();
-    if (st)
-        return (st);
-
-    /* update the header page, if necessary */
-    if (env->is_dirty()) {
-        st=env->get_header_page()->flush();
-        if (st)
-            return st;
-    }
-
-    /* flush all open pages to disk */
-    st=db_flush_all(env->get_cache(), DB_FLUSH_NODELETE);
-    if (st)
-        return st;
-
-    /* flush the device - this usually causes a fsync() */
-    st=device->flush();
-    if (st)
-        return st;
-
-    return (HAM_SUCCESS);
-}
-
-static ham_status_t
-_local_fun_create_db(Environment *env, Database **pdb,
-        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
-{
-    ham_status_t st;
-    ham_u16_t keysize = 0;
-    ham_u64_t cachesize = 0;
-    ham_u16_t dbi;
-    ham_size_t i;
-    BtreeIndex *be;
-    ham_u32_t pflags;
-    std::string logdir;
-
-    /* create a new Database object */
-    *pdb = new LocalDatabase(env, dbname, flags);
-
-    /* parse parameters */
-    st=__check_create_parameters(env, *pdb, 0, &flags, param,
-            0, &keysize, &cachesize, &dbname, 0, logdir, true);
-    if (st)
-        return (st);
-
-    /*
-     * set the flags; strip off run-time (per session) flags for the
-     * btree::create() method though.
-     */
-    pflags=flags;
-    pflags&=~(HAM_DISABLE_VAR_KEYLEN
-             |HAM_CACHE_STRICT
-             |HAM_CACHE_UNLIMITED
-             |HAM_DISABLE_MMAP
-             |HAM_ENABLE_FSYNC
-             |HAM_READ_ONLY
-             |HAM_ENABLE_RECOVERY
-             |HAM_AUTO_RECOVERY
-             |HAM_ENABLE_TRANSACTIONS);
-
-    /* check if this database name is unique */
-    ham_assert(env->get_max_databases() > 0);
-    for (i=0; i<env->get_max_databases(); i++) {
-        ham_u16_t name = env->get_descriptor(i)->get_dbname();
-        if (!name)
-            continue;
-        if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME)
-            return (HAM_DATABASE_ALREADY_EXISTS);
-    }
-
-    /*
-     * find a free slot in the BtreeDescriptor array and store the
-     * database name
-     */
-    ham_assert(env->get_max_databases() > 0);
-    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        ham_u16_t name = env->get_descriptor(dbi)->get_dbname();
-        if (!name) {
-            env->get_descriptor(dbi)->set_dbname(dbname);
-            break;
-        }
-    }
-    if (dbi==env->get_max_databases())
-        return (HAM_LIMITS_REACHED);
-
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_assert(env->get_changeset().is_empty());
-        ham_assert(env->get_log()->is_empty());
-    }
-#endif
-
-    /* create the btree */
-    // TODO move to Database::create
-    be=new BtreeIndex((LocalDatabase *)*pdb, dbi, pflags);
-    (*pdb)->set_btree(be);
-
-    /* initialize the btree */
-    st=be->create(keysize);
-    if (st)
-        goto bail;
-
-    /* set the default key compare functions */
-    // TODO move to Database::create
-    if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
-        (*pdb)->set_compare_func(Database::default_recno_compare);
-    }
-    else {
-        (*pdb)->set_compare_func(Database::default_compare);
-        (*pdb)->set_prefix_compare_func(Database::default_prefix_compare);
-    }
-    env->set_dirty(true);
-
-    /*
-     * on success: store the open database in the environment's list of
-     * opened databases
-     */
-    env->get_database_map()[dbname] = *pdb;
-
-bail:
-    /* if logging is enabled: flush the changeset and the header page */
-    if (st==0 && env->get_flags()&HAM_ENABLE_RECOVERY) {
-        ham_u64_t lsn;
-        env->get_changeset().add_page(env->get_header_page());
-        st=env_get_incremented_lsn(env, &lsn);
-        if (st==0)
-            st=env->get_changeset().flush(lsn);
-    }
-
-    return (st);
-}
-
-static ham_status_t
-_local_fun_open_db(Environment *env, Database **pdb,
-        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
-{
-    ham_status_t st;
-    ham_u64_t cachesize = 0;
-    BtreeIndex *be = 0;
-    ham_u16_t dbi;
-    std::string logdir;
-
-    /* create a new Database object */
-    *pdb = new LocalDatabase(env, dbname, flags);
-
-    /* parse parameters */
-    st=__check_create_parameters(env, *pdb, 0, &flags, param,
-            0, 0, &cachesize, &dbname, 0, logdir, false);
-    if (st)
-        return (st);
-
-    /* make sure that this database is not yet open */
-    if (env->get_database_map().find(dbname) != env->get_database_map().end())
-        return (HAM_DATABASE_ALREADY_OPEN);
-
-    ham_assert(env->get_allocator());
-    ham_assert(env->get_device());
-    ham_assert(0 != env->get_header_page());
-    ham_assert(env->get_max_databases() > 0);
-
-    /* search for a database with this name */
-    for (dbi=0; dbi<env->get_max_databases(); dbi++) {
-        ham_u16_t name = env->get_descriptor(dbi)->get_dbname();
-        if (!name)
-            continue;
-        if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name)
-            break;
-    }
-
-    if (dbi==env->get_max_databases())
-        return (HAM_DATABASE_NOT_FOUND);
-
-    /*
-     * set the database flags; strip off the persistent flags that may have been
-     * set by the caller, before mixing in the persistent flags as obtained
-     * from the btree.
-     */
-    flags &= ~(HAM_DISABLE_VAR_KEYLEN
-               |HAM_CACHE_STRICT
-               |HAM_CACHE_UNLIMITED
-               |HAM_DISABLE_MMAP
-               |HAM_ENABLE_FSYNC
-               |HAM_READ_ONLY
-               |HAM_ENABLE_RECOVERY
-               |HAM_AUTO_RECOVERY
-               |HAM_ENABLE_TRANSACTIONS);
-
-    /* create the btree */
-    // TODO move to Database::open
-    be=new BtreeIndex((LocalDatabase *)*pdb, dbi, flags);
-    (*pdb)->set_btree(be);
-
-    ham_assert(!(be->get_flags()&HAM_DISABLE_VAR_KEYLEN));
-    ham_assert(!(be->get_flags()&HAM_CACHE_STRICT));
-    ham_assert(!(be->get_flags()&HAM_CACHE_UNLIMITED));
-    ham_assert(!(be->get_flags()&HAM_DISABLE_MMAP));
-    ham_assert(!(be->get_flags()&HAM_ENABLE_FSYNC));
-    ham_assert(!(be->get_flags()&HAM_READ_ONLY));
-    ham_assert(!(be->get_flags()&HAM_ENABLE_RECOVERY));
-    ham_assert(!(be->get_flags()&HAM_AUTO_RECOVERY));
-    ham_assert(!(be->get_flags()&HAM_ENABLE_TRANSACTIONS));
-
-    /* initialize the btree */
-    st=be->open();
-    if (st)
-        return (st);
-
-    /* merge the non-persistent database flag with the persistent flags from
-     * the btree index */
-    (*pdb)->set_rt_flags((*pdb)->get_rt_flags(true) | be->get_flags());
-
-    /* set the compare functions */
-    // TODO move to Database::open
-    if ((*pdb)->get_rt_flags()&HAM_RECORD_NUMBER) {
-        (*pdb)->set_compare_func(Database::default_recno_compare);
-    }
-    else {
-        (*pdb)->set_compare_func(Database::default_compare);
-        (*pdb)->set_prefix_compare_func(Database::default_prefix_compare);
-    }
-
-    /* open the database */
-    st = (*pdb)->open();
-    if (st) {
-        ham_trace(("Database could not be opened"));
-        return (st);
-    }
-
-    /*
-     * on success: store the open database in the environment's list of
-     * opened databases
-     */
-    env->get_database_map()[dbname] = *pdb;
-
-    return (0);
-}
-
-static ham_status_t
-_local_fun_txn_begin(Environment *env, Transaction **txn,
-                    const char *name, ham_u32_t flags)
-{
-    ham_status_t st = 0;
-
-    *txn = new Transaction(env, name, flags);
-
-    /* append journal entry */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY
-            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(env, &lsn);
-        if (st==0)
-            st=env->get_journal()->append_txn_begin(*txn, env, name, lsn);
-    }
-
-    return (st);
-}
-
-static ham_status_t
-_local_fun_txn_commit(Environment *env, Transaction *txn, ham_u32_t flags)
-{
-    ham_status_t st;
-
-    /* are cursors attached to this txn? if yes, fail */
-    if (txn->get_cursor_refcount()) {
-        ham_trace(("Transaction cannot be committed till all attached "
-                    "Cursors are closed"));
-        return (HAM_CURSOR_STILL_OPEN);
-    }
-
-    /* append journal entry */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY
-            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(env, &lsn);
-        if (st)
-            return (st);
-        st=env->get_journal()->append_txn_commit(txn, lsn);
-        if (st)
-            return (st);
-    }
-
-    return (txn->commit(flags));
-}
-
-static ham_status_t
-_local_fun_txn_abort(Environment *env, Transaction *txn, ham_u32_t flags)
-{
-    ham_status_t st=0;
-
-    /* are cursors attached to this txn? if yes, fail */
-    if (txn->get_cursor_refcount()) {
-        ham_trace(("Transaction cannot be aborted till all attached "
-                    "Cursors are closed"));
-        return (HAM_CURSOR_STILL_OPEN);
-    }
-
-    /* append journal entry */
-    if (env->get_flags()&HAM_ENABLE_RECOVERY
-            && env->get_flags()&HAM_ENABLE_TRANSACTIONS) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(env, &lsn);
-        if (st)
-            return (st);
-        st=env->get_journal()->append_txn_abort(txn, lsn);
-        if (st)
-            return (st);
-    }
-
-    return (txn->abort(flags));
-}
-
-ham_status_t
-env_initialize_local(Environment *env)
-{
-    env->_fun_create             =_local_fun_create;
-    env->_fun_open               =_local_fun_open;
-    env->_fun_rename_db          =_local_fun_rename_db;
-    env->_fun_erase_db           =_local_fun_erase_db;
-    env->_fun_get_database_names =_local_fun_get_database_names;
-    env->_fun_get_parameters     =_local_fun_get_parameters;
-    env->_fun_create_db          =_local_fun_create_db;
-    env->_fun_open_db            =_local_fun_open_db;
-    env->_fun_flush              =_local_fun_flush;
-    env->_fun_close              =_local_fun_close;
-    env->_fun_txn_begin          =_local_fun_txn_begin;
-    env->_fun_txn_commit         =_local_fun_txn_commit;
-    env->_fun_txn_abort          =_local_fun_txn_abort;
-
-    return (0);
+  return ((FreelistPayload *)(get_header_page()->get_payload() +
+            SIZEOF_FULL_HEADER(this)));
 }
 
 void
-env_append_txn(Environment *env, Transaction *txn)
+Environment::append_txn(Transaction *txn)
 {
-    if (!env->get_newest_txn()) {
-        ham_assert(env->get_oldest_txn()==0);
-        env->set_oldest_txn(txn);
-        env->set_newest_txn(txn);
-    }
-    else {
-        txn->set_older(env->get_newest_txn());
-        env->get_newest_txn()->set_newer(txn);
-        env->set_newest_txn(txn);
-        /* if there's no oldest txn (this means: all txn's but the
-         * current one were already flushed) then set this txn as
-         * the oldest txn */
-        if (!env->get_oldest_txn())
-            env->set_oldest_txn(txn);
-    }
+  if (!get_newest_txn()) {
+    ham_assert(get_oldest_txn() == 0);
+    set_oldest_txn(txn);
+    set_newest_txn(txn);
+  }
+  else {
+    txn->set_older(get_newest_txn());
+    get_newest_txn()->set_newer(txn);
+    set_newest_txn(txn);
+    /* if there's no oldest txn (this means: all txn's but the
+     * current one were already flushed) then set this txn as
+     * the oldest txn */
+    if (!get_oldest_txn())
+      set_oldest_txn(txn);
+  }
 }
 
 void
-env_remove_txn(Environment *env, Transaction *txn)
+Environment::remove_txn(Transaction *txn)
 {
-    if (env->get_newest_txn()==txn) {
-        env->set_newest_txn(txn->get_older());
-    }
+  if (get_newest_txn() == txn)
+    set_newest_txn(txn->get_older());
 
-    if (env->get_oldest_txn()==txn) {
-        Transaction *n=txn->get_newer();
-        env->set_oldest_txn(n);
-        if (n)
-            n->set_older(0);
-    }
-    else {
-        ham_assert(!"not yet implemented");
-    }
-}
-
-static ham_status_t
-__flush_txn(Environment *env, Transaction *txn)
-{
-    ham_status_t st=0;
-    txn_op_t *op=txn->get_oldest_op();
-    txn_cursor_t *cursor=0;
-
-    while (op) {
-        txn_opnode_t *node=txn_op_get_node(op);
-        BtreeIndex *be=txn_opnode_get_db(node)->get_btree();
-        ham_assert(be!=0);
-
-        if (txn_op_get_flags(op)&TXN_OP_FLUSHED)
-            goto next_op;
-
-        /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-        if (env->get_flags()&HAM_ENABLE_RECOVERY)
-            ham_assert(env->get_changeset().is_empty());
-#endif
-
-        /*
-         * depending on the type of the operation: actually perform the
-         * operation on the btree
-         *
-         * if the txn-op has a cursor attached, then all (txn)cursors
-         * which are coupled to this op have to be uncoupled, and their
-         * parent (btree) cursor must be coupled to the btree item instead.
-         */
-        if ((txn_op_get_flags(op)&TXN_OP_INSERT)
-                || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
-                || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
-            ham_u32_t additional_flag=
-                (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
-                    ? HAM_DUPLICATE
-                    : HAM_OVERWRITE;
-            if (!txn_op_get_cursors(op)) {
-                st=be->insert(txn, txn_opnode_get_key(node),
-                        txn_op_get_record(op),
-                        txn_op_get_orig_flags(op)|additional_flag);
-            }
-            else {
-                txn_cursor_t *tc2, *tc1=txn_op_get_cursors(op);
-                Cursor *c2, *c1=txn_cursor_get_parent(tc1);
-                /* pick the first cursor, get the parent/btree cursor and
-                 * insert the key/record pair in the btree. The btree cursor
-                 * then will be coupled to this item. */
-                st=c1->get_btree_cursor()->insert(
-                        txn_opnode_get_key(node), txn_op_get_record(op),
-                        txn_op_get_orig_flags(op)|additional_flag);
-                if (!st) {
-                    /* uncouple the cursor from the txn-op, and remove it */
-                    txn_op_remove_cursor(op, tc1);
-                    c1->couple_to_btree();
-                    c1->set_to_nil(Cursor::CURSOR_TXN);
-
-                    /* all other (btree) cursors need to be coupled to the same
-                     * item as the first one. */
-                    while ((tc2=txn_op_get_cursors(op))) {
-                        txn_op_remove_cursor(op, tc2);
-                        c2=txn_cursor_get_parent(tc2);
-                        c2->get_btree_cursor()->couple_to_other(
-                                    c1->get_btree_cursor());
-                        c2->couple_to_btree();
-                        c2->set_to_nil(Cursor::CURSOR_TXN);
-                    }
-                }
-            }
-        }
-        else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-            if (txn_op_get_referenced_dupe(op)) {
-                st=be->erase_duplicate(txn,
-                        txn_opnode_get_key(node),
-                        txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
-            }
-            else {
-                st=be->erase(txn, txn_opnode_get_key(node),
-                        txn_op_get_flags(op));
-            }
-            if (st==HAM_KEY_NOT_FOUND)
-                st=0;
-        }
-
-        if (st) {
-            ham_trace(("failed to flush op: %d (%s)",
-                            (int)st, ham_strerror(st)));
-            env->get_changeset().clear();
-            return (st);
-        }
-
-        /* now flush the changeset to disk */
-        if (env->get_flags()&HAM_ENABLE_RECOVERY) {
-            env->get_changeset().add_page(env->get_header_page());
-            st=env->get_changeset().flush(txn_op_get_lsn(op));
-            if (st) {
-                ham_trace(("failed to flush op: %d (%s)",
-                                (int)st, ham_strerror(st)));
-                env->get_changeset().clear();
-                return (st);
-            }
-        }
-
-        /*
-         * this op is about to be flushed!
-         *
-         * as a consequence, all (txn)cursors which are coupled to this op
-         * have to be uncoupled, as their parent (btree) cursor was
-         * already coupled to the btree item instead
-         */
-        txn_op_set_flags(op, TXN_OP_FLUSHED);
-next_op:
-        while ((cursor=txn_op_get_cursors(op))) {
-            Cursor *pc=txn_cursor_get_parent(cursor);
-            ham_assert(pc->get_txn_cursor()==cursor);
-            pc->couple_to_btree();
-            pc->set_to_nil(Cursor::CURSOR_TXN);
-        }
-
-        /* continue with the next operation of this txn */
-        op=txn_op_get_next_in_txn(op);
-    }
-
-    return (0);
+  if (get_oldest_txn() == txn) {
+    Transaction *n = txn->get_newer();
+    set_oldest_txn(n);
+    if (n)
+      n->set_older(0);
+  }
+  else {
+    ham_assert(!"not yet implemented");
+  }
 }
 
 ham_status_t
 Environment::flush_committed_txns()
 {
-    Transaction *oldest;
-    ham_u64_t last_id = 0;
+  Transaction *oldest;
+  ham_u64_t last_id = 0;
 
-    /* always get the oldest transaction; if it was committed: flush
-     * it; if it was aborted: discard it; otherwise return */
-    while ((oldest=get_oldest_txn())) {
-        if (oldest->is_committed()) {
-            if (last_id)
-                ham_assert(last_id != oldest->get_id());
-            last_id = oldest->get_id();
-            ham_status_t st=__flush_txn(this, oldest);
-            if (st)
-                return (st);
-        }
-        else if (oldest->is_aborted()) {
-            ; /* nop */
-        }
-        else
-            break;
-
-        /* now remove the txn from the linked list */
-        env_remove_txn(this, oldest);
-
-        /* and free the whole memory */
-        delete oldest;
+  /* always get the oldest transaction; if it was committed: flush
+   * it; if it was aborted: discard it; otherwise return */
+  while ((oldest = get_oldest_txn())) {
+    if (oldest->is_committed()) {
+      if (last_id)
+        ham_assert(last_id != oldest->get_id());
+      last_id = oldest->get_id();
+      ham_status_t st = flush_txn(oldest);
+      if (st)
+        return (st);
     }
+    else if (oldest->is_aborted()) {
+      ; /* nop */
+    }
+    else
+      break;
 
-    /* clear the changeset; if the loop above was not entered or the
-     * transaction was empty then it may still contain pages */
-    get_changeset().clear();
+    /* now remove the txn from the linked list */
+    remove_txn(oldest);
 
-    return (0);
+    /* and free the whole memory */
+    delete oldest;
+  }
+
+  /* clear the changeset; if the loop above was not entered or the
+   * transaction was empty then it may still contain pages */
+  get_changeset().clear();
+
+  return (0);
 }
 
 ham_status_t
-env_get_incremented_lsn(Environment *env, ham_u64_t *lsn)
+Environment::get_incremented_lsn(ham_u64_t *lsn)
 {
-    Journal *j=env->get_journal();
-    if (j) {
-        *lsn=j->get_incremented_lsn();
-        if (*lsn==0) {
-            ham_log(("journal limits reached (lsn overflow) - please reorg"));
-            return (HAM_LIMITS_REACHED);
-        }
-        return (0);
+  Journal *j = get_journal();
+  if (j) {
+    *lsn = j->get_incremented_lsn();
+    if (*lsn == 0) {
+      ham_log(("journal limits reached (lsn overflow) - please reorg"));
+      return (HAM_LIMITS_REACHED);
     }
+    return (0);
+  }
 
-    // otherwise return a dummy value
-    return (1);
+  // otherwise return a dummy value
+  return (1);
 }
 
 static ham_status_t
 purge_callback(Page *page)
 {
-    ham_status_t st=page->uncouple_all_cursors();
-    if (st)
-        return (st);
+  ham_status_t st = page->uncouple_all_cursors();
+  if (st)
+    return (st);
 
-    st=page->flush();
-    if (st)
-        return (st);
+  st = page->flush();
+  if (st)
+    return (st);
 
-    page->free();
-    delete page;
-    return (0);
+  page->free();
+  delete page;
+  return (0);
+}
+
+static bool
+flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
+{
+  (void)db;
+  (void)page->flush();
+
+  /*
+   * if the page is deleted, uncouple all cursors, then
+   * free the memory of the page, then remove from the cache
+   */
+  if (flags == 0) {
+    (void)page->uncouple_all_cursors();
+    (void)page->free();
+    return (true);
+  }
+
+  return (false);
 }
 
 ham_status_t
-env_purge_cache(Environment *env)
+Environment::purge_cache()
 {
-    Cache *cache=env->get_cache();
+  Cache *cache = get_cache();
 
-    /* in-memory-db: don't remove the pages or they would be lost */
-    if (env->get_flags()&HAM_IN_MEMORY)
-        return (0);
+  /* in-memory-db: don't remove the pages or they would be lost */
+  if (get_flags() & HAM_IN_MEMORY)
+    return (0);
 
-    return (cache->purge(purge_callback,
-                (env->get_flags()&HAM_CACHE_STRICT) != 0));
+  return (cache->purge(purge_callback, (get_flags() & HAM_CACHE_STRICT) != 0));
+}
+
+ham_status_t
+LocalEnvironment::flush_all_pages(bool nodelete)
+{
+  if (!get_cache())
+    return (0);
+
+  return (get_cache()->visit(flush_all_pages_callback, 0, 1));
+}
+
+ham_status_t
+Environment::alloc_page(Page **page_ref, Database *db, ham_u32_t type,
+            ham_u32_t flags)
+{
+  ham_status_t st;
+  ham_offset_t tellpos = 0;
+  Page *page = NULL;
+  bool allocated_by_me = false;
+
+  *page_ref = 0;
+  ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO)));
+
+  /* first, we ask the freelist for a page */
+  if (!(flags & PAGE_IGNORE_FREELIST) && get_freelist()) {
+    st = get_freelist()->alloc_page(&tellpos, db);
+    if (st)
+      return (st);
+    if (tellpos) {
+      ham_assert(tellpos % get_pagesize() == 0);
+      /* try to fetch the page from the cache */
+      page = get_cache()->get_page(tellpos, 0);
+      if (page)
+        goto done;
+      /* allocate a new page structure and read the page from disk */
+      page = new Page(this, db);
+      st = page->fetch(tellpos);
+      if (st) {
+        delete page;
+        return (st);
+      }
+      goto done;
+    }
+  }
+
+  if (!page) {
+    page = new Page(this, db);
+    allocated_by_me = true;
+  }
+
+  /* can we allocate a new page for the cache? */
+  if (get_cache()->is_too_big()) {
+    if (get_flags() & HAM_CACHE_STRICT) {
+      if (allocated_by_me)
+        delete page;
+      return (HAM_CACHE_FULL);
+    }
+  }
+
+  ham_assert(tellpos == 0);
+  st = page->allocate();
+  if (st)
+    return (st);
+
+done:
+  /* initialize the page; also set the 'dirty' flag to force logging */
+  page->set_type(type);
+  page->set_dirty(true);
+  page->set_db(db);
+
+  /* clear the page with zeroes?  */
+  if (flags & PAGE_CLEAR_WITH_ZERO)
+    memset(page->get_pers(), 0, get_pagesize());
+
+  /* an allocated page is always flushed if recovery is enabled */
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    get_changeset().add_page(page);
+
+  /* store the page in the cache */
+  get_cache()->put_page(page);
+
+  *page_ref = page;
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+Environment::fetch_page(Page **page_ref, Database *db,
+            ham_offset_t address, bool only_from_cache)
+{
+  ham_status_t st;
+
+  *page_ref = 0;
+
+  /* fetch the page from the cache */
+  Page *page = get_cache()->get_page(address, Cache::NOREMOVE);
+  if (page) {
+    *page_ref = page;
+    ham_assert(page->get_pers());
+    /* store the page in the changeset if recovery is enabled */
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      get_changeset().add_page(page);
+    return (HAM_SUCCESS);
+  }
+
+  if (only_from_cache)
+    return (HAM_SUCCESS);
+
+  ham_assert(get_cache()->get_page(address) == 0);
+
+  /* can we allocate a new page for the cache? */
+  if (get_cache()->is_too_big()) {
+    if (get_flags() & HAM_CACHE_STRICT)
+      return (HAM_CACHE_FULL);
+  }
+
+  page = new Page(this, db);
+  st = page->fetch(address);
+  if (st) {
+    delete page;
+    return (st);
+  }
+
+  ham_assert(page->get_pers());
+
+  /* store the page in the cache */
+  get_cache()->put_page(page);
+
+  /* store the page in the changeset */
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    get_changeset().add_page(page);
+
+  *page_ref = page;
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+Environment::flush_txn(Transaction *txn)
+{
+  ham_status_t st = 0;
+  txn_op_t *op = txn->get_oldest_op();
+  txn_cursor_t *cursor = 0;
+
+  while (op) {
+    txn_opnode_t *node = txn_op_get_node(op);
+    BtreeIndex *be = txn_opnode_get_db(node)->get_btree();
+
+    if (txn_op_get_flags(op) & TXN_OP_FLUSHED)
+      goto next_op;
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (get_flags() & HAM_ENABLE_RECOVERY)
+      ham_assert(get_changeset().is_empty());
+#endif
+
+    /*
+     * depending on the type of the operation: actually perform the
+     * operation on the btree
+     *
+     * if the txn-op has a cursor attached, then all (txn)cursors
+     * which are coupled to this op have to be uncoupled, and their
+     * parent (btree) cursor must be coupled to the btree item instead.
+     */
+    if ((txn_op_get_flags(op) & TXN_OP_INSERT)
+        || (txn_op_get_flags(op) & TXN_OP_INSERT_OW)
+        || (txn_op_get_flags(op) & TXN_OP_INSERT_DUP)) {
+      ham_u32_t additional_flag = 
+        (txn_op_get_flags(op) & TXN_OP_INSERT_DUP)
+          ? HAM_DUPLICATE
+          : HAM_OVERWRITE;
+      if (!txn_op_get_cursors(op)) {
+        st = be->insert(txn, txn_opnode_get_key(node), txn_op_get_record(op),
+                    txn_op_get_orig_flags(op) | additional_flag);
+      }
+      else {
+        txn_cursor_t *tc2, *tc1 = txn_op_get_cursors(op);
+        Cursor *c2, *c1 = txn_cursor_get_parent(tc1);
+        /* pick the first cursor, get the parent/btree cursor and
+         * insert the key/record pair in the btree. The btree cursor
+         * then will be coupled to this item. */
+        st = c1->get_btree_cursor()->insert(
+                    txn_opnode_get_key(node), txn_op_get_record(op),
+                    txn_op_get_orig_flags(op) | additional_flag);
+        if (!st) {
+          /* uncouple the cursor from the txn-op, and remove it */
+          txn_op_remove_cursor(op, tc1);
+          c1->couple_to_btree();
+          c1->set_to_nil(Cursor::CURSOR_TXN);
+
+          /* all other (btree) cursors need to be coupled to the same
+           * item as the first one. */
+          while ((tc2 = txn_op_get_cursors(op))) {
+            txn_op_remove_cursor(op, tc2);
+            c2 = txn_cursor_get_parent(tc2);
+            c2->get_btree_cursor()->couple_to_other(c1->get_btree_cursor());
+            c2->couple_to_btree();
+            c2->set_to_nil(Cursor::CURSOR_TXN);
+          }
+        }
+      }
+    }
+    else if (txn_op_get_flags(op) & TXN_OP_ERASE) {
+      if (txn_op_get_referenced_dupe(op)) {
+        st = be->erase_duplicate(txn, txn_opnode_get_key(node),
+                    txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
+      }
+      else {
+        st = be->erase(txn, txn_opnode_get_key(node), txn_op_get_flags(op));
+      }
+      if (st == HAM_KEY_NOT_FOUND)
+        st = 0;
+    }
+
+    if (st) {
+      ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
+      get_changeset().clear();
+      return (st);
+    }
+
+    /* now flush the changeset to disk */
+    if (get_flags() & HAM_ENABLE_RECOVERY) {
+      get_changeset().add_page(get_header_page());
+      st = get_changeset().flush(txn_op_get_lsn(op));
+      if (st) {
+        ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
+        get_changeset().clear();
+        return (st);
+      }
+    }
+
+    /*
+     * this op is about to be flushed!
+     *
+     * as a consequence, all (txn)cursors which are coupled to this op
+     * have to be uncoupled, as their parent (btree) cursor was
+     * already coupled to the btree item instead
+     */
+    txn_op_set_flags(op, TXN_OP_FLUSHED);
+next_op:
+    while ((cursor = txn_op_get_cursors(op))) {
+      Cursor *pc = txn_cursor_get_parent(cursor);
+      ham_assert(pc->get_txn_cursor() == cursor);
+      pc->couple_to_btree();
+      pc->set_to_nil(Cursor::CURSOR_TXN);
+    }
+
+    /* continue with the next operation of this txn */
+    op = txn_op_get_next_in_txn(op);
+  }
+
+  return (0);
+}
+
+/*
+ * callback function for freeing blobs of an in-memory-database, implemented
+ * in db.cc
+ * TODO why is this external?
+ */
+extern ham_status_t
+__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
+
+
+ham_status_t
+LocalEnvironment::create(const char *filename, ham_u32_t flags,
+    ham_u32_t mode, const ham_parameter_t *param)
+{
+  ham_status_t st = 0;
+
+  ham_assert(!get_header_page());
+
+  /* initialize the device if it does not yet exist */
+  Device *device;
+  if (flags&HAM_IN_MEMORY)
+    device = new InMemoryDevice(this, flags);
+  else
+    device = new DiskDevice(this, flags);
+  device->set_pagesize(get_pagesize());
+  set_device(device);
+
+  /* now make sure the pagesize is a multiple of
+   * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
+  ham_assert(0 == (get_pagesize() % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
+
+  /* create the file */
+  st = device->create(filename, flags, mode);
+  if (st) {
+    delete device;
+    set_device(0);
+    return (st);
+  }
+
+  /* allocate the header page */
+  {
+    Page *page = new Page(this);
+    /* manually set the device pointer */
+    page->set_device(device);
+    st = page->allocate();
+    if (st) {
+      delete page;
+      return (st);
+    }
+    memset(page->get_pers(), 0, get_pagesize());
+    page->set_type(Page::TYPE_HEADER);
+    set_header_page(page);
+
+    /* initialize the header */
+    set_magic('H', 'A', 'M', '\0');
+    set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
+    set_serialno(HAM_SERIALNO);
+    set_persistent_pagesize(get_pagesize());
+    set_max_databases(get_max_databases_cached());
+    ham_assert(get_max_databases() > 0);
+
+    page->set_dirty(true);
+  }
+
+  /* create the freelist */
+  if (!(get_flags() & HAM_IN_MEMORY))
+    set_freelist(new Freelist(this));
+
+  /* create a logfile and a journal (if requested) */
+  if (get_flags() & HAM_ENABLE_RECOVERY) {
+    ham::Log *log = new ham::Log(this);
+    st = log->create();
+    if (st) {
+      delete log;
+      return (st);
+    }
+    set_log(log);
+
+    Journal *journal = new Journal(this);
+    st = journal->create();
+    if (st) {
+      delete journal;
+      return (st);
+    }
+    set_journal(journal);
+  }
+
+  /* initialize the cache */
+  set_cache(new Cache(this, get_cachesize()));
+
+  /* flush the header page - this will write through disk if logging is
+   * enabled */
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    return (get_header_page()->flush());
+  return (0);
+}
+
+ham_status_t
+LocalEnvironment::open(const char *filename, ham_u32_t flags,
+    const ham_parameter_t *param)
+{
+  ham_status_t st;
+
+  /* initialize the device if it does not yet exist */
+  Device *device;
+  if (flags & HAM_IN_MEMORY)
+    device = new InMemoryDevice(this, flags);
+  else
+    device = new DiskDevice(this, flags);
+  set_device(device);
+
+  /* open the file */
+  st = device->open(filename, flags);
+  if (st) {
+    delete device;
+    set_device(0);
+    return (st);
+  }
+
+  /*
+   * read the database header
+   *
+   * !!!
+   * now this is an ugly problem - the database header is one page, but
+   * what's the size of this page? chances are good that it's the default
+   * page-size, but we really can't be sure.
+   *
+   * read 512 byte and extract the "real" page size, then read
+   * the real page. (but i really don't like this)
+   */
+  {
+    Page *page = 0;
+    env_header_t *hdr;
+    ham_u8_t hdrbuf[512];
+    Page fakepage(this);
+
+    /*
+     * in here, we're going to set up a faked headerpage for the
+     * duration of this call; BE VERY CAREFUL: we MUST clean up
+     * at the end of this section or we'll be in BIG trouble!
+     */
+    fakepage.set_pers((PageData *)hdrbuf);
+    set_header_page(&fakepage);
+
+    /*
+     * now fetch the header data we need to get an estimate of what
+     * the database is made of really.
+     *
+     * Because we 'faked' a headerpage setup right here, we can now use
+     * the regular hamster macros to obtain data from the file
+     * header -- pre v1.1.0 code used specially modified copies of
+     * those macros here, but with the advent of dual-version database
+     * format support here this was getting hairier and hairier.
+     * So we now fake it all the way instead.
+     */
+    st = device->read(0, hdrbuf, sizeof(hdrbuf));
+    if (st)
+      goto fail_with_fake_cleansing;
+
+    hdr = get_header();
+
+    set_pagesize(get_persistent_pagesize());
+    device->set_pagesize(get_persistent_pagesize());
+
+    /** check the file magic */
+    if (!compare_magic('H', 'A', 'M', '\0')) {
+      ham_log(("invalid file type"));
+      st  =  HAM_INV_FILE_HEADER;
+      goto fail_with_fake_cleansing;
+    }
+
+    /* check the database version; everything > 1.0.9 is ok */
+    if (envheader_get_version(hdr, 0) > HAM_VERSION_MAJ ||
+        (envheader_get_version(hdr, 0) == HAM_VERSION_MAJ
+          && envheader_get_version(hdr, 1) > HAM_VERSION_MIN)) {
+      ham_log(("invalid file version"));
+      st = HAM_INV_FILE_VERSION;
+      goto fail_with_fake_cleansing;
+    }
+    else if (envheader_get_version(hdr, 0) == 1 &&
+      envheader_get_version(hdr, 1) == 0 &&
+      envheader_get_version(hdr, 2) <= 9) {
+      ham_log(("invalid file version; < 1.0.9 is not supported"));
+      st = HAM_INV_FILE_VERSION;
+      goto fail_with_fake_cleansing;
+    }
+
+    st = 0;
+
+fail_with_fake_cleansing:
+
+    /* undo the headerpage fake first! */
+    fakepage.set_pers(0);
+    set_header_page(0);
+
+    /* exit when an error was signaled */
+    if (st) {
+      delete device;
+      set_device(0);
+      return (st);
+    }
+
+    /* now read the "real" header page and store it in the Environment */
+    page = new Page(this);
+    page->set_device(device);
+    st = page->fetch(0);
+    if (st) {
+      delete page;
+      return (st);
+    }
+    set_header_page(page);
+  }
+
+  /*
+   * initialize the cache; the cache is needed during recovery, therefore
+   * we have to create the cache BEFORE we attempt to recover
+   */
+  set_cache(new Cache(this, get_cachesize()));
+
+  /* create the freelist */
+  if (!(get_flags() & HAM_IN_MEMORY) && !(get_flags() & HAM_READ_ONLY))
+    set_freelist(new Freelist(this));
+
+  /*
+   * open the logfile and check if we need recovery. first open the
+   * (physical) log and re-apply it. afterwards to the same with the
+   * (logical) journal.
+   */
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    st = recover(flags);
+
+  return (st);
+}
+
+ham_status_t
+LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
+    ham_u32_t flags)
+{
+  ham_u16_t dbi;
+  ham_u16_t slot;
+
+  /*
+   * check if a database with the new name already exists; also search
+   * for the database with the old name
+   */
+  slot = get_max_databases();
+  ham_assert(get_max_databases() > 0);
+  for (dbi = 0; dbi<get_max_databases(); dbi++) {
+    ham_u16_t name = get_descriptor(dbi)->get_dbname();
+    if (name == newname)
+      return (HAM_DATABASE_ALREADY_EXISTS);
+    if (name == oldname)
+      slot = dbi;
+  }
+
+  if (slot == get_max_databases())
+    return (HAM_DATABASE_NOT_FOUND);
+
+  /* replace the database name with the new name */
+  get_descriptor(slot)->set_dbname(newname);
+  set_dirty(true);
+
+  /* if the database with the old name is currently open: notify it */
+  Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
+  if (it != get_database_map().end()) {
+    it->second->set_name(newname);
+    get_database_map().erase(oldname);
+    get_database_map()[newname] = it->second;
+  }
+
+  /* flush the header page if logging is enabled */
+  if (get_flags() & HAM_ENABLE_RECOVERY)
+    return (get_header_page()->flush());
+
+  return (0);
+}
+
+ham_status_t
+LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
+{
+  Database *db;
+  ham_status_t st;
+  free_cb_context_t context;
+  BtreeIndex *be;
+
+  /* check if this database is still open */
+  if (get_database_map().find(name) != get_database_map().end())
+    return (HAM_DATABASE_ALREADY_OPEN);
+
+  /*
+   * if it's an in-memory environment: no need to go on, if the
+   * database was closed, it does no longer exist
+   */
+  if (get_flags() & HAM_IN_MEMORY)
+    return (HAM_DATABASE_NOT_FOUND);
+
+  /* temporarily load the database */
+  st = open_db(&db, name, 0, 0);
+  if (st)
+    return (st);
+
+  /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+  if (get_flags() & HAM_ENABLE_RECOVERY) {
+    ham_assert(get_changeset().is_empty());
+    ham_assert(get_log()->is_empty());
+  }
+#endif
+
+  /*
+   * delete all blobs and extended keys, also from the cache and
+   * the extkey-cache
+   *
+   * also delete all pages and move them to the freelist; if they're
+   * cached, delete them from the cache
+   */
+  context.db = db;
+  be = db->get_btree();
+
+  st = be->enumerate(__free_inmemory_blobs_cb, &context);
+  if (st) {
+    (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+    return (st);
+  }
+
+  /* if logging is enabled: flush the changeset and the header page */
+  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
+    ham_u64_t lsn;
+    get_changeset().add_page(get_header_page());
+    st = get_incremented_lsn(&lsn);
+    if (st == 0)
+      st = get_changeset().flush(lsn);
+  }
+
+  ham_u32_t descriptor = db->get_btree()->get_descriptor_index();
+
+  /* clean up and return */
+  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+
+  /* now set database name to 0 and set the header page to dirty */
+  get_descriptor(descriptor)->set_dbname(0);
+  get_header_page()->set_dirty(true);
+
+  return (0);
+}
+
+ham_status_t
+LocalEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
+{
+  ham_u16_t name;
+  ham_size_t i = 0;
+  ham_size_t max_names = 0;
+
+  max_names = *count;
+  *count = 0;
+
+  /* copy each database name to the array */
+  ham_assert(get_max_databases() > 0);
+  for (i = 0; i<get_max_databases(); i++) {
+    name = get_descriptor(i)->get_dbname();
+    if (name == 0)
+      continue;
+
+    if (*count >= max_names)
+      return (HAM_LIMITS_REACHED);
+
+    names[(*count)++] = name;
+  }
+
+  return 0;
+}
+
+ham_status_t
+LocalEnvironment::close(ham_u32_t flags)
+{
+  ham_status_t st;
+
+  /* close all databases */
+  Environment::DatabaseMap::iterator it = get_database_map().begin();
+  while (it != get_database_map().end()) {
+    Environment::DatabaseMap::iterator it2 = it; it++;
+    Database *db = it2->second;
+    if (flags & HAM_AUTO_CLEANUP)
+      st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
+    else
+      st = db->close(flags);
+    if (st)
+      return (st);
+  }
+
+  /* flush all committed transactions */
+  st = flush_committed_txns();
+  if (st)
+    return (st);
+
+  /* flush the freelist */
+  if (get_freelist()) {
+    delete get_freelist();
+    set_freelist(0);
+  }
+
+  /*
+   * if we're not in read-only mode, and not an in-memory-database,
+   * and the dirty-flag is true: flush the page-header to disk
+   */
+  if (get_header_page()
+      && !(get_flags()&HAM_IN_MEMORY)
+      && get_device()
+      && get_device()->is_open()
+      && (!(get_flags()&HAM_READ_ONLY))) {
+    get_header_page()->flush();
+  }
+
+  Device *device = get_device();
+
+  /* close the header page */
+  if (get_header_page()) {
+    Page *page = get_header_page();
+    ham_assert(device);
+    if (page->get_pers())
+      device->free_page(page);
+    delete page;
+    set_header_page(0);
+  }
+
+  /* flush all pages, get rid of the cache */
+  if (get_cache()) {
+    (void)flush_all_pages(0);
+    delete get_cache();
+    set_cache(0);
+  }
+
+  /* close the device */
+  if (device) {
+    if (device->is_open()) {
+      if (!(get_flags() & HAM_READ_ONLY))
+        device->flush();
+      device->close();
+    }
+    delete device;
+    set_device(0);
+  }
+
+  /* close the log and the journal */
+  if (get_log()) {
+    Log *log = get_log();
+    log->close(!!(flags & HAM_DONT_CLEAR_LOG));
+    delete log;
+    set_log(0);
+  }
+  if (get_journal()) {
+    Journal *journal = get_journal();
+    journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
+    delete journal;
+    set_journal(0);
+  }
+
+  return 0;
+}
+
+ham_status_t
+LocalEnvironment::get_parameters(ham_parameter_t *param)
+{
+  ham_parameter_t *p = param;
+
+  if (p) {
+    for (; p->name; p++) {
+      switch (p->name) {
+      case HAM_PARAM_CACHESIZE:
+        p->value = get_cache()->get_capacity();
+        break;
+      case HAM_PARAM_PAGESIZE:
+        p->value = get_pagesize();
+        break;
+      case HAM_PARAM_MAX_DATABASES:
+        p->value = get_max_databases();
+        break;
+      case HAM_PARAM_FLAGS:
+        p->value = get_flags();
+        break;
+      case HAM_PARAM_FILEMODE:
+        p->value = get_file_mode();
+        break;
+      case HAM_PARAM_FILENAME:
+        if (get_filename().size())
+          p->value = (ham_u64_t)(PTR_TO_U64(get_filename().c_str()));
+        else
+          p->value = 0;
+        break;
+      case HAM_PARAM_LOG_DIRECTORY:
+        if (get_log_directory().size())
+          p->value = (ham_u64_t)(PTR_TO_U64(get_log_directory().c_str()));
+        else
+          p->value = 0;
+        break;
+      default:
+        ham_trace(("unknown parameter %d", (int)p->name));
+        return (HAM_INV_PARAMETER);
+      }
+    }
+  }
+
+  return (0);
+}
+
+ham_status_t
+LocalEnvironment::flush(ham_u32_t flags)
+{
+  ham_status_t st;
+  Device *device = get_device();
+
+  (void)flags;
+
+  /* never flush an in-memory-database */
+  if (get_flags() & HAM_IN_MEMORY)
+    return (0);
+
+  /* flush all committed transactions */
+  st = flush_committed_txns();
+  if (st)
+    return (st);
+
+  /* update the header page, if necessary */
+  if (is_dirty()) {
+    st = get_header_page()->flush();
+    if (st)
+      return st;
+  }
+
+  /* flush all open pages to disk */
+  st = flush_all_pages(true);
+  if (st)
+    return st;
+
+  /* flush the device - this usually causes a fsync() */
+  st = device->flush();
+  if (st)
+    return st;
+
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
+    ham_u32_t flags, const ham_parameter_t *param)
+{
+  ham_u16_t keysize = 0;
+  ham_u16_t dbi;
+  std::string logdir;
+
+  *pdb = 0;
+
+  if (flags & HAM_RECORD_NUMBER)
+    keysize = sizeof(ham_u64_t);
+  else
+    keysize = DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead);
+
+  if (get_flags() & HAM_READ_ONLY) {
+    ham_trace(("cannot create database in an read-only environment"));
+    return (HAM_WRITE_PROTECTED);
+  }
+
+  if (param) {
+    for (; param->name; param++) {
+      switch (param->name) {
+        case HAM_PARAM_KEYSIZE:
+          keysize = (ham_u16_t)param->value;
+          if (flags & HAM_RECORD_NUMBER) {
+            if (keysize > 0 && keysize < sizeof(ham_u64_t)) {
+              ham_trace(("invalid keysize %u - must be 8 for HAM_RECORD_NUMBER"
+                         " databases", (unsigned)keysize));
+              return (HAM_INV_KEYSIZE);
+            }
+          }
+          break;
+        default:
+          ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
+          return (HAM_INV_PARAMETER);
+      }
+    }
+  }
+
+  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
+                    | HAM_ENABLE_DUPLICATES
+                    | HAM_RECORD_NUMBER;
+  if (flags & ~mask) {
+    ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
+    return (HAM_INV_PARAMETER);
+  }
+
+  /* create a new Database object */
+  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
+
+  /* check if this database name is unique */
+  ham_assert(get_max_databases() > 0);
+  for (ham_size_t i = 0; i < get_max_databases(); i++) {
+    ham_u16_t name = get_descriptor(i)->get_dbname();
+    if (!name)
+      continue;
+    if (name == dbname || dbname == HAM_FIRST_DATABASE_NAME)
+      return (HAM_DATABASE_ALREADY_EXISTS);
+  }
+
+  /*
+   * find a free slot in the BtreeDescriptor array and store the
+   * database name
+   */
+  ham_assert(get_max_databases() > 0);
+  for (dbi = 0; dbi < get_max_databases(); dbi++) {
+    ham_u16_t name = get_descriptor(dbi)->get_dbname();
+    if (!name) {
+      get_descriptor(dbi)->set_dbname(dbname);
+      break;
+    }
+  }
+  if (dbi == get_max_databases())
+    return (HAM_LIMITS_REACHED);
+
+  /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+  if (get_flags() & HAM_ENABLE_RECOVERY) {
+    ham_assert(get_changeset().is_empty());
+    ham_assert(get_log()->is_empty());
+  }
+#endif
+
+  /* initialize the Database */
+  ham_status_t st = db->create(dbi, keysize);
+  if (st)
+    goto bail;
+
+  set_dirty(true);
+
+  /*
+   * on success: store the open database in the environment's list of
+   * opened databases
+   */
+  get_database_map()[dbname] = db;
+
+  *pdb = db;
+
+bail:
+  /* if logging is enabled: flush the changeset and the header page */
+  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
+    ham_u64_t lsn;
+    get_changeset().add_page(get_header_page());
+    st = get_incremented_lsn(&lsn);
+    if (st == 0)
+      st = get_changeset().flush(lsn);
+  }
+
+  return (st);
+}
+
+ham_status_t
+LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
+    const ham_parameter_t *param)
+{
+  ham_u64_t cachesize = 0;
+  ham_u16_t dbi;
+  std::string logdir;
+
+  *pdb = 0;
+
+  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN | HAM_READ_ONLY;
+  if (flags & ~mask) {
+    ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
+    return (HAM_INV_PARAMETER);
+  }
+
+  if (param && param->name != 0) {
+    ham_trace(("invalid parameter"));
+    return (HAM_INV_PARAMETER);
+  }
+
+  /* create a new Database object */
+  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
+
+  /* parse parameters */
+  ham_status_t st = __check_create_parameters(this, db, 0, &flags, param,
+      0, 0, &cachesize, &dbname, 0, logdir, false);
+  if (st)
+    return (st);
+
+  /* make sure that this database is not yet open */
+  if (get_database_map().find(dbname) !=  get_database_map().end())
+    return (HAM_DATABASE_ALREADY_OPEN);
+
+  ham_assert(get_allocator());
+  ham_assert(get_device());
+  ham_assert(0 != get_header_page());
+  ham_assert(get_max_databases() > 0);
+
+  /* search for a database with this name */
+  for (dbi = 0; dbi < get_max_databases(); dbi++) {
+    ham_u16_t name = get_descriptor(dbi)->get_dbname();
+    if (!name)
+      continue;
+    if (dbname == HAM_FIRST_DATABASE_NAME || dbname == name)
+      break;
+  }
+
+  if (dbi == get_max_databases())
+    return (HAM_DATABASE_NOT_FOUND);
+
+  /* open the database */
+  st = db->open(dbi);
+  if (st) {
+    ham_trace(("Database could not be opened"));
+    return (st);
+  }
+
+  /*
+   * on success: store the open database in the environment's list of
+   * opened databases
+   */
+  get_database_map()[dbname] = db;
+
+  *pdb = db;
+
+  return (0);
+}
+
+ham_status_t
+LocalEnvironment::txn_begin(Transaction **txn, const char *name,
+    ham_u32_t flags)
+{
+  ham_status_t st = 0;
+
+  *txn = new Transaction(this, name, flags);
+
+  /* append journal entry */
+  if (get_flags() & HAM_ENABLE_RECOVERY
+      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    ham_u64_t lsn;
+    st = get_incremented_lsn(&lsn);
+    if (st == 0)
+      st = get_journal()->append_txn_begin(*txn, this, name, lsn);
+  }
+
+  return (st);
+}
+
+ham_status_t
+LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
+{
+  ham_status_t st;
+
+  /* are cursors attached to this txn? if yes, fail */
+  if (txn->get_cursor_refcount()) {
+    ham_trace(("Transaction cannot be committed till all attached "
+          "Cursors are closed"));
+    return (HAM_CURSOR_STILL_OPEN);
+  }
+
+  /* append journal entry */
+  if (get_flags() & HAM_ENABLE_RECOVERY
+      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    ham_u64_t lsn;
+    st = get_incremented_lsn(&lsn);
+    if (st)
+      return (st);
+    st = get_journal()->append_txn_commit(txn, lsn);
+    if (st)
+      return (st);
+  }
+
+  return (txn->commit(flags));
+}
+
+ham_status_t
+LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
+{
+  ham_status_t st = 0;
+
+  /* are cursors attached to this txn? if yes, fail */
+  if (txn->get_cursor_refcount()) {
+    ham_trace(("Transaction cannot be aborted till all attached "
+          "Cursors are closed"));
+    return (HAM_CURSOR_STILL_OPEN);
+  }
+
+  /* append journal entry */
+  if (get_flags() & HAM_ENABLE_RECOVERY
+      && get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    ham_u64_t lsn;
+    st = get_incremented_lsn(&lsn);
+    if (st)
+      return (st);
+    st = get_journal()->append_txn_abort(txn, lsn);
+    if (st)
+      return (st);
+  }
+
+  return (txn->abort(flags));
+}
+
+ham_status_t
+LocalEnvironment::recover(ham_u32_t flags)
+{
+  ham_status_t st;
+  Log *log = new Log(this);
+  Journal *journal = new Journal(this);
+
+  ham_assert(get_flags() & HAM_ENABLE_RECOVERY);
+
+  /* open the log and the journal (if transactions are enabled) */
+  st = log->open();
+  set_log(log);
+  if (st == HAM_FILE_NOT_FOUND)
+    st = log->create();
+  if (st)
+    goto bail;
+  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    st = journal->open();
+    set_journal(journal);
+    if (st == HAM_FILE_NOT_FOUND)
+      st = journal->create();
+    if (st)
+      goto bail;
+  }
+
+  /* success - check if we need recovery */
+  if (!log->is_empty()) {
+    if (flags & HAM_AUTO_RECOVERY) {
+      st = log->recover();
+      if (st)
+        goto bail;
+    }
+    else {
+      st = HAM_NEED_RECOVERY;
+      goto bail;
+    }
+  }
+
+  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    if (!journal->is_empty()) {
+      if (flags & HAM_AUTO_RECOVERY) {
+        st = journal->recover();
+        if (st)
+          goto bail;
+      }
+      else {
+        st = HAM_NEED_RECOVERY;
+        goto bail;
+      }
+    }
+  }
+
+goto success;
+
+bail:
+  /* in case of errors: close log and journal, but do not delete the files */
+  if (log) {
+    log->close(true);
+    delete log;
+    set_log(0);
+  }
+  if (journal) {
+    journal->close(true);
+    delete journal;
+    set_journal(0);
+  }
+  return (st);
+
+success:
+  /* done with recovering - if there's no log and/or no journal then
+   * create them and store them in the environment */
+  if (!log) {
+    log = new Log(this);
+    st = log->create();
+    if (st)
+      return (st);
+  }
+  set_log(log);
+
+  if (get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    if (!journal) {
+      journal = new Journal(this);
+      st = journal->create();
+      if (st)
+        return (st);
+    }
+    set_journal(journal);
+  }
+  else if (journal)
+    delete journal;
+
+  return (0);
 }
 
 } // namespace ham

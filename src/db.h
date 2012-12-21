@@ -71,8 +71,6 @@ namespace ham {
  */
 #define ham_key_set_intflags(key, f)    (key)->_flags=(f)
 
-/** An internal database flag - env handle is remote */
-#define DB_IS_REMOTE                 0x00200000
 #define PAGE_IGNORE_FREELIST          8
 #define PAGE_CLEAR_WITH_ZERO         16
 
@@ -89,11 +87,6 @@ class Database
     Database(Environment *env, ham_u16_t name, ham_u16_t flags);
 
     virtual ~Database() {
-    }
-
-    /** opens a Database */
-    virtual ham_status_t open() {
-      return (0);
     }
 
     /** get Database parameters */
@@ -158,7 +151,7 @@ class Database
     ham_status_t close(ham_u32_t flags);
 
     /** get the last error code */
-    ham_status_t get_error() {
+    ham_status_t get_error() const {
       return (m_error);
     }
 
@@ -535,11 +528,14 @@ class LocalDatabase : public Database
 {
   public:
     LocalDatabase(Environment *env, ham_u16_t name, ham_u16_t flags)
-        : Database(env, name, flags), m_recno(0) {
+      : Database(env, name, flags), m_recno(0) {
     }
 
-    /** opens a Database */
-    virtual ham_status_t open();
+    /** opens an existing Database */
+    virtual ham_status_t open(ham_u16_t descriptor);
+
+    /** creates a new Database */
+    virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keysize);
 
     /** get Database parameters */
     virtual ham_status_t get_parameters(ham_parameter_t *param);
@@ -556,7 +552,8 @@ class LocalDatabase : public Database
                     ham_record_t *record, ham_u32_t flags);
 
     /** erase a key/value pair */
-    virtual ham_status_t erase(Transaction *txn, ham_key_t *key, ham_u32_t flags);
+    virtual ham_status_t erase(Transaction *txn, ham_key_t *key,
+                    ham_u32_t flags);
 
     /** lookup of a key/value pair */
     virtual ham_status_t find(Transaction *txn, ham_key_t *key,
@@ -727,36 +724,6 @@ class RemoteDatabase : public Database
     ham_u64_t m_remote_handle;
 };
 #endif // HAM_ENABLE_REMOTE
-
-/*
- * this is an internal function. do not use it unless you know what you're
- * doing.
- */
-extern ham_status_t
-db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
-                ham_u32_t type, ham_u32_t flags);
-
-/*
- * this is an internal function. do not use it unless you know what you're
- * doing.
- */
-extern ham_status_t
-db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
-                    ham_offset_t address, bool only_from_cache);
-
-/**
- * Flush all pages, and clear the cache.
- *
- * TODO move to Environment
- *
- * @param flags Set to DB_FLUSH_NODELETE if you do NOT want the cache to
- * be cleared
- * @param cache
- */
-extern ham_status_t
-db_flush_all(Cache *cache, ham_u32_t flags);
-
-#define DB_FLUSH_NODELETE       1
 
 } // namespace ham
 

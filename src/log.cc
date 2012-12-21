@@ -236,7 +236,7 @@ Log::recover()
      *
      * Either way we have to bypass the cache and all upper layers. We
      * cannot call Database::alloc_page() or Database::fetch_page() since there 
-     * is no Database handle. env_alloc_page()/env_fetch_page() would work,
+     * is no Database handle. env->alloc_page()/env->fetch_page() would work,
      * but then the page ownership is not set correctly (the
      * ownership is verified later, and this would fail).
      */

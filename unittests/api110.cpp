@@ -281,7 +281,7 @@ public:
 
     BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_env_open_db(m_env, &m_db, 1, HAM_READ_ONLY, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
     BFC_ASSERT_EQUAL(16u,
@@ -290,8 +290,7 @@ public:
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
     BFC_ASSERT_EQUAL((ham_offset_t)1,
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT
-        | HAM_READ_ONLY,
+    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 

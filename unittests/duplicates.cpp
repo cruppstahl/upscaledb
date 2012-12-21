@@ -288,13 +288,13 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-#define MAX 10
-    unsigned sizes[MAX] = { 0, 1, 2, 3, 4, 5, 936, 5, 100, 50 };
+#define M  10
+    unsigned sizes[M] = { 0, 1, 2, 3, 4, 5, 936, 5, 100, 50 };
     char *data = 0;
     ham_cursor_t *cursor;
     ham_size_t count;
 
-    for (unsigned i = 0; i < MAX; i++) {
+    for (unsigned i = 0; i < M; i++) {
       data = 0;
       if (sizes[i]) {
         data = (char *)malloc(sizes[i]);
@@ -316,7 +316,7 @@ public:
 
     BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
 
-    for (unsigned i = 0; i < MAX; i++) {
+    for (unsigned i = 0; i < M; i++) {
       if (sizes[i]) {
         data = (char *)malloc(sizes[i]);
         ::memset(data, i+0x15, sizes[i]);
@@ -334,12 +334,12 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_cursor_get_duplicate_count(cursor, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)MAX, count);
+    BFC_ASSERT_EQUAL((ham_size_t)M, count);
 
     BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
 
-    for (int i = MAX - 1; i >= 0; i--) {
+    for (int i = M - 1; i >= 0; i--) {
       if (sizes[i]) {
         data = (char *)malloc(sizes[i]);
         ::memset(data, i+0x15, sizes[i]);
@@ -357,7 +357,7 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_cursor_get_duplicate_count(cursor, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)MAX, count);
+    BFC_ASSERT_EQUAL((ham_size_t)M, count);
 
     BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 

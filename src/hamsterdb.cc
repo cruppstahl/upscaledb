@@ -242,13 +242,9 @@ ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
         ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_txn_begin) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
     /* initialize the txn structure */
-    return (env->_fun_txn_begin(env, txn, name, flags));
+    return (env->txn_begin(txn, name, flags));
 }
 
 HAM_EXPORT const char *
@@ -276,10 +272,6 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
     }
 
     Environment *env=txn->get_env();
-    if (!env || !env->_fun_txn_commit) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
     ScopedLock lock;
     if (!(flags&HAM_DONT_LOCK))
@@ -288,7 +280,7 @@ ham_txn_commit(ham_txn_t *htxn, ham_u32_t flags)
     /* mark this transaction as committed; will also call
      * env->signal_commit() to write committed transactions
      * to disk */
-    return (env->_fun_txn_commit(env, txn, flags));
+    return (env->txn_commit(txn, flags));
 }
 
 ham_status_t
@@ -301,16 +293,12 @@ ham_txn_abort(ham_txn_t *htxn, ham_u32_t flags)
     }
 
     Environment *env=txn->get_env();
-    if (!env || !env->_fun_txn_abort) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
     ScopedLock lock;
     if (!(flags&HAM_DONT_LOCK))
         lock=ScopedLock(env->get_mutex());
 
-    return (env->_fun_txn_abort(env, txn, flags));
+    return (env->txn_abort(txn, flags));
 }
 
 const char * HAM_CALLCONV
@@ -881,7 +869,15 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
     *henv = 0;
 
-    Environment *env = new Environment;
+    Environment *env;
+    if (__filename_is_local(filename))
+        env=new LocalEnvironment();
+    else {
+#ifndef HAM_ENABLE_REMOTE
+        return HAM_NOT_IMPLEMENTED;
+#endif // HAM_ENABLE_REMOTE
+        env=new RemoteEnvironment();
+    }
 
 #ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
@@ -909,21 +905,14 @@ ham_env_create(ham_env_t **henv, const char *filename,
         env->set_filename(filename);
     env->set_allocator(Allocator::create());
 
-    /* initialize function pointers */
-    if (__filename_is_local(filename))
-        st=env_initialize_local(env);
-    else
-        st=env_initialize_remote(env);
-    if (st)
-        goto bail;
-
     /* and finish the initialization of the Environment */
-    st=env->_fun_create(env, filename, flags, mode, param);
+    st=env->create(filename, flags, mode, param);
     if (st)
         goto bail;
 
     /* flush the environment to make sure that the header page is written
      * to disk */
+    // TODO use env->flush() (without locking)
     st = ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
 
 bail:
@@ -963,12 +952,13 @@ ham_env_create_db(ham_env_t *henv, ham_db_t **hdb,
     ScopedLock lock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st=env->_fun_create_db(env, (Database **)hdb, dbname, flags, param);
+    st=env->create_db((Database **)hdb, dbname, flags, param);
     if (st)
         goto bail;
 
     /* flush the environment to make sure that the header page is written
      * to disk */
+    // TODO use env->flush() (without locking)
     st=ham_env_flush((ham_env_t *)env, HAM_DONT_LOCK);
 
 bail:
@@ -1020,7 +1010,7 @@ ham_env_open_db(ham_env_t *henv, ham_db_t **hdb,
         lock=ScopedLock(env->get_mutex());
 
     /* the function handler will do the rest */
-    st=env->_fun_open_db(env, (Database **)hdb, dbname, flags, param);
+    st=env->open_db((Database **)hdb, dbname, flags, param);
 
     /* TODO move cleanup code to Environment::open_db() */
     if (st) {
@@ -1048,7 +1038,15 @@ ham_env_open(ham_env_t **henv, const char *filename,
 
     *henv = 0;
 
-    Environment *env=new Environment;
+    Environment *env;
+    if (__filename_is_local(filename))
+        env=new LocalEnvironment();
+    else {
+#ifndef HAM_ENABLE_REMOTE
+        return HAM_NOT_IMPLEMENTED;
+#endif // HAM_ENABLE_REMOTE
+        env=new RemoteEnvironment();
+    }
 
 #ifdef HAM_ENABLE_REMOTE
     atexit(curl_global_cleanup);
@@ -1075,16 +1073,8 @@ ham_env_open(ham_env_t **henv, const char *filename,
         env->set_filename(filename);
     env->set_allocator(Allocator::create());
 
-    /* initialize function pointers */
-    if (__filename_is_local(filename))
-        st=env_initialize_local(env);
-    else
-        st=env_initialize_remote(env);
-    if (st)
-        goto bail;
-
     /* and finish the initialization of the Environment */
-    st=env->_fun_open(env, filename, flags, param);
+    st=env->open(filename, flags, param);
     if (st)
         goto bail;
 
@@ -1122,21 +1112,13 @@ ham_env_rename_db(ham_env_t *henv, ham_u16_t oldname,
         ham_trace(("parameter 'newname' must be lower than 0xf000"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_rename_db) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
-    /*
-     * no need to do anything if oldname==newname
-     */
+    /* no need to do anything if oldname==newname */
     if (oldname==newname)
         return (0);
 
-    /*
-     * rename the database
-     */
-    return (env->_fun_rename_db(env, oldname, newname, flags));
+    /* rename the database */
+    return (env->rename_db(oldname, newname, flags));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1154,15 +1136,9 @@ ham_env_erase_db(ham_env_t *henv, ham_u16_t name, ham_u32_t flags)
         ham_trace(("parameter 'name' must not be 0"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_erase_db) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
-    /*
-     * erase the database
-     */
-    return (env->_fun_erase_db(env, name, flags));
+    /* erase the database */
+    return (env->erase_db(name, flags));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1184,13 +1160,9 @@ ham_env_get_database_names(ham_env_t *henv, ham_u16_t *names, ham_size_t *count)
         ham_trace(("parameter 'count' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_get_database_names) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
     /* get all database names */
-    return (env->_fun_get_database_names(env, names, count));
+    return (env->get_database_names(names, count));
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
@@ -1208,13 +1180,9 @@ ham_env_get_parameters(ham_env_t *henv, ham_parameter_t *param)
         ham_trace(("parameter 'param' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_get_parameters) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
 
     /* get the parameters */
-    return (env->_fun_get_parameters(env, param));
+    return (env->get_parameters(param));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1230,13 +1198,8 @@ ham_env_flush(ham_env_t *henv, ham_u32_t flags)
     if (!(flags&HAM_DONT_LOCK))
         lock=ScopedLock(env->get_mutex());
 
-    if (!env->_fun_flush) {
-        ham_trace(("Environment was not initialized"));
-        return (HAM_NOT_INITIALIZED);
-    }
-
     /* flush the Environment */
-    return (env->_fun_flush(env, flags));
+    return (env->flush(flags));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1248,12 +1211,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
-    }
-
-    /* it's ok to close an uninitialized Environment */
-    if (!env->_fun_close) {
-        delete env;
-        return (0);
     }
 
     ScopedLock lock=ScopedLock(env->get_mutex());
@@ -1288,7 +1245,7 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
         return (st);
 
     /* close the environment */
-    st=env->_fun_close(env, flags);
+    st=env->close(flags);
     if (st)
         return (st);
 

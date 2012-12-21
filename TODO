@@ -221,6 +221,25 @@ x write extra documentation about getting the best performance
     x transactions: use HAM_OVERWRITE
     x transactions: store log/journal on different disk
 
+x split Environment into baseclass, derive local and remote Environment
+    x remove function pointers
+    x move curl handle into RemoteEnvironment
+    x remote.cc: remove static functions
+    x env.cc: clean up code
+    x remote.cc: clean up code
+    x env.cc: remove static functions
+    x move db_flush_all into LocalEnvironment
+    x move db_fetch_page_impl to Environment
+    x move db_alloc_page_impl to Environment
+    x try to reduce the TODOs
+    x get rid of __check_create_parameters
+
+o Remove HAM_NOT_INITIALIZED
+
+o cleanup ham/types.h
+    o use stdint.h/inttypes.h
+    o get rid of ham_offset_t
+
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
@@ -231,12 +250,6 @@ o finalize for the next release
     o update FAQ/Documentation regarding mmap
     o need documentation for ham_export, ham_import
     o MSVC project files for ham_import, ham_export
-
-. split Environment into baseclass, derive local and remote Environment
-    o move db_flush_all into LocalEnvironment
-    o remove function pointers
-    o clean up code
-    o try to reduce the TODOs
 
 . split Transaction into local and remote class
     o hamsterdb.cc directly calls into Transaction class instead of Environment
@@ -360,6 +373,11 @@ o is the recovery working if there's a crash during ham_close?
 
 o BtreeFindAction: always use a cursor, and when doing approx matching
     then simply move left or right with that cursor
+
+. track additional metrics
+    o cache misses
+    o cache hits
+    o ...
 
 o flush in background (asynchronously)
     o need new flag file HAM_DISABLE_ASYNCHRONOUS_FLUSH

@@ -534,7 +534,7 @@ Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
         }
         /* otherwise just fetch the page from the cache or the disk */
         else {
-            st=env_fetch_page(&page, m_env, entry->page_id);
+            st=m_env->fetch_page(&page, 0, entry->page_id);
             if (st)
                 return (st);
             fp=page_get_freelist(page);
@@ -744,7 +744,7 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
                         fp = m_env->get_freelist_payload();
                     }
                     else {
-                        st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                        st = m_env->fetch_page(&page, 0, entry->page_id, 0);
                         if (st)
                             return (st);
                         fp=page_get_freelist(page);
@@ -802,7 +802,7 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
                 page = 0;
             }
             else {
-                st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                st = m_env->fetch_page(&page, 0, entry->page_id, 0);
                 if (st)
                     return (st);
                 fp=page_get_freelist(page);
@@ -935,7 +935,7 @@ Freelist::flush_statistics()
             else {
                 Page *page;
 
-                st = env_fetch_page(&page, m_env, entry->page_id, 0);
+                st = m_env->fetch_page(&page, 0, entry->page_id, 0);
                 if (st)
                     return (st);
                 fp=page_get_freelist(page);
@@ -2835,7 +2835,7 @@ Freelist::initialize()
         if (st)
             return st;
 
-        st=env_fetch_page(&page, m_env, freel_get_overflow(fp), 0);
+        st=m_env->fetch_page(&page, 0, freel_get_overflow(fp), 0);
         if (st)
             return (st);
 
@@ -2994,7 +2994,7 @@ Freelist::alloc_page(Page **page_ref, FreelistEntry *entry)
                 __env_set_dirty(m_env);
             }
             else {
-                st=env_fetch_page(&prev_page, m_env, entries[i-1].page_id, 0);
+                st=m_env->fetch_page(&prev_page, 0, entries[i - 1].page_id, 0);
                 if (st)
                     return (st);
                 __page_set_dirty(prev_page);
@@ -3002,8 +3002,8 @@ Freelist::alloc_page(Page **page_ref, FreelistEntry *entry)
             }
 
             /* allocate a new page, fixed the linked list */
-            st=env_alloc_page(&page, m_env, Page::TYPE_FREELIST,
-                    PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+            st=m_env->alloc_page(&page, 0, Page::TYPE_FREELIST,
+                    PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO);
             if (!page) {
                 ham_assert(st != 0);
                 return st;

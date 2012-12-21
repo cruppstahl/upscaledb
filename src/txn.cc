@@ -401,7 +401,7 @@ Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
   }
 
   /* link this txn with the Environment */
-  env_append_txn(env, this);
+  env->append_txn(this);
 }
 
 Transaction::~Transaction()

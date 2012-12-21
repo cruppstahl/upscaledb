@@ -396,84 +396,10 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
 }
 
 ham_status_t
-db_alloc_page_impl(Page **page_ref, Environment *env, Database *db,
-        ham_u32_t type, ham_u32_t flags)
-{
-  ham_status_t st;
-  ham_offset_t tellpos = 0;
-  Page *page = NULL;
-  bool allocated_by_me = false;
-
-  *page_ref = 0;
-  ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO)));
-
-  /* first, we ask the freelist for a page */
-  if (!(flags & PAGE_IGNORE_FREELIST) && env->get_freelist()) {
-    st = env->get_freelist()->alloc_page(&tellpos, db);
-    if (st)
-      return (st);
-    if (tellpos) {
-      ham_assert(tellpos % env->get_pagesize() == 0);
-      /* try to fetch the page from the cache */
-      page = env->get_cache()->get_page(tellpos, 0);
-      if (page)
-        goto done;
-      /* allocate a new page structure and read the page from disk */
-      page = new Page(env, db);
-      st = page->fetch(tellpos);
-      if (st) {
-        delete page;
-        return (st);
-      }
-      goto done;
-    }
-  }
-
-  if (!page) {
-    page = new Page(env, db);
-    allocated_by_me = true;
-  }
-
-  /* can we allocate a new page for the cache? */
-  if (env->get_cache()->is_too_big()) {
-    if (env->get_flags()&HAM_CACHE_STRICT) {
-      if (allocated_by_me)
-        delete page;
-      return (HAM_CACHE_FULL);
-    }
-  }
-
-  ham_assert(tellpos == 0);
-  st = page->allocate();
-  if (st)
-    return (st);
-
-done:
-  /* initialize the page; also set the 'dirty' flag to force logging */
-  page->set_type(type);
-  page->set_dirty(true);
-  page->set_db(db);
-
-  /* clear the page with zeroes?  */
-  if (flags&PAGE_CLEAR_WITH_ZERO)
-    memset(page->get_pers(), 0, env->get_pagesize());
-
-  /* an allocated page is always flushed if recovery is enabled */
-  if (env->get_flags() & HAM_ENABLE_RECOVERY)
-    env->get_changeset().add_page(page);
-
-  /* store the page in the cache */
-  env->get_cache()->put_page(page);
-
-  *page_ref = page;
-  return (HAM_SUCCESS);
-}
-
-ham_status_t
 Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 {
   ham_status_t st;
-  st = db_alloc_page_impl(page, m_env, this, type, flags);
+  st = m_env->alloc_page(page, this, type, flags);
   if (st)
     return (st);
 
@@ -486,89 +412,9 @@ Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 }
 
 ham_status_t
-db_fetch_page_impl(Page **page_ref, Environment *env, Database *db,
-            ham_offset_t address, bool only_from_cache)
-{
-  ham_status_t st;
-
-  *page_ref = 0;
-
-  /* fetch the page from the cache */
-  Page *page = env->get_cache()->get_page(address, Cache::NOREMOVE);
-  if (page) {
-    *page_ref = page;
-    ham_assert(page->get_pers());
-    /* store the page in the changeset if recovery is enabled */
-    if (env->get_flags() & HAM_ENABLE_RECOVERY)
-      env->get_changeset().add_page(page);
-    return (HAM_SUCCESS);
-  }
-
-  if (only_from_cache)
-    return (HAM_SUCCESS);
-
-  ham_assert(env->get_cache()->get_page(address) == 0);
-
-  /* can we allocate a new page for the cache? */
-  if (env->get_cache()->is_too_big()) {
-    if (env->get_flags() & HAM_CACHE_STRICT)
-      return (HAM_CACHE_FULL);
-  }
-
-  page = new Page(env, db);
-  st = page->fetch(address);
-  if (st) {
-    delete page;
-    return (st);
-  }
-
-  ham_assert(page->get_pers());
-
-  /* store the page in the cache */
-  env->get_cache()->put_page(page);
-
-  /* store the page in the changeset */
-  if (env->get_flags() & HAM_ENABLE_RECOVERY)
-    env->get_changeset().add_page(page);
-
-  *page_ref = page;
-  return (HAM_SUCCESS);
-}
-
-ham_status_t
 Database::fetch_page(Page **page, ham_offset_t address, bool only_from_cache)
 {
-  return (db_fetch_page_impl(page, m_env, this, address, only_from_cache));
-}
-
-static bool
-db_flush_callback(Page *page, Database *db, ham_u32_t flags)
-{
-  (void)db;
-  (void)page->flush();
-
-  /*
-   * if the page is deleted, uncouple all cursors, then
-   * free the memory of the page, then remove from the cache
-   */
-  if (!(flags & DB_FLUSH_NODELETE)) {
-    (void)page->uncouple_all_cursors();
-    (void)page->free();
-    return (true);
-  }
-
-  return (false);
-}
-
-ham_status_t
-db_flush_all(Cache *cache, ham_u32_t flags)
-{
-  ham_assert(0 == (flags & ~DB_FLUSH_NODELETE));
-
-  if (!cache)
-    return (0);
-
-  return (cache->visit(db_flush_callback, 0, flags));
+  return (m_env->fetch_page(page, this, address, only_from_cache));
 }
 
 Cursor *
@@ -941,7 +787,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   }
 
   /* get the next lsn */
-  st = env_get_incremented_lsn(m_env, &lsn);
+  st = m_env->get_incremented_lsn(&lsn);
   if (st) {
     if (node_created)
       txn_opnode_free(m_env, node);
@@ -1111,7 +957,7 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   }
 
   /* get the next lsn */
-  st = env_get_incremented_lsn(m_env, &lsn);
+  st = m_env->get_incremented_lsn(&lsn);
   if (st) {
     if (node_created)
       txn_opnode_free(m_env, node);
@@ -1367,20 +1213,111 @@ retry:
 }
 
 ham_status_t
-LocalDatabase::open()
+LocalDatabase::open(ham_u16_t descriptor)
 {
+  /*
+   * set the database flags; strip off the persistent flags that may have been
+   * set by the caller, before mixing in the persistent flags as obtained
+   * from the btree.
+   */
+  ham_u32_t flags = get_rt_flags();
+  flags &= ~(HAM_DISABLE_VAR_KEYLEN
+            | HAM_CACHE_STRICT
+            | HAM_CACHE_UNLIMITED
+            | HAM_DISABLE_MMAP
+            | HAM_ENABLE_FSYNC
+            | HAM_READ_ONLY
+            | HAM_ENABLE_RECOVERY
+            | HAM_AUTO_RECOVERY
+            | HAM_ENABLE_TRANSACTIONS);
+
+  /* create the btree */
+  BtreeIndex *bt = new BtreeIndex(this, descriptor, flags);
+
+  ham_assert(!(bt->get_flags() & HAM_DISABLE_VAR_KEYLEN));
+  ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
+  ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
+  ham_assert(!(bt->get_flags() & HAM_DISABLE_MMAP));
+  ham_assert(!(bt->get_flags() & HAM_ENABLE_FSYNC));
+  ham_assert(!(bt->get_flags() & HAM_READ_ONLY));
+  ham_assert(!(bt->get_flags() & HAM_ENABLE_RECOVERY));
+  ham_assert(!(bt->get_flags() & HAM_AUTO_RECOVERY));
+  ham_assert(!(bt->get_flags() & HAM_ENABLE_TRANSACTIONS));
+
+  /* initialize the btree */
+  ham_status_t st = bt->open();
+  if (st) {
+    delete bt;
+    return (st);
+  }
+
+  set_btree(bt);
+
+  /* set the compare functions */
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+    set_compare_func(Database::default_recno_compare);
+  }
+  else {
+    set_compare_func(Database::default_compare);
+    set_prefix_compare_func(Database::default_prefix_compare);
+  }
+
+  /* merge the non-persistent database flag with the persistent flags from
+   * the btree index */
+  set_rt_flags(get_rt_flags(true) | bt->get_flags());
+
   if ((get_rt_flags() & HAM_RECORD_NUMBER) == 0)
     return (0);
 
   ham_key_t key = {};
   Cursor *c = new Cursor(this, 0, 0);
-  ham_status_t st = cursor_move(c, &key, 0, HAM_CURSOR_LAST);
+  st = cursor_move(c, &key, 0, HAM_CURSOR_LAST);
   cursor_close(c);
   if (st)
     return (st == HAM_KEY_NOT_FOUND ? 0 : st);
+
   ham_assert(key.size == sizeof(ham_u64_t));
   m_recno = *(ham_u64_t *)key.data;
   m_recno = ham_h2db64(m_recno);
+
+  return (0);
+}
+
+ham_status_t
+LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
+{
+  /* set the flags; strip off run-time (per session) flags for the btree */
+  ham_u32_t persistent_flags = get_rt_flags();
+  persistent_flags &= ~(HAM_DISABLE_VAR_KEYLEN
+            | HAM_CACHE_STRICT
+            | HAM_CACHE_UNLIMITED
+            | HAM_DISABLE_MMAP
+            | HAM_ENABLE_FSYNC
+            | HAM_READ_ONLY
+            | HAM_ENABLE_RECOVERY
+            | HAM_AUTO_RECOVERY
+            | HAM_ENABLE_TRANSACTIONS);
+
+  /* create the btree */
+  BtreeIndex *bt = new BtreeIndex(this, descriptor, persistent_flags);
+  set_btree(bt);
+
+  /* initialize the btree */
+  ham_status_t st = bt->create(keysize);
+  if (st) {
+    delete bt;
+    return (st);
+  }
+
+  /* set the default key compare functions */
+  if (get_rt_flags() & HAM_RECORD_NUMBER) {
+    set_compare_func(Database::default_recno_compare);
+  }
+  else {
+    set_compare_func(Database::default_compare);
+    set_prefix_compare_func(Database::default_prefix_compare);
+  }
+
   return (0);
 }
 
@@ -1436,7 +1373,7 @@ LocalDatabase::check_integrity(Transaction *txn)
   }
 
   /* purge cache if necessary */
-  st = env_purge_cache(get_env());
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -1462,7 +1399,7 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
   }
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -1507,7 +1444,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
             : &txn->get_key_arena();
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -1667,7 +1604,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   ham_offset_t recno = 0;
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -1803,7 +1740,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -1977,7 +1914,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -2133,7 +2070,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
   txn_cursor_t *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -2188,7 +2125,7 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
   txn_cursor_t *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -2244,7 +2181,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 
@@ -2294,7 +2231,7 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = env_purge_cache(m_env);
+  st = get_env()->purge_cache();
   if (st)
     return (st);
 

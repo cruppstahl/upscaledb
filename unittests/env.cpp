@@ -352,6 +352,7 @@ protected:
   // check to make sure both create and open_ex support accessing more
   // than DB_MAX_INDICES DBs in one env:
   void createAndOpenMultiDbTest() {
+#undef MAX
 #define MAX 256
     ham_env_t *env;
     ham_db_t *db[MAX];

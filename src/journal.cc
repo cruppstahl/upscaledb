@@ -437,8 +437,7 @@ __recover_get_db(Environment *env, ham_u16_t dbname, Database **pdb)
   }
 
   /* not found - open it */
-  return (ham_env_open_db((ham_env_t *)env, (ham_db_t **)pdb, dbname,
-                    HAM_DONT_LOCK, 0));
+  return (env->open_db(pdb, dbname, 0, 0));
 }
 
 static void
