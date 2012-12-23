@@ -1,3 +1,6 @@
+Dec 23, 2012 - chris ---------------------------------------------------
+o Removed the deprecated flag HAM_NOT_INITIALIZED
+
 Dec 20, 2012 - chris ---------------------------------------------------
 o Removed the deprecated flag HAM_LOCK_EXCLUSIVE
 o Renamed ham_check_integrity to ham_db_check_integrity

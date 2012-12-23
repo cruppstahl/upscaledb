@@ -28,8 +28,6 @@ namespace Hamster
     public const int HAM_INV_PAGESIZE           =     -4;
     /// <summary>Memory allocation failed - out of memory</summary>
     public const int HAM_OUT_OF_MEMORY          =     -6;
-    /// <summary>Object not initialized</summary>
-    public const int HAM_NOT_INITIALIZED        =     -7;
     /// <summary>Invalid function parameter</summary>
     public const int HAM_INV_PARAMETER          =     -8;
     /// <summary>Invalid file header</summary>

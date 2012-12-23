@@ -26,9 +26,6 @@ public class Const {
     /** Memory allocation failed - out of memory */
     public final static int HAM_OUT_OF_MEMORY                   =       -6;
 
-    /** Object not initialized */
-    public final static int HAM_NOT_INITIALIZED                 =       -7;
-
     /** Invalid function parameter */
     public final static int HAM_INV_PARAMETER                   =       -8;
 

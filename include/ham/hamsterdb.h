@@ -284,8 +284,6 @@ typedef struct {
 #define HAM_INV_PAGESIZE                ( -4)
 /** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY               ( -6)
-/** Object not initialized */
-#define HAM_NOT_INITIALIZED             ( -7)
 /** Invalid function parameter */
 #define HAM_INV_PARAMETER               ( -8)
 /** Invalid file header */

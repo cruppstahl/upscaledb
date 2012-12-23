@@ -234,7 +234,7 @@ x split Environment into baseclass, derive local and remote Environment
     x try to reduce the TODOs
     x get rid of __check_create_parameters
 
-o Remove HAM_NOT_INITIALIZED
+x Remove HAM_NOT_INITIALIZED
 
 o cleanup ham/types.h
     o use stdint.h/inttypes.h

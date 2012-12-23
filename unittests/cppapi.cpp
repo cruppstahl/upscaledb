@@ -142,9 +142,6 @@ public:
     ham::db db;
     // check for obvious errors
 
-    // get_error() is one of the few methods which should NOT throw an
-    // exception itself:
-    BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, db.get_error());
     db.get_version(0, 0, 0);
     BFC_ASSERT(".get_version() did not throw while receiving NULL arguments");
     db.get_license(0, 0);

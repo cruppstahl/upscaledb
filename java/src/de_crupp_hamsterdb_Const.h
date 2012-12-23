@@ -15,8 +15,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_INV_PAGESIZE -4L
 #undef de_crupp_hamsterdb_Const_HAM_OUT_OF_MEMORY
 #define de_crupp_hamsterdb_Const_HAM_OUT_OF_MEMORY -6L
-#undef de_crupp_hamsterdb_Const_HAM_NOT_INITIALIZED
-#define de_crupp_hamsterdb_Const_HAM_NOT_INITIALIZED -7L
 #undef de_crupp_hamsterdb_Const_HAM_INV_PARAMETER
 #define de_crupp_hamsterdb_Const_HAM_INV_PARAMETER -8L
 #undef de_crupp_hamsterdb_Const_HAM_INV_FILE_HEADER

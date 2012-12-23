@@ -313,8 +313,6 @@ ham_strerror(ham_status_t result)
             return ("Invalid page size");
         case HAM_OUT_OF_MEMORY:
             return ("Out of memory");
-        case HAM_NOT_INITIALIZED:
-            return ("Object not initialized");
         case HAM_INV_PARAMETER:
             return ("Invalid parameter");
         case HAM_INV_FILE_HEADER:
