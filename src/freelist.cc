@@ -481,7 +481,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 }
 
 ham_status_t
-Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
+Freelist::mark_free(Database *db, ham_u64_t address, ham_size_t size,
                 ham_bool_t overwrite)
 {
     ham_status_t st;
@@ -566,8 +566,8 @@ Freelist::mark_free(Database *db, ham_offset_t address, ham_size_t size,
 }
 
 ham_status_t
-Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
-                bool aligned, ham_offset_t lower_bound_address)
+Freelist::alloc_area(ham_u64_t *addr_ref, Database *db, ham_size_t size,
+                bool aligned, ham_u64_t lower_bound_address)
 {
     ham_status_t st;
     ham_s32_t i;
@@ -726,7 +726,7 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
             }
             else {
                 ham_size_t len;
-                ham_offset_t addr = 0;
+                ham_u64_t addr = 0;
 
                 /* we have a hit! */
                 i -= start_idx;
@@ -843,7 +843,7 @@ Freelist::alloc_area(ham_offset_t *addr_ref, Database *db, ham_size_t size,
 }
 
 ham_status_t
-Freelist::alloc_page(ham_offset_t *address, Database *db)
+Freelist::alloc_page(ham_u64_t *address, Database *db)
 {
     return (alloc_area(address, db, m_env->get_pagesize(), true, 0));
 }
@@ -865,7 +865,7 @@ Freelist::init_perf_data(FreelistEntry *entry, FreelistPayload *fp)
      * in here */
 
     if (fp && entrystats->persisted_bits == 0) {
-        ham_offset_t filesize;
+        ham_u64_t filesize;
 
         /*
          * now comes the hard part: when we don't have overflow, we
@@ -2856,7 +2856,7 @@ Freelist::initialize()
  * for the specified @a address.
  */
 ham_status_t
-Freelist::get_entry(FreelistEntry **entry_ref, ham_offset_t address)
+Freelist::get_entry(FreelistEntry **entry_ref, ham_u64_t address)
 {
     ham_size_t i=0;
     ham_status_t st=0;

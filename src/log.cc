@@ -116,7 +116,7 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
 
   /* now read the extended data, if it's available */
   if (entry->data_size) {
-    ham_offset_t pos = (*iter)-entry->data_size;
+    ham_u64_t pos = (*iter)-entry->data_size;
     pos -= (pos % 8);
 
     *data = (ham_u8_t *)m_env->get_allocator()->alloc(
@@ -192,7 +192,7 @@ Log::recover()
   Log::Entry entry;
   Iterator it = 0;
   ham_u8_t *data = 0;
-  ham_offset_t filesize;
+  ham_u64_t filesize;
   bool first_loop = true;
 
   /* get the file size of the database; otherwise we do not know if we
@@ -299,7 +299,7 @@ bail:
 }
 
 ham_status_t
-Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_offset_t offset,
+Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
   Log::Entry entry;

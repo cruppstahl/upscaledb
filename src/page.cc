@@ -53,7 +53,7 @@ Page::allocate()
 }
 
 ham_status_t
-Page::fetch(ham_offset_t address)
+Page::fetch(ham_u64_t address)
 {
   set_self(address);
   return (get_device()->read_page(this));

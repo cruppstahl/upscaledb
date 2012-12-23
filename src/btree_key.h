@@ -73,7 +73,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
    * if TINY or SMALL is set, the key is actually a char*-pointer;
    * in this case, we must not use endian-conversion!
    */
-  ham_offset_t get_ptr() {
+  ham_u64_t get_ptr() {
     return (((_flags8 & KEY_BLOB_SIZE_TINY)
                 || (_flags8 & KEY_BLOB_SIZE_SMALL))
             ? _ptr
@@ -81,12 +81,12 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
   }
 
   /** same as above, but without endian conversion */
-  ham_offset_t *get_rawptr() {
+  ham_u64_t *get_rawptr() {
     return (&_ptr);
   }
 
   /** same as above, but without endian conversion */
-  const ham_offset_t *get_rawptr() const {
+  const ham_u64_t *get_rawptr() const {
     return (&_ptr);
   }
 
@@ -97,7 +97,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
    * if TINY or SMALL is set, the key is actually a char*-pointer;
    * in this case, we must not use endian-conversion
    */
-  void set_ptr(ham_offset_t ptr) {
+  void set_ptr(ham_u64_t ptr) {
     _ptr = (((_flags8 & KEY_BLOB_SIZE_TINY) ||
               (_flags8 & KEY_BLOB_SIZE_SMALL))
             ? ptr
@@ -146,10 +146,10 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
   }
 
   /** get the record address of an extended key overflow area */
-  ham_offset_t get_extended_rid(Database *db);
+  ham_u64_t get_extended_rid(Database *db);
 
   /** set the record address of an extended key overflow area */
-  void set_extended_rid(Database *db, ham_offset_t rid);
+  void set_extended_rid(Database *db, ham_u64_t rid);
 
   /**
    * inserts and sets a record

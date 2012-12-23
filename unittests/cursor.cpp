@@ -94,7 +94,7 @@ public:
     }
 
     for (int i = 0; i < MAX; i++) {
-      ham_offset_t size = 0;
+      ham_u64_t size = 0;
 
       ::memset(&key, 0, sizeof(key));
       BFC_ASSERT_EQUAL(0,
@@ -128,7 +128,7 @@ public:
     }
 
     for (int i = 0; i < MAX; i++) {
-      ham_offset_t size = 0;
+      ham_u64_t size = 0;
 
       key.data = data;
       key.size = sizeof(data);

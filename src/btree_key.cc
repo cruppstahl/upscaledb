@@ -28,20 +28,20 @@ namespace ham {
 
 size_t BtreeKey::ms_sizeof_overhead = OFFSETOF(BtreeKey, _key);
 
-ham_offset_t
+ham_u64_t
 BtreeKey::get_extended_rid(Database *db)
 {
-  ham_offset_t rid;
-  memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_offset_t)),
+  ham_u64_t rid;
+  memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
           sizeof(rid));
   return (ham_db2h_offset(rid));
 }
 
 void
-BtreeKey::set_extended_rid(Database *db, ham_offset_t rid)
+BtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
 {
   rid = ham_h2db_offset(rid);
-  memcpy(get_key() + (db->get_keysize() - sizeof(ham_offset_t)),
+  memcpy(get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
           &rid, sizeof(rid));
 }
 
@@ -51,8 +51,8 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
 {
   ham_status_t st;
   Environment *env = db->get_env();
-  ham_offset_t rid = 0;
-  ham_offset_t ptr = get_ptr();
+  ham_u64_t rid = 0;
+  ham_u64_t ptr = get_ptr();
   ham_u8_t oldflags = get_flags();
 
   set_flags(oldflags & ~(KEY_BLOB_SIZE_SMALL
@@ -63,14 +63,14 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
   if (!ptr && !(oldflags & (KEY_BLOB_SIZE_SMALL
                     | KEY_BLOB_SIZE_TINY
                     | KEY_BLOB_SIZE_EMPTY))) {
-    if (record->size <= sizeof(ham_offset_t)) {
+    if (record->size <= sizeof(ham_u64_t)) {
       if (record->data)
         memcpy(&rid, record->data, record->size);
       if (record->size == 0)
         set_flags(get_flags() | KEY_BLOB_SIZE_EMPTY);
-      else if (record->size < sizeof(ham_offset_t)) {
+      else if (record->size < sizeof(ham_u64_t)) {
         char *p = (char *)&rid;
-        p[sizeof(ham_offset_t) - 1] = (char)record->size;
+        p[sizeof(ham_u64_t) - 1] = (char)record->size;
         set_flags(get_flags() | KEY_BLOB_SIZE_TINY);
       }
       else
@@ -85,7 +85,7 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
     }
   }
   else if (!(oldflags & KEY_HAS_DUPLICATES)
-      && record->size > sizeof(ham_offset_t)
+      && record->size > sizeof(ham_u64_t)
       && !(flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
                     | HAM_DUPLICATE_INSERT_LAST))) {
@@ -113,7 +113,7 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
     }
   }
   else if (!(oldflags & KEY_HAS_DUPLICATES)
-          && record->size <= sizeof(ham_offset_t)
+          && record->size <= sizeof(ham_u64_t)
           && !(flags & (HAM_DUPLICATE
                   | HAM_DUPLICATE_INSERT_BEFORE
                   | HAM_DUPLICATE_INSERT_AFTER
@@ -131,9 +131,9 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
       memcpy(&rid, record->data, record->size);
     if (record->size == 0)
       set_flags(get_flags() | KEY_BLOB_SIZE_EMPTY);
-    else if (record->size < sizeof(ham_offset_t)) {
+    else if (record->size < sizeof(ham_u64_t)) {
       char *p = (char *)&rid;
-      p[sizeof(ham_offset_t) - 1] = (char)record->size;
+      p[sizeof(ham_u64_t) - 1] = (char)record->size;
       set_flags(get_flags() | KEY_BLOB_SIZE_TINY);
     }
     else
@@ -165,14 +165,14 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
       dupe_entry_set_rid(&entries[i], ptr);
       i++;
     }
-    if (record->size <= sizeof(ham_offset_t)) {
+    if (record->size <= sizeof(ham_u64_t)) {
       if (record->data)
         memcpy(&rid, record->data, record->size);
       if (record->size == 0)
         dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_EMPTY);
-      else if (record->size < sizeof(ham_offset_t)) {
+      else if (record->size < sizeof(ham_u64_t)) {
         char *p = (char *)&rid;
-        p[sizeof(ham_offset_t) - 1] = (char)record->size;
+        p[sizeof(ham_u64_t) - 1] = (char)record->size;
         dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_TINY);
       }
       else
@@ -194,7 +194,7 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
             flags, &entries[0], i, &rid, new_position);
     if (st) {
       /* don't leak memory through the blob allocation above */
-      if (record->size > sizeof(ham_offset_t)) {
+      if (record->size > sizeof(ham_u64_t)) {
         (void)env->get_blob_manager()->free(db,
                 dupe_entry_get_rid(&entries[i-1]), 0);
       }
@@ -214,7 +214,7 @@ BtreeKey::erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
         bool erase_all_duplicates)
 {
   ham_status_t st;
-  ham_offset_t rid;
+  ham_u64_t rid;
 
   /* if the record is > 8 bytes then it needs to be freed explicitly */
   if (!(get_flags() & (KEY_BLOB_SIZE_SMALL | KEY_BLOB_SIZE_TINY

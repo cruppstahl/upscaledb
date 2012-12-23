@@ -488,7 +488,7 @@ BtreeCursor::get_duplicate_table(dupe_table_t **ptable, bool *needs_free)
 }
 
 ham_status_t
-BtreeCursor::get_record_size(ham_offset_t *size)
+BtreeCursor::get_record_size(ham_u64_t *size)
 {
   ham_status_t st;
   Database *db = get_db();
@@ -530,11 +530,11 @@ BtreeCursor::get_record_size(ham_offset_t *size)
   if (keyflags & BtreeKey::KEY_BLOB_SIZE_TINY) {
     /* the highest byte of the record id is the size of the blob */
     char *p = (char *)ridptr;
-    *size = p[sizeof(ham_offset_t) - 1];
+    *size = p[sizeof(ham_u64_t) - 1];
   }
   else if (keyflags & BtreeKey::KEY_BLOB_SIZE_SMALL) {
-    /* record size is sizeof(ham_offset_t) */
-    *size = sizeof(ham_offset_t);
+    /* record size is sizeof(ham_u64_t) */
+    *size = sizeof(ham_u64_t);
   }
   else if (keyflags & BtreeKey::KEY_BLOB_SIZE_EMPTY) {
     /* record size is 0 */

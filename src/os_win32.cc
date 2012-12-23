@@ -131,8 +131,8 @@ os_get_granularity()
 }
 
 ham_status_t
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
-            ham_offset_t size, bool readonly, ham_u8_t **buffer)
+os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
+            ham_u64_t size, bool readonly, ham_u8_t **buffer)
 {
 #ifndef UNDER_CE
   ham_status_t st;
@@ -172,7 +172,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 }
 
 ham_status_t
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 {
 #ifndef UNDER_CE
   ham_status_t st;
@@ -202,7 +202,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 }
 
 ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, ham_offset_t bufferlen)
+os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
@@ -230,8 +230,8 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, ham_offset_t bufferlen)
 }
 
 ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
-    ham_offset_t bufferlen)
+os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
+    ham_u64_t bufferlen)
 {
   ham_status_t st;
   OVERLAPPED ov = { 0 };
@@ -259,7 +259,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 }
 
 ham_status_t
-os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
+os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 {
   ham_status_t st;
   DWORD written = 0;
@@ -276,18 +276,18 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 }
 
 ham_status_t
-os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
-            void *buffer2, ham_offset_t buffer2_len,
-            void *buffer3, ham_offset_t buffer3_len,
-            void *buffer4, ham_offset_t buffer4_len,
-            void *buffer5, ham_offset_t buffer5_len)
+os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
+            void *buffer2, ham_u64_t buffer2_len,
+            void *buffer3, ham_u64_t buffer3_len,
+            void *buffer4, ham_u64_t buffer4_len,
+            void *buffer5, ham_u64_t buffer5_len)
 {
   /*
    * Win32 also has a writev implementation, but it requires the pointers
    * to be memory page aligned
    */
   ham_status_t st;
-  ham_offset_t rollback;
+  ham_u64_t rollback;
 
   st = os_tell(fd, &rollback);
   if (st)
@@ -330,7 +330,7 @@ bail:
 #endif
 
 ham_status_t
-os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
+os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
 {
   DWORD st;
   LARGE_INTEGER i;
@@ -349,7 +349,7 @@ os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 }
 
 ham_status_t
-os_tell(ham_fd_t fd, ham_offset_t *offset)
+os_tell(ham_fd_t fd, ham_u64_t *offset)
 {
   DWORD st;
   LARGE_INTEGER i;
@@ -365,7 +365,7 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
     return (HAM_IO_ERROR);
   }
 
-  *offset = (ham_offset_t)i.QuadPart;
+  *offset = (ham_u64_t)i.QuadPart;
   return (0);
 }
 
@@ -374,7 +374,7 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
 #endif
 
 ham_status_t
-os_get_filesize(ham_fd_t fd, ham_offset_t *size)
+os_get_filesize(ham_fd_t fd, ham_u64_t *size)
 {
   ham_status_t st;
   LARGE_INTEGER i;
@@ -389,12 +389,12 @@ os_get_filesize(ham_fd_t fd, ham_offset_t *size)
     return (HAM_IO_ERROR);
   }
 
-  *size = (ham_offset_t)i.QuadPart;
+  *size = (ham_u64_t)i.QuadPart;
   return (0);
 }
 
 ham_status_t
-os_truncate(ham_fd_t fd, ham_offset_t newsize)
+os_truncate(ham_fd_t fd, ham_u64_t newsize)
 {
   ham_status_t st;
 

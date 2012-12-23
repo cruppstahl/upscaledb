@@ -79,10 +79,10 @@ DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
 }
 
 ham_status_t
-DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
+DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
                 ham_record_t *record, ham_size_t position, ham_u32_t flags,
                 dupe_entry_t *entries, ham_size_t num_entries,
-                ham_offset_t *rid, ham_size_t *new_position)
+                ham_u64_t *rid, ham_size_t *new_position)
 {
   ham_status_t st = 0;
   dupe_table_t *table = 0;
@@ -223,14 +223,14 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_offset_t table_id,
 }
 
 ham_status_t
-DuplicateManager::erase(Database *db, Transaction *txn, ham_offset_t table_id,
+DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
             ham_size_t position, bool erase_all_duplicates,
-            ham_offset_t *new_table_id)
+            ham_u64_t *new_table_id)
 {
   ham_status_t st;
   ham_record_t rec = {0};
   dupe_table_t *table;
-  ham_offset_t rid;
+  ham_u64_t rid;
 
   if (new_table_id)
     *new_table_id = table_id;
@@ -306,7 +306,7 @@ DuplicateManager::erase(Database *db, Transaction *txn, ham_offset_t table_id,
 }
 
 ham_status_t
-DuplicateManager::get_count(ham_offset_t table_id, ham_size_t *count,
+DuplicateManager::get_count(ham_u64_t table_id, ham_size_t *count,
                 dupe_entry_t *entry)
 {
   dupe_table_t *table;
@@ -328,7 +328,7 @@ DuplicateManager::get_count(ham_offset_t table_id, ham_size_t *count,
 }
 
 ham_status_t
-DuplicateManager::get(ham_offset_t table_id, ham_size_t position,
+DuplicateManager::get(ham_u64_t table_id, ham_size_t position,
                 dupe_entry_t *entry)
 {
   ham_status_t st;
@@ -355,7 +355,7 @@ DuplicateManager::get(ham_offset_t table_id, ham_size_t position,
 }
 
 ham_status_t
-DuplicateManager::get_table(ham_offset_t table_id, dupe_table_t **ptable,
+DuplicateManager::get_table(ham_u64_t table_id, dupe_table_t **ptable,
                 bool *needs_free)
 {
   Page *page = 0;

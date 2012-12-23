@@ -120,13 +120,13 @@ class DupeCacheLine
     }
 
     /** Returns the btree duplicate index */
-    ham_offset_t get_btree_dupe_idx(void) {
+    ham_u64_t get_btree_dupe_idx(void) {
         ham_assert(m_use_btree==true);
         return (m_btree_dupeidx);
     }
 
     /** Sets the btree duplicate index */
-    void set_btree_dupe_idx(ham_offset_t idx) {
+    void set_btree_dupe_idx(ham_u64_t idx) {
         m_use_btree=true;
         m_btree_dupeidx=idx;
         m_op=0;
@@ -316,7 +316,7 @@ class Cursor
      * local/temporary Transaction that was created only for this single
      * operation.
      */
-    ham_status_t get_record_size(Transaction *txn, ham_offset_t *psize);
+    ham_status_t get_record_size(Transaction *txn, ham_u64_t *psize);
 
     /**
      * Overwrites the record of the current key

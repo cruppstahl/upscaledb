@@ -274,7 +274,7 @@ struct DatabaseStatistics
   }
 
   /* last leaf page for find/insert/erase */
-  ham_offset_t last_leaf_pages[HAM_OPERATION_STATS_MAX];
+  ham_u64_t last_leaf_pages[HAM_OPERATION_STATS_MAX];
 
   /* count of how often this leaf page was used */
   ham_size_t last_leaf_count[HAM_OPERATION_STATS_MAX];

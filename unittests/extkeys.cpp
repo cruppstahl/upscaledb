@@ -97,20 +97,20 @@ public:
     ham_size_t size = 0;
 
     for (ham_size_t i = 0; i < 10000; i++)
-      c->insert((ham_offset_t)i, sizeof(buffer), buffer);
+      c->insert((ham_u64_t)i, sizeof(buffer), buffer);
 
     for (ham_size_t i = 0; i < 10000; i++) {
       BFC_ASSERT_EQUAL(0,
-        c->fetch((ham_offset_t)i, &size, &pbuffer));
+        c->fetch((ham_u64_t)i, &size, &pbuffer));
       BFC_ASSERT_EQUAL((ham_size_t)12, size);
     }
 
     for (ham_size_t i = 0; i < 10000; i++)
-       c->remove((ham_offset_t)i);
+       c->remove((ham_u64_t)i);
 
     for (ham_size_t i = 0; i < 10000; i++)
       BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
-            c->fetch((ham_offset_t)i, 0, 0));
+            c->fetch((ham_u64_t)i, 0, 0));
   }
 
   void purgeTest() {
@@ -119,7 +119,7 @@ public:
     ham_size_t size;
 
     for (int i = 0; i < 20; i++)
-      c->insert((ham_offset_t)i, sizeof(buffer), buffer);
+      c->insert((ham_u64_t)i, sizeof(buffer), buffer);
 
     ham_env_t *env = ham_db_get_env(m_db);
     Environment *e = (Environment *)env;
@@ -129,7 +129,7 @@ public:
 
     for (int i = 0; i < 20; i++)
       BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
-        c->fetch((ham_offset_t)i, &size, &pbuffer));
+        c->fetch((ham_u64_t)i, &size, &pbuffer));
   }
 };
 

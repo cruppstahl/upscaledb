@@ -421,7 +421,7 @@ public:
 #if 0
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_offset_t recno = 100;
+    ham_u64_t recno = 100;
     ham_cursor_t *cursor;
 
     /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */

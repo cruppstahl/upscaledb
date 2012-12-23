@@ -140,10 +140,10 @@ class DuplicateManager
      * OR, if the table already exists (i.e. table_id != 0), insert the
      * entry depending on the flags (only one entry is allowed in this case)
      */
-    ham_status_t insert(Database *db, Transaction *txn, ham_offset_t table_id,
+    ham_status_t insert(Database *db, Transaction *txn, ham_u64_t table_id,
                 ham_record_t *record, ham_size_t position, ham_u32_t flags,
                 dupe_entry_t *entries, ham_size_t num_entries,
-                ham_offset_t *rid, ham_size_t *new_position);
+                ham_u64_t *rid, ham_size_t *new_position);
 
     /**
      * delete a duplicate
@@ -154,20 +154,20 @@ class DuplicateManager
      *
      * sets new_table_id to 0 if the table is empty
      */
-    ham_status_t erase(Database *db, Transaction *txn, ham_offset_t table_id,
+    ham_status_t erase(Database *db, Transaction *txn, ham_u64_t table_id,
                 ham_size_t position, bool erase_all_duplicates,
-                ham_offset_t *new_table_id);
+                ham_u64_t *new_table_id);
 
     /**
      * get the number of duplicates
      */
-    ham_status_t get_count(ham_offset_t table_id, ham_size_t *count,
+    ham_status_t get_count(ham_u64_t table_id, ham_size_t *count,
                 dupe_entry_t *entry);
 
     /**
      * get a duplicate
      */
-    ham_status_t get(ham_offset_t table_id, ham_size_t position,
+    ham_status_t get(ham_u64_t table_id, ham_size_t position,
                 dupe_entry_t *entry);
 
     /**
@@ -176,7 +176,7 @@ class DuplicateManager
      * @warning will return garbage if the key has no dupes!!
      * @warning memory has to be freed by the caller IF needs_free is true!
      */
-    ham_status_t get_table(ham_offset_t table_id, dupe_table_t **ptable,
+    ham_status_t get_table(ham_u64_t table_id, dupe_table_t **ptable,
                 bool *needs_free);
 
   private:

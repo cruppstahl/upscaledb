@@ -101,20 +101,20 @@ class BlobManager
      * returns the blob-id (the start address of the blob header) in @a blobid
      */
     ham_status_t allocate(Database *db, ham_record_t *record, ham_u32_t flags,
-                    ham_offset_t *blobid);
+                    ham_u64_t *blobid);
 
     /**
      * reads a blob and stores the data in @a record
      * flags: either 0 or HAM_DIRECT_ACCESS
      */
-    ham_status_t read(Database *db, Transaction *txn, ham_offset_t blobid,
+    ham_status_t read(Database *db, Transaction *txn, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags);
 
     /**
      * retrieves a blob size
      */
-    ham_status_t get_datasize(Database *db, ham_offset_t blobid,
-                    ham_offset_t *size);
+    ham_status_t get_datasize(Database *db, ham_u64_t blobid,
+                    ham_u64_t *size);
 
     /**
      * overwrite an existing blob
@@ -122,14 +122,14 @@ class BlobManager
      * will return an error if the blob does not exist
      * returns the blob-id (the start address of the blob header) in @a blobid
      */
-    ham_status_t overwrite(Database *db, ham_offset_t old_blobid,
+    ham_status_t overwrite(Database *db, ham_u64_t old_blobid,
                     ham_record_t *record, ham_u32_t flags,
-                    ham_offset_t *new_blobid);
+                    ham_u64_t *new_blobid);
 
     /**
      * delete an existing blob
      */
-    ham_status_t free(Database *db, ham_offset_t blobid, ham_u32_t flags);
+    ham_status_t free(Database *db, ham_u64_t blobid, ham_u32_t flags);
 
   private:
     friend class DuplicateManager;
@@ -145,14 +145,14 @@ class BlobManager
      * through the page cache or directly to device; such is determined
      * on a per-page basis.
      */
-    ham_status_t write_chunks(Page *page, ham_offset_t addr, bool allocated,
+    ham_status_t write_chunks(Page *page, ham_u64_t addr, bool allocated,
                     bool freshly_created, ham_u8_t **chunk_data,
                     ham_size_t *chunk_size, ham_size_t chunks);
 
     /**
      * same as above, but for reading chunks from the file
      */
-    ham_status_t read_chunk(Page *page, Page **fpage, ham_offset_t addr,
+    ham_status_t read_chunk(Page *page, Page **fpage, ham_u64_t addr,
                     Database *db, ham_u8_t *data, ham_size_t size);
 
     /*

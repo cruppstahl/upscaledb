@@ -524,7 +524,7 @@ class Environment
     /** fetch an existing page */
     // TODO move to LocalEnvironment
     ham_status_t fetch_page(Page **page_ref, Database *db,
-            ham_offset_t address, bool only_from_cache = false);
+            ham_u64_t address, bool only_from_cache = false);
 
   private:
     /** Flushes a single, committed transaction to disk */

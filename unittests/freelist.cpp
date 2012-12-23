@@ -117,16 +117,16 @@ public:
     }
 
     for (int i = 0; i < 10; i++) {
-      ham_offset_t o;
+      ham_u64_t o;
       BFC_ASSERT_EQUAL(0,
           m_freelist->alloc_area(&o, (Database *)m_db, DB_CHUNKSIZE));
-      BFC_ASSERT_EQUAL((ham_offset_t)(ps + i * DB_CHUNKSIZE), o);
+      BFC_ASSERT_EQUAL((ham_u64_t)(ps + i * DB_CHUNKSIZE), o);
     }
 
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&o, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, o);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, o);
     BFC_ASSERT(((Environment *)m_env)->is_dirty());
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
@@ -139,9 +139,9 @@ public:
     BFC_ASSERT_EQUAL(0,
           m_freelist->mark_free((Database *)m_db,
               ps, ps, HAM_FALSE));
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_page(&o, (Database *)m_db));
-    BFC_ASSERT_EQUAL((ham_offset_t)ps, o);
+    BFC_ASSERT_EQUAL((ham_u64_t)ps, o);
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
@@ -157,23 +157,23 @@ public:
     }
 
     for (int i = 60; i < 70; i++) {
-      ham_offset_t o;
+      ham_u64_t o;
       BFC_ASSERT_EQUAL(0,
           m_freelist->alloc_area(&o, (Database *)m_db, DB_CHUNKSIZE));
-      BFC_ASSERT_EQUAL((ham_offset_t)ps + i * DB_CHUNKSIZE, o);
+      BFC_ASSERT_EQUAL((ham_u64_t)ps + i * DB_CHUNKSIZE, o);
     }
 
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0,
           m_freelist->alloc_area(&o, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, o);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, o);
     BFC_ASSERT(((Environment *)m_env)->is_dirty());
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
   void markAllocRangeTest() {
     ham_size_t ps = ((Environment *)m_env)->get_pagesize();
-    ham_offset_t offset = ps;
+    ham_u64_t offset = ps;
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -186,15 +186,15 @@ public:
 
     offset = ps;
     for (int i = 60; i < 70; i++) {
-      ham_offset_t o;
+      ham_u64_t o;
       BFC_ASSERT_EQUAL(0,
           m_freelist->alloc_area(&o, (Database *)m_db,
               (i+1)*DB_CHUNKSIZE));
-      BFC_ASSERT_EQUAL((ham_offset_t)offset, o);
+      BFC_ASSERT_EQUAL((ham_u64_t)offset, o);
       offset += (i + 1) * DB_CHUNKSIZE;
     }
 
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(&o, (Database *)m_db,
               DB_CHUNKSIZE));
     BFC_ASSERT(((Environment *)m_env)->is_dirty());
@@ -202,7 +202,7 @@ public:
   }
 
   void markAllocOverflowTest() {
-    ham_offset_t o = ((Environment *)m_env)->get_usable_pagesize()
+    ham_u64_t o = ((Environment *)m_env)->get_usable_pagesize()
         * 8 * DB_CHUNKSIZE;
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -216,13 +216,13 @@ public:
     BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_offset_t addr;
+    ham_u64_t addr;
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
     BFC_ASSERT_EQUAL(o, addr);
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, addr);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, addr);
 
     BFC_ASSERT_EQUAL(0,
          m_freelist->mark_free((Database *)m_db, o * 2, DB_CHUNKSIZE, false));
@@ -238,19 +238,19 @@ public:
     BFC_ASSERT_EQUAL(o*2, addr);
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, addr);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, addr);
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
   void markAllocOverflow2Test() {
-    ham_offset_t o = ((Environment *)m_env)->get_usable_pagesize()
+    ham_u64_t o = ((Environment *)m_env)->get_usable_pagesize()
         * 8 * DB_CHUNKSIZE;
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     BFC_ASSERT_EQUAL(0,
          m_freelist->mark_free((Database *)m_db, o * 3, DB_CHUNKSIZE, false));
-    ham_offset_t addr;
+    ham_u64_t addr;
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
     BFC_ASSERT_EQUAL(3 * o, addr);
@@ -264,7 +264,7 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, addr);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, addr);
 
     BFC_ASSERT_EQUAL(0,
          m_freelist->mark_free((Database *)m_db, o * 10,
@@ -281,7 +281,7 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)0, addr);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, addr);
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
@@ -289,13 +289,13 @@ public:
     // TODO re-enable this after the freelist was rewritten
 #if 0
 
-    ham_offset_t o=(ham_offset_t)1024*1024*1024*4;
+    ham_u64_t o=(ham_u64_t)1024*1024*1024*4;
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     BFC_ASSERT_EQUAL(0,
          m_freelist->mark_free((Database *)m_db, o, DB_CHUNKSIZE*2, false));
-    ham_offset_t addr;
+    ham_u64_t addr;
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
     BFC_ASSERT_EQUAL(o, addr);
@@ -312,7 +312,7 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         m_freelist->alloc_area(&addr, (Database *)m_db, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, addr);
+    BFC_ASSERT_EQUAL((ham_u64_t)o+DB_CHUNKSIZE, addr);
 
     BFC_ASSERT_EQUAL(0,
          m_freelist->mark_free((Database *)m_db, o, DB_CHUNKSIZE, false));
@@ -334,7 +334,7 @@ public:
   }
 
   void markAllocAlignTest() {
-    ham_offset_t addr;
+    ham_u64_t addr;
     ham_size_t ps=((Environment *)m_env)->get_pagesize();
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -349,7 +349,7 @@ public:
   }
 
   void markAllocAlignMultipleTest() {
-    ham_offset_t addr;
+    ham_u64_t addr;
     ham_size_t ps = ((Environment *)m_env)->get_pagesize();
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -391,9 +391,9 @@ public:
     BFC_ASSERT_EQUAL(0, m_freelist->mark_free((Database *)m_db, ps, ps, false));
     BFC_ASSERT_EQUAL(0, m_freelist->mark_free((Database *)m_db, ps, ps, false));
     BFC_ASSERT_EQUAL(0, m_freelist->mark_free((Database *)m_db, ps, ps, false));
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_page(&o, (Database *)m_db));
-    BFC_ASSERT_EQUAL((ham_offset_t)ps, o);
+    BFC_ASSERT_EQUAL((ham_u64_t)ps, o);
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
@@ -405,9 +405,9 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-    ham_offset_t o;
+    ham_u64_t o;
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_page(&o, (Database *)m_db));
-    BFC_ASSERT_EQUAL((ham_offset_t)ps, o);
+    BFC_ASSERT_EQUAL((ham_u64_t)ps, o);
   }
 };
 

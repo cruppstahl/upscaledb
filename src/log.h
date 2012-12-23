@@ -94,7 +94,7 @@ class Log
     static const ham_u32_t CHANGESET_IS_COMPLETE = 1;
 
     /** an "iterator" structure for traversing the log files */
-    typedef ham_offset_t Iterator;
+    typedef ham_u64_t Iterator;
 
     /** constructor */
     Log(Environment *env, ham_u32_t flags = 0)
@@ -109,7 +109,7 @@ class Log
 
     /** checks if the log is empty */
     bool is_empty() {
-      ham_offset_t size;
+      ham_u64_t size;
 
       if (m_fd == HAM_INVALID_FD)
         return (true);
@@ -195,7 +195,7 @@ class Log
      * @sa Log::append_page
      */
     ham_status_t append_write(ham_u64_t lsn, ham_u32_t flags,
-                    ham_offset_t offset, ham_u8_t *data, ham_size_t size);
+                    ham_u64_t offset, ham_u8_t *data, ham_size_t size);
 
     /** returns the path of the log file */
     std::string get_path();

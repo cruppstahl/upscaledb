@@ -85,7 +85,7 @@ class BtreeEraseAction
       }
 
       /* get the root-page...  */
-      ham_offset_t rootaddr = m_btree->get_rootpage();
+      ham_u64_t rootaddr = m_btree->get_rootpage();
       if (!rootaddr) {
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
@@ -227,7 +227,7 @@ free_all:
        * from the cache
        */
       if (bte->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
-        ham_offset_t blobid = bte->get_extended_rid(db);
+        ham_u64_t blobid = bte->get_extended_rid(db);
         ham_assert(blobid);
 
         st = db->remove_extkey(blobid);
@@ -258,8 +258,8 @@ free_all:
      * returns the page which is deleted, if available
      */
     ham_status_t erase_recursive(Page **page_ref, Page *page,
-                    ham_offset_t left, ham_offset_t right,
-                    ham_offset_t lanchor, ham_offset_t ranchor, Page *parent) {
+                    ham_u64_t left, ham_u64_t right,
+                    ham_u64_t lanchor, ham_u64_t ranchor, Page *parent) {
       ham_s32_t slot;
       ham_status_t st;
       Page *newme;
@@ -300,10 +300,10 @@ free_all:
 
       /* if this page is not a leaf: recursively descend down the tree */
       if (!node->is_leaf()) {
-        ham_offset_t next_lanchor;
-        ham_offset_t next_ranchor;
-        ham_offset_t next_left;
-        ham_offset_t next_right;
+        ham_u64_t next_lanchor;
+        ham_u64_t next_ranchor;
+        ham_u64_t next_left;
+        ham_u64_t next_right;
 
         /* calculate neighbor and anchor nodes */
         if (slot == -1) {
@@ -394,9 +394,9 @@ free_all:
      * rebalance a page - either shifts elements to a sibling, or merges
      * the page with a sibling
      */
-    ham_status_t rebalance(Page **newpage_ref, Page *page, ham_offset_t left,
-                    ham_offset_t right, ham_offset_t lanchor,
-                    ham_offset_t ranchor, Page *parent) {
+    ham_status_t rebalance(Page **newpage_ref, Page *page, ham_u64_t left,
+                    ham_u64_t right, ham_u64_t lanchor,
+                    ham_u64_t ranchor, Page *parent) {
       ham_status_t st;
       BtreeNode *node = BtreeNode::from_page(page);
       Page *leftpage = 0;
@@ -494,7 +494,7 @@ free_all:
      * shift items from a sibling to this page, till both pages have an equal
      * number of items
      */
-    ham_status_t shift_pages(Page *page, Page *sibpage, ham_offset_t anchor) {
+    ham_status_t shift_pages(Page *page, Page *sibpage, ham_u64_t anchor) {
       ham_s32_t slot = 0;
       ham_size_t s;
       LocalDatabase *db = m_btree->get_db();
@@ -757,7 +757,7 @@ free_all:
 
           /* free the extended blob of this key */
           if (bte_lhs->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
-            ham_offset_t blobid = bte_lhs->get_extended_rid(db);
+            ham_u64_t blobid = bte_lhs->get_extended_rid(db);
             ham_assert(blobid);
 
             st = db->remove_extkey(blobid);
@@ -804,7 +804,7 @@ cleanup:
 
     /* merge two pages */
     ham_status_t merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
-                        ham_offset_t anchor) {
+                        ham_u64_t anchor) {
       ham_status_t st;
       LocalDatabase *db = m_btree->get_db();
       Page *ancpage = 0;
@@ -944,13 +944,13 @@ cleanup:
       if (rhs->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
         ham_record_t record = {0};
 
-        ham_offset_t rhsblobid = rhs->get_extended_rid(db);
+        ham_u64_t rhsblobid = rhs->get_extended_rid(db);
         ham_status_t st = db->get_env()->get_blob_manager()->read(db, m_txn,
                                 rhsblobid, &record, 0);
         if (st)
           return (st);
 
-        ham_offset_t lhsblobid;
+        ham_u64_t lhsblobid;
         st = db->get_env()->get_blob_manager()->allocate(db, &record,
                                 0, &lhsblobid);
         if (st)
@@ -978,7 +978,7 @@ cleanup:
 
       /* if we overwrite an extended key: delete the existing extended blob */
       if (lhs->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
-        ham_offset_t blobid = lhs->get_extended_rid(db);
+        ham_u64_t blobid = lhs->get_extended_rid(db);
         ham_assert(blobid);
 
         st = db->remove_extkey(blobid);
@@ -1009,13 +1009,13 @@ cleanup:
       if (rhs->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
         ham_record_t record = {0};
 
-        ham_offset_t rhsblobid = rhs->get_extended_rid(db);
+        ham_u64_t rhsblobid = rhs->get_extended_rid(db);
         ham_status_t st = db->get_env()->get_blob_manager()->read(db,
                                 m_txn, rhsblobid, &record, 0);
         if (st)
           return (st);
 
-        ham_offset_t lhsblobid;
+        ham_u64_t lhsblobid;
         st = db->get_env()->get_blob_manager()->allocate(db, &record, 0,
                                 &lhsblobid);
         if (st)

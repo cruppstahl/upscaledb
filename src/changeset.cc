@@ -48,7 +48,7 @@ Changeset::add_page(Page *page)
 }
 
 Page *
-Changeset::get_page(ham_offset_t pageid)
+Changeset::get_page(ham_u64_t pageid)
 {
   Page *page = m_head;
 

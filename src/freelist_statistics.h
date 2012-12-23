@@ -195,7 +195,7 @@ struct freelist_hints_t
 
     /** [input] the lower bound address of the slot we're looking for. Usually
      * zero(0). */
-    ham_offset_t lower_bound_address;
+    ham_u64_t lower_bound_address;
 
     /** [input] the size of the slot we're looking for */
     ham_size_t size_bits;
@@ -260,7 +260,7 @@ struct freelist_global_hints_t
 
     /** [input] the lower bound address of the slot we're looking for.
      * Usually zero(0). */
-    ham_offset_t lower_bound_address;
+    ham_u64_t lower_bound_address;
 
     /** [input] the size of the slot we're looking for */
     ham_size_t size_bits;

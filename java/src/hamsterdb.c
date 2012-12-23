@@ -886,7 +886,7 @@ JNIEXPORT jlong JNICALL
 Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1record_1size
     (JNIEnv *jenv, jobject jobj, jlong jhandle)
 {
-  ham_offset_t size;
+  ham_u64_t size;
   ham_status_t st;
   jnipriv p;
 
@@ -1155,7 +1155,7 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1key_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jlong jtxnhandle, jint jflags)
 {
   ham_status_t st;
-  ham_offset_t keycount;
+  ham_u64_t keycount;
   st = ham_get_key_count((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
         (ham_u32_t)jflags, &keycount);
   if (st) {

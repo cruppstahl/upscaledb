@@ -1464,7 +1464,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                     "transactions"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_u64_t))) {
         ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
                     "<= 8"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -1488,7 +1488,7 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
                     "record size"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_u64_t))) {
         ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
                     "<= 8"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -1946,7 +1946,7 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key,
                     "record size"));
         return (db->set_error(HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_u64_t))) {
         ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
                     "<= 8"));
         return (db->set_error(HAM_INV_PARAMETER));
@@ -2062,7 +2062,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *hcursor,
 }
 
 ham_status_t HAM_CALLCONV
-ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_offset_t *size)
+ham_cursor_get_record_size(ham_cursor_t *hcursor, ham_u64_t *size)
 {
     Database *db;
 
@@ -2188,7 +2188,7 @@ ham_db_get_env(ham_db_t *hdb)
 
 ham_status_t HAM_CALLCONV
 ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
-            ham_offset_t *keycount)
+            ham_u64_t *keycount)
 {
     Database *db=(Database *)hdb;
     Transaction *txn=(Transaction *)htxn;

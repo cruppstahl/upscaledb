@@ -30,7 +30,7 @@
 using namespace ham;
 
 
-#define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t) + sizeof(blob_t) + 1)
+#define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(blob_t) + 1)
 
 bool
 BlobManager::blob_from_cache(ham_size_t size)
@@ -41,7 +41,7 @@ BlobManager::blob_from_cache(ham_size_t size)
 }
 
 ham_status_t
-BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
+BlobManager::write_chunks(Page *page, ham_u64_t addr, bool allocated,
         bool freshly_created, ham_u8_t **chunk_data, ham_size_t *chunk_size,
         ham_size_t chunks)
 {
@@ -55,7 +55,7 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
   for (ham_size_t i = 0; i < chunks; i++) {
     while (chunk_size[i]) {
       /* get the page-ID from this chunk */
-      ham_offset_t pageid = addr - (addr % pagesize);
+      ham_u64_t pageid = addr - (addr % pagesize);
 
       /* is this the current page? */
       if (page && page->get_self() != pageid)
@@ -124,7 +124,7 @@ BlobManager::write_chunks(Page *page, ham_offset_t addr, bool allocated,
 }
 
 ham_status_t
-BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
+BlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
         Database *db, ham_u8_t *data, ham_size_t size)
 {
   ham_status_t st;
@@ -133,7 +133,7 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
 
   while (size) {
     /* get the page-ID from this chunk */
-    ham_offset_t pageid = addr - (addr % pagesize);
+    ham_u64_t pageid = addr - (addr % pagesize);
 
     if (page && page->get_self() != pageid)
       page = 0;
@@ -205,11 +205,11 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_offset_t addr,
  */
 ham_status_t
 BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
-                ham_offset_t *blobid)
+                ham_u64_t *blobid)
 {
   ham_status_t st = 0;
   Page *page = 0;
-  ham_offset_t addr = 0;
+  ham_u64_t addr = 0;
   blob_t hdr;
   ham_u8_t *chunk_data[2];
   ham_size_t alloc_size;
@@ -246,7 +246,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     /* initialize the header */
     hdr = (blob_t *)p;
     memset(hdr, 0, sizeof(*hdr));
-    blob_set_self(hdr, (ham_offset_t)PTR_TO_U64(p));
+    blob_set_self(hdr, (ham_u64_t)PTR_TO_U64(p));
     blob_set_alloc_size(hdr, record->size + sizeof(blob_t));
     blob_set_size(hdr, record->size);
 
@@ -264,7 +264,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       memcpy(p + sizeof(blob_t), record->data, record->size);
     }
 
-    *blobid = (ham_offset_t)PTR_TO_U64(p);
+    *blobid = (ham_u64_t)PTR_TO_U64(p);
     return (0);
   }
 
@@ -479,7 +479,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 }
 
 ham_status_t
-BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
+BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
                 ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
@@ -605,7 +605,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_offset_t blobid,
 }
 
 ham_status_t
-BlobManager::get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
+BlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 {
   ham_status_t st;
   Page *page;
@@ -636,8 +636,8 @@ BlobManager::get_datasize(Database *db, ham_offset_t blobid, ham_offset_t *size)
 }
 
 ham_status_t
-BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
-                ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid)
+BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
+                ham_record_t *record, ham_u32_t flags, ham_u64_t *new_blobid)
 {
   ham_status_t st;
   ham_size_t alloc_size;
@@ -674,7 +674,7 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
       else {
         memmove(p + sizeof(blob_t), record->data, record->size);
       }
-      *new_blobid = (ham_offset_t)PTR_TO_U64(phdr);
+      *new_blobid = (ham_u64_t)PTR_TO_U64(phdr);
     }
     else {
       st = m_env->get_blob_manager()->allocate(db, record, flags, new_blobid);
@@ -799,7 +799,7 @@ BlobManager::overwrite(Database *db, ham_offset_t old_blobid,
 }
 
 ham_status_t
-BlobManager::free(Database *db, ham_offset_t blobid, ham_u32_t flags)
+BlobManager::free(Database *db, ham_u64_t blobid, ham_u32_t flags)
 {
   ham_status_t st;
   blob_t hdr;

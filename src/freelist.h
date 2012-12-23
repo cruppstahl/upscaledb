@@ -32,7 +32,7 @@ namespace ham {
  */
 struct FreelistEntry {
     /** the start address of this freelist page */
-    ham_offset_t start_address;
+    ham_u64_t start_address;
 
     /** maximum bits in this page */
     ham_size_t max_bits;
@@ -41,7 +41,7 @@ struct FreelistEntry {
     ham_size_t allocated_bits;
 
     /** the page ID */
-    ham_offset_t page_id;
+    ham_u64_t page_id;
 
     /**
      * freelist algorithm specific run-time data
@@ -77,7 +77,7 @@ class Freelist
      *
      * @note will assert that address and size are DB_CHUNKSIZE-aligned!
      */
-    ham_status_t mark_free(Database *db, ham_offset_t address, ham_size_t size,
+    ham_status_t mark_free(Database *db, ham_u64_t address, ham_size_t size,
                     ham_bool_t overwrite);
 
     /**
@@ -93,14 +93,14 @@ class Freelist
      * Regardless, the lower address bound check will be performed
      * on a DB_CHUNKSIZE boundary level anyhow.
      */
-    ham_status_t alloc_area(ham_offset_t *addr_ref,
+    ham_status_t alloc_area(ham_u64_t *addr_ref,
                         Database *db, ham_size_t size, bool aligned=false,
-                        ham_offset_t lower_bound_address=0);
+                        ham_u64_t lower_bound_address=0);
 
     /**
      * try to allocate an (aligned) page from the freelist
      */
-    ham_status_t alloc_page(ham_offset_t *addr_ref, Database *db);
+    ham_status_t alloc_page(ham_u64_t *addr_ref, Database *db);
 
     /** get the number of freelist entries */
     size_t get_count() {
@@ -135,7 +135,7 @@ class Freelist
     ham_status_t initialize();
 
     /** retrieves the FreelistEntry which manages a specific address */
-    ham_status_t get_entry(FreelistEntry **entry_ref, ham_offset_t address);
+    ham_status_t get_entry(FreelistEntry **entry_ref, ham_u64_t address);
 
     /** returns maximum bits that fit in a page */
     ham_size_t get_entry_maxspan();
@@ -196,7 +196,7 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
     ham_u64_t _start_address;
 
     /** address of the next freelist page */
-    ham_offset_t _overflow;
+    ham_u64_t _overflow;
 
     /**
      * 'zero': must be 0; serves as a doublecheck we're not

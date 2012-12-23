@@ -117,7 +117,7 @@ Journal::open()
    * more up-to-date than the one in the header structure. */
   for (i = 0; i < 2; i++) {
     /* but make sure that the file is large enough! */
-    ham_offset_t size;
+    ham_u64_t size;
     st = os_get_filesize(m_fd[i], &size);
     if (st) {
       (void)close();
@@ -327,7 +327,7 @@ ham_status_t
 Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
 {
   ham_status_t st;
-  ham_offset_t filesize;
+  ham_u64_t filesize;
 
   *aux = 0;
 

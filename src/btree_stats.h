@@ -30,7 +30,7 @@ class BtreeStatistics {
       ham_u32_t flags;
 
       /* page/btree leaf to check first */
-      ham_offset_t leaf_page_addr;
+      ham_u64_t leaf_page_addr;
 
       /* check specified btree leaf node page first */
       bool try_fast_track;
@@ -44,7 +44,7 @@ class BtreeStatistics {
       ham_u32_t flags;
 
       /* page/btree leaf to check first */
-      ham_offset_t leaf_page_addr;
+      ham_u64_t leaf_page_addr;
 
       /* the processed leaf page */
       Page *processed_leaf_page;

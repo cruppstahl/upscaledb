@@ -1597,7 +1597,7 @@ public:
     ham_cursor_t *cursor;
     ham_key_t key;
     ham_record_t rec;
-    ham_offset_t count;
+    ham_u64_t count;
     ham_parameter_t ps[] = { { HAM_PARAM_PAGESIZE, 1024 * 4 }, { 0, 0 } };
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));

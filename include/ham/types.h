@@ -104,44 +104,16 @@ extern "C" {
 #  define HAM_CALLCONV
 #endif
 
-/**
- * typedefs for 32bit operating systems
- */
-#ifdef HAM_32BIT
-#  ifdef _MSC_VER
-typedef signed __int64     ham_s64_t;
-typedef unsigned __int64   ham_u64_t;
-#  else
-typedef signed long long   ham_s64_t;
-typedef unsigned long long ham_u64_t;
-#  endif
-typedef signed int         ham_s32_t;
-typedef unsigned int       ham_u32_t;
-typedef signed short       ham_s16_t;
-typedef unsigned short     ham_u16_t;
-typedef signed char        ham_s8_t;
-typedef unsigned char      ham_u8_t;
-#endif
+#include <stdint.h>
 
-/**
- * typedefs for 64bit operating systems; on Win64,
- * longs do not always have 64bit!
- */
-#ifdef HAM_64BIT
-#  ifdef _MSC_VER
-typedef signed __int64     ham_s64_t;
-typedef unsigned __int64   ham_u64_t;
-#  else
-typedef signed long        ham_s64_t;
-typedef unsigned long      ham_u64_t;
-#  endif
-typedef signed int         ham_s32_t;
-typedef unsigned int       ham_u32_t;
-typedef signed short       ham_s16_t;
-typedef unsigned short     ham_u16_t;
-typedef signed char        ham_s8_t;
-typedef unsigned char      ham_u8_t;
-#endif
+typedef int64_t            ham_s64_t;
+typedef uint64_t           ham_u64_t;
+typedef int32_t            ham_s32_t;
+typedef uint32_t           ham_u32_t;
+typedef int16_t            ham_s16_t;
+typedef uint16_t           ham_u16_t;
+typedef int8_t             ham_s8_t;
+typedef uint8_t            ham_u8_t;
 
 /*
  * Undefine macros to avoid macro redefinitions
@@ -181,14 +153,6 @@ typedef int                ham_bool_t;
  * typedef for error- and status-code
  */
 typedef int                ham_status_t;
-
-/**
- * typedef for addressing the file, which limits the file size to 64 bit
- *
- * @remark If you change this datatype, you also have to change
- * the endian-macros in src/endian.h (ham_db2h_offset/ham_h2db_offset)
- */
-typedef ham_u64_t          ham_offset_t;
 
 /**
  * typedef for sizes, which limits data blobs to 32 bits

@@ -83,7 +83,7 @@ class Journal
       int fdstart;
 
       /** the offset in the file of the NEXT entry */
-      ham_offset_t offset;
+      ham_u64_t offset;
     };
 
     /** constructor */
@@ -106,7 +106,7 @@ class Journal
 
     /** checks if the journal is empty */
     bool is_empty() {
-      ham_offset_t size;
+      ham_u64_t size;
 
       if (m_fd[0] == m_fd[1] && m_fd[1] == HAM_INVALID_FD)
         return (true);

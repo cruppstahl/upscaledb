@@ -183,8 +183,8 @@ protected:
 #else
     BFC_ASSERT_EQUAL(1024 * 16u, params[1].value);
 #endif
-    BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
-    BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
+    BFC_ASSERT_EQUAL((ham_u64_t)16, params[2].value);
+    BFC_ASSERT_EQUAL((ham_u64_t)(HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY), params[3].value);
     BFC_ASSERT_EQUAL(0644u, params[4].value);
     BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
@@ -354,7 +354,7 @@ protected:
 
     BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, params));
 
-    BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
+    BFC_ASSERT_EQUAL((ham_u64_t)(HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY), params[0].value);
 
     BFC_ASSERT_EQUAL(0, ham_db_close(db, 0));
@@ -407,7 +407,7 @@ protected:
   }
 
   void getKeyCountTest() {
-    ham_offset_t keycount;
+    ham_u64_t keycount;
     ham_db_t *db;
     ham_env_t *env;
 
@@ -428,7 +428,7 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -462,7 +462,7 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -549,12 +549,12 @@ protected:
 
     BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
-    BFC_ASSERT_EQUAL(1ull, *(ham_offset_t *)key.data);
+    BFC_ASSERT_EQUAL(1ull, *(ham_u64_t *)key.data);
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
-    BFC_ASSERT_EQUAL(2ull, *(ham_offset_t *)key.data);
+    BFC_ASSERT_EQUAL(2ull, *(ham_u64_t *)key.data);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -565,7 +565,7 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -604,7 +604,7 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
     char buf[1024];
 
     key.data = (void *)"hello world";
@@ -646,8 +646,8 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
-    ham_offset_t recno;
+    ham_u64_t keycount;
+    ham_u64_t recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
@@ -661,7 +661,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(8, key.size);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(1ull, recno);
 
     BFC_ASSERT_EQUAL(0, ham_db_find(db, 0, &key, &rec2, 0));
@@ -672,14 +672,14 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(2ull, recno);
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_db_insert(db, 0, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(3ull, keycount);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(3ull, recno);
 
     BFC_ASSERT_EQUAL(0, ham_db_erase(db, 0, &key, 0));
@@ -699,7 +699,7 @@ protected:
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -796,12 +796,12 @@ protected:
 
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
-    BFC_ASSERT_EQUAL(1ull, *(ham_offset_t *)key.data);
+    BFC_ASSERT_EQUAL(1ull, *(ham_u64_t *)key.data);
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(8, key.size);
-    BFC_ASSERT_EQUAL(2ull, *(ham_offset_t *)key.data);
+    BFC_ASSERT_EQUAL(2ull, *(ham_u64_t *)key.data);
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -813,7 +813,7 @@ protected:
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -857,8 +857,8 @@ protected:
     ham_key_t key = {};
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
-    ham_offset_t recno;
+    ham_u64_t keycount;
+    ham_u64_t recno;
 
     rec.data = (void *)"hello chris";
     rec.size = 12;
@@ -875,7 +875,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(1ull, keycount);
     BFC_ASSERT_EQUAL(8, key.size);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(1ull, recno);
 
     BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec2, 0));
@@ -886,14 +886,14 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(2ull, keycount);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(2ull, recno);
 
     memset(&key, 0, sizeof(key));
     BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
     BFC_ASSERT_EQUAL(0, ham_db_get_key_count(db, 0, 0, &keycount));
     BFC_ASSERT_EQUAL(3ull, keycount);
-    recno = *(ham_offset_t *)key.data;
+    recno = *(ham_u64_t *)key.data;
     BFC_ASSERT_EQUAL(3ull, recno);
 
     BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
@@ -911,7 +911,7 @@ protected:
     ham_cursor_t *cursor;
     ham_record_t rec = {};
     ham_record_t rec2 = {};
-    ham_offset_t keycount;
+    ham_u64_t keycount;
     char buf[1024];
 
     key.data = (void *)"hello world";

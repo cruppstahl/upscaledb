@@ -68,27 +68,27 @@ class Device {
     virtual ham_status_t flush() = 0;
 
     /** truncate/resize the device */
-    virtual ham_status_t truncate(ham_offset_t newsize) = 0;
+    virtual ham_status_t truncate(ham_u64_t newsize) = 0;
 
     /** returns true if the device is open */
     virtual bool is_open() = 0;
 
     /** get the current file/storage size */
-    virtual ham_status_t get_filesize(ham_offset_t *length) = 0;
+    virtual ham_status_t get_filesize(ham_u64_t *length) = 0;
 
     /** seek position in a file */
-    virtual ham_status_t seek(ham_offset_t offset, int whence) = 0;
+    virtual ham_status_t seek(ham_u64_t offset, int whence) = 0;
 
     /** tell the position in a file */
-    virtual ham_status_t tell(ham_offset_t *offset) = 0;
+    virtual ham_status_t tell(ham_u64_t *offset) = 0;
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer,
-                ham_offset_t size) = 0;
+    virtual ham_status_t read(ham_u64_t offset, void *buffer,
+                ham_u64_t size) = 0;
 
     /** writes to the device; this function does not use mmap */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer,
-                ham_offset_t size) = 0;
+    virtual ham_status_t write(ham_u64_t offset, void *buffer,
+                ham_u64_t size) = 0;
 
     /** reads a page from the device; this function CAN use mmap */
     virtual ham_status_t read_page(Page *page) = 0;
@@ -98,7 +98,7 @@ class Device {
 
     /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
-    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) = 0;
+    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) = 0;
 
     /**
      * allocate storage for a page from this device; this function
@@ -200,7 +200,7 @@ class DiskDevice : public Device {
     }
 
     /** truncate/resize the device */
-    virtual ham_status_t truncate(ham_offset_t newsize) {
+    virtual ham_status_t truncate(ham_u64_t newsize) {
       return (os_truncate(m_fd, newsize));
     }
 
@@ -210,32 +210,32 @@ class DiskDevice : public Device {
     }
 
     /** get the current file/storage size */
-    virtual ham_status_t get_filesize(ham_offset_t *length) {
+    virtual ham_status_t get_filesize(ham_u64_t *length) {
       *length = 0;
       return (os_get_filesize(m_fd, length));
     }
 
     /** seek position in a file */
-    virtual ham_status_t seek(ham_offset_t offset, int whence) {
+    virtual ham_status_t seek(ham_u64_t offset, int whence) {
       return (os_seek(m_fd, offset, whence));
     }
 
     /** tell the position in a file */
-    virtual ham_status_t tell(ham_offset_t *offset) {
+    virtual ham_status_t tell(ham_u64_t *offset) {
       return (os_tell(m_fd, offset));
     }
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer,
-                ham_offset_t size) {
+    virtual ham_status_t read(ham_u64_t offset, void *buffer,
+                ham_u64_t size) {
       return (os_pread(m_fd, offset, buffer, size));
     }
 
     /** writes to the device; this function does not use mmap,
      * and is responsible for writing the data is run through the file
      * filters */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer,
-                ham_offset_t size) {
+    virtual ham_status_t write(ham_u64_t offset, void *buffer,
+                ham_u64_t size) {
       return (os_pwrite(m_fd, offset, buffer, size));
     }
 
@@ -249,7 +249,7 @@ class DiskDevice : public Device {
 
     /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
-    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
+    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) {
       ham_status_t st = os_get_filesize(m_fd, address);
       if (st)
         return (st);
@@ -282,10 +282,10 @@ class DiskDevice : public Device {
     ham_u8_t *m_mmapptr;
 
     /** the file size which backs the mapped ptr */
-    ham_offset_t m_open_filesize;
+    ham_u64_t m_open_filesize;
 
     /** the size of m_mmapptr as used in os_mmap */
-    ham_offset_t m_mapped_size;
+    ham_u64_t m_mapped_size;
 };
 
 
@@ -327,7 +327,7 @@ class InMemoryDevice : public Device {
     }
 
     /** truncate/resize the device */
-    virtual ham_status_t truncate(ham_offset_t newsize) {
+    virtual ham_status_t truncate(ham_u64_t newsize) {
       return (HAM_SUCCESS);
     }
 
@@ -337,33 +337,33 @@ class InMemoryDevice : public Device {
     }
 
     /** get the current file/storage size */
-    virtual ham_status_t get_filesize(ham_offset_t *length) {
+    virtual ham_status_t get_filesize(ham_u64_t *length) {
       ham_assert(!"this operation is not possible for in-memory-databases");
       return (HAM_NOT_IMPLEMENTED);
     }
 
     /** seek position in a file */
-    virtual ham_status_t seek(ham_offset_t offset, int whence) {
+    virtual ham_status_t seek(ham_u64_t offset, int whence) {
       ham_assert(!"can't seek in an in-memory-device");
       return (HAM_NOT_IMPLEMENTED);
     }
 
     /** tell the position in a file */
-    virtual ham_status_t tell(ham_offset_t *offset) {
+    virtual ham_status_t tell(ham_u64_t *offset) {
       ham_assert(!"can't tell in an in-memory-device");
       return (HAM_NOT_IMPLEMENTED);
     }
 
     /** reads from the device; this function does not use mmap */
-    virtual ham_status_t read(ham_offset_t offset, void *buffer,
-                ham_offset_t size) {
+    virtual ham_status_t read(ham_u64_t offset, void *buffer,
+                ham_u64_t size) {
       ham_assert(!"operation is not possible for in-memory-databases");
       return (HAM_NOT_IMPLEMENTED);
     }
 
     /** writes to the device */
-    virtual ham_status_t write(ham_offset_t offset, void *buffer,
-                ham_offset_t size) {
+    virtual ham_status_t write(ham_u64_t offset, void *buffer,
+                ham_u64_t size) {
       ham_assert(!"operation is not possible for in-memory-databases");
       return (HAM_NOT_IMPLEMENTED);
     }
@@ -382,7 +382,7 @@ class InMemoryDevice : public Device {
 
     /** allocate storage from this device; this function
      * will *NOT* use mmap.  */
-    virtual ham_status_t alloc(ham_size_t size, ham_offset_t *address) {
+    virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) {
       ham_assert(!"can't alloc from an in-memory-device");
       return (HAM_NOT_IMPLEMENTED);
     }
@@ -396,7 +396,7 @@ class InMemoryDevice : public Device {
           return (HAM_OUT_OF_MEMORY);
       page->set_pers((PageData *)p);
       page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
-      page->set_self((ham_offset_t)PTR_TO_U64(p));
+      page->set_self((ham_u64_t)PTR_TO_U64(p));
       return (HAM_SUCCESS);
     }
 

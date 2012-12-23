@@ -96,7 +96,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeDescriptor
     ham_u16_t m_reserved1;
 
     /** address of the root-page */
-    ham_offset_t m_self;
+    ham_u64_t m_self;
 
     /** flags for this database */
     ham_u32_t m_flags;
@@ -449,7 +449,7 @@ class BtreeIndex
     ham_u32_t m_flags;
 
     /** address of the root-page */
-    ham_offset_t m_rootpage;
+    ham_u64_t m_rootpage;
 
     /** maximum keys in an internal page */
     ham_u16_t m_maxkeys;

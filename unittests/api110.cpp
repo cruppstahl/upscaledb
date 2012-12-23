@@ -126,12 +126,12 @@ public:
         ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
   }
 
-  ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name) {
+  ham_u64_t get_param_value(ham_parameter_t *param, ham_u16_t name) {
     for (; param->name; param++) {
       if (param->name == name)
         return (param->value);
     }
-    return ((ham_offset_t)-1);
+    return ((ham_u64_t)-1);
   }
 
   void getInitializedEnvParamsTest() {
@@ -162,11 +162,11 @@ public:
         get_param_value(params, HAM_PARAM_CACHESIZE));
     BFC_ASSERT_EQUAL(1024 * 64u,
         get_param_value(params, HAM_PARAM_PAGESIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)32,
+    BFC_ASSERT_EQUAL((ham_u64_t)32,
         get_param_value(params, HAM_PARAM_MAX_DATABASES));
-    BFC_ASSERT_EQUAL((ham_offset_t)HAM_DISABLE_MMAP,
+    BFC_ASSERT_EQUAL((ham_u64_t)HAM_DISABLE_MMAP,
         get_param_value(params, HAM_PARAM_FLAGS));
-    BFC_ASSERT_EQUAL((ham_offset_t)0664,
+    BFC_ASSERT_EQUAL((ham_u64_t)0664,
         get_param_value(params, HAM_PARAM_FILEMODE));
     BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
@@ -199,15 +199,15 @@ public:
 
     BFC_ASSERT_EQUAL(0, ham_env_get_parameters(m_env, params));
 
-    BFC_ASSERT_EQUAL((ham_offset_t)HAM_DEFAULT_CACHESIZE,
+    BFC_ASSERT_EQUAL((ham_u64_t)HAM_DEFAULT_CACHESIZE,
         get_param_value(params, HAM_PARAM_CACHESIZE));
     BFC_ASSERT_EQUAL(1024 * 64u,
         get_param_value(params, HAM_PARAM_PAGESIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)32,
+    BFC_ASSERT_EQUAL((ham_u64_t)32,
         get_param_value(params, HAM_PARAM_MAX_DATABASES));
-    BFC_ASSERT_EQUAL((ham_offset_t)HAM_READ_ONLY,
+    BFC_ASSERT_EQUAL((ham_u64_t)HAM_READ_ONLY,
         get_param_value(params, HAM_PARAM_FLAGS));
-    BFC_ASSERT_EQUAL((ham_offset_t)0644,
+    BFC_ASSERT_EQUAL((ham_u64_t)0644,
         get_param_value(params, HAM_PARAM_FILEMODE));
     BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
@@ -244,9 +244,9 @@ public:
     BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
     BFC_ASSERT_EQUAL(16u,
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)36,
+    BFC_ASSERT_EQUAL((ham_u64_t)36,
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-    BFC_ASSERT_EQUAL((ham_offset_t)1,
+    BFC_ASSERT_EQUAL((ham_u64_t)1,
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
         get_param_value(params, HAM_PARAM_FLAGS));
@@ -286,9 +286,9 @@ public:
     BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
     BFC_ASSERT_EQUAL(16u,
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    BFC_ASSERT_EQUAL((ham_offset_t)36,
+    BFC_ASSERT_EQUAL((ham_u64_t)36,
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-    BFC_ASSERT_EQUAL((ham_offset_t)1,
+    BFC_ASSERT_EQUAL((ham_u64_t)1,
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
     BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
         get_param_value(params, HAM_PARAM_FLAGS));

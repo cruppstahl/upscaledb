@@ -52,7 +52,7 @@ class BtreeCheckAction
       /* for each level... */
       while (page) {
         BtreeNode *node = BtreeNode::from_page(page);
-        ham_offset_t ptr_left = node->get_ptr_left();
+        ham_u64_t ptr_left = node->get_ptr_left();
 
         /* verify the page and all its siblings */
         st = verify_level(parent, page, level);
@@ -191,7 +191,7 @@ class BtreeCheckAction
         /* if this is an extended key: check for a blob-id */
         BtreeKey *bte = node->get_key(db, i);
         if (bte->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
-          ham_offset_t blobid = bte->get_extended_rid(db);
+          ham_u64_t blobid = bte->get_extended_rid(db);
           if (!blobid) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
                     "is extended, but has no blob", page->get_self(), i));

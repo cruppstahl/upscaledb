@@ -177,7 +177,7 @@ BtreeIndex::create(ham_u16_t keysize)
 ham_status_t
 BtreeIndex::open()
 {
-  ham_offset_t rootadd;
+  ham_u64_t rootadd;
   ham_u16_t maxkeys;
   ham_u16_t keysize;
   ham_u32_t flags;
@@ -243,11 +243,11 @@ BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
     for (ham_size_t i = 0; i < node->get_count(); i++) {
       BtreeKey *bte = node->get_key(m_db, i);
       if (bte->get_flags() & BtreeKey::KEY_IS_EXTENDED) {
-        ham_offset_t blobid = bte->get_extended_rid(m_db);
+        ham_u64_t blobid = bte->get_extended_rid(m_db);
         if (m_db->get_env()->get_flags() & HAM_IN_MEMORY) {
           /* delete the blobid to prevent that it's freed twice */
-          *(ham_offset_t *)(bte->get_key() +
-            (get_keysize() - sizeof(ham_offset_t))) = 0;
+          *(ham_u64_t *)(bte->get_key() +
+            (get_keysize() - sizeof(ham_u64_t))) = 0;
         }
         if (c)
           c->remove(blobid);
@@ -699,12 +699,12 @@ BtreeIndex::read_record(Transaction *txn, ham_record_t *record,
   if (record->_intflags & BtreeKey::KEY_BLOB_SIZE_TINY) {
     /* the highest byte of the record id is the size of the blob */
     char *p = (char *)ridptr;
-    blobsize = p[sizeof(ham_offset_t) - 1];
+    blobsize = p[sizeof(ham_u64_t) - 1];
     noblob = true;
   }
   else if (record->_intflags & BtreeKey::KEY_BLOB_SIZE_SMALL) {
-    /* record size is sizeof(ham_offset_t) */
-    blobsize = sizeof(ham_offset_t);
+    /* record size is sizeof(ham_u64_t) */
+    blobsize = sizeof(ham_u64_t);
     noblob = true;
   }
   else if (record->_intflags & BtreeKey::KEY_BLOB_SIZE_EMPTY) {

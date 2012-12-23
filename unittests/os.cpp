@@ -98,7 +98,7 @@ public:
 
   void createCloseOverwriteTest() {
     ham_fd_t fd;
-    ham_offset_t filesize;
+    ham_u64_t filesize;
 
     for (int i = 0; i < 3; i++) {
       BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
@@ -232,7 +232,7 @@ public:
     ham_fd_t fd, mmaph;
     ham_size_t ps = HAM_DEFAULT_PAGESIZE;
     ham_u8_t *p1, *p2;
-    ham_offset_t addr = 0, size;
+    ham_u64_t addr = 0, size;
 
     BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
     for (int i = 0; i < 5; i++) {
@@ -301,13 +301,13 @@ public:
 
   void seekTellTest() {
     ham_fd_t fd;
-    ham_offset_t tell;
+    ham_u64_t tell;
 
     BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, os_seek(fd, i, HAM_OS_SEEK_SET));
       BFC_ASSERT_EQUAL(0, os_tell(fd, &tell));
-      BFC_ASSERT_EQUAL(tell, (ham_offset_t)i);
+      BFC_ASSERT_EQUAL(tell, (ham_u64_t)i);
     }
     BFC_ASSERT_EQUAL(0, os_close(fd));
   }
@@ -319,13 +319,13 @@ public:
 
   void truncateTest() {
     ham_fd_t fd;
-    ham_offset_t fsize;
+    ham_u64_t fsize;
 
     BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, os_truncate(fd, i * 128));
       BFC_ASSERT_EQUAL(0, os_get_filesize(fd, &fsize));
-      BFC_ASSERT_EQUAL(fsize, (ham_offset_t)(i * 128));
+      BFC_ASSERT_EQUAL(fsize, (ham_u64_t)(i * 128));
     }
     BFC_ASSERT_EQUAL(0, os_close(fd));
   }
@@ -333,7 +333,7 @@ public:
   void largefileTest() {
     ham_fd_t fd;
     ham_u8_t kb[1024];
-    ham_offset_t tell;
+    ham_u64_t tell;
 
     memset(kb, 0, sizeof(kb));
 
@@ -345,7 +345,7 @@ public:
     BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
     BFC_ASSERT_EQUAL(0, os_seek(fd, 0, HAM_OS_SEEK_END));
     BFC_ASSERT_EQUAL(0, os_tell(fd, &tell));
-    BFC_ASSERT_EQUAL(tell, (ham_offset_t)1024 * 1024 * 4);
+    BFC_ASSERT_EQUAL(tell, (ham_u64_t)1024 * 1024 * 4);
     BFC_ASSERT_EQUAL(0, os_close(fd));
   }
 

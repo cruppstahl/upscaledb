@@ -53,7 +53,7 @@ class BtreeEnumAction
       /* while we found a page... */
       while (page) {
         BtreeNode *node = BtreeNode::from_page(page);
-        ham_offset_t ptr_left = node->get_ptr_left();
+        ham_u64_t ptr_left = node->get_ptr_left();
         ham_size_t count = node->get_count();
 
         st = m_cb(HAM_ENUM_EVENT_DESCEND, (void *)&level,

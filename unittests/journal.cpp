@@ -162,7 +162,7 @@ public:
   void createCloseTest() {
     Journal *j = disconnect_and_create_new_journal();
 
-    BFC_ASSERT_EQUAL((ham_offset_t)1, j->get_lsn());
+    BFC_ASSERT_EQUAL((ham_u64_t)1, j->get_lsn());
     /* TODO make sure that the two files exist and
      * contain only the header */
 
@@ -636,7 +636,7 @@ public:
   }
 
   void verifyJournalIsEmpty() {
-    ham_offset_t size;
+    ham_u64_t size;
     m_environ = (Environment *)m_env;
     Journal *j = m_environ->get_journal();
     BFC_ASSERT(j != 0);

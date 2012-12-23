@@ -48,7 +48,7 @@ class Cache
      * @remark the page is removed from the cache
      * @return 0 if the page was not cached
      */
-    Page *get_page(ham_offset_t address, ham_u32_t flags=0) {
+    Page *get_page(ham_u64_t address, ham_u32_t flags=0) {
       ham_u64_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
@@ -240,7 +240,7 @@ class Cache
 
   private:
     /** calculate the hash of a page address */
-    ham_u64_t calc_hash(ham_offset_t o) {
+    ham_u64_t calc_hash(ham_u64_t o) {
       return (o % CACHE_BUCKET_SIZE);
     }
 

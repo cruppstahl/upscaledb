@@ -47,7 +47,7 @@ namespace ham {
  */
 #if defined(HAM_32BIT) && (!defined(_MSC_VER))
 #   define U64_TO_PTR(p)  (ham_u8_t *)(int)p
-#   define PTR_TO_U64(p)  (ham_offset_t)(int)p
+#   define PTR_TO_U64(p)  (ham_u64_t)(int)p
 #else
 #   define U64_TO_PTR(p)  p
 #   define PTR_TO_U64(p)  p
@@ -97,7 +97,7 @@ class Database
 
     /** get number of keys */
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
-                    ham_offset_t *keycount) = 0;
+                    ham_u64_t *keycount) = 0;
 
     /** insert a key/value pair */
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
@@ -134,7 +134,7 @@ class Database
 
     /** get current record size */
     virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    ham_offset_t *size) = 0;
+                    ham_u64_t *size) = 0;
 
     /** overwrite a cursor */
     virtual ham_status_t cursor_overwrite(Cursor *cursor,
@@ -273,7 +273,7 @@ class Database
     }
 
     /** remove an extendex key from the cache and the blob */
-    ham_status_t remove_extkey(ham_offset_t blobid);
+    ham_status_t remove_extkey(ham_u64_t blobid);
 
     /** get the key size */
     ham_u16_t get_keysize();
@@ -304,11 +304,11 @@ class Database
       if (prefoo) {
         ham_size_t lhsprefixlen, rhsprefixlen;
         if (lhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-          lhsprefixlen = get_keysize() - sizeof(ham_offset_t);
+          lhsprefixlen = get_keysize() - sizeof(ham_u64_t);
         else
           lhsprefixlen = lhs->size;
         if (rhs->_flags & BtreeKey::KEY_IS_EXTENDED)
-          rhsprefixlen = get_keysize() - sizeof(ham_offset_t);
+          rhsprefixlen = get_keysize() - sizeof(ham_u64_t);
         else
           rhsprefixlen = rhs->size;
 
@@ -450,7 +450,7 @@ class Database
      * found then the page is read from disk 
      * TODO move to LocalDatabase
      */
-    ham_status_t fetch_page(Page **page, ham_offset_t address,
+    ham_status_t fetch_page(Page **page, ham_u64_t address,
                 bool only_from_cache = false);
 
     /**
@@ -545,7 +545,7 @@ class LocalDatabase : public Database
 
     /** get number of keys */
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
-                    ham_offset_t *keycount);
+                    ham_u64_t *keycount);
 
     /** insert a key/value pair */
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
@@ -579,7 +579,7 @@ class LocalDatabase : public Database
 
     /** get current record size */
     virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    ham_offset_t *size);
+                    ham_u64_t *size);
 
     /** overwrite a cursor */
     virtual ham_status_t cursor_overwrite(Cursor *cursor,
@@ -656,7 +656,7 @@ class RemoteDatabase : public Database
 
     /** get number of keys */
     virtual ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
-                    ham_offset_t *keycount);
+                    ham_u64_t *keycount);
 
     /** insert a key/value pair */
     virtual ham_status_t insert(Transaction *txn, ham_key_t *key,
@@ -689,7 +689,7 @@ class RemoteDatabase : public Database
 
     /** get current record size */
     virtual ham_status_t cursor_get_record_size(Cursor *cursor,
-                    ham_offset_t *size);
+                    ham_u64_t *size);
 
     /** overwrite a cursor */
     virtual ham_status_t cursor_overwrite(Cursor *cursor,

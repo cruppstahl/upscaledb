@@ -105,8 +105,8 @@ public:
     blob_t b;
     ::memset(&b, 0, sizeof(b));
 
-    blob_set_self(&b, (ham_offset_t)0x12345ull);
-    BFC_ASSERT_EQUAL((ham_offset_t)0x12345ull, blob_get_self(&b));
+    blob_set_self(&b, (ham_u64_t)0x12345ull);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x12345ull, blob_get_self(&b));
 
     blob_set_alloc_size(&b, 0x789ull);
     BFC_ASSERT_EQUAL((ham_u64_t)0x789ull, blob_get_alloc_size(&b));
@@ -132,14 +132,14 @@ public:
     dupe_entry_set_flags(e, 0x13);
     BFC_ASSERT_EQUAL((ham_u8_t)0x13, dupe_entry_get_flags(e));
 
-    dupe_entry_set_rid(e, (ham_offset_t)0x12345ull);
-    BFC_ASSERT_EQUAL((ham_offset_t)0x12345ull,
+    dupe_entry_set_rid(e, (ham_u64_t)0x12345ull);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x12345ull,
             dupe_entry_get_rid(e));
   }
 
   void allocReadFreeTest() {
     ham_u8_t buffer[64];
-    ham_offset_t blobid;
+    ham_u64_t blobid;
     ham_record_t record;
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
@@ -161,7 +161,7 @@ public:
 
   void replaceTest() {
     ham_u8_t buffer[64], buffer2[64];
-    ham_offset_t blobid, blobid2;
+    ham_u64_t blobid, blobid2;
     ham_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
@@ -195,7 +195,7 @@ public:
 
   void replaceWithBigTest() {
     ham_u8_t buffer[64], buffer2[128];
-    ham_offset_t blobid, blobid2;
+    ham_u64_t blobid, blobid2;
     ham_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
@@ -229,7 +229,7 @@ public:
 
   void replaceWithSmallTest() {
     ham_u8_t buffer[128], buffer2[64];
-    ham_offset_t blobid, blobid2;
+    ham_u64_t blobid, blobid2;
     ham_record_t record;
     ::memset(&record,  0, sizeof(record));
     ::memset(&buffer,  0x12, sizeof(buffer));
@@ -260,7 +260,7 @@ public:
 
     /* make sure that at least 64bit are in the freelist */
     if (!m_inmemory) {
-      ham_offset_t addr;
+      ham_u64_t addr;
       Environment *e = (Environment *)m_env;
       BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr,
                     (Database *)m_db, 64));
@@ -271,7 +271,7 @@ public:
 
     /* and now another 64bit should be in the freelist */
     if (!m_inmemory) {
-      ham_offset_t addr;
+      ham_u64_t addr;
       Environment *e = (Environment *)m_env;
       BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr,
                     (Database *)m_db, 64));
@@ -283,7 +283,7 @@ public:
     const int BLOCKS = 32;
     unsigned ps = ((Environment *)m_env)->get_pagesize();
     ham_u8_t *buffer = (ham_u8_t *)malloc(ps * BLOCKS * 2);
-    ham_offset_t blobid, blobid2;
+    ham_u64_t blobid, blobid2;
     ham_record_t record;
     ::memset(&record, 0, sizeof(record));
     ::memset(buffer,  0, ps*BLOCKS*2);
@@ -329,13 +329,13 @@ public:
 
   void loopInsert(int loops, int factor) {
     ham_u8_t *buffer;
-    ham_offset_t *blobid;
+    ham_u64_t *blobid;
     ham_record_t record;
     ham_txn_t *txn = 0; /* need a txn object for the blob routines */
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
-    blobid = (ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
+    blobid = (ham_u64_t *)::malloc(sizeof(ham_u64_t)*loops);
     BFC_ASSERT(blobid != 0);
     if (!m_inmemory && m_use_txn)
       BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));

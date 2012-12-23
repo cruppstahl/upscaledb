@@ -112,7 +112,7 @@ public:
 
   void allocTest() {
     int i;
-    ham_offset_t address;
+    ham_u64_t address;
 
     BFC_ASSERT_EQUAL(1, m_dev->is_open());
     for (i = 0; i < 10; i++) {

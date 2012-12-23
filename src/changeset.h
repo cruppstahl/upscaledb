@@ -68,7 +68,7 @@ class Changeset
      * get a page from the changeset
      * returns NULL if the page is not part of the changeset
      */
-    Page *get_page(ham_offset_t pageid);
+    Page *get_page(ham_u64_t pageid);
 
     /** removes all pages from the changeset */
     void clear();

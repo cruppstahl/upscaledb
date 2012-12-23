@@ -152,12 +152,12 @@ class Page {
     }
 
     /** get the address of this page */
-    ham_offset_t get_self() {
+    ham_u64_t get_self() {
       return (m_self);
     }
 
     /** set the address of this page */
-    void set_self(ham_offset_t address) {
+    void set_self(ham_u64_t address) {
       m_self = address;
     }
 
@@ -265,7 +265,7 @@ class Page {
     ham_status_t allocate();
 
     /** read a page from the device */
-    ham_status_t fetch(ham_offset_t address);
+    ham_status_t fetch(ham_u64_t address);
 
     /** write a page to the device */
     ham_status_t flush();
@@ -336,7 +336,7 @@ class Page {
 
   private:
     /** address of this page */
-    ham_offset_t m_self;
+    ham_u64_t m_self;
 
     /** reference to the database object; can be NULL */
     Database *m_db;

@@ -46,7 +46,7 @@ typedef struct
 {
   Database *db;         /* [in] */
   ham_u32_t flags;      /* [in] */
-  ham_offset_t total_count;   /* [out] */
+  ham_u64_t total_count;   /* [out] */
   bool is_leaf;     /* [scratch] */
 }  calckeys_context_t;
 
@@ -142,7 +142,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
     key = (BtreeKey *)param1;
 
     if (key->get_flags()&BtreeKey::KEY_IS_EXTENDED) {
-      ham_offset_t blobid = key->get_extended_rid(c->db);
+      ham_u64_t blobid = key->get_extended_rid(c->db);
       /* delete the extended key */
       st = c->db->remove_extkey(blobid);
       if (st)
@@ -180,7 +180,7 @@ Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
 }
 
 ham_status_t
-Database::remove_extkey(ham_offset_t blobid)
+Database::remove_extkey(ham_u64_t blobid)
 {
   if (get_extkey_cache())
     get_extkey_cache()->remove(blobid);
@@ -306,7 +306,7 @@ ham_status_t
 Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
             ham_u32_t key_flags, ham_key_t *ext_key)
 {
-  ham_offset_t blobid;
+  ham_u64_t blobid;
   ham_status_t st;
   ham_size_t temp;
   ham_record_t record;
@@ -328,7 +328,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   }
 
   /* almost the same as: blobid = key->get_extended_rid(db); */
-  memcpy(&blobid, key_data + (get_keysize() - sizeof(ham_offset_t)),
+  memcpy(&blobid, key_data + (get_keysize() - sizeof(ham_u64_t)),
       sizeof(blobid));
   blobid = ham_db2h_offset(blobid);
 
@@ -359,7 +359,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
    * The key is fetched in two parts: we already have the front
    * part of the key in key_data and now we only need to fetch the blob
    * remainder, which size is:
-   *  key_length - (get_keysize() - sizeof(ham_offset_t))
+   *  key_length - (get_keysize() - sizeof(ham_u64_t))
    *
    * To prevent another round of memcpy and heap allocation here, we
    * simply allocate sufficient space for the entire key as it should be
@@ -372,13 +372,13 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
       return (HAM_OUT_OF_MEMORY);
   }
 
-  memmove(ext_key->data, key_data, get_keysize() - sizeof(ham_offset_t));
+  memmove(ext_key->data, key_data, get_keysize() - sizeof(ham_u64_t));
 
   /* now read the remainder of the key */
   memset(&record, 0, sizeof(record));
   record.data = (((ham_u8_t *)ext_key->data) +
-          get_keysize() - sizeof(ham_offset_t));
-  record.size = key_length - (get_keysize() - sizeof(ham_offset_t));
+          get_keysize() - sizeof(ham_u64_t));
+  record.size = key_length - (get_keysize() - sizeof(ham_u64_t));
   record.flags = HAM_RECORD_USER_ALLOC;
 
   st = m_env->get_blob_manager()->read(this, 0, blobid, &record, 0);
@@ -412,7 +412,7 @@ Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 }
 
 ham_status_t
-Database::fetch_page(Page **page, ham_offset_t address, bool only_from_cache)
+Database::fetch_page(Page **page, ham_u64_t address, bool only_from_cache)
 {
   return (m_env->fetch_page(page, this, address, only_from_cache));
 }
@@ -1333,10 +1333,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = get_btree() ? get_keysize() : 21;
         break;
       case HAM_PARAM_FLAGS:
-        p->value = (ham_offset_t)get_rt_flags();
+        p->value = (ham_u64_t)get_rt_flags();
         break;
       case HAM_PARAM_DATABASE_NAME:
-        p->value = (ham_offset_t)get_name();
+        p->value = (ham_u64_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         if (get_btree()) {
@@ -1386,7 +1386,7 @@ LocalDatabase::check_integrity(Transaction *txn)
 
 ham_status_t
 LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
-        ham_offset_t *keycount)
+        ham_u64_t *keycount)
 {
   ham_status_t st;
 
@@ -1539,7 +1539,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 {
   ham_status_t st;
   Transaction *local_txn = 0;
-  ham_offset_t recno = 0;
+  ham_u64_t recno = 0;
 
   if (get_rt_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot erase from a read-only database"));
@@ -1552,9 +1552,9 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
       ham_trace(("key->size must be 8, key->data must not be NULL"));
       return (HAM_INV_PARAMETER);
     }
-    recno = *(ham_offset_t *)key->data;
+    recno = *(ham_u64_t *)key->data;
     recno = ham_h2db64(recno);
-    *(ham_offset_t *)key->data = recno;
+    *(ham_u64_t *)key->data = recno;
   }
 
   if (!txn && (get_rt_flags() & HAM_ENABLE_TRANSACTIONS))
@@ -1579,7 +1579,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
 
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_offset_t *)key->data = ham_db2h64(recno);
+    *(ham_u64_t *)key->data = ham_db2h64(recno);
 
   ham_assert(st == 0);
 
@@ -1601,14 +1601,14 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   Transaction *local_txn = 0;
   ham_status_t st;
 
-  ham_offset_t recno = 0;
+  ham_u64_t recno = 0;
 
   /* purge cache if necessary */
   st = get_env()->purge_cache();
   if (st)
     return (st);
 
-  if ((get_keysize() < sizeof(ham_offset_t)) &&
+  if ((get_keysize() < sizeof(ham_u64_t)) &&
       (key->size > get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
@@ -1632,9 +1632,9 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   if (get_rt_flags() & HAM_RECORD_NUMBER) {
     ham_assert(key->size == sizeof(ham_u64_t));
     ham_assert(key->data != 0);
-    recno = *(ham_offset_t *)key->data;
+    recno = *(ham_u64_t *)key->data;
     recno = ham_h2db64(recno);
-    *(ham_offset_t *)key->data = recno;
+    *(ham_u64_t *)key->data = recno;
   }
 
   /* if user did not specify a transaction, but transactions are enabled:
@@ -1661,7 +1661,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
 
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_offset_t *)key->data = ham_db2h64(recno);
+    *(ham_u64_t *)key->data = ham_db2h64(recno);
 
   m_env->get_changeset().clear();
 
@@ -1699,7 +1699,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ? &get_key_arena()
             : &txn->get_key_arena();
 
-  if ((get_keysize() < sizeof(ham_offset_t)) && (key->size > get_keysize())) {
+  if ((get_keysize() < sizeof(ham_u64_t)) && (key->size > get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
@@ -1895,7 +1895,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
           ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  ham_offset_t recno = 0;
+  ham_u64_t recno = 0;
   Transaction *local_txn = 0;
   txn_cursor_t *txnc = cursor->get_txn_cursor();
 
@@ -1908,9 +1908,9 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
       ham_trace(("key->size must be 8, key->data must not be NULL"));
       return (HAM_INV_PARAMETER);
     }
-    recno = *(ham_offset_t *)key->data;
+    recno = *(ham_u64_t *)key->data;
     recno = ham_h2db64(recno);
-    *(ham_offset_t *)key->data = recno;
+    *(ham_u64_t *)key->data = recno;
   }
 
   /* purge cache if necessary */
@@ -2044,7 +2044,7 @@ bail:
 
   /* record number: re-translate the number to host endian */
   if (get_rt_flags() & HAM_RECORD_NUMBER)
-    *(ham_offset_t *)key->data = ham_db2h64(recno);
+    *(ham_u64_t *)key->data = ham_db2h64(recno);
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
@@ -2118,7 +2118,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
 }
 
 ham_status_t
-LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_offset_t *size)
+LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {
   ham_status_t st = 0;
   Transaction *local_txn = 0;

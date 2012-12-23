@@ -229,7 +229,7 @@ public:
 
   void flushPageTest() {
     Page *page;
-    ham_offset_t address;
+    ham_u64_t address;
     ham_u8_t *p;
 
     BFC_ASSERT_EQUAL(0, m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));

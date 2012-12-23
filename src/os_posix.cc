@@ -91,8 +91,8 @@ os_get_granularity()
 }
 
 ham_status_t
-os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
-            ham_offset_t size, bool readonly, ham_u8_t **buffer)
+os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
+            ham_u64_t size, bool readonly, ham_u8_t **buffer)
 {
   os_log(("os_mmap: fd=%d, position=%lld, size=%lld", fd, position, size));
 
@@ -117,7 +117,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 }
 
 ham_status_t
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 {
   os_log(("os_munmap: size=%lld", size));
 
@@ -139,7 +139,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 
 #ifndef HAVE_PREAD
 static ham_status_t
-os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
+os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
 {
   os_log(("_os_read: fd=%d, size=%lld", fd, bufferlen));
 
@@ -160,14 +160,14 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
 #endif
 
 ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
-            ham_offset_t bufferlen)
+os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
+            ham_u64_t bufferlen)
 {
 #if HAVE_PREAD
   os_log(("os_pread: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
 
   int r;
-  ham_offset_t total = 0;
+  ham_u64_t total = 0;
 
   while (total < bufferlen) {
     r=pread(fd, (ham_u8_t *)buffer + total, bufferlen - total, addr + total);
@@ -194,12 +194,12 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 }
 
 ham_status_t
-os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
+os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 {
   os_log(("os_write: fd=%d, size=%lld", fd, bufferlen));
 
   int w;
-  ham_offset_t total = 0;
+  ham_u64_t total = 0;
   const char *p = (const char *)buffer;
 
   while (total < bufferlen) {
@@ -215,14 +215,14 @@ os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 }
 
 ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
-            ham_offset_t bufferlen)
+os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
+            ham_u64_t bufferlen)
 {
   os_log(("os_pwrite: fd=%d, address=%lld, size=%lld", fd, addr, bufferlen));
 
 #if HAVE_PWRITE
   ssize_t s;
-  ham_offset_t total = 0;
+  ham_u64_t total = 0;
 
   while (total < bufferlen) {
     s = pwrite(fd, buffer, bufferlen, addr + total);
@@ -250,11 +250,11 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 }
 
 ham_status_t
-os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
-            void *buffer2, ham_offset_t buffer2_len,
-            void *buffer3, ham_offset_t buffer3_len,
-            void *buffer4, ham_offset_t buffer4_len,
-            void *buffer5, ham_offset_t buffer5_len)
+os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
+            void *buffer2, ham_u64_t buffer2_len,
+            void *buffer3, ham_u64_t buffer3_len,
+            void *buffer4, ham_u64_t buffer4_len,
+            void *buffer5, ham_u64_t buffer5_len)
 {
   os_log(("os_writev: fd=%d, len1=%lld, len2=%lld, len3=%lld, "
         "len4=%lld, len5=%lld", fd, buffer1_len, buffer2_len,
@@ -311,7 +311,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_offset_t buffer1_len,
    * to be memory page aligned
    */
   ham_status_t st;
-  ham_offset_t rollback;
+  ham_u64_t rollback;
 
   st = os_tell(fd, &rollback);
   if (st)
@@ -351,7 +351,7 @@ bail:
 }
 
 ham_status_t
-os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
+os_seek(ham_fd_t fd, ham_u64_t offset, int whence)
 {
   os_log(("os_seek: fd=%d, offset=%lld, whence=%d", fd, offset, whence));
   if (lseek(fd, offset, whence) < 0)
@@ -360,15 +360,15 @@ os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 }
 
 ham_status_t
-os_tell(ham_fd_t fd, ham_offset_t *offset)
+os_tell(ham_fd_t fd, ham_u64_t *offset)
 {
   *offset = lseek(fd, 0, SEEK_CUR);
   os_log(("os_tell: fd=%d, offset=%lld", fd, *offset));
-  return (*offset == (ham_offset_t) - 1 ? errno : HAM_SUCCESS);
+  return (*offset == (ham_u64_t) - 1 ? errno : HAM_SUCCESS);
 }
 
 ham_status_t
-os_get_filesize(ham_fd_t fd, ham_offset_t *size)
+os_get_filesize(ham_fd_t fd, ham_u64_t *size)
 {
   ham_status_t st;
 
@@ -383,7 +383,7 @@ os_get_filesize(ham_fd_t fd, ham_offset_t *size)
 }
 
 ham_status_t
-os_truncate(ham_fd_t fd, ham_offset_t newsize)
+os_truncate(ham_fd_t fd, ham_u64_t newsize)
 {
   os_log(("os_truncate: fd=%d, size=%lld", fd, newsize));
   if (ftruncate(fd, newsize))

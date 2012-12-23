@@ -28,7 +28,7 @@ using namespace ham;
 ham_status_t
 DiskDevice::alloc_page(Page *page)
 {
-  ham_offset_t pos;
+  ham_u64_t pos;
   ham_size_t size = m_pagesize;
 
   ham_status_t st = os_get_filesize(m_fd, &pos);

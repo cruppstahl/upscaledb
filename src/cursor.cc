@@ -1151,7 +1151,7 @@ Cursor::get_duplicate_count(Transaction *txn, ham_u32_t *pcount, ham_u32_t flags
 }
 
 ham_status_t
-Cursor::get_record_size(Transaction *txn, ham_offset_t *psize)
+Cursor::get_record_size(Transaction *txn, ham_u64_t *psize)
 {
     ham_status_t st=0;
 

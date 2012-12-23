@@ -197,7 +197,7 @@ class BtreeCursor
     /**
      * retrieves the record size of the current record
      */
-    ham_status_t get_record_size(ham_offset_t *size);
+    ham_status_t get_record_size(ham_u64_t *size);
 
     /**
      * retrieves the duplicate table of the current key; memory in ptable has

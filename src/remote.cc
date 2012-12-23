@@ -720,7 +720,7 @@ RemoteDatabase::check_integrity(Transaction *txn)
 
 ham_status_t
 RemoteDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
-              ham_offset_t *keycount)
+              ham_u64_t *keycount)
 {
   ham_status_t st;
   RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
@@ -798,11 +798,11 @@ RemoteDatabase::insert(Transaction *txn, ham_key_t *key,
 
   /* recno: the key was modified! */
   if (st == 0 && reply->db_insert_reply().has_key()) {
-    if (reply->db_insert_reply().key().data().size() == sizeof(ham_offset_t)) {
+    if (reply->db_insert_reply().key().data().size() == sizeof(ham_u64_t)) {
       ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(ham_offset_t));
+      ham_assert(key->size == sizeof(ham_u64_t));
       memcpy(key->data, &reply->db_insert_reply().key().data()[0],
-            sizeof(ham_offset_t));
+            sizeof(ham_u64_t));
     }
   }
 
@@ -1025,11 +1025,11 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   /* recno: the key was modified! */
   if (st == 0 && reply->cursor_insert_reply().has_key()) {
     if (reply->cursor_insert_reply().key().data().size()
-        == sizeof(ham_offset_t)) {
+        == sizeof(ham_u64_t)) {
       ham_assert(key->data != 0);
-      ham_assert(key->size == sizeof(ham_offset_t));
+      ham_assert(key->size == sizeof(ham_u64_t));
       memcpy(key->data, (void *)&reply->cursor_insert_reply().key().data()[0],
-            sizeof(ham_offset_t));
+            sizeof(ham_u64_t));
     }
   }
 
@@ -1149,7 +1149,7 @@ RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
 
 ham_status_t
 RemoteDatabase::cursor_get_record_size(Cursor *cursor,
-            ham_offset_t *size)
+            ham_u64_t *size)
 {
   (void)cursor;
   (void)size;

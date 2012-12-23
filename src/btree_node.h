@@ -46,27 +46,27 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   }
 
   /** get the address of the left sibling of a btree-node */
-  ham_offset_t get_left() {
+  ham_u64_t get_left() {
     return (ham_db2h_offset(_left));
   }
 
   /** set the address of the left sibling of a btree-node */
-  void set_left(ham_offset_t o) {
+  void set_left(ham_u64_t o) {
     _left = ham_h2db_offset(o);
   }
 
   /** get the address of the right sibling of a btree-node */
-  ham_offset_t get_right() {
+  ham_u64_t get_right() {
     return (ham_db2h_offset(_right));
   }
 
   /** set the address of the right sibling of a btree-node */
-  void set_right(ham_offset_t o) {
+  void set_right(ham_u64_t o) {
     _right = ham_h2db_offset(o);
   }
 
   /** get the ptr_left of a btree-node */
-  ham_offset_t get_ptr_left() {
+  ham_u64_t get_ptr_left() {
     return (ham_db2h_offset(_ptr_left));
   }
 
@@ -76,7 +76,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   }
 
   /** set the ptr_left of a btree-node */
-  void set_ptr_left(ham_offset_t o) {
+  void set_ptr_left(ham_u64_t o) {
     _ptr_left = ham_h2db_offset(o);
   }
 
@@ -101,16 +101,16 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   ham_u16_t _count;
 
   /** address of left sibling */
-  ham_offset_t _left;
+  ham_u64_t _left;
 
   /** address of right sibling */
-  ham_offset_t _right;
+  ham_u64_t _right;
 
   /**
    * address of child node whose items are smaller than all items
    * in this node
    */
-  ham_offset_t _ptr_left;
+  ham_u64_t _ptr_left;
 
   /** the entries of this node */
   BtreeKey _entries[1];

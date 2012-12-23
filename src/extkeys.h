@@ -35,7 +35,7 @@ class ExtKeyCache
 {
     struct ExtKey {
       /** the blobid of this key */
-      ham_offset_t blobid;
+      ham_u64_t blobid;
 
       /** the age of this extkey */
       ham_u64_t age;
@@ -62,11 +62,11 @@ class ExtKeyCache
           return ((unsigned)extkey->blobid);
         }
 
-        unsigned hash(const ham_offset_t &rid) {
+        unsigned hash(const ham_u64_t &rid) {
           return ((unsigned)rid);
         }
 
-        bool matches(const ExtKey *lhs, ham_offset_t key) {
+        bool matches(const ExtKey *lhs, ham_u64_t key) {
           return (lhs->blobid == key);
         }
 
@@ -116,7 +116,7 @@ class ExtKeyCache
      * insert a new extended key in the cache
      * will assert that there's no duplicate key!
      */
-    void insert(ham_offset_t blobid, ham_size_t size, const ham_u8_t *data) {
+    void insert(ham_u64_t blobid, ham_size_t size, const ham_u8_t *data) {
       ExtKey *e;
       Environment *env=m_db->get_env();
 
@@ -137,7 +137,7 @@ class ExtKeyCache
      * remove an extended key from the cache
      * returns HAM_KEY_NOT_FOUND if the extkey was not found
      */
-    void remove(ham_offset_t blobid) {
+    void remove(ham_u64_t blobid) {
       ExtKey *e = m_hash.remove(blobid);
       if (e) {
         m_usedsize -= e->size;
@@ -149,7 +149,7 @@ class ExtKeyCache
      * fetches an extended key from the cache
      * returns HAM_KEY_NOT_FOUND if the extkey was not found
      */
-    ham_status_t fetch(ham_offset_t blobid, ham_size_t *size, ham_u8_t **data) {
+    ham_status_t fetch(ham_u64_t blobid, ham_size_t *size, ham_u8_t **data) {
       ExtKey *e = m_hash.get(blobid);
       if (e) {
         *size = e->size;
@@ -185,7 +185,7 @@ class ExtKeyCache
     ExtKeyHelper *m_extkeyhelper;
 
     /** the buckets - a list of ExtKey pointers */
-    hash_table<ExtKey, ham_offset_t, ExtKeyHelper> m_hash;
+    hash_table<ExtKey, ham_u64_t, ExtKeyHelper> m_hash;
 };
 
 } // namespace ham

@@ -83,12 +83,12 @@ public:
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
     BtreeKey *key = node->get_key(m_dbp, 0);
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key->get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
     BFC_ASSERT_EQUAL((ham_u8_t)0, key->get_flags());
     BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key->get_key());
 
-    key->set_ptr((ham_offset_t)0x12345);
-    BFC_ASSERT_EQUAL((ham_offset_t)0x12345, key->get_ptr());
+    key->set_ptr((ham_u64_t)0x12345);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x12345, key->get_ptr());
 
     key->set_flags((ham_u8_t)0x13);
     BFC_ASSERT_EQUAL((ham_u8_t)0x13, key->get_flags());
@@ -105,12 +105,12 @@ public:
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
     BtreeKey *key = node->get_key(m_dbp, 0);
-    ham_offset_t blobid = key->get_extended_rid(m_dbp);
-    BFC_ASSERT_EQUAL((ham_offset_t)0, blobid);
+    ham_u64_t blobid = key->get_extended_rid(m_dbp);
+    BFC_ASSERT_EQUAL((ham_u64_t)0, blobid);
 
-    key->set_extended_rid(m_dbp, (ham_offset_t)0xbaadbeef);
+    key->set_extended_rid(m_dbp, (ham_u64_t)0xbaadbeef);
     blobid = key->get_extended_rid(m_dbp);
-    BFC_ASSERT_EQUAL((ham_offset_t)0xbaadbeef, blobid);
+    BFC_ASSERT_EQUAL((ham_u64_t)0xbaadbeef, blobid);
 
     page->free();
     delete page;
@@ -130,10 +130,10 @@ public:
 
     BtreeKey *key = (BtreeKey *)&buffer[0];
 
-    BFC_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull,
+    BFC_ASSERT_EQUAL((ham_u64_t)0x0123456789abcdefull,
         key->get_ptr());
     BFC_ASSERT_EQUAL((ham_u8_t)0xf0, key->get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull,
+    BFC_ASSERT_EQUAL((ham_u64_t)0xfedcba9876543210ull,
         key->get_extended_rid(m_dbp));
   }
 
@@ -143,7 +143,7 @@ public:
     memset(buffer, 0, sizeof(buffer));
 
     key->set_extended_rid(m_dbp, 0x12345);
-    BFC_ASSERT_EQUAL((ham_offset_t)0x12345, key->get_extended_rid(m_dbp));
+    BFC_ASSERT_EQUAL((ham_u64_t)0x12345, key->get_extended_rid(m_dbp));
   }
 
   void insertEmpty(BtreeKey *key, ham_u32_t flags) {
@@ -154,7 +154,7 @@ public:
     memset(&rec, 0, sizeof(rec));
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags&HAM_DUPLICATE))
-      BFC_ASSERT_EQUAL((ham_offset_t)0, key->get_ptr());
+      BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
 
     if (!(flags&HAM_DUPLICATE)) {
       BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_BLOB_SIZE_EMPTY,
@@ -227,7 +227,7 @@ public:
     memset(&rec, 0, sizeof(rec));
     memset(&rec2, 0, sizeof(rec2));
     rec.data = (void *)data;
-    rec.size = sizeof(ham_offset_t);
+    rec.size = sizeof(ham_u64_t);
 
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
@@ -312,7 +312,7 @@ public:
     prepareSmall(&key, "12345678");
 
     /* set normal record */
-    prepareNormal(&key, "1234567812345678", sizeof(ham_offset_t)*2);
+    prepareNormal(&key, "1234567812345678", sizeof(ham_u64_t)*2);
   }
 
   void overwriteRecordTest() {
@@ -493,25 +493,25 @@ public:
     prepareEmpty(&key);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert tiny key, then delete it */
     prepareTiny(&key, "1234", 4);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert small key, then delete it */
     prepareSmall(&key, "12345678");
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert normal key, then delete it */
     prepareNormal(&key, "1234123456785678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
   }
 
   void eraseDuplicateRecordTest() {
@@ -524,7 +524,7 @@ public:
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny(&key, "1234", 4);
@@ -533,7 +533,7 @@ public:
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert small key, then a duplicate; delete both */
     prepareSmall(&key, "12345678");
@@ -542,7 +542,7 @@ public:
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert normal key, then a duplicate; delete both */
     prepareNormal(&key, "1234123456785678", 16);
@@ -551,7 +551,7 @@ public:
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
   }
 
   void eraseAllDuplicateRecordTest() {
@@ -567,7 +567,7 @@ public:
     checkDupe(&key, 0, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert tiny key, then a duplicate; delete both at once */
     prepareTiny(&key, "1234", 4);
@@ -579,7 +579,7 @@ public:
     checkDupe(&key, 0, "1234", 4);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert small key, then a duplicate; delete both at once */
     prepareSmall(&key, "12345678");
@@ -591,7 +591,7 @@ public:
     checkDupe(&key, 0, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
 
     /* insert normal key, then a duplicate; delete both at once */
     prepareNormal(&key, "1234123456785678", 16);
@@ -603,7 +603,7 @@ public:
     checkDupe(&key, 0, "1234123456785678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_offset_t)0, key.get_ptr());
+    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
   }
 };
 

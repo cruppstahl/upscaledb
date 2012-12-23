@@ -253,7 +253,7 @@ Environment::alloc_page(Page **page_ref, Database *db, ham_u32_t type,
             ham_u32_t flags)
 {
   ham_status_t st;
-  ham_offset_t tellpos = 0;
+  ham_u64_t tellpos = 0;
   Page *page = NULL;
   bool allocated_by_me = false;
 
@@ -324,7 +324,7 @@ done:
 
 ham_status_t
 Environment::fetch_page(Page **page_ref, Database *db,
-            ham_offset_t address, bool only_from_cache)
+            ham_u64_t address, bool only_from_cache)
 {
   ham_status_t st;
 

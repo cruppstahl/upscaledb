@@ -689,7 +689,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
       /* recno: return the modified key */
       if ((st == 0)
           && (((Database *)db)->get_rt_flags(true) & HAM_RECORD_NUMBER)) {
-        ham_assert(key.size == sizeof(ham_offset_t));
+        ham_assert(key.size == sizeof(ham_u64_t));
         send_key = HAM_TRUE;
       }
     }
@@ -930,7 +930,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
   if (st == 0) {
     Cursor *c = (Cursor *)cursor;
     if (c->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
-      ham_assert(key.size == sizeof(ham_offset_t));
+      ham_assert(key.size == sizeof(ham_u64_t));
       send_key = true;
     }
   }

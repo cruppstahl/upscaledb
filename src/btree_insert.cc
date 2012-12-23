@@ -260,7 +260,7 @@ class BtreeInsertAction
      * and performing necessary SMOs. it works recursive.
      */
     ham_status_t insert_recursive(Page *page, ham_key_t *key,
-                    ham_offset_t rid) {
+                    ham_u64_t rid) {
       Page *child;
       BtreeNode *node = BtreeNode::from_page(page);
 
@@ -302,7 +302,7 @@ class BtreeInsertAction
     /**
      * this function inserts a key in a page; if necessary, the page is split
      */
-    ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_offset_t rid) {
+    ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
       ham_status_t st;
       ham_size_t maxkeys = m_btree->get_maxkeys();
       BtreeNode *node = BtreeNode::from_page(page);
@@ -349,14 +349,14 @@ class BtreeInsertAction
     /**
      * split a page and insert the new element
      */
-    ham_status_t insert_split(Page *page, ham_key_t *key, ham_offset_t rid) {
+    ham_status_t insert_split(Page *page, ham_key_t *key, ham_u64_t rid) {
       int cmp;
       Page *newpage, *oldsib;
       ham_size_t keysize = m_btree->get_keysize();
       LocalDatabase *db = m_btree->get_db();
       Environment *env = db->get_env();
       ham_u16_t pivot;
-      ham_offset_t pivotrid;
+      ham_u64_t pivotrid;
       bool pivot_at_end = false;
 
       /* allocate a new page */
@@ -519,7 +519,7 @@ fail_dramatically:
       return (st);
     }
 
-    ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_offset_t rid,
+    ham_status_t insert_in_leaf(Page *page, ham_key_t *key, ham_u64_t rid,
                 bool force_prepend = false, bool force_append = false) {
       ham_status_t st;
       ham_size_t new_dupe_id = 0;
@@ -644,14 +644,14 @@ fail_dramatically:
        * the blob-id in the key
        */
       if (key->size > keysize) {
-        ham_offset_t blobid;
+        ham_u64_t blobid;
 
         bte->set_key(key->data, keysize);
 
         ham_u8_t *data_ptr = (ham_u8_t *)key->data;
         ham_record_t rec = ham_record_t();
-        rec.data = data_ptr  + (keysize - sizeof(ham_offset_t));
-        rec.size = key->size - (keysize - sizeof(ham_offset_t));
+        rec.data = data_ptr  + (keysize - sizeof(ham_u64_t));
+        rec.size = key->size - (keysize - sizeof(ham_u64_t));
 
         if ((st = db->get_env()->get_blob_manager()->allocate(db, &rec, 0,
                                         &blobid)))
@@ -691,7 +691,7 @@ fail_dramatically:
     ham_key_t m_split_key;
 
     /** the pivot record ID for SMOs and splits */
-    ham_offset_t m_split_rid;
+    ham_u64_t m_split_rid;
 
     /* flags of ham_db_find() */
     ham_u32_t m_flags;
@@ -720,7 +720,7 @@ BtreeIndex::insert_cursor(Transaction *txn, ham_key_t *key,
 
 #if 0
 static void
-dump_page(LocalDatabase *db, ham_offset_t address) {
+dump_page(LocalDatabase *db, ham_u64_t address) {
   Page *page;
   ham_status_t st=db_fetch_page(&page, db, address, 0);
   ham_assert(st==0);

@@ -1492,7 +1492,7 @@ ham_db_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-            ham_offset_t *keycount);
+            ham_u64_t *keycount);
 
 /**
  * Retrieve the current value for a given Database setting
@@ -1551,7 +1551,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * Return a <code>const char *</code> pointer to the current
- * Environment/Database file name in the @ref ham_offset_t value
+ * Environment/Database file name in the @ref ham_u64_t value
  * member, when the Database is actually stored on disc.
  *
  * In-memory Databases will return a NULL (0) pointer instead.
@@ -2286,7 +2286,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
  * @return @ref HAM_INV_PARAMETER if @a cursor or @a size is NULL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_get_record_size(ham_cursor_t *cursor, ham_offset_t *size);
+ham_cursor_get_record_size(ham_cursor_t *cursor, ham_u64_t *size);
 
 /**
  * Closes a Database Cursor
