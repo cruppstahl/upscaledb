@@ -18,7 +18,7 @@
 
 #include "internal_fwd_decl.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class BtreeStatistics {
   public:
@@ -103,6 +103,6 @@ class BtreeStatistics {
 };
 
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BTREE_STATS_H__ */

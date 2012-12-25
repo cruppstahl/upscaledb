@@ -32,7 +32,7 @@
 #include "util.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 
 BtreeStatistics::BtreeStatistics(Database *db)
@@ -160,4 +160,4 @@ BtreeStatistics::get_insert_hints(ham_u32_t flags)
   return (hints);
 }
 
-} // namespace ham
+} // namespace hamsterdb

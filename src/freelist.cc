@@ -24,7 +24,7 @@
 #include "btree_stats.h"
 #include "txn.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * replacement for env->set_dirty(); will call the macro, but also
@@ -3117,4 +3117,4 @@ Freelist::set_bits(FreelistEntry *entry, FreelistPayload *fp,
     return (size_bits);
 }
 
-} // namespace ham
+} // namespace hamsterdb

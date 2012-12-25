@@ -22,7 +22,7 @@
 #include "error.h"
 #include "os.h"
 
-namespace ham {
+namespace hamsterdb {
 
 static const char *
 DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
@@ -532,4 +532,4 @@ os_close(ham_fd_t fd)
   return (HAM_SUCCESS);
 }
 
-} // namespace ham
+} // namespace hamsterdb

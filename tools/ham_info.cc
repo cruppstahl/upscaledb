@@ -79,16 +79,16 @@ print_environment(ham_env_t *env) {
   if (!quiet) {
     printf("environment\n");
     printf("  pagesize:           %u\n",
-            ((ham::Environment *)env)->get_pagesize());
+            ((hamsterdb::Environment *)env)->get_pagesize());
     printf("  version:          %u.%u.%u.%u\n",
-            ((ham::Environment *)env)->get_version(0),
-            ((ham::Environment *)env)->get_version(1),
-            ((ham::Environment *)env)->get_version(2),
-            ((ham::Environment *)env)->get_version(3));
+            ((hamsterdb::Environment *)env)->get_version(0),
+            ((hamsterdb::Environment *)env)->get_version(1),
+            ((hamsterdb::Environment *)env)->get_version(2),
+            ((hamsterdb::Environment *)env)->get_version(3));
     printf("  serialno:           %u\n",
-            ((ham::Environment *)env)->get_serialno());
+            ((hamsterdb::Environment *)env)->get_serialno());
     printf("  max databases:        %u\n",
-            ((ham::Environment *)env)->get_max_databases());
+            ((hamsterdb::Environment *)env)->get_max_databases());
   }
 
   st = ham_db_close(db, 0);
@@ -98,7 +98,7 @@ print_environment(ham_env_t *env) {
 
 static void
 print_database(ham_db_t *db, ham_u16_t dbname, int full) {
-  ham::BtreeIndex *be;
+  hamsterdb::BtreeIndex *be;
   ham_cursor_t *cursor;
   ham_status_t st;
   ham_key_t key;
@@ -107,7 +107,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
       max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
       total_key_size = 0, total_rec_size = 0;
 
-  be = ((ham::Database *)db)->get_btree();
+  be = ((hamsterdb::Database *)db)->get_btree();
 
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));
@@ -120,7 +120,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    address of root page:   %llu\n",
         (long long unsigned int)be->get_rootpage());
     printf("    flags:          0x%04x\n",
-        ((ham::Database *)db)->get_rt_flags());
+        ((hamsterdb::Database *)db)->get_rt_flags());
   }
 
   if (!full)
@@ -152,7 +152,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     if (rec.size > max_rec_size)
       max_rec_size = rec.size;
 
-    if (key.size > ((ham::Database *)db)->get_keysize())
+    if (key.size > ((hamsterdb::Database *)db)->get_keysize())
       ext_keys++;
 
     total_key_size += key.size;

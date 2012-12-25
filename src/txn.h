@@ -33,7 +33,7 @@ struct ham_txn_t
 };
 
 
-namespace ham {
+namespace hamsterdb {
 
 class Transaction;
 
@@ -560,7 +560,7 @@ txn_opnode_get_next_sibling(txn_opnode_t *node);
 extern txn_opnode_t *
 txn_opnode_get_previous_sibling(txn_opnode_t *node);
 
-} // namespace ham
+} // namespace hamsterdb
 
 
 #endif /* HAM_TXN_H__ */

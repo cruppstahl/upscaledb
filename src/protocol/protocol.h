@@ -22,7 +22,7 @@
 #include "../endianswap.h"
 #include "messages.pb.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 /** a magic and version indicator for the remote protocol */
 #define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
@@ -31,25 +31,25 @@ using namespace ham;
  * the Protocol class maps a single message that is exchanged between
  * client and server
  */
-class Protocol : public ham::ProtoWrapper
+class Protocol : public hamsterdb::ProtoWrapper
 {
   public:
     Protocol() { }
 
     /** constructor - assigns a type */
-    Protocol(ham::ProtoWrapper_Type type) {
+    Protocol(hamsterdb::ProtoWrapper_Type type) {
       set_type(type);
     }
 
     /** helper function which copies a ham_key_t into a ProtoBuf key */
-    static void assign_key(ham::Key *protokey, ham_key_t *hamkey) {
+    static void assign_key(hamsterdb::Key *protokey, ham_key_t *hamkey) {
       protokey->set_data(hamkey->data, hamkey->size);
       protokey->set_flags(hamkey->flags);
       protokey->set_intflags(hamkey->_flags);
     }
 
     /** helper function which copies a ham_record_t into a ProtoBuf record */
-    static void assign_record(ham::Record *protorec, ham_record_t *hamrec) {
+    static void assign_record(hamsterdb::Record *protorec, ham_record_t *hamrec) {
       protorec->set_data(hamrec->data, hamrec->size);
       protorec->set_flags(hamrec->flags);
       protorec->set_partial_offset(hamrec->partial_offset);

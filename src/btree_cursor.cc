@@ -32,7 +32,7 @@
 #include "btree_node.h"
 #include "btree_cursor.h"
 
-namespace ham {
+namespace hamsterdb {
 
 void
 BtreeCursor::set_to_nil()
@@ -854,4 +854,4 @@ BtreeCursor::move_last(ham_u32_t flags)
   return (0);
 }
 
-} // namespace ham
+} // namespace hamsterdb

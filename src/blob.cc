@@ -27,7 +27,7 @@
 #include "btree.h"
 #include "btree_key.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(blob_t) + 1)

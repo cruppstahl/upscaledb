@@ -27,7 +27,7 @@
 #include "os.h"
 #include "journal_entries.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -251,6 +251,6 @@ class Journal
 
 #include "packstop.h"
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_JOURNAL_H__ */

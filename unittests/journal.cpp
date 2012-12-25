@@ -33,7 +33,7 @@
 
 using namespace bfc;
 
-namespace ham {
+namespace hamsterdb {
 
 struct LogEntry {
   LogEntry()
@@ -1035,10 +1035,10 @@ public:
   }
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 // since BFC macro will b0rk on ham::LogTest:
-typedef ham::JournalTest JournalTest;
+typedef hamsterdb::JournalTest JournalTest;
 
 BFC_REGISTER_FIXTURE(JournalTest);
 

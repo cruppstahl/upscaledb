@@ -24,7 +24,7 @@
 #include "util.h"
 #include "internal_fwd_decl.h"
 
-namespace ham {
+namespace hamsterdb {
 
 static int     g_level   =0;
 static const char *g_file  =0;
@@ -138,7 +138,7 @@ dbg_verify_failed(const char *format, ...)
   }
 }
 
-} // namespace ham
+} // namespace hamsterdb
 
 // global namespace...
 
@@ -146,8 +146,8 @@ void HAM_CALLCONV
 ham_set_errhandler(ham_errhandler_fun f)
 {
   if (f)
-    ham::g_hand = f;
+    hamsterdb::g_hand = f;
   else
-    ham::g_hand = ham::dbg_errhandler;
+    hamsterdb::g_hand = hamsterdb::dbg_errhandler;
 }
 

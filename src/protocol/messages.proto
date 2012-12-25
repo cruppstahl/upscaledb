@@ -1,6 +1,6 @@
 
 
-package ham;
+package hamsterdb;
 
 option optimize_for = LITE_RUNTIME;
 

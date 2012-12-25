@@ -22,7 +22,7 @@
 #include "internal_fwd_decl.h"
 #include "env.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in
  * a MODULO hash scheme */
@@ -273,6 +273,6 @@ class Cache
     std::vector<Page *> m_buckets;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_CACHE_H__ */

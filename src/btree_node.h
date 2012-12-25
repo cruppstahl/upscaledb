@@ -20,7 +20,7 @@
 
 #include "packstart.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * A btree-node; it spans the persistent part of a Page
@@ -120,6 +120,6 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
 #include "packstop.h"
 
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BTREE_NODE_H__ */

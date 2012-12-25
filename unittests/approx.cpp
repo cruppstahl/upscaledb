@@ -30,7 +30,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
 class ApproxTest : public hamsterDB_fixture
 {

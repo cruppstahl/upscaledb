@@ -73,7 +73,7 @@ public:
   void keyTest() {
     void *p = (void *)"123";
     void *q = (void *)"234";
-    ham::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
+    hamsterdb::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
 
     BFC_ASSERT_EQUAL((void *)0, k1.get_data());
     BFC_ASSERT_EQUAL((ham_size_t)0, k1.get_size());
@@ -88,13 +88,13 @@ public:
     BFC_ASSERT_EQUAL((ham_size_t)4, k1.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k1.get_flags());
 
-    ham::key k3(k1);
+    hamsterdb::key k3(k1);
     BFC_ASSERT_EQUAL(p, k3.get_data());
     BFC_ASSERT_EQUAL((ham_size_t)4, k3.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k3.get_flags());
 
     int i = 3;
-    ham::key k4;
+    hamsterdb::key k4;
     k4.set<int>(i);
     BFC_ASSERT_EQUAL((void *)&i, k4.get_data());
     BFC_ASSERT_EQUAL(sizeof(int), (size_t)k4.get_size());
@@ -110,7 +110,7 @@ public:
   void recordTest() {
     void *p = (void *)"123";
     void *q = (void *)"234";
-    ham::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
+    hamsterdb::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
 
     BFC_ASSERT_EQUAL((void *)0, r1.get_data());
     BFC_ASSERT_EQUAL((ham_size_t)0, r1.get_size());
@@ -125,7 +125,7 @@ public:
     BFC_ASSERT_EQUAL((ham_size_t)4, r1.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r1.get_flags());
 
-    ham::record r3(r1);
+    hamsterdb::record r3(r1);
     BFC_ASSERT_EQUAL(p, r3.get_data());
     BFC_ASSERT_EQUAL((ham_size_t)4, r3.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r3.get_flags());
@@ -139,7 +139,7 @@ public:
   }
 
   void staticFunctionsTest() {
-    ham::db db;
+    hamsterdb::db db;
     // check for obvious errors
 
     db.get_version(0, 0, 0);
@@ -149,21 +149,21 @@ public:
   }
 
   void compareTest() {
-    ham::env env;
+    hamsterdb::env env;
     env.create(BFC_OPATH(".test"));
-    ham::db db = env.create_db(1);
+    hamsterdb::db db = env.create_db(1);
     db.set_compare_func(my_compare_func);
     db.set_prefix_compare_func(my_prefix_compare_func);
     env.close(HAM_AUTO_CLEANUP);
   }
 
   void createOpenCloseDbTest() {
-    ham::env env;
+    hamsterdb::env env;
 
     try {
       env.create("data/");
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     env.create(BFC_OPATH(".test"));
@@ -172,7 +172,7 @@ public:
     try {
       env.open("xxxxxx");
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     env.open(BFC_OPATH(".test"));
@@ -181,10 +181,10 @@ public:
   }
 
   void insertFindEraseTest() {
-    ham::env env;
-    ham::db db;
-    ham::key k;
-    ham::record r, out;
+    hamsterdb::env env;
+    hamsterdb::db db;
+    hamsterdb::key k;
+    hamsterdb::record r, out;
 
     k.set_data((void *)"12345");
     k.set_size(6);
@@ -197,20 +197,20 @@ public:
     try {
       db.insert(0, &r);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     try {
       db.insert(&k, 0);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     db.insert(&k, &r);
     try {
       db.insert(&k, &r);  // already exists
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     out = db.find(&k);
@@ -221,19 +221,19 @@ public:
     try {
       db.erase(0);
     }
-    catch(ham::error &) {
+    catch(hamsterdb::error &) {
     }
 
     try {
       db.erase(&k);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     try {
       out = db.find(&k);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
       BFC_ASSERT_EQUAL(0, strcmp("Key not found", e.get_string()));
     }
@@ -241,7 +241,7 @@ public:
     try {
       out = db.find(0);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     db.close();
@@ -253,46 +253,46 @@ public:
   }
 
   void cursorTest() {
-    ham::env env;
-    ham::db db;
+    hamsterdb::env env;
+    hamsterdb::db db;
 
     try {
-      ham::cursor cerr(&db);
+      hamsterdb::cursor cerr(&db);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
-    ham::key k((void *)"12345", 5), k2;
-    ham::record r((void *)"12345", 5), r2;
+    hamsterdb::key k((void *)"12345", 5), k2;
+    hamsterdb::record r((void *)"12345", 5), r2;
 
     env.create(BFC_OPATH(".test"));
     db = env.create_db(1);
-    ham::cursor c(&db);
+    hamsterdb::cursor c(&db);
     c.create(&db); // overwrite
 
     c.insert(&k, &r);
     try {
       c.insert(&k, 0);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
     try {
       c.insert(0, &r);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
     try {
       c.insert(&k, &r);  // already exists
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
     try {
       c.overwrite(0);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
     c.overwrite(&r);
-    ham::cursor clone = c.clone();
+    hamsterdb::cursor clone = c.clone();
 
     c.move_first(&k2, &r2);
     BFC_ASSERT_EQUAL(k.get_size(), k2.get_size());
@@ -305,14 +305,14 @@ public:
     try {
       c.move_next();
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
     }
 
     try {
       c.move_previous();
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
     }
 
@@ -323,21 +323,21 @@ public:
     try {
       c.erase();
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
     try {
       c.find(&k);
     }
-    catch (ham::error &) {
+    catch (hamsterdb::error &) {
     }
 
-    ham::cursor temp;
+    hamsterdb::cursor temp;
     temp.close();
   }
 
   void envTest() {
-    ham::env env;
+    hamsterdb::env env;
 
     env.create(BFC_OPATH(".test"));
     env.flush();
@@ -346,7 +346,7 @@ public:
     env.close();
     env.open(BFC_OPATH(".test"));
 
-    ham::db db1 = env.create_db(1);
+    hamsterdb::db db1 = env.create_db(1);
     db1.close();
     db1 = env.open_db(1);
     env.rename_db(1, 2);
@@ -354,7 +354,7 @@ public:
     try {
       env.erase_db(2);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, e.get_errno());
     }
     db1.close();
@@ -362,8 +362,8 @@ public:
   }
 
   void envDestructorTest() {
-    ham::db db1;
-    ham::env env;
+    hamsterdb::db db1;
+    hamsterdb::env env;
 
     env.create(BFC_OPATH(".test"));
     db1 = env.create_db(1);
@@ -372,7 +372,7 @@ public:
   }
 
   void envGetDatabaseNamesTest() {
-    ham::env env;
+    hamsterdb::env env;
     std::vector<ham_u16_t> v;
 
     env.create(BFC_OPATH(".test"));
@@ -380,7 +380,7 @@ public:
     v = env.get_database_names();
     BFC_ASSERT_EQUAL((ham_size_t)0, (ham_size_t)v.size());
 
-    ham::db db1 = env.create_db(1);
+    hamsterdb::db db1 = env.create_db(1);
     v = env.get_database_names();
     BFC_ASSERT_EQUAL((ham_size_t)1, (ham_size_t)v.size());
     BFC_ASSERT_EQUAL((ham_u16_t)1, v[0]);
@@ -390,22 +390,22 @@ public:
   void getLicenseTest() {
     const char *licensee = 0, *product = 0;
 
-    ham::db::get_license(0, 0);
-    ham::db::get_license(&licensee, 0);
+    hamsterdb::db::get_license(0, 0);
+    hamsterdb::db::get_license(&licensee, 0);
     BFC_ASSERT(licensee != 0);
-    ham::db::get_license(0, &product);
+    hamsterdb::db::get_license(0, &product);
     BFC_ASSERT(product != 0);
-    ham::db::get_license(&licensee, &product);
+    hamsterdb::db::get_license(&licensee, &product);
     BFC_ASSERT(licensee != 0);
     BFC_ASSERT(product != 0);
   }
 
   void beginAbortTest() {
-    ham::env env;
-    ham::db db;
-    ham::key k;
-    ham::record r, out;
-    ham::txn txn;
+    hamsterdb::env env;
+    hamsterdb::db db;
+    hamsterdb::key k;
+    hamsterdb::record r, out;
+    hamsterdb::txn txn;
 
     k.set_data((void *)"12345");
     k.set_size(6);
@@ -420,17 +420,17 @@ public:
     try {
       out = db.find(&k);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
     }
   }
 
   void beginCommitTest() {
-    ham::db db;
-    ham::env env;
-    ham::key k;
-    ham::record r, out;
-    ham::txn txn;
+    hamsterdb::db db;
+    hamsterdb::env env;
+    hamsterdb::key k;
+    hamsterdb::record r, out;
+    hamsterdb::txn txn;
 
     k.set_data((void *)"12345");
     k.set_size(6);
@@ -448,11 +448,11 @@ public:
   }
 
   void beginCursorAbortTest() {
-    ham::env env;
-    ham::db db;
-    ham::key k;
-    ham::record r, out;
-    ham::txn txn;
+    hamsterdb::env env;
+    hamsterdb::db db;
+    hamsterdb::key k;
+    hamsterdb::record r, out;
+    hamsterdb::txn txn;
 
     k.set_data((void *)"12345");
     k.set_size(6);
@@ -462,7 +462,7 @@ public:
     env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
     db = env.create_db(1);
     txn = env.begin();
-    ham::cursor c(&db, &txn);
+    hamsterdb::cursor c(&db, &txn);
     c.insert(&k, &r);
     BFC_ASSERT_EQUAL(r.get_size(), c.get_record_size());
     c.close();
@@ -470,17 +470,17 @@ public:
     try {
       out=db.find(&k);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
     }
   }
 
   void beginCursorCommitTest() {
-    ham::env env;
-    ham::db db;
-    ham::key k;
-    ham::record r, out;
-    ham::txn txn;
+    hamsterdb::env env;
+    hamsterdb::db db;
+    hamsterdb::key k;
+    hamsterdb::record r, out;
+    hamsterdb::txn txn;
 
     k.set_data((void *)"12345");
     k.set_size(6);
@@ -490,7 +490,7 @@ public:
     env.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
     db = env.create_db(1);
     txn = env.begin();
-    ham::cursor c(&db, &txn);
+    hamsterdb::cursor c(&db, &txn);
     c.insert(&k, &r);
     c.close();
     txn.commit();
@@ -498,7 +498,7 @@ public:
   }
 
   /*
-   * Augment the base method: make sure we catch ham::error exceptions
+   * Augment the base method: make sure we catch hamsterdb::error exceptions
    * and convert these to bfc::error instances to assist BFC test error
    * reporting.
    *
@@ -514,7 +514,7 @@ public:
         // invoke the FUT through the baseclass method
         return fixture::FUT_invoker(me, m, funcname, state, ex);
       }
-      catch (ham::error &e) {
+      catch (hamsterdb::error &e) {
         ex = bfc::error(__FILE__, __LINE__, get_name(), funcname,
                   "HAM C++ exception occurred within the "
                   "Function-Under-Test (%s); error code %d: %s",

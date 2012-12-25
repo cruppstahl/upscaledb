@@ -28,7 +28,7 @@
 #include "util.h"
 #include "journal.h"
 
-namespace ham {
+namespace hamsterdb {
 
 static ham_size_t
 __get_aligned_entry_size(ham_size_t s)
@@ -725,4 +725,4 @@ Journal::get_path(int i)
     return (path);
 }
 
-} // namespace ham
+} // namespace hamsterdb

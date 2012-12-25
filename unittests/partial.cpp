@@ -28,7 +28,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
 class BasePartialWriteTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);

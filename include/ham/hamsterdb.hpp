@@ -44,7 +44,7 @@
 /**
  * The global hamsterdb namespace.
  */
-namespace ham {
+namespace hamsterdb {
 
 class txn;
 class db;
@@ -617,7 +617,7 @@ class env {
       if (st)
         throw error(st);
 
-      return (ham::db(dbh));
+      return (hamsterdb::db(dbh));
     }
 
     /** Opens an existing Database in the Environment. */
@@ -629,7 +629,7 @@ class env {
       if (st)
         throw error(st);
 
-      return (ham::db(dbh));
+      return (hamsterdb::db(dbh));
     }
 
     /** Renames an existing Database in the Environment. */
@@ -700,7 +700,7 @@ class env {
     ham_env_t *m_env;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 /**
  * @}

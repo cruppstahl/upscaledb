@@ -28,7 +28,7 @@
 #include "page.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class BtreeCheckAction
 {
@@ -243,4 +243,4 @@ BtreeIndex::check_integrity()
   return (bta.run());
 }
 
-} // namespace ham
+} // namespace hamsterdb

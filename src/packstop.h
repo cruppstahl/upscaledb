@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -10,8 +10,8 @@
  */
 
 /**
- * @brief macros for packing structures; should work with most compilers.
- *
+ * @brief Macros for packing structures; should work with most compilers.
+ * See packstart.h for a usage example.
  */
 
 #if !defined(_NEWGNUC_) && !defined(__WATCOMC__) && !defined(_NEWMSC_)

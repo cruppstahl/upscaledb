@@ -30,7 +30,7 @@
 #include "cursor.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /** defines the maximum number of keys per node */
 #define MAX_KEYS_PER_NODE         0xFFFFU /* max(ham_u16_t) */
@@ -807,4 +807,4 @@ BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
   return (max & 1 ? max - 1 : max);
 }
 
-} // namespace ham
+} // namespace hamsterdb

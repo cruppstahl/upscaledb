@@ -27,9 +27,9 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
-namespace ham {
+namespace hamsterdb {
 
 class MiscTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
@@ -176,4 +176,4 @@ public:
 
 BFC_REGISTER_FIXTURE(MiscTest);
 
-} // namespace ham
+} // namespace hamsterdb

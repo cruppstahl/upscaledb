@@ -26,7 +26,7 @@
 #include "mem.h"
 #include "txn.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class DefaultAllocator : public Allocator
 {
@@ -144,4 +144,4 @@ Allocator::create()
   return (new DefaultAllocator());
 }
 
-} // namespace ham
+} // namespace hamsterdb

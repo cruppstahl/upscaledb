@@ -47,7 +47,7 @@
 #include "util.h"
 #include "version.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 
 /*

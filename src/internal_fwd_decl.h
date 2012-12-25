@@ -35,7 +35,7 @@
 
 #include "config.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
@@ -100,7 +100,7 @@ struct BtreeKey;
 
 #include "packstop.h"
 
-} // namespace ham
+} // namespace hamsterdb
 
 #include <boost/version.hpp>
 #include <boost/thread/mutex.hpp>

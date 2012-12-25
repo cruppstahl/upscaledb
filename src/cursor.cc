@@ -22,7 +22,7 @@
 #include "btree_cursor.h"
 #include "btree_key.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 
 static ham_bool_t

@@ -12,7 +12,7 @@
 /**
  * @brief structures and routines for physical logging/recovery
  *
- * The physical logging stores modifications on page level. It is required
+ * The physical WAL stores modifications on page level. It is required
  * since several logical operations are not atomic - i.e. SMOs (Btree structure
  * modification operations). The physical log only stores "redo" information
  * of the last operation that was written to the Btree (either an
@@ -33,8 +33,7 @@
 
 #include "os.h"
 
-namespace ham {
-
+namespace hamsterdb {
 
 /**
  * a Log object
@@ -217,6 +216,6 @@ class Log
 };
 
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_LOG_H__ */

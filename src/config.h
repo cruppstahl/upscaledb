@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -10,7 +10,7 @@
  */
 
 /**
- * this file describes the configuration of hamster - serial number,
+ * This file describes the configuration of hamster - serial number,
  * enabled features etc.
  *
  */
@@ -27,14 +27,14 @@
 #   include "../config.h"
 #else
 #   ifdef UNDER_CE
-#       define HAVE_MMAP        0
+#       define HAVE_MMAP          0
 #       define HAVE_UNMMAP        0
 #   else
-#       define HAVE_MMAP        1
+#       define HAVE_MMAP          1
 #       define HAVE_UNMMAP        1
 #   endif
-#   define HAVE_PREAD           1
-#   define HAVE_PWRITE          1
+#   define HAVE_PREAD             1
+#   define HAVE_PWRITE            1
 #endif
 
 /*

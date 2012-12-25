@@ -49,11 +49,11 @@ typedef struct {
 int
 run_demo() {
   int i;
-  ham::env env;       /* hamsterdb environment */
-  ham::db db[MAX_DBS];  /* hamsterdb database objects */
-  ham::cursor cursor[MAX_DBS]; /* a cursor for each database */
-  ham::key key, cust_key, ord_key, c2o_key;
-  ham::record record, cust_record, ord_record, c2o_record;
+  hamsterdb::env env;       /* hamsterdb environment */
+  hamsterdb::db db[MAX_DBS];  /* hamsterdb database objects */
+  hamsterdb::cursor cursor[MAX_DBS]; /* a cursor for each database */
+  hamsterdb::key key, cust_key, ord_key, c2o_key;
+  hamsterdb::record record, cust_record, ord_record, c2o_record;
 
   customer_t customers[MAX_CUSTOMERS] = {
     { 1, "Alan Antonov Corp." },
@@ -159,7 +159,7 @@ run_demo() {
     try {
       cursor[0].move_next(&cust_key, &cust_record);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       /* reached end of the database? */
       if (e.get_errno() == HAM_KEY_NOT_FOUND)
         break;
@@ -192,7 +192,7 @@ run_demo() {
     try {
       cursor[2].find(&c2o_key);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       if (e.get_errno() == HAM_KEY_NOT_FOUND)
         continue;
       else {
@@ -229,7 +229,7 @@ run_demo() {
         cursor[2].move(&c2o_key, &c2o_record,
               HAM_CURSOR_NEXT | HAM_ONLY_DUPLICATES);
       }
-      catch (ham::error &e) {
+      catch (hamsterdb::error &e) {
         /* reached end of the database? */
         if (e.get_errno() == HAM_KEY_NOT_FOUND)
           break;
@@ -257,7 +257,7 @@ main(int argc, char **argv)
   try {
     return (run_demo());
   }
-  catch (ham::error &e) {
+  catch (hamsterdb::error &e) {
     std::cerr << "run_demo() failed with unexpected error "
           << e.get_errno() << " ('"
           << e.get_string() << "')" << std::endl;

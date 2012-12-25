@@ -22,7 +22,7 @@
 #include "internal_fwd_decl.h"
 #include "freelist_statistics.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #define HAM_DAM_RANDOM_WRITE                1
 #define HAM_DAM_SEQUENTIAL_INSERT           2
@@ -274,6 +274,6 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
 /** get the v1.1.0+ persisted entry performance statistics */
 #define freel_get_statistics(fl)         &((fl)->_statistics)
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_FREELIST_H__ */

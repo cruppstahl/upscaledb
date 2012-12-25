@@ -28,7 +28,7 @@
 
 #include "protocol/protocol.h"
 
-namespace ham {
+namespace hamsterdb {
 
 typedef struct curl_buffer_t
 {
@@ -1305,7 +1305,7 @@ RemoteDatabase::close_impl(ham_u32_t flags)
   return (st);
 }
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif // HAM_ENABLE_REMOTE
 

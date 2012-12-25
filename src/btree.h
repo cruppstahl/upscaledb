@@ -28,7 +28,7 @@
 #include "btree_stats.h"
 #include "statistics.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -466,6 +466,6 @@ class BtreeIndex
 };
 
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BTREE_H__ */

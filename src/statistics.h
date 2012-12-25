@@ -16,7 +16,7 @@
 
 #include "util.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * The upper bound value which will trigger a statistics data rescale operation
@@ -286,7 +286,7 @@ struct DatabaseStatistics
   ham_size_t prepend_count;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_STATISTICS_H__ */
 

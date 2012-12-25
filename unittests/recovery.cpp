@@ -28,7 +28,7 @@ typedef void (*hook_func_t)(void);
   extern hook_func_t g_BTREE_INSERT_SPLIT_HOOK;
 }
 
-using namespace ham;
+using namespace hamsterdb;
 
 #define NUM_STEPS     10
 

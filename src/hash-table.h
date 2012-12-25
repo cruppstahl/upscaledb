@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -10,10 +10,10 @@
  */
 
 /**
- * @brief a simple hash_table implementation using linked lists as
+ * @brief A simple hash_table implementation using linked lists as
  * overflow buckets.
  *
- * this hash table does not require any allocations.
+ * This hash table does not require any allocations.
  *
  * class T: the cached object
  * class Key: the key which identifies objects of class T

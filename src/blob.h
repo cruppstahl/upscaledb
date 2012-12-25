@@ -21,7 +21,7 @@
 #include "internal_fwd_decl.h"
 #include "endianswap.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -165,6 +165,6 @@ class BlobManager
     Environment *m_env;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BLOB_H__ */

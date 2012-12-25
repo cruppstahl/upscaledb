@@ -22,7 +22,7 @@
 #include "page.h"
 #include "env.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 
 ham_status_t

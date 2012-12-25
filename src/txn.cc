@@ -27,7 +27,7 @@
 #include "txn_cursor.h"
 #include "cursor.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /* stuff for rb.h */
 #ifndef __ssize_t_defined
@@ -472,4 +472,4 @@ TransactionTree::TransactionTree(Database *db)
   rbt_new(this);
 }
 
-} // namespace ham
+} // namespace hamsterdb

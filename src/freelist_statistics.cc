@@ -26,7 +26,7 @@
 #include "mem.h"
 #include "util.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * statistics gatherer/hinter:
@@ -1044,4 +1044,4 @@ freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
     }
 }
 
-} // namespace ham
+} // namespace hamsterdb

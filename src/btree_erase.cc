@@ -36,7 +36,7 @@
 #include "cursor.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class BtreeEraseAction
 {
@@ -1075,4 +1075,4 @@ BtreeIndex::erase_cursor(Transaction *txn, ham_key_t *key,
   return (bea.run());
 }
 
-} // namespace ham
+} // namespace hamsterdb

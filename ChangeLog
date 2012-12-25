@@ -1,3 +1,6 @@
+Dec 25, 2012 - chris ---------------------------------------------------
+o Renamed the C++ namespace from "ham" to "hamsterdb"
+
 Dec 23, 2012 - chris ---------------------------------------------------
 o Removed the deprecated flag HAM_NOT_INITIALIZED
 

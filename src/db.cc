@@ -38,7 +38,7 @@
 #include "txn_cursor.h"
 #include "version.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #define DUMMY_LSN                 1
 
@@ -2421,4 +2421,4 @@ Database::get_keysize()
   return (get_btree()->get_keysize());
 }
 
-} // namespace ham
+} // namespace hamsterdb

@@ -25,7 +25,7 @@
 #include "error.h"
 #include "mem.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -361,6 +361,6 @@ class Page {
     PageData *m_pers;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_PAGE_H__ */

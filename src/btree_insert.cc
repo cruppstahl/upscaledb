@@ -40,7 +40,7 @@
 
 using namespace std;
 
-namespace ham {
+namespace hamsterdb {
 
 /* a unittest hook triggered when a page is split */
 void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
@@ -716,7 +716,7 @@ BtreeIndex::insert_cursor(Transaction *txn, ham_key_t *key,
   return (bia.run());
 }
 
-} // namespace ham
+} // namespace hamsterdb
 
 #if 0
 static void

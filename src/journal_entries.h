@@ -17,7 +17,7 @@
 #ifndef HAM_JOURNAL_ENTRIES_H__
 #define HAM_JOURNAL_ENTRIES_H__
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -131,6 +131,6 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
 
 #include "packstop.h"
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_JOURNAL_ENTRIES_H__ */

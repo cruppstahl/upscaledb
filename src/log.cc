@@ -27,7 +27,7 @@
 #include "txn.h"
 #include "util.h"
 
-namespace ham {
+namespace hamsterdb {
 
 ham_status_t
 Log::create()
@@ -342,4 +342,4 @@ Log::get_path()
   return (path);
 }
 
-} // namespace ham
+} // namespace hamsterdb

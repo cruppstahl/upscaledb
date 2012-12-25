@@ -22,7 +22,7 @@
 #include "freelist.h"
 #include "duplicates.h"
 
-namespace ham {
+namespace hamsterdb {
 
 ham_status_t
 DuplicateManager::get_table(dupe_table_t **table_ref, Page **page,
@@ -371,4 +371,4 @@ DuplicateManager::get_table(ham_u64_t table_id, dupe_table_t **ptable,
   return (0);
 }
 
-} // namespace ham
+} // namespace hamsterdb

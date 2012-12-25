@@ -32,7 +32,7 @@
 #include "error.h"
 #include "os.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #if 0
 #  define os_log(x)      ham_log(x)
@@ -492,4 +492,4 @@ os_close(ham_fd_t fd)
   return (HAM_SUCCESS);
 }
 
-} // namespace ham
+} // namespace hamsterdb

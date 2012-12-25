@@ -19,7 +19,7 @@
 
 #include <string.h>
 
-namespace ham {
+namespace hamsterdb {
 
 #if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)
 #  undef alloc
@@ -67,6 +67,6 @@ class Allocator
     static Allocator *create();
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_MEM_H__ */

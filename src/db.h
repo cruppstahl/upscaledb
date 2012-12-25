@@ -39,7 +39,7 @@ struct ham_db_t {
   int dummy;
 };
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * a macro to cast pointers to u64 and vice versa to avoid compiler
@@ -725,6 +725,6 @@ class RemoteDatabase : public Database
 };
 #endif // HAM_ENABLE_REMOTE
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_DB_H__ */

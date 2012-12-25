@@ -25,7 +25,7 @@
     break;                                                          \
   }
 
-namespace ham {
+namespace hamsterdb {
 
 /* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
@@ -231,4 +231,4 @@ Changeset::flush(ham_u64_t lsn)
   return (log->clear());
 }
 
-} // namespace hypertable
+} // namespace hamsterdb

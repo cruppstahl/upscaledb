@@ -28,7 +28,7 @@
 #include "errorinducer.h"
 #include "page.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * The changeset class
@@ -121,6 +121,6 @@ class Changeset
     ErrorInducer *m_inducer;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_CHANGESET_H__ */

@@ -30,7 +30,7 @@
 #include "util.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class BtreeFindAction
 {
@@ -357,5 +357,5 @@ BtreeIndex::find(Transaction *txn, Cursor *cursor, ham_key_t *key,
   return (bfa.run());
 }
 
-} // namespace ham
+} // namespace hamsterdb
 

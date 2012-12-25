@@ -36,7 +36,7 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
-using namespace ham;
+using namespace hamsterdb;
 
 /*
  * forward decl - implemented in hamsterdb.cc
@@ -48,7 +48,7 @@ __check_create_parameters(Environment *env, Database *db, const char *filename,
             ham_u64_t *pcachesize, ham_u16_t *pdbname,
             ham_u16_t *pmaxdbs, std::string &logdir, bool create);
 
-namespace ham {
+namespace hamsterdb {
 
 typedef struct free_cb_context_t
 {
@@ -559,7 +559,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
-    ham::Log *log = new ham::Log(this);
+    hamsterdb::Log *log = new hamsterdb::Log(this);
     st = log->create();
     if (st) {
       delete log;
@@ -1380,4 +1380,4 @@ success:
   return (0);
 }
 
-} // namespace ham
+} // namespace hamsterdb

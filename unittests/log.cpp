@@ -33,15 +33,15 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
 /* this function pointer is defined in changeset.cc */
 typedef void (*hook_func_t)(void);
-namespace ham {
+namespace hamsterdb {
   extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
 }
 
-namespace ham {
+namespace hamsterdb {
 
 class LogTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
@@ -865,7 +865,7 @@ public:
   }
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 BFC_REGISTER_FIXTURE(LogTest);
 BFC_REGISTER_FIXTURE(LogHighLevelTest);

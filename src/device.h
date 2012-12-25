@@ -23,7 +23,7 @@
 #include "mem.h"
 #include "db.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class Page;
 
@@ -414,6 +414,6 @@ class InMemoryDevice : public Device {
     bool m_is_open;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_DEVICE_H__ */

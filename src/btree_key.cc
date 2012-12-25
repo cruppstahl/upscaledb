@@ -24,7 +24,7 @@
 #include "mem.h"
 #include "page.h"
 
-namespace ham {
+namespace hamsterdb {
 
 size_t BtreeKey::ms_sizeof_overhead = OFFSETOF(BtreeKey, _key);
 
@@ -254,4 +254,4 @@ BtreeKey::erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
   return (0);
 }
 
-} // namespace ham
+} // namespace hamsterdb

@@ -19,7 +19,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
 static void HAM_CALLCONV
 my_handler(int level, const char *msg) {

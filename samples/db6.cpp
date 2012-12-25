@@ -21,10 +21,10 @@
 int
 run_demo() {
   int i;
-  ham::env env;      /* hamsterdb environment object */
-  ham::db db;      /* hamsterdb database object */
-  ham::key key;      /* a key */
-  ham::record record;  /* a record */
+  hamsterdb::env env;      /* hamsterdb environment object */
+  hamsterdb::db db;      /* hamsterdb database object */
+  hamsterdb::key key;      /* a key */
+  hamsterdb::record record;  /* a record */
 
   /* Create a new environment file and a database in this environment */
   env.create("test.db");
@@ -94,7 +94,7 @@ run_demo() {
     try {
       record = db.find(&key);
     }
-    catch (ham::error &e) {
+    catch (hamsterdb::error &e) {
       if (e.get_errno() != HAM_KEY_NOT_FOUND) {
         std::cerr << "db::find() returned error " << e.get_string()
               << std::endl;
@@ -118,7 +118,7 @@ main(int argc, char **argv)
   try {
     return (run_demo());
   }
-  catch (ham::error &e) {
+  catch (hamsterdb::error &e) {
     std::cerr << "run_demo() failed with unexpected error "
           << e.get_errno() << " ('"
           << e.get_string() << "')" << std::endl;

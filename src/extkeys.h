@@ -24,7 +24,7 @@
 #include "mem.h"
 #include "env.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #define EXTKEY_MAX_AGE  25
 
@@ -188,6 +188,6 @@ class ExtKeyCache
     hash_table<ExtKey, ham_u64_t, ExtKeyHelper> m_hash;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_EXTKEYS_H__ */

@@ -36,7 +36,7 @@
 #include "duplicates.h"
 #include "error.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * the Cursor structure for a b+tree cursor
@@ -267,6 +267,6 @@ class BtreeCursor
 extern ham_status_t
 btree_uncouple_all_cursors(Page *page, ham_size_t start);
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BTREE_CURSORS_H__ */

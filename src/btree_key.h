@@ -19,7 +19,7 @@
 
 #include "internal_fwd_decl.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -191,6 +191,6 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
 
 #include "packstop.h"
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_BTREE_KEY_H__ */

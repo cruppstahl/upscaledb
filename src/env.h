@@ -42,7 +42,7 @@ struct ham_env_t {
   int dummy;
 };
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
@@ -206,6 +206,7 @@ class Environment
     }
 
     /** get the current transaction ID */
+    // TODO move to LocalEnvironment
     ham_u64_t get_txn_id() const {
       return (m_txn_id);
     }
@@ -216,6 +217,7 @@ class Environment
     }
 
     /** get the device */
+    // TODO move to LocalEnvironment
     Device *get_device() {
       return (m_device);
     }
@@ -226,6 +228,7 @@ class Environment
     }
 
     /** get the cache pointer */
+    // TODO move to LocalEnvironment
     Cache *get_cache() {
       return (m_cache);
     }
@@ -256,6 +259,7 @@ class Environment
     }
 
     /** get a pointer to the header data */
+    // TODO move to LocalEnvironment
     env_header_t *get_header() {
       return ((env_header_t *)(get_header_page()->get_payload()));
     }
@@ -281,6 +285,7 @@ class Environment
     }
 
     /** get the log object */
+    // TODO move to LocalEnvironment
     Log *get_log() {
       return (m_log);
     }
@@ -291,6 +296,7 @@ class Environment
     }
 
     /** get the journal */
+    // TODO move to LocalEnvironment
     Journal *get_journal() {
       return (m_journal);
     }
@@ -752,6 +758,6 @@ class RemoteEnvironment : public Environment
 
 #endif
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_ENV_H__ */

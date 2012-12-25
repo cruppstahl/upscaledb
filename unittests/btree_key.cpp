@@ -29,9 +29,9 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-using namespace ham;
+using namespace hamsterdb;
 
-namespace ham {
+namespace hamsterdb {
 
 class KeyTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
@@ -609,4 +609,4 @@ public:
 
 BFC_REGISTER_FIXTURE(KeyTest);
 
-} // namespace ham
+} // namespace hamsterdb

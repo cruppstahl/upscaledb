@@ -28,7 +28,7 @@
 #include "page.h"
 #include "btree_node.h"
 
-namespace ham {
+namespace hamsterdb {
 
 class BtreeEnumAction
 {
@@ -159,5 +159,5 @@ BtreeIndex::enumerate(ham_enumerate_cb_t cb, void *context)
   return (bea.run());
 }
 
-} // namespace ham
+} // namespace hamsterdb
 

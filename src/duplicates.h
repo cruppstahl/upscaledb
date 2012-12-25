@@ -20,7 +20,7 @@
 #include "internal_fwd_decl.h"
 #include "endianswap.h"
 
-namespace ham {
+namespace hamsterdb {
 
 #include "packstart.h"
 
@@ -188,6 +188,6 @@ class DuplicateManager
     Environment *m_env;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_DUPLICATES_H__ */

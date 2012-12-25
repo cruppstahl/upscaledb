@@ -95,7 +95,7 @@ struct ham_cursor_t
     bool _dummy;
 };
 
-namespace ham {
+namespace hamsterdb {
 
 /**
  * A single line in the dupecache structure - can reference a btree
@@ -615,6 +615,6 @@ class Cursor
     bool m_is_first_use;
 };
 
-} // namespace ham
+} // namespace hamsterdb
 
 #endif /* HAM_CURSORS_H__ */

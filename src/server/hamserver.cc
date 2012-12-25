@@ -27,7 +27,7 @@
 #include "mem.h"
 #include "env.h"
 
-namespace ham {
+namespace hamsterdb {
 
 /* max. number of open hamsterdb Environments - if you change this, also change
  * MAX_CALLBACKS in 3rdparty/mongoose/mongoose.c! */
@@ -1336,7 +1336,7 @@ bail:
   os_critsec_leave(&env->cs);
 }
 
-} // namespace ham
+} // namespace hamsterdb
 
 // global namespace is below
 
@@ -1345,7 +1345,7 @@ struct ham_srv_t {
   struct mg_context *mg_ctxt;
 
   /* handlers for each Environment */
-  struct ham::env_t environments[MAX_ENVIRONMENTS];
+  struct hamsterdb::env_t environments[MAX_ENVIRONMENTS];
 };
 
 ham_status_t

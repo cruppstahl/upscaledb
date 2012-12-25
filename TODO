@@ -240,6 +240,17 @@ x cleanup ham/types.h
     x use stdint.h/inttypes.h
     x get rid of ham_offset_t
 
+x rename namespace "ham" to "hamsterdb"
+    x also for C++ API
+
+o hamsterdb refactoring, reformatting
+    o reformat the sources, clean up the code
+    o try to get rid of HAM_DONT_LOCK
+    o ham_env_create: __check_create_parameters
+    o ham_env_open: __check_create_parameters
+    o ham_env_create_db: __check_create_parameters
+    o ham_env_open_db: __check_create_parameters
+
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
