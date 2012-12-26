@@ -120,10 +120,9 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create(&m_env, BFC_OPATH(".test"),
-            HAM_ENABLE_DUPLICATES
-            |HAM_ENABLE_TRANSACTIONS
-            |HAM_ENABLE_RECOVERY, 0644, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+            HAM_ENABLE_TRANSACTIONS | HAM_ENABLE_RECOVERY, 0644, 0));
+    BFC_ASSERT_EQUAL(0,
+            ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
     m_environ = (Environment *)m_env;
   }

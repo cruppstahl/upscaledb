@@ -224,7 +224,6 @@ public:
 
     ham_parameter_t env_params[] = {
       { HAM_PARAM_CACHESIZE, 1024 * 32 },
-      { HAM_PARAM_KEYSIZE, 16 },
       { HAM_PARAM_PAGESIZE, 1024 },
       { 0,0 }
     };

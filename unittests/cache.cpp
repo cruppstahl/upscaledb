@@ -66,7 +66,8 @@ public:
   virtual void teardown() {
     __super::teardown();
 
-    ham_env_close(m_env, HAM_AUTO_CLEANUP);
+    if (m_env)
+      ham_env_close(m_env, HAM_AUTO_CLEANUP);
   }
 
   void newDeleteTest() {
@@ -277,7 +278,7 @@ public:
     teardown();
 
     BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test.db"), 0, &param[0]));
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, &param[0]));
 
     Cache *cache = ((Environment *)m_env)->get_cache();
 
@@ -318,7 +319,7 @@ public:
     teardown();
 
     BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test.db"), 0, &param[0]));
+        ham_env_open(&m_env, BFC_OPATH(".test"), 0, &param[0]));
 
     Cache *cache = ((Environment *)m_env)->get_cache();
 

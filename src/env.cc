@@ -38,16 +38,6 @@
 
 using namespace hamsterdb;
 
-/*
- * forward decl - implemented in hamsterdb.cc
- */
-extern ham_status_t
-__check_create_parameters(Environment *env, Database *db, const char *filename,
-            ham_u32_t *pflags, const ham_parameter_t *param,
-            ham_size_t *ppagesize, ham_u16_t *pkeysize,
-            ham_u64_t *pcachesize, ham_u16_t *pdbname,
-            ham_u16_t *pmaxdbs, std::string &logdir, bool create);
-
 namespace hamsterdb {
 
 typedef struct free_cb_context_t
@@ -57,13 +47,15 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_file_mode(0), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
+  : m_file_mode(0644), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
   m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
   m_journal(0), m_freelist(0), m_flags(0), m_pagesize(0),
   m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
   m_duplicate_manager(this)
 {
   memset(&m_perf_data, 0, sizeof(m_perf_data));
+
+  set_allocator(Allocator::create());
 }
 
 Environment::~Environment()
@@ -501,11 +493,20 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
-    ham_u32_t mode, const ham_parameter_t *param)
+        ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+        ham_u16_t maxdbs)
 {
   ham_status_t st = 0;
 
   ham_assert(!get_header_page());
+
+  set_flags(flags);
+  if (filename)
+    set_filename(filename);
+  set_file_mode(mode);
+  set_pagesize(pagesize);
+  set_cachesize(cachesize);
+  set_max_databases_cached(maxdbs);
 
   /* initialize the device if it does not yet exist */
   Device *device;
@@ -588,7 +589,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
-    const ham_parameter_t *param)
+        ham_size_t cachesize)
 {
   ham_status_t st;
 
@@ -599,6 +600,10 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   else
     device = new DiskDevice(this, flags);
   set_device(device);
+  if (filename)
+    set_filename(filename);
+  set_cachesize(cachesize);
+  set_flags(flags);
 
   /* open the file */
   st = device->open(filename, flags);
@@ -1147,9 +1152,7 @@ ham_status_t
 LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     const ham_parameter_t *param)
 {
-  ham_u64_t cachesize = 0;
   ham_u16_t dbi;
-  std::string logdir;
 
   *pdb = 0;
 
@@ -1166,12 +1169,6 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
 
   /* create a new Database object */
   LocalDatabase *db = new LocalDatabase(this, dbname, flags);
-
-  /* parse parameters */
-  ham_status_t st = __check_create_parameters(this, db, 0, &flags, param,
-      0, 0, &cachesize, &dbname, 0, logdir, false);
-  if (st)
-    return (st);
 
   /* make sure that this database is not yet open */
   if (get_database_map().find(dbname) !=  get_database_map().end())
@@ -1195,7 +1192,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     return (HAM_DATABASE_NOT_FOUND);
 
   /* open the database */
-  st = db->open(dbi);
+  ham_status_t st = db->open(dbi);
   if (st) {
     ham_trace(("Database could not be opened"));
     return (st);

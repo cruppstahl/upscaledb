@@ -73,11 +73,9 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create(&m_env, BFC_OPATH(".test"),
-            HAM_ENABLE_DUPLICATES
-              | (m_inmemory ? HAM_IN_MEMORY : 0),
-            0664, params));
+              m_inmemory ? HAM_IN_MEMORY : 0, 0664, params));
     BFC_ASSERT_EQUAL(0,
-        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
   }
 
   virtual void teardown() {

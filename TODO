@@ -243,13 +243,13 @@ x cleanup ham/types.h
 x rename namespace "ham" to "hamsterdb"
     x also for C++ API
 
-o hamsterdb refactoring, reformatting
-    o reformat the sources, clean up the code
-    o try to get rid of HAM_DONT_LOCK
-    o ham_env_create: __check_create_parameters
-    o ham_env_open: __check_create_parameters
-    o ham_env_create_db: __check_create_parameters
-    o ham_env_open_db: __check_create_parameters
+x hamsterdb refactoring, reformatting
+    x reformat the sources, clean up the code
+    x ham_env_create: __check_create_parameters
+    x ham_env_open: __check_create_parameters
+    x try to get rid of HAM_DONT_LOCK
+    x try to reduce the TODOs
+    x review usage of HAM_HINT_*: should we allow/document them? - leave as is
 
 o finalize for the next release
     x version is 2.1.0!!

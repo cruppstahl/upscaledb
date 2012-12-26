@@ -172,6 +172,9 @@ class DiskDevice : public Device {
       if (st)
         return (st);
 
+      if (m_open_filesize == 0)
+        return (0);
+
       /* align the filesize */
       ham_size_t granularity = os_get_granularity();
       if (m_open_filesize % granularity)

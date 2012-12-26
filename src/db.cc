@@ -1070,19 +1070,19 @@ retry:
        */
       else if (txn_op_get_flags(op) & TXN_OP_ERASE) {
         if (first_loop
-            && !(ham_key_get_intflags(key)&BtreeKey::KEY_IS_APPROXIMATE))
+            && !(ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE))
           exact_is_erased = true;
         first_loop = false;
         if (flags & HAM_FIND_LT_MATCH) {
           node = txn_opnode_get_previous_sibling(node);
           ham_key_set_intflags(key,
-            (ham_key_get_intflags(key) | BtreeKey::KEY_IS_APPROXIMATE));
+              (ham_key_get_intflags(key) | BtreeKey::KEY_IS_APPROXIMATE));
           goto retry;
         }
         else if (flags & HAM_FIND_GT_MATCH) {
           node = txn_opnode_get_next_sibling(node);
           ham_key_set_intflags(key,
-            (ham_key_get_intflags(key) | BtreeKey::KEY_IS_APPROXIMATE));
+              (ham_key_get_intflags(key) | BtreeKey::KEY_IS_APPROXIMATE));
           goto retry;
         }
         return (HAM_KEY_NOT_FOUND);

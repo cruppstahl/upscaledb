@@ -178,11 +178,16 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 
 ham_status_t
 RemoteEnvironment::create(const char *filename, ham_u32_t flags,
-                ham_u32_t mode, const ham_parameter_t *param)
+        ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+        ham_u16_t maxdbs)
 {
   ham_status_t st;
   Protocol *reply = 0;
   m_curl = curl_easy_init();
+
+  set_flags(flags);
+  if (filename)
+    set_filename(filename);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -208,11 +213,15 @@ RemoteEnvironment::create(const char *filename, ham_u32_t flags,
 
 ham_status_t
 RemoteEnvironment::open(const char *filename, ham_u32_t flags,
-                const ham_parameter_t *param)
+        ham_size_t cachesize)
 {
   ham_status_t st;
   Protocol *reply = 0;
   m_curl = curl_easy_init();
+
+  set_flags(flags);
+  if (filename)
+    set_filename(filename);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);

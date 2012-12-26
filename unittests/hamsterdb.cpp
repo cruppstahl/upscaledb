@@ -1232,10 +1232,6 @@ public:
 
     BFC_ASSERT_EQUAL(0, ham_db_set_compare_func(m_db, f));
     BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_compare_func());
-
-    f = Database::default_compare;
-    BFC_ASSERT_EQUAL(0, ham_db_set_compare_func(m_db, 0));
-    BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_compare_func());
   }
 
   void prefixCompareTest() {
@@ -1604,8 +1600,7 @@ public:
 
     teardown();
     BFC_ASSERT_EQUAL(0,
-            ham_env_create(&m_env, BFC_OPATH(".test"),
-                    HAM_ENABLE_DUPLICATES, 0664, ps));
+            ham_env_create(&m_env, BFC_OPATH(".test"), 0, 0664, ps));
     BFC_ASSERT_EQUAL(0,
             ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 

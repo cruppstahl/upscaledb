@@ -491,8 +491,7 @@ ham_get_license(const char **licensee, const char **product);
  *     <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *      Database. Not allowed in combination with @ref HAM_IN_MEMORY.
  *     <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
- *      Database.
- *      This flag implies @ref HAM_ENABLE_RECOVERY.
+ *      Database. This flag implies @ref HAM_ENABLE_RECOVERY.
  *    </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -1114,8 +1113,6 @@ typedef int HAM_CALLCONV (*ham_prefix_compare_func_t)
  * keys with variable length and at least one of the two keys is loaded
  * only partially.
  *
- * If @a foo is NULL, hamsterdb will not use any prefix comparison.
- *
  * @param db A valid Database handle
  * @param foo A pointer to the prefix compare function
  *
@@ -1143,9 +1140,6 @@ typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
  * The comparison function compares two index keys. It returns -1 if the
  * first key is smaller, +1 if the second key is smaller or 0 if both
  * keys are equal.
- *
- * If @a foo is NULL, hamsterdb will use the default compare
- * function (which is based on memcmp(3)).
  *
  * Note that if you use a custom comparison routine in combination with
  * extended keys, it might be useful to disable the prefix comparison, which

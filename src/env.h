@@ -131,11 +131,12 @@ class Environment
 
     /** initialize and create a new Environment */
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, const ham_parameter_t *param) = 0;
+            ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+            ham_u16_t maxdbs) = 0;
 
     /** initialize and open a new Environment */
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            const ham_parameter_t *param) = 0;
+            ham_size_t cachesize) = 0;
 
     /** rename a database in the Environment */
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
@@ -632,11 +633,12 @@ class LocalEnvironment : public Environment
   public:
     /** initialize and create a new Environment */
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, const ham_parameter_t *param);
+            ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+            ham_u16_t maxdbs);
 
     /** initialize and open a new Environment */
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            const ham_parameter_t *param);
+            ham_size_t cachesize);
 
     /** rename a database in the Environment */
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
@@ -704,11 +706,12 @@ class RemoteEnvironment : public Environment
 
     /** initialize and create a new Environment */
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
-            ham_u32_t mode, const ham_parameter_t *param);
+            ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
+            ham_u16_t maxdbs);
 
     /** initialize and open a new Environment */
     virtual ham_status_t open(const char *filename, ham_u32_t flags,
-            const ham_parameter_t *param);
+            ham_size_t cachesize);
 
     /** rename a database in the Environment */
     virtual ham_status_t rename_db(ham_u16_t oldname, ham_u16_t newname,
