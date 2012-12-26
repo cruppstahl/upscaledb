@@ -266,21 +266,34 @@ x add transaction support for in-memory databases
     x change/update the documentation in the header file
     x change/update the changelog
 
+. split Transaction into local and remote class
+    o hamsterdb.cc directly calls into Transaction class instead of Environment
+    o then continue with db.cc and move txn-related functions to LocalDatabase
+    o try to get the methods/design analoguous to the Btree
+    o TransactionIndex:
+        x check how/if std::multimap can replace rb.h - yes, seems to work
+        o replaces the TransactionTree
+        o one TransactionIndex per Database (always created)
+        o remove rb.h
+        o txn_opnode_t -> TransactionOperation
+        o txn_node_t is no longer required
+        o try to move code from db.cc into TransactionIndex, i.e. to check
+            conflicts etc
+        o is a std::multimap<ham_key_t, operation)
+        . use a custom allocator for all TransactionOperations of a single
+            Transaction
+        . use a custom allocator for std::multimap
+
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
-    x run valgrind tests
+    o run valgrind tests
     o update README w/ API updates
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap
     o need documentation for ham_export, ham_import
     o MSVC project files for ham_import, ham_export
-
-. split Transaction into local and remote class
-    o hamsterdb.cc directly calls into Transaction class instead of Environment
-    o then continue with db.cc and move txn-related functions to LocalDatabase
-    o try to get the methods/design analoguous to the Btree
 
 . split Cursor into local and remote class
     o hamsterdb: directly call into Cursor class (instead of Database)
@@ -332,28 +345,6 @@ o freelist rewrite - make files smaller, make hamsterdb faster
 o preallocate file space
     pages should be optimized in a way that the growing index will be written
     sequentially
-
-o optimize memory usage in transaction tree: avoid malloc/free use page
-    allocator
-    o txn.h
-    o txn.cc
-        o get rid of the rb-tree; use std::map or std::set instead
-            std::map<ham_key_t, boost::unintrusive_list<Operation> >
-            -> this needs a proper redesign:
-          o TransactionManager: is a factory for new Transactions; owned by
-            the Environment and manages the Transaction IDs
-          o TransactionBackend: this is the std::map which contains the nodes
-            (TransactionNode) and the operations (TransactionOperation)
-          o Try to reduce the TransactionNode to the key and the linked list
-          o Try to make the interface of TransactionBackend similar to
-            BtreeBackend
-          o The Node manages the ham_key_t and the list of Operations
-        o txn->name: use std::string
-        o txn_free_optree -> ~TransactionTree
-        o txn_optree_t -> TransactionTree
-        o txn_op_node_t -> TransactionTreeNode
-        o txn_op_t -> TransactionOperation
-        o convert to clean c++ code
 
 . should database names still be reserved?
 
