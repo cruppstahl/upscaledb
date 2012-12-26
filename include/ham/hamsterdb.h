@@ -448,7 +448,7 @@ ham_get_license(const char **licensee, const char **product);
  * Creates a Database Environment
  *
  * A Database Environment is a collection of Databases, which are all stored
- * in one physical file (or in-memory). Per default, up to 16 Databases can be
+ * in one physical file (or in-memory). By default, up to 16 Databases can be
  * stored in one file.
  *
  * Each Database in an Environment is identified by a positive 16bit
@@ -546,7 +546,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  * This function opens an existing Database Environment.
  *
  * A Database Environment is a collection of Databases, which are all stored
- * in one physical file (or in-memory). Per default, up to 16 Databases can be
+ * in one physical file (or in-memory). By default, up to 16 Databases can be
  * stored in one file (see @ref ham_env_create on how to store even more
  * Databases).
  *

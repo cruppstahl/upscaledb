@@ -59,19 +59,6 @@ __filename_is_local(const char *filename)
   return (true);
 }
 
-static bool
-__check_recovery_flags(ham_u32_t flags)
-{
-  if (flags & HAM_ENABLE_RECOVERY) {
-    if (flags & HAM_IN_MEMORY) {
-      ham_trace(("combination of HAM_ENABLE_RECOVERY and "
-             "HAM_IN_MEMORY not allowed"));
-      return (false);
-    }
-  }
-  return (true);
-}
-
 ham_status_t
 ham_txn_begin(ham_txn_t **htxn, ham_env_t *henv, const char *name,
         void *reserved, ham_u32_t flags)
@@ -355,9 +342,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
   if (flags & HAM_AUTO_RECOVERY)
     flags |= HAM_ENABLE_RECOVERY;
 
-  /* don't allow recovery in combination with some other flags */
-  if (!__check_recovery_flags(flags))
-    return (HAM_INV_PARAMETER);
+  /* in-memory with Transactions? disable recovery */
+  if (flags & HAM_IN_MEMORY)
+    flags &= ~HAM_ENABLE_RECOVERY;
 
   ham_u32_t mask = HAM_ENABLE_FSYNC
             | HAM_IN_MEMORY
@@ -648,10 +635,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   /* flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY */
   if (flags & HAM_AUTO_RECOVERY)
     flags |= HAM_ENABLE_RECOVERY;
-
-  /* don't allow recovery in combination with some other flags */
-  if (!__check_recovery_flags(flags))
-    return (HAM_INV_PARAMETER);
 
   if (!filename && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));

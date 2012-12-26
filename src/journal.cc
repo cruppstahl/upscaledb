@@ -703,26 +703,26 @@ Journal::get_path(int i)
     path = m_env->get_filename();
   }
   else {
-      path = m_env->get_log_directory();
+    path = m_env->get_log_directory();
 #ifdef HAM_OS_WIN32
-      path += "\\";
-      char fname[_MAX_FNAME];
-      char ext[_MAX_EXT];
-      _splitpath(m_env->get_filename().c_str(), 0, 0, fname, ext);
-      path += fname;
-      path += ext;
+    path += "\\";
+    char fname[_MAX_FNAME];
+    char ext[_MAX_EXT];
+    _splitpath(m_env->get_filename().c_str(), 0, 0, fname, ext);
+    path += fname;
+    path += ext;
 #else
-      path += "/";
-      path += ::basename((char *)m_env->get_filename().c_str());
+    path += "/";
+    path += ::basename((char *)m_env->get_filename().c_str());
 #endif
-    }
-    if (i == 0)
-      path += ".jrn0";
-    else if (i == 1)
-      path += ".jrn1";
-    else
-      ham_assert(!"invalid index");
-    return (path);
+  }
+  if (i == 0)
+    path += ".jrn0";
+  else if (i == 1)
+    path += ".jrn1";
+  else
+    ham_assert(!"invalid index");
+  return (path);
 }
 
 } // namespace hamsterdb

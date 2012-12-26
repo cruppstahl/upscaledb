@@ -1192,6 +1192,205 @@ public:
   }
 };
 
+class InMemoryTxnTest : public hamsterDB_fixture {
+  define_super(hamsterDB_fixture);
+
+public:
+  InMemoryTxnTest()
+    : hamsterDB_fixture("InMemoryTxnTest") {
+    testrunner::get_instance()->register_fixture(this);
+    BFC_REGISTER_TEST(InMemoryTxnTest, createCloseTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, insertTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, eraseTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, findTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorInsertTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorEraseTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorFindTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorGetDuplicateCountTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorGetRecordSizeTest);
+    BFC_REGISTER_TEST(InMemoryTxnTest, cursorOverwriteTest);
+  }
+
+protected:
+  ham_db_t *m_db;
+  ham_env_t *m_env;
+
+public:
+  virtual void setup() {
+    __super::setup();
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&m_env, BFC_OPATH(".test"),
+            HAM_IN_MEMORY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+  }
+
+  virtual void teardown() {
+    __super::teardown();
+
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  }
+
+  void createCloseTest() {
+    // nop
+  }
+
+  void insertTest() {
+    ham_txn_t *txn;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void eraseTest() {
+    ham_txn_t *txn;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn, &key, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void findTest() {
+    ham_txn_t *txn;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn, &key, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(m_db, txn, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorInsertTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorEraseTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
+    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_find(cursor, &key, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorFindTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorGetDuplicateCountTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+
+    ham_u64_t keycount;
+    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &keycount));
+    BFC_ASSERT_EQUAL(3ull, keycount);
+
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorGetRecordSizeTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    rec.data = (void *)"12345";
+    rec.size = 6;
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+
+    ham_u64_t recsize;
+    BFC_ASSERT_EQUAL(0, ham_cursor_get_record_size(cursor, &recsize));
+    BFC_ASSERT_EQUAL(6ull, recsize);
+
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+  void cursorOverwriteTest() {
+    ham_txn_t *txn;
+    ham_cursor_t *cursor;
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    rec.data = (void *)"12345";
+    rec.size = 6;
+    ham_record_t rec2 = {};
+    rec2.data = (void *)"1234567890";
+    rec2.size = 11;
+
+    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec2, 0));
+    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec, 0));
+
+    BFC_ASSERT_EQUAL(11u, rec.size);
+    BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "1234567890"));
+
+    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+  }
+
+};
+
 BFC_REGISTER_FIXTURE(TxnTest);
 BFC_REGISTER_FIXTURE(HighLevelTxnTest);
+BFC_REGISTER_FIXTURE(InMemoryTxnTest);
 

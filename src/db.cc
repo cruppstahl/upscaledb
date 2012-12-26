@@ -1668,7 +1668,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   if (local_txn)
     return (local_txn->commit());
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-        && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
     return (m_env->get_changeset().flush(DUMMY_LSN));
   else
     return (st);
@@ -1830,7 +1830,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     return (local_txn->commit());
   }
   else if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-        && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
+      && !(m_env->get_flags() & HAM_ENABLE_TRANSACTIONS))
     return (m_env->get_changeset().flush(DUMMY_LSN));
   else
     return (st);
@@ -1888,7 +1888,6 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
   else
     return (st);
 }
-
 
 ham_status_t
 LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,

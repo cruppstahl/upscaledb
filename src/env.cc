@@ -181,7 +181,8 @@ Environment::get_incremented_lsn(ham_u64_t *lsn)
   }
 
   // otherwise return a dummy value
-  return (1);
+  *lsn = 1;
+  return (0);
 }
 
 static ham_status_t

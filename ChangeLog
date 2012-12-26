@@ -1,3 +1,6 @@
+Dec 26, 2012 - chris ---------------------------------------------------
+o In-Memory Environments now support Transactions
+
 Dec 25, 2012 - chris ---------------------------------------------------
 o Renamed the C++ namespace from "ham" to "hamsterdb"
 

@@ -251,6 +251,21 @@ x hamsterdb refactoring, reformatting
     x try to reduce the TODOs
     x review usage of HAM_HINT_*: should we allow/document them? - leave as is
 
+x add transaction support for in-memory databases
+    x create unittests for all txn-related functions
+        x insert
+        x erase
+        x find
+        x cursor_insert
+        x cursor_find
+        x cursor_erase
+        x cursor_get_duplicate_count
+        x cursor_get_record_size
+        x cursor_overwrite
+    x change/update the code
+    x change/update the documentation in the header file
+    x change/update the changelog
+
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
@@ -267,9 +282,8 @@ o finalize for the next release
     o then continue with db.cc and move txn-related functions to LocalDatabase
     o try to get the methods/design analoguous to the Btree
 
-. add transaction support for in-memory databases
-    in the source, never use HAM_ENABLE_RECOVERY; only check if env->get_log()
-        is null. Same regarding journal.
+. split Cursor into local and remote class
+    o hamsterdb: directly call into Cursor class (instead of Database)
 
 . can we perform better with O_DIRECT? run some benchmarks
 

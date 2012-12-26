@@ -38,8 +38,7 @@ Changeset::add_page(Page *page)
 
   ham_assert(0 == page->get_next(Page::LIST_CHANGESET));
   ham_assert(0 == page->get_previous(Page::LIST_CHANGESET));
-  ham_assert(page->get_device()->get_env()->get_flags()
-        & HAM_ENABLE_RECOVERY);
+  ham_assert(page->get_device()->get_env()->get_flags() & HAM_ENABLE_RECOVERY);
 
   page->set_next(Page::LIST_CHANGESET, m_head);
   if (m_head)
