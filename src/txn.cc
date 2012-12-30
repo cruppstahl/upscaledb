@@ -63,42 +63,41 @@ __cmpfoo(void *vlhs, void *vrhs)
 rb_wrap(static, rbt_, TransactionTree, txn_opnode_t, node, __cmpfoo)
 
 void
-txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
+txn_op_add_cursor(txn_op_t *op, struct TransactionCursor *cursor)
 {
-    ham_assert(!txn_cursor_is_nil(cursor));
+    ham_assert(!cursor->is_nil());
 
-    txn_cursor_set_coupled_next(cursor, txn_op_get_cursors(op));
-    txn_cursor_set_coupled_previous(cursor, 0);
+    cursor->set_coupled_next(txn_op_get_cursors(op));
+    cursor->set_coupled_previous(0);
 
     if (txn_op_get_cursors(op)) {
-        txn_cursor_t *old=txn_op_get_cursors(op);
-        txn_cursor_set_coupled_previous(old, cursor);
+        TransactionCursor *old=txn_op_get_cursors(op);
+        old->set_coupled_previous(cursor);
     }
 
     txn_op_set_cursors(op, cursor);
 }
 
 void
-txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
+txn_op_remove_cursor(txn_op_t *op, struct TransactionCursor *cursor)
 {
-    ham_assert(!txn_cursor_is_nil(cursor));
+    ham_assert(!cursor->is_nil());
 
     if (txn_op_get_cursors(op)==cursor) {
-        txn_op_set_cursors(op, txn_cursor_get_coupled_next(cursor));
-        if (txn_cursor_get_coupled_next(cursor))
-            txn_cursor_set_coupled_previous(txn_cursor_get_coupled_next(cursor),
-                            0);
+        txn_op_set_cursors(op, cursor->get_coupled_next());
+        if (cursor->get_coupled_next())
+            cursor->get_coupled_next()->set_coupled_previous(0);
     }
     else {
-        if (txn_cursor_get_coupled_next(cursor))
-            txn_cursor_set_coupled_previous(txn_cursor_get_coupled_next(cursor),
-                            txn_cursor_get_coupled_previous(cursor));
-        if (txn_cursor_get_coupled_previous(cursor))
-            txn_cursor_set_coupled_next(txn_cursor_get_coupled_previous(cursor),
-                            txn_cursor_get_coupled_next(cursor));
+        if (cursor->get_coupled_next())
+            cursor->get_coupled_next()->set_coupled_previous(
+                            cursor->get_coupled_previous());
+        if (cursor->get_coupled_previous())
+            cursor->get_coupled_previous()->set_coupled_next(
+                            cursor->get_coupled_next());
     }
-    txn_cursor_set_coupled_next(cursor, 0);
-    txn_cursor_set_coupled_previous(cursor, 0);
+    cursor->set_coupled_next(0);
+    cursor->set_coupled_previous(0);
 }
 
 ham_bool_t

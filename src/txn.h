@@ -84,7 +84,7 @@ typedef struct txn_op_t
   ham_record_t _record;
 
   /** a linked list of cursors which are attached to this txn_op */
-  struct txn_cursor_t *_cursors;
+  struct TransactionCursor *_cursors;
 
 } txn_op_t;
 
@@ -185,13 +185,13 @@ typedef struct txn_op_t
  * add a cursor to this txn_op structure
  */
 extern void
-txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
+txn_op_add_cursor(txn_op_t *op, struct TransactionCursor *cursor);
 
 /**
  * remove a cursor from this txn_op structure
  */
 extern void
-txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
+txn_op_remove_cursor(txn_op_t *op, struct TransactionCursor *cursor);
 
 /**
  * returns true if the op is in a txn which has a conflict

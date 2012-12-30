@@ -354,10 +354,10 @@ public:
     BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_txn(op));
     txn_op_set_next_in_txn(op, 0);
 
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
-    txn_op_set_cursors(op, (txn_cursor_t *)0x43);
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0x43, txn_op_get_cursors(op));
-    txn_op_set_cursors(op, (txn_cursor_t *)0x0);
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, txn_op_get_cursors(op));
+    txn_op_set_cursors(op, (TransactionCursor *)0x43);
+    BFC_ASSERT_EQUAL((TransactionCursor *)0x43, txn_op_get_cursors(op));
+    txn_op_set_cursors(op, (TransactionCursor *)0x0);
 
     ((Transaction *)txn)->free_ops();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));

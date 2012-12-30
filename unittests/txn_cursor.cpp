@@ -41,7 +41,6 @@ public:
   TxnCursorTest()
   : hamsterDB_fixture("TxnCursorTest") {
     testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(TxnCursorTest, structureTest);
     BFC_REGISTER_TEST(TxnCursorTest, cursorIsNilTest);
     BFC_REGISTER_TEST(TxnCursorTest, txnOpLinkedListTest);
     BFC_REGISTER_TEST(TxnCursorTest, getKeyFromCoupledCursorTest);
@@ -106,36 +105,12 @@ public:
     BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
   }
 
-  void structureTest() {
-    txn_cursor_t cursor;
-    txn_op_t op = {};
-
-    BFC_ASSERT_EQUAL((txn_op_t *)0, txn_cursor_get_coupled_op(&cursor));
-    txn_cursor_set_coupled_op(&cursor, &op);
-    BFC_ASSERT_EQUAL(&op, txn_cursor_get_coupled_op(&cursor));
-    txn_cursor_set_coupled_op(&cursor, 0);
-
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_next(&cursor));
-    txn_cursor_set_coupled_next(&cursor, (txn_cursor_t *)0x12);
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0x12,
-          txn_cursor_get_coupled_next(&cursor));
-    txn_cursor_set_coupled_next(&cursor, 0);
-
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_previous(&cursor));
-    txn_cursor_set_coupled_previous(&cursor, (txn_cursor_t *)0x21);
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0x21,
-          txn_cursor_get_coupled_previous(&cursor));
-    txn_cursor_set_coupled_previous(&cursor, 0);
-  }
-
   void cursorIsNilTest() {
-    txn_cursor_t cursor;
+    TransactionCursor cursor((Cursor *)0);
 
-    BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
-    txn_cursor_set_to_nil(&cursor);
-    BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
+    BFC_ASSERT_EQUAL(true, cursor.is_nil());
+    cursor.set_to_nil();
+    BFC_ASSERT_EQUAL(true, cursor.is_nil());
   }
 
   void txnOpLinkedListTest() {
@@ -153,56 +128,43 @@ public:
         0, TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
-    txn_cursor_t c1;
-    txn_cursor_set_coupled_op(&c1, op);
-    txn_cursor_t c2 = c1;
-    txn_cursor_t c3 = c1;
+    TransactionCursor c1((Cursor *)0);
+    c1.set_coupled_op(op);
+    TransactionCursor c2(c1);
+    TransactionCursor c3(c1);
 
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, txn_op_get_cursors(op));
 
     txn_op_add_cursor(op, &c1);
     BFC_ASSERT_EQUAL(&c1, txn_op_get_cursors(op));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_previous(&c1));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_next(&c1));
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_previous());
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
     txn_op_add_cursor(op, &c2);
     BFC_ASSERT_EQUAL(&c2, txn_op_get_cursors(op));
-    BFC_ASSERT_EQUAL(&c2,
-          txn_cursor_get_coupled_previous(&c1));
-    BFC_ASSERT_EQUAL(&c1,
-          txn_cursor_get_coupled_next(&c2));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_previous(&c2));
+    BFC_ASSERT_EQUAL(&c2, c1.get_coupled_previous());
+    BFC_ASSERT_EQUAL(&c1, c2.get_coupled_next());
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c2.get_coupled_previous());
 
     txn_op_add_cursor(op, &c3);
     BFC_ASSERT_EQUAL(&c3, txn_op_get_cursors(op));
-    BFC_ASSERT_EQUAL(&c3,
-          txn_cursor_get_coupled_previous(&c2));
-    BFC_ASSERT_EQUAL(&c2,
-          txn_cursor_get_coupled_next(&c3));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_previous(&c3));
+    BFC_ASSERT_EQUAL(&c3, c2.get_coupled_previous());
+    BFC_ASSERT_EQUAL(&c2, c3.get_coupled_next());
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c3.get_coupled_previous());
 
     txn_op_remove_cursor(op, &c2);
     BFC_ASSERT_EQUAL(&c3, txn_op_get_cursors(op));
-    BFC_ASSERT_EQUAL(&c3,
-          txn_cursor_get_coupled_previous(&c1));
-    BFC_ASSERT_EQUAL(&c1,
-          txn_cursor_get_coupled_next(&c3));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_next(&c1));
+    BFC_ASSERT_EQUAL(&c3, c1.get_coupled_previous());
+    BFC_ASSERT_EQUAL(&c1, c3.get_coupled_next());
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
     txn_op_remove_cursor(op, &c3);
     BFC_ASSERT_EQUAL(&c1, txn_op_get_cursors(op));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_previous(&c1));
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0,
-          txn_cursor_get_coupled_next(&c1));
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_previous());
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
     txn_op_remove_cursor(op, &c1);
-    BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
+    BFC_ASSERT_EQUAL((TransactionCursor *)0, txn_op_get_cursors(op));
 
     ((Transaction *)txn)->free_ops();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -224,11 +186,10 @@ public:
         0, TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
+    BFC_ASSERT_EQUAL(0, c.get_key(&k));
     BFC_ASSERT_EQUAL(k.size, key.size);
     BFC_ASSERT_EQUAL(0, memcmp(k.data, key.data, key.size));
 
@@ -256,11 +217,10 @@ public:
         0, TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
+    BFC_ASSERT_EQUAL(0, c.get_key(&k));
     BFC_ASSERT_EQUAL(k.size, key.size);
     BFC_ASSERT_EQUAL(0, memcmp(k.data, key.data, key.size));
 
@@ -282,11 +242,10 @@ public:
         0, TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
+    BFC_ASSERT_EQUAL(0, c.get_key(&k));
     BFC_ASSERT_EQUAL(k.size, key.size);
     BFC_ASSERT_EQUAL((void *)0, k.data);
 
@@ -310,10 +269,9 @@ public:
         TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
+    TransactionCursor c((Cursor *)m_cursor);
 
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_key(&c, &k));
+    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, c.get_key(&k));
 
     ((Transaction *)txn)->free_ops();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -335,11 +293,10 @@ public:
         TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
+    BFC_ASSERT_EQUAL(0, c.get_record(&r));
     BFC_ASSERT_EQUAL(r.size, record.size);
     BFC_ASSERT_EQUAL(0, memcmp(r.data, record.data, record.size));
 
@@ -367,11 +324,10 @@ public:
         TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
+    BFC_ASSERT_EQUAL(0, c.get_record(&r));
     BFC_ASSERT_EQUAL(r.size, record.size);
     BFC_ASSERT_EQUAL(0, memcmp(r.data, record.data, record.size));
 
@@ -393,11 +349,10 @@ public:
           TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
-    txn_cursor_set_coupled_op(&c, op);
+    TransactionCursor c((Cursor *)m_cursor);
+    c.set_coupled_op(op);
 
-    BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
+    BFC_ASSERT_EQUAL(0, c.get_record(&r));
     BFC_ASSERT_EQUAL(r.size, record.size);
     BFC_ASSERT_EQUAL((void *)0, r.data);
 
@@ -419,10 +374,9 @@ public:
           TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
-    txn_cursor_t c;
-    txn_cursor_set_parent(&c, (Cursor *)m_cursor);
+    TransactionCursor c((Cursor *)m_cursor);
 
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
+    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, c.get_record(&r));
 
     ((Transaction *)txn)->free_ops();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -443,7 +397,7 @@ public:
     return (ham_db_insert(m_db, txn, &k, &r, flags));
   }
 
-  ham_status_t insertCursor(txn_cursor_t *cursor, const char *key,
+  ham_status_t insertCursor(TransactionCursor *cursor, const char *key,
           const char *record = 0, ham_u32_t flags = 0) {
     ham_key_t k = {0};
     if (key) {
@@ -455,16 +409,16 @@ public:
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (txn_cursor_insert(cursor, &k, &r, flags));
+    return (cursor->insert(&k, &r, flags));
   }
 
-  ham_status_t overwriteCursor(txn_cursor_t *cursor, const char *record) {
+  ham_status_t overwriteCursor(TransactionCursor *cursor, const char *record) {
     ham_record_t r = {0};
     if (record) {
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (txn_cursor_overwrite(cursor, &r));
+    return (cursor->overwrite(&r));
   }
 
   ham_status_t erase(ham_txn_t *txn, const char *key) {
@@ -476,32 +430,32 @@ public:
     return (ham_db_erase(m_db, txn, &k, 0));
   }
 
-  ham_status_t findCursor(txn_cursor_t *cursor, const char *key,
+  ham_status_t findCursor(TransactionCursor *cursor, const char *key,
           const char *record = 0) {
     ham_key_t k = {0};
     if (key) {
       k.data = (void *)key;
       k.size = strlen(key) + 1;
     }
-    ham_status_t st = txn_cursor_find(cursor, &k, 0);
+    ham_status_t st = cursor->find(&k, 0);
     if (st)
       return (st);
     if (record) {
       ham_record_t r = {0};
-      BFC_ASSERT_EQUAL(0, txn_cursor_get_record(cursor, &r));
+      BFC_ASSERT_EQUAL(0, cursor->get_record(&r));
       BFC_ASSERT_EQUAL(r.size, strlen(record) + 1);
       BFC_ASSERT_EQUAL(0, memcmp(r.data, record, r.size));
     }
     return (0);
   }
 
-  ham_status_t moveCursor(txn_cursor_t *cursor, const char *key,
+  ham_status_t moveCursor(TransactionCursor *cursor, const char *key,
           ham_u32_t flags) {
     ham_key_t k = {0};
-    ham_status_t st = txn_cursor_move(cursor, flags);
+    ham_status_t st = cursor->move(flags);
     if (st)
       return (st);
-    st = txn_cursor_get_key(cursor, &k);
+    st = cursor->get_key(&k);
     if (st)
       return (st);
     if (key) {
@@ -518,7 +472,7 @@ public:
   void findInsertEraseTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -549,7 +503,7 @@ public:
   void findInsertEraseOverwriteTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -578,7 +532,7 @@ public:
   void findInsertTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -593,8 +547,8 @@ public:
     BFC_ASSERT_EQUAL(0, findCursor(cursor, "key1"));
 
     /* now the cursor is coupled to this key */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
@@ -603,8 +557,8 @@ public:
     BFC_ASSERT_EQUAL(0, findCursor(cursor, "key2"));
 
     /* and the cursor is still coupled */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    op = cursor->get_coupled_op();
     key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
@@ -618,7 +572,7 @@ public:
   void moveFirstTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -634,8 +588,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_FIRST));
 
     /* now the cursor is coupled to this key */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
@@ -652,7 +606,7 @@ public:
   void moveFirstInEmptyTreeTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -664,7 +618,7 @@ public:
           moveCursor(cursor, "key1", HAM_CURSOR_FIRST));
 
     /* now the cursor is nil */
-    BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
+    BFC_ASSERT_EQUAL(true, cursor->is_nil());
 
     /* reset cursor hack */
     ((Cursor *)m_cursor)->set_txn(0);
@@ -675,7 +629,7 @@ public:
   void findCreateConflictTest() {
     ham_txn_t *txn, *txn2;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
@@ -697,7 +651,7 @@ public:
   void moveNextWithNilCursorTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -705,7 +659,7 @@ public:
     ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
 
     /* make sure that the cursor is nil */
-    BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
+    BFC_ASSERT_EQUAL(true, cursor->is_nil());
 
     BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
           moveCursor(cursor, 0, HAM_CURSOR_NEXT));
@@ -719,7 +673,7 @@ public:
   void moveNextTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -738,8 +692,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key2", HAM_CURSOR_NEXT));
 
     /* now the cursor is coupled to this key */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
@@ -748,8 +702,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_NEXT));
 
     /* and the cursor is still coupled */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    op = cursor->get_coupled_op();
     key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key3"));
@@ -763,7 +717,7 @@ public:
   void moveNextAfterEndTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -789,7 +743,7 @@ public:
   void moveNextSkipEraseTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -825,7 +779,7 @@ public:
   void moveNextSkipEraseInNodeTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -865,7 +819,7 @@ public:
   void moveLastTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -881,8 +835,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key3", HAM_CURSOR_LAST));
 
     /* now the cursor is coupled to this key */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key3"));
@@ -899,7 +853,7 @@ public:
   void moveLastInEmptyTreeTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -911,7 +865,7 @@ public:
           moveCursor(cursor, "key1", HAM_CURSOR_LAST));
 
     /* now the cursor is nil */
-    BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
+    BFC_ASSERT_EQUAL(true, cursor->is_nil());
 
     /* reset cursor hack */
     ((Cursor *)m_cursor)->set_txn(0);
@@ -922,7 +876,7 @@ public:
   void movePrevWithNilCursorTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -930,7 +884,7 @@ public:
     ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
 
     /* make sure that the cursor is nil */
-    BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
+    BFC_ASSERT_EQUAL(true, cursor->is_nil());
 
     BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
           moveCursor(cursor, 0, HAM_CURSOR_PREVIOUS));
@@ -944,7 +898,7 @@ public:
   void movePrevTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -963,8 +917,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key2", HAM_CURSOR_PREVIOUS));
 
     /* now the cursor is coupled to this key */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
@@ -973,8 +927,8 @@ public:
     BFC_ASSERT_EQUAL(0, moveCursor(cursor, "key1", HAM_CURSOR_PREVIOUS));
 
     /* and the cursor is still coupled */
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    op = txn_cursor_get_coupled_op(cursor);
+    BFC_ASSERT(!cursor->is_nil());
+    op = cursor->get_coupled_op();
     key = txn_opnode_get_key(txn_op_get_node(op));
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
@@ -988,7 +942,7 @@ public:
   void movePrevAfterEndTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1014,7 +968,7 @@ public:
   void movePrevSkipEraseTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1050,7 +1004,7 @@ public:
   void movePrevSkipEraseInNodeTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1087,9 +1041,9 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
-  bool cursorIsCoupled(txn_cursor_t *cursor, const char *k) {
-    BFC_ASSERT(!txn_cursor_is_nil(cursor));
-    txn_op_t *op = txn_cursor_get_coupled_op(cursor);
+  bool cursorIsCoupled(TransactionCursor *cursor, const char *k) {
+    BFC_ASSERT(!cursor->is_nil());
+    txn_op_t *op = cursor->get_coupled_op();
     ham_key_t *key = txn_opnode_get_key(txn_op_get_node(op));
     if (strlen(k) + 1 != key->size)
       return (false);
@@ -1101,7 +1055,7 @@ public:
   void insertKeysTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1130,7 +1084,7 @@ public:
   void negativeInsertKeysTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1150,7 +1104,7 @@ public:
   void insertOverwriteKeysTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1175,7 +1129,7 @@ public:
   void insertCreateConflictTest() {
     ham_txn_t *txn, *txn2;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
@@ -1188,7 +1142,7 @@ public:
     BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, insertCursor(cursor, "key1"));
 
     /* cursor must be nil */
-    BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(cursor));
+    BFC_ASSERT_EQUAL(true, cursor->is_nil());
 
     /* reset cursor hack */
     ((Cursor *)m_cursor)->set_txn(0);
@@ -1200,7 +1154,7 @@ public:
   void eraseKeysTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1210,14 +1164,14 @@ public:
     /* insert/erase a few different keys */
     BFC_ASSERT_EQUAL(0, insertCursor(cursor, "key1"));
     BFC_ASSERT_EQUAL(true, cursorIsCoupled(cursor, "key1"));
-    BFC_ASSERT_EQUAL(false, txn_cursor_is_nil(cursor));
-    BFC_ASSERT_EQUAL(0, txn_cursor_erase(cursor));
+    BFC_ASSERT_EQUAL(false, cursor->is_nil());
+    BFC_ASSERT_EQUAL(0, cursor->erase());
 
     /* make sure that the keys do not exist */
     BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, findCursor(cursor, "key1"));
 
     BFC_ASSERT_EQUAL(0, insertCursor(cursor, "key2"));
-    BFC_ASSERT_EQUAL(0, txn_cursor_erase(cursor));
+    BFC_ASSERT_EQUAL(0, cursor->erase());
     BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, findCursor(cursor, "key2"));
 
     /* reset cursor hack */
@@ -1229,7 +1183,7 @@ public:
   void negativeEraseKeysTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1239,7 +1193,7 @@ public:
     /* erase a key that does not exist */
     BFC_ASSERT_EQUAL(0, insertCursor(cursor, "key1"));
     BFC_ASSERT_EQUAL(0, erase(txn, "key1"));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_erase(cursor));
+    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, cursor->erase());
 
     /* reset cursor hack */
     ((Cursor *)m_cursor)->set_txn(0);
@@ -1250,7 +1204,7 @@ public:
   void negativeEraseKeysNilTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1258,7 +1212,7 @@ public:
     ((Cursor *)m_cursor)->set_txn((Transaction *)txn);
 
     /* erase a key with a cursor that is nil */
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_erase(cursor));
+    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, cursor->erase());
 
     /* reset cursor hack */
     ((Cursor *)m_cursor)->set_txn(0);
@@ -1269,7 +1223,7 @@ public:
   void overwriteRecordsTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1299,7 +1253,7 @@ public:
   void overwriteRecordsNilCursorTest() {
     ham_txn_t *txn;
 
-    txn_cursor_t *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
+    TransactionCursor *cursor = ((Cursor *)m_cursor)->get_txn_cursor();
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
 

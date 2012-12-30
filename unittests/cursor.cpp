@@ -847,8 +847,8 @@ public:
         (((Cursor *)clone)->get_btree_cursor()->is_nil()));
     BFC_ASSERT_EQUAL(2u, ((Transaction *)m_txn)->get_cursor_refcount());
     BFC_ASSERT_EQUAL(
-        txn_cursor_get_coupled_op(c->get_txn_cursor()),
-        txn_cursor_get_coupled_op(cl->get_txn_cursor()));
+        c->get_txn_cursor()->get_coupled_op(),
+        cl->get_txn_cursor()->get_coupled_op());
     BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     BFC_ASSERT_EQUAL(1u, ((Transaction *)m_txn)->get_cursor_refcount());
 

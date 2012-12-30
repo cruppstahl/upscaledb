@@ -327,9 +327,16 @@ ham_env_create(ham_env_t **henv, const char *filename,
     return (HAM_INV_PARAMETER);
   }
 
-  /* in-memory-db? don't allow cache limits! */
+  /* in-memory? don't allow cache limits! */
   if ((flags & HAM_IN_MEMORY) && (flags & HAM_CACHE_STRICT)) {
     ham_trace(("combination of HAM_IN_MEMORY and HAM_CACHE_STRICT "
+            "not allowed"));
+    return (HAM_INV_PARAMETER);
+  }
+
+  /* in-memory? recovery is not possible */
+  if ((flags & HAM_IN_MEMORY) && (flags & HAM_ENABLE_RECOVERY)) {
+    ham_trace(("combination of HAM_IN_MEMORY and HAM_ENABLE_RECOVERY "
             "not allowed"));
     return (HAM_INV_PARAMETER);
   }

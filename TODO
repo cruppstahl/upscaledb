@@ -266,23 +266,9 @@ x add transaction support for in-memory databases
     x change/update the documentation in the header file
     x change/update the changelog
 
-. split Transaction into local and remote class
-    o hamsterdb.cc directly calls into Transaction class instead of Environment
-    o then continue with db.cc and move txn-related functions to LocalDatabase
-    o try to get the methods/design analoguous to the Btree
-    o TransactionIndex:
-        x check how/if std::multimap can replace rb.h - yes, seems to work
-        o replaces the TransactionTree
-        o one TransactionIndex per Database (always created)
-        o remove rb.h
-        o txn_opnode_t -> TransactionOperation
-        o txn_node_t is no longer required
-        o try to move code from db.cc into TransactionIndex, i.e. to check
-            conflicts etc
-        o is a std::multimap<ham_key_t, operation)
-        . use a custom allocator for all TransactionOperations of a single
-            Transaction
-        . use a custom allocator for std::multimap
+x refactoring of txn_cursor_t
+    x rename to TransactionCursor
+    x get proper class and methods
 
 o finalize for the next release
     x version is 2.1.0!!
@@ -294,9 +280,6 @@ o finalize for the next release
     o update FAQ/Documentation regarding mmap
     o need documentation for ham_export, ham_import
     o MSVC project files for ham_import, ham_export
-
-. split Cursor into local and remote class
-    o hamsterdb: directly call into Cursor class (instead of Database)
 
 . can we perform better with O_DIRECT? run some benchmarks
 
@@ -346,23 +329,11 @@ o preallocate file space
     pages should be optimized in a way that the growing index will be written
     sequentially
 
-. should database names still be reserved?
+o should database names still be reserved?
 
 o continue with refacoring - indention, coding style, better design etc...
-    o hamserver.cc: replace handles-structure with unsorted_set
-
-    o configuration: move into separate file
-        o use for runtime-configuration
-        o and for persistent configuration
-
     o cursor.cc
     o cursor.h
-
-    o txn_cursor.h
-    o txn_cursor.cc
-        o get rid of dependency to BtreeCursor
-
-    o hamsterdb.cc
 
     o unittests
         x code formatting
@@ -372,6 +343,27 @@ o continue with refacoring - indention, coding style, better design etc...
             http://www.alittlemadness.com/2009/03/31/c-unit-testing-with-boosttest/
 
     o get rid of ham_bool_t, replace with bool whenever possible
+
+o split Transaction into local and remote class
+    o hamsterdb.cc directly calls into Transaction class instead of Environment
+    o then continue with db.cc and move txn-related functions to LocalDatabase
+    o try to get the methods/design analoguous to the Btree
+    o TransactionIndex:
+        x check how/if std::multimap can replace rb.h - yes, seems to work
+        o replaces the TransactionTree
+        o one TransactionIndex per Database (always created)
+        o remove rb.h
+        o txn_opnode_t -> TransactionOperation
+        o txn_node_t is no longer required
+        o try to move code from db.cc into TransactionIndex, i.e. to check
+            conflicts etc
+        o is a std::multimap<ham_key_t, operation)
+        . use a custom allocator for all TransactionOperations of a single
+            Transaction
+        . use a custom allocator for std::multimap
+
+o split Cursor into local and remote class
+    o hamsterdb: directly call into Cursor class (instead of Database)
 
 o fix usage of DB_NEW_PAGE_DOES_THRASH_CACHE
 

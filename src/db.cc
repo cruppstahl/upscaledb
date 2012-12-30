@@ -731,8 +731,8 @@ __increment_dupe_index(Database *db, txn_opnode_t *node,
     /* if cursor is coupled to an op in the same node: increment
      * duplicate index (if required) */
     if (c->is_coupled_to_txnop()) {
-      txn_cursor_t *txnc = c->get_txn_cursor();
-      txn_opnode_t *n = txn_op_get_node(txn_cursor_get_coupled_op(txnc));
+      TransactionCursor *txnc = c->get_txn_cursor();
+      txn_opnode_t *n = txn_op_get_node(txnc->get_coupled_op());
       if (n == node)
         hit = true;
     }
@@ -755,7 +755,7 @@ next:
 ham_status_t
 LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags,
-            struct txn_cursor_t *cursor)
+            struct TransactionCursor *cursor)
 {
   ham_status_t st = 0;
   txn_opnode_t *node;
@@ -810,12 +810,12 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
    * dupecache-index in the op (it's needed for
    * DUPLICATE_INSERT_BEFORE/NEXT) */
   if (cursor) {
-    Cursor *c = txn_cursor_get_parent(cursor);
+    Cursor *c = cursor->get_parent();
     if (c->get_dupecache_index())
       txn_op_set_referenced_dupe(op, c->get_dupecache_index());
 
     c->set_to_nil(Cursor::CURSOR_TXN);
-    txn_cursor_couple(cursor, op);
+    cursor->couple(op);
 
     /* all other cursors need to increment their dupe index, if their
      * index is > this cursor's index */
@@ -840,9 +840,9 @@ __nil_all_cursors_in_node(Transaction *txn, Cursor *current,
 {
   txn_op_t *op = txn_opnode_get_newest_op(node);
   while (op) {
-    txn_cursor_t *cursor = txn_op_get_cursors(op);
+    TransactionCursor *cursor = txn_op_get_cursors(op);
     while (cursor) {
-      Cursor *pc = txn_cursor_get_parent(cursor);
+      Cursor *pc = cursor->get_parent();
       /* is the current cursor to a duplicate? then adjust the
        * coupled duplicate index of all cursors which point to a
        * duplicate */
@@ -851,12 +851,12 @@ __nil_all_cursors_in_node(Transaction *txn, Cursor *current,
           if (current->get_dupecache_index()
               < pc->get_dupecache_index()) {
             pc->set_dupecache_index(pc->get_dupecache_index() - 1);
-            cursor = txn_cursor_get_coupled_next(cursor);
+            cursor = cursor->get_coupled_next();
             continue;
           }
           else if (current->get_dupecache_index()
               > pc->get_dupecache_index()) {
-            cursor = txn_cursor_get_coupled_next(cursor);
+            cursor = cursor->get_coupled_next();
             continue;
           }
           /* else fall through */
@@ -924,7 +924,7 @@ next:
 
 ham_status_t
 LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
-        txn_cursor_t *cursor)
+        TransactionCursor *cursor)
 {
   ham_status_t st = 0;
   txn_opnode_t *node;
@@ -933,7 +933,7 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   ham_u64_t lsn = 0;
   Cursor *pc = 0;
   if (cursor)
-    pc = txn_cursor_get_parent(cursor);
+    pc = cursor->get_parent();
 
   /* get (or create) the node for this key */
   node = txn_opnode_get(this, key, 0);
@@ -1766,8 +1766,8 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
        * the new key  */
       if (st == 0 && cursor->get_dupecache_count()) {
         ham_size_t i;
-        txn_cursor_t *txnc = cursor->get_txn_cursor();
-        txn_op_t *op = txn_cursor_get_coupled_op(txnc);
+        TransactionCursor *txnc = cursor->get_txn_cursor();
+        txn_op_t *op = txnc->get_coupled_op();
         ham_assert(op != 0);
 
         for (i = 0; i < dc->get_count(); i++) {
@@ -1862,7 +1862,7 @@ LocalDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
   /* on success: verify that cursor is now nil */
   if (st == 0) {
     cursor->couple_to_btree();
-    ham_assert(txn_cursor_is_nil(cursor->get_txn_cursor()));
+    ham_assert(cursor->get_txn_cursor()->is_nil());
     ham_assert(cursor->is_nil(0));
     cursor->clear_dupecache();
   }
@@ -1896,7 +1896,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   ham_status_t st;
   ham_u64_t recno = 0;
   Transaction *local_txn = 0;
-  txn_cursor_t *txnc = cursor->get_txn_cursor();
+  TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /*
    * record number: make sure that we have a valid key structure,
@@ -1935,7 +1935,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
    * in non-Transaction mode directly search through the btree.
    */
   if (cursor->get_txn() || local_txn) {
-    st = txn_cursor_find(cursor->get_txn_cursor(), key, flags);
+    st = cursor->get_txn_cursor()->find(key, flags);
     /* if the key was erased in a transaction then fail with an error
      * (unless we have duplicates - they're checked below) */
     if (st) {
@@ -1948,7 +1948,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
          * we know that there are other duplicates. if coupled op
          * references the FIRST duplicate (idx 1) then we have
          * to check if there are other duplicates */
-        txn_op_t *op = txn_cursor_get_coupled_op(txnc);
+        txn_op_t *op = txnc->get_coupled_op();
         ham_assert(txn_op_get_flags(op) & TXN_OP_ERASE);
         if (!txn_op_get_referenced_dupe(op)) {
           // ALL!
@@ -1983,7 +1983,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     cursor->couple_to_txnop();
     if (!cursor->get_dupecache_count()) {
       if (record)
-        st = txn_cursor_get_record(txnc, record);
+        st = txnc->get_record(record);
       goto bail;
     }
     if (st == 0)
@@ -2019,14 +2019,14 @@ check_dupes:
       * it's possible that we read the record twice. I'm not sure if
       * this can be avoided, though. */
       if (cursor->is_coupled_to_txnop())
-        st = txn_cursor_get_record(cursor->get_txn_cursor(), record);
+        st = cursor->get_txn_cursor()->get_record(record);
       else
         st = cursor->get_btree_cursor()->move(0, record, 0);
     }
   }
   else {
     if (cursor->is_coupled_to_txnop() && record)
-      st = txn_cursor_get_record(cursor->get_txn_cursor(), record);
+      st = cursor->get_txn_cursor()->get_record(record);
   }
 
 bail:
@@ -2066,14 +2066,14 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
 {
   ham_status_t st = 0;
   Transaction *local_txn = 0;
-  txn_cursor_t *txnc = cursor->get_txn_cursor();
+  TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
   st = get_env()->purge_cache();
   if (st)
     return (st);
 
-  if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
+  if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
 
   /* if user did not specify a transaction, but transactions are enabled:
@@ -2121,14 +2121,14 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 {
   ham_status_t st = 0;
   Transaction *local_txn = 0;
-  txn_cursor_t *txnc = cursor->get_txn_cursor();
+  TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
   st = get_env()->purge_cache();
   if (st)
     return (st);
 
-  if (cursor->is_nil(0) && txn_cursor_is_nil(txnc))
+  if (cursor->is_nil(0) && txnc->is_nil())
     return (HAM_CURSOR_IS_NIL);
 
   /* if user did not specify a transaction, but transactions are enabled:

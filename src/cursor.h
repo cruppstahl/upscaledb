@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -381,8 +381,8 @@ class Cursor
         if (!(m_db->get_rt_flags()&HAM_ENABLE_DUPLICATES))
             return (0);
 
-        txn_cursor_t *txnc=get_txn_cursor();
-        if (txn_cursor_get_coupled_op(txnc))
+        TransactionCursor *txnc=get_txn_cursor();
+        if (txnc->get_coupled_op())
             update_dupecache(CURSOR_BTREE|CURSOR_TXN);
         else
             update_dupecache(CURSOR_BTREE);
@@ -458,7 +458,7 @@ class Cursor
     }
 
     /** Get a pointer to the Transaction cursor */
-    txn_cursor_t *get_txn_cursor(void) {
+    TransactionCursor *get_txn_cursor(void) {
         return (&m_txn_cursor);
     }
 
@@ -577,7 +577,7 @@ class Cursor
     Transaction *m_txn;
 
     /** A Cursor which can walk over Transaction trees */
-    txn_cursor_t m_txn_cursor;
+    TransactionCursor m_txn_cursor;
 
     /** A Cursor which can walk over B+trees */
     BtreeCursor m_btree_cursor;

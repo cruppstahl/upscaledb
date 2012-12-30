@@ -370,7 +370,7 @@ Environment::flush_txn(Transaction *txn)
 {
   ham_status_t st = 0;
   txn_op_t *op = txn->get_oldest_op();
-  txn_cursor_t *cursor = 0;
+  TransactionCursor *cursor = 0;
 
   while (op) {
     txn_opnode_t *node = txn_op_get_node(op);
@@ -405,8 +405,8 @@ Environment::flush_txn(Transaction *txn)
                     txn_op_get_orig_flags(op) | additional_flag);
       }
       else {
-        txn_cursor_t *tc2, *tc1 = txn_op_get_cursors(op);
-        Cursor *c2, *c1 = txn_cursor_get_parent(tc1);
+        TransactionCursor *tc2, *tc1 = txn_op_get_cursors(op);
+        Cursor *c2, *c1 = tc1->get_parent();
         /* pick the first cursor, get the parent/btree cursor and
          * insert the key/record pair in the btree. The btree cursor
          * then will be coupled to this item. */
@@ -423,7 +423,7 @@ Environment::flush_txn(Transaction *txn)
            * item as the first one. */
           while ((tc2 = txn_op_get_cursors(op))) {
             txn_op_remove_cursor(op, tc2);
-            c2 = txn_cursor_get_parent(tc2);
+            c2 = tc2->get_parent();
             c2->get_btree_cursor()->couple_to_other(c1->get_btree_cursor());
             c2->couple_to_btree();
             c2->set_to_nil(Cursor::CURSOR_TXN);
@@ -470,7 +470,7 @@ Environment::flush_txn(Transaction *txn)
     txn_op_set_flags(op, TXN_OP_FLUSHED);
 next_op:
     while ((cursor = txn_op_get_cursors(op))) {
-      Cursor *pc = txn_cursor_get_parent(cursor);
+      Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree();
       pc->set_to_nil(Cursor::CURSOR_TXN);
