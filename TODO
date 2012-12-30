@@ -270,6 +270,8 @@ x refactoring of txn_cursor_t
     x rename to TransactionCursor
     x get proper class and methods
 
+o refactoring of cursor.h/cursor.cc
+
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
@@ -282,17 +284,6 @@ o finalize for the next release
     o MSVC project files for ham_import, ham_export
 
 . can we perform better with O_DIRECT? run some benchmarks
-
-. also remove locking from C# and Java APIs
-
-. write a custom memory allocator, based on 4kb pages
-    if memory is allocated: pick the current page; if it has enough free space
-    then return a pointer and decrease the amount of free space.
-    If memory is freed than increase the amount of freed memory. If this amount
-    == 4kb then the page is stored in a lookaside-list and will be used later.
-    If the page does not have enough memory for alloc then either fetch
-    another free page from the lookaside-list or allocate a new one.
-    o use this in the TransactionTree to avoid small allocations
 
 ------------------- release 2.0.6 -----------------------------------------
 
@@ -331,10 +322,18 @@ o preallocate file space
 
 o should database names still be reserved?
 
-o continue with refacoring - indention, coding style, better design etc...
-    o cursor.cc
-    o cursor.h
+. also remove locking from C# and Java APIs
 
+. write a custom memory allocator, based on 4kb pages
+    if memory is allocated: pick the current page; if it has enough free space
+    then return a pointer and decrease the amount of free space.
+    If memory is freed than increase the amount of freed memory. If this amount
+    == 4kb then the page is stored in a lookaside-list and will be used later.
+    If the page does not have enough memory for alloc then either fetch
+    another free page from the lookaside-list or allocate a new one.
+    o use this in the TransactionTree to avoid small allocations
+
+o continue with refacoring - indention, coding style, better design etc...
     o unittests
         x code formatting
         o reduce bfc to a single header file, or use boost unittest framework

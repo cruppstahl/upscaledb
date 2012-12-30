@@ -1960,7 +1960,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
         }
         else if (txn_op_get_referenced_dupe(op) == 1) {
           // check if there are other dupes
-          ham_bool_t is_equal;
+          bool is_equal;
           (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY,
                   &is_equal);
           if (!is_equal)
@@ -1975,7 +1975,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
         goto bail;
     }
     else {
-      ham_bool_t is_equal;
+      bool is_equal;
       (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
       if (!is_equal)
         cursor->set_to_nil(Cursor::CURSOR_BTREE);
