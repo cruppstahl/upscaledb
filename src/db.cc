@@ -537,27 +537,27 @@ __get_key_count_txn(txn_opnode_t *node, void *data)
     if (optxn->is_aborted())
       ; /* nop */
     else if (optxn->is_committed() || kc->txn==optxn) {
-      if (op->get_flags() & TXN_OP_FLUSHED)
+      if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
         ; /* nop */
       /* if key was erased then it doesn't exist */
-      else if (op->get_flags() & TXN_OP_ERASE)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
         return;
-      else if (op->get_flags() & TXN_OP_NOP)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
         ; /* nop */
-      else if (op->get_flags() & TXN_OP_INSERT) {
+      else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
         kc->c++;
         return;
       }
       /* key exists - include it */
-      else if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)) {
+      else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
         /* check if the key already exists in the btree - if yes,
          * we do not count it (it will be counted later) */
         if (HAM_KEY_NOT_FOUND == be->find(0, 0, txn_opnode_get_key(node), 0, 0))
           kc->c++;
         return;
       }
-      else if (op->get_flags() & TXN_OP_INSERT_DUP) {
+      else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
         /* check if btree has other duplicates */
         if (0 == be->find(0, 0, txn_opnode_get_key(node), 0, 0)) {
           /* yes, there's another one */
@@ -612,17 +612,17 @@ LocalDatabase::check_insert_conflicts(Transaction *txn,
     else if (optxn->is_committed() || txn == optxn) {
       /* if key was erased then it doesn't exist and can be
        * inserted without problems */
-      if (op->get_flags() & TXN_OP_FLUSHED)
+      if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
         ; /* nop */
-      else if (op->get_flags() & TXN_OP_ERASE)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
         return (0);
-      else if (op->get_flags() & TXN_OP_NOP)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
         ; /* nop */
       /* if the key already exists then we can only continue if
        * we're allowed to overwrite it or to insert a duplicate */
-      else if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)
-          || (op->get_flags() & TXN_OP_INSERT_DUP)) {
+      else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
         if ((flags & HAM_OVERWRITE) || (flags & HAM_DUPLICATE))
           return (0);
         else
@@ -681,18 +681,18 @@ LocalDatabase::check_erase_conflicts(Transaction *txn,
     if (optxn->is_aborted())
       ; /* nop */
     else if (optxn->is_committed() || txn == optxn) {
-      if (op->get_flags() & TXN_OP_FLUSHED)
+      if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
         ; /* nop */
       /* if key was erased then it doesn't exist and we fail with
        * an error */
-      else if (op->get_flags() & TXN_OP_ERASE)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
         return (HAM_KEY_NOT_FOUND);
-      else if (op->get_flags() & TXN_OP_NOP)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
         ; /* nop */
       /* if the key exists then we're successful */
-      else if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)
-          || (op->get_flags() & TXN_OP_INSERT_DUP)) {
+      else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
         return (0);
       }
       else {
@@ -798,10 +798,10 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   op = txn_opnode_append(txn, node, flags,
           (flags & HAM_PARTIAL) |
           ((flags & HAM_DUPLICATE)
-            ? TXN_OP_INSERT_DUP
+            ? TransactionOperation::TXN_OP_INSERT_DUP
             : (flags & HAM_OVERWRITE)
-              ? TXN_OP_INSERT_OW
-              : TXN_OP_INSERT),
+              ? TransactionOperation::TXN_OP_INSERT_OW
+              : TransactionOperation::TXN_OP_INSERT),
           lsn, record);
   if (!op)
     return (HAM_OUT_OF_MEMORY);
@@ -965,7 +965,7 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   }
 
   /* append a new operation to this node */
-  op = txn_opnode_append(txn, node, flags, TXN_OP_ERASE, lsn, 0);
+  op = txn_opnode_append(txn, node, flags, TransactionOperation::TXN_OP_ERASE, lsn, 0);
   if (!op)
     return (HAM_OUT_OF_MEMORY);
 
@@ -1060,7 +1060,7 @@ retry:
     if (optxn->is_aborted())
       ; /* nop */
     else if (optxn->is_committed() || txn == optxn) {
-      if (op->get_flags() &TXN_OP_FLUSHED)
+      if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
         ; /* nop */
       /* if key was erased then it doesn't exist and we can return
        * immediately
@@ -1068,7 +1068,7 @@ retry:
        * if an approximate match is requested then move to the next
        * or previous node
        */
-      else if (op->get_flags() & TXN_OP_ERASE) {
+      else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         if (first_loop
             && !(ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE))
           exact_is_erased = true;
@@ -1087,14 +1087,14 @@ retry:
         }
         return (HAM_KEY_NOT_FOUND);
       }
-      else if (op->get_flags() & TXN_OP_NOP)
+      else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
         ; /* nop */
       /* if the key already exists then return its record; do not
        * return pointers to TransactionOperation::get_record, because it may be
        * flushed and the user's pointers would be invalid */
-      else if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)
-          || (op->get_flags() & TXN_OP_INSERT_DUP)) {
+      else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
         // approx match? leave the loop and continue
         // with the btree
         if (ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)
@@ -1949,7 +1949,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
          * references the FIRST duplicate (idx 1) then we have
          * to check if there are other duplicates */
         TransactionOperation *op = txnc->get_coupled_op();
-        ham_assert(op->get_flags() & TXN_OP_ERASE);
+        ham_assert(op->get_flags() & TransactionOperation::TXN_OP_ERASE);
         if (!op->get_referenced_dupe()) {
           // ALL!
           st = HAM_KEY_NOT_FOUND;

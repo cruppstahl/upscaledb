@@ -45,7 +45,7 @@ TransactionCursor::set_to_nil()
   if (!is_nil()) {
     TransactionOperation *op = get_coupled_op();
     if (op)
-      txn_op_remove_cursor(op, this);
+      op->remove_cursor(this);
     set_coupled_op(0);
   }
 
@@ -57,7 +57,7 @@ TransactionCursor::couple(TransactionOperation *op)
 {
   set_to_nil();
   set_coupled_op(op);
-  txn_op_add_cursor(op, this);
+  op->add_cursor(this);
 }
 
 ham_status_t
@@ -100,13 +100,13 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
      * committed transactions */
     if (optxn == cursor->get_parent()->get_txn() || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
-      if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)) {
+      if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
         cursor->couple(op);
         return (0);
       }
       /* retrieve a duplicate key */
-      if (op->get_flags() & TXN_OP_INSERT_DUP) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
         cursor->couple(op);
@@ -115,12 +115,12 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
-      if (op->get_flags() & TXN_OP_ERASE) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         cursor->couple(op);
         return (HAM_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
-      ham_assert(op->get_flags() == TXN_OP_NOP);
+      ham_assert(op->get_flags() == TransactionOperation::TXN_OP_NOP);
     }
     else if (optxn->is_aborted())
       ; /* nop */
@@ -254,7 +254,7 @@ TransactionCursor::is_erased_duplicate()
      * committed transactions */
     if (optxn == get_parent()->get_txn() || optxn->is_committed()) {
       /* a normal erase deletes ALL the duplicates */
-      if (op->get_flags() & TXN_OP_ERASE) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         ham_u32_t ref = op->get_referenced_dupe();
         if (ref)
           return (ref == pc->get_dupecache_index());

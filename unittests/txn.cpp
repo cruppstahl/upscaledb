@@ -260,7 +260,7 @@ public:
     /* need at least one TransactionOperation structure in this node, otherwise
      * memory won't be cleaned up correctly */
     (void)txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &rec);
+        TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
@@ -329,13 +329,13 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create(m_dbp, &key);
     op1 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &rec);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
     BFC_ASSERT(op1 != 0);
     op2 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_ERASE, 55, &rec);
+        0, TransactionOperation::TXN_OP_ERASE, 55, &rec);
     BFC_ASSERT(op2 != 0);
     op3 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_NOP, 55, &rec);
+        0, TransactionOperation::TXN_OP_NOP, 55, &rec);
     BFC_ASSERT(op3 != 0);
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));

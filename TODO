@@ -274,10 +274,10 @@ x refactoring of cursor.h/cursor.cc
 
 o refactoring of txn.h/txn.cc
     x txn_op_t -> TransactionOperation
-    o txn_optree_t -> TransactionIndex
     o txn_opnode_t -> TransactionNode
+    o txn_optree_t -> TransactionIndex
     o TransactionIndex: use std::set<OperationNode> instead of rb.h
-    o try to cleanup the structure; move more code from db.cc to txn.cc,
+    o try to cleanup the flow; move more code from db.cc to txn.cc,
         reorg TransactionIndex similar to BtreeIndex
     o try to replace some of the linked lists with boost::intrusive_list
     o document the tree structure in the header file

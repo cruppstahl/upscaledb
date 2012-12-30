@@ -376,7 +376,7 @@ Environment::flush_txn(Transaction *txn)
     txn_opnode_t *node = op->get_node();
     BtreeIndex *be = txn_opnode_get_db(node)->get_btree();
 
-    if (op->get_flags() & TXN_OP_FLUSHED)
+    if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
       goto next_op;
 
     /* logging enabled? then the changeset and the log HAS to be empty */
@@ -393,11 +393,11 @@ Environment::flush_txn(Transaction *txn)
      * which are coupled to this op have to be uncoupled, and their
      * parent (btree) cursor must be coupled to the btree item instead.
      */
-    if ((op->get_flags() & TXN_OP_INSERT)
-        || (op->get_flags() & TXN_OP_INSERT_OW)
-        || (op->get_flags() & TXN_OP_INSERT_DUP)) {
+    if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+        || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
+        || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
       ham_u32_t additional_flag = 
-        (op->get_flags() & TXN_OP_INSERT_DUP)
+        (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)
           ? HAM_DUPLICATE
           : HAM_OVERWRITE;
       if (!op->get_cursors()) {
@@ -415,14 +415,14 @@ Environment::flush_txn(Transaction *txn)
                     op->get_orig_flags() | additional_flag);
         if (!st) {
           /* uncouple the cursor from the txn-op, and remove it */
-          txn_op_remove_cursor(op, tc1);
+          op->remove_cursor(tc1);
           c1->couple_to_btree();
           c1->set_to_nil(Cursor::CURSOR_TXN);
 
           /* all other (btree) cursors need to be coupled to the same
            * item as the first one. */
           while ((tc2 = op->get_cursors())) {
-            txn_op_remove_cursor(op, tc2);
+            op->remove_cursor(tc2);
             c2 = tc2->get_parent();
             c2->get_btree_cursor()->couple_to_other(c1->get_btree_cursor());
             c2->couple_to_btree();
@@ -431,7 +431,7 @@ Environment::flush_txn(Transaction *txn)
         }
       }
     }
-    else if (op->get_flags() & TXN_OP_ERASE) {
+    else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
       if (op->get_referenced_dupe()) {
         st = be->erase_duplicate(txn, txn_opnode_get_key(node),
                     op->get_referenced_dupe(), op->get_flags());
@@ -467,7 +467,7 @@ Environment::flush_txn(Transaction *txn)
      * have to be uncoupled, as their parent (btree) cursor was
      * already coupled to the btree item instead
      */
-    op->set_flags(TXN_OP_FLUSHED);
+    op->set_flags(TransactionOperation::TXN_OP_FLUSHED);
 next_op:
     while ((cursor = op->get_cursors())) {
       Cursor *pc = cursor->get_parent();

@@ -37,6 +37,7 @@ namespace hamsterdb {
 
 class Transaction;
 struct txn_opnode_t;
+class TransactionTree;
 
 /**
  * a single operation in a transaction
@@ -44,10 +45,31 @@ struct txn_opnode_t;
 class TransactionOperation
 {
   public:
+    enum {
+      /** a NOP operation (empty) */
+      TXN_OP_NOP        = 0x000000u,
+      /** txn operation is an insert */
+      TXN_OP_INSERT     = 0x010000u,
+      /** txn operation is an insert w/ overwrite */
+      TXN_OP_INSERT_OW  = 0x020000u,
+      /** txn operation is an insert w/ duplicate */
+      TXN_OP_INSERT_DUP = 0x040000u,
+      /** txn operation erases the key */
+      TXN_OP_ERASE      = 0x080000u,
+      /** txn operation was already flushed */
+      TXN_OP_FLUSHED    = 0x100000u
+    };
+
     /** Constructor */
     TransactionOperation(Transaction *txn, txn_opnode_t *node,
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
             ham_record_t *record);
+
+    /** couple a cursor to this TransactionOperation */
+    void add_cursor(TransactionCursor *cursor);
+
+    /** remove a cursor from this TransactionOperation */
+    void remove_cursor(struct TransactionCursor *cursor);
 
     /** get flags */
     ham_u32_t get_flags() const {
@@ -191,43 +213,6 @@ class TransactionOperation
     TransactionOperation *m_txn_prev;
 };
 
-/** a NOP operation (empty) */
-#define TXN_OP_NOP      0x000000u
-
-/** txn operation is an insert */
-#define TXN_OP_INSERT     0x010000u
-
-/** txn operation is an insert w/ overwrite */
-#define TXN_OP_INSERT_OW  0x020000u
-
-/** txn operation is an insert w/ duplicate */
-#define TXN_OP_INSERT_DUP   0x040000u
-
-/** txn operation erases the key */
-#define TXN_OP_ERASE    0x080000u
-
-/** txn operation was already flushed */
-#define TXN_OP_FLUSHED    0x100000u
-
-/**
- * add a cursor to this txn_op structure
- */
-extern void
-txn_op_add_cursor(TransactionOperation *op, struct TransactionCursor *cursor);
-
-/**
- * remove a cursor from this txn_op structure
- */
-extern void
-txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor);
-
-/**
- * returns true if the op is in a txn which has a conflict
- */
-extern ham_bool_t
-txn_op_conflicts(TransactionOperation *op, Transaction *current_txn);
-
-class TransactionTree;
 
 /*
  * a node in the red-black Transaction tree (implemented in rb.h);

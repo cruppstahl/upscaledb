@@ -125,7 +125,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &record);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c1((Cursor *)0);
@@ -135,35 +135,35 @@ public:
 
     BFC_ASSERT_EQUAL((TransactionCursor *)0, op->get_cursors());
 
-    txn_op_add_cursor(op, &c1);
+    op->add_cursor(&c1);
     BFC_ASSERT_EQUAL(&c1, op->get_cursors());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_previous());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
-    txn_op_add_cursor(op, &c2);
+    op->add_cursor(&c2);
     BFC_ASSERT_EQUAL(&c2, op->get_cursors());
     BFC_ASSERT_EQUAL(&c2, c1.get_coupled_previous());
     BFC_ASSERT_EQUAL(&c1, c2.get_coupled_next());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c2.get_coupled_previous());
 
-    txn_op_add_cursor(op, &c3);
+    op->add_cursor(&c3);
     BFC_ASSERT_EQUAL(&c3, op->get_cursors());
     BFC_ASSERT_EQUAL(&c3, c2.get_coupled_previous());
     BFC_ASSERT_EQUAL(&c2, c3.get_coupled_next());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c3.get_coupled_previous());
 
-    txn_op_remove_cursor(op, &c2);
+    op->remove_cursor(&c2);
     BFC_ASSERT_EQUAL(&c3, op->get_cursors());
     BFC_ASSERT_EQUAL(&c3, c1.get_coupled_previous());
     BFC_ASSERT_EQUAL(&c1, c3.get_coupled_next());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
-    txn_op_remove_cursor(op, &c3);
+    op->remove_cursor(&c3);
     BFC_ASSERT_EQUAL(&c1, op->get_cursors());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_previous());
     BFC_ASSERT_EQUAL((TransactionCursor *)0, c1.get_coupled_next());
 
-    txn_op_remove_cursor(op, &c1);
+    op->remove_cursor(&c1);
     BFC_ASSERT_EQUAL((TransactionCursor *)0, op->get_cursors());
 
     ((Transaction *)txn)->free_ops();
@@ -183,7 +183,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node=txn_opnode_create((Database *)m_db, &key);
     op=txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &record);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -214,7 +214,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &record);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -239,7 +239,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &record);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -266,7 +266,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &record);
+        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -290,7 +290,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &record);
+        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -321,7 +321,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &record);
+        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -346,7 +346,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node, 0,
-          TXN_OP_INSERT_DUP, 55, &record);
+          TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -371,7 +371,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = txn_opnode_create((Database *)m_db, &key);
     op = txn_opnode_append((Transaction *)txn, node, 0,
-          TXN_OP_INSERT_DUP, 55, &record);
+          TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);

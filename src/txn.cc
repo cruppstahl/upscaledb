@@ -87,28 +87,28 @@ TransactionOperation::TransactionOperation(Transaction *txn,
 }
 
 void
-txn_op_add_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
+TransactionOperation::add_cursor(TransactionCursor *cursor)
 {
     ham_assert(!cursor->is_nil());
 
-    cursor->set_coupled_next(op->get_cursors());
+    cursor->set_coupled_next(get_cursors());
     cursor->set_coupled_previous(0);
 
-    if (op->get_cursors()) {
-        TransactionCursor *old=op->get_cursors();
+    if (get_cursors()) {
+        TransactionCursor *old = get_cursors();
         old->set_coupled_previous(cursor);
     }
 
-    op->set_cursors(cursor);
+    set_cursors(cursor);
 }
 
 void
-txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
+TransactionOperation::remove_cursor(TransactionCursor *cursor)
 {
     ham_assert(!cursor->is_nil());
 
-    if (op->get_cursors()==cursor) {
-        op->set_cursors(cursor->get_coupled_next());
+    if (get_cursors() == cursor) {
+        set_cursors(cursor->get_coupled_next());
         if (cursor->get_coupled_next())
             cursor->get_coupled_next()->set_coupled_previous(0);
     }
@@ -122,18 +122,6 @@ txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
     }
     cursor->set_coupled_next(0);
     cursor->set_coupled_previous(0);
-}
-
-ham_bool_t
-txn_op_conflicts(TransactionOperation *op, Transaction *current_txn)
-{
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-        return (HAM_FALSE);
-    else if (optxn->is_committed() || current_txn==optxn)
-        return (HAM_FALSE);
-    else /* txn is still active */
-        return (HAM_TRUE);
 }
 
 txn_opnode_t *
