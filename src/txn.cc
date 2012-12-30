@@ -42,28 +42,24 @@ typedef int bool;
 static int
 __cmpfoo(void *vlhs, void *vrhs)
 {
-    ham_compare_func_t foo;
-    txn_opnode_t *lhs=(txn_opnode_t *)vlhs;
-    txn_opnode_t *rhs=(txn_opnode_t *)vrhs;
-    Database *db=txn_opnode_get_db(lhs);
+    TransactionNode *lhs = (TransactionNode *)vlhs;
+    TransactionNode *rhs = (TransactionNode *)vrhs;
+    Database *db = lhs->get_db();
 
-    ham_assert(txn_opnode_get_db(lhs)==txn_opnode_get_db(rhs));
-    if (lhs==rhs)
+    if (lhs == rhs)
         return (0);
 
-    foo=db->get_compare_func();
+    ham_compare_func_t foo = db->get_compare_func();
 
     return (foo((ham_db_t *)db,
-                (ham_u8_t *)txn_opnode_get_key(lhs)->data,
-                txn_opnode_get_key(lhs)->size,
-                (ham_u8_t *)txn_opnode_get_key(rhs)->data,
-                txn_opnode_get_key(rhs)->size));
+                (ham_u8_t *)lhs->get_key()->data, lhs->get_key()->size,
+                (ham_u8_t *)rhs->get_key()->data, rhs->get_key()->size));
 }
 
-rb_wrap(static, rbt_, TransactionTree, txn_opnode_t, node, __cmpfoo)
+rb_wrap(static, rbt_, TransactionTree, TransactionNode, node, __cmpfoo)
 
 TransactionOperation::TransactionOperation(Transaction *txn,
-        txn_opnode_t *node, ham_u32_t flags, ham_u32_t orig_flags,
+        TransactionNode *node, ham_u32_t flags, ham_u32_t orig_flags,
         ham_u64_t lsn, ham_record_t *record)
   : m_txn(txn), m_node(node), m_flags(flags), m_orig_flags(orig_flags),
     m_referenced_dupe(0), m_lsn(lsn), m_cursors(0), m_node_next(0),
@@ -87,28 +83,28 @@ TransactionOperation::TransactionOperation(Transaction *txn,
 }
 
 void
-txn_op_add_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
+TransactionOperation::add_cursor(TransactionCursor *cursor)
 {
     ham_assert(!cursor->is_nil());
 
-    cursor->set_coupled_next(op->get_cursors());
+    cursor->set_coupled_next(get_cursors());
     cursor->set_coupled_previous(0);
 
-    if (op->get_cursors()) {
-        TransactionCursor *old=op->get_cursors();
+    if (get_cursors()) {
+        TransactionCursor *old = get_cursors();
         old->set_coupled_previous(cursor);
     }
 
-    op->set_cursors(cursor);
+    set_cursors(cursor);
 }
 
 void
-txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
+TransactionOperation::remove_cursor(TransactionCursor *cursor)
 {
     ham_assert(!cursor->is_nil());
 
-    if (op->get_cursors()==cursor) {
-        op->set_cursors(cursor->get_coupled_next());
+    if (get_cursors() == cursor) {
+        set_cursors(cursor->get_coupled_next());
         if (cursor->get_coupled_next())
             cursor->get_coupled_next()->set_coupled_previous(0);
     }
@@ -124,19 +120,7 @@ txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
     cursor->set_coupled_previous(0);
 }
 
-ham_bool_t
-txn_op_conflicts(TransactionOperation *op, Transaction *current_txn)
-{
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-        return (HAM_FALSE);
-    else if (optxn->is_committed() || current_txn==optxn)
-        return (HAM_FALSE);
-    else /* txn is still active */
-        return (HAM_TRUE);
-}
-
-txn_opnode_t *
+TransactionNode *
 txn_tree_get_first(TransactionTree *tree)
 {
     if (tree)
@@ -145,7 +129,7 @@ txn_tree_get_first(TransactionTree *tree)
         return (0);
 }
 
-txn_opnode_t *
+TransactionNode *
 txn_tree_get_last(TransactionTree *tree)
 {
     if (tree)
@@ -154,22 +138,22 @@ txn_tree_get_last(TransactionTree *tree)
         return (0);
 }
 
-txn_opnode_t *
-txn_opnode_get_next_sibling(txn_opnode_t *node)
+TransactionNode *
+txn_opnode_get_next_sibling(TransactionNode *node)
 {
-    return (rbt_next(txn_opnode_get_tree(node), node));
+    return (rbt_next(node->get_tree(), node));
 }
 
-txn_opnode_t *
-txn_opnode_get_previous_sibling(txn_opnode_t *node)
+TransactionNode *
+txn_opnode_get_previous_sibling(TransactionNode *node)
 {
-    return (rbt_prev(txn_opnode_get_tree(node), node));
+    return (rbt_prev(node->get_tree(), node));
 }
 
 void
 txn_tree_enumerate(TransactionTree *tree, txn_tree_enumerate_cb cb, void *data)
 {
-    txn_opnode_t *node=rbt_first(tree);
+    TransactionNode *node=rbt_first(tree);
 
     while (node) {
         cb(node, data);
@@ -192,10 +176,10 @@ __copy_key_data(Allocator *alloc, ham_key_t *key)
     return (data);
 }
 
-txn_opnode_t *
+TransactionNode *
 txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 {
-    txn_opnode_t *node=0, tmp;
+    TransactionNode *node=0;
     TransactionTree *tree=db->get_optree();
     int match=0;
 
@@ -203,9 +187,7 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
         return (0);
 
     /* create a temporary node that we can search for */
-    memset(&tmp, 0, sizeof(tmp));
-    txn_opnode_set_key(&tmp, key);
-    txn_opnode_set_db(&tmp, db);
+    TransactionNode tmp(db, key, true);
 
     /* search if node already exists - if yes, return it */
     if ((flags&HAM_FIND_GEQ_MATCH)==HAM_FIND_GEQ_MATCH) {
@@ -252,50 +234,58 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
     return (node);
 }
 
-txn_opnode_t *
-txn_opnode_create(Database *db, ham_key_t *key)
+TransactionNode::TransactionNode(Database *db, ham_key_t *key, bool dont_insert)
+  : m_db(db), m_tree(db->get_optree()), m_oldest_op(0), m_newest_op(0),
+    m_dont_insert(dont_insert)
 {
-    txn_opnode_t *node = 0;
-    TransactionTree *tree = db->get_optree();
     Allocator *alloc = db->get_env()->get_allocator();
 
     /* make sure that a node with this key does not yet exist */
-    ham_assert(txn_opnode_get(db, key, 0) == 0);
+    // TODO re-enable this; currently leads to a stack overflow because
+    // txn_opnode_get() creates a new TransactionNode
+    // ham_assert(txn_opnode_get(db, key, 0) == 0);
 
-    /* create the new node (with a copy for the key) */
-    node=(txn_opnode_t *)alloc->alloc(sizeof(*node));
-    if (!node)
-        return (0);
-    memset(node, 0, sizeof(*node));
-    txn_opnode_set_key(node, key);
-    txn_opnode_get_key(node)->data=__copy_key_data(alloc, key);
-    txn_opnode_set_db(node, db);
-    txn_opnode_set_tree(node, tree);
+    m_key = *key;
+    m_key.data = __copy_key_data(alloc, key);
 
     /* store the node in the tree */
-    rbt_insert(tree, node);
+    if (dont_insert == false)
+        rbt_insert(m_tree, this);
+}
 
-    return (node);
+TransactionNode::TransactionNode()
+  : m_db(0), m_tree(0), m_oldest_op(0), m_newest_op(0), m_dont_insert(true)
+{
+    memset(&m_key, 0, sizeof(m_key));
+}
+
+TransactionNode::~TransactionNode()
+{
+    if (m_dont_insert == false && m_tree)
+        rbt_remove(m_tree, this);
+
+    if (m_key.data)
+        m_db->get_env()->get_allocator()->free(m_key.data);
 }
 
 TransactionOperation *
-txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
+txn_opnode_append(Transaction *txn, TransactionNode *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
     TransactionOperation *op = new TransactionOperation(txn, node, flags,
             orig_flags, lsn, record);
 
     /* store it in the chronological list which is managed by the node */
-    if (!txn_opnode_get_newest_op(node)) {
-        ham_assert(txn_opnode_get_oldest_op(node)==0);
-        txn_opnode_set_newest_op(node, op);
-        txn_opnode_set_oldest_op(node, op);
+    if (!node->get_newest_op()) {
+        ham_assert(node->get_oldest_op()==0);
+        node->set_newest_op(op);
+        node->set_oldest_op(op);
     }
     else {
-        TransactionOperation *newest=txn_opnode_get_newest_op(node);
+        TransactionOperation *newest=node->get_newest_op();
         newest->set_next_in_node(op);
         op->set_previous_in_node(newest);
-        txn_opnode_set_newest_op(node, op);
+        node->set_newest_op(op);
     }
 
     /* store it in the chronological list which is managed by the transaction */
@@ -317,29 +307,13 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 void
 txn_free_optree(TransactionTree *tree)
 {
-    Environment *env=txn_optree_get_db(tree)->get_env();
-    txn_opnode_t *node;
+    TransactionNode *node;
 
     while ((node=rbt_last(tree))) {
-        txn_opnode_free(env, node);
+        delete node;
     }
 
     rbt_new(tree);
-}
-
-void
-txn_opnode_free(Environment *env, txn_opnode_t *node)
-{
-    ham_key_t *key;
-
-    TransactionTree *tree=txn_opnode_get_tree(node);
-    rbt_remove(tree, node);
-
-    key=txn_opnode_get_key(node);
-    if (key->data)
-        env->get_allocator()->free(key->data);
-
-    env->get_allocator()->free(node);
 }
 
 static void
@@ -347,7 +321,7 @@ txn_op_free(Environment *env, Transaction *txn, TransactionOperation *op)
 {
     ham_record_t *rec;
     TransactionOperation *next, *prev;
-    txn_opnode_t *node;
+    TransactionNode *node;
 
     // TODO move to destructor of TransactionOperation
     rec=op->get_record();
@@ -373,12 +347,12 @@ txn_op_free(Environment *env, Transaction *txn, TransactionOperation *op)
 
     /* remove this op from the node */
     node=op->get_node();
-    if (txn_opnode_get_oldest_op(node)==op)
-        txn_opnode_set_oldest_op(node, op->get_next_in_node());
+    if (node->get_oldest_op()==op)
+        node->set_oldest_op(op->get_next_in_node());
 
     /* if the node is empty: remove the node from the tree */
-    if (txn_opnode_get_oldest_op(node)==0)
-        txn_opnode_free(env, node);
+    if (node->get_oldest_op()==0)
+        delete node;
 
     delete op;
 }

@@ -80,13 +80,13 @@ Cursor::update_dupecache(ham_u32_t what)
   /* read duplicates from the txn-cursor? */
   if ((what & CURSOR_TXN) && !is_nil(CURSOR_TXN)) {
     TransactionOperation *op = txnc->get_coupled_op();
-    txn_opnode_t *node = op->get_node();
+    TransactionNode *node = op->get_node();
 
     if (!node)
       goto bail;
 
     /* now start integrating the items from the transactions */
-    op = txn_opnode_get_oldest_op(node);
+    op = node->get_oldest_op();
 
     while (op) {
       Transaction *optxn = op->get_txn();
@@ -96,12 +96,12 @@ Cursor::update_dupecache(ham_u32_t what)
         /* a normal (overwriting) insert will overwrite ALL dupes,
          * but an overwrite of a duplicate will only overwrite
          * an entry in the dupecache */
-        if (op->get_flags() & TXN_OP_INSERT) {
+        if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
           /* all existing dupes are overwritten */
           dc->clear();
           dc->append(DupeCacheLine(false, op));
         }
-        else if (op->get_flags() & TXN_OP_INSERT_OW) {
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW) {
           ham_u32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
@@ -115,7 +115,7 @@ Cursor::update_dupecache(ham_u32_t what)
           }
         }
         /* insert a duplicate key */
-        else if (op->get_flags() & TXN_OP_INSERT_DUP) {
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
           ham_u32_t of = op->get_orig_flags();
           ham_u32_t ref = op->get_referenced_dupe() - 1;
           DupeCacheLine dcl(false, op);
@@ -134,7 +134,7 @@ Cursor::update_dupecache(ham_u32_t what)
             dc->append(dcl);
         }
         /* a normal erase will erase ALL duplicate keys */
-        else if (op->get_flags() & TXN_OP_ERASE) {
+        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
           ham_u32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
@@ -147,7 +147,7 @@ Cursor::update_dupecache(ham_u32_t what)
         }
         else {
           /* everything else is a bug! */
-          ham_assert(op->get_flags() == TXN_OP_NOP);
+          ham_assert(op->get_flags() == TransactionOperation::TXN_OP_NOP);
         }
       }
 
@@ -206,7 +206,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
   }
 
   op = txnc->get_coupled_op();
-  if (op->get_flags() & TXN_OP_INSERT_DUP)
+  if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)
     st = HAM_KEY_NOT_FOUND;
   get_db()->cursor_close(clone);
   return (st);
@@ -221,12 +221,12 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
     *equal_keys = false;
 
   if (is_nil(CURSOR_BTREE)) {
-    txn_opnode_t *node;
+    TransactionNode *node;
     ham_key_t *k;
     if (!txnc->get_coupled_op())
       return (0);
     node = txnc->get_coupled_op()->get_node();
-    k = txn_opnode_get_key(node);
+    k = node->get_key();
 
     if (!(flags & CURSOR_SYNC_ONLY_EQUAL_KEY))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
@@ -327,7 +327,7 @@ static bool
 __txn_cursor_is_erase(TransactionCursor *txnc)
 {
   TransactionOperation *op = txnc->get_coupled_op();
-  return (op ? (op->get_flags() & TXN_OP_ERASE) : false);
+  return (op ? (op->get_flags() & TransactionOperation::TXN_OP_ERASE) : false);
 }
 
 int
@@ -337,8 +337,8 @@ Cursor::compare()
   BtreeCursor *btrc = get_btree_cursor();
   TransactionCursor *txnc = get_txn_cursor();
 
-  txn_opnode_t *node = txnc->get_coupled_op()->get_node();
-  ham_key_t *txnk = txn_opnode_get_key(node);
+  TransactionNode *node = txnc->get_coupled_op()->get_node();
+  ham_key_t *txnk = node->get_key();
 
   ham_assert(!is_nil(0));
   ham_assert(!txnc->is_nil());
@@ -987,7 +987,7 @@ retrieve_key_and_record:
     if (is_coupled_to_txnop()) {
 #ifdef HAM_DEBUG
       TransactionOperation *op = txnc->get_coupled_op();
-      ham_assert(!(op->get_flags() & TXN_OP_ERASE));
+      ham_assert(!(op->get_flags() & TransactionOperation::TXN_OP_ERASE));
 #endif
       if (key) {
         st = txnc->get_key(key);

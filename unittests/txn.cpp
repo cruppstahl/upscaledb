@@ -46,7 +46,6 @@ public:
     BFC_REGISTER_TEST(TxnTest, txnStructureTest);
     BFC_REGISTER_TEST(TxnTest, txnTreeStructureTest);
     BFC_REGISTER_TEST(TxnTest, txnMultipleTreesTest);
-    BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
     BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
     BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
     BFC_REGISTER_TEST(TxnTest, txnMultipleOpsTest);
@@ -233,40 +232,9 @@ public:
     BFC_ASSERT_EQUAL(0, ham_db_close(db3, 0));
   }
 
-  void txnNodeStructureTest() {
-    ham_txn_t *txn;
-    txn_opnode_t *node;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create(m_dbp, &key);
-    ham_key_t *k = txn_opnode_get_key(node);
-    BFC_ASSERT_EQUAL(k->size, key.size);
-    BFC_ASSERT_EQUAL(0, memcmp(k->data, key.data, k->size));
-
-    txn_opnode_set_oldest_op(node, (TransactionOperation *)3);
-    BFC_ASSERT_EQUAL((TransactionOperation *)3, txn_opnode_get_oldest_op(node));
-    txn_opnode_set_oldest_op(node, 0);
-
-    txn_opnode_set_newest_op(node, (TransactionOperation *)4);
-    BFC_ASSERT_EQUAL((TransactionOperation *)4, txn_opnode_get_newest_op(node));
-    txn_opnode_set_newest_op(node, 0);
-
-    /* need at least one TransactionOperation structure in this node, otherwise
-     * memory won't be cleaned up correctly */
-    (void)txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &rec);
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-  }
-
   void txnNodeCreatedOnceTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node, *node2;
+    TransactionNode *node, *node2;
     ham_key_t key1, key2;
     memset(&key1, 0, sizeof(key1));
     key1.data = (void *)"hello";
@@ -278,13 +246,13 @@ public:
     memset(&rec, 0, sizeof(rec));
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create(m_dbp, &key1);
+    node = new TransactionNode(m_dbp, &key1);
     BFC_ASSERT(node != 0);
     node2 = txn_opnode_get(m_dbp, &key1, 0);
     BFC_ASSERT_EQUAL(node, node2);
     node2 = txn_opnode_get(m_dbp, &key2, 0);
-    BFC_ASSERT_EQUAL((txn_opnode_t *)NULL, node2);
-    node2 = txn_opnode_create(m_dbp, &key2);
+    BFC_ASSERT_EQUAL((TransactionNode *)NULL, node2);
+    node2 = new TransactionNode(m_dbp, &key2);
     BFC_ASSERT(node != node2);
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -292,7 +260,7 @@ public:
 
   void txnMultipleNodesTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node1, *node2, *node3;
+    TransactionNode *node1, *node2, *node3;
     ham_key_t key;
     memset(&key, 0, sizeof(key));
     key.data = (void *)"1111";
@@ -301,13 +269,13 @@ public:
     memset(&rec, 0, sizeof(rec));
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = txn_opnode_create(m_dbp, &key);
+    node1 = new TransactionNode(m_dbp, &key);
     BFC_ASSERT(node1 != 0);
     key.data = (void *)"2222";
-    node2 = txn_opnode_create(m_dbp, &key);
+    node2 = new TransactionNode(m_dbp, &key);
     BFC_ASSERT(node2 != 0);
     key.data = (void *)"3333";
-    node3 = txn_opnode_create(m_dbp, &key);
+    node3 = new TransactionNode(m_dbp, &key);
     BFC_ASSERT(node3 != 0);
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -315,7 +283,7 @@ public:
 
   void txnMultipleOpsTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op1, *op2, *op3;
     ham_key_t key;
     memset(&key, 0, sizeof(key));
@@ -327,15 +295,15 @@ public:
     rec.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create(m_dbp, &key);
+    node = new TransactionNode(m_dbp, &key);
     op1 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_INSERT_DUP, 55, &rec);
+        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
     BFC_ASSERT(op1 != 0);
     op2 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_ERASE, 55, &rec);
+        0, TransactionOperation::TXN_OP_ERASE, 55, &rec);
     BFC_ASSERT(op2 != 0);
     op3 = txn_opnode_append((Transaction *)txn, node,
-        0, TXN_OP_NOP, 55, &rec);
+        0, TransactionOperation::TXN_OP_NOP, 55, &rec);
     BFC_ASSERT(op3 != 0);
 
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));

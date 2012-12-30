@@ -624,13 +624,13 @@ class LocalDatabase : public Database
      * checks if an insert operation conflicts with another txn
      */
     ham_status_t check_insert_conflicts(Transaction *txn,
-                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+                TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     /*
      * checks if an erase operation conflicts with another txn
      */
     ham_status_t check_erase_conflicts(Transaction *txn,
-                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+                TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     /** the current record number */
     ham_u64_t m_recno;

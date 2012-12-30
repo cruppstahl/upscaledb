@@ -45,7 +45,7 @@ TransactionCursor::set_to_nil()
   if (!is_nil()) {
     TransactionOperation *op = get_coupled_op();
     if (op)
-      txn_op_remove_cursor(op, this);
+      op->remove_cursor(this);
     set_coupled_op(0);
   }
 
@@ -57,7 +57,7 @@ TransactionCursor::couple(TransactionOperation *op)
 {
   set_to_nil();
   set_coupled_op(op);
-  txn_op_add_cursor(op, this);
+  op->add_cursor(this);
 }
 
 ham_status_t
@@ -69,7 +69,7 @@ TransactionCursor::overwrite(ham_record_t *record)
     return (HAM_CURSOR_IS_NIL);
 
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
 
   /* check if the op is part of a conflicting txn */
   if (conflicts())
@@ -78,11 +78,11 @@ TransactionCursor::overwrite(ham_record_t *record)
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
   return (((LocalDatabase *)get_db())->insert_txn(txn,
-        txn_opnode_get_key(node), record, HAM_OVERWRITE, this));
+        node->get_key(), record, HAM_OVERWRITE, this));
 }
 
 static ham_status_t
-__move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOperation *op,
+__move_top_in_node(TransactionCursor *cursor, TransactionNode *node, TransactionOperation *op,
         ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
   TransactionOperation *lastdup = 0;
@@ -90,7 +90,7 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
   Cursor *pc = cursor->get_parent();
 
   if (!op)
-    op = txn_opnode_get_newest_op(node);
+    op = node->get_newest_op();
   else
     goto next;
 
@@ -100,13 +100,13 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
      * committed transactions */
     if (optxn == cursor->get_parent()->get_txn() || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
-      if ((op->get_flags() & TXN_OP_INSERT)
-          || (op->get_flags() & TXN_OP_INSERT_OW)) {
+      if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
         cursor->couple(op);
         return (0);
       }
       /* retrieve a duplicate key */
-      if (op->get_flags() & TXN_OP_INSERT_DUP) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
         cursor->couple(op);
@@ -115,12 +115,12 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
-      if (op->get_flags() & TXN_OP_ERASE) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         cursor->couple(op);
         return (HAM_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
-      ham_assert(op->get_flags() == TXN_OP_NOP);
+      ham_assert(op->get_flags() == TransactionOperation::TXN_OP_NOP);
     }
     else if (optxn->is_aborted())
       ; /* nop */
@@ -150,7 +150,7 @@ TransactionCursor::move(ham_u32_t flags)
 {
   ham_status_t st;
   Database *db = get_db();
-  txn_opnode_t *node;
+  TransactionNode *node;
 
   if (flags & HAM_CURSOR_FIRST) {
     /* first set cursor to nil */
@@ -227,7 +227,7 @@ bool
 TransactionCursor::is_erased()
 {
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
 
   ham_assert(!is_nil());
 
@@ -240,13 +240,13 @@ bool
 TransactionCursor::is_erased_duplicate()
 {
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
   Cursor *pc = get_parent();
 
   ham_assert(!is_nil());
   ham_assert(pc->get_dupecache_index() != 0);
 
-  op = txn_opnode_get_newest_op(node);
+  op = node->get_newest_op();
 
   while (op) {
     Transaction *optxn = op->get_txn();
@@ -254,7 +254,7 @@ TransactionCursor::is_erased_duplicate()
      * committed transactions */
     if (optxn == get_parent()->get_txn() || optxn->is_committed()) {
       /* a normal erase deletes ALL the duplicates */
-      if (op->get_flags() & TXN_OP_ERASE) {
+      if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         ham_u32_t ref = op->get_referenced_dupe();
         if (ref)
           return (ref == pc->get_dupecache_index());
@@ -275,7 +275,7 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
   set_to_nil();
 
   /* then lookup the node */
-  txn_opnode_t *node = txn_opnode_get(get_db(), key, flags);
+  TransactionNode *node = txn_opnode_get(get_db(), key, flags);
   if (!node)
     return (HAM_KEY_NOT_FOUND);
 
@@ -325,10 +325,10 @@ TransactionCursor::get_key(ham_key_t *key)
   /* coupled cursor? get key from the txn_op structure */
   if (!is_nil()) {
     TransactionOperation *op = get_coupled_op();
-    txn_opnode_t *node = op->get_node();
+    TransactionNode *node = op->get_node();
 
-    ham_assert(db == txn_opnode_get_db(node));
-    source = txn_opnode_get_key(node);
+    ham_assert(db == node->get_db());
+    source = node->get_key();
 
     key->size = source->size;
     if (source->data && source->size) {
@@ -400,7 +400,7 @@ TransactionCursor::erase()
 {
   ham_status_t st;
   TransactionOperation *op;
-  txn_opnode_t *node;
+  TransactionNode *node;
   Database *db = get_db();
   Cursor *parent = get_parent();
   Transaction *txn = parent->get_txn();
@@ -439,7 +439,7 @@ TransactionCursor::erase()
   else {
     op = get_coupled_op();
     node = op->get_node();
-    st = ((LocalDatabase *)db)->erase_txn(txn, txn_opnode_get_key(node),
+    st = ((LocalDatabase *)db)->erase_txn(txn, node->get_key(),
         0, this);
     if (st)
       return (st);
