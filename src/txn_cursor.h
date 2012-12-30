@@ -21,7 +21,7 @@
  * overwrites a record, and another transaction then erases the key).
  *
  * The Transaction Cursor has two states: either it is coupled to a
- * Transaction operation (txn_op_t) or it is unused.
+ * Transaction operation (TransactionOperation) or it is unused.
  */
 
 #ifndef HAM_TXN_CURSOR_H__
@@ -52,8 +52,8 @@ class TransactionCursor
     /** Sets a cursor to nil */
     void set_to_nil();
 
-    /** Couples a txn cursor to a txn_op_t structure */
-    void couple(txn_op_t *op);
+    /** Couples a txn cursor to a TransactionOperation structure */
+    void couple(TransactionOperation *op);
 
     /** Moves the cursor to first, last, previous or next */
     ham_status_t move(ham_u32_t flags);
@@ -107,12 +107,12 @@ class TransactionCursor
     }
 
     /** get the pointer to the coupled txn_op */
-    txn_op_t *get_coupled_op() const {
+    TransactionOperation *get_coupled_op() const {
       return (_coupled._op);
     }
 
     /** set the pointer to the coupled txn_op */
-    void set_coupled_op(txn_op_t *op) {
+    void set_coupled_op(TransactionOperation *op) {
       _coupled._op = op;
     }
 
@@ -154,12 +154,12 @@ class TransactionCursor
 
     /**
      * a Cursor can either be coupled or nil ("not in list"). If it's
-     * coupled, it directly points to a txn_op_t structure. If it's nil then it
+     * coupled, it directly points to a TransactionOperation structure. If it's nil then it
      * basically is uninitialized.
      */
     struct txn_cursor_coupled_t {
       /* the txn operation to which we're pointing */
-      txn_op_t *_op;
+      TransactionOperation *_op;
 
       /** a double linked list with other cursors that are coupled
        * to the same txn_op */

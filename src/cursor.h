@@ -39,7 +39,7 @@
  *
  * 2. Coupled to the txn-cursor - meaning that the Cursor points to a key
  *      that is modified in a Transaction. Technically, the txn-cursor points
- *      to a @ref txn_op_t structure.
+ *      to a @ref TransactionOperation structure.
  *
  *      relevant functions:
  *          @ref Cursor::is_coupled_to_txnop
@@ -109,7 +109,7 @@ class DupeCacheLine
       ham_assert(use_btree == true);
     }
 
-    DupeCacheLine(bool use_btree, txn_op_t *op)
+    DupeCacheLine(bool use_btree, TransactionOperation *op)
       : m_use_btree(use_btree), m_btree_dupeidx(0), m_op(op) {
       ham_assert(use_btree == false);
     }
@@ -133,13 +133,13 @@ class DupeCacheLine
     }
 
     /** Returns the txn-op duplicate */
-    txn_op_t *get_txn_op() {
+    TransactionOperation *get_txn_op() {
       ham_assert(m_use_btree == false);
       return (m_op);
     }
 
     /** Sets the txn-op duplicate */
-    void set_txn_op(txn_op_t *op) {
+    void set_txn_op(TransactionOperation *op) {
       m_use_btree = false;
       m_op = op;
       m_btree_dupeidx = 0;
@@ -153,7 +153,7 @@ class DupeCacheLine
     ham_u64_t m_btree_dupeidx;
 
     /** The txn op structure */
-    txn_op_t *m_op;
+    TransactionOperation *m_op;
 };
 
 

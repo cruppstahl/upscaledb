@@ -36,57 +36,160 @@ struct ham_txn_t
 namespace hamsterdb {
 
 class Transaction;
+struct txn_opnode_t;
 
 /**
  * a single operation in a transaction
  */
-typedef struct txn_op_t
+class TransactionOperation
 {
-  /** flags and type of this operation; defined in txn.h */
-  ham_u32_t _flags;
+  public:
+    /** Constructor */
+    TransactionOperation(Transaction *txn, txn_opnode_t *node,
+            ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
+            ham_record_t *record);
 
-  /** the original flags of this operation */
-  ham_u32_t _orig_flags;
+    /** get flags */
+    ham_u32_t get_flags() const {
+      return (m_flags);
+    }
 
-  /** the referenced duplicate id (if neccessary) - used if this is
-   * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
-   * with a DUPLICATE_AFTER/BEFORE flag
-   * this is 1-based (like dupecache-index, which is also 1-based) */
-  ham_u32_t _referenced_dupe;
+    /** set flags */
+    void set_flags(ham_u32_t flags) {
+      m_flags = flags;
+    }
 
-  /** the Transaction of this operation */
-  Transaction *_txn;
+    /** get flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
+    ham_u32_t get_orig_flags() const {
+      return (m_orig_flags);
+    }
 
-  /** the parent node */
-  struct txn_opnode_t *_node;
+    /** set flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
+    void set_orig_flags(ham_u32_t flags) {
+      m_orig_flags = flags;
+    }
 
-  /** next in linked list (managed in txn_opnode_t) */
-  struct txn_op_t *_node_next;
+    /** get the referenced duplicate id */
+    ham_u32_t get_referenced_dupe() {
+      return (m_referenced_dupe);
+    }
 
-  /** previous in linked list (managed in txn_opnode_t) */
-  struct txn_op_t *_node_prev;
+    /** set the referenced duplicate id */
+    void set_referenced_dupe(ham_u32_t id) {
+      m_referenced_dupe = id;
+    }
 
-  /** next in linked list (managed in Transaction) */
-  struct txn_op_t *_txn_next;
+    /** get the Transaction pointer */
+    Transaction *get_txn() {
+      return (m_txn);
+    }
 
-  /** previous in linked list (managed in Transaction) */
-  struct txn_op_t *_txn_prev;
+    /** get the parent node pointer */
+    txn_opnode_t *get_node() {
+      return (m_node);
+    }
 
-  /** the log serial number (lsn) of this operation */
-  ham_u64_t _lsn;
+    /** get lsn */
+    ham_u64_t get_lsn() const {
+      return (m_lsn);
+    }
 
-  /** if this op overwrites or erases another operation in the same node,
-   * then _other_lsn stores the lsn of the other txn_op (only used when
-   * the other txn_op is a duplicate) */
-  ham_u64_t _other_lsn;
+    /** get record */
+    ham_record_t *get_record() {
+      return (&m_record);
+    }
 
-  /** the record */
-  ham_record_t _record;
+    /** get cursor list */
+    // TODO use boost::intrusive_list
+    TransactionCursor *get_cursors() {
+      return (m_cursors);
+    }
 
-  /** a linked list of cursors which are attached to this txn_op */
-  struct TransactionCursor *_cursors;
+    /** set cursor list */
+    void set_cursors(TransactionCursor *cursor) {
+      m_cursors = cursor;
+    }
 
-} txn_op_t;
+    /** get next TransactionOperation structure */
+    TransactionOperation *get_next_in_node() {
+      return (m_node_next);
+    }
+
+    /** set next TransactionOperation structure */
+    void set_next_in_node(TransactionOperation *next) {
+      m_node_next = next;
+    }
+
+    /** get previous TransactionOperation structure */
+    TransactionOperation *get_previous_in_node() {
+      return (m_node_prev);
+    }
+
+    /** set previous TransactionOperation structure */
+    void set_previous_in_node(TransactionOperation *prev) {
+      m_node_prev = prev;
+    }
+
+    /** get next TransactionOperation structure */
+    TransactionOperation *get_next_in_txn() {
+      return (m_txn_next);
+    }
+
+    /** set next TransactionOperation structure */
+    void set_next_in_txn(TransactionOperation *next) {
+      m_txn_next = next;
+    }
+
+    /** get previous TransactionOperation structure */
+    TransactionOperation *get_previous_in_txn() {
+      return (m_txn_prev);
+    }
+
+    /** set next TransactionOperation structure */
+    void set_previous_in_txn(TransactionOperation *prev) {
+      m_txn_prev = prev;
+    }
+
+  private:
+    /** the Transaction of this operation */
+    Transaction *m_txn;
+
+    /** the parent node */
+    txn_opnode_t *m_node;
+
+    /** flags and type of this operation; defined in txn.h */
+    ham_u32_t m_flags;
+
+    /** the original flags of this operation */
+    ham_u32_t m_orig_flags;
+
+    /** the referenced duplicate id (if neccessary) - used if this is
+     * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
+     * with a DUPLICATE_AFTER/BEFORE flag
+     * this is 1-based (like dupecache-index, which is also 1-based) */
+    ham_u32_t m_referenced_dupe;
+
+    /** the log serial number (lsn) of this operation */
+    ham_u64_t m_lsn;
+
+    /** the record */
+    ham_record_t m_record;
+
+    /** a linked list of cursors which are attached to this txn_op */
+    TransactionCursor *m_cursors;
+
+    /** next in linked list (managed in txn_opnode_t) */
+    TransactionOperation *m_node_next;
+
+    /** previous in linked list (managed in txn_opnode_t) */
+    TransactionOperation *m_node_prev;
+
+    /** next in linked list (managed in Transaction) */
+    TransactionOperation *m_txn_next;
+
+    /** previous in linked list (managed in Transaction) */
+    TransactionOperation *m_txn_prev;
+};
 
 /** a NOP operation (empty) */
 #define TXN_OP_NOP      0x000000u
@@ -106,98 +209,23 @@ typedef struct txn_op_t
 /** txn operation was already flushed */
 #define TXN_OP_FLUSHED    0x100000u
 
-/** get flags */
-#define txn_op_get_flags(t)        (t)->_flags
-
-/** set flags */
-#define txn_op_set_flags(t, f)       (t)->_flags=f
-
-/** get flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
-#define txn_op_get_orig_flags(t)       (t)->_orig_flags
-
-/** set flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
-#define txn_op_set_orig_flags(t, f)    (t)->_orig_flags=f
-
-/** get the referenced duplicate id */
-#define txn_op_get_referenced_dupe(t)    (t)->_referenced_dupe
-
-/** set the referenced duplicate id */
-#define txn_op_set_referenced_dupe(t, id)  (t)->_referenced_dupe=id
-
-/** get the Transaction pointer */
-#define txn_op_get_txn(t)          (t)->_txn
-
-/** set the Transaction pointer */
-#define txn_op_set_txn(t, txn)       (t)->_txn=txn
-
-/** get the parent node pointer */
-#define txn_op_get_node(t)         (t)->_node
-
-/** set the parent node pointer */
-#define txn_op_set_node(t, n)        (t)->_node=n
-
-/** get next txn_op_t structure */
-#define txn_op_get_next_in_node(t)     (t)->_node_next
-
-/** set next txn_op_t structure */
-#define txn_op_set_next_in_node(t, n)    (t)->_node_next=n
-
-/** get previous txn_op_t structure */
-#define txn_op_get_previous_in_node(t)   (t)->_node_prev
-
-/** set previous txn_op_t structure */
-#define txn_op_set_previous_in_node(t, p)  (t)->_node_prev=p
-
-/** get next txn_op_t structure */
-#define txn_op_get_next_in_txn(t)      (t)->_txn_next
-
-/** set next txn_op_t structure */
-#define txn_op_set_next_in_txn(t, n)     (t)->_txn_next=n
-
-/** get previous txn_op_t structure */
-#define txn_op_get_previous_in_txn(t)    (t)->_txn_prev
-
-/** set next txn_op_t structure */
-#define txn_op_set_previous_in_txn(t, p)   (t)->_txn_prev=p
-
-/** get lsn */
-#define txn_op_get_lsn(t)          (t)->_lsn
-
-/** set lsn */
-#define txn_op_set_lsn(t, l)         (t)->_lsn=l
-
-/** get lsn of other op */
-#define txn_op_get_other_lsn(t)      (t)->_other_lsn
-
-/** set lsn of other op */
-#define txn_op_set_other_lsn(t, l)     (t)->_other_lsn=l
-
-/** get record */
-#define txn_op_get_record(t)         (&(t)->_record)
-
-/** get cursor list */
-#define txn_op_get_cursors(t)        (t)->_cursors
-
-/** set cursor list */
-#define txn_op_set_cursors(t, c)       (t)->_cursors=c
-
 /**
  * add a cursor to this txn_op structure
  */
 extern void
-txn_op_add_cursor(txn_op_t *op, struct TransactionCursor *cursor);
+txn_op_add_cursor(TransactionOperation *op, struct TransactionCursor *cursor);
 
 /**
  * remove a cursor from this txn_op structure
  */
 extern void
-txn_op_remove_cursor(txn_op_t *op, struct TransactionCursor *cursor);
+txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor);
 
 /**
  * returns true if the op is in a txn which has a conflict
  */
 extern ham_bool_t
-txn_op_conflicts(txn_op_t *op, Transaction *current_txn);
+txn_op_conflicts(TransactionOperation *op, Transaction *current_txn);
 
 class TransactionTree;
 
@@ -220,10 +248,10 @@ typedef struct txn_opnode_t
   TransactionTree *_tree;
 
   /** the linked list of operations - head is oldest operation */
-  txn_op_t *_oldest_op;
+  TransactionOperation *_oldest_op;
 
   /** the linked list of operations - tail is newest operation */
-  txn_op_t *_newest_op;
+  TransactionOperation *_newest_op;
 
 } txn_opnode_t;
 
@@ -329,7 +357,7 @@ class Transaction
      */
     Transaction(Environment *env, const char *name, ham_u32_t flags);
 
-    /** destructor; frees all txn_op_t structures associated with this
+    /** destructor; frees all TransactionOperation structures associated with this
      * Transaction */
     ~Transaction();
 
@@ -438,25 +466,25 @@ class Transaction
 
     /** get the oldest transaction operation */
     // TODO make this private
-    txn_op_t *get_oldest_op() const {
+    TransactionOperation *get_oldest_op() const {
       return (m_oldest_op);
     }
 
     /** set the oldest transaction operation */
     // TODO make this private
-    void set_oldest_op(txn_op_t *op) {
+    void set_oldest_op(TransactionOperation *op) {
       m_oldest_op = op;
     }
 
     /** get the newest transaction operation */
     // TODO make this private
-    txn_op_t *get_newest_op() const {
+    TransactionOperation *get_newest_op() const {
       return (m_newest_op);
     }
 
     /** set the newest transaction operation */
     // TODO make this private
-    void set_newest_op(txn_op_t *op) {
+    void set_newest_op(TransactionOperation *op) {
       m_newest_op = op;
     }
 
@@ -501,10 +529,10 @@ class Transaction
     Transaction *m_newer, *m_older;
 
     /** the linked list of operations - head is oldest operation */
-    txn_op_t *m_oldest_op;
+    TransactionOperation *m_oldest_op;
 
     /** the linked list of operations - tail is newest operation */
-    txn_op_t *m_newest_op;
+    TransactionOperation *m_newest_op;
 
     /** this is where key->data points to when returning a
      * key to the user */
@@ -536,7 +564,7 @@ txn_opnode_create(Database *db, ham_key_t *key);
 /**
  * insert an actual operation into the txn_tree
  */
-extern txn_op_t *
+extern TransactionOperation *
 txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
           ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 

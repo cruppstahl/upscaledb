@@ -369,14 +369,14 @@ ham_status_t
 Environment::flush_txn(Transaction *txn)
 {
   ham_status_t st = 0;
-  txn_op_t *op = txn->get_oldest_op();
+  TransactionOperation *op = txn->get_oldest_op();
   TransactionCursor *cursor = 0;
 
   while (op) {
-    txn_opnode_t *node = txn_op_get_node(op);
+    txn_opnode_t *node = op->get_node();
     BtreeIndex *be = txn_opnode_get_db(node)->get_btree();
 
-    if (txn_op_get_flags(op) & TXN_OP_FLUSHED)
+    if (op->get_flags() & TXN_OP_FLUSHED)
       goto next_op;
 
     /* logging enabled? then the changeset and the log HAS to be empty */
@@ -393,26 +393,26 @@ Environment::flush_txn(Transaction *txn)
      * which are coupled to this op have to be uncoupled, and their
      * parent (btree) cursor must be coupled to the btree item instead.
      */
-    if ((txn_op_get_flags(op) & TXN_OP_INSERT)
-        || (txn_op_get_flags(op) & TXN_OP_INSERT_OW)
-        || (txn_op_get_flags(op) & TXN_OP_INSERT_DUP)) {
+    if ((op->get_flags() & TXN_OP_INSERT)
+        || (op->get_flags() & TXN_OP_INSERT_OW)
+        || (op->get_flags() & TXN_OP_INSERT_DUP)) {
       ham_u32_t additional_flag = 
-        (txn_op_get_flags(op) & TXN_OP_INSERT_DUP)
+        (op->get_flags() & TXN_OP_INSERT_DUP)
           ? HAM_DUPLICATE
           : HAM_OVERWRITE;
-      if (!txn_op_get_cursors(op)) {
-        st = be->insert(txn, txn_opnode_get_key(node), txn_op_get_record(op),
-                    txn_op_get_orig_flags(op) | additional_flag);
+      if (!op->get_cursors()) {
+        st = be->insert(txn, txn_opnode_get_key(node), op->get_record(),
+                    op->get_orig_flags() | additional_flag);
       }
       else {
-        TransactionCursor *tc2, *tc1 = txn_op_get_cursors(op);
+        TransactionCursor *tc2, *tc1 = op->get_cursors();
         Cursor *c2, *c1 = tc1->get_parent();
         /* pick the first cursor, get the parent/btree cursor and
          * insert the key/record pair in the btree. The btree cursor
          * then will be coupled to this item. */
         st = c1->get_btree_cursor()->insert(
-                    txn_opnode_get_key(node), txn_op_get_record(op),
-                    txn_op_get_orig_flags(op) | additional_flag);
+                    txn_opnode_get_key(node), op->get_record(),
+                    op->get_orig_flags() | additional_flag);
         if (!st) {
           /* uncouple the cursor from the txn-op, and remove it */
           txn_op_remove_cursor(op, tc1);
@@ -421,7 +421,7 @@ Environment::flush_txn(Transaction *txn)
 
           /* all other (btree) cursors need to be coupled to the same
            * item as the first one. */
-          while ((tc2 = txn_op_get_cursors(op))) {
+          while ((tc2 = op->get_cursors())) {
             txn_op_remove_cursor(op, tc2);
             c2 = tc2->get_parent();
             c2->get_btree_cursor()->couple_to_other(c1->get_btree_cursor());
@@ -431,13 +431,13 @@ Environment::flush_txn(Transaction *txn)
         }
       }
     }
-    else if (txn_op_get_flags(op) & TXN_OP_ERASE) {
-      if (txn_op_get_referenced_dupe(op)) {
+    else if (op->get_flags() & TXN_OP_ERASE) {
+      if (op->get_referenced_dupe()) {
         st = be->erase_duplicate(txn, txn_opnode_get_key(node),
-                    txn_op_get_referenced_dupe(op), txn_op_get_flags(op));
+                    op->get_referenced_dupe(), op->get_flags());
       }
       else {
-        st = be->erase(txn, txn_opnode_get_key(node), txn_op_get_flags(op));
+        st = be->erase(txn, txn_opnode_get_key(node), op->get_flags());
       }
       if (st == HAM_KEY_NOT_FOUND)
         st = 0;
@@ -452,7 +452,7 @@ Environment::flush_txn(Transaction *txn)
     /* now flush the changeset to disk */
     if (get_flags() & HAM_ENABLE_RECOVERY) {
       get_changeset().add_page(get_header_page());
-      st = get_changeset().flush(txn_op_get_lsn(op));
+      st = get_changeset().flush(op->get_lsn());
       if (st) {
         ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
         get_changeset().clear();
@@ -467,9 +467,9 @@ Environment::flush_txn(Transaction *txn)
      * have to be uncoupled, as their parent (btree) cursor was
      * already coupled to the btree item instead
      */
-    txn_op_set_flags(op, TXN_OP_FLUSHED);
+    op->set_flags(TXN_OP_FLUSHED);
 next_op:
-    while ((cursor = txn_op_get_cursors(op))) {
+    while ((cursor = op->get_cursors())) {
       Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree();
@@ -477,7 +477,7 @@ next_op:
     }
 
     /* continue with the next operation of this txn */
-    op = txn_op_get_next_in_txn(op);
+    op = op->get_next_in_txn();
   }
 
   return (0);

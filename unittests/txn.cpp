@@ -49,7 +49,6 @@ public:
     BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
     BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
     BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
-    BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
     BFC_REGISTER_TEST(TxnTest, txnMultipleOpsTest);
     BFC_REGISTER_TEST(TxnTest, txnInsertConflict1Test);
     BFC_REGISTER_TEST(TxnTest, txnInsertConflict2Test);
@@ -170,13 +169,13 @@ public:
     BFC_ASSERT_EQUAL(4, txn->get_log_desc());
     txn->set_log_desc(0);
 
-    txn->set_oldest_op((txn_op_t *)2);
-    BFC_ASSERT_EQUAL((txn_op_t *)2, txn->get_oldest_op());
-    txn->set_oldest_op((txn_op_t *)0);
+    txn->set_oldest_op((TransactionOperation *)2);
+    BFC_ASSERT_EQUAL((TransactionOperation *)2, txn->get_oldest_op());
+    txn->set_oldest_op((TransactionOperation *)0);
 
-    txn->set_newest_op((txn_op_t *)2);
-    BFC_ASSERT_EQUAL((txn_op_t *)2, txn->get_newest_op());
-    txn->set_newest_op((txn_op_t *)0);
+    txn->set_newest_op((TransactionOperation *)2);
+    BFC_ASSERT_EQUAL((TransactionOperation *)2, txn->get_newest_op());
+    txn->set_newest_op((TransactionOperation *)0);
 
     txn->set_newer((Transaction *)1);
     BFC_ASSERT_EQUAL((Transaction *)1, txn->get_newer());
@@ -250,15 +249,15 @@ public:
     BFC_ASSERT_EQUAL(k->size, key.size);
     BFC_ASSERT_EQUAL(0, memcmp(k->data, key.data, k->size));
 
-    txn_opnode_set_oldest_op(node, (txn_op_t *)3);
-    BFC_ASSERT_EQUAL((txn_op_t *)3, txn_opnode_get_oldest_op(node));
+    txn_opnode_set_oldest_op(node, (TransactionOperation *)3);
+    BFC_ASSERT_EQUAL((TransactionOperation *)3, txn_opnode_get_oldest_op(node));
     txn_opnode_set_oldest_op(node, 0);
 
-    txn_opnode_set_newest_op(node, (txn_op_t *)4);
-    BFC_ASSERT_EQUAL((txn_op_t *)4, txn_opnode_get_newest_op(node));
+    txn_opnode_set_newest_op(node, (TransactionOperation *)4);
+    BFC_ASSERT_EQUAL((TransactionOperation *)4, txn_opnode_get_newest_op(node));
     txn_opnode_set_newest_op(node, 0);
 
-    /* need at least one txn_op_t structure in this node, otherwise
+    /* need at least one TransactionOperation structure in this node, otherwise
      * memory won't be cleaned up correctly */
     (void)txn_opnode_append((Transaction *)txn, node, 0,
         TXN_OP_INSERT_DUP, 55, &rec);
@@ -314,59 +313,10 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
-  void txnOpStructureTest() {
-    ham_txn_t *txn;
-    txn_opnode_t *node;
-    txn_op_t *op, next;
-    ham_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data = (void *)"hello";
-    key.size = 5;
-    ham_record_t record;
-    memset(&record, 0, sizeof(record));
-    record.data = (void *)"world";
-    record.size = 5;
-    memset(&next, 0, sizeof(next));
-
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create(m_dbp, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-        TXN_OP_INSERT_DUP, 55, &record);
-    BFC_ASSERT(op != 0);
-
-    BFC_ASSERT_EQUAL(TXN_OP_INSERT_DUP, txn_op_get_flags(op));
-    txn_op_set_flags(op, 13);
-    BFC_ASSERT_EQUAL(13u, txn_op_get_flags(op));
-    txn_op_set_flags(op, TXN_OP_INSERT_DUP);
-
-    BFC_ASSERT_EQUAL(55ull, txn_op_get_lsn(op));
-    txn_op_set_lsn(op, 23);
-    BFC_ASSERT_EQUAL(23ull, txn_op_get_lsn(op));
-    txn_op_set_lsn(op, 55);
-
-    BFC_ASSERT_EQUAL((txn_op_t *)0, txn_op_get_next_in_node(op));
-    txn_op_set_next_in_node(op, &next);
-    BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_node(op));
-    txn_op_set_next_in_node(op, 0);
-
-    BFC_ASSERT_EQUAL((txn_op_t *)0, txn_op_get_next_in_txn(op));
-    txn_op_set_next_in_txn(op, &next);
-    BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_txn(op));
-    txn_op_set_next_in_txn(op, 0);
-
-    BFC_ASSERT_EQUAL((TransactionCursor *)0, txn_op_get_cursors(op));
-    txn_op_set_cursors(op, (TransactionCursor *)0x43);
-    BFC_ASSERT_EQUAL((TransactionCursor *)0x43, txn_op_get_cursors(op));
-    txn_op_set_cursors(op, (TransactionCursor *)0x0);
-
-    ((Transaction *)txn)->free_ops();
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-  }
-
   void txnMultipleOpsTest() {
     ham_txn_t *txn;
     txn_opnode_t *node;
-    txn_op_t *op1, *op2, *op3;
+    TransactionOperation *op1, *op2, *op3;
     ham_key_t key;
     memset(&key, 0, sizeof(key));
     key.data = (void *)"hello";

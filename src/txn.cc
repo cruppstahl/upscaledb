@@ -62,29 +62,53 @@ __cmpfoo(void *vlhs, void *vrhs)
 
 rb_wrap(static, rbt_, TransactionTree, txn_opnode_t, node, __cmpfoo)
 
-void
-txn_op_add_cursor(txn_op_t *op, struct TransactionCursor *cursor)
+TransactionOperation::TransactionOperation(Transaction *txn,
+        txn_opnode_t *node, ham_u32_t flags, ham_u32_t orig_flags,
+        ham_u64_t lsn, ham_record_t *record)
+  : m_txn(txn), m_node(node), m_flags(flags), m_orig_flags(orig_flags),
+    m_referenced_dupe(0), m_lsn(lsn), m_cursors(0), m_node_next(0),
+    m_node_prev(0), m_txn_next(0), m_txn_prev(0)
 {
-    ham_assert(!cursor->is_nil());
-
-    cursor->set_coupled_next(txn_op_get_cursors(op));
-    cursor->set_coupled_previous(0);
-
-    if (txn_op_get_cursors(op)) {
-        TransactionCursor *old=txn_op_get_cursors(op);
-        old->set_coupled_previous(cursor);
+    Allocator *alloc = txn->get_env()->get_allocator();
+    /* create a copy of the record structure */
+    if (record) {
+        m_record = *record;
+        if (record->size && record->data) {
+            m_record.data = alloc->alloc(record->size);
+            memcpy(m_record.data, record->data, record->size);
+        }
+        else {
+            m_record.size = 0;
+            m_record.data = 0;
+        }
     }
-
-    txn_op_set_cursors(op, cursor);
+    else
+        memset(&m_record, 0, sizeof(m_record));
 }
 
 void
-txn_op_remove_cursor(txn_op_t *op, struct TransactionCursor *cursor)
+txn_op_add_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
 {
     ham_assert(!cursor->is_nil());
 
-    if (txn_op_get_cursors(op)==cursor) {
-        txn_op_set_cursors(op, cursor->get_coupled_next());
+    cursor->set_coupled_next(op->get_cursors());
+    cursor->set_coupled_previous(0);
+
+    if (op->get_cursors()) {
+        TransactionCursor *old=op->get_cursors();
+        old->set_coupled_previous(cursor);
+    }
+
+    op->set_cursors(cursor);
+}
+
+void
+txn_op_remove_cursor(TransactionOperation *op, struct TransactionCursor *cursor)
+{
+    ham_assert(!cursor->is_nil());
+
+    if (op->get_cursors()==cursor) {
+        op->set_cursors(cursor->get_coupled_next());
         if (cursor->get_coupled_next())
             cursor->get_coupled_next()->set_coupled_previous(0);
     }
@@ -101,9 +125,9 @@ txn_op_remove_cursor(txn_op_t *op, struct TransactionCursor *cursor)
 }
 
 ham_bool_t
-txn_op_conflicts(txn_op_t *op, Transaction *current_txn)
+txn_op_conflicts(TransactionOperation *op, Transaction *current_txn)
 {
-    Transaction *optxn=txn_op_get_txn(op);
+    Transaction *optxn = op->get_txn();
     if (optxn->is_aborted())
         return (HAM_FALSE);
     else if (optxn->is_committed() || current_txn==optxn)
@@ -231,12 +255,12 @@ txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags)
 txn_opnode_t *
 txn_opnode_create(Database *db, ham_key_t *key)
 {
-    txn_opnode_t *node=0;
-    TransactionTree *tree=db->get_optree();
-    Allocator *alloc=db->get_env()->get_allocator();
+    txn_opnode_t *node = 0;
+    TransactionTree *tree = db->get_optree();
+    Allocator *alloc = db->get_env()->get_allocator();
 
     /* make sure that a node with this key does not yet exist */
-    ham_assert(txn_opnode_get(db, key, 0)==0);
+    ham_assert(txn_opnode_get(db, key, 0) == 0);
 
     /* create the new node (with a copy for the key) */
     node=(txn_opnode_t *)alloc->alloc(sizeof(*node));
@@ -254,41 +278,12 @@ txn_opnode_create(Database *db, ham_key_t *key)
     return (node);
 }
 
-txn_op_t *
+TransactionOperation *
 txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
-    Allocator *alloc=txn->get_env()->get_allocator();
-    txn_op_t *op;
-
-    /* create and initialize a new txn_op_t structure */
-    op=(txn_op_t *)alloc->alloc(sizeof(*op));
-    if (!op)
-        return (0);
-    memset(op, 0, sizeof(*op));
-    txn_op_set_flags(op, flags);
-    txn_op_set_orig_flags(op, orig_flags);
-    txn_op_set_lsn(op, lsn);
-    txn_op_set_txn(op, txn);
-    txn_op_set_node(op, node);
-
-    /* create a copy of the record structure */
-    if (record) {
-        ham_record_t *oprec=txn_op_get_record(op);
-        *oprec=*record;
-        if (record->size && record->data) {
-            oprec->data=alloc->alloc(record->size);
-            if (!oprec->data) {
-                alloc->free(op);
-                return (0);
-            }
-            memcpy(oprec->data, record->data, record->size);
-        }
-        else {
-            oprec->size=0;
-            oprec->data=0;
-        }
-    }
+    TransactionOperation *op = new TransactionOperation(txn, node, flags,
+            orig_flags, lsn, record);
 
     /* store it in the chronological list which is managed by the node */
     if (!txn_opnode_get_newest_op(node)) {
@@ -297,9 +292,9 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
         txn_opnode_set_oldest_op(node, op);
     }
     else {
-        txn_op_t *newest=txn_opnode_get_newest_op(node);
-        txn_op_set_next_in_node(newest, op);
-        txn_op_set_previous_in_node(op, newest);
+        TransactionOperation *newest=txn_opnode_get_newest_op(node);
+        newest->set_next_in_node(op);
+        op->set_previous_in_node(newest);
         txn_opnode_set_newest_op(node, op);
     }
 
@@ -310,9 +305,9 @@ txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
         txn->set_oldest_op(op);
     }
     else {
-        txn_op_t *newest=txn->get_newest_op();
-        txn_op_set_next_in_txn(newest, op);
-        txn_op_set_previous_in_txn(op, newest);
+        TransactionOperation *newest=txn->get_newest_op();
+        newest->set_next_in_txn(op);
+        op->set_previous_in_txn(newest);
         txn->set_newest_op(op);
     }
 
@@ -348,43 +343,44 @@ txn_opnode_free(Environment *env, txn_opnode_t *node)
 }
 
 static void
-txn_op_free(Environment *env, Transaction *txn, txn_op_t *op)
+txn_op_free(Environment *env, Transaction *txn, TransactionOperation *op)
 {
     ham_record_t *rec;
-    txn_op_t *next, *prev;
+    TransactionOperation *next, *prev;
     txn_opnode_t *node;
 
-    rec=txn_op_get_record(op);
+    // TODO move to destructor of TransactionOperation
+    rec=op->get_record();
     if (rec->data) {
         env->get_allocator()->free(rec->data);
         rec->data=0;
     }
 
     /* remove 'op' from the two linked lists */
-    next=txn_op_get_next_in_node(op);
-    prev=txn_op_get_previous_in_node(op);
+    next=op->get_next_in_node();
+    prev=op->get_previous_in_node();
     if (next)
-        txn_op_set_previous_in_node(next, prev);
+        next->set_previous_in_node(prev);
     if (prev)
-        txn_op_set_next_in_node(prev, next);
+        prev->set_next_in_node(next);
 
-    next=txn_op_get_next_in_txn(op);
-    prev=txn_op_get_previous_in_txn(op);
+    next=op->get_next_in_txn();
+    prev=op->get_previous_in_txn();
     if (next)
-        txn_op_set_previous_in_txn(next, prev);
+        next->set_previous_in_txn(prev);
     if (prev)
-        txn_op_set_next_in_txn(prev, next);
+        prev->set_next_in_txn(next);
 
     /* remove this op from the node */
-    node=txn_op_get_node(op);
+    node=op->get_node();
     if (txn_opnode_get_oldest_op(node)==op)
-        txn_opnode_set_oldest_op(node, txn_op_get_next_in_node(op));
+        txn_opnode_set_oldest_op(node, op->get_next_in_node());
 
     /* if the node is empty: remove the node from the tree */
     if (txn_opnode_get_oldest_op(node)==0)
         txn_opnode_free(env, node);
 
-    env->get_allocator()->free(op);
+    delete op;
 }
 
 Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
@@ -453,10 +449,10 @@ void
 Transaction::free_ops()
 {
     Environment *env=get_env();
-    txn_op_t *n, *op=get_oldest_op();
+    TransactionOperation *n, *op=get_oldest_op();
 
     while (op) {
-        n=txn_op_get_next_in_txn(op);
+        n=op->get_next_in_txn();
         txn_op_free(env, this, op);
         op=n;
     }
