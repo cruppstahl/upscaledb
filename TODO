@@ -274,7 +274,7 @@ x refactoring of cursor.h/cursor.cc
 
 o refactoring of txn.h/txn.cc
     x txn_op_t -> TransactionOperation
-    o txn_opnode_t -> TransactionNode
+    x txn_opnode_t -> TransactionNode
     o txn_optree_t -> TransactionIndex
     o TransactionIndex: use std::set<OperationNode> instead of rb.h
     o try to cleanup the flow; move more code from db.cc to txn.cc,
@@ -282,9 +282,24 @@ o refactoring of txn.h/txn.cc
     o try to replace some of the linked lists with boost::intrusive_list
     o document the tree structure in the header file
 
+o txn_cursor.cc still has static functions
+
 o disallow usage of extended keys UNLESS HAM_ENABLE_EXTENDED_KEYS is active
     o add to java API
     o add to dotnet API
+    o document this
+
+o need a launchpad project; start with 12.04 for 64bit
+    sudo apt-get install packaging-dev
+    <migrate gpg key>
+    <migrate ssh key>
+    pbuilder-dist precise create
+    pbuilder-dist quantal create
+    bzr whoami "Christoph Rupp <chris@crupp.de>"
+    bzr launchpad-login 9e9o1ko8b2f5xpiibgscjzlhug6x9-chris
+  add to ~/.bashrc:
+    export DEBFULLNAME="Christoph Rupp"
+    export DEBEMAIL="chris@crupp.de"
 
 o finalize for the next release
     x version is 2.1.0!!

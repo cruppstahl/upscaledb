@@ -37,7 +37,7 @@ class DefaultAllocator : public Allocator
       Lookasides()
       : max_sizes(2) {
         sizes[0] = sizeof(TransactionOperation);
-        sizes[1] = sizeof(txn_opnode_t);
+        sizes[1] = sizeof(TransactionNode);
       }
 
       LookasideList lists[2];

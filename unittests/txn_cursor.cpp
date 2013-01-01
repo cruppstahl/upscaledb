@@ -115,7 +115,7 @@ public:
 
   void txnOpLinkedListTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t key = {0};
     ham_record_t record = {0};
@@ -123,9 +123,9 @@ public:
     key.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node,
-        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn,
+            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c1((Cursor *)0);
@@ -172,7 +172,7 @@ public:
 
   void getKeyFromCoupledCursorTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
     ham_key_t key = {0};
@@ -181,9 +181,9 @@ public:
     key.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node=txn_opnode_create((Database *)m_db, &key);
-    op=txn_opnode_append((Transaction *)txn, node,
-        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node=new TransactionNode((Database *)m_db, &key);
+    op=node->append((Transaction *)txn,
+            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -199,7 +199,7 @@ public:
 
   void getKeyFromCoupledCursorUserAllocTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
     ham_key_t key = {0};
@@ -212,9 +212,9 @@ public:
     k.flags = HAM_KEY_USER_ALLOC;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node,
-        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn,
+            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -230,16 +230,16 @@ public:
 
   void getKeyFromCoupledCursorEmptyKeyTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
     ham_key_t key = {0};
     ham_record_t record = {0};
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node,
-        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn,
+            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -255,7 +255,7 @@ public:
 
   void getKeyFromNilCursorTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t k = {0};
     ham_key_t key = {0};
@@ -264,9 +264,9 @@ public:
     key.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn, 0,
+            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -279,7 +279,7 @@ public:
 
   void getRecordFromCoupledCursorTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t key = {0};
     ham_record_t r = {0};
@@ -288,9 +288,9 @@ public:
     record.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn, 0,
+            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -306,7 +306,7 @@ public:
 
   void getRecordFromCoupledCursorUserAllocTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t key = {0};
     ham_record_t r = {0};
@@ -319,9 +319,9 @@ public:
     r.flags = HAM_RECORD_USER_ALLOC;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-        TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn, 0,
+            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -337,16 +337,16 @@ public:
 
   void getRecordFromCoupledCursorEmptyRecordTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t key = {0};
     ham_record_t record = {0};
     ham_record_t r = {0};
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-          TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn, 0,
+            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -362,16 +362,16 @@ public:
 
   void getRecordFromNilCursorTest() {
     ham_txn_t *txn;
-    txn_opnode_t *node;
+    TransactionNode *node;
     TransactionOperation *op;
     ham_key_t key = {0};
     ham_record_t record = {0};
     ham_record_t r = {0};
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = txn_opnode_create((Database *)m_db, &key);
-    op = txn_opnode_append((Transaction *)txn, node, 0,
-          TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn, 0,
+            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -549,7 +549,7 @@ public:
     /* now the cursor is coupled to this key */
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
 
@@ -559,7 +559,7 @@ public:
     /* and the cursor is still coupled */
     BFC_ASSERT(!cursor->is_nil());
     op = cursor->get_coupled_op();
-    key = txn_opnode_get_key(op->get_node());
+    key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
 
@@ -590,7 +590,7 @@ public:
     /* now the cursor is coupled to this key */
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
 
@@ -694,7 +694,7 @@ public:
     /* now the cursor is coupled to this key */
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
 
@@ -704,7 +704,7 @@ public:
     /* and the cursor is still coupled */
     BFC_ASSERT(!cursor->is_nil());
     op = cursor->get_coupled_op();
-    key = txn_opnode_get_key(op->get_node());
+    key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key3"));
 
@@ -837,7 +837,7 @@ public:
     /* now the cursor is coupled to this key */
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key3"));
 
@@ -919,7 +919,7 @@ public:
     /* now the cursor is coupled to this key */
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
 
@@ -929,7 +929,7 @@ public:
     /* and the cursor is still coupled */
     BFC_ASSERT(!cursor->is_nil());
     op = cursor->get_coupled_op();
-    key = txn_opnode_get_key(op->get_node());
+    key = op->get_node()->get_key();
     BFC_ASSERT_EQUAL(5, key->size);
     BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
 
@@ -1044,7 +1044,7 @@ public:
   bool cursorIsCoupled(TransactionCursor *cursor, const char *k) {
     BFC_ASSERT(!cursor->is_nil());
     TransactionOperation *op = cursor->get_coupled_op();
-    ham_key_t *key = txn_opnode_get_key(op->get_node());
+    ham_key_t *key = op->get_node()->get_key();
     if (strlen(k) + 1 != key->size)
       return (false);
     if (strcmp((char *)key->data, k))

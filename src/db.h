@@ -258,7 +258,7 @@ class Database
     }
 
     /** get the transaction tree */
-    TransactionTree *get_optree() {
+    TransactionIndex *get_optree() {
       return (&m_optree);
     }
 
@@ -510,7 +510,7 @@ class Database
 
     /** the transaction tree */
     /* TODO move to LocalDatabase */
-    TransactionTree m_optree;
+    TransactionIndex m_optree;
 
     /** this is where key->data points to when returning a
      * key to the user; used if Transactions are disabled */
@@ -624,13 +624,13 @@ class LocalDatabase : public Database
      * checks if an insert operation conflicts with another txn
      */
     ham_status_t check_insert_conflicts(Transaction *txn,
-                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+                TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     /*
      * checks if an erase operation conflicts with another txn
      */
     ham_status_t check_erase_conflicts(Transaction *txn,
-                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags);
+                TransactionNode *node, ham_key_t *key, ham_u32_t flags);
 
     /** the current record number */
     ham_u64_t m_recno;

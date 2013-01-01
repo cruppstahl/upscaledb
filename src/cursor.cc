@@ -80,13 +80,13 @@ Cursor::update_dupecache(ham_u32_t what)
   /* read duplicates from the txn-cursor? */
   if ((what & CURSOR_TXN) && !is_nil(CURSOR_TXN)) {
     TransactionOperation *op = txnc->get_coupled_op();
-    txn_opnode_t *node = op->get_node();
+    TransactionNode *node = op->get_node();
 
     if (!node)
       goto bail;
 
     /* now start integrating the items from the transactions */
-    op = txn_opnode_get_oldest_op(node);
+    op = node->get_oldest_op();
 
     while (op) {
       Transaction *optxn = op->get_txn();
@@ -221,12 +221,12 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
     *equal_keys = false;
 
   if (is_nil(CURSOR_BTREE)) {
-    txn_opnode_t *node;
+    TransactionNode *node;
     ham_key_t *k;
     if (!txnc->get_coupled_op())
       return (0);
     node = txnc->get_coupled_op()->get_node();
-    k = txn_opnode_get_key(node);
+    k = node->get_key();
 
     if (!(flags & CURSOR_SYNC_ONLY_EQUAL_KEY))
       flags = flags | ((flags & HAM_CURSOR_NEXT)
@@ -337,8 +337,8 @@ Cursor::compare()
   BtreeCursor *btrc = get_btree_cursor();
   TransactionCursor *txnc = get_txn_cursor();
 
-  txn_opnode_t *node = txnc->get_coupled_op()->get_node();
-  ham_key_t *txnk = txn_opnode_get_key(node);
+  TransactionNode *node = txnc->get_coupled_op()->get_node();
+  ham_key_t *txnk = node->get_key();
 
   ham_assert(!is_nil(0));
   ham_assert(!txnc->is_nil());

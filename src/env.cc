@@ -373,8 +373,8 @@ Environment::flush_txn(Transaction *txn)
   TransactionCursor *cursor = 0;
 
   while (op) {
-    txn_opnode_t *node = op->get_node();
-    BtreeIndex *be = txn_opnode_get_db(node)->get_btree();
+    TransactionNode *node = op->get_node();
+    BtreeIndex *be = node->get_db()->get_btree();
 
     if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
       goto next_op;
@@ -401,7 +401,7 @@ Environment::flush_txn(Transaction *txn)
           ? HAM_DUPLICATE
           : HAM_OVERWRITE;
       if (!op->get_cursors()) {
-        st = be->insert(txn, txn_opnode_get_key(node), op->get_record(),
+        st = be->insert(txn, node->get_key(), op->get_record(),
                     op->get_orig_flags() | additional_flag);
       }
       else {
@@ -411,7 +411,7 @@ Environment::flush_txn(Transaction *txn)
          * insert the key/record pair in the btree. The btree cursor
          * then will be coupled to this item. */
         st = c1->get_btree_cursor()->insert(
-                    txn_opnode_get_key(node), op->get_record(),
+                    node->get_key(), op->get_record(),
                     op->get_orig_flags() | additional_flag);
         if (!st) {
           /* uncouple the cursor from the txn-op, and remove it */
@@ -433,11 +433,11 @@ Environment::flush_txn(Transaction *txn)
     }
     else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
       if (op->get_referenced_dupe()) {
-        st = be->erase_duplicate(txn, txn_opnode_get_key(node),
+        st = be->erase_duplicate(txn, node->get_key(),
                     op->get_referenced_dupe(), op->get_flags());
       }
       else {
-        st = be->erase(txn, txn_opnode_get_key(node), op->get_flags());
+        st = be->erase(txn, node->get_key(), op->get_flags());
       }
       if (st == HAM_KEY_NOT_FOUND)
         st = 0;

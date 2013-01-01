@@ -36,8 +36,8 @@ struct ham_txn_t
 namespace hamsterdb {
 
 class Transaction;
-struct txn_opnode_t;
-class TransactionTree;
+class TransactionNode;
+class TransactionIndex;
 
 /**
  * a single operation in a transaction
@@ -61,7 +61,7 @@ class TransactionOperation
     };
 
     /** Constructor */
-    TransactionOperation(Transaction *txn, txn_opnode_t *node,
+    TransactionOperation(Transaction *txn, TransactionNode *node,
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
             ham_record_t *record);
 
@@ -107,7 +107,7 @@ class TransactionOperation
     }
 
     /** get the parent node pointer */
-    txn_opnode_t *get_node() {
+    TransactionNode *get_node() {
       return (m_node);
     }
 
@@ -177,7 +177,7 @@ class TransactionOperation
     Transaction *m_txn;
 
     /** the parent node */
-    txn_opnode_t *m_node;
+    TransactionNode *m_node;
 
     /** flags and type of this operation; defined in txn.h */
     ham_u32_t m_flags;
@@ -200,10 +200,10 @@ class TransactionOperation
     /** a linked list of cursors which are attached to this txn_op */
     TransactionCursor *m_cursors;
 
-    /** next in linked list (managed in txn_opnode_t) */
+    /** next in linked list (managed in TransactionNode) */
     TransactionOperation *m_node_next;
 
-    /** previous in linked list (managed in txn_opnode_t) */
+    /** previous in linked list (managed in TransactionNode) */
     TransactionOperation *m_node_prev;
 
     /** next in linked list (managed in Transaction) */
@@ -218,109 +218,142 @@ class TransactionOperation
  * a node in the red-black Transaction tree (implemented in rb.h);
  * a group of Transaction operations which modify the same key
  */
-typedef struct txn_opnode_t
+class TransactionNode
 {
-  /** red-black tree stub */
-  rb_node(struct txn_opnode_t) node;
+  public:
+    /** Constructor; initializes the object */
+    TransactionNode(Database *db, ham_key_t *key, bool dont_insert = false);
 
-  /** the database - need this pointer for the compare function */
-  Database *_db;
+    /** Default constructor; only required for rb.h */
+    TransactionNode();
 
-  /** this is the key which is modified */
-  ham_key_t _key;
+    /** Destructor; removes this node from the tree */
+    ~TransactionNode();
 
-  /** the parent tree */
-  TransactionTree *_tree;
+    /** get the database */
+    Database *get_db() {
+      return (m_db);
+    }
 
-  /** the linked list of operations - head is oldest operation */
-  TransactionOperation *_oldest_op;
+    /** get pointer to the modified key */
+    ham_key_t *get_key() {
+      return (&m_key);
+    }
 
-  /** the linked list of operations - tail is newest operation */
-  TransactionOperation *_newest_op;
+    /** insert an actual operation into the txn_tree */
+    TransactionOperation *append(Transaction *txn, ham_u32_t orig_flags,
+              ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
-} txn_opnode_t;
+    /**
+     * retrieves the next larger sibling of a given node, or NULL if there
+     * is no sibling
+     */
+    TransactionNode *get_next_sibling();
 
-/** get the database */
-#define txn_opnode_get_db(t)          (t)->_db
+    /**
+     * retrieves the previous larger sibling of a given node, or NULL if there
+     * is no sibling
+     */
+    TransactionNode *get_previous_sibling();
 
-/** set the database */
-#define txn_opnode_set_db(t, db)        (t)->_db=db
+    /** get pointer to the first (oldest) node in list */
+    TransactionOperation *get_oldest_op() {
+      return (m_oldest_op);
+    };
 
-/** get pointer to the modified key */
-#define txn_opnode_get_key(t)           (&(t)->_key)
+    /** set pointer to the first (oldest) node in list */
+    void set_oldest_op(TransactionOperation *oldest) {
+      m_oldest_op = oldest;
+    }
 
-/** set pointer to the modified key */
-#define txn_opnode_set_key(t, k)        (t)->_key=(*k)
+    /** get pointer to the last (newest) node in list */
+    TransactionOperation *get_newest_op() {
+      return (m_newest_op);
+    };
 
-/** get pointer to the parent tree */
-#define txn_opnode_get_tree(t)          (t)->_tree
+    /** set pointer to the last (newest) node in list */
+    void set_newest_op(TransactionOperation *newest) {
+      m_newest_op = newest;
+    }
 
-/** set pointer to the parent tree */
-#define txn_opnode_set_tree(t, tree)      (t)->_tree=tree
+    /** red-black tree stub */
+    rb_node(TransactionNode) node;
 
-/** get pointer to the first (oldest) node in list */
-#define txn_opnode_get_oldest_op(t)       (t)->_oldest_op
+  private:
+    /** the database - need this pointer for the compare function */
+    Database *m_db;
 
-/** set pointer to the first (oldest) node in list */
-#define txn_opnode_set_oldest_op(t, o)      (t)->_oldest_op=o
+    /** this is the key which is modified */
+    ham_key_t m_key;
 
-/** get pointer to the last (newest) node in list */
-#define txn_opnode_get_newest_op(t)       (t)->_newest_op
+    /** the parent tree */
+    TransactionIndex *m_tree;
 
-/** set pointer to the last (newest) node in list */
-#define txn_opnode_set_newest_op(t, n)      (t)->_newest_op=n
+    /** the linked list of operations - head is oldest operation */
+    TransactionOperation *m_oldest_op;
+
+    /** the linked list of operations - tail is newest operation */
+    TransactionOperation *m_newest_op;
+
+    /** true if this node was NOT inserted in the tree */
+    bool m_dont_insert;
+};
 
 
 /*
  * Each Database has a binary tree which stores the current Transaction
  * operations
  */
-class TransactionTree
+class TransactionIndex
 {
   public:
     /** constructor */
-    TransactionTree(Database *db);
+    TransactionIndex(Database *db);
+
+    /**
+     * get an opnode for an optree; if a node with this
+     * key already exists then the existing node is returned, otherwise NULL
+     *
+     * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
+     */
+    TransactionNode *get(ham_key_t *key, ham_u32_t flags);
 
  // private:
     /* the Database for all operations in this tree */
     Database *m_db;
 
     /* stuff for rb.h */
-    txn_opnode_t *rbt_root;
-    txn_opnode_t rbt_nil;
+    TransactionNode *rbt_root;
+    TransactionNode rbt_nil;
 };
-
-/** get the database handle of this txn tree */
-#define txn_optree_get_db(t)    (t)->m_db
 
 /**
  * traverses a tree; for each node, a callback function is executed
  */
-typedef void(*txn_tree_enumerate_cb)(txn_opnode_t *node, void *data);
+typedef void(*txn_tree_enumerate_cb)(TransactionNode *node, void *data);
 
 /**
  * retrieves the first (=smallest) node of the tree, or NULL if the
  * tree is empty
  */
-extern txn_opnode_t *
-txn_tree_get_first(TransactionTree *tree);
+extern TransactionNode *
+txn_tree_get_first(TransactionIndex *tree);
 
 /**
  * retrieves the last (=largest) node of the tree, or NULL if the
  * tree is empty
  */
-extern txn_opnode_t *
-txn_tree_get_last(TransactionTree *tree);
+extern TransactionNode *
+txn_tree_get_last(TransactionIndex *tree);
 
 extern void
-txn_tree_enumerate(TransactionTree *tree, txn_tree_enumerate_cb cb, void *data);
-
+txn_tree_enumerate(TransactionIndex *tree, txn_tree_enumerate_cb cb, void *data);
 
 /**
  * frees all nodes in the tree
  */
 extern void
-txn_free_optree(TransactionTree *tree);
+txn_free_optree(TransactionIndex *tree);
 
 
 /**
@@ -528,50 +561,6 @@ class Transaction
     ByteArray m_record_arena;
 };
 
-/**
- * get an opnode for an optree; if a node with this
- * key already exists then the existing node is returned, otherwise NULL
- *
- * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
- */
-extern txn_opnode_t *
-txn_opnode_get(Database *db, ham_key_t *key, ham_u32_t flags);
-
-/**
- * creates an opnode for an optree; asserts that a node with this
- * key does not yet exist
- *
- * returns NULL if out of memory
- */
-extern txn_opnode_t *
-txn_opnode_create(Database *db, ham_key_t *key);
-
-/**
- * insert an actual operation into the txn_tree
- */
-extern TransactionOperation *
-txn_opnode_append(Transaction *txn, txn_opnode_t *node, ham_u32_t orig_flags,
-          ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
-
-/**
- * frees a txn_opnode_t structure, and removes it from its tree
- */
-extern void
-txn_opnode_free(Environment *env, txn_opnode_t *node);
-
-/**
- * retrieves the next larger sibling of a given node, or NULL if there
- * is no sibling
- */
-extern txn_opnode_t *
-txn_opnode_get_next_sibling(txn_opnode_t *node);
-
-/**
- * retrieves the previous larger sibling of a given node, or NULL if there
- * is no sibling
- */
-extern txn_opnode_t *
-txn_opnode_get_previous_sibling(txn_opnode_t *node);
 
 } // namespace hamsterdb
 

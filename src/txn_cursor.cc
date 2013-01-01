@@ -69,7 +69,7 @@ TransactionCursor::overwrite(ham_record_t *record)
     return (HAM_CURSOR_IS_NIL);
 
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
 
   /* check if the op is part of a conflicting txn */
   if (conflicts())
@@ -78,11 +78,11 @@ TransactionCursor::overwrite(ham_record_t *record)
   /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
    * current key */
   return (((LocalDatabase *)get_db())->insert_txn(txn,
-        txn_opnode_get_key(node), record, HAM_OVERWRITE, this));
+        node->get_key(), record, HAM_OVERWRITE, this));
 }
 
 static ham_status_t
-__move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOperation *op,
+__move_top_in_node(TransactionCursor *cursor, TransactionNode *node, TransactionOperation *op,
         ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
   TransactionOperation *lastdup = 0;
@@ -90,7 +90,7 @@ __move_top_in_node(TransactionCursor *cursor, txn_opnode_t *node, TransactionOpe
   Cursor *pc = cursor->get_parent();
 
   if (!op)
-    op = txn_opnode_get_newest_op(node);
+    op = node->get_newest_op();
   else
     goto next;
 
@@ -150,7 +150,7 @@ TransactionCursor::move(ham_u32_t flags)
 {
   ham_status_t st;
   Database *db = get_db();
-  txn_opnode_t *node;
+  TransactionNode *node;
 
   if (flags & HAM_CURSOR_FIRST) {
     /* first set cursor to nil */
@@ -184,7 +184,7 @@ TransactionCursor::move(ham_u32_t flags)
      * then move to the next node. repeat till we've found a key or
      * till we've reached the end of the tree */
     while (1) {
-      node = txn_opnode_get_next_sibling(node);
+      node = node->get_next_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
       st = __move_top_in_node(this, node, op, HAM_TRUE, flags);
@@ -207,7 +207,7 @@ TransactionCursor::move(ham_u32_t flags)
      * then move to the previous node. repeat till we've found a key or
      * till we've reached the end of the tree */
     while (1) {
-      node = txn_opnode_get_previous_sibling(node);
+      node = node->get_previous_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
       st = __move_top_in_node(this, node, op, HAM_TRUE, flags);
@@ -227,7 +227,7 @@ bool
 TransactionCursor::is_erased()
 {
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
 
   ham_assert(!is_nil());
 
@@ -240,13 +240,13 @@ bool
 TransactionCursor::is_erased_duplicate()
 {
   TransactionOperation *op = get_coupled_op();
-  txn_opnode_t *node = op->get_node();
+  TransactionNode *node = op->get_node();
   Cursor *pc = get_parent();
 
   ham_assert(!is_nil());
   ham_assert(pc->get_dupecache_index() != 0);
 
-  op = txn_opnode_get_newest_op(node);
+  op = node->get_newest_op();
 
   while (op) {
     Transaction *optxn = op->get_txn();
@@ -271,11 +271,15 @@ TransactionCursor::is_erased_duplicate()
 ham_status_t
 TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
 {
+  TransactionNode *node = 0;
+
   /* first set cursor to nil */
   set_to_nil();
 
   /* then lookup the node */
-  txn_opnode_t *node = txn_opnode_get(get_db(), key, flags);
+  Database *db = get_db();
+  if (db->get_optree())
+    node = db->get_optree()->get(key, flags);
   if (!node)
     return (HAM_KEY_NOT_FOUND);
 
@@ -288,9 +292,9 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
     /* if the key was erased and approx. matching is enabled, then move
     * next/prev till we found a valid key. */
     if (flags & HAM_FIND_GT_MATCH)
-      node = txn_opnode_get_next_sibling(node);
+      node = node->get_next_sibling();
     else if (flags & HAM_FIND_LT_MATCH)
-      node = txn_opnode_get_previous_sibling(node);
+      node = node->get_previous_sibling();
     else
       return (st);
 
@@ -325,10 +329,10 @@ TransactionCursor::get_key(ham_key_t *key)
   /* coupled cursor? get key from the txn_op structure */
   if (!is_nil()) {
     TransactionOperation *op = get_coupled_op();
-    txn_opnode_t *node = op->get_node();
+    TransactionNode *node = op->get_node();
 
-    ham_assert(db == txn_opnode_get_db(node));
-    source = txn_opnode_get_key(node);
+    ham_assert(db == node->get_db());
+    source = node->get_key();
 
     key->size = source->size;
     if (source->data && source->size) {
@@ -400,7 +404,7 @@ TransactionCursor::erase()
 {
   ham_status_t st;
   TransactionOperation *op;
-  txn_opnode_t *node;
+  TransactionNode *node;
   Database *db = get_db();
   Cursor *parent = get_parent();
   Transaction *txn = parent->get_txn();
@@ -439,7 +443,7 @@ TransactionCursor::erase()
   else {
     op = get_coupled_op();
     node = op->get_node();
-    st = ((LocalDatabase *)db)->erase_txn(txn, txn_opnode_get_key(node),
+    st = ((LocalDatabase *)db)->erase_txn(txn, node->get_key(),
         0, this);
     if (st)
       return (st);

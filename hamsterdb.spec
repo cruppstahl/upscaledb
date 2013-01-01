@@ -1,10 +1,10 @@
 
 Summary: hamsterdb Embedded Storage
 Name: hamsterdb
-Version: 2.1.0.rc3.rc3.rc3
+Version: 2.1.0
 Release: 1%{?dist}
 Source0: http://hamsterdb.com/public/dl/%{name}-%{version}.tar.gz
-URL: http://hamsterdb.com/
+URL: http://hamsterdb.com
 License: GPL3
 Group: System Environment/Libraries
 BuildRequires: protobuf-devel, libtool, curl-devel
