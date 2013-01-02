@@ -2343,7 +2343,7 @@ LocalDatabase::close_impl(ham_u32_t flags)
   /* check if this database is modified by an active transaction */
   TransactionIndex *tree = get_optree();
   if (tree) {
-    TransactionNode *node = txn_tree_get_first(tree);
+    TransactionNode *node = tree->get_first();
     while (node) {
       TransactionOperation *op = node->get_newest_op();
       while (op) {
@@ -2388,8 +2388,7 @@ LocalDatabase::close_impl(ham_u32_t flags)
     (void)m_env->get_cache()->visit(db_close_callback, this, 0);
 
   /* clean up the transaction tree */
-  if (get_optree())
-    txn_free_optree(get_optree());
+  get_optree()->close();
 
   /* close the btree */
   if (be) {

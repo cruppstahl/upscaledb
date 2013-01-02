@@ -39,6 +39,7 @@ class Transaction;
 class TransactionNode;
 class TransactionIndex;
 
+
 /**
  * a single operation in a transaction
  */
@@ -318,6 +319,21 @@ class TransactionIndex
      */
     TransactionNode *get(ham_key_t *key, ham_u32_t flags);
 
+    /**
+     * retrieves the first (=smallest) node of the tree, or NULL if the
+     * tree is empty
+     */
+    TransactionNode *get_first();
+
+    /**
+     * retrieves the last (=largest) node of the tree, or NULL if the
+     * tree is empty
+     */
+    TransactionNode *get_last();
+
+     /** frees all nodes in the tree */
+     void close();
+
  // private:
     /* the Database for all operations in this tree */
     Database *m_db;
@@ -332,28 +348,8 @@ class TransactionIndex
  */
 typedef void(*txn_tree_enumerate_cb)(TransactionNode *node, void *data);
 
-/**
- * retrieves the first (=smallest) node of the tree, or NULL if the
- * tree is empty
- */
-extern TransactionNode *
-txn_tree_get_first(TransactionIndex *tree);
-
-/**
- * retrieves the last (=largest) node of the tree, or NULL if the
- * tree is empty
- */
-extern TransactionNode *
-txn_tree_get_last(TransactionIndex *tree);
-
 extern void
 txn_tree_enumerate(TransactionIndex *tree, txn_tree_enumerate_cb cb, void *data);
-
-/**
- * frees all nodes in the tree
- */
-extern void
-txn_free_optree(TransactionIndex *tree);
 
 
 /**

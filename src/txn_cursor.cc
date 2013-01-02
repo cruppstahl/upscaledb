@@ -156,7 +156,7 @@ TransactionCursor::move(ham_u32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = txn_tree_get_first(db->get_optree());
+    node = db->get_optree()->get_first();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (__move_top_in_node(this, node, 0, HAM_FALSE, flags));
@@ -165,7 +165,7 @@ TransactionCursor::move(ham_u32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = txn_tree_get_last(db->get_optree());
+    node = db->get_optree()->get_last();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (__move_top_in_node(this, node, 0, HAM_FALSE, flags));
