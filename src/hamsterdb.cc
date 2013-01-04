@@ -635,6 +635,15 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     return (HAM_INV_PARAMETER);
   }
 
+#if 0 // re-enable this after 2.1.1, when the file format becomes incompatible
+  /* HAM_ENABLE_EXTENDED_KEYS has to be specified in ham_create, not ham_open */
+  if (flags & HAM_ENABLE_EXTENDED_KEYS) {
+    ham_trace(("invalid flag HAM_ENABLE_EXTENDED_KEYS (only allowed when "
+        "creating a database"));
+    return (HAM_INV_PARAMETER);
+  }
+#endif
+
   /* since 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY */
   if (flags & HAM_ENABLE_TRANSACTIONS)
     flags |= HAM_ENABLE_RECOVERY;

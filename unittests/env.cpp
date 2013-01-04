@@ -593,7 +593,7 @@ protected:
 
     for (i = 0; i < MAX_DB; i++) {
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -667,7 +667,7 @@ protected:
 
     for (i = 0; i < MAX_DB; i++) {
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i],
-            (ham_u16_t)i + 1, 0, 0));
+            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
 
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -865,7 +865,7 @@ protected:
 
     for (i = 0; i < MAX_DB; i++)
       BFC_ASSERT_EQUAL(0, ham_env_create_db(env, &db[i],
-            (ham_u16_t)i+1, 0, 0));
+            (ham_u16_t)i + 1, HAM_ENABLE_EXTENDED_KEYS, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       for (int j = 0; j < MAX_ITEMS; j++) {
@@ -893,7 +893,7 @@ protected:
     for (i = 0; i < MAX_DB; i++) {
       if (!(m_flags & HAM_IN_MEMORY)) {
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, &db[i],
-              (ham_u16_t)i+1, 0, 0));
+              (ham_u16_t)i + 1, 0, 0));
       }
       for (int j = 0; j < MAX_ITEMS; j++) {
         int value = j * (i + 1);
@@ -1127,7 +1127,8 @@ protected:
 
     for (i = 0; i < MAX_DB; i++) {
       BFC_ASSERT_EQUAL_I(0,
-        ham_env_create_db(env, &db[i], (ham_u16_t)i+1, 0, 0), i);
+        ham_env_create_db(env, &db[i], (ham_u16_t)i + 1,
+            HAM_ENABLE_EXTENDED_KEYS, 0), i);
       for (j = 0; j < MAX_ITEMS; j++) {
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
@@ -1141,7 +1142,7 @@ protected:
         rec.flags = HAM_RECORD_USER_ALLOC;
 
         BFC_ASSERT_EQUAL_I(0,
-          ham_db_insert(db[i], 0, &key, &rec, 0), j+i*MAX_ITEMS);
+          ham_db_insert(db[i], 0, &key, &rec, 0), j + i * MAX_ITEMS);
       }
       BFC_ASSERT_EQUAL_I(0, ham_db_close(db[i], 0), i);
     }

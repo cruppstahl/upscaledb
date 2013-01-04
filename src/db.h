@@ -84,7 +84,7 @@ class BtreeIndex;
 class Database
 {
   public:
-    Database(Environment *env, ham_u16_t name, ham_u16_t flags);
+    Database(Environment *env, ham_u16_t name, ham_u32_t flags);
 
     virtual ~Database() {
     }
@@ -527,7 +527,7 @@ class Database
 class LocalDatabase : public Database
 {
   public:
-    LocalDatabase(Environment *env, ham_u16_t name, ham_u16_t flags)
+    LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0) {
     }
 
@@ -644,7 +644,7 @@ class LocalDatabase : public Database
 class RemoteDatabase : public Database
 {
   public:
-    RemoteDatabase(Environment *env, ham_u16_t name, ham_u16_t flags)
+    RemoteDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_remote_handle(0) {
     }
 

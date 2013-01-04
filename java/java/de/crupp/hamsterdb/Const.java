@@ -170,6 +170,9 @@ public class Const {
     /** Flag for Database.create, Database.open(), ... */
     public final static int HAM_CACHE_UNLIMITED                 =  0x40000;
 
+    /** Flag for Database.create() */
+    public final static int HAM_ENABLE_EXTENDED_KEYS            =  0x80000;
+
     /** Parameter name for Database.open(), Database.create() */
     public final static int HAM_PARAM_CACHESIZE                 =    0x100;
 

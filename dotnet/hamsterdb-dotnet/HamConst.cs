@@ -109,63 +109,65 @@ namespace Hamster
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_DISABLE_VAR_KEYLEN       =  0x040;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_IN_MEMORY_DB           =  0x080;
+    public const int HAM_IN_MEMORY_DB           =  0x00080;
     /// <summary>Flag for Database.Open, Database.Create</summary>
-    public const int HAM_DISABLE_MMAP           =  0x200;
+    public const int HAM_DISABLE_MMAP           =  0x00200;
     /// <summary>Flag for Database.Open, Database.Create</summary>
-    public const int HAM_CACHE_STRICT           =  0x400;
+    public const int HAM_CACHE_STRICT           =  0x00400;
     /// <summary>Flag for Database.Open, Database.Create</summary>
-    public const int HAM_DISABLE_FREELIST_FLUSH     =  0x800;
+    public const int HAM_DISABLE_FREELIST_FLUSH =  0x00800;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_RECORD_NUMBER          =   0x2000;
+    public const int HAM_RECORD_NUMBER          =  0x02000;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_ENABLE_DUPLICATES        =   0x4000;
+    public const int HAM_ENABLE_DUPLICATES      =  0x04000;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_ENABLE_RECOVERY        =   0x8000;
+    public const int HAM_ENABLE_RECOVERY        =  0x08000;
     /// <summary>Flag for Database.Open</summary>
     public const int HAM_AUTO_RECOVERY          =  0x10000;
     /// <summary>Flag for Database.Create, Database.Open</summary>
-    public const int HAM_ENABLE_TRANSACTIONS      =  0x20000;
+    public const int HAM_ENABLE_TRANSACTIONS    =  0x20000;
     /// <summary>Flag for Database.Create, Database.Open</summary>
     public const int HAM_CACHE_UNLIMITED        =  0x40000;
+    /// <summary>Flag for Database.Create</summary>
+    public const int HAM_ENABLE_EXTENDED_KEYS   =  0x80000;
 
     // Extended parameters
     /// <summary>Parameter name for Database.Open, Database.Create</summary>
-    public const int HAM_PARAM_CACHESIZE        =  0x100;
+    public const int HAM_PARAM_CACHESIZE        =  0x00100;
     /// <summary>Parameter name for Database.Create</summary>
-    public const int HAM_PARAM_PAGESIZE         =  0x101;
+    public const int HAM_PARAM_PAGESIZE         =  0x00101;
     /// <summary>Parameter name for Database.Create</summary>
-    public const int HAM_PARAM_KEYSIZE          =  0x102;
+    public const int HAM_PARAM_KEYSIZE          =  0x00102;
     /// <summary>Parameter name for Environment.Create</summary>
-    public const int HAM_PARAM_MAX_DATABASES      =  0x103;
+    public const int HAM_PARAM_MAX_DATABASES    =  0x00103;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FLAGS          = 0x00000200;
+    public const int HAM_PARAM_FLAGS           = 0x00000200;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FILEMODE         = 0x00000201;
+    public const int HAM_PARAM_FILEMODE        = 0x00000201;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_FILENAME         = 0x00000202;
+    public const int HAM_PARAM_FILENAME        = 0x00000202;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_DATABASE_NAME      = 0x00000203;
+    public const int HAM_PARAM_DATABASE_NAME   = 0x00000203;
     /// <summary>Parameter for GetParameters</summary>
-    public const int HAM_PARAM_MAX_KEYS_PER_PAGE    = 0x00000204;
+    public const int HAM_PARAM_MAX_KEYS_PER_PAGE = 0x00000204;
 
     // Database operations
     /// <summary>Flag for Database.Insert, Cursor.Insert</summary>
-    public const int HAM_OVERWRITE            =    0x0001;
+    public const int HAM_OVERWRITE                  =    0x0001;
     /// <summary>Flag for Database.Insert, Cursor.Insert</summary>
-    public const int HAM_DUPLICATE            =    0x0002;
+    public const int HAM_DUPLICATE                  =    0x0002;
     /// <summary>Flag for Cursor.Insert</summary>
     public const int HAM_DUPLICATE_INSERT_BEFORE    =    0x0004;
     /// <summary>Flag for Cursor.Insert</summary>
     public const int HAM_DUPLICATE_INSERT_AFTER     =    0x0008;
     /// <summary>Flag for Cursor.Insert</summary>
-    public const int HAM_DUPLICATE_INSERT_FIRST     =     0x0010;
+    public const int HAM_DUPLICATE_INSERT_FIRST     =    0x0010;
     /// <summary>Flag for Cursor.Insert</summary>
-    public const int HAM_DUPLICATE_INSERT_LAST      =     0x0020;
+    public const int HAM_DUPLICATE_INSERT_LAST      =    0x0020;
     /// <summary>Flag for Database.Find</summary>
-    public const int HAM_DIRECT_ACCESS          =     0x0040;
+    public const int HAM_DIRECT_ACCESS              =    0x0040;
     /// <summary>Flag for Database.Insert</summary>
     public const int HAM_PARTIAL            =     0x0080;
     /// <summary>Flag for Database.Insert</summary>

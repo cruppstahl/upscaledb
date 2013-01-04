@@ -687,6 +687,8 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *     <li>@ref HAM_ENABLE_DUPLICATES </li> Enable duplicate keys for this
  *      Database. By default, duplicate keys are disabled.
+ *     <li>@ref HAM_ENABLE_EXTENDED_KEYS</li> Enable extended keys for this
+ *      Database. By default, extended keys are disabled.
  *     <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
  *      Keys in Record Number Databases are automatically assigned an
  *      incrementing 64bit value. If key->data is not NULL
@@ -1071,6 +1073,10 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * This flag is non persistent. */
 #define HAM_CACHE_UNLIMITED                         0x00040000
 
+/** Flag for @ref ham_env_create_db.
+ * This flag is persisted in the Database. */
+#define HAM_ENABLE_EXTENDED_KEYS                    0x00080000
+
 /* reserved: DB_IS_REMOTE   (not persistent)        0x00200000 */
 
 /* reserved: DB_DISABLE_AUTO_FLUSH (not persistent) 0x00400000 */
@@ -1357,9 +1363,13 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
- *        is smaller than 8.
+ *        is smaller than 8
+ *        OR if the key's size is greater than the Btree key size (see
+ *        @ref HAM_PARAM_KEYSIZE) and extended keys are not enabled (see
+ *        @ref HAM_ENABLE_EXTENDED_KEYS).
  *
  * @sa HAM_DISABLE_VAR_KEYLEN
+ * @sa HAM_ENABLE_EXTENDED_KEYS
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
@@ -2211,7 +2221,10 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
- *        is smaller than 8.
+ *        is smaller than 8
+ *        OR if the key's size is greater than the Btree key size (see
+ *        @ref HAM_PARAM_KEYSIZE) and extended keys are not enabled (see
+ *        @ref HAM_ENABLE_EXTENDED_KEYS).
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted

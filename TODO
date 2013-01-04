@@ -274,20 +274,21 @@ x refactoring of cursor.h/cursor.cc
 
 x txn_cursor.cc still has static functions
 
-o refactoring of txn.h/txn.cc
+x refactoring of txn.h/txn.cc
     x txn_op_t -> TransactionOperation
     x txn_opnode_t -> TransactionNode
     x txn_optree_t -> TransactionIndex
-    o TransactionIndex: use std::set<OperationNode> instead of rb.h
-    o try to cleanup the flow; move more code from db.cc to txn.cc,
-        reorg TransactionIndex similar to BtreeIndex
-    o try to replace some of the linked lists with boost::intrusive_list
-    o document the tree structure in the header file
 
-o disallow usage of extended keys UNLESS HAM_ENABLE_EXTENDED_KEYS is active
-    o add to java API
-    o add to dotnet API
-    o document this
+x disallow usage of extended keys UNLESS HAM_ENABLE_EXTENDED_KEYS is active
+    x add to header file
+    x check in ham_db_insert
+        x unittest
+    x check in ham_cursor_insert
+        x unittest
+    x flag must be persisted
+    x add to java API
+    x add to dotnet API
+    x document this
 
 o need a launchpad project; start with 12.04 for 64bit
     sudo apt-get install packaging-dev dh-make
@@ -318,6 +319,13 @@ o finalize for the next release
     o MSVC project files for ham_import, ham_export
 
 . can we perform better with O_DIRECT? run some benchmarks
+
+o continue refactoring of txn.h/txn.cc
+    o TransactionIndex: use std::set<OperationNode> instead of rb.h
+    o try to cleanup the flow; move more code from db.cc to txn.cc,
+        reorg TransactionIndex similar to BtreeIndex
+    o try to replace some of the linked lists with boost::intrusive_list
+    o document the tree structure in the header file
 
 ------------------- release 2.0.6 -----------------------------------------
 

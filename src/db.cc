@@ -75,19 +75,19 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
     break;
 
   case HAM_ENUM_EVENT_ITEM:
-    key=(BtreeKey *)param1;
-    count=*(ham_size_t *)param2;
+    key = (BtreeKey *)param1;
+    count = *(ham_size_t *)param2;
 
     if (c->is_leaf) {
-      ham_size_t dupcount=1;
+      ham_size_t dupcount = 1;
 
-      if (c->flags&HAM_SKIP_DUPLICATES
-          || (c->db->get_rt_flags()&HAM_ENABLE_DUPLICATES) == 0) {
+      if (c->flags & HAM_SKIP_DUPLICATES
+          || (c->db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
         c->total_count+=count;
         return (HAM_ENUM_DO_NOT_DESCEND);
       }
-      if (key->get_flags()&BtreeKey::KEY_HAS_DUPLICATES) {
-        ham_status_t st=c->db->get_env()->get_duplicate_manager()->get_count(
+      if (key->get_flags() & BtreeKey::KEY_HAS_DUPLICATES) {
+        ham_status_t st = c->db->get_env()->get_duplicate_manager()->get_count(
               key->get_ptr(), &dupcount, 0);
         if (st)
           return (st);
@@ -170,7 +170,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
   return (HAM_ENUM_CONTINUE);
 }
 
-Database::Database(Environment *env, ham_u16_t name, ham_u16_t flags)
+Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
   : m_env(env), m_name(name), m_error(0), m_context(0), m_btree(0),
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
     m_extkey_cache(0), m_optree(this)
@@ -1429,6 +1429,13 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
             ? &get_key_arena()
             : &txn->get_key_arena();
 
+  if (key->size > get_keysize()
+      && !(get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS)) {
+    ham_trace(("database does not support extended keys "
+          "(see HAM_ENABLE_EXTENDED_KEYS)"));
+    return (HAM_INV_KEYSIZE);
+  }
+
   /* purge cache if necessary */
   st = get_env()->purge_cache();
   if (st)
@@ -1684,6 +1691,13 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &get_key_arena()
             : &txn->get_key_arena();
+
+  if (key->size > get_keysize()
+      && !(get_rt_flags() & HAM_ENABLE_EXTENDED_KEYS)) {
+    ham_trace(("database does not support extended keys "
+          "(see HAM_ENABLE_EXTENDED_KEYS)"));
+    return (HAM_INV_KEYSIZE);
+  }
 
   if ((get_keysize() < sizeof(ham_u64_t)) && (key->size > get_keysize())) {
     ham_trace(("database does not support variable length keys"));

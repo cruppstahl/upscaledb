@@ -1079,6 +1079,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 
   ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
                     | HAM_ENABLE_DUPLICATES
+                    | HAM_ENABLE_EXTENDED_KEYS
                     | HAM_RECORD_NUMBER;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
@@ -1098,10 +1099,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
       return (HAM_DATABASE_ALREADY_EXISTS);
   }
 
-  /*
-   * find a free slot in the BtreeDescriptor array and store the
-   * database name
-   */
+  /* find a free slot in the BtreeDescriptor array and store the name */
   ham_assert(get_max_databases() > 0);
   for (dbi = 0; dbi < get_max_databases(); dbi++) {
     ham_u16_t name = get_descriptor(dbi)->get_dbname();
@@ -1157,7 +1155,9 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
 
   *pdb = 0;
 
-  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN | HAM_READ_ONLY;
+  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
+                    | HAM_ENABLE_EXTENDED_KEYS
+                    | HAM_READ_ONLY;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
     return (HAM_INV_PARAMETER);

@@ -335,12 +335,12 @@ namespace Hamster
     ///     a key, which is larger than the B+Tree index key size,
     ///     returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item><br />
     ///   <item><see cref="HamConst.HAM_RECORD_NUMBER" />
-    ///     Enable duplicate keys for this Database. By default,
-    ///     duplicate keys are disabled.</item><br />
-    ///   <item><see cref="HamConst.HAM_ENABLE_DUPLICATES" />
     ///     Creates an "auto-increment" Database. Keys in Record
     ///     Number Databases are automatically assigned an incrementing
     ///     64bit value.</item>
+    ///   <item><see cref="HamConst.HAM_ENABLE_EXTENDED_KEYS" />
+    ///     Enable extended keys for this Database. By default,
+    ///     extended keys are disabled.</item><br />
     ///   </list>
     /// </param>
     /// <param name="parameters">An array of <see cref="Parameter" />

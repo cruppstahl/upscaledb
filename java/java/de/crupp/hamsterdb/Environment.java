@@ -290,6 +290,9 @@ public class Environment {
    *     <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
    *      Enable duplicate keys for this Database. By default,
    *      duplicate keys are disabled.
+   *     <li><code>Const.HAM_ENABLE_EXTENDED_KEYS</code></li>
+   *      Enable extended keys for this Database. By default,
+   *      extended keys are disabled.
    *    </ul>
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
