@@ -308,8 +308,8 @@ o need a launchpad project; start with 12.04 for 64bit
 o finalize for the next release
     x version is 2.1.0!!
     x increment libtool version
-    o sources: change copyright date to 2013
-    o webpage: change copyright date to 2013
+    x sources: change copyright date to 2013
+    x webpage: change copyright date to 2013
     o run valgrind tests
     o update README w/ API updates
     o update Webpage w/ API updates

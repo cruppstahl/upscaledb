@@ -1,7 +1,7 @@
 dnl
 dnl configuration script for hamsterdb
 dnl
-dnl Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de).
+dnl Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
 dnl All rights reserved. See file LICENSE for licence and copyright
 dnl information
 dnl
@@ -15,7 +15,7 @@ AC_CONFIG_MACRO_DIR(m4)
 AC_CANONICAL_HOST
 AC_CONFIG_HEADERS(config.h)
 AC_COPYRIGHT([
-Copyright (C) 2005-2012 Christoph Rupp (chris@crupp.de)
+Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de)
 ])
 
 AC_PROG_CC
