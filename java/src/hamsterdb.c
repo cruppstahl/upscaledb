@@ -580,7 +580,7 @@ Java_de_crupp_hamsterdb_Database_ham_1set_1prefix_1compare_1func(JNIEnv *jenv,
 {
   /* jcmp==null: disable prefix compare function */
   if (!jcmp) {
-    ham_set_prefix_compare_func((ham_db_t *)jhandle, 0);
+    ham_db_set_prefix_compare_func((ham_db_t *)jhandle, 0);
     return;
   }
 
@@ -1138,7 +1138,7 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1parameters(JNIEnv *jenv,
     if (st)
       return (st);
 
-    st = ham_get_parameters((ham_db_t *)jhandle, params);
+    st = ham_db_get_parameters((ham_db_t *)jhandle, params);
     if (st) {
       free(params);
       return (st);
@@ -1156,7 +1156,7 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1key_1count(JNIEnv *jenv,
 {
   ham_status_t st;
   ham_u64_t keycount;
-  st = ham_get_key_count((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
+  st = ham_db_get_key_count((ham_db_t *)jhandle, (ham_txn_t *)jtxnhandle,
         (ham_u32_t)jflags, &keycount);
   if (st) {
     jni_throw_error(jenv, st);

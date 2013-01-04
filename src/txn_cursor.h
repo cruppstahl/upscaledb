@@ -149,13 +149,18 @@ class TransactionCursor
     /** checks if this cursor conflicts with another transaction */
     bool conflicts();
 
+    /** moves the cursor to the first valid Operation in a Node */
+    ham_status_t move_top_in_node(TransactionNode *node,
+            TransactionOperation *op, ham_bool_t ignore_conflicts,
+            ham_u32_t flags);
+
     /** the parent cursor */
     Cursor *m_parent;
 
     /**
      * a Cursor can either be coupled or nil ("not in list"). If it's
-     * coupled, it directly points to a TransactionOperation structure. If it's nil then it
-     * basically is uninitialized.
+     * coupled, it directly points to a TransactionOperation structure.
+     * If it's nil then it basically is uninitialized.
      */
     struct txn_cursor_coupled_t {
       /* the txn operation to which we're pointing */

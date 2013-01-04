@@ -81,13 +81,12 @@ TransactionCursor::overwrite(ham_record_t *record)
         node->get_key(), record, HAM_OVERWRITE, this));
 }
 
-static ham_status_t
-__move_top_in_node(TransactionCursor *cursor, TransactionNode *node, TransactionOperation *op,
-        ham_bool_t ignore_conflicts, ham_u32_t flags)
+ham_status_t
+TransactionCursor::move_top_in_node(TransactionNode *node,
+        TransactionOperation *op, ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
   TransactionOperation *lastdup = 0;
   Transaction *optxn = 0;
-  Cursor *pc = cursor->get_parent();
 
   if (!op)
     op = node->get_newest_op();
@@ -98,25 +97,25 @@ __move_top_in_node(TransactionCursor *cursor, TransactionNode *node, Transaction
     optxn = op->get_txn();
     /* only look at ops from the current transaction and from
      * committed transactions */
-    if (optxn == cursor->get_parent()->get_txn() || optxn->is_committed()) {
+    if (optxn == m_parent->get_txn() || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
       if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
           || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
-        cursor->couple(op);
+        couple(op);
         return (0);
       }
       /* retrieve a duplicate key */
       if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
-        cursor->couple(op);
+        couple(op);
         return (0);
       }
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
       if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
-        cursor->couple(op);
+        couple(op);
         return (HAM_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
@@ -127,18 +126,18 @@ __move_top_in_node(TransactionCursor *cursor, TransactionNode *node, Transaction
     else if (!ignore_conflicts) {
       /* we still have to couple, because higher-level functions
        * will need to know about the op when consolidating the trees */
-      cursor->couple(op);
+      couple(op);
       return (HAM_TXN_CONFLICT);
     }
 
 next:
-    pc->set_dupecache_index(0);
-    op=op->get_previous_in_node();
+    m_parent->set_dupecache_index(0);
+    op = op->get_previous_in_node();
   }
 
   /* did we find a duplicate key? then return it */
   if (lastdup) {
-    cursor->couple(op);
+    couple(op);
     return (0);
   }
 
@@ -159,7 +158,7 @@ TransactionCursor::move(ham_u32_t flags)
     node = db->get_optree()->get_first();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
-    return (__move_top_in_node(this, node, 0, HAM_FALSE, flags));
+    return (move_top_in_node(node, 0, HAM_FALSE, flags));
   }
   else if (flags & HAM_CURSOR_LAST) {
     /* first set cursor to nil */
@@ -168,7 +167,7 @@ TransactionCursor::move(ham_u32_t flags)
     node = db->get_optree()->get_last();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
-    return (__move_top_in_node(this, node, 0, HAM_FALSE, flags));
+    return (move_top_in_node(node, 0, HAM_FALSE, flags));
   }
   else if (flags & HAM_CURSOR_NEXT) {
     TransactionOperation *op = get_coupled_op();
@@ -187,7 +186,7 @@ TransactionCursor::move(ham_u32_t flags)
       node = node->get_next_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
-      st = __move_top_in_node(this, node, op, HAM_TRUE, flags);
+      st = move_top_in_node(node, op, HAM_TRUE, flags);
       if (st == HAM_KEY_NOT_FOUND)
         continue;
       return (st);
@@ -210,7 +209,7 @@ TransactionCursor::move(ham_u32_t flags)
       node = node->get_previous_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
-      st = __move_top_in_node(this, node, op, HAM_TRUE, flags);
+      st = move_top_in_node(node, op, HAM_TRUE, flags);
       if (st == HAM_KEY_NOT_FOUND)
         continue;
       return (st);
@@ -233,7 +232,7 @@ TransactionCursor::is_erased()
 
   /* move to the newest op and check if it erased the key */
   return (HAM_KEY_ERASED_IN_TXN
-        == __move_top_in_node(this, node, 0, HAM_FALSE, 0));
+        == move_top_in_node(node, 0, HAM_FALSE, 0));
 }
 
 bool
@@ -285,7 +284,7 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
 
   while (1) {
     /* and then move to the newest insert*-op */
-    ham_status_t st = __move_top_in_node(this, node, 0, HAM_FALSE, 0);
+    ham_status_t st = move_top_in_node(node, 0, HAM_FALSE, 0);
     if (st != HAM_KEY_ERASED_IN_TXN)
       return (st);
 
