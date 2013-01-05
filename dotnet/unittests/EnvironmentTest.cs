@@ -57,7 +57,7 @@ namespace Unittests
         public void CreateStringInt() {
             Hamster.Environment env = new Hamster.Environment();
             try {
-                env.Create(null, HamConst.HAM_IN_MEMORY_DB);
+                env.Create(null, HamConst.HAM_IN_MEMORY);
                 env.Close();
             }
             catch (DatabaseException e) {
@@ -258,28 +258,6 @@ namespace Unittests
             catch (DatabaseException e) {
                 Assert.AreEqual(HamConst.HAM_DATABASE_NOT_FOUND, e.ErrorCode);
             }
-            env.Close();
-        }
-
-        [TestMethod()]
-        public void Encrypt() {
-            Hamster.Environment env = new Hamster.Environment();
-            byte[] k = new byte[5];
-            byte[] r = new byte[5];
-            byte[] aeskey = new byte[16];
-
-            env.Create("ntest.db");
-            env.EnableEncryption(aeskey);
-            Database db = env.CreateDatabase((short)13);
-            db.Insert(k, r);
-            db.Close();
-            env.Close();
-            env.Open("ntest.db");
-            env.EnableEncryption(aeskey);
-            db = env.OpenDatabase((short)13);
-            byte[] f = db.Find(k);
-            checkEqual(k, f);
-            db.Close();
             env.Close();
         }
 

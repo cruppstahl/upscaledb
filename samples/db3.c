@@ -23,8 +23,6 @@
 static int
 my_string_compare(ham_db_t *db, const ham_u8_t *lhs, ham_size_t lhs_length,
           const ham_u8_t *rhs, ham_size_t rhs_length) {
-  (void)db;
-
   int s = strncmp((const char *)lhs, (const char *)rhs,
       lhs_length < rhs_length ? lhs_length : rhs_length);
   if (s < 0)

@@ -32,8 +32,8 @@ main(int argc, char **argv) {
   ham_status_t st;      /* status variable */
   ham_env_t *env;       /* hamsterdb environment object */
   ham_db_t *db;         /* hamsterdb database object */
-  ham_key_t key = {};     /* the structure for a key */
-  ham_record_t record = {};   /* the structure for a record */
+  ham_key_t key = {0};     /* the structure for a key */
+  ham_record_t record = {0};   /* the structure for a record */
 
   /* create a new hamsterdb Environment */
   st = ham_env_create(&env, "test.db", 0, 0664, 0);

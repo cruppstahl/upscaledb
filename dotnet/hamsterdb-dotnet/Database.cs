@@ -96,8 +96,6 @@ namespace Hamster
   /// <remarks>
   /// This delegate compares two records - the "left-hand side"
   /// (lhs) and the "right-hand side" (rhs).
-  /// <br />
-  /// Also see <see cref="Database.SetDuplicateCompareFunc" />.
   /// </remarks>
   /// <param name="lhs">The first record</param>
   /// <param name="rhs">The second record</param>
@@ -526,7 +524,6 @@ namespace Hamster
         int st = NativeMethods.Close(handle, flags);
         if (st != 0)
           throw new DatabaseException(st);
-        NativeMethods.DeleteDatabaseHandle(handle);
         handle = IntPtr.Zero;
       }
     }

@@ -75,26 +75,26 @@ public:
   }
 
   void createCloseTest() {
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
     if (!m_inmemory) {
       BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(0, m_dev->is_open());
+      BFC_ASSERT_EQUAL(false, m_dev->is_open());
       BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(1, m_dev->is_open());
+      BFC_ASSERT_EQUAL(true, m_dev->is_open());
     }
   }
 
   void openCloseTest() {
     if (!m_inmemory) {
-      BFC_ASSERT_EQUAL(1, m_dev->is_open());
+      BFC_ASSERT_EQUAL(true, m_dev->is_open());
       BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(0, m_dev->is_open());
+      BFC_ASSERT_EQUAL(false, m_dev->is_open());
       BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(1, m_dev->is_open());
+      BFC_ASSERT_EQUAL(true, m_dev->is_open());
       BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(0, m_dev->is_open());
+      BFC_ASSERT_EQUAL(false, m_dev->is_open());
       BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(1, m_dev->is_open());
+      BFC_ASSERT_EQUAL(true, m_dev->is_open());
     }
   }
 
@@ -114,7 +114,7 @@ public:
     int i;
     ham_u64_t address;
 
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
     for (i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0, m_dev->alloc(1024, &address));
       BFC_ASSERT_EQUAL((((Environment *)m_env)->get_pagesize() * 2) + 1024 * i,
@@ -126,16 +126,16 @@ public:
     Page page((Environment *)m_env);
     page.set_db((Database *)m_db);
 
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
     BFC_ASSERT_EQUAL(0, m_dev->alloc_page(&page));
     BFC_ASSERT(page.get_pers() != 0);
     m_dev->free_page(&page);
   }
 
   void flushTest() {
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
     BFC_ASSERT_EQUAL(0, m_dev->flush());
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
   }
 
   void mmapUnmapTest() {
@@ -144,7 +144,7 @@ public:
     ham_size_t ps = m_dev->get_pagesize();
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
     BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 10));
     for (i = 0; i < 10; i++) {
       memset(&pages[i], 0, sizeof(Page));
@@ -178,8 +178,8 @@ public:
 
     m_dev->set_flags(HAM_DISABLE_MMAP);
 
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*10));
+    BFC_ASSERT_EQUAL(true, m_dev->is_open());
+    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 10));
     for (i = 0; i < 10; i++) {
       buffer[i] = (ham_u8_t *)malloc(ps);
       BFC_ASSERT_EQUAL(0, m_dev->read(i * ps, buffer[i], ps));

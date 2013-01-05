@@ -666,7 +666,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
     else {
       memset(&key, 0, sizeof(key));
       if (request->db_insert_request().has_key()) {
-        key.size = request->db_insert_request().key().data().size();
+        key.size = (ham_u16_t)request->db_insert_request().key().data().size();
         if (key.size)
           key.data = (void *)&request->db_insert_request().key().data()[0];
         key.flags = request->db_insert_request().key().flags()
@@ -675,7 +675,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
 
       memset(&rec, 0, sizeof(rec));
       if (request->db_insert_request().has_record()) {
-        rec.size = request->db_insert_request().record().data().size();
+        rec.size = (ham_size_t)request->db_insert_request().record().data().size();
         if (rec.size)
           rec.data = (void *)&request->db_insert_request().record().data()[0];
         rec.partial_size = request->db_insert_request().record().partial_size();
@@ -732,13 +732,13 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
     else {
       memset(&key, 0, sizeof(key));
       key.data = (void *)&request->db_find_request().key().data()[0];
-      key.size = request->db_find_request().key().data().size();
+      key.size = (ham_u16_t)request->db_find_request().key().data().size();
       key.flags = request->db_find_request().key().flags()
                   & (~HAM_KEY_USER_ALLOC);
 
       memset(&rec, 0, sizeof(rec));
       rec.data = (void *)&request->db_find_request().record().data()[0];
-      rec.size = request->db_find_request().record().data().size();
+      rec.size = (ham_size_t)request->db_find_request().record().data().size();
       rec.partial_size = request->db_find_request().record().partial_size();
       rec.partial_offset = request->db_find_request().record().partial_offset();
       rec.flags = request->db_find_request().record().flags()
@@ -791,7 +791,7 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
 
       memset(&key, 0, sizeof(key));
       key.data = (void *)&request->db_erase_request().key().data()[0];
-      key.size = request->db_erase_request().key().data().size();
+      key.size = (ham_u16_t)request->db_erase_request().key().data().size();
       key.flags = request->db_erase_request().key().flags()
                   & (~HAM_KEY_USER_ALLOC);
 
@@ -905,7 +905,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
 
   memset(&key, 0, sizeof(key));
   if (request->cursor_insert_request().has_key()) {
-    key.size = request->cursor_insert_request().key().data().size();
+    key.size = (ham_u16_t)request->cursor_insert_request().key().data().size();
     if (key.size)
       key.data = (void *)&request->cursor_insert_request().key().data()[0];
     key.flags = request->cursor_insert_request().key().flags()
@@ -914,7 +914,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
 
   memset(&rec, 0, sizeof(rec));
   if (request->cursor_insert_request().has_record()) {
-    rec.size = request->cursor_insert_request().record().data().size();
+    rec.size = (ham_size_t)request->cursor_insert_request().record().data().size();
     if (rec.size)
       rec.data = (void *)&request->cursor_insert_request().record().data()[0];
     rec.partial_size = request->cursor_insert_request().record().partial_size();
@@ -990,7 +990,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
 
   memset(&key, 0, sizeof(key));
   key.data = (void *)&request->cursor_find_request().key().data()[0];
-  key.size = request->cursor_find_request().key().data().size();
+  key.size = (ham_u16_t)request->cursor_find_request().key().data().size();
   key.flags = request->cursor_find_request().key().flags()
               & (~HAM_KEY_USER_ALLOC);
 
@@ -999,7 +999,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_find_request().record().data()[0];
-    rec.size = request->cursor_find_request().record().data().size();
+    rec.size = (ham_size_t)request->cursor_find_request().record().data().size();
     rec.partial_size = request->cursor_find_request().record().partial_size();
     rec.partial_offset = request->cursor_find_request().record().partial_offset();
     rec.flags = request->cursor_find_request().record().flags()
@@ -1074,7 +1074,7 @@ handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
 
   memset(&rec, 0, sizeof(rec));
   rec.data = (void *)&request->cursor_overwrite_request().record().data()[0];
-  rec.size = request->cursor_overwrite_request().record().data().size();
+  rec.size = (ham_size_t)request->cursor_overwrite_request().record().data().size();
   rec.partial_size = request->cursor_overwrite_request().record().partial_size();
   rec.partial_offset = request->cursor_overwrite_request().record().partial_offset();
   rec.flags = request->cursor_overwrite_request().record().flags()
@@ -1116,7 +1116,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
 
     memset(&key, 0, sizeof(key));
     key.data = (void *)&request->cursor_move_request().key().data()[0];
-    key.size = request->cursor_move_request().key().data().size();
+    key.size = (ham_u16_t)request->cursor_move_request().key().data().size();
     key.flags = request->cursor_move_request().key().flags()
                 & (~HAM_KEY_USER_ALLOC);
   }
@@ -1126,7 +1126,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_move_request().record().data()[0];
-    rec.size = request->cursor_move_request().record().data().size();
+    rec.size = (ham_size_t)request->cursor_move_request().record().data().size();
     rec.partial_size = request->cursor_move_request().record().partial_size();
     rec.partial_offset = request->cursor_move_request().record().partial_offset();
     rec.flags = request->cursor_move_request().record().flags()

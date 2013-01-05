@@ -35,7 +35,7 @@ namespace hamsterdb {
 /**
  * the persistent btree index descriptor
  */
-HAM_PACK_0 struct HAM_PACK_1 BtreeDescriptor
+HAM_PACK_0 class HAM_PACK_1 BtreeDescriptor
 {
   public:
     BtreeDescriptor() {

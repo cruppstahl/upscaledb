@@ -432,7 +432,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     if (flags & HAM_RECORD_NUMBER)
       keysize = sizeof(ham_u64_t);
     else
-      keysize = DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead);
+      keysize = (ham_size_t)(DB_CHUNKSIZE - BtreeKey::ms_sizeof_overhead);
   }
 
   /*

@@ -50,7 +50,7 @@ DiskDevice::read_page(Page *page)
    * if this page is in the mapped area: return a pointer into that area.
    * otherwise fall back to read/write.
    */
-  if (page->get_self() < m_open_filesize && m_mmapptr != 0) {
+  if (page->get_self() < m_mapped_size && m_mmapptr != 0) {
     /* ok, this page is mapped. If the Page object has a memory buffer:
      * free it */
     if (page->get_pers() != 0)

@@ -760,9 +760,10 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
   /* if the database with the old name is currently open: notify it */
   Environment::DatabaseMap::iterator it = get_database_map().find(oldname);
   if (it != get_database_map().end()) {
+    Database *db = it->second;
     it->second->set_name(newname);
     get_database_map().erase(oldname);
-    get_database_map()[newname] = it->second;
+    get_database_map().insert(DatabaseMap::value_type(newname, db));
   }
 
   /* flush the header page if logging is enabled */
@@ -1050,7 +1051,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (flags & HAM_RECORD_NUMBER)
     keysize = sizeof(ham_u64_t);
   else
-    keysize = DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead);
+    keysize = (ham_u16_t)(DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead));
 
   if (get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot create database in an read-only environment"));

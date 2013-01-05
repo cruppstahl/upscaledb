@@ -601,13 +601,13 @@ class LocalDatabase : public Database
      */
     ham_status_t insert_txn(Transaction *txn, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags,
-                struct TransactionCursor *cursor);
+                TransactionCursor *cursor);
 
     /*
      * erase a key/record pair from a txn; on success, cursor will be set to nil
      */
     ham_status_t erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
-                struct TransactionCursor *cursor);
+                TransactionCursor *cursor);
 
   protected:
     /** clone a cursor; this is the actual implementation */

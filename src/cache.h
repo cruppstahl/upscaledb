@@ -189,13 +189,15 @@ class Cache
         if (page->get_flags() & Page::NPERS_MALLOC
             && !m_env->get_changeset().contains(page)) {
           remove_page(page);
+		  Page *prev = page->get_previous(Page::LIST_CACHED);
           ham_status_t st = cb(page);
           if (st)
             return (st);
           i++;
+		  page = prev;
         }
-
-        page = page->get_previous(Page::LIST_CACHED);
+		else
+          page = page->get_previous(Page::LIST_CACHED);
         ham_assert(page != oldest);
       } while (i < max_pages && page && page != oldest);
 

@@ -87,9 +87,8 @@ namespace Hamster
       this.db = db;
       int st;
       lock (this.db) {
-        st = NativeMethods.CursorCreate(db.Handle,
-                txn != null ? txn.Handle : IntPtr.Zero,
-                0, out handle);
+        st = NativeMethods.CursorCreate(out handle, db.Handle,
+                txn != null ? txn.Handle : IntPtr.Zero, 0);
       }
       if (st != 0)
         throw new DatabaseException(st);

@@ -87,7 +87,8 @@ public:
   };
 
   void v10xDBformatDetectTest() {
-    teardown();
+#ifndef HAM_OS_WIN32
+	teardown();
     os::unlink(BFC_OPATH(".test"));
 
     BFC_ASSERT_EQUAL(true,
@@ -124,6 +125,7 @@ public:
 
     BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
         ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+#endif
   }
 
   ham_u64_t get_param_value(ham_parameter_t *param, ham_u16_t name) {

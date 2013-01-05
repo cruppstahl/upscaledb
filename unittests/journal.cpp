@@ -1036,8 +1036,9 @@ public:
 
 } // namespace hamsterdb
 
-// since BFC macro will b0rk on ham::LogTest:
-typedef hamsterdb::JournalTest JournalTest;
+// since BFC macro will b0rk on ham::JournalTest
+// TODO i removed this, otherwise MSVC 2008 fails
+//typedef hamsterdb::JournalTest JournalTest;
 
 BFC_REGISTER_FIXTURE(JournalTest);
 

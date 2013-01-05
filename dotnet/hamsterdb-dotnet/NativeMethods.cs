@@ -136,14 +136,6 @@ namespace Hamster
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnAbort(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.0.dll", EntryPoint = "ham_new",
-      CallingConvention = CallingConvention.Cdecl)]
-    static public extern int NewDatabaseHandle(out IntPtr handle);
-
-    [DllImport("hamsterdb-2.1.0.dll", EntryPoint = "ham_delete",
-      CallingConvention = CallingConvention.Cdecl)]
-    static public extern void DeleteDatabaseHandle(IntPtr handle);
-
     [DllImport("hamsterdb-2.1.0.dll", EntryPoint = "ham_db_get_error",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetLastError(IntPtr handle);
