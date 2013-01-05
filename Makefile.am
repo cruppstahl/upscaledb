@@ -22,8 +22,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              win32/msvc2010/README.TXT                  \
              win32/msvc2010/hamsterdb.sln               \
              win32/msvc2010/*.vcxproj                   \
-             dotnet                                     \
-             contrib/wince/*
+             dotnet
 
 doc documentation/html:
 	VERSION=$(VERSION) ;            \

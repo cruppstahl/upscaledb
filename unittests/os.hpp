@@ -33,9 +33,6 @@ protected:
 #ifdef WIN32
     static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
     {
-#ifdef UNDER_CE
-        strcpy(buf, "((WinCE: DisplayError() not implemented))");
-#else
         buf[0] = 0;
         FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
                       FORMAT_MESSAGE_FROM_SYSTEM |
@@ -44,7 +41,6 @@ protected:
                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                       (LPSTR)buf, buflen, NULL);
         buf[buflen-1]=0;
-#endif
         return buf;
     }
 #endif
@@ -56,14 +52,7 @@ public:
     static bool unlink(const char *path, bool fail_silently = true)
     {
 #ifdef WIN32
-#   ifdef UNDER_CE
-        wchar_t wpath[1024];
-        MultiByteToWideChar(CP_ACP, 0, path, -1, wpath,
-                sizeof(wpath)/sizeof(wchar_t));
-        BOOL rv = DeleteFileW(wpath);
-#   else
         BOOL rv = DeleteFileA((LPCSTR)path);
-#   endif
         if (!rv) {
             if (!fail_silently) {
                 char buf[1024];
@@ -89,17 +78,7 @@ public:
      */
     static bool copy(const char *src, const char *dest) {
 #ifdef WIN32
-#   ifdef UNDER_CE
-        wchar_t wsrc[1024];
-        wchar_t wdest[1024];
-        MultiByteToWideChar(CP_ACP, 0, src, -1, wsrc,
-                sizeof(wsrc)/sizeof(wchar_t));
-        MultiByteToWideChar(CP_ACP, 0, dest, -1, wdest,
-                sizeof(wdest)/sizeof(wchar_t));
-        BOOL rv = CopyFileW(wsrc, wdest, FALSE);
-#   else
         BOOL rv = CopyFileA((LPCSTR)src, dest, FALSE);
-#   endif
         if (!rv) {
             char buf[2048];
             char buf2[1024];

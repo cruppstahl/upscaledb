@@ -130,11 +130,7 @@ dbg_verify_failed(const char *format, ...)
   if (ham_test_abort)
     ham_test_abort();
   else {
-#ifndef HAM_OS_WINCE
     abort();
-#else
-    ExitProcess(-1);
-#endif
   }
 }
 

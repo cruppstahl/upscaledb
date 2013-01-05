@@ -27,46 +27,6 @@ namespace hamsterdb {
 static const char *
 DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
 {
-#ifdef UNDER_CE /* TODO not yet tested */
-  ham_size_t len;
-  WCHAR tmpbuf[1024];
-  LPCWSTR s = tmpbuf;
-  char *dst = buf;
-
-  buf[0] = 0;
-  FormatMessageW(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
-          FORMAT_MESSAGE_FROM_SYSTEM |
-          FORMAT_MESSAGE_IGNORE_INSERTS,
-          NULL, errorcode,
-          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-          tmpbuf, 1024, NULL);
-  /* safely convert wide character string to multibyte character string */
-  for (len = buflen - MB_CUR_MAX; len > 0; ) {
-    int cl = *s++;
-    if (!cl) {
-      *dst = 0;
-      break;
-    }
-    cl = wcstombs(dst, (const wchar_t *)cl, buflen);
-    if (cl == (size_t)-1) {
-      *dst = '?';
-      cl = 1;
-    }
-    dst += cl;
-    len -= cl;
-  }
-  *dst = 0;
-  assert(dst < buf + buflen);
-
-  /* strip trailing whitespace\newlines */
-  for (len = strlen(buf); len-- > 0; ) {
-    if (!isspace(buf[len]))
-      break;
-    buf[len] = 0;
-  }
-
-  return (buf);
-#else
   size_t len;
 
   buf[0] = 0;
@@ -86,7 +46,6 @@ DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
   }
 
   return (buf);
-#endif
 }
 
 /*
@@ -134,7 +93,6 @@ ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
             ham_u64_t size, bool readonly, ham_u8_t **buffer)
 {
-#ifndef UNDER_CE
   ham_status_t st;
   DWORD protect = (readonly ? PAGE_READONLY : PAGE_WRITECOPY);
   DWORD access = FILE_MAP_COPY;
@@ -166,15 +124,11 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_u64_t position,
     return (HAM_IO_ERROR);
   }
   return (HAM_SUCCESS);
-#else
-  return (HAM_IO_ERROR);
-#endif /* UNDER_CE */
 }
 
 ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 {
-#ifndef UNDER_CE
   ham_status_t st;
 
   if (!UnmapViewOfFile(buffer)) {
@@ -196,9 +150,6 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
   *mmaph = 0;
 
   return (HAM_SUCCESS);
-#else
-  return (HAM_IO_ERROR);
-#endif /* UNDER_CE */
 }
 
 ham_status_t
