@@ -290,6 +290,10 @@ x disallow usage of extended keys UNLESS HAM_ENABLE_EXTENDED_KEYS is active
     x add to dotnet API
     x document this
 
+x ham_size_t is currently ham_u32_t - verify this! it should have a constant
+    size. It should be int, and it should never be persisted!
+    -> also do not use in ham_record_t
+
 o need a launchpad project; start with 12.04 for 64bit
     sudo apt-get install packaging-dev dh-make
     <migrate gpg key>
