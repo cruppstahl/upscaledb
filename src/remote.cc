@@ -489,6 +489,10 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
   Protocol *reply = 0;
   const ham_parameter_t *p;
 
+  /* make sure that this database is not yet open */
+  if (get_database_map().find(dbname) !=  get_database_map().end())
+    return (HAM_DATABASE_ALREADY_OPEN);
+
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
   request.mutable_env_open_db_request()->set_dbname(dbname);
   request.mutable_env_open_db_request()->set_flags(flags);
@@ -535,7 +539,21 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
 ham_status_t
 RemoteEnvironment::close(ham_u32_t flags)
 {
+  ham_status_t st = 0;
   (void)flags;
+
+  /* close all databases */
+  Environment::DatabaseMap::iterator it = get_database_map().begin();
+  while (it != get_database_map().end()) {
+    Environment::DatabaseMap::iterator it2 = it; it++;
+    Database *db = it2->second;
+    if (flags & HAM_AUTO_CLEANUP)
+      st = ham_db_close((ham_db_t *)db, flags | HAM_DONT_LOCK);
+    else
+      st = db->close(flags);
+    if (st)
+      return (st);
+  }
 
   if (m_curl) {
     curl_easy_cleanup(m_curl);

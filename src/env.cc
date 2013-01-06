@@ -1169,12 +1169,12 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     return (HAM_INV_PARAMETER);
   }
 
-  /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
-
   /* make sure that this database is not yet open */
   if (get_database_map().find(dbname) !=  get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
+
+  /* create a new Database object */
+  LocalDatabase *db = new LocalDatabase(this, dbname, flags);
 
   ham_assert(get_allocator());
   ham_assert(get_device());
@@ -1190,12 +1190,15 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
       break;
   }
 
-  if (dbi == get_max_databases())
+  if (dbi == get_max_databases()) {
+    delete db;
     return (HAM_DATABASE_NOT_FOUND);
+  }
 
   /* open the database */
   ham_status_t st = db->open(dbi);
   if (st) {
+    delete db;
     ham_trace(("Database could not be opened"));
     return (st);
   }

@@ -1584,7 +1584,7 @@ public:
 
     ham_key_t key = {};
     ham_record_t rec = {};
-    ham_u8_t buffer[16];
+    ham_u8_t buffer[16] = {0};
 
     rec.data = (void *)&buffer[0];
     rec.size = 16;

@@ -1483,9 +1483,8 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
    * if transactions are enabled: only insert the key/record pair into
    * the Transaction structure. Otherwise immediately write to the btree.
    */
-  if (txn || local_txn) {
+  if (txn || local_txn)
     st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
-  }
   else
     st = m_btree->insert(txn, key, record, flags);
 

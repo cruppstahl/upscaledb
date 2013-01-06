@@ -166,7 +166,9 @@ public:
     op->remove_cursor(&c1);
     BFC_ASSERT_EQUAL((TransactionCursor *)0, op->get_cursors());
 
-    ((Transaction *)txn)->free_ops();
+    c1.set_to_nil();
+    c2.set_to_nil();
+    c3.set_to_nil();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 

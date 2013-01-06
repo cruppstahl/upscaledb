@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -205,9 +205,9 @@ class Journal
                 void *ptr3 = 0, ham_size_t ptr3_size = 0,
                 void *ptr4 = 0, ham_size_t ptr4_size = 0,
                 void *ptr5 = 0, ham_size_t ptr5_size = 0) {
-        return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
-                    ptr2, ptr2_size, ptr3, ptr3_size,
-                    ptr4, ptr4_size, ptr5, ptr5_size));
+      return (os_writev(m_fd[fdidx], ptr1, ptr1_size,
+                  ptr2, ptr2_size, ptr3, ptr3_size,
+                  ptr4, ptr4_size, ptr5, ptr5_size));
     }
 
     /** clears a single file */

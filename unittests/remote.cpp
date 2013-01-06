@@ -602,6 +602,7 @@ protected:
     ham_record_t rec2 = {};
     ham_u64_t keycount;
     char buf[1024];
+    memset(&buf[0], 0, sizeof(buf));
 
     key.data = (void *)"hello world";
     key.size = 12;
@@ -1104,7 +1105,7 @@ protected:
         ham_env_create(&env, SERVER_URL, 0, 0664, 0));
     BFC_ASSERT_EQUAL(0,
         ham_env_open_db(env, &db1, 33, 0, 0));
-    BFC_ASSERT_EQUAL(0,
+    BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
         ham_env_open_db(env, &db2, 33, 0, 0));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
