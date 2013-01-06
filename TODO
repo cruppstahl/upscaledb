@@ -310,8 +310,8 @@ o finalize for the next release
     x increment libtool version
     x sources: change copyright date to 2013
     x webpage: change copyright date to 2013
-    o run valgrind tests
-    o update README w/ API updates
+    x update README w/ API updates
+    o run valgrind tests --> many memory leaks, invalid read of size 8 etc
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap

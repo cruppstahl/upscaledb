@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.1.0               Sun Nov 25 11:59:08 CET 2012
+hamsterdb Embedded Storage 2.1.0               Fr 4. Jan 23:18:03 CET 2013
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -8,42 +8,107 @@ Contents:
 
 1. About
 
-hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
-a B+Tree index structure, uses memory mapped I/O (if available),
-fast Cursors and variable length keys and can create In-Memory Databases.
+hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
+mature and easy to use.
 
-This release fixes a few minor bugs and has a few performance improvements.
+Over the last 7 years hamsterdb has grown continuously, and it was time to clean
+up the functionality and the interface in order to improve the consistency and
+reduce the code. The file format did not change. This release also enables
+support of Transactions for In-Memory Environments. The memory mapped I/O
+functions were rewritten and are now much more efficient.
 
-The internal C++ implementation was moved to into namespace "ham" to avoid
-conflicts with other symbols.
+Most of the API changes are straightforward, i.e. renamed constants and
+function names. A few functions were removed (file filters, encryption,
+compression). Some functions have new interfaces (i.e. ham_env_open_ex was
+renamed to ham_env_open, and the old ham_env_open function was removed). Also,
+it is now mandatory to create (or open) an Environment before a Database is
+created (or opened). This requires small changes in the application code.
 
-A segmentation fault in the dotnet API was fixed.
+Here are the changes in detail:
 
-!!
-Note that for the next release there are various API changes in the queue. 
-Over the last 7 years hamsterdb has grown continuously, and it's time to clean
-up some of the changes in order to improve consistency and reduce the code.
-A few functions will be removed, i.e. support for encryption and compression.
-The file format will most likely change as well.
+Semantic Changes
+* Extended keys are now disabled by default; use HAM_ENABLE_EXTENDED_KEYS to
+	enable them
+* Creating/Opening an Environment is now mandatory; ham_open/ham_create
+    were removed
+* ham_new, ham_delete, ham_env_new, ham_env_delete were removed as well and
+    are no longer required
+
+Renamed Macros/Functions
+* C++ API: renamed the namespace from "ham" to "hamsterdb"
+* ham_check_integrity -> ham_db_check_integrity
+* ham_get_error -> ham_db_get_error
+* ham_set_prefix_compare_func -> ham_db_set_prefix_compare_func
+* ham_set_compare_func -> ham_db_set_compare_func
+* ham_find -> ham_db_find
+* ham_insert -> ham_db_insert
+* ham_erase -> ham_db_erase
+* ham_get_key_count -> ham_db_get_key_count
+* ham_get_parameter -> ham_db_get_parameter
+* ham_get_env -> ham_db_get_env
+* ham_close -> ham_db_close
+* HAM_DB_READ_ONLY -> HAM_WRITE_PROTECTED
+* HAM_WRITE_THROUGH -> HAM_ENABLE_FSYNC
+* HAM_PARAM_GET_FLAGS -> HAM_PARAM_FLAGS
+* HAM_PARAM_GET_FILEMODE -> HAM_PARAM_FILEMODE
+* HAM_PARAM_GET_FILEMODE -> HAM_PARAM_FILEMODE
+* HAM_PARAM_MAX_ENV_DATABASES -> HAM_PARAM_MAX_DATABASES
+* HAM_PARAM_GET_KEYS_PER_PAGE -> HAM_PARAM_MAX_KEYS_PER_PAGE
+* Reduced list of options for ham_db_get_parameters; see hamsterdb.h
+
+Removed Functions/Macros
+* Removed the deprecated flag HAM_NOT_INITIALIZED
+* Removed the deprecated flag HAM_LOCK_EXCLUSIVE
+* Removed the flag HAM_USE_BTREE; it was not required.
+* Removed HAM_FAST_ESTIMATE
+* Removed the deprecated flags HAM_HINT_UBER_FAST_ACCESS,
+    HAM_HINT_RANDOM_ACCESS and HAM_HINT_SEQUENTIAL
+* Removed ham_env_new, ham_env_delete, ham_new, ham_delete
+* Removed ham_open, ham_open_ex, ham_create, ham_create_ex
+* Removed ham_env_create; renamed ham_env_create_ex to ham_env_create
+* Removed ham_env_open; renamed ham_env_open_ex to ham_env_open
+* Removed deprecated flags HAM_DISABLE_FREELIST_FLUSH, HAM_LOCK_EXCLUSIVE,
+    HAM_IN_MEMORY_DB
+* Removed ham_get_flags; use ham_get_parameters instead
+* Removed the HAM_DAM_* flags
+* Removed ham_cursor_find_ex; renamed ham_cursor_find to ham_cursor_find_ex
+* Removed ham_enable_encryption and the file filters
+* Removed ham_enable_compression and the record filters
+* Removed ham_get_keycount_per_page; the keycount can still be retrieved
+    with ham_get_parameter(... HAM_PARAM_GET_KEYS_PER_PAGE...)
+* Removed sorted duplicates; they anyway did not work in combination with
+    Transactions. They will be fully implemented at a later stage.
+* Removed ham_flush; use ham_env_flush instead
+* Removed HAM_PARAM_DBNAME
+
+Changed Interfaces
+* Changed the parameters of ham_cursor_create
+* Changed the parameters of ham_env_create, ham_env_open, ham_env_create_db 
+	and ham_env_open_db
+* Changed the parameters of ham_cursor_find
+
 
 2. Changes
 
 New Features
-* None
+* In-Memory Environments now support Transactions
+* Added two new tools: ham_export to export a database into a binary format,
+	ham_import to create an Environment from the exported data (or to merge
+	the data into an existing Environment). ham_export is linked statically.
+	ham_export/ham_import will provide an upgrade path for newer hamsterdb
+	versions.
 
 Bugfixes
-* (dotnet) Fixed invalid memory access when using Parameter[] in
-        env.CreateDatabase or env.OpenDatabase (Thanks, Jason)
-* Issue 16: Fixed the recovery process for temporary Transactions
+* Applied patch with many automake/autoconf related cleanups (thanks,
+	Daniel Richard G. <skunk@iskunk.org>)
 
 Other Changes
-* Removed HAM_PARAM_GET_STATISTICS; ham/hamsterdb_stats.h is no longer
-    public, and the functions are no longer exported
-* Renamed HAM_IN_MEMORY_DB to HAM_IN_MEMORY
-* The internal C++ implementation was moved into namespace "ham" in order
-        to avoid conflicts with other applications
-* Performance improvements when using record number databases with recovery
-* Win32 files are now created with FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+* Gazillions of API changes (see above)
+* Improved performance of ham_db_get_key_count if use of duplicate keys are
+    disabled
+* Updated mmap support; mmap is now about 30% faster compared to the previous
+	implementation
+* Minor performance improvement if HAM_ENABLE_FSYNC and HAM_ENABLE_TRANSACTIONS
 
 To see a list of all changes, look in the file ChangeLog.
 
