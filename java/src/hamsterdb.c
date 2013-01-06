@@ -575,8 +575,8 @@ Java_de_crupp_hamsterdb_Database_ham_1db_1set_1compare_1func(JNIEnv *jenv,
 }
 
 JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1set_1prefix_1compare_1func(JNIEnv *jenv,
-    jobject jobj, jlong jhandle, jobject jcmp)
+Java_de_crupp_hamsterdb_Database_ham_1db_1set_1prefix_1compare_1func(
+        JNIEnv *jenv, jobject jobj, jlong jhandle, jobject jcmp)
 {
   /* jcmp==null: disable prefix compare function */
   if (!jcmp) {
@@ -1127,7 +1127,7 @@ Java_de_crupp_hamsterdb_Transaction_ham_1txn_1abort(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1get_1parameters(JNIEnv *jenv,
+Java_de_crupp_hamsterdb_Database_ham_1db_1get_1parameters(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jobjectArray jparams)
 {
   ham_status_t st = 0;
@@ -1151,7 +1151,7 @@ Java_de_crupp_hamsterdb_Database_ham_1get_1parameters(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1get_1key_1count(JNIEnv *jenv,
+Java_de_crupp_hamsterdb_Database_ham_1db_1get_1key_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jlong jtxnhandle, jint jflags)
 {
   ham_status_t st;

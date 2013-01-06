@@ -490,7 +490,7 @@ public class Cursor {
     public void close()
             throws DatabaseException {
         int status;
-        if (m_handle==0)
+        if (m_handle == 0)
             return;
         synchronized (m_db) {
             closeNoLock();
@@ -500,10 +500,10 @@ public class Cursor {
 
     public void closeNoLock()
             throws DatabaseException {
-        int status=ham_cursor_close(m_handle);
-        if (status!=0)
+        int status = ham_cursor_close(m_handle);
+        if (status != 0)
             throw new DatabaseException(status);
-        m_handle=0;
+        m_handle = 0;
     }
 
     /**
