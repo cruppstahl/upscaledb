@@ -72,7 +72,8 @@ public:
   virtual void teardown() {
     __super::teardown();
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
+    if (m_env)
+	  BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
   }
 
   void structureTest() {

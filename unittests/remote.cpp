@@ -178,11 +178,7 @@ protected:
     BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
 
     BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
-#ifdef WIN32
-    BFC_ASSERT_EQUAL(1024 * 64u, params[1].value);
-#else
     BFC_ASSERT_EQUAL(1024 * 16u, params[1].value);
-#endif
     BFC_ASSERT_EQUAL((ham_u64_t)16, params[2].value);
     BFC_ASSERT_EQUAL((ham_u64_t)(HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY), params[3].value);

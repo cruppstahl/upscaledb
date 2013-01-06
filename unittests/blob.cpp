@@ -97,8 +97,8 @@ public:
     /* clear the changeset, otherwise ham_db_close will complain */
     if (!m_inmemory && m_env)
       ((Environment *)m_env)->get_changeset().clear();
-
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+    if (m_env)
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void structureTest() {

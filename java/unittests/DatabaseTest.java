@@ -40,7 +40,7 @@ public class DatabaseTest extends TestCase {
   public void testGetVersion() {
     Version v=Database.getVersion();
     assertEquals(2, v.major);
-    assertEquals(0, v.minor);
+    assertEquals(1, v.minor);
   }
 
   public void testGetLicense() {
@@ -99,7 +99,7 @@ public class DatabaseTest extends TestCase {
     MyComparator cmp = new MyComparator();
     try {
       env.create("jtest.db");
-      db = env.createDatabase((short)1);
+      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS);
       db.setComparator(cmp);
       db.insert(k, r);
       k[0] = 1;
@@ -189,7 +189,7 @@ public class DatabaseTest extends TestCase {
     MyPrefixComparator cmp = new MyPrefixComparator();
     try {
       env.create("jtest.db");
-      db = env.createDatabase((short)1);
+      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS);
       db.setPrefixComparator(cmp);
       db.insert(k, r);
       k[0] = 1;

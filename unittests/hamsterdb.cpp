@@ -1286,12 +1286,13 @@ public:
 
   void prefixCompareTest() {
     ham_prefix_compare_func_t f = my_prefix_compare_func;
+    ham_prefix_compare_func_t n = (ham_prefix_compare_func_t)0;
 
     BFC_ASSERT_EQUAL(0, ham_db_set_prefix_compare_func(m_db, f));
     BFC_ASSERT_EQUAL(f, ((Database *)m_db)->get_prefix_compare_func());
 
     BFC_ASSERT_EQUAL(0, ham_db_set_prefix_compare_func(m_db, 0));
-    BFC_ASSERT_EQUAL(0, ((Database *)m_db)->get_prefix_compare_func());
+    BFC_ASSERT_EQUAL(n, ((Database *)m_db)->get_prefix_compare_func());
   }
 
   void cursorCreateTest() {

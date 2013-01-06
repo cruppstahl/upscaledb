@@ -290,6 +290,15 @@ x disallow usage of extended keys UNLESS HAM_ENABLE_EXTENDED_KEYS is active
     x add to dotnet API
     x document this
 
+x ham_size_t is currently ham_u32_t - verify this! it should have a constant
+    size. It should be int, and it should never be persisted!
+    -> also do not use in ham_record_t
+
+x remove support for Windows CE
+    x in samples
+    x in os_win32.cc
+    x in contrib/
+
 o need a launchpad project; start with 12.04 for 64bit
     sudo apt-get install packaging-dev dh-make
     <migrate gpg key>
@@ -312,22 +321,27 @@ o finalize for the next release
     x webpage: change copyright date to 2013
     x update README w/ API updates
     o run valgrind tests --> many memory leaks, invalid read of size 8 etc
+    x MSVC 2008: project files for ham_import, ham_export
+    x make sure Java works
+    o update README w/ API updates
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap
-    o need documentation for ham_export, ham_import
-    o MSVC project files for ham_import, ham_export
+    o (Wiki) need documentation for ham_export, ham_import
+    o MSVC 2010: project files for ham_import, ham_export
+    o Fix dotnet stuff (failing in garbage collection)
+    o update documentation/samples on the webpages
 
 . can we perform better with O_DIRECT? run some benchmarks
 
-o continue refactoring of txn.h/txn.cc
-    o TransactionIndex: use std::set<OperationNode> instead of rb.h
+. continue refactoring of txn.h/txn.cc
     o try to cleanup the flow; move more code from db.cc to txn.cc,
         reorg TransactionIndex similar to BtreeIndex
     o try to replace some of the linked lists with boost::intrusive_list
     o document the tree structure in the header file
+    o TransactionIndex: use std::set<OperationNode> instead of rb.h
 
-------------------- release 2.0.6 -----------------------------------------
+------------------- release 2.1.0 -----------------------------------------
 
 
 

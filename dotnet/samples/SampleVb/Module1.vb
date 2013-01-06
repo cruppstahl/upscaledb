@@ -16,9 +16,11 @@ Module Module1
     Sub Main()
         Dim i As Integer
         Dim db As Database = New Database
+        Dim env As Hamster.Environment = New Environment
 
         ' create a new Database
-        db.Create("test.db")
+        env.Create("test.db")
+        db = env.CreateDatabase(1)
 
         ' insert some values
         For i = 0 To 10

@@ -755,7 +755,7 @@ next:
 ham_status_t
 LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags,
-            struct TransactionCursor *cursor)
+            TransactionCursor *cursor)
 {
   ham_status_t st = 0;
   TransactionOperation *op;

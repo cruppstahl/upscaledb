@@ -159,18 +159,18 @@ public:
 
   void mmapTest() {
     ham_fd_t fd, mmaph;
-    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_size_t ps = os_get_granularity();
     ham_u8_t *p1, *p2;
     p1 = (ham_u8_t *)malloc(ps);
 
     BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
     for (int i = 0; i < 10; i++) {
       memset(p1, i, ps);
-      BFC_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
+      BFC_ASSERT_EQUAL(0, os_pwrite(fd, i * ps, p1, ps));
     }
     for (int i = 0; i < 10; i++) {
       memset(p1, i, ps);
-      BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, 0, &p2));
+      BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i * ps, ps, 0, &p2));
       BFC_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
       BFC_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
     }
@@ -180,7 +180,7 @@ public:
 
   void mmapAbortTest() {
     ham_fd_t fd, mmaph;
-    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_size_t ps = os_get_granularity();
     ham_u8_t *page, *mapped;
     page = (ham_u8_t *)malloc(ps);
 
@@ -206,7 +206,7 @@ public:
   void mmapReadOnlyTest() {
     int i;
     ham_fd_t fd, mmaph;
-    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_size_t ps = os_get_granularity();
     ham_u8_t *p1, *p2;
     p1 = (ham_u8_t *)malloc(ps);
 
@@ -220,7 +220,7 @@ public:
     BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), HAM_READ_ONLY, &fd));
     for (i = 0; i < 10; i++) {
       memset(p1, i, ps);
-      BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i * ps, ps, HAM_READ_ONLY, &p2));
+      BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i * ps, ps, true, &p2));
       BFC_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
       BFC_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
     }
@@ -230,7 +230,7 @@ public:
 
   void multipleMmapTest() {
     ham_fd_t fd, mmaph;
-    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
+    ham_size_t ps = os_get_granularity();
     ham_u8_t *p1, *p2;
     ham_u64_t addr = 0, size;
 

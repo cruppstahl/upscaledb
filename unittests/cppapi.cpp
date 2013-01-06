@@ -76,21 +76,21 @@ public:
     hamsterdb::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
 
     BFC_ASSERT_EQUAL((void *)0, k1.get_data());
-    BFC_ASSERT_EQUAL((ham_size_t)0, k1.get_size());
+    BFC_ASSERT_EQUAL((ham_u16_t)0, k1.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
 
     BFC_ASSERT_EQUAL(p, k2.get_data());
-    BFC_ASSERT_EQUAL((ham_size_t)4, k2.get_size());
+    BFC_ASSERT_EQUAL((ham_u16_t)4, k2.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k2.get_flags());
 
     k1 = k2;
     BFC_ASSERT_EQUAL(p, k1.get_data());
-    BFC_ASSERT_EQUAL((ham_size_t)4, k1.get_size());
+    BFC_ASSERT_EQUAL((ham_u16_t)4, k1.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k1.get_flags());
 
     hamsterdb::key k3(k1);
     BFC_ASSERT_EQUAL(p, k3.get_data());
-    BFC_ASSERT_EQUAL((ham_size_t)4, k3.get_size());
+    BFC_ASSERT_EQUAL((ham_u16_t)4, k3.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k3.get_flags());
 
     int i = 3;
@@ -103,7 +103,7 @@ public:
     k1.set_size(2);
     k1.set_flags(0);
     BFC_ASSERT_EQUAL(q, k1.get_data());
-    BFC_ASSERT_EQUAL((ham_size_t)2, k1.get_size());
+    BFC_ASSERT_EQUAL((ham_u16_t)2, k1.get_size());
     BFC_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
   }
 

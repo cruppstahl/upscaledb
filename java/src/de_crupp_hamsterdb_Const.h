@@ -99,14 +99,10 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_DISABLE_MMAP 512L
 #undef de_crupp_hamsterdb_Const_HAM_CACHE_STRICT
 #define de_crupp_hamsterdb_Const_HAM_CACHE_STRICT 1024L
-#undef de_crupp_hamsterdb_Const_HAM_DISABLE_FREELIST_FLUSH
-#define de_crupp_hamsterdb_Const_HAM_DISABLE_FREELIST_FLUSH 2048L
 #undef de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER
 #define de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER 8192L
 #undef de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATES
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATES 16384L
-#undef de_crupp_hamsterdb_Const_HAM_ENABLE_EXTENDED_KEYS
-#define de_crupp_hamsterdb_Const_HAM_ENABLE_EXTENDED_KEYS 0x80000L
 #undef de_crupp_hamsterdb_Const_HAM_ENABLE_RECOVERY
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_RECOVERY 32768L
 #undef de_crupp_hamsterdb_Const_HAM_AUTO_RECOVERY
@@ -115,6 +111,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_TRANSACTIONS 131072L
 #undef de_crupp_hamsterdb_Const_HAM_CACHE_UNLIMITED
 #define de_crupp_hamsterdb_Const_HAM_CACHE_UNLIMITED 262144L
+#undef de_crupp_hamsterdb_Const_HAM_ENABLE_EXTENDED_KEYS
+#define de_crupp_hamsterdb_Const_HAM_ENABLE_EXTENDED_KEYS 524288L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_CACHESIZE
 #define de_crupp_hamsterdb_Const_HAM_PARAM_CACHESIZE 256L
 #undef de_crupp_hamsterdb_Const_HAM_PARAM_PAGESIZE

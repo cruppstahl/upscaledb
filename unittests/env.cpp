@@ -904,7 +904,7 @@ protected:
         key.size = sizeof(buffer);
         sprintf(buffer, "%08x%08x", j, i+1);
 
-        BFC_ASSERT_EQUAL(0, ham_db_find(db[i], 0, &key, &rec, 0));
+		BFC_ASSERT_EQUAL(0, ham_db_find(db[i], 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
         BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
       }

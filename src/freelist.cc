@@ -547,7 +547,7 @@ Freelist::mark_free(Database *db, ham_u64_t address, ham_size_t size,
         s = set_bits(entry, fp, overwrite,
                 (ham_size_t)(address-freel_get_start_address(fp))
                         / DB_CHUNKSIZE,
-                size/DB_CHUNKSIZE, true, &hints);
+                size / DB_CHUNKSIZE, true, &hints);
 
         freel_set_allocated_bits(fp,
                 (ham_u32_t)(freel_get_allocated_bits(fp)+s));
@@ -580,7 +580,7 @@ Freelist::alloc_area(ham_u64_t *addr_ref, Database *db, ham_size_t size,
         0,
         1,
         0,
-        m_entries.size(),
+        (ham_u32_t)m_entries.size(),
         0,
         0, /* span_width will be set by the hinter */
         aligned,
@@ -2831,7 +2831,7 @@ Freelist::initialize()
     while (freel_get_overflow(fp)) {
         Page *page;
 
-        st=resize(m_entries.size()+1);
+        st=resize((ham_size_t)m_entries.size()+1);
         if (st)
             return st;
 

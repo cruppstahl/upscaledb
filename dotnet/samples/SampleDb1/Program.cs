@@ -24,12 +24,14 @@ namespace SampleDb1
         static void Main(string[] args) {
             byte[] key = new byte[5];
             byte[] record = new byte[5];
+            Hamster.Environment env = new Hamster.Environment();
             Database db = new Database();
 
             /*
              * first, create a new Database
              */
-            db.Create("test.db");
+            env.Create("test.db");
+            db = env.CreateDatabase(1);
 
             /*
              * now we can insert, delete or lookup values in the Database
@@ -64,7 +66,9 @@ namespace SampleDb1
              * to open a Database file)
              */
             db.Close();
-            db.Open("test.db");
+            env.Close();
+            env.Open("test.db");
+            db = env.OpenDatabase(1);
 
             /*
              * now erase all values

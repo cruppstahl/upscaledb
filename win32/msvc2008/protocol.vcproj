@@ -308,7 +308,7 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
-					AdditionalDependencies="messages.proto"
+					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
 			</FileConfiguration>
@@ -318,7 +318,7 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
-					AdditionalDependencies="messages.proto"
+					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
 			</FileConfiguration>
@@ -328,7 +328,7 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
-					AdditionalDependencies="messages.proto"
+					AdditionalDependencies=""
 					Outputs="messages.pb.cc"
 				/>
 			</FileConfiguration>
@@ -338,7 +338,7 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					CommandLine="..\..\..\hamsterdb-alien\protobuf\msvc2008\protoc.exe ..\..\src\protocol\messages.proto --cpp_out=..\..\src\protocol --proto_path=..\..\src\protocol&#x0D;&#x0A;"
-					AdditionalDependencies="messages.proto"
+					AdditionalDependencies=""
 					Outputs="messages.bp.cc"
 				/>
 			</FileConfiguration>

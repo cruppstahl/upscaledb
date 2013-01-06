@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include;../../../hamsterdb-alien/libcurl/msvc2008"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -202,7 +202,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include;../../../hamsterdb-alien/libcurl/msvc2008"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

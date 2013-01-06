@@ -171,7 +171,7 @@ typedef struct ham_cursor_t ham_cursor_t;
  */
 typedef struct {
   /** The size of the record data, in bytes */
-  ham_size_t size;
+  ham_u32_t size;
 
   /** Pointer to the record data */
   void *data;
@@ -183,7 +183,7 @@ typedef struct {
   ham_u32_t partial_offset;
 
   /** Size for partial reading/writing; see @ref HAM_PARTIAL */
-  ham_size_t partial_size;
+  ham_u32_t partial_size;
 
   /** For internal use */
   ham_u32_t _intflags;

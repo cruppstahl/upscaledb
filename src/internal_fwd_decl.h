@@ -85,7 +85,7 @@ typedef struct insert_hints_t insert_hints_t;
 struct erase_hints_t;
 typedef struct erase_hints_t erase_hints_t;
 
-struct TransactionCursor;
+class TransactionCursor;
 
 #include "packstart.h"
 

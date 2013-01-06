@@ -109,7 +109,7 @@ namespace Hamster
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_DISABLE_VAR_KEYLEN       =  0x040;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_IN_MEMORY_DB           =  0x00080;
+    public const int HAM_IN_MEMORY              =  0x00080;
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_DISABLE_MMAP           =  0x00200;
     /// <summary>Flag for Database.Open, Database.Create</summary>

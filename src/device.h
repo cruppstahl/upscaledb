@@ -147,7 +147,7 @@ class DiskDevice : public Device {
     DiskDevice(Environment *env, ham_u32_t flags)
       : Device(env, flags), m_fd(HAM_INVALID_FD),
         m_win32mmap(HAM_INVALID_FD), m_mmapptr(0),
-        m_open_filesize(0), m_mapped_size(0) {
+        m_mapped_size(0) {
     }
 
     /** Create a new device */
@@ -168,22 +168,27 @@ class DiskDevice : public Device {
         return (0);
 
       /* try mmap; if it fails then continue with read/write */
-      st = get_filesize(&m_open_filesize);
+	      /** the file size which backs the mapped ptr */
+      ham_u64_t open_filesize;
+
+      st = get_filesize(&open_filesize);
       if (st)
         return (st);
 
-      if (m_open_filesize == 0)
+      if (open_filesize == 0)
         return (0);
 
-      /* align the filesize */
+      /* align the filesize; make sure we do not exceed the "real"
+	   * size of the file, otherwise we run into issues when accessing
+	   * that memory (at least on windows) */
       ham_size_t granularity = os_get_granularity();
-      if (m_open_filesize % granularity)
-        m_mapped_size = (m_open_filesize / granularity) * (granularity + 1);
+	  if (open_filesize % granularity)
+		m_mapped_size = (open_filesize / granularity) * granularity;
       else
-        m_mapped_size = m_open_filesize;
+        m_mapped_size = open_filesize;
 
       return (os_mmap(m_fd, &m_win32mmap, 0, m_mapped_size,
-                    flags & HAM_READ_ONLY, &m_mmapptr));
+                    (flags & HAM_READ_ONLY) != 0, &m_mmapptr));
     }
 
     /** closes the device */
@@ -228,7 +233,7 @@ class DiskDevice : public Device {
       return (os_tell(m_fd, offset));
     }
 
-    /** reads from the device; this function does not use mmap */
+    /** reads from the device; this function does NOT use mmap */
     virtual ham_status_t read(ham_u64_t offset, void *buffer,
                 ham_u64_t size) {
       return (os_pread(m_fd, offset, buffer, size));
@@ -242,7 +247,8 @@ class DiskDevice : public Device {
       return (os_pwrite(m_fd, offset, buffer, size));
     }
 
-    /** reads a page from the device; this function CAN use mmap */
+    /** reads a page from the device; this function CAN return a
+	* pointer to mmapped memory */
     virtual ham_status_t read_page(Page *page);
 
     /** writes a page to the device */
@@ -251,7 +257,7 @@ class DiskDevice : public Device {
     }
 
     /** allocate storage from this device; this function
-     * will *NOT* use mmap.  */
+     * will *NOT* return mmapped memory  */
     virtual ham_status_t alloc(ham_size_t size, ham_u64_t *address) {
       ham_status_t st = os_get_filesize(m_fd, address);
       if (st)
@@ -259,10 +265,8 @@ class DiskDevice : public Device {
       return (os_truncate(m_fd, (*address) + size));
     }
 
-    /**
-     * allocate storage for a page from this device; this function
-     * can use mmap if available
-     */
+    /** allocate storage for a page from this device; this function
+     * will *NOT* return mmapped memory */
     virtual ham_status_t alloc_page(Page *page);
 
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
@@ -283,9 +287,6 @@ class DiskDevice : public Device {
 
     /** the mmapped data */
     ham_u8_t *m_mmapptr;
-
-    /** the file size which backs the mapped ptr */
-    ham_u64_t m_open_filesize;
 
     /** the size of m_mmapptr as used in os_mmap */
     ham_u64_t m_mapped_size;

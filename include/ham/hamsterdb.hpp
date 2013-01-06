@@ -31,7 +31,7 @@
 #include <cstring>
 #include <vector>
 
-#if defined(_MSC_VER) && defined(_DEBUG) && !defined(_CRTDBG_MAP_ALLOC) && !defined(UNDER_CE)
+#if defined(_MSC_VER) && defined(_DEBUG) && !defined(_CRTDBG_MAP_ALLOC)
 #  define _CRTDBG_MAP_ALLOC
 #  include <crtdbg.h>
 #endif
@@ -84,10 +84,10 @@ private:
 class key {
   public:
     /** Constructor */
-    key(void *data = 0, ham_size_t size = 0, ham_u32_t flags = 0) {
+    key(void *data = 0, ham_u16_t size = 0, ham_u32_t flags = 0) {
       memset(&m_key, 0, sizeof(m_key));
       m_key.data = data;
-      m_key.size = (ham_u16_t)size;
+      m_key.size = size;
       m_key.flags = flags;
       if (m_key.size != size) // check for overflow
         throw error(HAM_INV_KEYSIZE);
@@ -116,15 +116,13 @@ class key {
     }
 
     /** Returns the size of the key. */
-    ham_size_t get_size() const {
+    ham_u16_t get_size() const {
       return (m_key.size);
     }
 
     /** Sets the size of the key. */
-    void set_size(ham_size_t size) {
-      m_key.size = (ham_u16_t)size;
-      if (m_key.size != size)
-        throw error(HAM_INV_KEYSIZE);
+    void set_size(ham_u16_t size) {
+      m_key.size = size;
     }
 
     /** Template assignment */
@@ -166,7 +164,7 @@ private:
 class record {
   public:
     /** Constructor */
-    record(void *data = 0, ham_size_t size = 0, ham_u32_t flags = 0) {
+    record(void *data = 0, ham_u32_t size = 0, ham_u32_t flags = 0) {
       memset(&m_rec, 0, sizeof(m_rec));
       m_rec.data = data;
       m_rec.size = size;
@@ -195,12 +193,12 @@ class record {
     }
 
     /** Returns the size of the record. */
-    ham_size_t get_size() const {
+    ham_u32_t get_size() const {
       return (m_rec.size);
     }
 
     /** Sets the size of the record. */
-    void set_size(ham_size_t size) {
+    void set_size(ham_u32_t size) {
       m_rec.size = size;
     }
 

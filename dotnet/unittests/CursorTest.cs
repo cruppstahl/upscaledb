@@ -39,17 +39,20 @@ namespace Unittests
             return 0;
         }
 
+        private Hamster.Environment env;
         private Database db;
 
         [TestInitialize()]
         public void SetUp() {
+            env = new Hamster.Environment();
             db = new Database();
-            db.Create("ntest.db", HamConst.HAM_ENABLE_DUPLICATES);
+            env.Create("ntest.db");
+            db = env.CreateDatabase(1, HamConst.HAM_ENABLE_DUPLICATES);
         }
 
         [TestCleanup()]
         public void TearDown() {
-            db.Close(HamConst.HAM_AUTO_CLEANUP);
+            env.Close(HamConst.HAM_AUTO_CLEANUP);
         }
 
         [TestMethod()]

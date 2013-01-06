@@ -42,20 +42,6 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Returns the last error code of the background thread
-    /// </summary>
-    /// <remarks>
-    /// This method wraps the native ham_env_get_asynchronous_error
-    /// function.
-    /// </remarks>
-    /// <returns>The error code of the background thread</returns>
-    public int GetAsynchronousError() {
-      lock (this) {
-        return NativeMethods.GetAsynchronousError(handle);
-      }
-    }
-
-    /// <summary>
     /// Creates a new Environment
     /// </summary>
     /// <remarks>
@@ -117,7 +103,7 @@ namespace Hamster
     ///     Immediately write modified pages to the disk. This
     ///     slows down all Database operations, but may save the
     ///     Database integrity in case of a system crash.</item><br />
-    ///   <item><see cref="HamConst.HAM_IN_MEMORY_DB" />
+    ///   <item><see cref="HamConst.HAM_IN_MEMORY" />
     ///     Creates an In-Memory Environment. No file will be created,
     ///     and the Databases are lost after the Environment
     ///     is closed. The <paramref name="fileName" /> parameter can
@@ -139,7 +125,7 @@ namespace Hamster
     ///     necessary and only for a short time.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
     ///     Enables logging/recovery for this Database. Not allowed in
-    ///     combination with <see cref="HamConst.HAM_IN_MEMORY_DB" />,
+    ///     combination with <see cref="HamConst.HAM_IN_MEMORY" />,
     ///     <see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" /> and
     ///     <see cref="HamConst.HAM_ENABLE_FSYNC" />.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_TRANSACTIONS" />
@@ -205,6 +191,30 @@ namespace Hamster
     /// Opens an existing Environment
     /// </summary>
     /// <remarks>
+    /// This is an overloaded function for
+    ///   Open(fileName, 0, null).
+    /// </remarks>
+    public void Open(string fileName)
+    {
+        Open(fileName, 0, null);
+    }
+
+    /// <summary>
+    /// Opens an existing Environment
+    /// </summary>
+    /// <remarks>
+    /// This is an overloaded function for
+    ///   Open(fileName, flags, null).
+    /// </remarks>
+    public void Open(String fileName, int flags)
+    {
+        Open(fileName, flags, null);
+    }
+
+    /// <summary>
+    /// Opens an existing Environment
+    /// </summary>
+    /// <remarks>
     /// This method wraps the native ham_env_open function.
     /// </remarks>
     ///
@@ -234,18 +244,11 @@ namespace Hamster
     ///     If the flag is not set, the cache is allowed to allocate
     ///     more pages than the maximum cache size, but only if it's
     ///     necessary and only for a short time.</item><br />
-    ///   <item><see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" />
-    ///     This flag is deprecated.</item><br />
-    ///   <item><see cref="HamConst.HAM_LOCK_EXCLUSIVE" />
-    ///     Place an exclusive lock on the file. Only one process
-    ///     may hold an exclusive lock for a given file at a given
-    ///     time. Deprecated - this is the default
-    ///     behaviour.</item><br />
     ///   <item><see cref="HamConst.HAM_ENABLE_RECOVERY" />
     ///     Enables logging/recovery for this Database. Will return
     ///     <see cref="HamConst.HAM_NEED_RECOVERY" />, if the
     ///     Database is in an inconsistent state. Not allowed in
-    ///     combination with <see cref="HamConst.HAM_IN_MEMORY_DB" />,
+    ///     combination with <see cref="HamConst.HAM_IN_MEMORY" />,
     ///     <see cref="HamConst.HAM_DISABLE_FREELIST_FLUSH" /> and
     ///     <see cref="HamConst.HAM_ENABLE_FSYNC" />.</item><br />
     ///   <item><see cref="HamConst.HAM_AUTO_RECOVERY" />
@@ -602,18 +605,25 @@ namespace Hamster
     /// <summary>
     /// Closes the Environment
     /// </summary>
+    public void Close() {
+        Close(0);
+    }
+
+    /// <summary>
+    /// Closes the Environment
+    /// </summary>
     /// <remarks>
     /// This method wraps the native ham_env_close function.
     /// <br />
     /// </remarks>
-    public void Close() {
-      if (handle == 0)
+    public void Close(int flags) {
+      if (handle == IntPtr.Zero)
         return;
       lock (this) {
-        int st = NativeMethods.EnvClose(handle, 0);
+        int st = NativeMethods.EnvClose(handle, flags);
         if (st != 0)
           throw new DatabaseException(st);
-        handle = 0;
+        handle = IntPtr.Zero;
       }
     }
 

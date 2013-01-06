@@ -22,9 +22,9 @@
 
 #include "getopts.h"
 
-#define ARG_HELP      1
+#define ARG_HELP        1
 #define ARG_DBNAME      2
-#define ARG_FULL      3
+#define ARG_FULL        3
 #define ARG_QUIET       4
 
 static bool quiet = false;
@@ -70,9 +70,7 @@ static void
 print_environment(ham_env_t *env) {
   /* we need a temp. database */
   ham_db_t *db;
-  ham_status_t st;
-
-  st=ham_env_open_db(env, &db, 0xf001, 0, 0);
+  ham_status_t st = ham_env_open_db(env, &db, 0xf001, 0, 0);
   if (st)
     error("ham_env_open_db", st);
 
@@ -165,12 +163,12 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    number of items:    %u\n", num_items);
     if (num_items == 0)
       return;
-    printf("    average key size:     %u\n", total_key_size/num_items);
+    printf("    average key size:     %u\n", total_key_size / num_items);
     printf("    minimum key size:     %u\n", min_key_size);
     printf("    maximum key size:     %u\n", max_key_size);
     printf("    number of extended keys:%u\n", ext_keys);
     printf("    total keys (bytes):   %u\n", total_key_size);
-    printf("    average record size:  %u\n", total_rec_size/num_items);
+    printf("    average record size:  %u\n", total_rec_size / num_items);
     printf("    minimum record size:  %u\n", min_rec_size);
     printf("    maximum record size:  %u\n", min_rec_size);
     printf("    total records (bytes):  %u\n", total_rec_size);
