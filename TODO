@@ -324,15 +324,15 @@ o finalize for the next release
     x make sure Java works
     x update README w/ API updates
     x Fix dotnet stuff (failing in garbage collection)
+    x MSVC 2008: ham_dump crashes when printing
+        dotnet/DatabaseTest/n10000test.db
+    x MSVC 2010: project files for ham_import, ham_export
     o run valgrind tests --> many memory leaks, invalid read of size 8 etc
         -> there are still a lot of leaks, i.e. in RemoteTest
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap
     o (Wiki) need documentation for ham_export, ham_import
-    o MSVC 2008: ham_dump crashes when printing
-        dotnet/DatabaseTest/n10000test.db
-    o MSVC 2010: project files for ham_import, ham_export
     o update documentation/samples on the webpages
 
 . can we perform better with O_DIRECT? run some benchmarks
