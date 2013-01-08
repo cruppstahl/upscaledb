@@ -238,7 +238,7 @@ LocalEnvironment::flush_all_pages(bool nodelete)
   if (!get_cache())
     return (0);
 
-  return (get_cache()->visit(flush_all_pages_callback, 0, 1));
+  return (get_cache()->visit(flush_all_pages_callback, 0, nodelete ? 1 : 0));
 }
 
 ham_status_t
@@ -923,7 +923,7 @@ LocalEnvironment::close(ham_u32_t flags)
 
   /* flush all pages, get rid of the cache */
   if (get_cache()) {
-    (void)flush_all_pages(0);
+    (void)flush_all_pages(false);
     delete get_cache();
     set_cache(0);
   }

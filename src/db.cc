@@ -2344,6 +2344,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 
     /* free the page */
     (void)page->free();
+
     return (true);
   }
 

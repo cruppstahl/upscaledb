@@ -41,9 +41,9 @@ BlobManager::blob_from_cache(ham_size_t size)
 }
 
 ham_status_t
-BlobManager::write_chunks(Page *page, ham_u64_t addr, bool allocated,
-        bool freshly_created, ham_u8_t **chunk_data, ham_size_t *chunk_size,
-        ham_size_t chunks)
+BlobManager::write_chunks(Database *db, Page *page, ham_u64_t addr,
+        bool allocated, bool freshly_created, ham_u8_t **chunk_data,
+        ham_size_t *chunk_size, ham_size_t chunks)
 {
   ham_status_t st;
   Device *device = m_env->get_device();
@@ -81,12 +81,12 @@ BlobManager::write_chunks(Page *page, ham_u64_t addr, bool allocated,
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = m_env->fetch_page(&page, 0, pageid, cacheonly);
+        st = m_env->fetch_page(&page, db, pageid, cacheonly);
         /* blob pages don't have a page header */
         if (page)
           page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
         else if (st)
-          return st;
+          return (st);
       }
 
       /*
@@ -354,7 +354,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     /* first: write the header */
     chunk_data[0] = (ham_u8_t *)&hdr;
     chunk_size[0] = sizeof(hdr);
-    st=write_chunks(page, addr, true, freshly_created,
+    st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
     if (st)
       return (st);
@@ -367,7 +367,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     while (gapsize>=m_env->get_pagesize()) {
       chunk_data[0] = ptr;
       chunk_size[0] = m_env->get_pagesize();
-      st=write_chunks(page, addr, true, freshly_created,
+      st = write_chunks(db, page, addr, true, freshly_created,
                         chunk_data, chunk_size, 1);
       if (st)
         break;
@@ -380,7 +380,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       chunk_data[0] = ptr;
       chunk_size[0] = gapsize;
 
-      st = write_chunks(page, addr, true, freshly_created,
+      st = write_chunks(db, page, addr, true, freshly_created,
                       chunk_data, chunk_size, 1);
       if (st)
         return (st);
@@ -393,7 +393,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     chunk_data[0] = (ham_u8_t *)record->data;
     chunk_size[0] = record->partial_size;
 
-    st = write_chunks(page, addr, true, freshly_created,
+    st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
     if (st)
       return (st);
@@ -408,7 +408,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
                         ? record->partial_size
                         : record->size;
 
-    st = write_chunks(page, addr, true, freshly_created,
+    st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 2);
     if (st)
       return (st);
@@ -447,7 +447,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
             while (gapsize > m_env->get_pagesize()) {
               chunk_data[0] = ptr;
               chunk_size[0] = m_env->get_pagesize();
-              st = write_chunks(page, addr, true,
+              st = write_chunks(db, page, addr, true,
                             freshly_created, chunk_data, chunk_size, 1);
               if (st)
                 break;
@@ -467,7 +467,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
         if (!ptr)
           return (HAM_OUT_OF_MEMORY);
 
-        st = write_chunks(page, addr, true, freshly_created,
+        st = write_chunks(db, page, addr, true, freshly_created,
                     chunk_data, chunk_size, 1);
         m_env->get_allocator()->free(ptr);
         if (st)
@@ -740,14 +740,14 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
     if ((flags&HAM_PARTIAL) && (record->partial_offset)) {
       chunk_data[0] = (ham_u8_t *)&new_hdr;
       chunk_size[0] = sizeof(new_hdr);
-      st = write_chunks(page, blob_get_self(&new_hdr), false,
+      st = write_chunks(db, page, blob_get_self(&new_hdr), false,
                         false, chunk_data, chunk_size, 1);
       if (st)
         return (st);
 
       chunk_data[0] = (ham_u8_t *)record->data;
       chunk_size[0] = record->partial_size;
-      st = write_chunks(page, blob_get_self(&new_hdr) + sizeof(new_hdr)
+      st = write_chunks(db, page, blob_get_self(&new_hdr) + sizeof(new_hdr)
                             + record->partial_offset, false, false,
                             chunk_data, chunk_size, 1);
       if (st)
@@ -761,7 +761,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
                           ? record->partial_size
                           : record->size;
 
-      st = write_chunks(page, blob_get_self(&new_hdr), false,
+      st = write_chunks(db, page, blob_get_self(&new_hdr), false,
                             false, chunk_data, chunk_size, 2);
       if (st)
         return (st);
@@ -786,7 +786,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
      * when the new data is larger, allocate a fresh space for it
      * and discard the old; 'overwrite' has become (delete + insert) now.
      */
-    st = m_env->get_blob_manager()->allocate(db, record, flags, new_blobid);
+    st = allocate(db, record, flags, new_blobid);
     if (st)
       return (st);
 

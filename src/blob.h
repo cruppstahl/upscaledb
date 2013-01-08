@@ -145,9 +145,10 @@ class BlobManager
      * through the page cache or directly to device; such is determined
      * on a per-page basis.
      */
-    ham_status_t write_chunks(Page *page, ham_u64_t addr, bool allocated,
-                    bool freshly_created, ham_u8_t **chunk_data,
-                    ham_size_t *chunk_size, ham_size_t chunks);
+    ham_status_t write_chunks(Database *db, Page *page, ham_u64_t addr,
+                    bool allocated, bool freshly_created,
+                    ham_u8_t **chunk_data, ham_size_t *chunk_size,
+                    ham_size_t chunks);
 
     /**
      * same as above, but for reading chunks from the file
