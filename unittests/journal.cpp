@@ -565,7 +565,8 @@ public:
               Journal::ENTRY_TYPE_TXN_ABORT, 0);
     }
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
@@ -593,7 +594,8 @@ public:
               Journal::ENTRY_TYPE_TXN_ABORT, 0);
     }
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
     m_environ = (Environment *)m_env;
@@ -623,7 +625,8 @@ public:
               Journal::ENTRY_TYPE_TXN_ABORT, 0);
     }
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
     m_environ = (Environment *)m_env;
@@ -661,7 +664,8 @@ public:
             Journal::ENTRY_TYPE_TXN_COMMIT, 0);
     }
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     /* reopen the database */
     BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
@@ -716,7 +720,8 @@ public:
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
     m_environ = (Environment *)m_env;
     delete j;
@@ -724,7 +729,8 @@ public:
     BFC_ASSERT_EQUAL(0, j->open());
     m_environ->set_journal(j);
     compareJournal(j, vec, p);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"),
             HAM_ENABLE_TRANSACTIONS
@@ -774,8 +780,8 @@ public:
           BFC_OPATH(".test.bak1")));
     for (int i = 0; i < 5; i++)
       BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
-    BFC_ASSERT_EQUAL(0,
-          ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"),
           BFC_OPATH(".test.jrn0")));
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak1"),
@@ -787,7 +793,8 @@ public:
     BFC_ASSERT_EQUAL(0, j->open());
     m_environ->set_journal(j);
     compareJournal(j, vec, p);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     /* by re-creating the database we make sure that it's definitely
      * empty */
@@ -857,7 +864,8 @@ public:
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.jrn1"),
           BFC_OPATH(".test.bak1")));
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[1], 0));
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"),
           BFC_OPATH(".test.jrn0")));
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak1"),
@@ -868,7 +876,8 @@ public:
     BFC_ASSERT_EQUAL(0, j->open());
     m_environ->set_journal(j);
     compareJournal(j, vec, p);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     /* now open and recover */
     BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"),
@@ -926,7 +935,8 @@ public:
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
     m_environ = (Environment *)m_env;
     delete j;
@@ -934,7 +944,8 @@ public:
     BFC_ASSERT_EQUAL(0, j->open());
     m_environ->set_journal(j);
     compareJournal(j, vec, p);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"),
             HAM_ENABLE_TRANSACTIONS
@@ -993,7 +1004,8 @@ public:
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
     m_environ = (Environment *)m_env;
     delete j;
@@ -1001,7 +1013,8 @@ public:
     BFC_ASSERT_EQUAL(0, j->open());
     m_environ->set_journal(j);
     compareJournal(j, vec, p);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_DONT_CLEAR_LOG));
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_env,
+                HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"),
             HAM_ENABLE_TRANSACTIONS

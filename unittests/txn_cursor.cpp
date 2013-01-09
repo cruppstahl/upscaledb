@@ -183,8 +183,8 @@ public:
     key.size = 5;
 
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node=new TransactionNode((Database *)m_db, &key);
-    op=node->append((Transaction *)txn,
+    node = new TransactionNode((Database *)m_db, &key);
+    op = node->append((Transaction *)txn,
             0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     BFC_ASSERT(op != 0);
 
@@ -195,7 +195,7 @@ public:
     BFC_ASSERT_EQUAL(k.size, key.size);
     BFC_ASSERT_EQUAL(0, memcmp(k.data, key.data, key.size));
 
-    ((Transaction *)txn)->free_ops();
+    c.set_to_nil();
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 

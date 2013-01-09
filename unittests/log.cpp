@@ -457,11 +457,13 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_henv, &m_db, 1, 0, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
+    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT_EQUAL(0, ham_env_create_db(m_henv, &m_db, 333, 0, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
     BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
     BFC_ASSERT(((Environment *)m_henv)->get_log() != 0);
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_henv, 0));
+
+    BFC_ASSERT_EQUAL(0, ham_env_close(m_henv, HAM_AUTO_CLEANUP));
 
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_henv, BFC_OPATH(".test"),
