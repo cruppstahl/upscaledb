@@ -60,6 +60,27 @@ Environment::Environment()
 
 Environment::~Environment()
 {
+  /* close the header page */
+  if (get_device() && get_header_page()) {
+    Page *page = get_header_page();
+    if (page->get_pers())
+      get_device()->free_page(page);
+    delete page;
+    set_header_page(0);
+  }
+
+  /* close the freelist */
+  if (get_freelist()) {
+    delete get_freelist();
+    set_freelist(0);
+  }
+
+  /* close the cache */
+  if (get_cache()) {
+    delete get_cache();
+    set_cache(0);
+  }
+
   /* close the device if it still exists */
   if (get_device()) {
     Device *device = get_device();
@@ -76,6 +97,7 @@ Environment::~Environment()
     delete get_allocator();
     set_allocator(0);
   }
+
 }
 
 BtreeDescriptor *
@@ -1096,8 +1118,10 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     ham_u16_t name = get_descriptor(i)->get_dbname();
     if (!name)
       continue;
-    if (name == dbname || dbname == HAM_FIRST_DATABASE_NAME)
+    if (name == dbname || dbname == HAM_FIRST_DATABASE_NAME) {
+      delete db;
       return (HAM_DATABASE_ALREADY_EXISTS);
+    }
   }
 
   /* find a free slot in the BtreeDescriptor array and store the name */
@@ -1109,8 +1133,10 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
       break;
     }
   }
-  if (dbi == get_max_databases())
+  if (dbi == get_max_databases()) {
+    delete db;
     return (HAM_LIMITS_REACHED);
+  }
 
   /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -1122,10 +1148,25 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 
   /* initialize the Database */
   ham_status_t st = db->create(dbi, keysize);
-  if (st)
-    goto bail;
+  if (st) {
+    delete db;
+    return (st);
+  }
 
   set_dirty(true);
+
+  /* if logging is enabled: flush the changeset and the header page */
+  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
+    ham_u64_t lsn;
+    get_changeset().add_page(get_header_page());
+    st = get_incremented_lsn(&lsn);
+    if (st == 0)
+      st = get_changeset().flush(lsn);
+    if (st) {
+      delete db;
+      return (st);
+    }
+  }
 
   /*
    * on success: store the open database in the environment's list of
@@ -1134,18 +1175,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   get_database_map()[dbname] = db;
 
   *pdb = db;
-
-bail:
-  /* if logging is enabled: flush the changeset and the header page */
-  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    ham_u64_t lsn;
-    get_changeset().add_page(get_header_page());
-    st = get_incremented_lsn(&lsn);
-    if (st == 0)
-      st = get_changeset().flush(lsn);
-  }
-
-  return (st);
+  
+  return (0);
 }
 
 ham_status_t
@@ -1237,7 +1268,7 @@ LocalEnvironment::txn_begin(Transaction **txn, const char *name,
 ham_status_t
 LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
 {
-  ham_status_t st;
+  ham_status_t st = 0;
 
   /* are cursors attached to this txn? if yes, fail */
   if (txn->get_cursor_refcount()) {

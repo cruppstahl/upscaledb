@@ -328,7 +328,7 @@ o finalize for the next release
         dotnet/DatabaseTest/n10000test.db
     x MSVC 2010: project files for ham_import, ham_export
     o run valgrind tests --> many memory leaks, invalid read of size 8 etc
-        -> there are still a lot of leaks, i.e. in RemoteTest
+        -> check once more
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap
