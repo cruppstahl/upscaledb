@@ -292,7 +292,7 @@ class BtreeIndex
     /** set the address of the root node */
     void set_rootpage(ham_u64_t rp) {
       m_rootpage = rp;
-      flush_descriptor();
+      flush_descriptor(); // TODO required?
     }
 
     /** get maximum number of keys per (internal) node */

@@ -329,6 +329,13 @@ o finalize for the next release
     x MSVC 2010: project files for ham_import, ham_export
     o run valgrind tests --> many memory leaks, invalid read of size 8 etc
         -> check once more
+
+./recovery insert 8 8 0 0 1 0
+./recovery recover 1
+./recovery insert 8 8 1 0 1 0
+./recovery recover 1
+./recovery insert 8 8 2 0 1 0      # <-- hier geht die header page kaputt
+
     o update Webpage w/ API updates
     o update Wiki w/ API updates ("migration guide")
     o update FAQ/Documentation regarding mmap

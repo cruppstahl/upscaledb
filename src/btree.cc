@@ -139,6 +139,8 @@ BtreeIndex::calc_keycount_per_page(ham_size_t *maxkeys, ham_u16_t keysize)
 ham_status_t
 BtreeIndex::create(ham_u16_t keysize)
 {
+  ham_assert(keysize != 0);
+
   /* prevent overflow - maxkeys only has 16 bit! */
   ham_size_t maxkeys = calc_maxkeys(m_db->get_env()->get_pagesize(), keysize);
   if (maxkeys > MAX_KEYS_PER_NODE) {
@@ -191,6 +193,10 @@ BtreeIndex::open()
   keysize = desc->get_keysize();
   rootadd = desc->get_self();
   flags = desc->get_flags();
+
+  ham_assert(maxkeys > 0);
+  ham_assert(keysize > 0);
+  ham_assert(rootadd > 0);
 
   set_rootpage(rootadd);
   set_maxkeys(maxkeys);

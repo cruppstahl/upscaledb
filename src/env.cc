@@ -1084,12 +1084,14 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     for (; param->name; param++) {
       switch (param->name) {
         case HAM_PARAM_KEYSIZE:
-          keysize = (ham_u16_t)param->value;
-          if (flags & HAM_RECORD_NUMBER) {
-            if (keysize > 0 && keysize < sizeof(ham_u64_t)) {
-              ham_trace(("invalid keysize %u - must be 8 for HAM_RECORD_NUMBER"
-                         " databases", (unsigned)keysize));
-              return (HAM_INV_KEYSIZE);
+          if (param->value != 0) {
+            keysize = (ham_u16_t)param->value;
+            if (flags & HAM_RECORD_NUMBER) {
+              if (keysize > 0 && keysize < sizeof(ham_u64_t)) {
+                ham_trace(("invalid keysize %u - must be 8 for "
+                           "HAM_RECORD_NUMBER databases", (unsigned)keysize));
+                return (HAM_INV_KEYSIZE);
+              }
             }
           }
           break;

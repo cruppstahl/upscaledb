@@ -165,8 +165,11 @@ class BinaryImporter : public Importer {
       else
         m_insert_flags &= ~HAM_DUPLICATE;
 
-      ham_status_t st = ham_env_open_db(m_env, &m_db, db.name(),
-                            db.flags() & ~HAM_ENABLE_DUPLICATES, 0);
+      ham_u32_t open_flags = db.flags();
+      open_flags &= ~HAM_ENABLE_DUPLICATES;
+      open_flags &= ~HAM_ENABLE_EXTENDED_KEYS;
+
+      ham_status_t st = ham_env_open_db(m_env, &m_db, db.name(), open_flags, 0);
       if (st == 0)
         return;
       if (st != HAM_DATABASE_NOT_FOUND)

@@ -36,17 +36,6 @@ if [ $? = 1 ]; then
     exit 1
 fi
 
-echo "========== Merging extkeys.db into env3.db ======================="
-cp env3.db final.db
-../ham_export --output=extkeys.bin extkeys.db
-../ham_import --merge extkeys.bin final.db
-../ham_dump -maxkey 1000 -maxrec 1000 final.db > dump
-diff --brief dump merge.golden
-if [ $? != 0 ]; then
-    echo "Merging of extkeys.db and env3.db differs"
-    exit 1
-fi
-
 \rm dump*
 \rm final.db
 \rm *.bin
