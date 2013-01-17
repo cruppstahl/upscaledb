@@ -1,11 +1,11 @@
 environment
-    pagesize:                   16384
-    version:                    2.0.2.0
-    serialno:                   0
-    max databases:              32
+  pagesize:           16384
+  version:          2.1.0.0
+  serialno:           0
+  max databases:        32
 
-    database 2 (0x2)
-        max key size:           21
-        max keys per page:      510
-        address of root page:   16384
-        flags:                  0x0004
+  database 2 (0x2)
+    max key size:       21
+    max keys per page:    510
+    address of root page:   16384
+    flags:          0x80004

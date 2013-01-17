@@ -12,17 +12,17 @@ ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la
 ham_dump_SOURCES    = ham_dump.cc getopts.c getopts.h
 ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la
 
-ham_export_SOURCES  = ham_export.cc getopts.c getopts.h export.pb.cc
+ham_export_SOURCES  = export.pb.cc ham_export.cc getopts.c getopts.h
 ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a -lprotobuf -lcurl
 
-ham_import_SOURCES  = ham_import.cc getopts.c export.pb.cc
+ham_import_SOURCES  = export.pb.cc ham_import.cc getopts.c export.pb.h
 ham_import_LDADD    = $(top_builddir)/src/libhamsterdb.la -lprotobuf \
 					  $(top_builddir)/3rdparty/json/libjson.la
 
 ham_recover_SOURCES = ham_recover.cc getopts.c getopts.h
 ham_recover_LDADD   = $(top_builddir)/src/libhamsterdb.la
 
-EXTRA_DIST			= hamzilla.config
+EXTRA_DIST			= hamzilla.config export.proto
 
 bin_PROGRAMS        = ham_info ham_dump ham_recover
 if ENABLE_REMOTE

@@ -324,6 +324,7 @@ ham_status_t
 Transaction::abort(ham_u32_t flags)
 {
     /* are cursors attached to this txn? if yes, fail */
+    // TODO not required - already in LocalEnvironment::txn_abort
     if (get_cursor_refcount()) {
         ham_trace(("Transaction cannot be aborted till all attached "
                     "Cursors are closed"));

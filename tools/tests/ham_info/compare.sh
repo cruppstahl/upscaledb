@@ -23,8 +23,8 @@ if [ $? = 1 ]; then
     exit 1
 fi
 
-../ham_info db1.db -db 0xf000 -f > x
-diff --brief x $TESTDIR/db1-0xf000-f.txt
+../ham_info db1.db -db 1 -f > x
+diff --brief x $TESTDIR/db1-1-f.txt
 if [ $? = 1 ]; then
     echo "db1-0xf000-f.txt differs"
     exit 1
@@ -107,8 +107,8 @@ if [ $? = 1 ]; then
     exit 1
 fi
 
-../ham_info extkeys.db -db 0xf000 -f > x
-diff --brief x $TESTDIR/extkeys-0xf000-f.txt
+../ham_info extkeys.db -db 2 -f > x
+diff --brief x $TESTDIR/extkeys-2-f.txt
 if [ $? = 1 ]; then
     echo "extkeys-0xf000-f.txt differs"
     exit 1
