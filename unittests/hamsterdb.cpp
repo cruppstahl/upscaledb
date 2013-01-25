@@ -76,6 +76,7 @@ public:
     BFC_REGISTER_TEST(HamsterdbTest, createPagesizeReopenTest);
     BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
     BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
+    BFC_REGISTER_TEST(HamsterdbTest, invalidKeysizeTest);
     BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
     BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
     BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
@@ -365,6 +366,27 @@ public:
     p1[0].value = 1024 * 3;
     BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE,
         ham_env_create(&env, BFC_OPATH(".test"), 0, 0664, &p1[0]));
+  }
+
+  void invalidKeysizeTest() {
+    ham_env_t *env;
+    ham_db_t *db;
+    ham_parameter_t p1[] = {
+      { HAM_PARAM_PAGESIZE, 1024 },
+      { 0, 0 }
+    };
+    ham_parameter_t p2[] = {
+      { HAM_PARAM_KEYSIZE, 200 },
+      { 0, 0 }
+    };
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&env, BFC_OPATH(".test"), 0, 0664, p1));
+
+    BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE,
+        ham_env_create_db(env, &db, 1, 0, p2));
+
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
   }
 
   void getErrorTest() {

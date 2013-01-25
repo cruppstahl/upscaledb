@@ -122,7 +122,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
               break;
           case 8:
               printf("%llu", *(unsigned long long *)key->data);
-              ok=1;
+              ok = 1;
               break;
           default:
               /* fall through */

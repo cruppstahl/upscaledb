@@ -264,6 +264,7 @@ class BtreeIndex
     /** set the key size */
     void set_keysize(ham_u16_t keysize) {
       m_keysize = keysize;
+      flush_descriptor();
     }
 
     /** get the flags */
@@ -274,6 +275,7 @@ class BtreeIndex
     /** set the flags */
     void set_flags(ham_u32_t flags) {
       m_flags = flags;
+      flush_descriptor();
     }
 
     /** same as above, but only erases a single duplicate */
@@ -292,7 +294,7 @@ class BtreeIndex
     /** set the address of the root node */
     void set_rootpage(ham_u64_t rp) {
       m_rootpage = rp;
-      flush_descriptor(); // TODO required?
+      flush_descriptor();
     }
 
     /** get maximum number of keys per (internal) node */
@@ -303,6 +305,7 @@ class BtreeIndex
     /** set maximum number of keys per (internal) node */
     void set_maxkeys(ham_u16_t maxkeys) {
       m_maxkeys = maxkeys;
+      flush_descriptor();
     }
 
     /** get minimum number of keys per node - less keys require merge or shift*/

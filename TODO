@@ -299,6 +299,36 @@ x remove support for Windows CE
     x in os_win32.cc
     x in contrib/
 
+o finalize for the next release
+    x version is 2.1.0!!
+    x increment libtool version
+    x sources: change copyright date to 2013
+    x webpage: change copyright date to 2013
+    x update README w/ API updates
+    x MSVC 2008: project files for ham_import, ham_export
+    x make sure Java works
+    x update README w/ API updates
+    x Fix dotnet stuff (failing in garbage collection)
+    x MSVC 2008: ham_dump crashes when printing
+        dotnet/DatabaseTest/n10000test.db
+    x MSVC 2010: project files for ham_import, ham_export
+    x run valgrind tests --> many memory leaks, invalid read of size 8 etc
+        -> check once more
+    x recovery.pl tests fail
+        ./recovery insert 8 8 0 0 1 0
+        ./recovery recover 1
+    x run this with the default keysize:
+        ./recovery insert 8 8 0 0 1 0
+        ./recovery recover 1
+    x recovery.pl tests fail (extended tests, i = 100, erase)
+        x make sure that at least 8 keys fit into a page (currently it's 4)
+        x needs a unittest
+    o update Webpage w/ API updates
+    o update Wiki w/ API updates ("migration guide")
+    o update FAQ/Documentation regarding mmap
+    o (Wiki) need documentation for ham_export, ham_import
+    o update documentation/samples on the webpages
+
 o need a launchpad project; start with 12.04 for 64bit
     sudo apt-get install packaging-dev dh-make
     <migrate gpg key>
@@ -313,34 +343,6 @@ o need a launchpad project; start with 12.04 for 64bit
     http://www.quietearth.us/articles/2006/08/16/Building-deb-package-from-source
     http://www.webupd8.org/2010/01/how-to-create-deb-package-ubuntu-debian.html
     http://developer.ubuntu.com/packaging/html/packaging-new-software.html
-
-o finalize for the next release
-    x version is 2.1.0!!
-    x increment libtool version
-    x sources: change copyright date to 2013
-    x webpage: change copyright date to 2013
-    x update README w/ API updates
-    x MSVC 2008: project files for ham_import, ham_export
-    x make sure Java works
-    x update README w/ API updates
-    x Fix dotnet stuff (failing in garbage collection)
-    x MSVC 2008: ham_dump crashes when printing
-        dotnet/DatabaseTest/n10000test.db
-    x MSVC 2010: project files for ham_import, ham_export
-    o run valgrind tests --> many memory leaks, invalid read of size 8 etc
-        -> check once more
-
-./recovery insert 8 8 0 0 1 0
-./recovery recover 1
-./recovery insert 8 8 1 0 1 0
-./recovery recover 1
-./recovery insert 8 8 2 0 1 0      # <-- hier geht die header page kaputt
-
-    o update Webpage w/ API updates
-    o update Wiki w/ API updates ("migration guide")
-    o update FAQ/Documentation regarding mmap
-    o (Wiki) need documentation for ham_export, ham_import
-    o update documentation/samples on the webpages
 
 . can we perform better with O_DIRECT? run some benchmarks
 
@@ -381,6 +383,9 @@ o freelist rewrite - make files smaller, make hamsterdb faster
             an existing file or create a new file
         o ham_export test.db | ham_import test2.db --stdin
     o also adjust file format for the upcoming btree changes!
+
+o HAM_PARAM_MAX_DATABASES: only use as getter, not as setter
+    -> also, the default size should be much higher now
 
 o preallocate file space
     pages should be optimized in a way that the growing index will be written

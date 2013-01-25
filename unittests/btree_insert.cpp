@@ -54,7 +54,7 @@ public:
       { 0, 0 }
     };
     ham_parameter_t p2[] = {
-      { HAM_PARAM_KEYSIZE, 128 },
+      { HAM_PARAM_KEYSIZE, 80 },
       { 0, 0 }
     };
 
@@ -77,7 +77,7 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    for (int i = 6; i >= 0; i--) {
+    for (int i = 11; i >= 0; i--) {
       key.data = &i;
       key.size = sizeof(i);
 
@@ -96,13 +96,13 @@ public:
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
     node = BtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(4, node->get_count());
+    BFC_ASSERT_EQUAL(7, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
     node = BtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(3, node->get_count());
+    BFC_ASSERT_EQUAL(5, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
@@ -115,7 +115,7 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 11; i++) {
       key.data = &i;
       key.size = sizeof(i);
 
@@ -133,19 +133,19 @@ public:
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node=BtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(4, node->get_count());
+    node = BtreeNode::from_page(page);
+    BFC_ASSERT_EQUAL(8, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node=BtreeNode::from_page(page);
+    node = BtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(3, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
-    node=BtreeNode::from_page(page);
+    node = BtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(1, node->get_count());
   }
 
@@ -153,7 +153,7 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 11; i++) {
       key.data = &i;
       key.size = sizeof(i);
 
@@ -171,19 +171,19 @@ public:
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node=BtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(4, node->get_count());
+    node = BtreeNode::from_page(page);
+    BFC_ASSERT_EQUAL(8, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node=BtreeNode::from_page(page);
+    node = BtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(3, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
-    node=BtreeNode::from_page(page);
+    node = BtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(1, node->get_count());
   }
 };

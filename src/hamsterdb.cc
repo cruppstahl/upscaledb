@@ -310,7 +310,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
 {
   ham_size_t pagesize = HAM_DEFAULT_PAGESIZE;
   ham_u64_t cachesize = 0;
-  ham_u16_t keysize = 0;
   ham_u16_t maxdbs = 0;
   std::string logdir;
 
@@ -420,32 +419,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   if (!filename && !(flags & HAM_IN_MEMORY)) {
     ham_trace(("filename is missing"));
     return (HAM_INV_PARAMETER);
-  }
-
-  /*
-   * initialize the keysize with a good default value;
-   * 32byte is the size of a first level cache line for most modern
-   * processors; adjust the keysize, so the keys are aligned to
-   * 32byte
-   */
-  if (keysize == 0) {
-    if (flags & HAM_RECORD_NUMBER)
-      keysize = sizeof(ham_u64_t);
-    else
-      keysize = (ham_size_t)(DB_CHUNKSIZE - BtreeKey::ms_sizeof_overhead);
-  }
-
-  /*
-   * make sure that the cooked pagesize is big enough for at least 5 keys;
-   * record number database: need 8 byte
-   *
-   * By first calculating the keysize if none was specced, we can
-   * quickly discard tiny page sizes as well here:
-   */
-  if (pagesize / keysize < 5) {
-    ham_trace(("pagesize too small (%u), must be at least %u bytes",
-          (unsigned)pagesize, (unsigned)(keysize * 6)));
-    return (HAM_INV_KEYSIZE);
   }
 
   /*

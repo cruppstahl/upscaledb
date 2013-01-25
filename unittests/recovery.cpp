@@ -92,7 +92,7 @@ insert(int argc, char **argv) {
     }
 
     ham_parameter_t dbparams[] = {
-      { HAM_PARAM_KEYSIZE, 200 },
+      { HAM_PARAM_KEYSIZE, 100 },
       { 0, 0 }
     };
     st = ham_env_create_db(env, &db, 1,

@@ -141,7 +141,7 @@ public:
       { 0, 0 }
     };
     ham_parameter_t p2[] = {
-      { HAM_PARAM_KEYSIZE, 128 },
+      { HAM_PARAM_KEYSIZE, 70 },
       { 0, 0 }
     };
     memset(&key, 0, sizeof(key));

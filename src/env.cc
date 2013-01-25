@@ -1070,15 +1070,20 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 
   *pdb = 0;
 
-  if (flags & HAM_RECORD_NUMBER)
-    keysize = sizeof(ham_u64_t);
-  else
-    keysize = (ham_u16_t)(DB_CHUNKSIZE - (BtreeKey::ms_sizeof_overhead));
-
   if (get_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot create database in an read-only environment"));
     return (HAM_WRITE_PROTECTED);
   }
+
+  /*
+   * initialize the keysize with a good default value;
+   * 32byte is the size of a first level cache line for most modern
+   * processors; the default key fits into 32 bytes
+   */
+  if (flags & HAM_RECORD_NUMBER)
+    keysize = sizeof(ham_u64_t);
+  else
+    keysize = (ham_u16_t)(32 - (BtreeKey::ms_sizeof_overhead));
 
   if (param) {
     for (; param->name; param++) {
@@ -1100,6 +1105,19 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
           return (HAM_INV_PARAMETER);
       }
     }
+  }
+
+  /*
+   * make sure that the cooked pagesize is big enough for at least 10 keys;
+   * record number database: need 8 byte
+   *
+   * By first calculating the keysize if none was specced, we can
+   * quickly discard tiny page sizes as well here:
+   */
+  if (get_pagesize() / keysize < 10) {
+    ham_trace(("keysize too large; either increase pagesize or decrease "
+                "keysize"));
+    return (HAM_INV_KEYSIZE);
   }
 
   ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN

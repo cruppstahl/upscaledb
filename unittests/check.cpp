@@ -89,7 +89,7 @@ public:
       { 0, 0 }
     };
     ham_parameter_t db_params[] = {
-      { HAM_PARAM_KEYSIZE, 128 },
+      { HAM_PARAM_KEYSIZE, 80 },
       { 0, 0 }
     };
 
