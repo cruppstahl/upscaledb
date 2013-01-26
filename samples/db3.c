@@ -58,7 +58,8 @@ main(int argc, char **argv) {
     return (-1);
   }
 
-  st = ham_env_create_db(env, &db, DATABASE_NAME, HAM_ENABLE_DUPLICATES, 0);
+  st = ham_env_create_db(env, &db, DATABASE_NAME,
+          HAM_ENABLE_EXTENDED_KEYS | HAM_ENABLE_DUPLICATES, 0);
   if (st != HAM_SUCCESS) {
     printf("ham_env_create_db() failed with error %d\n", st);
     return (-1);
