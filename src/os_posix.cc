@@ -428,7 +428,7 @@ os_flush(ham_fd_t fd)
   os_log(("os_flush: fd=%d", fd));
   /* unlike fsync(), fdatasync() does not flush the metadata unless
    * it's really required. it's therefore a lot faster. */
-#if HAVE_FDATASYNC
+#if HAVE_FDATASYNC && !__APPLE__
   if (fdatasync(fd) == -1) {
 #else
   if (fsync(fd) == -1) {
