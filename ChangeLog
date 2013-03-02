@@ -1,3 +1,9 @@
+Mar 02, 2013 - chris ---------------------------------------------------
+o Fixed JDK include paths on MacOS (Thanks, Mark Sutheran)
+
+Feb 28, 2013 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.0
+
 Jan 04, 2013 - chris ---------------------------------------------------
 o Extended keys are now disabled by default; use HAM_ENABLE_EXTENDED_KEYS to
 	enable them
