@@ -31,16 +31,26 @@ o need a launchpad project; start with 12.04 for 64bit
     http://developer.ubuntu.com/packaging/html/packaging-new-software.html
 
 o freelist re-implementation
+    o header page stores head of freelist 
+    o adding pages in a linked list
+    o also cache page-IDs in memory
+    o when a page is requested: get the next highest page in the freelist
+    o blob pages: track number of free bytes
+    o blob pages: if free bytes are down to 0: add to freelist
+    o also test with blobs that span multiple pages
+    o make sure that 2.1.0 and older cannot open files created with 2.1.1
+    o in-memory environment: immediately free the memory
 
-o update blob structure - no more fileformat incompatibilities
+o pre-allocate index
+
+o update node structure - prevent fileformat incompatibilities in future
+    versions
 
 o AES encryption
 
 o cache improvements
-    o sort pages by ID/offset
+    o sort pages by ID/offset (and use writev?)
     o give priority to index pages
-
-. pre-allocate index
 
 . can we perform better with O_DIRECT? run some benchmarks
 
@@ -64,23 +74,6 @@ o cache improvements
 
 
 
-
-o freelist rewrite - make files smaller, make hamsterdb faster
-    o freelist.h
-    o freelist.cc
-    o freelist_statistics.h
-    o freelist_statistics.cc
-        ==> get rid of the whole freelist; no need to refactor the existing
-            code
-        ==> described in github wiki
-        ==> need a migration path (i.e. allow forward-cursors if db is
-            read-only, no transactions)
-    o need migration path:
-        o ham_dump: rename to ham_export, write json or protobuf
-        o ham_import: read from file or stdin; either merge into or overwrite
-            an existing file or create a new file
-        o ham_export test.db | ham_import test2.db --stdin
-    o also adjust file format for the upcoming btree changes!
 
 o HAM_PARAM_MAX_DATABASES: only use as getter, not as setter
     -> also, the default size should be much higher now
@@ -324,8 +317,6 @@ o the DatabaseImplementation subclass is not neccessary; all subclasses
 . allow use of transactions without a log/journal
 
 . allow use of transactions for in-memory databases
-
-XXXXXXXXXXXXXXXXXXXXX release 2.0.0 STABLE XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 o ham_get_count: could be atomically updated with every journal entry
 
