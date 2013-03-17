@@ -35,6 +35,9 @@ o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
 
+o protobuf is required even if remote code is disabled:
+    see richardheath's mail on hamsterdb-user
+
 . can we perform better with O_DIRECT? run some benchmarks
 
 . continue refactoring of txn.h/txn.cc
