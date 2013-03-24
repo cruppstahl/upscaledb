@@ -27,16 +27,22 @@ o update node structure - prevent file format incompatibilities in future
 
 o AES encryption
 
-o cache improvements
-    o sort pages by ID/offset (and use writev?)
-    o give priority to index pages
+o protobuf is required even if remote code is disabled:
+    see richardheath's mail on hamsterdb-user
+    -> also seems to be the case in windows
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
 
-o protobuf is required even if remote code is disabled:
-    see richardheath's mail on hamsterdb-user
+o cache improvements
+    o sort pages by ID/offset (and use writev?)
+    o give priority to index pages
+
+. boost: configure script should make sure that only boost v 1.46 (or newer)
+    is accepted
+    -> also test with older versions, but 1.33 definitely does not work
+    issue #17: https://github.com/cruppstahl/hamsterdb/issues/17
 
 . can we perform better with O_DIRECT? run some benchmarks
 
