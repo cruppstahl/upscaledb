@@ -35,6 +35,9 @@
 #include "blob_manager.h"
 #include "duplicates.h"
 #include "mutex.h"
+#ifdef HAM_ENABLE_REMOTE
+#  include "protocol/protocol.h"
+#endif
 
 /**
  * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
