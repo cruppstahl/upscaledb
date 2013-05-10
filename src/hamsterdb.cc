@@ -452,9 +452,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
   else {
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
-#else
+#else // HAM_ENABLE_REMOTE
     env = new RemoteEnvironment();
-#endif // HAM_ENABLE_REMOTE
+#endif
   }
 
 #ifdef HAM_ENABLE_REMOTE
@@ -670,9 +670,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   else {
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
-#else
+#else // HAM_ENABLE_REMOTE
     env = new RemoteEnvironment();
-#endif // HAM_ENABLE_REMOTE
+#endif
   }
 
 #ifdef HAM_ENABLE_REMOTE

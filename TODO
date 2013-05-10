@@ -15,8 +15,9 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-o need a launchpad project; start with 12.04 for 64bit
-    -> see hamsterdb-ppa repository
+x protobuf is required even if remote code is disabled:
+    see richardheath's mail on hamsterdb-user
+    -> also seems to be the case in windows
 
 o freelist re-implementation
     -> see branch topic/freelist
@@ -26,10 +27,6 @@ o update node structure - prevent file format incompatibilities in future
     versions
 
 o AES encryption
-
-o protobuf is required even if remote code is disabled:
-    see richardheath's mail on hamsterdb-user
-    -> also seems to be the case in windows
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve

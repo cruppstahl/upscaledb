@@ -168,17 +168,17 @@ class Journal
       return (m_lsn++);
     }
 
+    /** gets the lsn; only required for unittests */
+    ham_u64_t get_lsn() {
+      return (m_lsn);
+    }
+
   private:
     friend class JournalTest;
 
     /** switches the log file if necessary; sets the new log descriptor in the
      * transaction */
     ham_status_t switch_files_maybe(Transaction *txn);
-
-    /** gets the lsn; only required for unittests */
-    ham_u64_t get_lsn() {
-      return (m_lsn);
-    }
 
     /** returns the path of the journal file */
     std::string get_path(int i);

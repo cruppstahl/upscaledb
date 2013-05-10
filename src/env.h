@@ -32,7 +32,7 @@
 #include "blob.h"
 #include "duplicates.h"
 #ifdef HAM_ENABLE_REMOTE
-	#include "protocol/protocol.h"
+#  include "protocol/protocol.h"
 #endif
 
 /**

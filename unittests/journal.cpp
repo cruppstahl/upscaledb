@@ -32,8 +32,7 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
-
-namespace hamsterdb {
+using namespace hamsterdb;
 
 struct LogEntry {
   LogEntry()
@@ -1047,11 +1046,9 @@ public:
   }
 };
 
-} // namespace hamsterdb
-
 // since BFC macro will b0rk on ham::JournalTest
 // TODO i removed this, otherwise MSVC 2008 fails
-//typedef hamsterdb::JournalTest JournalTest;
+// typedef hamsterdb::JournalTest JournalTest;
 
 BFC_REGISTER_FIXTURE(JournalTest);
 

@@ -1,3 +1,7 @@
+May 10, 2013 - chris ---------------------------------------------------
+o Fixed build if remote functionality is disabled (i.e. because protobuffer
+	or libcurl is missing)
+
 Mar 02, 2013 - chris ---------------------------------------------------
 o Fixed JDK include paths on MacOS (Thanks, Mark Sutheran)
 
