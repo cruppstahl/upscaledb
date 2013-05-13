@@ -91,6 +91,7 @@ then
 else
     JDK="$JAVA_HOME"
 fi
+AC_SUBST(JDK)
 
 # -------------------------------------------------------------------------
 # Disable java wrapper?
