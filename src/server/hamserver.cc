@@ -11,7 +11,11 @@
 
 
 #include <stdio.h> /* needed for mongoose.h */
-#include <malloc.h>
+#ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+#else
+#  include <stdlib.h>
+#endif
 #include <string.h>
 
 #include <mongoose/mongoose.h>
