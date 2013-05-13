@@ -119,7 +119,7 @@ then
     fi
     if test -d $JDK/include
     then
-      CFLAGS="${CFLAGS} -I$JDK/include -I$JDK/include/linux -I$JDK/include/solaris -I$JDK/include/mac"
+      CFLAGS="${CFLAGS} -I$JDK/include -I$JDK/include/linux -I$JDK/include/solaris -I$JDK/include/mac -I$JDK/include/darwin"
     fi
     if test -d $JDK/Headers
     then
