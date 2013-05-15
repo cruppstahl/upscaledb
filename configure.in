@@ -77,6 +77,7 @@ then
 else
     JDK="$JAVA_HOME"
 fi
+AC_SUBST(JDK)
 
 # -------------------------------------------------------------------------
 # Disable java wrapper?
@@ -105,7 +106,7 @@ then
     fi
     if test -d $JDK/include
     then
-      CFLAGS="${CFLAGS} -I$JDK/include -I$JDK/include/linux -I$JDK/include/solaris -I$JDK/include/mac"
+      CFLAGS="${CFLAGS} -I$JDK/include -I$JDK/include/linux -I$JDK/include/solaris -I$JDK/include/mac -I$JDK/include/darwin"
     fi
     if test -d $JDK/Headers
     then
@@ -313,7 +314,8 @@ printf '#================================================================\n'
 
 # build protobuf files
 if test "x$enable_remote" != "xno"; then
-cd src/protocol && make proto
+make --directory=src/protocol proto
+make --directory=tools proto
 fi
 
 

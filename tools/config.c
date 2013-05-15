@@ -12,7 +12,11 @@
 #include <JSON_parser.h>
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
+#ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+#else
+#  include <stdlib.h>
+#endif
 
 #include "config.h"
 
