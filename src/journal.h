@@ -173,7 +173,7 @@ class Journal
       return (m_lsn);
     }
 
-  private:
+  //private: TODO fix me
     friend class JournalTest;
 
     /** switches the log file if necessary; sets the new log descriptor in the

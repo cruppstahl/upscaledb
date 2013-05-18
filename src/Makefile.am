@@ -7,7 +7,6 @@ endif # ENABLE_SERVER
 endif # ENABLE_REMOTE
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
-AM_LDFLAGS = $(BOOST_THREAD_LDFLAGS)
 
 lib_LTLIBRARIES = libhamsterdb.la
 
@@ -81,12 +80,11 @@ libhamsterdb_la_SOURCES = blob.cc \
 	util.h \
 	version.h
 
-libhamsterdb_la_LDFLAGS = -version-info 4:0:0 $(BOOST_THREAD_LIBS) -lpthread
+libhamsterdb_la_LDFLAGS = -version-info 4:0:0 
 
 if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl
 libhamsterdb_la_LDFLAGS += $(top_builddir)/src/protocol/libprotocol.la
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
 endif
-LIBS = $(BOOST_THREAD_LIBS)
 

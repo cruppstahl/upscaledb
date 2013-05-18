@@ -1,3 +1,6 @@
+May 19, 2013 - chris ---------------------------------------------------
+o Merged various MacOS related fixes (thanks, Johnathan Conley)
+
 May 10, 2013 - chris ---------------------------------------------------
 o Fixed build if remote functionality is disabled (i.e. because protobuffer
 	or libcurl is missing)
