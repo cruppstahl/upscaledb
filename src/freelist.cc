@@ -482,7 +482,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 
 ham_status_t
 Freelist::mark_free(Database *db, ham_u64_t address, ham_size_t size,
-                ham_bool_t overwrite)
+                bool overwrite)
 {
     ham_status_t st;
     Page *page=0;
@@ -494,7 +494,7 @@ Freelist::mark_free(Database *db, ham_u64_t address, ham_size_t size,
         0,
         0,
         0,
-        HAM_FALSE,
+        false,
         0,
         0,
         0,
@@ -953,7 +953,7 @@ Freelist::flush_statistics()
                     sizeof(*pers_stats));
 
             /* and we're done persisting/flushing this entry */
-            entry->perf_data._dirty = HAM_FALSE;
+            entry->perf_data._dirty = false;
         }
     }
 
@@ -2761,7 +2761,7 @@ Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
              * However, we like our storage to be db page aligned, thank
              * you very much ;-)
              */
-            dst->aligned = HAM_TRUE;
+            dst->aligned = true;
         }
         else {
             freelist_get_entry_hints(this, entry, dst);

@@ -172,7 +172,7 @@ struct runtime_statistics_pagedata_t
 {
     freelist_page_statistics_t _persisted_stats;
 
-    ham_bool_t _dirty;
+    bool _dirty;
 };
 
 
@@ -191,7 +191,7 @@ struct freelist_hints_t
     ham_u16_t mgt_mode;
 
     /** [input] whether or not we are looking for aligned storage */
-    ham_bool_t aligned;
+    bool aligned;
 
     /** [input] the lower bound address of the slot we're looking for. Usually
      * zero(0). */
@@ -256,7 +256,7 @@ struct freelist_global_hints_t
     ham_size_t page_span_width;
 
     /** [input] whether or not we are looking for aligned storage */
-    ham_bool_t aligned;
+    bool aligned;
 
     /** [input] the lower bound address of the slot we're looking for.
      * Usually zero(0). */
@@ -277,7 +277,7 @@ freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
 
 extern void
 freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
-                ham_u32_t position, ham_size_t size_bits, ham_bool_t free_these,
+                ham_u32_t position, ham_size_t size_bits, bool free_these,
                 freelist_hints_t *hints);
 
 extern void

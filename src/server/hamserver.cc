@@ -648,7 +648,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
   ham_txn_t *txn = 0;
   ham_db_t *db;
   ham_status_t st = 0;
-  ham_bool_t send_key = HAM_FALSE;
+  bool send_key = false;
   ham_key_t key;
   ham_record_t rec;
 
@@ -694,7 +694,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
       if ((st == 0)
           && (((Database *)db)->get_rt_flags(true) & HAM_RECORD_NUMBER)) {
         ham_assert(key.size == sizeof(ham_u64_t));
-        send_key = HAM_TRUE;
+        send_key = true;
       }
     }
   }
@@ -716,7 +716,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
   ham_status_t st = 0;
   ham_key_t key;
   ham_record_t rec;
-  ham_bool_t send_key = HAM_FALSE;
+  bool send_key = false;
 
   ham_assert(request != 0);
   ham_assert(request->has_db_find_request());
@@ -752,7 +752,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
       if (st == 0) {
         /* approx matching: key->_flags was modified! */
         if (key._flags)
-          send_key = HAM_TRUE;
+          send_key = true;
       }
     }
   }
@@ -979,8 +979,8 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
   ham_key_t key;
   ham_record_t rec;
   ham_status_t st = 0;
-  ham_bool_t send_key = HAM_FALSE;
-  ham_bool_t send_rec = HAM_FALSE;
+  bool send_key = false;
+  bool send_rec = false;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_find_request());
@@ -999,7 +999,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
               & (~HAM_KEY_USER_ALLOC);
 
   if (request->cursor_find_request().has_record()) {
-    send_rec = HAM_TRUE;
+    send_rec = true;
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_find_request().record().data()[0];
@@ -1015,7 +1015,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
   if (st==0) {
     /* approx matching: key->_flags was modified! */
     if (key._flags)
-      send_key = HAM_TRUE;
+      send_key = true;
   }
 
 bail:
@@ -1102,8 +1102,8 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
   ham_key_t key;
   ham_record_t rec;
   ham_status_t st = 0;
-  ham_bool_t send_key = HAM_FALSE;
-  ham_bool_t send_rec = HAM_FALSE;
+  bool send_key = false;
+  bool send_rec = false;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_move_request());
@@ -1116,7 +1116,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
   }
 
   if (request->cursor_move_request().has_key()) {
-    send_key = HAM_TRUE;
+    send_key = true;
 
     memset(&key, 0, sizeof(key));
     key.data = (void *)&request->cursor_move_request().key().data()[0];
@@ -1126,7 +1126,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
   }
 
   if (request->cursor_move_request().has_record()) {
-    send_rec = HAM_TRUE;
+    send_rec = true;
 
     memset(&rec, 0, sizeof(rec));
     rec.data = (void *)&request->cursor_move_request().record().data()[0];

@@ -43,7 +43,7 @@ namespace hamsterdb {
 typedef struct free_cb_context_t
 {
   Database *db;
-  ham_bool_t is_leaf;
+  bool is_leaf;
 } free_cb_context_t;
 
 Environment::Environment()

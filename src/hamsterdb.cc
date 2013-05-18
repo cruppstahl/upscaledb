@@ -232,10 +232,10 @@ ham_strerror(ham_status_t result)
  * This function checks whether the @ref ham_key_t structure has been
  * properly initialized by the user and resets all internal used elements.
  *
- * @return HAM_TRUE when the @a key structure has been initialized correctly
+ * @return true when the @a key structure has been initialized correctly
  * before.
  *
- * @return HAM_FALSE when the @a key structure has @e not been initialized
+ * @return false when the @a key structure has @e not been initialized
  * correctly before.
  */
 static inline bool
@@ -259,10 +259,10 @@ __prepare_key(ham_key_t *key)
  * This function checks whether the @ref ham_record_t structure has been
  * properly initialized by the user and resets all internal used elements.
  *
- * @return HAM_TRUE when the @a record structure has been initialized
+ * @return true when the @a record structure has been initialized
  * correctly before.
  *
- * @return HAM_FALSE when the @a record structure has @e not been
+ * @return false when the @a record structure has @e not been
  * initialized correctly before.
  */
 static inline bool
@@ -270,7 +270,7 @@ __prepare_record(ham_record_t *record)
 {
   if (record->size && !record->data) {
     ham_trace(("record->size != 0, but record->data is NULL"));
-    return HAM_FALSE;
+    return false;
   }
   if (record->flags & HAM_DIRECT_ACCESS)
     record->flags &= ~HAM_DIRECT_ACCESS;

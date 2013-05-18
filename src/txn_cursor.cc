@@ -83,7 +83,7 @@ TransactionCursor::overwrite(ham_record_t *record)
 
 ham_status_t
 TransactionCursor::move_top_in_node(TransactionNode *node,
-        TransactionOperation *op, ham_bool_t ignore_conflicts, ham_u32_t flags)
+        TransactionOperation *op, bool ignore_conflicts, ham_u32_t flags)
 {
   TransactionOperation *lastdup = 0;
   Transaction *optxn = 0;
@@ -158,7 +158,7 @@ TransactionCursor::move(ham_u32_t flags)
     node = db->get_optree()->get_first();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
-    return (move_top_in_node(node, 0, HAM_FALSE, flags));
+    return (move_top_in_node(node, 0, false, flags));
   }
   else if (flags & HAM_CURSOR_LAST) {
     /* first set cursor to nil */
@@ -167,7 +167,7 @@ TransactionCursor::move(ham_u32_t flags)
     node = db->get_optree()->get_last();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
-    return (move_top_in_node(node, 0, HAM_FALSE, flags));
+    return (move_top_in_node(node, 0, false, flags));
   }
   else if (flags & HAM_CURSOR_NEXT) {
     TransactionOperation *op = get_coupled_op();
@@ -186,7 +186,7 @@ TransactionCursor::move(ham_u32_t flags)
       node = node->get_next_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
-      st = move_top_in_node(node, op, HAM_TRUE, flags);
+      st = move_top_in_node(node, op, true, flags);
       if (st == HAM_KEY_NOT_FOUND)
         continue;
       return (st);
@@ -209,7 +209,7 @@ TransactionCursor::move(ham_u32_t flags)
       node = node->get_previous_sibling();
       if (!node)
         return (HAM_KEY_NOT_FOUND);
-      st = move_top_in_node(node, op, HAM_TRUE, flags);
+      st = move_top_in_node(node, op, true, flags);
       if (st == HAM_KEY_NOT_FOUND)
         continue;
       return (st);
@@ -232,7 +232,7 @@ TransactionCursor::is_erased()
 
   /* move to the newest op and check if it erased the key */
   return (HAM_KEY_ERASED_IN_TXN
-        == move_top_in_node(node, 0, HAM_FALSE, 0));
+        == move_top_in_node(node, 0, false, 0));
 }
 
 bool
@@ -284,7 +284,7 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
 
   while (1) {
     /* and then move to the newest insert*-op */
-    ham_status_t st = move_top_in_node(node, 0, HAM_FALSE, 0);
+    ham_status_t st = move_top_in_node(node, 0, false, 0);
     if (st != HAM_KEY_ERASED_IN_TXN)
       return (st);
 

@@ -219,7 +219,7 @@ rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
     rescale_256(entrystats->search_count);
     rescale_256(entrystats->rescale_monitor);
 
-    entry->perf_data._dirty = HAM_TRUE;
+    entry->perf_data._dirty = true;
 }
 
 void
@@ -243,7 +243,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
         // should NOT use freel_get_max_bitsXX(f) here!
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
-        entry->perf_data._dirty = HAM_TRUE;
+        entry->perf_data._dirty = true;
 
         if (globalstats->rescale_monitor
                 >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
@@ -342,7 +342,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
         ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
-        entry->perf_data._dirty = HAM_TRUE;
+        entry->perf_data._dirty = true;
 
         if (globalstats->rescale_monitor
                 >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
@@ -424,7 +424,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
  */
 void
 freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
-                ham_u32_t position, ham_size_t size_bits, ham_bool_t free_these,
+                ham_u32_t position, ham_size_t size_bits, bool free_these,
                 freelist_hints_t *hints)
 {
     /*
@@ -442,7 +442,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
         ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
-        entry->perf_data._dirty = HAM_TRUE;
+        entry->perf_data._dirty = true;
 
         if (free_these) {
             /*

@@ -78,7 +78,7 @@ class Freelist
      * @note will assert that address and size are DB_CHUNKSIZE-aligned!
      */
     ham_status_t mark_free(Database *db, ham_u64_t address, ham_size_t size,
-                    ham_bool_t overwrite);
+                    bool overwrite);
 
     /**
      * try to allocate (possibly aligned) space from the freelist,

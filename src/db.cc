@@ -1376,7 +1376,7 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
 {
   ham_status_t st;
 
-  calckeys_context_t ctx = {this, flags, 0, HAM_FALSE};
+  calckeys_context_t ctx = {this, flags, 0, false};
 
   if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",

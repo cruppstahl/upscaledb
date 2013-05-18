@@ -32,7 +32,7 @@ class PageTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
 
 public:
-  PageTest(ham_bool_t inmemorydb = false, ham_bool_t mmap = true,
+  PageTest(bool inmemorydb = false, bool mmap = true,
       const char *name = "PageTest")
     : hamsterDB_fixture(name), m_db(0), m_inmemory(inmemorydb),
     m_usemmap(mmap), m_dev(0) {
@@ -46,8 +46,8 @@ public:
 protected:
   ham_db_t *m_db;
   ham_env_t *m_env;
-  ham_bool_t m_inmemory;
-  ham_bool_t m_usemmap;
+  bool m_inmemory;
+  bool m_usemmap;
   ham_device_t *m_dev;
 
 public:

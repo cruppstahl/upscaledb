@@ -22,14 +22,12 @@ x all packed structures that are directly mapped to the file
     (BlobPageHeader, BlobHeader and others) should be named
     "PXXX" (for "Persistent" or "Packed")
 
-x should database names still be reserved? - yes, i think so. even if they're not
-    required right now, they will be required in the future.
+x should database names still be reserved? - yes, i think so. even if they're
+    not required right now, they will be required in the future.
 
 x merge Johnathan Conley's patches (3 mails)
 
-o refactoring: get rid of ham_bool_t, replace with bool whenever possible
-
-o win32: get rid of boost_thread
+x refactoring: get rid of ham_bool_t, replace with bool whenever possible
 
 o Partial read: record->size returns the partial size that was retrieved.
     I think record->size should return the original size, and
@@ -50,6 +48,8 @@ o cache improvements
         pages in memory and cache some of the blob pages
     o should this become the new default?
     o add to monster tests
+
+o win32: get rid of boost_thread
 
 . boost: configure script should make sure that only boost v 1.46 (or newer)
     is accepted

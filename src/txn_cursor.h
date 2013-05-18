@@ -151,7 +151,7 @@ class TransactionCursor
 
     /** moves the cursor to the first valid Operation in a Node */
     ham_status_t move_top_in_node(TransactionNode *node,
-            TransactionOperation *op, ham_bool_t ignore_conflicts,
+            TransactionOperation *op, bool ignore_conflicts,
             ham_u32_t flags);
 
     /** the parent cursor */
