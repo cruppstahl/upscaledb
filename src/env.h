@@ -79,7 +79,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
   /** magic cookie - always "ham\0" */
   ham_u8_t  _magic[4];
 
-  /** version information - major, minor, rev, reserved */
+  /** version information - major, minor, rev, file */
   ham_u8_t  _version[4];
 
   /** serial number */
@@ -98,17 +98,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1
    * following here:
    *
    * 1. the private data of the index btree(s)
-   *      -> see env_get_descriptor()
+   *      -> see get_descriptor()
    *
    * 2. the freelist data
-   *      -> see env_get_freelist()
+   *      -> see get_freelist_payload()
    */
 } HAM_PACK_2 env_header_t;
 
 #include "packstop.h"
-
-#define envheader_get_version(hdr, i)  ((hdr))->_version[i]
-
 
 #define SIZEOF_FULL_HEADER(env)                                             \
     (sizeof(env_header_t)+                                                  \
@@ -430,7 +427,7 @@ class Environment
     }
 
     /** returns true if the magic matches */
-    bool compare_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
+    bool verify_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
       if (get_header()->_magic[0] != m1)
         return (false);
       if (get_header()->_magic[1] != m2)
@@ -445,7 +442,7 @@ class Environment
     /** get byte @a i of the 'version'-header */
     ham_u8_t get_version(ham_size_t idx) {
       env_header_t *hdr = (env_header_t *)(get_header_page()->get_payload());
-      return (envheader_get_version(hdr, idx));
+      return (hdr->_version[idx]);
     }
 
     /** set the version of a file header */
@@ -580,7 +577,7 @@ class Environment
     /** the tail of the transaction list (the youngest/newest transaction) */
     Transaction *m_newest_txn;
 
-    /** the physical log */
+    /** the physical write-ahead log */
     // TODO move to LocalEnvironment
     Log *m_log;
 
@@ -597,7 +594,7 @@ class Environment
     ham_u32_t m_flags;
 
     /** the changeset - a list of all pages that were modified during
-     * one database operation */
+     * the current database operation */
     // TODO move to LocalEnvironment
     Changeset m_changeset;
 

@@ -19,19 +19,23 @@
 
 
 /**
- * the version numbers
+ * The version numbers
  *
- * @remark a change of the major revision means a significant update
- * with a lot of new features, API changes and an incompatible database
- * format.
- * The minor revision means that updates were not so significant, but
- * the database format is no longer compatible. a change of the revision
- * means the release is a bugfix with a compatible database format.
+ * @remark A change of the major revision means a significant update
+ * with a lot of new features and API changes.
+ * 
+ * The minor version means a significant update without API changes, and the 
+ * revision is incremented for each release with minor improvements only.
+ *
+ * The file version describes the version of the binary database format.
+ * hamsterdb is neither backwards- nor forwards-compatible regarding file
+ * format changes. 
  */
-#define HAM_VERSION_MAJ 2
-#define HAM_VERSION_MIN 1
-#define HAM_VERSION_REV 0
-#define HAM_VERSION_STR "2.1.0"
+#define HAM_VERSION_MAJ     2
+#define HAM_VERSION_MIN     1
+#define HAM_VERSION_REV     1
+#define HAM_FILE_VERSION    0
+#define HAM_VERSION_STR "2.1.1"
 
 
 #endif /* HAM_VERSION_H__ */

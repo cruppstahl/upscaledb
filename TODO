@@ -18,10 +18,6 @@ x protobuf is required even if remote code is disabled:
     see richardheath's mail on hamsterdb-user
     -> also seems to be the case in windows
 
-x all packed structures that are directly mapped to the file
-    (BlobPageHeader, BlobHeader and others) should be named
-    "PXXX" (for "Persistent" or "Packed")
-
 x should database names still be reserved? - yes, i think so. even if they're
     not required right now, they will be required in the future.
 
@@ -29,17 +25,33 @@ x merge Johnathan Conley's patches (3 mails)
 
 x refactoring: get rid of ham_bool_t, replace with bool whenever possible
 
+x version.h: support file version (see topic/freelist)
+
+o all packed structures that are directly mapped to the file
+    (BlobPageHeader, BlobHeader and others) should be named
+    "PXXX" (for "Persistent" or "Packed")
+
+o new option to disable the freelist
+    o re-introduce page manager
+    o refactor existing freelist, merge with freelist_statistics (if required)
+    o code formatting
+    o new option HAM_PARAM_DISABLE_FREELIST
+        o uses 20 or so entries to store the biggest freelist chunks
+        o free pages are moved to the bitmap, though
+        o blobs do not have to be freelist-aligned
+        o only create bitmap freelist when absolutely required!
+    o also for Java
+    o also for .NET
+
+o reduce file size if freelist adds page at end of file:
+    o not possible if freelist is disabled
+    o just test the freelist bitmap if the last N bits are free
+    o if yes: truncate the file, but also truncate the freelist!
+
 o Partial read: record->size returns the partial size that was retrieved.
     I think record->size should return the original size, and
     record->partial_size should return the size that was read.
     -- really?? yes, this is much cleaner
-
-o update node structure - prevent file format incompatibilities in future
-    versions (is this done with the introduction of HAM_FILE_VERSION?
-    no - because it does not guarantee backwards-compatibility)
-    -> an 8 byte-field (set to 0) at the start of the node should be sufficient
-        for now; we can then use this later to store bit-fields for the
-        BtreeNode-factory.
 
 o cache improvements
     o when flushing, sort pages by ID/offset and use writev to flush them

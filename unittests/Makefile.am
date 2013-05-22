@@ -43,12 +43,13 @@ test_SOURCES    = bfc-testsuite.cpp \
                   cppapi.cpp \
                   main.cpp
 
-test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lpthread -ldl
+test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a -lpthread -ldl
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
-test_LDADD     += $(top_builddir)/src/server/libhamserver.la -lprotobuf -lgnutls
+test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
+				  -lprotobuf -lcurl
 endif
 
 bfc_sample_SOURCES = bfc-sample.cpp \

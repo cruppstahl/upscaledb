@@ -79,7 +79,7 @@ public:
   void headerTest() {
     ((Environment *)m_env)->set_magic('1', '2', '3', '4');
     BFC_ASSERT_EQUAL(true,
-        ((Environment *)m_env)->compare_magic('1', '2', '3', '4'));
+        ((Environment *)m_env)->verify_magic('1', '2', '3', '4'));
 
     ((Environment *)m_env)->set_version(1, 2, 3, 4);
     BFC_ASSERT_EQUAL((ham_u8_t)1, ((Environment *)m_env)->get_version(0));

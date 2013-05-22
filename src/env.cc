@@ -97,7 +97,6 @@ Environment::~Environment()
     delete get_allocator();
     set_allocator(0);
   }
-
 }
 
 BtreeDescriptor *
@@ -568,7 +567,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
     /* initialize the header */
     set_magic('H', 'A', 'M', '\0');
-    set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
+    set_version(HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV,
+            HAM_FILE_VERSION);
     set_serialno(HAM_SERIALNO);
     set_persistent_pagesize(get_pagesize());
     set_max_databases(get_max_databases_cached());
@@ -649,7 +649,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
    */
   {
     Page *page = 0;
-    env_header_t *hdr;
     ham_u8_t hdrbuf[512];
     Page fakepage(this);
 
@@ -676,29 +675,26 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     if (st)
       goto fail_with_fake_cleansing;
 
-    hdr = get_header();
-
     set_pagesize(get_persistent_pagesize());
     device->set_pagesize(get_persistent_pagesize());
 
     /** check the file magic */
-    if (!compare_magic('H', 'A', 'M', '\0')) {
+    if (!verify_magic('H', 'A', 'M', '\0')) {
       ham_log(("invalid file type"));
       st  =  HAM_INV_FILE_HEADER;
       goto fail_with_fake_cleansing;
     }
 
-    /* check the database version; everything > 1.0.9 is ok */
-    if (envheader_get_version(hdr, 0) > HAM_VERSION_MAJ ||
-        (envheader_get_version(hdr, 0) == HAM_VERSION_MAJ
-          && envheader_get_version(hdr, 1) > HAM_VERSION_MIN)) {
+    /* check the database version; everything < 1.0.9 or with a different
+     * file version is incompatible */
+    if (get_version(3) != HAM_FILE_VERSION) {
       ham_log(("invalid file version"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
     }
-    else if (envheader_get_version(hdr, 0) == 1 &&
-      envheader_get_version(hdr, 1) == 0 &&
-      envheader_get_version(hdr, 2) <= 9) {
+    else if (get_version(0) == 1 &&
+      get_version(1) == 0 &&
+      get_version(2) <= 9) {
       ham_log(("invalid file version; < 1.0.9 is not supported"));
       st = HAM_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;
@@ -919,15 +915,12 @@ LocalEnvironment::close(ham_u32_t flags)
     set_freelist(0);
   }
 
-  /*
-   * if we're not in read-only mode, and not an in-memory-database,
+  /* if we're not in read-only mode, and not an in-memory-database,
    * and the dirty-flag is true: flush the page-header to disk
    */
-  if (get_header_page()
-      && !(get_flags()&HAM_IN_MEMORY)
-      && get_device()
-      && get_device()->is_open()
-      && (!(get_flags()&HAM_READ_ONLY))) {
+  if (get_header_page() && !(get_flags() & HAM_IN_MEMORY)
+      && get_device() && get_device()->is_open()
+      && (!(get_flags() & HAM_READ_ONLY))) {
     get_header_page()->flush();
   }
 
@@ -968,6 +961,7 @@ LocalEnvironment::close(ham_u32_t flags)
     delete log;
     set_log(0);
   }
+
   if (get_journal()) {
     Journal *journal = get_journal();
     journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
