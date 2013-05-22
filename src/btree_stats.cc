@@ -70,7 +70,7 @@ BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
   else
     m_perf_data.last_leaf_count[HAM_OPERATION_STATS_INSERT]++;
 
-  BtreeNode *node = BtreeNode::from_page(page);
+  PBtreeNode *node = PBtreeNode::from_page(page);
   ham_assert(node->is_leaf());
   
   if (!node->get_right() && slot == node->get_count() - 1)

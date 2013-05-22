@@ -42,7 +42,7 @@ ham_status_t
 Journal::create()
 {
   int i;
-  Header header;
+  PHeader header;
   ham_status_t st;
 
   /* initialize the magic */
@@ -72,8 +72,8 @@ ham_status_t
 Journal::open()
 {
   int i;
-  Header header;
-  JournalEntry entry;
+  PHeader header;
+  PJournalEntry entry;
   ham_u64_t lsn[2];
   ham_status_t st, st1, st2;
 
@@ -125,7 +125,7 @@ Journal::open()
     }
 
     if (size >= sizeof(entry)) {
-      st = os_pread(m_fd[i], size - sizeof(JournalEntry),
+      st = os_pread(m_fd[i], size - sizeof(PJournalEntry),
                     &entry, sizeof(entry));
       if (st) {
         (void)close();
@@ -186,7 +186,7 @@ Journal::append_txn_begin(Transaction *txn, Environment *env,
                 const char *name, ham_u64_t lsn)
 {
   ham_status_t st;
-  JournalEntry entry;
+  PJournalEntry entry;
 
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_BEGIN;
@@ -224,7 +224,7 @@ Journal::append_txn_abort(Transaction *txn, ham_u64_t lsn)
 {
   int idx;
   ham_status_t st;
-  JournalEntry entry;
+  PJournalEntry entry;
   entry.lsn = lsn;
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_ABORT;
@@ -246,7 +246,7 @@ Journal::append_txn_commit(Transaction *txn, ham_u64_t lsn)
 {
   int idx;
   ham_status_t st;
-  JournalEntry entry;
+  PJournalEntry entry;
   entry.lsn = lsn;
   entry.txn_id = txn->get_id();
   entry.type = ENTRY_TYPE_TXN_COMMIT;
@@ -270,9 +270,9 @@ Journal::append_insert(Database *db, Transaction *txn,
                 ham_u64_t lsn)
 {
   char padding[16] = {0};
-  JournalEntry entry;
-  JournalEntryInsert insert;
-  ham_size_t size = sizeof(JournalEntryInsert) + key->size + record->size - 1;
+  PJournalEntry entry;
+  PJournalEntryInsert insert;
+  ham_size_t size = sizeof(PJournalEntryInsert) + key->size + record->size - 1;
   ham_size_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
@@ -290,7 +290,7 @@ Journal::append_insert(Database *db, Transaction *txn,
   /* append the entry to the logfile */
   return (append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
-                &insert, sizeof(JournalEntryInsert) - 1,
+                &insert, sizeof(PJournalEntryInsert) - 1,
                 key->data, key->size,
                 record->data, record->size,
                 padding, padding_size));
@@ -301,9 +301,9 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
                 ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
   char padding[16] = {0};
-  JournalEntry entry;
-  JournalEntryErase erase;
-  ham_size_t size = sizeof(JournalEntryErase) + key->size - 1;
+  PJournalEntry entry;
+  PJournalEntryErase erase;
+  ham_size_t size = sizeof(PJournalEntryErase) + key->size - 1;
   ham_size_t padding_size = __get_aligned_entry_size(size) - size;
 
   entry.lsn = lsn;
@@ -318,13 +318,13 @@ Journal::append_erase(Database *db, Transaction *txn, ham_key_t *key,
   /* append the entry to the logfile */
   return (append_entry(txn->get_log_desc(),
                 &entry, sizeof(entry),
-                (JournalEntry *)&erase, sizeof(JournalEntryErase) - 1,
+                (PJournalEntry *)&erase, sizeof(PJournalEntryErase) - 1,
                 key->data, key->size,
                 padding, padding_size));
 }
 
 ham_status_t
-Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
+Journal::get_entry(Iterator *iter, PJournalEntry *entry, void **aux)
 {
   ham_status_t st;
   ham_u64_t filesize;
@@ -342,7 +342,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
                   m_current_fd == 0
                       ? 1
                       : 0;
-    iter->offset = sizeof(Header);
+    iter->offset = sizeof(PHeader);
   }
 
   /* get the size of the journal file */
@@ -354,7 +354,7 @@ Journal::get_entry(Iterator *iter, JournalEntry *entry, void **aux)
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
-      iter->offset = sizeof(Header);
+      iter->offset = sizeof(PHeader);
       st = os_get_filesize(m_fd[iter->fdidx], &filesize);
       if (st)
         return (st);
@@ -404,7 +404,7 @@ Journal::close(bool noclear)
   ham_status_t st = 0;
 
   if (!noclear) {
-    Header header;
+    PHeader header;
 
     (void)clear();
 
@@ -532,7 +532,7 @@ Journal::recover()
   m_env->set_flags(m_env->get_flags() & ~HAM_ENABLE_RECOVERY);
 
   do {
-    JournalEntry entry;
+    PJournalEntry entry;
 
     if (aux) {
       alloc_free(aux);
@@ -574,7 +574,7 @@ Journal::recover()
         break;
       }
       case ENTRY_TYPE_INSERT: {
-        JournalEntryInsert *ins = (JournalEntryInsert *)aux;
+        PJournalEntryInsert *ins = (PJournalEntryInsert *)aux;
         Transaction *txn;
         Database *db;
         ham_key_t key = {0};
@@ -603,7 +603,7 @@ Journal::recover()
         break;
       }
       case ENTRY_TYPE_ERASE: {
-        JournalEntryErase *e = (JournalEntryErase *)aux;
+        PJournalEntryErase *e = (PJournalEntryErase *)aux;
         Transaction *txn;
         Database *db;
         ham_key_t key = {0};
@@ -676,14 +676,14 @@ Journal::clear_file(int idx)
 {
   ham_status_t st;
 
-  st = os_truncate(m_fd[idx], sizeof(Header));
+  st = os_truncate(m_fd[idx], sizeof(PHeader));
   if (st)
       return (st);
 
   /* after truncate, the file pointer is far beyond the new end of file;
    * reset the file pointer, or the next write will resize the file to
    * the original size */
-  st = os_seek(m_fd[idx], sizeof(Header), HAM_OS_SEEK_SET);
+  st = os_seek(m_fd[idx], sizeof(PHeader), HAM_OS_SEEK_SET);
   if (st)
     return (st);
 

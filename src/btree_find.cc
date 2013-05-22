@@ -48,7 +48,7 @@ class BtreeFindAction
       Page *page = 0;
       ham_s32_t idx = -1;
       LocalDatabase *db = m_btree->get_db();
-      BtreeNode *node;
+      PBtreeNode *node;
       BtreeStatistics *stats = m_btree->get_statistics();
       BtreeStatistics::FindHints hints = stats->get_find_hints(m_flags);
 
@@ -63,7 +63,7 @@ class BtreeFindAction
          */
         st = db->fetch_page(&page, hints.leaf_page_addr, true);
         if (st == 0 && page) {
-          node = BtreeNode::from_page(page);
+          node = PBtreeNode::from_page(page);
           ham_assert(node->is_leaf());
 
           idx = m_btree->find_leaf(page, m_key, hints.flags);
@@ -95,7 +95,7 @@ class BtreeFindAction
           return (st);
 
         /* now traverse the root to the leaf nodes, till we find a leaf */
-        node = BtreeNode::from_page(page);
+        node = PBtreeNode::from_page(page);
         if (!node->is_leaf()) {
           /* signal 'don't care' when we have multiple pages; we resolve
            * this once we've got a hit further down */
@@ -109,7 +109,7 @@ class BtreeFindAction
               return (st ? st : HAM_KEY_NOT_FOUND);
             }
 
-            node = BtreeNode::from_page(page);
+            node = PBtreeNode::from_page(page);
             if (node->is_leaf())
               break;
           }
@@ -143,10 +143,10 @@ class BtreeFindAction
        * shift by one.
        */
       if (idx >= 0) {
-        if ((ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_APPROXIMATE)
+        if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
             && (hints.original_flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 != (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) {
-          if ((ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_GT)
+          if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_GT)
               && (hints.original_flags & HAM_FIND_LT_MATCH)) {
             /* if the index-1 is still in the page, just decrement the index */
             if (idx > 0)
@@ -161,13 +161,13 @@ class BtreeFindAction
               st = db->fetch_page(&page, node->get_left());
               if (st)
                 return (st);
-              node = BtreeNode::from_page(page);
+              node = PBtreeNode::from_page(page);
               idx = node->get_count() - 1;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
+                        & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
           }
-          else if ((ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_LT)
+          else if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_LT)
               && (hints.original_flags & HAM_FIND_GT_MATCH)) {
             /* if the index+1 is still in the page, just increment the index */
             if (idx + 1 < node->get_count())
@@ -182,14 +182,14 @@ class BtreeFindAction
               st = db->fetch_page(&page, node->get_right());
               if (st)
                 return (st);
-              node = BtreeNode::from_page(page);
+              node = PBtreeNode::from_page(page);
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
+                        & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_GT);
           }
         }
-        else if (!(ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_APPROXIMATE)
+        else if (!(ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
             && !(hints.original_flags & HAM_FIND_EXACT_MATCH)
             && (hints.original_flags != 0)) {
           /*
@@ -213,7 +213,7 @@ class BtreeFindAction
             if (idx > 0) {
               idx--;
               ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                          & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
+                          & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
             }
             else {
               /* otherwise load the left sibling page */
@@ -234,11 +234,11 @@ class BtreeFindAction
                     st = db->fetch_page(&page, node->get_right());
                     if (st)
                       return (st);
-                    node = BtreeNode::from_page(page);
+                    node = PBtreeNode::from_page(page);
                     idx = 0;
                   }
                   ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key) &
-                                      ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_GT);
+                                      ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_GT);
                 }
                 else {
                   stats->find_failed();
@@ -249,11 +249,11 @@ class BtreeFindAction
                 st = db->fetch_page(&page, node->get_left());
                 if (st)
                   return (st);
-                node = BtreeNode::from_page(page);
+                node = PBtreeNode::from_page(page);
                 idx = node->get_count() - 1;
 
                 ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                  & ~BtreeKey::KEY_IS_APPROXIMATE) | BtreeKey::KEY_IS_LT);
+                                  & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
               }
             }
           }
@@ -271,12 +271,12 @@ class BtreeFindAction
               st = db->fetch_page(&page, node->get_right());
               if (st)
                 return (st);
-              node = BtreeNode::from_page(page);
+              node = PBtreeNode::from_page(page);
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                & ~BtreeKey::KEY_IS_APPROXIMATE)
-                                | BtreeKey::KEY_IS_GT);
+                                & ~PBtreeKey::KEY_IS_APPROXIMATE)
+                                | PBtreeKey::KEY_IS_GT);
           }
         }
       }
@@ -287,7 +287,7 @@ class BtreeFindAction
       }
 
       /* load the entry, and store record ID and key flags */
-      BtreeKey *entry = node->get_key(db, idx);
+      PBtreeKey *entry = node->get_key(db, idx);
 
       /* set the cursor-position to this key */
       if (m_cursor) {
@@ -308,7 +308,7 @@ class BtreeFindAction
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
-      if (m_key && (ham_key_get_intflags(m_key) & BtreeKey::KEY_IS_APPROXIMATE)
+      if (m_key && (ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
           && !(m_flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
         st = m_btree->read_key(m_txn, entry, m_key);
         if (st)

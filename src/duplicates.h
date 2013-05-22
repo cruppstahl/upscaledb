@@ -27,7 +27,7 @@ namespace hamsterdb {
 /**
  * a structure for a duplicate - used in a duplicate table
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
+typedef HAM_PACK_0 struct HAM_PACK_1 PDupeEntry
 {
     /** reserved, for padding */
     ham_u8_t _padding[7];
@@ -41,7 +41,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
     /** the record id (unless it's TINY, SMALL or NULL) */
     ham_u64_t _rid;
 
-} HAM_PACK_2 dupe_entry_t;
+} HAM_PACK_2 PDupeEntry;
 
 #include "packstop.h"
 
@@ -59,8 +59,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
  * in this case, we must not use endian-conversion!
  */
 #define dupe_entry_get_rid(e)                                                 \
-         (((dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_TINY)             \
-          || (dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_SMALL))         \
+         (((dupe_entry_get_flags(e)&PBtreeKey::KEY_BLOB_SIZE_TINY)             \
+          || (dupe_entry_get_flags(e)&PBtreeKey::KEY_BLOB_SIZE_SMALL))         \
            ? (e)->_rid                                                        \
            : ham_db2h_offset((e)->_rid))
 
@@ -75,17 +75,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
  * in this case we must not use endian-conversion!
  */
 #define dupe_entry_set_rid(e, r)                                              \
-         (e)->_rid=(((dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_TINY)   \
-          || (dupe_entry_get_flags(e)&BtreeKey::KEY_BLOB_SIZE_SMALL))         \
+         (e)->_rid=(((dupe_entry_get_flags(e)&PBtreeKey::KEY_BLOB_SIZE_TINY)   \
+          || (dupe_entry_get_flags(e)&PBtreeKey::KEY_BLOB_SIZE_SMALL))         \
            ? (r)                                                              \
            : ham_h2db_offset(r))
 
 #include "packstart.h"
 
 /**
- * a structure for duplicates (dupe_table_t)
+ * a structure for duplicates (PDupeTable)
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
+typedef HAM_PACK_0 struct HAM_PACK_1 PDupeTable
 {
     /** the number of duplicates (used entries in this table) */
     ham_u32_t _count;
@@ -94,9 +94,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
     ham_u32_t _capacity;
 
     /** a dynamic array of duplicate entries */
-    dupe_entry_t _entries[1];
+    PDupeEntry _entries[1];
 
-} HAM_PACK_2 dupe_table_t;
+} HAM_PACK_2 PDupeTable;
 
 #include "packstop.h"
 
@@ -142,7 +142,7 @@ class DuplicateManager
      */
     ham_status_t insert(Database *db, Transaction *txn, ham_u64_t table_id,
                 ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                dupe_entry_t *entries, ham_size_t num_entries,
+                PDupeEntry *entries, ham_size_t num_entries,
                 ham_u64_t *rid, ham_size_t *new_position);
 
     /**
@@ -162,13 +162,13 @@ class DuplicateManager
      * get the number of duplicates
      */
     ham_status_t get_count(ham_u64_t table_id, ham_size_t *count,
-                dupe_entry_t *entry);
+                PDupeEntry *entry);
 
     /**
      * get a duplicate
      */
     ham_status_t get(ham_u64_t table_id, ham_size_t position,
-                dupe_entry_t *entry);
+                PDupeEntry *entry);
 
     /**
      * retrieve the whole table of duplicates
@@ -176,12 +176,12 @@ class DuplicateManager
      * @warning will return garbage if the key has no dupes!!
      * @warning memory has to be freed by the caller IF needs_free is true!
      */
-    ham_status_t get_table(ham_u64_t table_id, dupe_table_t **ptable,
+    ham_status_t get_table(ham_u64_t table_id, PDupeTable **ptable,
                 bool *needs_free);
 
   private:
     /** internal implementation of get_table() */
-    ham_status_t get_table(dupe_table_t **table_ref, Page **page,
+    ham_status_t get_table(PDupeTable **table_ref, Page **page,
                 ham_u64_t table_id);
 
     /** the Environment which created this BlobManager */

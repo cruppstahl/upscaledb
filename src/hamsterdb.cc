@@ -427,7 +427,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
    * leave at least 128 bytes for the freelist and the other header data
    */
   {
-    ham_size_t l = pagesize - sizeof(env_header_t)
+    ham_size_t l = pagesize - sizeof(PEnvHeader)
         - db_get_freelist_header_size() - 128;
 
     l /= sizeof(BtreeDescriptor);
@@ -1012,8 +1012,8 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
-  if (key && (ham_key_get_intflags(key) & BtreeKey::KEY_IS_APPROXIMATE)) {
-    int rv = (ham_key_get_intflags(key) & BtreeKey::KEY_IS_LT) ? -1 : +1;
+  if (key && (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE)) {
+    int rv = (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_LT) ? -1 : +1;
     return (rv);
   }
 

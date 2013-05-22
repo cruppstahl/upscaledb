@@ -91,23 +91,23 @@ public:
      * page after the split
      */
     Page *page;
-    BtreeNode *node;
+    PBtreeNode *node;
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(7, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(5, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
     BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(1, node->get_count());
   }
 
@@ -129,23 +129,23 @@ public:
      * page after the split
      */
     Page *page;
-    BtreeNode *node;
+    PBtreeNode *node;
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(8, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(3, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(1, node->get_count());
   }
 
@@ -167,23 +167,23 @@ public:
      * page after the split
      */
     Page *page;
-    BtreeNode *node;
+    PBtreeNode *node;
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(8, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(3, node->get_count());
 
     BFC_ASSERT_EQUAL(0,
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
     BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
-    node = BtreeNode::from_page(page);
+    node = PBtreeNode::from_page(page);
     BFC_ASSERT_EQUAL(1, node->get_count());
   }
 };

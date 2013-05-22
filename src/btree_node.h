@@ -28,11 +28,11 @@ namespace hamsterdb {
  * This structure is directly written to/read from the file. The
  * getters/setters provide endian-agnostic access.
  */
-HAM_PACK_0 struct HAM_PACK_1 BtreeNode
+HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 {
-  /** get a BtreeNode from a Page */
-  static BtreeNode *from_page(Page *page) {
-    return ((BtreeNode *)page->get_payload());
+  /** get a PBtreeNode from a Page */
+  static PBtreeNode *from_page(Page *page) {
+    return ((PBtreeNode *)page->get_payload());
   }
 
   /** get the number of entries of a btree-node */
@@ -85,9 +85,9 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
    * note that this function does not check the boundaries (i.e. whether
    * i <= get_count(), because some functions deliberately write to
    * elements "after" get_count() */
-  BtreeKey *get_key(Database *db, int i) {
-    return ((BtreeKey *)&((const char *)_entries)
-              [(db->get_keysize() + BtreeKey::ms_sizeof_overhead) * i]);
+  PBtreeKey *get_key(Database *db, int i) {
+    return ((PBtreeKey *)&((const char *)_entries)
+              [(db->get_keysize() + PBtreeKey::ms_sizeof_overhead) * i]);
   }
 
   /**
@@ -113,7 +113,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeNode
   ham_u64_t _ptr_left;
 
   /** the entries of this node */
-  BtreeKey _entries[1];
+  PBtreeKey _entries[1];
 
 } HAM_PACK_2;
 

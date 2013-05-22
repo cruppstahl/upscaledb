@@ -26,16 +26,16 @@ namespace hamsterdb {
 #include "packstart.h"
 
 /**
- * a blob structure (blob_t)
+ * a blob structure (PBlobHeader)
  *
- * every blob has a blob_t header; it holds flags and some other
+ * every blob has a PBlobHeader header; it holds flags and some other
  * administrative information
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
+typedef HAM_PACK_0 struct HAM_PACK_1 PBlobHeader
 {
     /**
      * the blob ID - which is the absolute address/offset of this
-     * blob_t structure in the file
+     * PBlobHeader structure in the file
      */
     ham_u64_t _blobid;
 
@@ -50,32 +50,32 @@ typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 
     /** additional flags */
     ham_u32_t _flags;
-} HAM_PACK_2 blob_t;
+} HAM_PACK_2 PBlobHeader;
 
 #include "packstop.h"
 
-/** get the blob ID (blob start address) of a blob_t */
+/** get the blob ID (blob start address) of a PBlobHeader */
 #define blob_get_self(b)               (ham_db2h_offset((b)->_blobid))
 
-/** set the blob ID (blob start address) of a blob_t */
+/** set the blob ID (blob start address) of a PBlobHeader */
 #define blob_set_self(b, s)            (b)->_blobid=ham_h2db_offset(s)
 
-/** get the allocated size of a blob_t */
+/** get the allocated size of a PBlobHeader */
 #define blob_get_alloc_size(b)         (ham_db2h64((b)->_allocated_size))
 
-/** set the allocated size of a blob_t */
+/** set the allocated size of a PBlobHeader */
 #define blob_set_alloc_size(b, s)      (b)->_allocated_size=ham_h2db64(s)
 
-/** get the size of a blob_t */
+/** get the size of a PBlobHeader */
 #define blob_get_size(b)               (ham_db2h64((b)->_size))
 
-/** get the size of a blob_t */
+/** get the size of a PBlobHeader */
 #define blob_set_size(b, s)            (b)->_size=ham_h2db64(s)
 
-/** get flags of a blob_t */
+/** get flags of a PBlobHeader */
 #define blob_get_flags(b)              (ham_db2h32((b)->_flags))
 
-/** set flags of a blob_t */
+/** set flags of a PBlobHeader */
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 

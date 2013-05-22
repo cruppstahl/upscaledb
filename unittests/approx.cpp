@@ -112,7 +112,7 @@ public:
     if (st)
       return (st);
     if (strcmp(expected, (const char *)k.data))
-      BFC_ASSERT(ham_key_get_intflags(&k) & BtreeKey::KEY_IS_APPROXIMATE);
+      BFC_ASSERT(ham_key_get_intflags(&k) & PBtreeKey::KEY_IS_APPROXIMATE);
     return (strcmp(expected, (const char *)r.data));
   }
 

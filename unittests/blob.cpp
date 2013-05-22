@@ -102,7 +102,7 @@ public:
   }
 
   void structureTest() {
-    blob_t b;
+    PBlobHeader b;
     ::memset(&b, 0, sizeof(b));
 
     blob_set_self(&b, (ham_u64_t)0x12345ull);
@@ -119,7 +119,7 @@ public:
   }
 
   void dupeStructureTest() {
-    dupe_table_t t;
+    PDupeTable t;
     ::memset(&t, 0, sizeof(t));
 
     dupe_table_set_count(&t, 0x789ull);
@@ -128,7 +128,7 @@ public:
     dupe_table_set_capacity(&t, 0x123ull);
     BFC_ASSERT_EQUAL((ham_u32_t)0x123ull, dupe_table_get_capacity(&t));
 
-    dupe_entry_t *e = dupe_table_get_entry(&t, 0);
+    PDupeEntry *e = dupe_table_get_entry(&t, 0);
     dupe_entry_set_flags(e, 0x13);
     BFC_ASSERT_EQUAL((ham_u8_t)0x13, dupe_entry_get_flags(e));
 

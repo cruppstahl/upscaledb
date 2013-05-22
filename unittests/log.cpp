@@ -189,7 +189,7 @@ public:
 
     Log::Iterator iter = 0;
 
-    Log::Entry entry;
+    Log::PEntry entry;
     ham_u8_t *data;
     BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
     BFC_ASSERT_EQUAL((ham_u64_t)0, entry.lsn);
@@ -211,7 +211,7 @@ public:
 
     Log::Iterator iter = 0;
 
-    Log::Entry entry;
+    Log::PEntry entry;
     ham_u8_t *data;
     BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
     BFC_ASSERT_EQUAL((ham_u64_t)1, entry.lsn);
@@ -229,7 +229,7 @@ public:
     BFC_ASSERT_EQUAL(0, log->close());
   }
 
-  void checkLogEntry(Log *log, Log::Entry *entry, ham_u64_t lsn,
+  void checkLogEntry(Log *log, Log::PEntry *entry, ham_u64_t lsn,
         ham_u8_t *data) {
     BFC_ASSERT_EQUAL(lsn, entry->lsn);
     if (entry->data_size == 0) {
@@ -270,7 +270,7 @@ public:
 
     Log::Iterator iter = 0;
 
-    Log::Entry entry;
+    Log::PEntry entry;
     ham_u8_t *data;
 
     BFC_ASSERT_EQUAL(0, log->get_entry(&iter, &entry, &data));
@@ -423,7 +423,7 @@ public:
     BFC_ASSERT(log != 0);
     ham_u64_t filesize;
     BFC_ASSERT_EQUAL(0, os_get_filesize(log->get_fd(), &filesize));
-    BFC_ASSERT_EQUAL((ham_u64_t)sizeof(Log::Header), filesize);
+    BFC_ASSERT_EQUAL((ham_u64_t)sizeof(Log::PHeader), filesize);
 
     free(buffer);
   }
@@ -511,7 +511,7 @@ public:
     BFC_ASSERT(log != 0);
     ham_u64_t filesize;
     BFC_ASSERT_EQUAL(0, os_get_filesize(log->get_fd(), &filesize));
-    BFC_ASSERT_EQUAL((ham_u64_t)sizeof(Log::Header), filesize);
+    BFC_ASSERT_EQUAL((ham_u64_t)sizeof(Log::PHeader), filesize);
 
     free(buffer);
   }
@@ -533,7 +533,7 @@ public:
   }
 
   void compareLog(const char *filename, std::vector<LogEntry> &vec) {
-    Log::Entry entry;
+    Log::PEntry entry;
     Log::Iterator iter = 0;
     ham_u8_t *data;
     size_t size = 0;

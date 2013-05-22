@@ -27,7 +27,7 @@ x refactoring: get rid of ham_bool_t, replace with bool whenever possible
 
 x version.h: support file version (see topic/freelist)
 
-o all packed structures that are directly mapped to the file
+x all packed structures that are directly mapped to the file
     (BlobPageHeader, BlobHeader and others) should be named
     "PXXX" (for "Persistent" or "Packed")
 

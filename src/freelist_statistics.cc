@@ -197,7 +197,7 @@ static void
 rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
 {
     ham_u16_t b;
-    freelist_page_statistics_t *entrystats = &entry->perf_data._persisted_stats;
+    PFreelistPageStatistics *entrystats = &entry->perf_data._persisted_stats;
 
     for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
         //rescale_256(entrystats->per_size[b].first_start);
@@ -223,7 +223,7 @@ rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
 }
 
 void
-freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_fail(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 freelist_hints_t *hints)
 {
     /*
@@ -233,7 +233,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
     if (hints->lower_bound_address == 0) {
         EnvironmentStatistics *globalstats
                     = fl->get_env()->get_global_perf_data();
-        freelist_page_statistics_t *entrystats
+        PFreelistPageStatistics *entrystats
                     = &entry->perf_data._persisted_stats;
         ham_size_t cost = hints->cost;
 
@@ -323,7 +323,7 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 }
 
 void
-freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_update(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t position, freelist_hints_t *hints)
 {
     /*
@@ -336,7 +336,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
 
         EnvironmentStatistics *globalstats =
                     fl->get_env()->get_global_perf_data();
-        freelist_page_statistics_t *entrystats =
+        PFreelistPageStatistics *entrystats =
                     &entry->perf_data._persisted_stats;
 
         ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
@@ -423,7 +423,7 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
  * below.
  */
 void
-freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t position, ham_size_t size_bits, bool free_these,
                 freelist_hints_t *hints)
 {
@@ -436,7 +436,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
     if (hints->lower_bound_address == 0) {
         EnvironmentStatistics *globalstats
                     = fl->get_env()->get_global_perf_data();
-        freelist_page_statistics_t *entrystats
+        PFreelistPageStatistics *entrystats
                     = &entry->perf_data._persisted_stats;
 
         ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
@@ -877,7 +877,7 @@ void
 freelist_get_entry_hints(Freelist *fl, FreelistEntry *entry,
                 freelist_hints_t *dst)
 {
-    freelist_page_statistics_t *entrystats = &entry->perf_data._persisted_stats;
+    PFreelistPageStatistics *entrystats = &entry->perf_data._persisted_stats;
 
     ham_u32_t offset;
     ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);

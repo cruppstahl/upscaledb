@@ -487,7 +487,7 @@ Freelist::mark_free(Database *db, ham_u64_t address, ham_size_t size,
     ham_status_t st;
     Page *page=0;
     FreelistEntry *entry;
-    FreelistPayload *fp;
+    PFreelistPayload *fp;
     ham_size_t s;
     freelist_hints_t hints = {
         0,
@@ -572,7 +572,7 @@ Freelist::alloc_area(ham_u64_t *addr_ref, Database *db, ham_size_t size,
     ham_status_t st;
     ham_s32_t i;
     FreelistEntry *entry = NULL;
-    FreelistPayload *fp = NULL;
+    PFreelistPayload *fp = NULL;
     Page *page=0;
     ham_s32_t s=-1;
     freelist_global_hints_t global_hints =
@@ -857,9 +857,9 @@ Freelist::alloc_page(ham_u64_t *address, Database *db)
  * freelist algorithm persists this data to disc.
  */
 void
-Freelist::init_perf_data(FreelistEntry *entry, FreelistPayload *fp)
+Freelist::init_perf_data(FreelistEntry *entry, PFreelistPayload *fp)
 {
-    freelist_page_statistics_t *entrystats = &entry->perf_data._persisted_stats;
+    PFreelistPageStatistics *entrystats = &entry->perf_data._persisted_stats;
 
     /* we can assume all freelist FP data has been zeroed before we came
      * in here */
@@ -923,8 +923,8 @@ Freelist::flush_statistics()
         FreelistEntry *entry=&m_entries[i];
 
         if (entry->perf_data._dirty) {
-            FreelistPayload *fp;
-            freelist_page_statistics_t *pers_stats;
+            PFreelistPayload *fp;
+            PFreelistPageStatistics *pers_stats;
 
             /* header page */
             if (!entry->page_id) {
@@ -966,7 +966,7 @@ Freelist::flush_statistics()
 }
 
 ham_s32_t
-Freelist::search_bits(FreelistEntry *entry, FreelistPayload *f,
+Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
                 ham_size_t size_bits, freelist_hints_t *hints)
 {
     ham_u32_t end;
@@ -2801,7 +2801,7 @@ Freelist::initialize()
     ham_status_t st;
     ham_size_t size;
     FreelistEntry entry={0};
-    FreelistPayload *fp=m_env->get_freelist_payload();
+    PFreelistPayload *fp=m_env->get_freelist_payload();
 
     ham_assert(m_entries.empty());
 
@@ -2958,7 +2958,7 @@ Freelist::alloc_page(Page **page_ref, FreelistEntry *entry)
     ham_size_t i;
     FreelistEntry *entries=&m_entries[0];
     Page *page=0;
-    FreelistPayload *fp;
+    PFreelistPayload *fp;
     ham_size_t size_bits=get_entry_maxspan();
 
     ham_assert(((size_bits/8) % sizeof(ham_u64_t)) == 0);
@@ -3031,7 +3031,7 @@ Freelist::alloc_page(Page **page_ref, FreelistEntry *entry)
 }
 
 ham_size_t
-Freelist::set_bits(FreelistEntry *entry, FreelistPayload *fp,
+Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
             bool overwrite, ham_size_t start_bit, ham_size_t size_bits,
             bool set, freelist_hints_t *hints)
 {

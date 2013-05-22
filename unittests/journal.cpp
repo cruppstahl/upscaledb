@@ -308,8 +308,8 @@ public:
     /* verify that the insert entry was written correctly */
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
-    JournalEntry entry;
-    JournalEntryInsert *ins;
+    PJournalEntry entry;
+    PJournalEntryInsert *ins;
     BFC_ASSERT_EQUAL(0,  // this is the txn
           j->get_entry(&iter, &entry, (void **)&ins));
     BFC_ASSERT_EQUAL(0,  // this is the insert
@@ -355,8 +355,8 @@ public:
     /* verify that the insert entry was written correctly */
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
-    JournalEntry entry;
-    JournalEntryInsert *ins;
+    PJournalEntry entry;
+    PJournalEntryInsert *ins;
     BFC_ASSERT_EQUAL(0,  // this is the txn
           j->get_entry(&iter, &entry, (void **)&ins));
     BFC_ASSERT_EQUAL(0,  // this is the insert
@@ -396,8 +396,8 @@ public:
     /* verify that the erase entry was written correctly */
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
-    JournalEntry entry;
-    JournalEntryErase *er;
+    PJournalEntry entry;
+    PJournalEntryErase *er;
     BFC_ASSERT_EQUAL(0, // this is the txn
           j->get_entry(&iter, &entry, (void **)&er));
     BFC_ASSERT_EQUAL(0, // this is the erase
@@ -442,7 +442,7 @@ public:
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
 
-    JournalEntry entry;
+    PJournalEntry entry;
     ham_u8_t *data;
     BFC_ASSERT_EQUAL(0, j->get_entry(&iter, &entry, (void **)&data));
     BFC_ASSERT_EQUAL((ham_u64_t)0, entry.lsn);
@@ -466,7 +466,7 @@ public:
     Journal::Iterator iter;
     memset(&iter, 0, sizeof(iter));
 
-    JournalEntry entry;
+    PJournalEntry entry;
     ham_u8_t *data;
     BFC_ASSERT_EQUAL(0,
           j->get_entry(&iter, &entry, (void **)&data));
@@ -480,7 +480,7 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
   }
 
-  void checkJournalEntry(JournalEntry *entry, ham_u64_t lsn,
+  void checkPJournalEntry(PJournalEntry *entry, ham_u64_t lsn,
           ham_u64_t txn_id, ham_u32_t type, ham_u8_t *data) {
     BFC_ASSERT_EQUAL(lsn, entry->lsn);
     BFC_ASSERT_EQUAL(txn_id, entry->txn_id);
@@ -496,7 +496,7 @@ public:
 
   void compareJournal(Journal *journal, LogEntry *vec, unsigned size) {
     Journal::Iterator it;
-    JournalEntry entry;
+    PJournalEntry entry;
     void *aux;
     unsigned s = 0;
 
@@ -642,9 +642,9 @@ public:
     Journal *j = m_environ->get_journal();
     BFC_ASSERT(j != 0);
     BFC_ASSERT_EQUAL(0, os_get_filesize(j->m_fd[0], &size));
-    BFC_ASSERT_EQUAL(sizeof(Journal::Header), size);
+    BFC_ASSERT_EQUAL(sizeof(Journal::PHeader), size);
     BFC_ASSERT_EQUAL(0, os_get_filesize(j->m_fd[1], &size));
-    BFC_ASSERT_EQUAL(sizeof(Journal::Header), size);
+    BFC_ASSERT_EQUAL(sizeof(Journal::PHeader), size);
   }
 
   void recoverVerifyTxnIdsTest() {

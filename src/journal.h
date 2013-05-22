@@ -57,8 +57,8 @@ class Journal
     /**
      * the header structure of a journal file
      */
-    HAM_PACK_0 struct HAM_PACK_1 Header {
-      Header() : magic(0), _reserved(0), lsn(0) { }
+    HAM_PACK_0 struct HAM_PACK_1 PHeader {
+      PHeader() : magic(0), _reserved(0), lsn(0) { }
 
       /** the magic */
       ham_u32_t magic;
@@ -115,7 +115,7 @@ class Journal
         ham_status_t st = os_get_filesize(m_fd[i], &size);
         if (st)
           return (false); /* TODO throw exception */
-        if (size && size != sizeof(Header))
+        if (size && size != sizeof(PHeader))
           return (false);
       }
 
@@ -196,7 +196,7 @@ class Journal
      *
      * returns SUCCESS and an empty entry (lsn is zero) after the last element.
      */
-    ham_status_t get_entry(Iterator *iter, JournalEntry *entry, void **aux);
+    ham_status_t get_entry(Iterator *iter, PJournalEntry *entry, void **aux);
 
     /** appends an entry to the journal */
     ham_status_t append_entry(int fdidx,

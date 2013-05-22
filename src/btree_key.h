@@ -26,10 +26,10 @@ namespace hamsterdb {
 /**
  * the internal representation of a serialized key
  */
-HAM_PACK_0 struct HAM_PACK_1 BtreeKey
+HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
 {
   /**
-   * persisted BtreeKey flags; also used in combination with ham_key_t._flags
+   * persisted PBtreeKey flags; also used in combination with ham_key_t._flags
    *
    * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
    *  0x000000FF
@@ -52,7 +52,7 @@ HAM_PACK_0 struct HAM_PACK_1 BtreeKey
   /*
    * flags used with the ham_key_t INTERNAL USE field _flags.
    *
-   * Note: these flags should NOT overlap with the persisted flags for BtreeKey
+   * Note: these flags should NOT overlap with the persisted flags for PBtreeKey
    *
    * As these flags NEVER will be persisted, they should be located outside
    * the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.

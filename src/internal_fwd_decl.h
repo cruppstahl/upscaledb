@@ -89,14 +89,14 @@ class TransactionCursor;
 
 #include "packstart.h"
 
-struct FreelistPayload;
+struct PFreelistPayload;
 
 #include "packstop.h"
 
 
 #include "packstart.h"
 
-struct BtreeKey;
+struct PBtreeKey;
 
 #include "packstop.h"
 

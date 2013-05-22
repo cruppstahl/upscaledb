@@ -262,32 +262,32 @@ public:
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
-    BFC_ASSERT(compare_sizes(sizeof(blob_t), 28));
-    BFC_ASSERT(compare_sizes(sizeof(dupe_entry_t), 16));
-    BFC_ASSERT(compare_sizes(sizeof(dupe_table_t),
-        8 + sizeof(dupe_entry_t)));
-    BFC_ASSERT(compare_sizes(sizeof(BtreeNode), 28+sizeof(BtreeKey)));
-    BFC_ASSERT(compare_sizes(sizeof(BtreeKey), 12));
-    BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
+    BFC_ASSERT(compare_sizes(sizeof(PBlobHeader), 28));
+    BFC_ASSERT(compare_sizes(sizeof(PDupeEntry), 16));
+    BFC_ASSERT(compare_sizes(sizeof(PDupeTable),
+        8 + sizeof(PDupeEntry)));
+    BFC_ASSERT(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
+    BFC_ASSERT(compare_sizes(sizeof(PBtreeKey), 12));
+    BFC_ASSERT(compare_sizes(sizeof(PEnvHeader), 20));
     BFC_ASSERT(compare_sizes(sizeof(BtreeDescriptor), 32));
-    BFC_ASSERT(compare_sizes(sizeof(FreelistPayload),
-        16 + 13 + sizeof(freelist_page_statistics_t)));
-    BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t),
-        4 * 8 + sizeof(freelist_slotsize_stats_t)
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
+        16 + 13 + sizeof(PFreelistPageStatistics)));
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistPageStatistics),
+        4 * 8 + sizeof(PFreelistSlotsizeStats)
             * HAM_FREELIST_SLOT_SPREAD));
-    BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8 * 4));
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
     BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
     BFC_ASSERT(compare_sizes(db_get_freelist_header_size(),
-        16 + 12 + sizeof(freelist_page_statistics_t)));
-    BFC_ASSERT(compare_sizes(BtreeKey::ms_sizeof_overhead, 11));
-    BFC_ASSERT(compare_sizes(sizeof(Log::Header), 16));
-    BFC_ASSERT(compare_sizes(sizeof(Log::Entry), 32));
+        16 + 12 + sizeof(PFreelistPageStatistics)));
+    BFC_ASSERT(compare_sizes(PBtreeKey::ms_sizeof_overhead, 11));
+    BFC_ASSERT(compare_sizes(sizeof(Log::PHeader), 16));
+    BFC_ASSERT(compare_sizes(sizeof(Log::PEntry), 32));
     BFC_ASSERT(compare_sizes(sizeof(PageData), 13));
     PageData p;
     BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
     BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
 
-    BFC_ASSERT(compare_sizes(OFFSETOF(BtreeNode, _entries), 28));
+    BFC_ASSERT(compare_sizes(OFFSETOF(PBtreeNode, _entries), 28));
     Page page;
     LocalDatabase db((Environment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
@@ -301,7 +301,7 @@ public:
     // header page, then hack it...
     struct {
       PageData drit;
-      env_header_t drat;
+      PEnvHeader drat;
     } hdrpage_pers = {{{0}}};
     Page hdrpage;
     hdrpage.set_pers((PageData *)&hdrpage_pers);
@@ -309,7 +309,7 @@ public:
     ham_u8_t *pl1 = hp->get_payload();
     BFC_ASSERT(pl1);
     BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_pers(), 12));
-    env_header_t *hdrptr = (env_header_t *)(hdrpage.get_payload());
+    PEnvHeader *hdrptr = (PEnvHeader *)(hdrpage.get_payload());
     BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr)
         - (ham_u8_t *)hdrpage.get_pers(), 12));
     hdrpage.set_pers(0);

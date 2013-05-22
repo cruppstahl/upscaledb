@@ -390,7 +390,7 @@ class BtreeIndex
     int compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs);
 
     /**
-     * create a preliminary copy of an @ref BtreeKey key to a @ref ham_key_t
+     * create a preliminary copy of an @ref PBtreeKey key to a @ref ham_key_t
      * in such a way that @ref db->compare_keys can use the data and optionally
      * call @ref db->get_extended_key on this key to obtain all key data, when
      * this is an extended key.
@@ -399,14 +399,14 @@ class BtreeIndex
      * to store the pointer in the btree. The pointers are kept to avoid
      * permanent re-allocations (improves performance)
      */
-    ham_status_t prepare_key_for_compare(int which, BtreeKey *src,
+    ham_status_t prepare_key_for_compare(int which, PBtreeKey *src,
                     ham_key_t *dest);
 
     /**
      * copies an internal key;
      * allocates memory unless HAM_KEY_USER_ALLOC is set
      */
-    ham_status_t copy_key(const BtreeKey *source, ham_key_t *dest);
+    ham_status_t copy_key(const PBtreeKey *source, ham_key_t *dest);
 
     /**
      * read a key
@@ -422,7 +422,7 @@ class BtreeIndex
      * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
     // TODO use arena; get rid of txn parameter
      */
-    ham_status_t read_key(Transaction *txn, BtreeKey *source,
+    ham_status_t read_key(Transaction *txn, PBtreeKey *source,
                     ham_key_t *dest);
 
     /**

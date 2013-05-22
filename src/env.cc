@@ -103,14 +103,14 @@ BtreeDescriptor *
 Environment::get_descriptor(int i)
 {
   BtreeDescriptor *d = (BtreeDescriptor *)
-        (get_header_page()->get_payload() + sizeof(env_header_t));
+        (get_header_page()->get_payload() + sizeof(PEnvHeader));
   return (d + i);
 }
 
-FreelistPayload *
+PFreelistPayload *
 Environment::get_freelist_payload()
 {
-  return ((FreelistPayload *)(get_header_page()->get_payload() +
+  return ((PFreelistPayload *)(get_header_page()->get_payload() +
             SIZEOF_FULL_HEADER(this)));
 }
 
@@ -1077,7 +1077,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (flags & HAM_RECORD_NUMBER)
     keysize = sizeof(ham_u64_t);
   else
-    keysize = (ham_u16_t)(32 - (BtreeKey::ms_sizeof_overhead));
+    keysize = (ham_u16_t)(32 - (PBtreeKey::ms_sizeof_overhead));
 
   if (param) {
     for (; param->name; param++) {

@@ -84,7 +84,7 @@ public:
   }
 
   void structureTest() {
-    FreelistPayload *f;
+    PFreelistPayload *f;
 
     f = (((Environment *)m_env)->get_freelist_payload());
 
@@ -372,14 +372,14 @@ public:
 
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
-    BFC_ASSERT(compare_sizes(sizeof(FreelistPayload),
-        16 + 13 + sizeof(freelist_page_statistics_t)));
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
+        16 + 13 + sizeof(PFreelistPageStatistics)));
     BFC_ASSERT(compare_sizes(db_get_freelist_header_size(),
-        16 + 12 + sizeof(freelist_page_statistics_t)));
-    BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t),
-        8 * 4 + sizeof(freelist_slotsize_stats_t)
+        16 + 12 + sizeof(PFreelistPageStatistics)));
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistPageStatistics),
+        8 * 4 + sizeof(PFreelistSlotsizeStats)
             * HAM_FREELIST_SLOT_SPREAD));
-    BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8 * 4));
+    BFC_ASSERT(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
     BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
   }
 

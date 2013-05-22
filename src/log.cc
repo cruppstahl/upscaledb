@@ -32,7 +32,7 @@ namespace hamsterdb {
 ham_status_t
 Log::create()
 {
-  Log::Header header;
+  Log::PHeader header;
   ham_status_t st;
   std::string path = get_path();
 
@@ -56,7 +56,7 @@ Log::create()
 ham_status_t
 Log::open()
 {
-  Log::Header header;
+  Log::PHeader header;
   std::string path = get_path();
   ham_status_t st;
 
@@ -86,7 +86,7 @@ Log::open()
 }
 
 ham_status_t
-Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
+Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ham_u8_t **data)
 {
   ham_status_t st;
 
@@ -101,14 +101,14 @@ Log::get_entry(Log::Iterator *iter, Log::Entry *entry, ham_u8_t **data)
   }
 
   /* if the current file is empty: no need to continue */
-  if (*iter <= sizeof(Log::Header)) {
+  if (*iter <= sizeof(Log::PHeader)) {
     entry->lsn = 0;
     return (0);
   }
 
-  /* otherwise read the Log::Entry header (without extended data)
+  /* otherwise read the Log::PEntry header (without extended data)
    * from the file */
-  *iter -= sizeof(Log::Entry);
+  *iter -= sizeof(Log::PEntry);
 
   st = os_pread(m_fd, *iter, entry, sizeof(*entry));
   if (st)
@@ -143,7 +143,7 @@ ham_status_t
 Log::close(bool noclear)
 {
   ham_status_t st = 0;
-  Log::Header header;
+  Log::PHeader header;
 
   if (m_fd == HAM_INVALID_FD)
     return (0);
@@ -189,7 +189,7 @@ Log::recover()
   ham_status_t st;
   Page *page;
   Device *device = m_env->get_device();
-  Log::Entry entry;
+  Log::PEntry entry;
   Iterator it = 0;
   ham_u8_t *data = 0;
   ham_u64_t filesize;
@@ -302,7 +302,7 @@ ham_status_t
 Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
-  Log::Entry entry;
+  Log::PEntry entry;
 
   /* store the lsn - it will be needed later when the log file is closed */
   if (lsn)

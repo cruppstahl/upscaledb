@@ -28,10 +28,10 @@ namespace hamsterdb {
  * (journal_entry_insert_t or journal_entry_erase_t); the field 'followup_size'
  * is the structure size of this follow-up structure.
  */
-HAM_PACK_0 struct HAM_PACK_1 JournalEntry
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntry
 {
   /** constructor - sets all fields to 0 */
-  JournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0),
+  PJournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0),
         dbname(0), _reserved(0) { }
 
   /** the lsn of this entry */
@@ -61,10 +61,10 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntry
 /**
  * a journal entry for insert
  */
-HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert
 {
   /** constructor - sets all fields to 0 */
-  JournalEntryInsert() : key_size(0), record_size(0), record_partial_size(0),
+  PJournalEntryInsert() : key_size(0), record_size(0), record_partial_size(0),
     record_partial_offset(0), insert_flags(0) { data[0]=0; }
 
   /** key size */
@@ -105,10 +105,10 @@ HAM_PACK_0 struct HAM_PACK_1 JournalEntryInsert
 /**
  * a journal entry for erase
  */
-HAM_PACK_0 struct HAM_PACK_1 JournalEntryErase
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase
 {
   /** constructor - sets all fields to 0 */
-  JournalEntryErase() : key_size(0), erase_flags(0), duplicate(0)
+  PJournalEntryErase() : key_size(0), erase_flags(0), duplicate(0)
     { data[0]=0; }
 
   /** key size */

@@ -80,10 +80,10 @@ public:
     Page *page = new Page((Environment *)m_env);
     BFC_ASSERT(page != 0);
     BFC_ASSERT_EQUAL(0, page->allocate());
-    BtreeNode *node = BtreeNode::from_page(page);
+    PBtreeNode *node = PBtreeNode::from_page(page);
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
-    BtreeKey *key = node->get_key(m_dbp, 0);
+    PBtreeKey *key = node->get_key(m_dbp, 0);
     BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
     BFC_ASSERT_EQUAL((ham_u8_t)0, key->get_flags());
     BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key->get_key());
@@ -102,10 +102,10 @@ public:
     Page *page = new Page((Environment *)m_env);
     BFC_ASSERT(page != 0);
     BFC_ASSERT_EQUAL(0, page->allocate());
-    BtreeNode *node = BtreeNode::from_page(page);
+    PBtreeNode *node = PBtreeNode::from_page(page);
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
-    BtreeKey *key = node->get_key(m_dbp, 0);
+    PBtreeKey *key = node->get_key(m_dbp, 0);
     ham_u64_t blobid = key->get_extended_rid(m_dbp);
     BFC_ASSERT_EQUAL((ham_u64_t)0, blobid);
 
@@ -129,7 +129,7 @@ public:
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     };
 
-    BtreeKey *key = (BtreeKey *)&buffer[0];
+    PBtreeKey *key = (PBtreeKey *)&buffer[0];
 
     BFC_ASSERT_EQUAL((ham_u64_t)0x0123456789abcdefull,
         key->get_ptr());
@@ -140,14 +140,14 @@ public:
 
   void getSetExtendedKeyTest() {
     char buffer[32];
-    BtreeKey *key = (BtreeKey *)buffer;
+    PBtreeKey *key = (PBtreeKey *)buffer;
     memset(buffer, 0, sizeof(buffer));
 
     key->set_extended_rid(m_dbp, 0x12345);
     BFC_ASSERT_EQUAL((ham_u64_t)0x12345, key->get_extended_rid(m_dbp));
   }
 
-  void insertEmpty(BtreeKey *key, ham_u32_t flags) {
+  void insertEmpty(PBtreeKey *key, ham_u32_t flags) {
     ham_record_t rec;
 
     if (!flags)
@@ -158,28 +158,28 @@ public:
       BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
 
     if (!(flags&HAM_DUPLICATE)) {
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_BLOB_SIZE_EMPTY,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_EMPTY,
           key->get_flags());
     }
     else {
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
           key->get_flags());
     }
   }
 
-  void prepareEmpty(BtreeKey *key) {
+  void prepareEmpty(PBtreeKey *key) {
     insertEmpty(key, 0);
   }
 
-  void overwriteEmpty(BtreeKey *key) {
+  void overwriteEmpty(PBtreeKey *key) {
     insertEmpty(key, HAM_OVERWRITE);
   }
 
-  void duplicateEmpty(BtreeKey *key) {
+  void duplicateEmpty(PBtreeKey *key) {
     insertEmpty(key, HAM_DUPLICATE);
   }
 
-  void insertTiny(BtreeKey *key, const char *data, ham_size_t size,
+  void insertTiny(PBtreeKey *key, const char *data, ham_size_t size,
       ham_u32_t flags) {
     ham_record_t rec, rec2;
 
@@ -192,10 +192,10 @@ public:
 
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE))
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_BLOB_SIZE_TINY,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_TINY,
         key->get_flags());
     else
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
           key->get_flags());
 
     if (!(flags & HAM_DUPLICATE)) {
@@ -208,19 +208,19 @@ public:
     }
   }
 
-  void prepareTiny(BtreeKey *key, const char *data, ham_size_t size) {
+  void prepareTiny(PBtreeKey *key, const char *data, ham_size_t size) {
     insertTiny(key, data, size, 0);
   }
 
-  void overwriteTiny(BtreeKey *key, const char *data, ham_size_t size) {
+  void overwriteTiny(PBtreeKey *key, const char *data, ham_size_t size) {
     insertTiny(key, data, size, HAM_OVERWRITE);
   }
 
-  void duplicateTiny(BtreeKey *key, const char *data, ham_size_t size) {
+  void duplicateTiny(PBtreeKey *key, const char *data, ham_size_t size) {
     insertTiny(key, data, size, HAM_DUPLICATE);
   }
 
-  void insertSmall(BtreeKey *key, const char *data, ham_u32_t flags) {
+  void insertSmall(PBtreeKey *key, const char *data, ham_u32_t flags) {
     ham_record_t rec, rec2;
 
     if (!flags)
@@ -232,11 +232,11 @@ public:
 
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_BLOB_SIZE_SMALL,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_SMALL,
         key->get_flags());
     }
     else {
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
           key->get_flags());
     }
 
@@ -250,19 +250,19 @@ public:
     }
   }
 
-  void prepareSmall(BtreeKey *key, const char *data) {
+  void prepareSmall(PBtreeKey *key, const char *data) {
     insertSmall(key, data, 0);
   }
 
-  void overwriteSmall(BtreeKey *key, const char *data) {
+  void overwriteSmall(PBtreeKey *key, const char *data) {
     insertSmall(key, data, HAM_OVERWRITE);
   }
 
-  void duplicateSmall(BtreeKey *key, const char *data) {
+  void duplicateSmall(PBtreeKey *key, const char *data) {
     insertSmall(key, data, HAM_DUPLICATE);
   }
 
-  void insertNormal(BtreeKey *key, const char *data, ham_size_t size,
+  void insertNormal(PBtreeKey *key, const char *data, ham_size_t size,
       ham_u32_t flags) {
     ham_record_t rec, rec2;
 
@@ -275,7 +275,7 @@ public:
 
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (flags & HAM_DUPLICATE)
-      BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES,
+      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
           key->get_flags());
 
     if (!(flags & HAM_DUPLICATE)) {
@@ -288,20 +288,20 @@ public:
     }
   }
 
-  void prepareNormal(BtreeKey *key, const char *data, ham_size_t size) {
+  void prepareNormal(PBtreeKey *key, const char *data, ham_size_t size) {
     insertNormal(key, data, size, 0);
   }
 
-  void overwriteNormal(BtreeKey *key, const char *data, ham_size_t size) {
+  void overwriteNormal(PBtreeKey *key, const char *data, ham_size_t size) {
     insertNormal(key, data, size, HAM_OVERWRITE);
   }
 
-  void duplicateNormal(BtreeKey *key, const char *data, ham_size_t size) {
+  void duplicateNormal(PBtreeKey *key, const char *data, ham_size_t size) {
     insertNormal(key, data, size, HAM_DUPLICATE);
   }
 
   void setRecordTest(void) {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* set empty record */
     prepareEmpty(&key);
@@ -317,7 +317,7 @@ public:
   }
 
   void overwriteRecordTest() {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* overwrite empty record with a tiny key */
     prepareEmpty(&key);
@@ -364,12 +364,12 @@ public:
     overwriteNormal(&key, "1234123456785678", 16);
   }
 
-  void checkDupe(BtreeKey *key, int position,
+  void checkDupe(PBtreeKey *key, int position,
       const char *data, ham_size_t size) {
-    BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES,
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
           key->get_flags());
 
-    dupe_entry_t entry;
+    PDupeEntry entry;
     DuplicateManager *dm = ((Environment *)m_env)->get_duplicate_manager();
     BFC_ASSERT_EQUAL(0, dm->get(key->get_ptr(), (ham_size_t)position, &entry));
 
@@ -388,7 +388,7 @@ public:
   }
 
   void duplicateRecordTest() {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* insert empty key, then another empty duplicate */
     prepareEmpty(&key);
@@ -488,7 +488,7 @@ public:
   }
 
   void eraseRecordTest() {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* insert empty key, then delete it */
     prepareEmpty(&key);
@@ -516,7 +516,7 @@ public:
   }
 
   void eraseDuplicateRecordTest() {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* insert empty key, then a duplicate; delete both */
     prepareEmpty(&key);
@@ -556,7 +556,7 @@ public:
   }
 
   void eraseAllDuplicateRecordTest() {
-    BtreeKey key;
+    PBtreeKey key;
 
     /* insert empty key, then a duplicate; delete both at once */
     prepareEmpty(&key);
@@ -564,7 +564,7 @@ public:
     checkDupe(&key, 0, 0, 0);
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
     checkDupe(&key, 0, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
@@ -576,7 +576,7 @@ public:
     checkDupe(&key, 0, "1234", 4);
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 1, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
     checkDupe(&key, 0, "1234", 4);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
@@ -588,7 +588,7 @@ public:
     checkDupe(&key, 0, "12345678", 8);
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
     checkDupe(&key, 0, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
@@ -600,7 +600,7 @@ public:
     checkDupe(&key, 0, "1234123456785678", 16);
     checkDupe(&key, 1, "abc4567812345678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 1, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)BtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
     checkDupe(&key, 0, "1234123456785678", 16);
     BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
     BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());

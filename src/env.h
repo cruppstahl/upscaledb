@@ -103,12 +103,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1
    * 2. the freelist data
    *      -> see get_freelist_payload()
    */
-} HAM_PACK_2 env_header_t;
+} HAM_PACK_2 PEnvHeader;
 
 #include "packstop.h"
 
 #define SIZEOF_FULL_HEADER(env)                                             \
-    (sizeof(env_header_t)+                                                  \
+    (sizeof(PEnvHeader)+                                                  \
      (env)->get_max_databases()*sizeof(BtreeDescriptor))
 
 class BtreeDescriptor;
@@ -260,8 +260,8 @@ class Environment
 
     /** get a pointer to the header data */
     // TODO move to LocalEnvironment
-    env_header_t *get_header() {
-      return ((env_header_t *)(get_header_page()->get_payload()));
+    PEnvHeader *get_header() {
+      return ((PEnvHeader *)(get_header_page()->get_payload()));
     }
 
     /** get the oldest transaction */
@@ -392,7 +392,7 @@ class Environment
 
     /** get the maximum number of databases for this file */
     ham_u16_t get_max_databases() {
-      env_header_t *hdr = (env_header_t*)(get_header_page()->get_payload());
+      PEnvHeader *hdr = (PEnvHeader*)(get_header_page()->get_payload());
       return (ham_db2h16(hdr->_max_databases));
     }
 
@@ -441,7 +441,7 @@ class Environment
 
     /** get byte @a i of the 'version'-header */
     ham_u8_t get_version(ham_size_t idx) {
-      env_header_t *hdr = (env_header_t *)(get_header_page()->get_payload());
+      PEnvHeader *hdr = (PEnvHeader *)(get_header_page()->get_payload());
       return (hdr->_version[idx]);
     }
 
@@ -455,18 +455,18 @@ class Environment
 
     /** get the serial number */
     ham_u32_t get_serialno() {
-      env_header_t *hdr = (env_header_t*)(get_header_page()->get_payload());
+      PEnvHeader *hdr = (PEnvHeader*)(get_header_page()->get_payload());
       return (ham_db2h32(hdr->_serialno));
     }
 
     /** set the serial number */
     void set_serialno(ham_u32_t n) {
-      env_header_t *hdr = (env_header_t *)(get_header_page()->get_payload());
+      PEnvHeader *hdr = (PEnvHeader *)(get_header_page()->get_payload());
       hdr->_serialno=ham_h2db32(n);
     }
 
     /** get the freelist object of the database */
-    FreelistPayload *get_freelist_payload();
+    PFreelistPayload *get_freelist_payload();
 
     /** set the logfile directory */
     void set_log_directory(const std::string &dir) {

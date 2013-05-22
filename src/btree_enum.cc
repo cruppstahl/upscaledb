@@ -52,7 +52,7 @@ class BtreeEnumAction
 
       /* while we found a page... */
       while (page) {
-        BtreeNode *node = BtreeNode::from_page(page);
+        PBtreeNode *node = PBtreeNode::from_page(page);
         ham_u64_t ptr_left = node->get_ptr_left();
         ham_size_t count = node->get_count();
 
@@ -98,7 +98,7 @@ class BtreeEnumAction
           break;
 
         /* get the right sibling */
-        BtreeNode *node = BtreeNode::from_page(page);
+        PBtreeNode *node = PBtreeNode::from_page(page);
         if (node->get_right()) {
           st = m_btree->get_db()->fetch_page(&page, node->get_right());
           if (st)
@@ -113,7 +113,7 @@ class BtreeEnumAction
     /** enumerate a single page */
     ham_status_t enumerate_page(Page *page, ham_u32_t level) {
       Database *db = page->get_db();
-      BtreeNode *node = BtreeNode::from_page(page);
+      PBtreeNode *node = PBtreeNode::from_page(page);
       ham_status_t cb_st;
       ham_status_t cb_st2;
 
@@ -131,7 +131,7 @@ class BtreeEnumAction
 
       for (ham_size_t i = 0; (i < count) && (cb_st != HAM_ENUM_DO_NOT_DESCEND);
           i++) {
-        BtreeKey *bte = node->get_key(db, i);
+        PBtreeKey *bte = node->get_key(db, i);
         cb_st = m_cb(HAM_ENUM_EVENT_ITEM, (void *)bte, (void *)&count, m_context);
         if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)
           break;

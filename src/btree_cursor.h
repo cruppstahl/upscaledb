@@ -108,7 +108,7 @@ class BtreeCursor
     }
 
     /** get the duplicate key's cache */
-    dupe_entry_t *get_dupe_cache() {
+    PDupeEntry *get_dupe_cache() {
       return (&m_dupe_cache);
     }
 
@@ -155,7 +155,7 @@ class BtreeCursor
      * returns true if a cursor points to this btree key, otherwise false
      * TODO make this private
      */
-    bool points_to(BtreeKey *key);
+    bool points_to(PBtreeKey *key);
 
     /**
      * returns true if a cursor points to this external key, otherwise false
@@ -208,7 +208,7 @@ class BtreeCursor
      * @warning memory has to be freed by the caller IF needs_free is true!
      * TODO make this private
      */
-    ham_status_t get_duplicate_table(dupe_table_t **ptable, bool *needs_free);
+    ham_status_t get_duplicate_table(PDupeTable **ptable, bool *needs_free);
 
     /** closes a cursor */
     void close() {
@@ -247,7 +247,7 @@ class BtreeCursor
     ham_size_t m_dupe_id;
 
     /** cached flags and record ID of the current duplicate */
-    dupe_entry_t m_dupe_cache;
+    PDupeEntry m_dupe_cache;
 
     /* for coupled cursors: the page we're pointing to */
     Page *m_coupled_page;

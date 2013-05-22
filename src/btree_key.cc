@@ -26,10 +26,10 @@
 
 namespace hamsterdb {
 
-size_t BtreeKey::ms_sizeof_overhead = OFFSETOF(BtreeKey, _key);
+size_t PBtreeKey::ms_sizeof_overhead = OFFSETOF(PBtreeKey, _key);
 
 ham_u64_t
-BtreeKey::get_extended_rid(Database *db)
+PBtreeKey::get_extended_rid(Database *db)
 {
   ham_u64_t rid;
   memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
@@ -38,7 +38,7 @@ BtreeKey::get_extended_rid(Database *db)
 }
 
 void
-BtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
+PBtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
 {
   rid = ham_h2db_offset(rid);
   memcpy(get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
@@ -46,7 +46,7 @@ BtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
 }
 
 ham_status_t
-BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
+PBtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
             ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
   ham_status_t st;
@@ -149,7 +149,7 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
      *
      * create a duplicate list, if it does not yet exist
      */
-    dupe_entry_t entries[2];
+    PDupeEntry entries[2];
     int i = 0;
     ham_assert((flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
@@ -210,7 +210,7 @@ BtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
 }
 
 ham_status_t
-BtreeKey::erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
+PBtreeKey::erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
         bool erase_all_duplicates)
 {
   ham_status_t st;

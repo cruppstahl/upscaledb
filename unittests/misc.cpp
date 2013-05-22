@@ -107,7 +107,7 @@ public:
   }
 
   void copyKeyInt2PubEmptyTest() {
-    BtreeKey src;
+    PBtreeKey src;
     ham_key_t dest;
     memset(&src, 0, sizeof(src));
     memset(&dest, 0, sizeof(dest));
@@ -122,7 +122,7 @@ public:
   }
 
   void copyKeyInt2PubTinyTest() {
-    BtreeKey src;
+    PBtreeKey src;
     ham_key_t dest;
     memset(&src, 0, sizeof(src));
     memset(&dest, 0, sizeof(dest));
@@ -140,7 +140,7 @@ public:
 
   void copyKeyInt2PubSmallTest() {
     char buffer[128];
-    BtreeKey *src = (BtreeKey *)buffer;
+    PBtreeKey *src = (PBtreeKey *)buffer;
     ham_key_t dest;
     memset(&dest, 0, sizeof(dest));
 
@@ -157,7 +157,7 @@ public:
 
   void copyKeyInt2PubFullTest() {
     char buffer[128];
-    BtreeKey *src = (BtreeKey *)buffer;
+    PBtreeKey *src = (PBtreeKey *)buffer;
     ham_key_t dest;
     memset(&dest, 0, sizeof(dest));
 

@@ -62,7 +62,7 @@ Cursor::update_dupecache(ham_u32_t what)
   if ((what & CURSOR_BTREE) && !is_nil(CURSOR_BTREE)) {
     ham_size_t i;
     bool needs_free = false;
-    dupe_table_t *table = 0;
+    PDupeTable *table = 0;
     st = btc->get_duplicate_table(&table, &needs_free);
     if (st && st != HAM_CURSOR_IS_NIL)
       return (st);

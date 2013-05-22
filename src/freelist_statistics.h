@@ -39,7 +39,7 @@ namespace hamsterdb {
  *
  * Note that the free_fill in here is AN ESTIMATE.
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 freelist_slotsize_stats_t
+typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistSlotsizeStats
 {
     ham_u32_t first_start;
     /* reserved: */
@@ -55,7 +55,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_slotsize_stats_t
     ham_u32_t scan_cost;
     ham_u32_t ok_scan_cost;
 
-} HAM_PACK_2 freelist_slotsize_stats_t;
+} HAM_PACK_2 PFreelistSlotsizeStats;
 
 #include "packstop.h"
 
@@ -71,7 +71,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_slotsize_stats_t
  * statistics + our operational mode combined can tell us it's a waste
  * of time to go there.
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
+typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
 {
     /**
      * k-way statistics which stores requested space slot size related data.
@@ -84,7 +84,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
      * small, medium and large sized space requests, so that the freelist hinter
      * can deliver a high quality search hint for various requests.
      */
-    freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD];
+    PFreelistSlotsizeStats per_size[HAM_FREELIST_SLOT_SPREAD];
 
     /**
      * (bit) offset which tells us which free slot is the EVER LAST
@@ -160,7 +160,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
      */
     ham_u32_t rescale_monitor;
 
-} HAM_PACK_2 freelist_page_statistics_t;
+} HAM_PACK_2 PFreelistPageStatistics;
 
 #include "packstop.h"
 
@@ -170,7 +170,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_page_statistics_t
  */
 struct runtime_statistics_pagedata_t
 {
-    freelist_page_statistics_t _persisted_stats;
+    PFreelistPageStatistics _persisted_stats;
 
     bool _dirty;
 };
@@ -276,16 +276,16 @@ freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
                 freelist_hints_t *hints);
 
 extern void
-freelist_stats_edit(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t position, ham_size_t size_bits, bool free_these,
                 freelist_hints_t *hints);
 
 extern void
-freelist_stats_fail(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_fail(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 freelist_hints_t *hints);
 
 extern void
-freelist_stats_update(Freelist *fl, FreelistEntry *entry, FreelistPayload *f,
+freelist_stats_update(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t position, freelist_hints_t *hints);
 
 extern void

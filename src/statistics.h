@@ -58,7 +58,7 @@ namespace hamsterdb {
  *
  * Note that the free_fill in here is AN ESTIMATE.
  */
-struct ham_freelist_slotsize_stats_t
+struct ham_PFreelistSlotsizeStats
 {
   ham_u32_t first_start;
 
@@ -86,9 +86,9 @@ struct ham_freelist_slotsize_stats_t
  * statistics + our operational mode combined can tell us it's a waste
  * of time to go there.
  */
-struct ham_freelist_page_statistics_t
+struct ham_PFreelistPageStatistics
 {
-  ham_freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD];
+  ham_PFreelistSlotsizeStats per_size[HAM_FREELIST_SLOT_SPREAD];
 
   /**
    * (bit) offset which tells us which free slot is the EVER LAST

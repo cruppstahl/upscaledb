@@ -126,7 +126,7 @@ class Freelist
      * removed from the in-memory cache, unless the currently active
      * freelist algorithm persists this data to disc.
      */
-    void init_perf_data(FreelistEntry *entry, FreelistPayload *payload);
+    void init_perf_data(FreelistEntry *entry, PFreelistPayload *payload);
 
     /** flush page statistics */
     ham_status_t flush_statistics();
@@ -147,12 +147,12 @@ class Freelist
     ham_status_t alloc_page(Page **page_ref, FreelistEntry *entry);
 
     /** sets (or resets) all bits in a given range */
-    ham_size_t set_bits(FreelistEntry *entry, FreelistPayload *fp,
+    ham_size_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,
                 bool overwrite, ham_size_t start_bit, ham_size_t size_bits,
                 bool set, freelist_hints_t *hints);
 
     /** searches for a free bit array in the whole list */
-    ham_s32_t search_bits(FreelistEntry *entry, FreelistPayload *f,
+    ham_s32_t search_bits(FreelistEntry *entry, PFreelistPayload *f,
                 ham_size_t size_bits, freelist_hints_t *hints);
 
     /**
@@ -190,7 +190,7 @@ class Freelist
 /**
  * a freelist-payload; it spans the persistent part of a Page
  */
-HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
+HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
 {
     /** "real" address of the first bit */
     ham_u64_t _start_address;
@@ -230,7 +230,7 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
      * as we need to flush statistics to the persistent page
      * memory when flushing a cached page.
      */
-    freelist_page_statistics_t _statistics;
+    PFreelistPageStatistics _statistics;
 
     /** the algorithm-specific payload starts here.  */
     ham_u8_t _bitmap[1];
@@ -239,7 +239,7 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
 #include "packstop.h"
 
 /** get the size of the persistent freelist header (new style) */
-#define db_get_freelist_header_size()    (OFFSETOF(FreelistPayload, _bitmap))
+#define db_get_freelist_header_size()    (OFFSETOF(PFreelistPayload, _bitmap))
 
 /** get the address of the first bitmap-entry of this page */
 #define freel_get_start_address(fl)      (ham_db2h64((fl)->_start_address))
@@ -265,8 +265,8 @@ HAM_PACK_0 struct HAM_PACK_1 FreelistPayload
 /** set the address of the next overflow page */
 #define freel_set_overflow(fl, o)        (fl)->_overflow=ham_h2db_offset(o)
 
-/** get a FreelistPayload from a Page */
-#define page_get_freelist(p)            ((FreelistPayload *)p->get_payload())
+/** get a PFreelistPayload from a Page */
+#define page_get_freelist(p)            ((PFreelistPayload *)p->get_payload())
 
 /** get the bitmap of the freelist */
 #define freel_get_bitmap(fl)             (fl)->_bitmap

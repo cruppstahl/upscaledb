@@ -30,7 +30,7 @@
 using namespace hamsterdb;
 
 
-#define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(blob_t) + 1)
+#define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(PBlobHeader) + 1)
 
 bool
 BlobManager::blob_from_cache(ham_size_t size)
@@ -210,7 +210,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   ham_status_t st = 0;
   Page *page = 0;
   ham_u64_t addr = 0;
-  blob_t hdr;
+  PBlobHeader hdr;
   ham_u8_t *chunk_data[2];
   ham_size_t alloc_size;
   ham_size_t chunk_size[2];
@@ -237,22 +237,22 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
    * buffer, in which the blob (with the blob-header) is stored
    */
   if (m_env->get_flags() & HAM_IN_MEMORY) {
-    blob_t *hdr;
+    PBlobHeader *hdr;
     ham_u8_t *p = (ham_u8_t *)m_env->get_allocator()->alloc(
-                                record->size + sizeof(blob_t));
+                                record->size + sizeof(PBlobHeader));
     if (!p)
       return (HAM_OUT_OF_MEMORY);
 
     /* initialize the header */
-    hdr = (blob_t *)p;
+    hdr = (PBlobHeader *)p;
     memset(hdr, 0, sizeof(*hdr));
     blob_set_self(hdr, (ham_u64_t)PTR_TO_U64(p));
-    blob_set_alloc_size(hdr, record->size + sizeof(blob_t));
+    blob_set_alloc_size(hdr, record->size + sizeof(PBlobHeader));
     blob_set_size(hdr, record->size);
 
     /* do we have gaps? if yes, fill them with zeroes */
     if (flags & HAM_PARTIAL) {
-      ham_u8_t *s = p + sizeof(blob_t);
+      ham_u8_t *s = p + sizeof(PBlobHeader);
       if (record->partial_offset)
         memset(s, 0, record->partial_offset);
       memcpy(s + record->partial_offset, record->data, record->partial_size);
@@ -261,7 +261,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
                 record->size - (record->partial_offset + record->partial_size));
     }
     else {
-      memcpy(p + sizeof(blob_t), record->data, record->size);
+      memcpy(p + sizeof(PBlobHeader), record->data, record->size);
     }
 
     *blobid = (ham_u64_t)PTR_TO_U64(p);
@@ -271,7 +271,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   memset(&hdr, 0, sizeof(hdr));
 
   /* blobs are CHUNKSIZE-allocated */
-  alloc_size = sizeof(blob_t) + record->size;
+  alloc_size = sizeof(PBlobHeader) + record->size;
   alloc_size += DB_CHUNKSIZE - 1;
   alloc_size -= alloc_size % DB_CHUNKSIZE;
 
@@ -484,7 +484,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
 {
   ham_status_t st;
   Page *page;
-  blob_t hdr;
+  PBlobHeader hdr;
   ham_size_t blobsize = 0;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
@@ -496,8 +496,8 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
    * buffer, in which the blob is stored
    */
   if (db->get_env()->get_flags() & HAM_IN_MEMORY) {
-    blob_t *hdr = (blob_t *)U64_TO_PTR(blobid);
-    ham_u8_t *data = (ham_u8_t *)(U64_TO_PTR(blobid)) + sizeof(blob_t);
+    PBlobHeader *hdr = (PBlobHeader *)U64_TO_PTR(blobid);
+    ham_u8_t *data = (ham_u8_t *)(U64_TO_PTR(blobid)) + sizeof(PBlobHeader);
 
     /* when the database is closing, the header is already deleted */
     if (!hdr) {
@@ -592,7 +592,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
 
   /* third step: read the blob data */
   st=read_chunk(page, 0,
-                  blobid + sizeof(blob_t) + (flags & HAM_PARTIAL
+                  blobid + sizeof(PBlobHeader) + (flags & HAM_PARTIAL
                           ? record->partial_offset
                           : 0),
                   db, (ham_u8_t *)record->data, blobsize);
@@ -609,14 +609,14 @@ BlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 {
   ham_status_t st;
   Page *page;
-  blob_t hdr;
+  PBlobHeader hdr;
 
   /*
    * in-memory-database: the blobid is actually a pointer to the memory
    * buffer, in which the blob is stored
    */
   if (m_env->get_flags() & HAM_IN_MEMORY) {
-    blob_t *hdr = (blob_t *)U64_TO_PTR(blobid);
+    PBlobHeader *hdr = (PBlobHeader *)U64_TO_PTR(blobid);
     *size = (ham_size_t)blob_get_size(hdr);
     return (0);
   }
@@ -641,7 +641,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
 {
   ham_status_t st;
   ham_size_t alloc_size;
-  blob_t old_hdr, new_hdr;
+  PBlobHeader old_hdr, new_hdr;
   Page *page;
 
   /*
@@ -663,16 +663,16 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
    * the data)
    */
   if (m_env->get_flags() & HAM_IN_MEMORY) {
-    blob_t *nhdr, *phdr = (blob_t *)U64_TO_PTR(old_blobid);
+    PBlobHeader *nhdr, *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
 
     if (blob_get_size(phdr) == record->size) {
       ham_u8_t *p = (ham_u8_t *)phdr;
       if (flags & HAM_PARTIAL) {
-        memmove(p + sizeof(blob_t) + record->partial_offset,
+        memmove(p + sizeof(PBlobHeader) + record->partial_offset,
                 record->data, record->partial_size);
       }
       else {
-        memmove(p + sizeof(blob_t), record->data, record->size);
+        memmove(p + sizeof(PBlobHeader), record->data, record->size);
       }
       *new_blobid = (ham_u64_t)PTR_TO_U64(phdr);
     }
@@ -680,7 +680,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
       st = m_env->get_blob_manager()->allocate(db, record, flags, new_blobid);
       if (st)
         return (st);
-      nhdr = (blob_t *)U64_TO_PTR(*new_blobid);
+      nhdr = (PBlobHeader *)U64_TO_PTR(*new_blobid);
       blob_set_flags(nhdr, blob_get_flags(phdr));
 
       m_env->get_allocator()->free(phdr);
@@ -692,7 +692,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
   ham_assert(old_blobid % DB_CHUNKSIZE == 0);
 
   /* blobs are CHUNKSIZE-allocated */
-  alloc_size = sizeof(blob_t) + record->size;
+  alloc_size = sizeof(PBlobHeader) + record->size;
   alloc_size += DB_CHUNKSIZE - 1;
   alloc_size -= alloc_size % DB_CHUNKSIZE;
 
@@ -802,7 +802,7 @@ ham_status_t
 BlobManager::free(Database *db, ham_u64_t blobid, ham_u32_t flags)
 {
   ham_status_t st;
-  blob_t hdr;
+  PBlobHeader hdr;
 
   /*
    * in-memory-database: the blobid is actually a pointer to the memory

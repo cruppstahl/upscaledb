@@ -125,7 +125,7 @@ class BtreeInsertAction
       if (!page)
         return (insert());
 
-      BtreeNode *node = BtreeNode::from_page(page);
+      PBtreeNode *node = PBtreeNode::from_page(page);
       ham_assert(node->is_leaf());
 
       /*
@@ -224,12 +224,12 @@ class BtreeInsertAction
       ham_assert(newroot->get_db());
 
       /* clear the node header */
-      memset(newroot->get_payload(), 0, sizeof(BtreeNode));
+      memset(newroot->get_payload(), 0, sizeof(PBtreeNode));
 
       m_btree->get_statistics()->reset_page(root);
 
       /* insert the pivot element and the ptr_left */
-      BtreeNode *node = BtreeNode::from_page(newroot);
+      PBtreeNode *node = PBtreeNode::from_page(newroot);
       node->set_ptr_left(m_btree->get_rootpage());
       st = insert_in_leaf(newroot, &m_split_key, m_split_rid);
       ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
@@ -262,7 +262,7 @@ class BtreeInsertAction
     ham_status_t insert_recursive(Page *page, ham_key_t *key,
                     ham_u64_t rid) {
       Page *child;
-      BtreeNode *node = BtreeNode::from_page(page);
+      PBtreeNode *node = PBtreeNode::from_page(page);
 
       /* if we've reached a leaf: insert the key */
       if (node->is_leaf())
@@ -305,7 +305,7 @@ class BtreeInsertAction
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
       ham_status_t st;
       ham_size_t maxkeys = m_btree->get_maxkeys();
-      BtreeNode *node = BtreeNode::from_page(page);
+      PBtreeNode *node = PBtreeNode::from_page(page);
 
       ham_assert(maxkeys > 1);
 
@@ -365,14 +365,14 @@ class BtreeInsertAction
         return st;
 
       /* clear the header of the new node */
-      memset(newpage->get_payload(), 0, sizeof(BtreeNode));
+      memset(newpage->get_payload(), 0, sizeof(PBtreeNode));
       m_btree->get_statistics()->reset_page(page);
 
       /* move some of the key/rid-tuples to the new page */
-      BtreeNode *nbtp = BtreeNode::from_page(newpage);
-      BtreeKey *nbte = nbtp->get_key(db, 0);
-      BtreeNode *obtp = BtreeNode::from_page(page);
-      BtreeKey *obte = obtp->get_key(db, 0);
+      PBtreeNode *nbtp = PBtreeNode::from_page(newpage);
+      PBtreeKey *nbte = nbtp->get_key(db, 0);
+      PBtreeNode *obtp = PBtreeNode::from_page(page);
+      PBtreeKey *obte = obtp->get_key(db, 0);
       ham_size_t count = obtp->get_count();
 
       /*
@@ -420,14 +420,14 @@ class BtreeInsertAction
        */
       if (obtp->is_leaf()) {
         memcpy((char *)nbte,
-               ((char *)obte) + (BtreeKey::ms_sizeof_overhead+keysize) * pivot,
-               (BtreeKey::ms_sizeof_overhead+keysize) * (count - pivot));
+               ((char *)obte) + (PBtreeKey::ms_sizeof_overhead+keysize) * pivot,
+               (PBtreeKey::ms_sizeof_overhead+keysize) * (count - pivot));
       }
       else {
         memcpy((char *)nbte,
-               ((char *)obte) + (BtreeKey::ms_sizeof_overhead+keysize)
+               ((char *)obte) + (PBtreeKey::ms_sizeof_overhead+keysize)
                     * (pivot + 1),
-               (BtreeKey::ms_sizeof_overhead + keysize) * (count - pivot - 1));
+               (PBtreeKey::ms_sizeof_overhead + keysize) * (count - pivot - 1));
       }
 
       /*
@@ -494,7 +494,7 @@ class BtreeInsertAction
       nbtp->set_right(obtp->get_right());
       obtp->set_right(newpage->get_self());
       if (oldsib) {
-        BtreeNode *sbtp = BtreeNode::from_page(oldsib);
+        PBtreeNode *sbtp = PBtreeNode::from_page(oldsib);
         sbtp->set_left(newpage->get_self());
         oldsib->set_dirty(true);
       }
@@ -527,7 +527,7 @@ fail_dramatically:
       bool exists = false;
       ham_s32_t slot;
 
-      BtreeNode *node = BtreeNode::from_page(page);
+      PBtreeNode *node = PBtreeNode::from_page(page);
       ham_u16_t count = node->get_count();
       ham_size_t keysize = m_btree->get_keysize();
 
@@ -577,7 +577,7 @@ fail_dramatically:
        * in any case, uncouple the cursors and see if we must shift any
        * elements to the right
        */
-      BtreeKey *bte = node->get_key(db, slot);
+      PBtreeKey *bte = node->get_key(db, slot);
 
       if (!exists) {
         if (count > slot) {
@@ -586,12 +586,12 @@ fail_dramatically:
           if (st)
             return (st);
 
-          memmove(((char *)bte) + BtreeKey::ms_sizeof_overhead + keysize, bte,
-                    (BtreeKey::ms_sizeof_overhead + keysize) * (count - slot));
+          memmove(((char *)bte) + PBtreeKey::ms_sizeof_overhead + keysize, bte,
+                    (PBtreeKey::ms_sizeof_overhead + keysize) * (count - slot));
         }
 
         /* if a new key is created or inserted: initialize it with zeroes */
-        memset(bte, 0, BtreeKey::ms_sizeof_overhead + keysize);
+        memset(bte, 0, PBtreeKey::ms_sizeof_overhead + keysize);
       }
 
       /*
@@ -618,7 +618,7 @@ fail_dramatically:
 
       /* set a flag if the key is extended, and does not fit into the btree */
       if (key->size > keysize)
-        bte->set_flags(bte->get_flags() | BtreeKey::KEY_IS_EXTENDED);
+        bte->set_flags(bte->get_flags() | PBtreeKey::KEY_IS_EXTENDED);
 
       /* if we have a cursor: couple it to the new key */
       if (m_cursor) {
@@ -628,7 +628,7 @@ fail_dramatically:
         ham_assert(!m_cursor->is_coupled());
         m_cursor->couple_to(page, slot);
         m_cursor->set_dupe_id(new_dupe_id);
-        memset(m_cursor->get_dupe_cache(), 0, sizeof(dupe_entry_t));
+        memset(m_cursor->get_dupe_cache(), 0, sizeof(PDupeEntry));
         page->add_cursor(m_cursor->get_parent());
       }
 
@@ -724,9 +724,9 @@ dump_page(LocalDatabase *db, ham_u64_t address) {
   Page *page;
   ham_status_t st=db_fetch_page(&page, db, address, 0);
   ham_assert(st==0);
-  BtreeNode *node=BtreeNode::from_page(page);
+  PBtreeNode *node=PBtreeNode::from_page(page);
   for (ham_size_t i = 0; i < node->get_count(); i++) {
-    BtreeKey *btk = node->get_key(db, i);
+    PBtreeKey *btk = node->get_key(db, i);
     printf("%04d: %d\n", (int)i, *(int *)btk->get_key());
   }
 }
