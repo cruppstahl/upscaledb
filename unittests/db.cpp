@@ -277,7 +277,7 @@ public:
             * HAM_FREELIST_SLOT_SPREAD));
     BFC_ASSERT(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
     BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
-    BFC_ASSERT(compare_sizes(db_get_freelist_header_size(),
+    BFC_ASSERT(compare_sizes(freel_get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
     BFC_ASSERT(compare_sizes(PBtreeKey::ms_sizeof_overhead, 11));
     BFC_ASSERT(compare_sizes(sizeof(Log::PHeader), 16));

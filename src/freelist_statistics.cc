@@ -503,7 +503,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
                 ham_assert(entry_index >= 0);
-                ham_assert(entry_index < freel_cache_get_count(fl));
+                ham_assert(entry_index < fl->get_count());
 
                 for (b = 0; b <= bucket; b++) {
                     if (globalstats->first_page_with_free_space[b] > entry_index)
@@ -561,7 +561,7 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                 ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
                 ham_assert(entry_index >= 0);
-                ham_assert(entry_index < freel_cache_get_count(fl));
+                ham_assert(entry_index < fl->get_count());
 
                 /*
                  * We can update this number ONLY WHEN we have an
@@ -598,7 +598,7 @@ freelist_globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
     ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
     ham_assert(entry_index >= 0);
-    ham_assert(entry_index < freel_cache_get_count(fl));
+    ham_assert(entry_index < fl->get_count());
 
     ham_assert(hints->page_span_width >= 1);
 
@@ -751,12 +751,12 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
          * to help Overflow4 unittest pass: disables global hinting,
          * but does do reverse scan for a bit of speed */
     case HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT:
-        dst->max_rounds = freel_cache_get_count(fl);
+        dst->max_rounds = fl->get_count();
         dst->mgt_mode &= ~HAM_DAM_RANDOM_WRITE;
         if (0)
         {
     default:
-            /* dst->max_rounds = freel_cache_get_count(fl); */
+            /* dst->max_rounds = fl->get_count(); */
             dst->max_rounds = 32; /* speed up 'classic' for LARGE
                                      databases anyhow! */
         }
@@ -780,8 +780,8 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
     case HAM_DAM_RANDOM_WRITE:
             dst->max_rounds = 8;
         }
-        if (dst->max_rounds >= freel_cache_get_count(fl)) {
-            /* dst->max_rounds = freel_cache_get_count(cache); */
+        if (dst->max_rounds >= fl->get_count()) {
+            /* dst->max_rounds = cache->get_count(); */
         }
         else {
             /*
@@ -837,8 +837,8 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
      * and it's no use trying more times (and freelist entries) then we
      * know we have available within the designated search range.
      */
-    if (dst->max_rounds > freel_cache_get_count(fl) - dst->start_entry)
-        dst->max_rounds = freel_cache_get_count(fl) - dst->start_entry;
+    if (dst->max_rounds > fl->get_count() - dst->start_entry)
+        dst->max_rounds = fl->get_count() - dst->start_entry;
 
     /*
      * To accommodate multi-freelist-entry spanning 'huge blob' free space

@@ -32,14 +32,32 @@ x all packed structures that are directly mapped to the file
     "PXXX" (for "Persistent" or "Packed")
 
 o new option to disable the freelist
-    o re-introduce page manager
-    o refactor existing freelist, merge with freelist_statistics (if required)
-    o code formatting
+    o remove PFreelistPageStatistics
+    o remove runtime_statistics_pagedata_t
+    o remove PFreelistSlotsizeStats
+    o rewrite freelist_statistics, remove rescale related code (use ham_u64_t
+        for counters instead), review/format the rest and (if possible)
+        embed in Freelist
+    o re-introduce page_manager (has ownership of Freelist, Cache, Page, Device)
+    o review unittest Freelist::overflow4
+    o if we modify the statistics-structures: will the file format be
+        incompatible?
+
     o new option HAM_PARAM_DISABLE_FREELIST
-        o uses 20 or so entries to store the biggest freelist chunks
-        o free pages are moved to the bitmap, though
-        o blobs do not have to be freelist-aligned
-        o only create bitmap freelist when absolutely required!
+        o alte Feelist umbenennen in BitmapFreelist
+        o erzeugt neue Freelist SimpleFreelist *nur für diese Datenbank*
+        o neue freelist speichert nur die 20 größten freien slots, keine
+            persistenz (auch mit mehr slots testen - bis zu 500)
+        o slots sind nach größe sortiert
+        o blobs müssen nicht DB_CHUNKSIZE-aligned sein
+        o Freelist::mark_free(...overwrite) never used, same about set_bits()
+        o alignment ist property d. freelist
+            BitmapFreelist::get_aligned() -> DB_CHUNKSIZE;
+            SimpleFreelist::get_aligned() -> 1;
+        o page_manager dispatcht an bitmap-freelist oder neue implementierung
+        o globale (bitmap) freelist nur erzeugen wenn sie wirklich
+            gebraucht wird!
+        o komplett freie pages werden an die bitmap weitergegeben (really??)
     o also for Java
     o also for .NET
 

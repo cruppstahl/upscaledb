@@ -428,7 +428,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
    */
   {
     ham_size_t l = pagesize - sizeof(PEnvHeader)
-        - db_get_freelist_header_size() - 128;
+        - freel_get_bitmap_offset() - 128;
 
     l /= sizeof(BtreeDescriptor);
     if (maxdbs > l) {

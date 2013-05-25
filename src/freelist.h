@@ -24,32 +24,32 @@
 
 namespace hamsterdb {
 
-#define HAM_DAM_RANDOM_WRITE                1
-#define HAM_DAM_SEQUENTIAL_INSERT           2
+#define HAM_DAM_RANDOM_WRITE            1
+#define HAM_DAM_SEQUENTIAL_INSERT       2
 
 /**
  * an entry in the freelist cache
  */
 struct FreelistEntry {
-    /** the start address of this freelist page */
-    ham_u64_t start_address;
+  /** the start address of this freelist page */
+  ham_u64_t start_address;
 
-    /** maximum bits in this page */
-    ham_size_t max_bits;
+  /** maximum bits in this page */
+  ham_size_t max_bits;
 
-    /** allocated bits in this page */
-    ham_size_t allocated_bits;
+  /** allocated bits in this page */
+  ham_size_t allocated_bits;
 
-    /** the page ID */
-    ham_u64_t page_id;
+  /** the page ID */
+  ham_u64_t page_id;
 
-    /**
-     * freelist algorithm specific run-time data
-     *
-     * This is done as a union as it will reduce code complexity
-     * significantly in the common freelist processing areas.
-     */
-    runtime_statistics_pagedata_t perf_data;
+  /**
+   * freelist algorithm specific run-time data
+   *
+   * This is done as a union as it will reduce code complexity
+   * significantly in the common freelist processing areas.
+   */
+  runtime_statistics_pagedata_t perf_data;
 };
 
 
@@ -59,26 +59,21 @@ struct FreelistEntry {
 class Freelist
 {
   public:
-    /** constructor */
+    /** Constructor */
     Freelist(Environment *env)
-      : m_env(env) { }
+      : m_env(env) {
+    }
 
-    /** destructor */
-    ~Freelist() {
-        if (m_entries.size() > 0)
-            flush_statistics();
+    /** mark a page in the file as "free" */
+    ham_status_t free_page(Page *page) {
+       return (free_area(page->get_self(), m_env->get_pagesize()));
     }
 
     /**
      * mark an area in the file as "free"
-     *
-     * if 'overwrite' is true, will not assert that the bits are all
-     * set to zero
-     *
-     * @note will assert that address and size are DB_CHUNKSIZE-aligned!
+     * @note will assert that address and size are aligned!
      */
-    ham_status_t mark_free(Database *db, ham_u64_t address, ham_size_t size,
-                    bool overwrite);
+    ham_status_t free_area(ham_u64_t address, ham_size_t size);
 
     /**
      * try to allocate (possibly aligned) space from the freelist,
@@ -93,67 +88,56 @@ class Freelist
      * Regardless, the lower address bound check will be performed
      * on a DB_CHUNKSIZE boundary level anyhow.
      */
-    ham_status_t alloc_area(ham_u64_t *addr_ref,
-                        Database *db, ham_size_t size, bool aligned=false,
-                        ham_u64_t lower_bound_address=0);
+    ham_status_t alloc_area(ham_u64_t *paddr, ham_size_t size,
+                    bool aligned = false, ham_u64_t lower_bound_address = 0);
 
-    /**
-     * try to allocate an (aligned) page from the freelist
-     */
-    ham_status_t alloc_page(ham_u64_t *addr_ref, Database *db);
-
-    /** get the number of freelist entries */
-    size_t get_count() {
-        return m_entries.size();
+    /** try to allocate an (aligned) page from the freelist */
+    ham_status_t alloc_page(ham_u64_t *paddr) {
+      return (alloc_area(paddr, m_env->get_pagesize(), true, 0));
     }
 
-    /** get the first freelist entry */
-    FreelistEntry *get_entries() {
-        return m_entries.size() ? &m_entries[0] : 0;
-    }
-
-    /** retrieve the Environment */
+    /** get a pointer to the environment (reqd for freelist_statistics) */
+    // TODO remove this
     Environment *get_env() {
-        return m_env;
+      return (m_env);
+    }
+
+    /** Retrieves the first freelist entry */
+    // TODO make this private
+    FreelistEntry *get_entries() {
+      return (m_entries.size() ? &m_entries[0] : 0);
+    }
+
+    /** Retrieves the number of freelist entries */
+    // TODO make thisprivate or remove it
+    size_t get_count() const {
+      return (m_entries.size());
     }
 
   private:
-    /**
-     * setup / initialize the proper performance data for this
-     * freelist page.
-     *
-     * Yes, this data will (very probably) be lost once the page is
-     * removed from the in-memory cache, unless the currently active
-     * freelist algorithm persists this data to disc.
-     */
-    void init_perf_data(FreelistEntry *entry, PFreelistPayload *payload);
-
-    /** flush page statistics */
-    ham_status_t flush_statistics();
-
     /** lazily initializes the freelist structure */
     ham_status_t initialize();
 
-    /** retrieves the FreelistEntry which manages a specific address */
-    ham_status_t get_entry(FreelistEntry **entry_ref, ham_u64_t address);
+    /** retrieves the FreelistEntry which manages a specific file address */
+    FreelistEntry *get_entry_for_address(ham_u64_t address);
 
-    /** returns maximum bits that fit in a page */
+    /** returns maximum bits that fit in a regular page */
     ham_size_t get_entry_maxspan();
 
     /** adds 'new_count' Entries */
-    ham_status_t resize(ham_size_t new_count);
+    void resize(ham_size_t new_count);
 
     /** allocates a page for a given entry */
-    ham_status_t alloc_page(Page **page_ref, FreelistEntry *entry);
+    ham_status_t alloc_freelist_page(Page **ppage, FreelistEntry *entry);
 
     /** sets (or resets) all bits in a given range */
     ham_size_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,
-                bool overwrite, ham_size_t start_bit, ham_size_t size_bits,
-                bool set, freelist_hints_t *hints);
+                    ham_size_t start_bit, ham_size_t size_bits,
+                    bool set, freelist_hints_t *hints);
 
     /** searches for a free bit array in the whole list */
     ham_s32_t search_bits(FreelistEntry *entry, PFreelistPayload *f,
-                ham_size_t size_bits, freelist_hints_t *hints);
+                    ham_size_t size_bits, freelist_hints_t *hints);
 
     /**
      * Report if the requested size can be obtained from the given freelist
@@ -174,16 +158,18 @@ class Freelist
     ham_s32_t locate_sufficient_free_space(freelist_hints_t *dst,
                     freelist_global_hints_t *hints, ham_s32_t start_index);
 
-  private:
+    /**
+     * replacement for env->set_dirty() and page->set_dirty(); will dirty page
+     * (or env) and also add the page (or header page) to the changeset
+     */
+    void mark_dirty(Page *page);
+
     /** the Environment */
     Environment *m_env;
 
     /** the cached freelist entries */
     std::vector<FreelistEntry> m_entries;
 };
-
-#define freel_cache_get_count(fc)   fc->get_count()
-#define freel_cache_get_entries(fc) fc->get_entries()
 
 #include "packstart.h"
 
@@ -192,87 +178,88 @@ class Freelist
  */
 HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
 {
-    /** "real" address of the first bit */
-    ham_u64_t _start_address;
+  /** "real" address of the first bit */
+  ham_u64_t _start_address;
 
-    /** address of the next freelist page */
-    ham_u64_t _overflow;
+  /** address of the next freelist page */
+  ham_u64_t _overflow;
 
-    /**
-     * 'zero': must be 0; serves as a doublecheck we're not
-     * processing an old-style 16-bit freelist page, where this
-     * spot would have the ham_u16_t _max_bits, which would
-     * always != 0 ...
-     */
-    ham_u16_t _zero;
+  /**
+   * 'zero': must be 0; serves as a doublecheck we're not
+   * processing an old-style 16-bit freelist page, where this
+   * spot would have the ham_u16_t _max_bits, which would
+   * always != 0 ...
+   */
+  ham_u16_t _zero;
 
-    ham_u16_t _reserved;
+  ham_u16_t _reserved;
 
-    /** maximum number of bits for this page */
-    ham_u32_t _max_bits;
+  /** maximum number of bits for this page */
+  ham_u32_t _max_bits;
 
-    /** number of already allocated bits in the page */
-    ham_u32_t _allocated_bits;
+  /** number of already allocated bits in the page */
+  ham_u32_t _allocated_bits;
 
-    /**
-     * The persisted statistics.
-     *
-     * Note that a copy is held in the nonpermanent section of
-     * each freelist entry; after all, it's ludicrous to keep
-     * the cache clogged with freelist pages which our
-     * statistics show are useless given our usage patterns
-     * (determined at run-time; this is meant to help many-insert,
-     * few-delete usage patterns the most, while many-delete usage
-     * patterns will benefit most from a good cache page aging system
-     * (see elsewhere in the code) as that will ensure relevant
-     * freelist pages stay in the cache for as long as we need
-     * them. Meanwhile, we've complicated things a little here
-     * as we need to flush statistics to the persistent page
-     * memory when flushing a cached page.
-     */
-    PFreelistPageStatistics _statistics;
+  /**
+   * The persisted statistics.
+   *
+   * Note that a copy is held in the nonpermanent section of
+   * each freelist entry; after all, it's ludicrous to keep
+   * the cache clogged with freelist pages which our
+   * statistics show are useless given our usage patterns
+   * (determined at run-time; this is meant to help many-insert,
+   * few-delete usage patterns the most, while many-delete usage
+   * patterns will benefit most from a good cache page aging system
+   * (see elsewhere in the code) as that will ensure relevant
+   * freelist pages stay in the cache for as long as we need
+   * them. Meanwhile, we've complicated things a little here
+   * as we need to flush statistics to the persistent page
+   * memory when flushing a cached page.
+   */
+  PFreelistPageStatistics _statistics;
 
-    /** the algorithm-specific payload starts here.  */
-    ham_u8_t _bitmap[1];
+  /** the algorithm-specific payload starts here.  */
+  ham_u8_t _bitmap[1];
+
 } HAM_PACK_2;
 
 #include "packstop.h"
 
 /** get the size of the persistent freelist header (new style) */
-#define db_get_freelist_header_size()    (OFFSETOF(PFreelistPayload, _bitmap))
+#define freel_get_bitmap_offset()  (OFFSETOF(PFreelistPayload, _bitmap))
 
 /** get the address of the first bitmap-entry of this page */
-#define freel_get_start_address(fl)      (ham_db2h64((fl)->_start_address))
+#define freel_get_start_address(fl)    (ham_db2h64((fl)->_start_address))
 
 /** set the start-address */
 #define freel_set_start_address(fl, s)   (fl)->_start_address=ham_h2db64(s)
 
 /** get the maximum number of bits which are handled by this bitmap */
-#define freel_get_max_bits(fl)           (ham_db2h32((fl)->_max_bits))
+#define freel_get_max_bits(fl)       (ham_db2h32((fl)->_max_bits))
 
 /** set the maximum number of bits which are handled by this bitmap */
-#define freel_set_max_bits(fl, m)        (fl)->_max_bits=ham_h2db32(m)
+#define freel_set_max_bits(fl, m)    (fl)->_max_bits=ham_h2db32(m)
 
 /** get the number of currently used bits which are handled by this bitmap */
-#define freel_get_allocated_bits(fl)     (ham_db2h32((fl)->_allocated_bits))
+#define freel_get_allocated_bits(fl)   (ham_db2h32((fl)->_allocated_bits))
 
 /** set the number of currently used bits which are handled by this bitmap */
 #define freel_set_allocated_bits(fl, u)  (fl)->_allocated_bits=ham_h2db32(u)
 
 /** get the address of the next overflow page */
-#define freel_get_overflow(fl)           (ham_db2h_offset((fl)->_overflow))
+#define freel_get_overflow(fl)       (ham_db2h_offset((fl)->_overflow))
 
 /** set the address of the next overflow page */
-#define freel_set_overflow(fl, o)        (fl)->_overflow=ham_h2db_offset(o)
+#define freel_set_overflow(fl, o)    (fl)->_overflow=ham_h2db_offset(o)
 
 /** get a PFreelistPayload from a Page */
-#define page_get_freelist(p)            ((PFreelistPayload *)p->get_payload())
+#define page_get_freelist(p)      ((PFreelistPayload *)p->get_payload())
 
 /** get the bitmap of the freelist */
-#define freel_get_bitmap(fl)             (fl)->_bitmap
+#define freel_get_bitmap(fl)       (fl)->_bitmap
 
 /** get the v1.1.0+ persisted entry performance statistics */
-#define freel_get_statistics(fl)         &((fl)->_statistics)
+#define freel_get_statistics(fl)     &((fl)->_statistics)
 
 } // namespace hamsterdb
 

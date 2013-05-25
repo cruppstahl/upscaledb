@@ -276,7 +276,7 @@ Environment::alloc_page(Page **page_ref, Database *db, ham_u32_t type,
 
   /* first, we ask the freelist for a page */
   if (!(flags & PAGE_IGNORE_FREELIST) && get_freelist()) {
-    st = get_freelist()->alloc_page(&tellpos, db);
+    st = get_freelist()->alloc_page(&tellpos);
     if (st)
       return (st);
     if (tellpos) {

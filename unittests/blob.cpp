@@ -262,8 +262,7 @@ public:
     if (!m_inmemory) {
       ham_u64_t addr;
       Environment *e = (Environment *)m_env;
-      BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr,
-                    (Database *)m_db, 64));
+      BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr, 64));
       BFC_ASSERT(addr != 0);
     }
 
@@ -273,8 +272,7 @@ public:
     if (!m_inmemory) {
       ham_u64_t addr;
       Environment *e = (Environment *)m_env;
-      BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr,
-                    (Database *)m_db, 64));
+      BFC_ASSERT_EQUAL(0, e->get_freelist()->alloc_area(&addr, 64));
       BFC_ASSERT(addr != 0);
     }
   }
