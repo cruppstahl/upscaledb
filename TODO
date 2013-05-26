@@ -32,6 +32,7 @@ x all packed structures that are directly mapped to the file
     "PXXX" (for "Persistent" or "Packed")
 
 o new option to disable the freelist
+    x clean up statistics.h
     o remove PFreelistPageStatistics
     o remove runtime_statistics_pagedata_t
     o remove PFreelistSlotsizeStats

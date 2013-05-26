@@ -169,31 +169,6 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 }
 
 static void
-rescale_global_statistics(Environment *env)
-{
-    EnvironmentStatistics *globalstats = env->get_global_perf_data();
-    ham_u16_t b;
-
-    for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        rescale_256(globalstats->scan_count[b]);
-        rescale_256(globalstats->ok_scan_count[b]);
-        rescale_256(globalstats->scan_cost[b]);
-        rescale_256(globalstats->ok_scan_cost[b]);
-        //rescale_256(globalstats->first_page_with_free_space[b]);
-    }
-
-    rescale_256(globalstats->insert_count);
-    rescale_256(globalstats->delete_count);
-    rescale_256(globalstats->extend_count);
-    rescale_256(globalstats->fail_count);
-    rescale_256(globalstats->search_count);
-    rescale_256(globalstats->insert_query_count);
-    rescale_256(globalstats->erase_query_count);
-    rescale_256(globalstats->query_count);
-    rescale_256(globalstats->rescale_monitor);
-}
-
-static void
 rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
 {
     ham_u16_t b;
@@ -231,8 +206,6 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
      * which should NOT corrupt our statistics in any way.
      */
     if (hints->lower_bound_address == 0) {
-        EnvironmentStatistics *globalstats
-                    = fl->get_env()->get_global_perf_data();
         PFreelistPageStatistics *entrystats
                     = &entry->perf_data._persisted_stats;
         ham_size_t cost = hints->cost;
@@ -244,18 +217,6 @@ freelist_stats_fail(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
         entry->perf_data._dirty = true;
-
-        if (globalstats->rescale_monitor
-                >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
-            /* rescale cache numbers! */
-            rescale_global_statistics(fl->get_env());
-        }
-        globalstats->rescale_monitor += cost;
-
-        globalstats->fail_count++;
-        globalstats->search_count++;
-        globalstats->scan_cost[bucket] += cost;
-        globalstats->scan_count[bucket]++;
 
         if (entrystats->rescale_monitor >=
                 HAM_STATISTICS_HIGH_WATER_MARK - cost) {
@@ -334,8 +295,6 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
         ham_u16_t b;
         ham_size_t cost = hints->cost;
 
-        EnvironmentStatistics *globalstats =
-                    fl->get_env()->get_global_perf_data();
         PFreelistPageStatistics *entrystats =
                     &entry->perf_data._persisted_stats;
 
@@ -343,19 +302,6 @@ freelist_stats_update(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
         ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
 
         entry->perf_data._dirty = true;
-
-        if (globalstats->rescale_monitor
-                >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
-            /* rescale cache numbers! */
-            rescale_global_statistics(fl->get_env());
-        }
-        globalstats->rescale_monitor += cost;
-
-        globalstats->search_count++;
-        globalstats->ok_scan_cost[bucket] += cost;
-        globalstats->scan_cost[bucket] += cost;
-        globalstats->ok_scan_count[bucket]++;
-        globalstats->scan_count[bucket]++;
 
         if (entrystats->rescale_monitor >=
                 HAM_STATISTICS_HIGH_WATER_MARK - cost) {
@@ -487,14 +433,8 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
             /* if this is a 'free' for a newly created page, we'd need to
              * adjust the outer edge */
             if (entrystats->persisted_bits < position) {
-                globalstats->extend_count++;
-
                 ham_assert(entrystats->last_start < position);
                 entrystats->persisted_bits = position;
-            }
-            else {
-                //ham_assert(entrystats->last_start >= position);
-                globalstats->delete_count++;
             }
 
             ham_assert(entrystats->persisted_bits >= position);
@@ -526,8 +466,6 @@ freelist_stats_edit(Freelist *fl, FreelistEntry *entry, PFreelistPayload *f,
                     entrystats->per_size[b].first_start = position;
                 /* also update buckets for larger chunks at the same time */
             }
-
-            globalstats->insert_count++;
 
             if (entrystats->last_start < position)
                 entrystats->last_start = position;
@@ -816,6 +754,7 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
              * makes for a more semi-random skipping pattern.)
              */
             dst->skip_step=295075153;
+
             /*
              * The init_offset is just a number to break repetitiveness
              * of the generated pattern; in SRNG terms, this is the
@@ -828,7 +767,7 @@ freelist_get_global_hints(Freelist *fl, freelist_global_hints_t *dst)
              * entry probe pattern should remian the same until a probe
              * FAILs; only then do we really need to change the pattern.
              */
-            dst->skip_init_offset=globalstats->fail_count;
+            dst->skip_init_offset=0; // TODO
         }
         break;
     }
