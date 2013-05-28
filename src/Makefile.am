@@ -68,6 +68,8 @@ libhamsterdb_la_SOURCES = blob.cc \
 	packstop.h \
 	page.cc \
 	page.h \
+	page_manager.cc \
+	page_manager.h \
 	rb.h \
 	remote.cc \
 	serial.h \

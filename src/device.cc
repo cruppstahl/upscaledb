@@ -70,6 +70,13 @@ DiskDevice::read_page(Page *page)
     page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
   }
 
-  return (os_pread(m_fd, page->get_self(), page->get_pers(), m_pagesize));
+  ham_status_t st = os_pread(m_fd, page->get_self(), page->get_pers(),
+          m_pagesize);
+  if (st == 0)
+    return (0);
+
+  get_env()->get_allocator()->free(page->get_pers());
+  page->set_pers((PageData *)0);
+  return (st);
 }
 

@@ -24,7 +24,7 @@
 #include "device.h"
 #include "btree.h"
 #include "mem.h"
-#include "freelist.h"
+#include "page_manager.h"
 #include "extkeys.h"
 #include "cache.h"
 #include "log.h"
@@ -47,19 +47,23 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_file_mode(0644), m_txn_id(0), m_context(0), m_device(0), m_cache(0),
-  m_alloc(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0), m_log(0),
-  m_journal(0), m_freelist(0), m_flags(0), m_pagesize(0),
-  m_cachesize(0), m_max_databases_cached(0), m_blob_manager(this),
-  m_duplicate_manager(this)
+  : m_page_manager(0), m_file_mode(0644), m_txn_id(0),
+    m_context(0), m_device(0), m_alloc(Allocator::create()), m_hdrpage(0),
+    m_oldest_txn(0), m_newest_txn(0), m_log(0), m_journal(0), m_flags(0),
+    m_changeset(this), m_pagesize(0), m_max_databases_cached(0),
+    m_blob_manager(this), m_duplicate_manager(this)
 {
   memset(&m_perf_data, 0, sizeof(m_perf_data));
-
-  set_allocator(Allocator::create());
 }
 
 Environment::~Environment()
 {
+  /* close the page manager (includes cache and freelist) */
+  if (get_page_manager()) {
+    delete get_page_manager();
+    m_page_manager = 0;
+  }
+
   /* close the header page */
   if (get_device() && get_header_page()) {
     Page *page = get_header_page();
@@ -67,18 +71,6 @@ Environment::~Environment()
       get_device()->free_page(page);
     delete page;
     set_header_page(0);
-  }
-
-  /* close the freelist */
-  if (get_freelist()) {
-    delete get_freelist();
-    set_freelist(0);
-  }
-
-  /* close the cache */
-  if (get_cache()) {
-    delete get_cache();
-    set_cache(0);
   }
 
   /* close the device if it still exists */
@@ -99,10 +91,10 @@ Environment::~Environment()
   }
 }
 
-BtreeDescriptor *
+PBtreeDescriptor *
 Environment::get_descriptor(int i)
 {
-  BtreeDescriptor *d = (BtreeDescriptor *)
+  PBtreeDescriptor *d = (PBtreeDescriptor *)
         (get_header_page()->get_payload() + sizeof(PEnvHeader));
   return (d + i);
 }
@@ -204,186 +196,6 @@ Environment::get_incremented_lsn(ham_u64_t *lsn)
   // otherwise return a dummy value
   *lsn = 1;
   return (0);
-}
-
-static ham_status_t
-purge_callback(Page *page)
-{
-  ham_status_t st = page->uncouple_all_cursors();
-  if (st)
-    return (st);
-
-  st = page->flush();
-  if (st)
-    return (st);
-
-  page->free();
-  delete page;
-  return (0);
-}
-
-static bool
-flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
-{
-  (void)db;
-  (void)page->flush();
-
-  /*
-   * if the page is deleted, uncouple all cursors, then
-   * free the memory of the page, then remove from the cache
-   */
-  if (flags == 0) {
-    (void)page->uncouple_all_cursors();
-    (void)page->free();
-    return (true);
-  }
-
-  return (false);
-}
-
-ham_status_t
-Environment::purge_cache()
-{
-  Cache *cache = get_cache();
-
-  /* in-memory-db: don't remove the pages or they would be lost */
-  if (get_flags() & HAM_IN_MEMORY)
-    return (0);
-
-  return (cache->purge(purge_callback, (get_flags() & HAM_CACHE_STRICT) != 0));
-}
-
-ham_status_t
-LocalEnvironment::flush_all_pages(bool nodelete)
-{
-  if (!get_cache())
-    return (0);
-
-  return (get_cache()->visit(flush_all_pages_callback, 0, nodelete ? 1 : 0));
-}
-
-ham_status_t
-Environment::alloc_page(Page **page_ref, Database *db, ham_u32_t type,
-            ham_u32_t flags)
-{
-  ham_status_t st;
-  ham_u64_t tellpos = 0;
-  Page *page = NULL;
-  bool allocated_by_me = false;
-
-  *page_ref = 0;
-  ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO)));
-
-  /* first, we ask the freelist for a page */
-  if (!(flags & PAGE_IGNORE_FREELIST) && get_freelist()) {
-    st = get_freelist()->alloc_page(&tellpos);
-    if (st)
-      return (st);
-    if (tellpos) {
-      ham_assert(tellpos % get_pagesize() == 0);
-      /* try to fetch the page from the cache */
-      page = get_cache()->get_page(tellpos, 0);
-      if (page)
-        goto done;
-      /* allocate a new page structure and read the page from disk */
-      page = new Page(this, db);
-      st = page->fetch(tellpos);
-      if (st) {
-        delete page;
-        return (st);
-      }
-      goto done;
-    }
-  }
-
-  if (!page) {
-    page = new Page(this, db);
-    allocated_by_me = true;
-  }
-
-  /* can we allocate a new page for the cache? */
-  if (get_cache()->is_too_big()) {
-    if (get_flags() & HAM_CACHE_STRICT) {
-      if (allocated_by_me)
-        delete page;
-      return (HAM_CACHE_FULL);
-    }
-  }
-
-  ham_assert(tellpos == 0);
-  st = page->allocate();
-  if (st)
-    return (st);
-
-done:
-  /* initialize the page; also set the 'dirty' flag to force logging */
-  page->set_type(type);
-  page->set_dirty(true);
-  page->set_db(db);
-
-  /* clear the page with zeroes?  */
-  if (flags & PAGE_CLEAR_WITH_ZERO)
-    memset(page->get_pers(), 0, get_pagesize());
-
-  /* an allocated page is always flushed if recovery is enabled */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    get_changeset().add_page(page);
-
-  /* store the page in the cache */
-  get_cache()->put_page(page);
-
-  *page_ref = page;
-  return (HAM_SUCCESS);
-}
-
-ham_status_t
-Environment::fetch_page(Page **page_ref, Database *db,
-            ham_u64_t address, bool only_from_cache)
-{
-  ham_status_t st;
-
-  *page_ref = 0;
-
-  /* fetch the page from the cache */
-  Page *page = get_cache()->get_page(address, Cache::NOREMOVE);
-  if (page) {
-    *page_ref = page;
-    ham_assert(page->get_pers());
-    /* store the page in the changeset if recovery is enabled */
-    if (get_flags() & HAM_ENABLE_RECOVERY)
-      get_changeset().add_page(page);
-    return (HAM_SUCCESS);
-  }
-
-  if (only_from_cache)
-    return (HAM_SUCCESS);
-
-  ham_assert(get_cache()->get_page(address) == 0);
-
-  /* can we allocate a new page for the cache? */
-  if (get_cache()->is_too_big()) {
-    if (get_flags() & HAM_CACHE_STRICT)
-      return (HAM_CACHE_FULL);
-  }
-
-  page = new Page(this, db);
-  st = page->fetch(address);
-  if (st) {
-    delete page;
-    return (st);
-  }
-
-  ham_assert(page->get_pers());
-
-  /* store the page in the cache */
-  get_cache()->put_page(page);
-
-  /* store the page in the changeset */
-  if (get_flags() & HAM_ENABLE_RECOVERY)
-    get_changeset().add_page(page);
-
-  *page_ref = page;
-  return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -527,12 +339,11 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     set_filename(filename);
   set_file_mode(mode);
   set_pagesize(pagesize);
-  set_cachesize(cachesize);
   set_max_databases_cached(maxdbs);
 
   /* initialize the device if it does not yet exist */
   Device *device;
-  if (flags&HAM_IN_MEMORY)
+  if (flags & HAM_IN_MEMORY)
     device = new InMemoryDevice(this, flags);
   else
     device = new DiskDevice(this, flags);
@@ -577,9 +388,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     page->set_dirty(true);
   }
 
-  /* create the freelist */
-  if (!(get_flags() & HAM_IN_MEMORY))
-    set_freelist(new Freelist(this));
+  /* load page manager after setting up the blobmanager and the device! */
+  m_page_manager = new PageManager(this, cachesize);
 
   /* create a logfile and a journal (if requested) */
   if (get_flags() & HAM_ENABLE_RECOVERY) {
@@ -599,9 +409,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
     }
     set_journal(journal);
   }
-
-  /* initialize the cache */
-  set_cache(new Cache(this, get_cachesize()));
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
@@ -625,7 +432,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
   set_device(device);
   if (filename)
     set_filename(filename);
-  set_cachesize(cachesize);
   set_flags(flags);
 
   /* open the file */
@@ -726,15 +532,8 @@ fail_with_fake_cleansing:
     set_header_page(page);
   }
 
-  /*
-   * initialize the cache; the cache is needed during recovery, therefore
-   * we have to create the cache BEFORE we attempt to recover
-   */
-  set_cache(new Cache(this, get_cachesize()));
-
-  /* create the freelist */
-  if (!(get_flags() & HAM_IN_MEMORY) && !(get_flags() & HAM_READ_ONLY))
-    set_freelist(new Freelist(this));
+  /* load page manager after setting up the blobmanager and the device! */
+  m_page_manager = new PageManager(this, cachesize);
 
   /*
    * open the logfile and check if we need recovery. first open the
@@ -890,6 +689,7 @@ ham_status_t
 LocalEnvironment::close(ham_u32_t flags)
 {
   ham_status_t st;
+  Device *device = get_device();
 
   /* close all databases */
   Environment::DatabaseMap::iterator it = get_database_map().begin();
@@ -909,10 +709,10 @@ LocalEnvironment::close(ham_u32_t flags)
   if (st)
     return (st);
 
-  /* flush the freelist */
-  if (get_freelist()) {
-    delete get_freelist();
-    set_freelist(0);
+  /* flush all pages and the freelist */
+  if (get_page_manager()) {
+    delete get_page_manager();
+    m_page_manager = 0;
   }
 
   /* if we're not in read-only mode, and not an in-memory-database,
@@ -924,8 +724,6 @@ LocalEnvironment::close(ham_u32_t flags)
     get_header_page()->flush();
   }
 
-  Device *device = get_device();
-
   /* close the header page */
   if (get_header_page()) {
     Page *page = get_header_page();
@@ -934,13 +732,6 @@ LocalEnvironment::close(ham_u32_t flags)
       device->free_page(page);
     delete page;
     set_header_page(0);
-  }
-
-  /* flush all pages, get rid of the cache */
-  if (get_cache()) {
-    (void)flush_all_pages(false);
-    delete get_cache();
-    set_cache(0);
   }
 
   /* close the device */
@@ -981,7 +772,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_CACHESIZE:
-        p->value = get_cache()->get_capacity();
+        p->value = get_page_manager()->get_cache()->get_capacity();
         break;
       case HAM_PARAM_PAGESIZE:
         p->value = get_pagesize();
@@ -1042,7 +833,7 @@ LocalEnvironment::flush(ham_u32_t flags)
   }
 
   /* flush all open pages to disk */
-  st = flush_all_pages(true);
+  st = get_page_manager()->flush_all_pages(true);
   if (st)
     return st;
 
@@ -1138,7 +929,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     }
   }
 
-  /* find a free slot in the BtreeDescriptor array and store the name */
+  /* find a free slot in the PBtreeDescriptor array and store the name */
   ham_assert(get_max_databases() > 0);
   for (dbi = 0; dbi < get_max_databases(); dbi++) {
     ham_u16_t name = get_descriptor(dbi)->get_dbname();

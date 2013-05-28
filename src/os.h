@@ -21,8 +21,25 @@
 
 #include <stdio.h>
 #include <limits.h>
+#include <vector>
 
 namespace hamsterdb {
+
+struct IoVectorEntry {
+  IoVectorEntry(ham_u8_t *data, ham_size_t size, ham_u64_t address)
+    : m_data((void *)data), m_size(size), m_address(address) {
+  }
+
+  IoVectorEntry(void *data, ham_size_t size, ham_u64_t address)
+    : m_data(data), m_size(size), m_address(address) {
+  }
+
+  void *m_data;
+  ham_size_t m_size;
+  ham_u64_t m_address;
+};
+
+typedef std::vector<IoVectorEntry> IoVector;
 
 /**
  * read data from a file with mmap

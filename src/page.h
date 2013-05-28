@@ -31,16 +31,13 @@ namespace hamsterdb {
 
 /*
  * This header is only available if the (non-persistent) flag
- * NPERS_NO_HEADER is not set!
- *
- * all blob-areas in the file do not have such a header, if they
- * span page-boundaries
+ * NPERS_NO_HEADER is not set! Blob pages do not have this header.
  *
  * !!
- * if this structure is changed, db_get_usable_pagesize has
+ * if this structure is changed, env->get_usable_pagesize has
  * to be changed as well!
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 PageHeader {
+typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   /** flags of this page - currently only used for the TYPE_* codes */
   ham_u32_t _flags;
 
@@ -53,7 +50,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PageHeader {
    * will use it appropriately
    */
   ham_u8_t _payload[1];
-} HAM_PACK_2 PageHeader;
+} HAM_PACK_2 PPageHeader;
 
 #include "packstop.h"
 #include "packstart.h"
@@ -67,7 +64,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PageHeader {
  */
 typedef HAM_PACK_0 union HAM_PACK_1 PageData {
   /** the persistent header */
-  struct PageHeader _s;
+  struct PPageHeader _s;
 
   /** a char pointer to the allocated storage on disk */
   ham_u8_t _p[1];
@@ -136,7 +133,7 @@ class Page {
       TYPE_B_INDEX            =  0x30000000,
       /** a freelist management page */
       TYPE_FREELIST           =  0x40000000,
-      /** a page which stores (the front part of) a BLOB. */
+      /** a page which stores (the front part of) blobs. */
       TYPE_BLOB               =  0x50000000
     };
 

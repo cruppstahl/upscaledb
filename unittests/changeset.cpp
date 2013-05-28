@@ -60,7 +60,7 @@ public:
   }
 
   void addPagesTest() {
-    Changeset ch;
+    Changeset ch((Environment *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
       page[i] = new Page((Environment *)m_env);
@@ -85,7 +85,7 @@ public:
   }
 
   void getPagesTest() {
-    Changeset ch;
+    Changeset ch((Environment *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
       page[i] = new Page((Environment *)m_env);
@@ -103,7 +103,7 @@ public:
   }
 
   void clearTest() {
-    Changeset ch;
+    Changeset ch((Environment *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
       page[i] = new Page((Environment *)m_env);

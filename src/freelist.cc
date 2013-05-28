@@ -436,6 +436,12 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 }
 
 ham_status_t
+Freelist::free_page(Page *page)
+{
+  return (free_area(page->get_self(), m_env->get_pagesize()));
+}
+
+ham_status_t
 Freelist::free_area(ham_u64_t address, ham_size_t size)
 {
   ham_status_t st;
@@ -474,7 +480,7 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
     }
     /* otherwise just fetch the page from the cache or the disk */
     else {
-      st = m_env->fetch_page(&page, 0, entry->page_id);
+      st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
       if (st)
         return (st);
       fp = page_get_freelist(page);
@@ -500,6 +506,12 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
   }
 
   return (0);
+}
+
+ham_status_t
+Freelist::alloc_page(ham_u64_t *paddr)
+{
+  return (alloc_area(paddr, m_env->get_pagesize(), true, 0));
 }
 
 ham_status_t
@@ -680,7 +692,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
             fp = m_env->get_freelist_payload();
           }
           else {
-            st = m_env->fetch_page(&page, 0, entry->page_id, 0);
+            st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
             if (st)
               return (st);
             fp = page_get_freelist(page);
@@ -732,7 +744,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
         page = 0;
       }
       else {
-        st = m_env->fetch_page(&page, 0, entry->page_id, 0);
+        st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
         if (st)
           return (st);
         fp = page_get_freelist(page);
@@ -2620,7 +2632,8 @@ Freelist::initialize()
 
     resize((ham_size_t)m_entries.size() + 1);
 
-    ham_status_t st = m_env->fetch_page(&page, 0, freel_get_overflow(fp), 0);
+    ham_status_t st = m_env->get_page_manager()->fetch_page(&page, 0,
+            freel_get_overflow(fp));
     if (st)
       return (st);
 
@@ -2745,7 +2758,8 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
         mark_dirty(0);
       }
       else {
-        st = m_env->fetch_page(&prev_page, 0, entries[i - 1].page_id, 0);
+        st = m_env->get_page_manager()->fetch_page(&prev_page, 0,
+                entries[i - 1].page_id);
         if (st)
           return (st);
         // mark previous page as dirty
@@ -2754,7 +2768,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       }
 
       /* allocate a new page, fix the linked list */
-      st = m_env->alloc_page(&page, 0, Page::TYPE_FREELIST,
+      st = m_env->get_page_manager()->alloc_page(&page, 0, Page::TYPE_FREELIST,
                     PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO);
       if (!page) {
         ham_assert(st != 0);

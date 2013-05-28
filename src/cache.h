@@ -48,7 +48,7 @@ class Cache
      * @remark the page is removed from the cache
      * @return 0 if the page was not cached
      */
-    Page *get_page(ham_u64_t address, ham_u32_t flags=0) {
+    Page *get_page(ham_u64_t address, ham_u32_t flags = 0) {
       ham_u64_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
@@ -189,14 +189,14 @@ class Cache
         if (page->get_flags() & Page::NPERS_MALLOC
             && !m_env->get_changeset().contains(page)) {
           remove_page(page);
-		  Page *prev = page->get_previous(Page::LIST_CACHED);
+          Page *prev = page->get_previous(Page::LIST_CACHED);
           ham_status_t st = cb(page);
           if (st)
             return (st);
           i++;
-		  page = prev;
+          page = prev;
         }
-		else
+        else
           page = page->get_previous(Page::LIST_CACHED);
         ham_assert(page != oldest);
       } while (i < max_pages && page && page != oldest);

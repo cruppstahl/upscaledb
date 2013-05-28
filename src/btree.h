@@ -35,10 +35,10 @@ namespace hamsterdb {
 /**
  * the persistent btree index descriptor
  */
-HAM_PACK_0 class HAM_PACK_1 BtreeDescriptor
+HAM_PACK_0 class HAM_PACK_1 PBtreeDescriptor
 {
   public:
-    BtreeDescriptor() {
+    PBtreeDescriptor() {
       memset(this, 0, sizeof(*this));
     }
 
@@ -159,7 +159,7 @@ class BtreeIndex
     /** constructor; creates and initializes a new Backend */
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags = 0);
 
-    /** destructor; flushes the BtreeDescriptor */
+    /** destructor; flushes the PBtreeDescriptor */
     ~BtreeIndex();
 
     /**
@@ -329,7 +329,7 @@ class BtreeIndex
       return &m_statistics;
     }
 
-    // get index of BtreeDescriptor
+    // get index of PBtreeDescriptor
     ham_u32_t get_descriptor_index() const {
       return m_descriptor_index;
     }
@@ -346,7 +346,7 @@ class BtreeIndex
     /** calculate the "maxkeys" values - the limit of keys per page */
     ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
-    /** flushes the BtreeDescriptor to the Environment's header page */
+    /** flushes the PBtreeDescriptor to the Environment's header page */
     void flush_descriptor();
 
     /**
@@ -445,7 +445,7 @@ class BtreeIndex
     /** the keysize of this btree index */
     ham_u16_t m_keysize;
 
-    /** the index of the BtreeDescriptor */
+    /** the index of the PBtreeDescriptor */
     ham_u32_t m_descriptor_index;
 
     /** the persistent flags of this btree index */

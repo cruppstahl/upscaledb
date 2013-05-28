@@ -613,8 +613,8 @@ public:
     BFC_ASSERT(partial_offset + partial_size <= record_size);
 
     /* first: insert a record with a unique pattern and insert this record
-     * this record will be TWICE as big as the one to overwrite*/
-    fillBufferReverse(&buffer[0], record_size*2);
+     * this record will be TWICE as big as the one to overwrite */
+    fillBufferReverse(&buffer[0], record_size * 2);
     rec.size = record_size * 2;
     rec.data = buffer;
     BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));

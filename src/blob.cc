@@ -81,7 +81,8 @@ BlobManager::write_chunks(Database *db, Page *page, ham_u64_t addr,
                             && (!m_env->get_log()
                                 || freshly_created));
 
-        st = m_env->fetch_page(&page, db, pageid, cacheonly);
+        st = m_env->get_page_manager()->fetch_page(&page, db,
+                            pageid, cacheonly);
         /* blob pages don't have a page header */
         if (page)
           page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
@@ -144,10 +145,8 @@ BlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
      * chunk is small
      */
     if (!page) {
-      if (db)
-        st = db->fetch_page(&page, pageid, !blob_from_cache(size));
-      else
-        st = m_env->fetch_page(&page, 0, pageid, !blob_from_cache(size));
+      st = m_env->get_page_manager()->fetch_page(&page, db,
+                          pageid, !blob_from_cache(size));
       if (st)
         return st;
       /* blob pages don't have a page header */
@@ -276,11 +275,10 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   alloc_size -= alloc_size % DB_CHUNKSIZE;
 
   /* check if we have space in the freelist */
-  if (m_env->get_freelist()) {
-    st = m_env->get_freelist()->alloc_area(&addr, alloc_size);
-    if (st)
-      return (st);
-  }
+  bool tmp;
+  st = m_env->get_page_manager()->alloc_blob(db, alloc_size, &addr, &tmp);
+  if (st)
+    return (st);
 
   if (!addr) {
     /*
@@ -295,9 +293,8 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
       addr = page->get_self();
       /* move the remaining space to the freelist */
-      if (m_env->get_freelist())
-        m_env->get_freelist()->free_area(addr + alloc_size,
-                      m_env->get_pagesize() - alloc_size);
+      m_env->get_page_manager()->add_to_freelist(addr + alloc_size,
+                    m_env->get_pagesize() - alloc_size);
       blob_set_alloc_size(&hdr, alloc_size);
     }
     else {
@@ -315,8 +312,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       {
         ham_size_t diff = aligned - alloc_size;
         if (diff > SMALLEST_CHUNK_SIZE) {
-          if (m_env->get_freelist())
-            m_env->get_freelist()->free_area(addr + alloc_size, diff);
+          m_env->get_page_manager()->add_to_freelist(addr + alloc_size, diff);
           blob_set_alloc_size(&hdr, aligned - diff);
         }
         else {
@@ -768,8 +764,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
 
     /* move remaining data to the freelist */
     if (blob_get_alloc_size(&old_hdr) != blob_get_alloc_size(&new_hdr)) {
-      if (m_env->get_freelist())
-        m_env->get_freelist()->free_area(
+      m_env->get_page_manager()->add_to_freelist(
                     blob_get_self(&new_hdr) + blob_get_alloc_size(&new_hdr),
                     (ham_size_t)(blob_get_alloc_size(&old_hdr) -
                         blob_get_alloc_size(&new_hdr)));
@@ -789,9 +784,8 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
     if (st)
       return (st);
 
-    if (m_env->get_freelist())
-      m_env->get_freelist()->free_area(old_blobid,
-                    (ham_size_t)blob_get_alloc_size(&old_hdr));
+    m_env->get_page_manager()->add_to_freelist(old_blobid,
+                  (ham_size_t)blob_get_alloc_size(&old_hdr));
   }
 
   return (HAM_SUCCESS);
@@ -827,10 +821,8 @@ BlobManager::free(Database *db, ham_u64_t blobid, ham_u32_t flags)
     return (HAM_BLOB_NOT_FOUND);
 
   /* move the blob to the freelist */
-  if (m_env->get_freelist())
-    st = m_env->get_freelist()->free_area(blobid,
-                  (ham_size_t)blob_get_alloc_size(&hdr));
-
-  return st;
+  m_env->get_page_manager()->add_to_freelist(blobid,
+                (ham_size_t)blob_get_alloc_size(&hdr));
+  return (0);
 }
 

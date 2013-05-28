@@ -11,7 +11,7 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
+#include <stdlib.h>
 
 #include <ham/hamsterdb.h>
 
@@ -19,6 +19,7 @@
 #include "../src/page.h"
 #include "../src/freelist.h"
 #include "../src/env.h"
+#include "../src/page_manager.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -53,7 +54,7 @@ public:
     st = ham_env_open_db(m_env, &m_db, 1, 0, 0);
     if (st)
       return (st);
-    m_freelist = ((Environment *)m_env)->get_freelist();
+    m_freelist = ((Environment *)m_env)->get_page_manager()->get_freelist();
     return (0);
   }
 
@@ -67,10 +68,10 @@ public:
 
     BFC_ASSERT_EQUAL(0,
         ham_env_create(&m_env, BFC_OPATH(".test"),
-          HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
+            HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_freelist = ((Environment *)m_env)->get_freelist();
+    m_freelist = ((Environment *)m_env)->get_page_manager()->get_freelist();
   }
 
   virtual void teardown() {

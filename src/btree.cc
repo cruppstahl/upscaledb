@@ -29,6 +29,7 @@
 #include "txn.h"
 #include "cursor.h"
 #include "btree_node.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -153,9 +154,9 @@ BtreeIndex::create(ham_u16_t keysize)
   }
 
   /* allocate a new root page */
-  Page *root;
-  ham_status_t st;
-  st = m_db->alloc_page(&root, Page::TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+  Page *root = 0;
+  ham_status_t st = m_db->alloc_page(&root, Page::TYPE_B_ROOT,
+          PageManager::IGNORE_FREELIST);
   if (st)
     return (st);
 
@@ -183,7 +184,7 @@ BtreeIndex::open()
   ham_u16_t maxkeys;
   ham_u16_t keysize;
   ham_u32_t flags;
-  BtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
+  PBtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
 
   /*
    * load root address and maxkeys (first two bytes are the
@@ -212,7 +213,7 @@ BtreeIndex::flush_descriptor()
   if (m_db->get_rt_flags() & HAM_READ_ONLY)
     return;
 
-  BtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
+  PBtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
 
   desc->set_dbname(m_db->get_name());
   desc->set_max_keys(get_maxkeys());

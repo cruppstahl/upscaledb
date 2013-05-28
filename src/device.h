@@ -90,6 +90,10 @@ class Device {
     virtual ham_status_t write(ham_u64_t offset, void *buffer,
                 ham_u64_t size) = 0;
 
+    /** writes to the device; this function does not use mmap */
+    virtual ham_status_t writev(ham_u64_t offset, void *buffer1,
+                ham_u64_t size1, void *buffer2, ham_u64_t size2) = 0;
+
     /** reads a page from the device; this function CAN use mmap */
     virtual ham_status_t read_page(Page *page) = 0;
 
@@ -247,6 +251,15 @@ class DiskDevice : public Device {
       return (os_pwrite(m_fd, offset, buffer, size));
     }
 
+    /** writes to the device; this function does not use mmap */
+    virtual ham_status_t writev(ham_u64_t offset, void *buffer1,
+                ham_u64_t size1, void *buffer2, ham_u64_t size2) {
+      ham_status_t st = seek(offset, HAM_OS_SEEK_SET);
+      if (st)
+        return (st);
+      return (os_writev(m_fd, buffer1, size1, buffer2, size2));
+    }
+
     /** reads a page from the device; this function CAN return a
 	* pointer to mmapped memory */
     virtual ham_status_t read_page(Page *page);
@@ -368,6 +381,12 @@ class InMemoryDevice : public Device {
     /** writes to the device */
     virtual ham_status_t write(ham_u64_t offset, void *buffer,
                 ham_u64_t size) {
+      ham_assert(!"operation is not possible for in-memory-databases");
+      return (HAM_NOT_IMPLEMENTED);
+    }
+
+    virtual ham_status_t writev(ham_u64_t offset, void *buffer1,
+                ham_u64_t size1, void *buffer2, ham_u64_t size2) {
       ham_assert(!"operation is not possible for in-memory-databases");
       return (HAM_NOT_IMPLEMENTED);
     }

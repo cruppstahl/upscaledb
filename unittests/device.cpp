@@ -101,7 +101,7 @@ public:
   void pagesizeTest() {
     ham_size_t cps;
     ham_size_t ps = m_dev->get_pagesize();
-    BFC_ASSERT(ps!=0);
+    BFC_ASSERT(ps != 0);
     BFC_ASSERT(ps % 1024 == 0);
     cps = m_dev->get_pagesize();
     BFC_ASSERT(cps != 0);

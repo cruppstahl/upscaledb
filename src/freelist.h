@@ -65,9 +65,7 @@ class Freelist
     }
 
     /** mark a page in the file as "free" */
-    ham_status_t free_page(Page *page) {
-       return (free_area(page->get_self(), m_env->get_pagesize()));
-    }
+    ham_status_t free_page(Page *page);
 
     /**
      * mark an area in the file as "free"
@@ -92,9 +90,7 @@ class Freelist
                     bool aligned = false, ham_u64_t lower_bound_address = 0);
 
     /** try to allocate an (aligned) page from the freelist */
-    ham_status_t alloc_page(ham_u64_t *paddr) {
-      return (alloc_area(paddr, m_env->get_pagesize(), true, 0));
-    }
+    ham_status_t alloc_page(ham_u64_t *paddr);
 
     /** get a pointer to the environment (reqd for freelist_statistics) */
     // TODO remove this

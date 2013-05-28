@@ -21,10 +21,12 @@ test_SOURCES    = bfc-testsuite.cpp \
                   approx.cpp \
                   recno.cpp \
                   cache.cpp \
+                  page_manager.cpp \
                   changeset.cpp \
                   misc.cpp \
                   freelist.cpp \
                   btree_erase.cpp \
+                  freelist.cpp \
                   btree_insert.cpp \
                   page.cpp \
                   extkeys.cpp \

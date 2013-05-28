@@ -21,6 +21,7 @@
 #include "../src/log.h"
 #include "../src/os.h"
 #include "../src/db.h"
+#include "../src/page_manager.h"
 #include "../src/device.h"
 #include "../src/env.h"
 #include "../src/btree.h"
@@ -586,7 +587,7 @@ public:
     Page *page;
 
     BFC_ASSERT_EQUAL(0,
-        db->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -606,7 +607,7 @@ public:
     BFC_ASSERT_EQUAL(0, os_close(fd));
 
     /* make sure that the log has one alloc-page entry */
-    compareLog(BFC_OPATH(".test2"), LogEntry(1, ps*2, ps));
+    compareLog(BFC_OPATH(".test2"), LogEntry(1, ps * 2, ps));
 
     /* recover and make sure that the page exists */
     BFC_ASSERT_EQUAL(0,
@@ -636,7 +637,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -691,7 +692,7 @@ public:
     Database *db = (Database *)m_db;
 
     BFC_ASSERT_EQUAL(0,
-        db->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -741,7 +742,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -800,7 +801,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PAGE_IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)

@@ -21,6 +21,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "ham/hamsterdb.h"
+
 #include "mem.h"
 
 namespace hamsterdb {
@@ -29,19 +31,35 @@ class ByteArray
 {
   public:
     ByteArray(Allocator *alloc = 0, ham_size_t size = 0)
-      : m_alloc(alloc), m_ptr(0), m_size(0) {
+      : m_alloc(alloc), m_ptr(0), m_size(0), m_own(true) {
       resize(size);
     }
 
-    ~ByteArray() {
-      clear();
+    ByteArray(Allocator *alloc, ham_size_t size, ham_u8_t fill_byte)
+      : m_alloc(alloc), m_ptr(0), m_size(0), m_own(true) {
+      resize(size);
+      if (m_ptr)
+        ::memset(m_ptr, fill_byte, m_size);
     }
 
-    void resize(ham_size_t size) {
+    ~ByteArray() {
+      if (m_own)
+        clear();
+    }
+
+    ham_status_t resize(ham_size_t size) {
       if (size > m_size) {
         m_ptr = m_alloc->realloc(m_ptr, size);
         m_size = size;
       }
+      return (m_ptr != 0 ? 0 : HAM_OUT_OF_MEMORY);
+    }
+
+    ham_status_t resize(ham_size_t size, ham_u8_t fill_byte) {
+      resize(size);
+      if (m_ptr)
+        memset(m_ptr, fill_byte, size);
+      return (m_ptr != 0 ? 0 : HAM_OUT_OF_MEMORY);
     }
 
     void set_allocator(Allocator *alloc) {
@@ -69,10 +87,15 @@ class ByteArray
       m_size = 0;
     }
 
+    void disown() {
+      m_own = false;
+    }
+
   private:
     Allocator *m_alloc;
     void *m_ptr;
     ham_size_t m_size;
+    bool m_own;
 };
 
 /**

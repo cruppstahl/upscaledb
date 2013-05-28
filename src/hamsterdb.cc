@@ -430,7 +430,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
     ham_size_t l = pagesize - sizeof(PEnvHeader)
         - freel_get_bitmap_offset() - 128;
 
-    l /= sizeof(BtreeDescriptor);
+    l /= sizeof(PBtreeDescriptor);
     if (maxdbs > l) {
       ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
             "this pagesize; the maximum allowed is %u",

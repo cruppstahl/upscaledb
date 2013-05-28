@@ -154,10 +154,10 @@ public:
       memset(key, 0, sizeof(*key));
     memset(&rec, 0, sizeof(rec));
     BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
-    if (!(flags&HAM_DUPLICATE))
+    if (!(flags & HAM_DUPLICATE))
       BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
 
-    if (!(flags&HAM_DUPLICATE)) {
+    if (!(flags & HAM_DUPLICATE)) {
       BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_EMPTY,
           key->get_flags());
     }
@@ -366,8 +366,7 @@ public:
 
   void checkDupe(PBtreeKey *key, int position,
       const char *data, ham_size_t size) {
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
-          key->get_flags());
+    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key->get_flags());
 
     PDupeEntry entry;
     DuplicateManager *dm = ((Environment *)m_env)->get_duplicate_manager();
@@ -378,8 +377,7 @@ public:
 
     rec._intflags = dupe_entry_get_flags(&entry);
     rec._rid = dupe_entry_get_rid(&entry);
-    BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
-          &rec, &rec._rid, 0));
+    BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0, &rec, &rec._rid, 0));
     BFC_ASSERT_EQUAL(rec.size, size);
     if (size)
       BFC_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));

@@ -31,18 +31,36 @@ x all packed structures that are directly mapped to the file
     (BlobPageHeader, BlobHeader and others) should be named
     "PXXX" (for "Persistent" or "Packed")
 
+o benchmark/prototype new freelist based on discarded one
+    x a flat array (std::vector), not sorted
+    x reserve 20 entries
+    x free_area: append at end, if full then overwrite smallest
+    x free_page: traverse all entries, remove if necessary
+    x alloc: traverse lineary, pick best fit
+    x check_integrity: not sure yet how, but need to implement it
+    o run benchmarks
+
 o new option to disable the freelist
     x clean up statistics.h
-    o remove PFreelistPageStatistics
-    o remove runtime_statistics_pagedata_t
-    o remove PFreelistSlotsizeStats
-    o rewrite freelist_statistics, remove rescale related code (use ham_u64_t
-        for counters instead), review/format the rest and (if possible)
-        embed in Freelist
-    o re-introduce page_manager (has ownership of Freelist, Cache, Page, Device)
+    x clean up PFreelistPageStatistics
+    x clean up runtime_statistics_pagedata_t
+    x clean up PFreelistSlotsizeStats
+    x clean up freelist_stats_fail, _update, _edit etc
+    x clean up freelist_hints_t
+        x remove fields that are not required
+        x create class FreelistStatistics::Hints, file freelist_stats.h/cc
+    x same for freelist_global_hints_t
+    o freelist_stats.h has global functions; move into FreelistStatistics
+        namespace
+    o run performance tests, just to make sure that we did not break anything
+    o EnvironmentStatistics::m_perf_data: move to Freelist
+
+    x re-introduce page_manager (has ownership of Freelist, Cache, Pages etc)
+    o clean up PageManager::alloc_blob
+
     o review unittest Freelist::overflow4
-    o if we modify the statistics-structures: will the file format be
-        incompatible?
+    o "old" hamsterdb.cc has different method to deal with freelist in header
+        page
 
     o new option HAM_PARAM_DISABLE_FREELIST
         o alte Feelist umbenennen in BitmapFreelist
@@ -58,9 +76,17 @@ o new option to disable the freelist
         o page_manager dispatcht an bitmap-freelist oder neue implementierung
         o globale (bitmap) freelist nur erzeugen wenn sie wirklich
             gebraucht wird!
-        o komplett freie pages werden an die bitmap weitergegeben (really??)
+        o komplett freie pages werden an die bitmap weitergegeben, but only
+            if the bitmap freelist exists (really??)
+        o increase file version if this new freelist is used
+        o do not log Freelist pages in the changeset
+        o run benchmarks with different number of slots (up to 1024)
     o also for Java
     o also for .NET
+
+    o "old" freelist branch has optimization in btree_cursor.cc and
+        duplicates.cc for fetching duplicates
+    o "old" freelist branch does not use Transaction in blob_manager.cc
 
 o reduce file size if freelist adds page at end of file:
     o not possible if freelist is disabled
@@ -124,6 +150,11 @@ o AES encryption
 
 
 
+o collect file format incompatibilities
+    o for the new Btree code
+    o get rid of the statistics-structures
+    o reduce the PBlobHeader
+    o what else?
 
 o DiskBlobManager::write_internal: only uses direct I/O if blob is at the
     beginning of the page. Fix this and also use direct I/O when writing blobs

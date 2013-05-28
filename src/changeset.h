@@ -36,8 +36,8 @@ namespace hamsterdb {
 class Changeset
 {
   public:
-    Changeset()
-    : m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
+    Changeset(Environment *env)
+    : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
       m_freelists(0), m_freelists_size(0), m_freelists_capacity(0),
       m_indices(0), m_indices_size(0), m_indices_capacity(0),
       m_others(0), m_others_size(0), m_others_capacity(0), m_inducer(0) {
@@ -87,14 +87,17 @@ class Changeset
     }
 
   private:
-    /* write all pages in a bucket to the log file */
+    /** The Environment which created this Changeset */
+    Environment *m_env;
+
+    /** write all pages in a bucket to the log file */
     ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,
                             ham_u64_t lsn, ham_size_t &page_count) ;
 
-    /* the head of our linked list */
+    /** the head of our linked list */
     Page *m_head;
 
-    /* cached vectors for Changeset::flush(); using plain pointers
+    /** cached vectors for Changeset::flush(); using plain pointers
      * instead of std::vector because
      * - improved performance
      * - workaround for an MSVC 9 bug:
@@ -117,7 +120,7 @@ class Changeset
     ham_size_t m_others_capacity;
 
   public:
-    /* an error inducer */
+    /** an error inducer - required for testing */
     ErrorInducer *m_inducer;
 };
 

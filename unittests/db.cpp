@@ -21,10 +21,10 @@
 #include "../src/env.h"
 #include "../src/btree.h"
 #include "../src/blob.h"
+#include "../src/page_manager.h"
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/btree_node.h"
-#include "../src/freelist.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -104,7 +104,7 @@ public:
     BFC_ASSERT_EQUAL((BtreeIndex *)15, m_dbp->get_btree());
     m_dbp->set_btree(oldbe);
 
-    BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_cache());
+    BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_page_manager()->get_cache());
 
     BFC_ASSERT(0 != m_dbp->get_prefix_compare_func());
     ham_prefix_compare_func_t oldfoo = m_dbp->get_prefix_compare_func();
@@ -135,14 +135,11 @@ public:
     env->set_txn_id(0x12345ull);
     env->set_file_mode(0666);
     env->set_device((Device *)0x13);
-    env->set_cache((Cache *)0x14);
     env->set_flags(0x18);
 
-    BFC_ASSERT_EQUAL((Cache *)0x14, env->get_cache());
     /* TODO test other stuff! */
 
     env->set_device((Device *)0x00);
-    env->set_cache((Cache *)0x00);
     env->set_flags(0);
     env->set_header_page(0);
 
@@ -208,22 +205,22 @@ public:
   void allocPageTest() {
     Page *page;
     BFC_ASSERT_EQUAL(0,
-        m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
+        m_dbp->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
     BFC_ASSERT_EQUAL(m_dbp, page->get_db());
     page->free();
-    ((Environment *)m_env)->get_cache()->remove_page(page);
+    ((Environment *)m_env)->get_page_manager()->get_cache()->remove_page(page);
     delete page;
   }
 
   void fetchPageTest() {
     Page *p1, *p2;
     BFC_ASSERT_EQUAL(0,
-        m_dbp->alloc_page(&p1, 0, PAGE_IGNORE_FREELIST));
+        m_dbp->alloc_page(&p1, 0, PageManager::IGNORE_FREELIST));
     BFC_ASSERT_EQUAL(m_dbp, p1->get_db());
     BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&p2, p1->get_self()));
     BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
     p1->free();
-    ((Environment *)m_env)->get_cache()->remove_page(p1);
+    ((Environment *)m_env)->get_page_manager()->get_cache()->remove_page(p1);
     delete p1;
   }
 
@@ -232,7 +229,8 @@ public:
     ham_u64_t address;
     ham_u8_t *p;
 
-    BFC_ASSERT_EQUAL(0, m_dbp->alloc_page(&page, 0, PAGE_IGNORE_FREELIST));
+    BFC_ASSERT_EQUAL(0,
+            m_dbp->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
 
     BFC_ASSERT_EQUAL(m_dbp, page->get_db());
     p = page->get_raw_payload();
@@ -242,7 +240,7 @@ public:
     address = page->get_self();
     BFC_ASSERT_EQUAL(0, page->flush());
     page->free();
-    ((Environment *)m_env)->get_cache()->remove_page(page);
+    ((Environment *)m_env)->get_page_manager()->get_cache()->remove_page(page);
     delete page;
 
     BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&page, address));
@@ -250,7 +248,7 @@ public:
     BFC_ASSERT_EQUAL(address, page->get_self());
     p = page->get_raw_payload();
     page->free();
-    ((Environment *)m_env)->get_cache()->remove_page(page);
+    ((Environment *)m_env)->get_page_manager()->get_cache()->remove_page(page);
     delete page;
   }
 
@@ -269,7 +267,7 @@ public:
     BFC_ASSERT(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
     BFC_ASSERT(compare_sizes(sizeof(PBtreeKey), 12));
     BFC_ASSERT(compare_sizes(sizeof(PEnvHeader), 20));
-    BFC_ASSERT(compare_sizes(sizeof(BtreeDescriptor), 32));
+    BFC_ASSERT(compare_sizes(sizeof(PBtreeDescriptor), 32));
     BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
         16 + 13 + sizeof(PFreelistPageStatistics)));
     BFC_ASSERT(compare_sizes(sizeof(PFreelistPageStatistics),

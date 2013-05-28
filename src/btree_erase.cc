@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -35,6 +35,7 @@
 #include "util.h"
 #include "cursor.h"
 #include "btree_node.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -109,7 +110,7 @@ class BtreeEraseAction
           return (st);
         }
 
-        st = collapse_root(p);
+        st = collapse_root(root, p);
         if (st) {
           m_btree->get_statistics()->erase_failed();
           return (st);
@@ -918,11 +919,14 @@ cleanup:
     }
 
     /* collapse the root node */
-    ham_status_t collapse_root(Page *newroot) {
+    ham_status_t collapse_root(Page *oldroot, Page *newroot) {
+      Environment *env = newroot->get_db()->get_env();
+
+      env->get_page_manager()->add_to_freelist(oldroot);
+
       m_btree->set_rootpage(newroot->get_self());
       ham_assert(newroot->get_db());
 
-      Environment *env = newroot->get_db()->get_env();
       env->set_dirty(true);
 
       /* add the page to the changeset to make sure that the changes are

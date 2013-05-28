@@ -1185,7 +1185,7 @@ protected:
 
   void limitsReachedTest() {
     int i;
-    const int MAX_DB = DB_MAX_INDICES + 1;
+    const int MAX_DB = 17;
     ham_env_t *env;
     ham_db_t *db[MAX_DB];
 

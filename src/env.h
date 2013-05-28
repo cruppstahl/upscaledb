@@ -24,6 +24,10 @@
 
 #include <ham/hamsterdb.h>
 
+#ifdef HAM_ENABLE_REMOTE
+#  include "protocol/protocol.h"
+#endif
+
 #include "statistics.h"
 #include "endianswap.h"
 #include "error.h"
@@ -31,9 +35,7 @@
 #include "changeset.h"
 #include "blob.h"
 #include "duplicates.h"
-#ifdef HAM_ENABLE_REMOTE
-#  include "protocol/protocol.h"
-#endif
+#include "page_manager.h"
 
 /**
  * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
@@ -108,10 +110,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #include "packstop.h"
 
 #define SIZEOF_FULL_HEADER(env)                                             \
-    (sizeof(PEnvHeader)+                                                  \
-     (env)->get_max_databases()*sizeof(BtreeDescriptor))
+    (sizeof(PEnvHeader) +                                                   \
+     (env)->get_max_databases() * sizeof(PBtreeDescriptor))
 
-class BtreeDescriptor;
+class PBtreeDescriptor;
+class PageManager;
 
 /**
  * the Environment structure
@@ -227,17 +230,6 @@ class Environment
       m_device = device;
     }
 
-    /** get the cache pointer */
-    // TODO move to LocalEnvironment
-    Cache *get_cache() {
-      return (m_cache);
-    }
-
-    /** set the cache pointer */
-    void set_cache(Cache *cache) {
-      m_cache = cache;
-    }
-
     /** get the allocator */
     Allocator *get_allocator() {
       return (m_alloc);
@@ -306,16 +298,6 @@ class Environment
       m_journal = j;
     }
 
-    /** get the freelist */
-    Freelist *get_freelist() {
-      return (m_freelist);
-    }
-
-    /** set the freelist */
-    void set_freelist(Freelist *f) {
-      m_freelist = f;
-    }
-
     /** get the flags */
     ham_u32_t get_flags() const {
       return (m_flags);
@@ -346,15 +328,6 @@ class Environment
       m_pagesize = ps;
     }
 
-    /** get the cachesize as specified in ham_env_create/ham_env_open */
-    ham_u64_t get_cachesize() const {
-      return (m_cachesize);
-    }
-
-    /** set the cachesize as specified in ham_env_create/ham_env_open */
-    void set_cachesize(ham_u64_t cs) {
-      m_cachesize = cs;
-    }
 
     /**
      * get the maximum number of databases for this file (cached, not read
@@ -388,7 +361,7 @@ class Environment
      * Get the private data of the specified database stored at index @a i;
      * interpretation of the data is up to the btree.
      */
-    BtreeDescriptor *get_descriptor(int i);
+    PBtreeDescriptor *get_descriptor(int i);
 
     /** get the maximum number of databases for this file */
     ham_u16_t get_max_databases() {
@@ -518,19 +491,15 @@ class Environment
     // TODO move to LocalEnvironment
     ham_status_t get_incremented_lsn(ham_u64_t *lsn);
 
-    /* purge the cache if the limits are exceeded */
-    // TODO move to LocalEnvironment
-    ham_status_t purge_cache();
+    /** Retrieve the PageManager instance */
+    PageManager *get_page_manager() {
+      return (m_page_manager);
+    }
 
-    /** allocate a new page */
+  protected:
+    /** The PageManager instance */
     // TODO move to LocalEnvironment
-    ham_status_t alloc_page(Page **page_ref, Database *db, ham_u32_t type,
-            ham_u32_t flags);
-
-    /** fetch an existing page */
-    // TODO move to LocalEnvironment
-    ham_status_t fetch_page(Page **page_ref, Database *db,
-            ham_u64_t address, bool only_from_cache = false);
+    PageManager *m_page_manager;
 
   private:
     /** Flushes a single, committed transaction to disk */
@@ -560,10 +529,6 @@ class Environment
     // TODO move to LocalEnvironment
     Device *m_device;
 
-    /** the cache */
-    // TODO move to LocalEnvironment
-    Cache *m_cache;
-
     /** the memory allocator */
     Allocator *m_alloc;
 
@@ -585,10 +550,6 @@ class Environment
     // TODO move to LocalEnvironment
     Journal *m_journal;
 
-    /** the Freelist manages the free space in the file */
-    // TODO move to LocalEnvironment
-    Freelist *m_freelist;
-
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t m_flags;
@@ -600,9 +561,6 @@ class Environment
 
     /** the pagesize which was specified when the env was created */
     ham_size_t m_pagesize;
-
-    /** the cachesize which was specified when the env was created/opened */
-    ham_u64_t m_cachesize;
 
     /** the max. number of databases which was specified when the env
      * was created */
@@ -680,13 +638,6 @@ class LocalEnvironment : public Environment
   private:
     /** runs the recovery process */
     ham_status_t recover(ham_u32_t flags);
-
-    /**
-     * Flush all pages, and clear the cache.
-     * @param nodelete Set to true if you do NOT want the cache to be cleared
-     */
-    ham_status_t flush_all_pages(bool nodelete = false);
-
 };
 
 /**

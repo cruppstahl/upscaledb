@@ -722,9 +722,9 @@ BtreeIndex::insert_cursor(Transaction *txn, ham_key_t *key,
 static void
 dump_page(LocalDatabase *db, ham_u64_t address) {
   Page *page;
-  ham_status_t st=db_fetch_page(&page, db, address, 0);
-  ham_assert(st==0);
-  PBtreeNode *node=PBtreeNode::from_page(page);
+  ham_status_t st = db_fetch_page(&page, db, address);
+  ham_assert(st == 0);
+  PBtreeNode *node = PBtreeNode::from_page(page);
   for (ham_size_t i = 0; i < node->get_count(); i++) {
     PBtreeKey *btk = node->get_key(db, i);
     printf("%04d: %d\n", (int)i, *(int *)btk->get_key());

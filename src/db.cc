@@ -21,6 +21,7 @@
 #include "cache.h"
 #include "cursor.h"
 #include "device.h"
+#include "page_manager.h"
 #include "btree_cursor.h"
 #include "db.h"
 #include "device.h"
@@ -58,50 +59,49 @@ static ham_status_t
 __calc_keys_cb(int event, void *param1, void *param2, void *context)
 {
   PBtreeKey *key;
-  calckeys_context_t *c;
-  ham_size_t count;
-
-  c=(calckeys_context_t *)context;
+  calckeys_context_t *c = (calckeys_context_t *)context;
+  ham_size_t count = 0;
+  ham_status_t st = 0;
 
   switch (event) {
-  case HAM_ENUM_EVENT_DESCEND:
-    break;
+    case HAM_ENUM_EVENT_DESCEND:
+      break;
 
-  case HAM_ENUM_EVENT_PAGE_START:
-    c->is_leaf=*(bool *)param2;
-    break;
+    case HAM_ENUM_EVENT_PAGE_START:
+      c->is_leaf = *(bool *)param2;
+      break;
 
-  case HAM_ENUM_EVENT_PAGE_STOP:
-    break;
+    case HAM_ENUM_EVENT_PAGE_STOP:
+      break;
 
-  case HAM_ENUM_EVENT_ITEM:
-    key = (PBtreeKey *)param1;
-    count = *(ham_size_t *)param2;
+    case HAM_ENUM_EVENT_ITEM:
+      key = (PBtreeKey *)param1;
+      count = *(ham_size_t *)param2;
 
-    if (c->is_leaf) {
-      ham_size_t dupcount = 1;
+      if (c->is_leaf) {
+        ham_size_t dupcount = 1;
 
-      if (c->flags & HAM_SKIP_DUPLICATES
-          || (c->db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
-        c->total_count+=count;
-        return (HAM_ENUM_DO_NOT_DESCEND);
+        if (c->flags & HAM_SKIP_DUPLICATES
+            || (c->db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
+          c->total_count += count;
+          return (HAM_ENUM_DO_NOT_DESCEND);
+        }
+        if (key->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES) {
+          st = c->db->get_env()->get_duplicate_manager()->get_count(
+                key->get_ptr(), &dupcount, 0);
+          if (st)
+            return (st);
+          c->total_count += dupcount;
+        }
+        else {
+          c->total_count++;
+        }
       }
-      if (key->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES) {
-        ham_status_t st = c->db->get_env()->get_duplicate_manager()->get_count(
-              key->get_ptr(), &dupcount, 0);
-        if (st)
-          return (st);
-        c->total_count+=dupcount;
-      }
-      else {
-        c->total_count++;
-      }
-    }
-    break;
+      break;
 
-  default:
-    ham_assert(!"unknown callback event");
-    break;
+    default:
+      ham_assert(!"unknown callback event");
+      break;
   }
 
   return (HAM_ENUM_CONTINUE);
@@ -399,7 +399,7 @@ ham_status_t
 Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 {
   ham_status_t st;
-  st = m_env->alloc_page(page, this, type, flags);
+  st = m_env->get_page_manager()->alloc_page(page, this, type, flags);
   if (st)
     return (st);
 
@@ -414,7 +414,8 @@ Database::alloc_page(Page **page, ham_u32_t type, ham_u32_t flags)
 ham_status_t
 Database::fetch_page(Page **page, ham_u64_t address, bool only_from_cache)
 {
-  return (m_env->fetch_page(page, this, address, only_from_cache));
+  return (m_env->get_page_manager()->fetch_page(page, this, address,
+              only_from_cache));
 }
 
 Cursor *
@@ -1352,14 +1353,14 @@ LocalDatabase::check_integrity(Transaction *txn)
   ham_status_t st;
 
   /* check the cache integrity */
-  if (!(get_rt_flags()&HAM_IN_MEMORY)) {
-    st = m_env->get_cache()->check_integrity();
+  if (!(get_rt_flags() & HAM_IN_MEMORY)) {
+    st = m_env->get_page_manager()->get_cache()->check_integrity();
     if (st)
       return (st);
   }
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -1376,7 +1377,7 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
 {
   ham_status_t st;
 
-  calckeys_context_t ctx = {this, flags, 0, false};
+  calckeys_context_t ctx = { this, flags, 0, false };
 
   if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
@@ -1385,7 +1386,7 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
   }
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -1437,7 +1438,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -1596,7 +1597,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   ham_u64_t recno = 0;
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -1739,7 +1740,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -1912,7 +1913,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
   }
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -2068,7 +2069,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -2123,7 +2124,7 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
   TransactionCursor *txnc = cursor->get_txn_cursor();
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -2179,7 +2180,7 @@ LocalDatabase::cursor_overwrite(Cursor *cursor,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -2229,7 +2230,7 @@ LocalDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   Transaction *local_txn = 0;
 
   /* purge cache if necessary */
-  st = get_env()->purge_cache();
+  st = get_env()->get_page_manager()->purge_cache();
   if (st)
     return (st);
 
@@ -2316,41 +2317,6 @@ LocalDatabase::cursor_close_impl(Cursor *cursor)
   cursor->close();
 }
 
-static bool
-db_close_callback(Page *page, Database *db, ham_u32_t flags)
-{
-  Environment *env = page->get_device()->get_env();
-
-  if (page->get_db() == db && page != env->get_header_page()) {
-    (void)page->flush();
-    (void)page->uncouple_all_cursors();
-
-    /*
-     * if this page has a header, and it's either a B-Tree root page or
-     * a B-Tree index page: remove all extended keys from the cache,
-     * and/or free their blobs
-     *
-     * TODO move to btree
-     */
-    if (page->get_pers() &&
-        (!(page->get_flags() & Page::NPERS_NO_HEADER)) &&
-          (page->get_type() == Page::TYPE_B_ROOT ||
-            page->get_type() == Page::TYPE_B_INDEX)) {
-      ham_assert(page->get_db());
-      BtreeIndex *be = page->get_db()->get_btree();
-      if (be)
-        (void)be->free_page_extkeys(page, flags);
-    }
-
-    /* free the page */
-    (void)page->free();
-
-    return (true);
-  }
-
-  return (false);
-}
-
 ham_status_t
 LocalDatabase::close_impl(ham_u32_t flags)
 {
@@ -2398,8 +2364,7 @@ LocalDatabase::close_impl(ham_u32_t flags)
    * flush all pages of this database (but not the header page,
    * it's still required and will be flushed below)
    */
-  if (m_env->get_cache())
-    (void)m_env->get_cache()->visit(db_close_callback, this, 0);
+  m_env->get_page_manager()->close_database(this);
 
   /* clean up the transaction tree */
   get_optree()->close();

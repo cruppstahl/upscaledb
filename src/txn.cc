@@ -17,7 +17,6 @@
 #include "db.h"
 #include "env.h"
 #include "error.h"
-#include "freelist.h"
 #include "log.h"
 #include "mem.h"
 #include "page.h"
@@ -363,6 +362,11 @@ TransactionIndex::TransactionIndex(Database *db)
   : m_db(db)
 {
   rbt_new(this);
+
+  // avoid warning about unused function
+  if (0) {
+    (void) (rbt_ppsearch(this, 0));
+  }
 }
 
 TransactionNode *
@@ -429,8 +433,6 @@ TransactionNode *
 TransactionIndex::get_last()
 {
   return (rbt_last(this));
-  // avoid warning about unused function
-  hamsterdb::rbt_ppsearch(0, 0);
 }
 
 } // namespace hamsterdb
