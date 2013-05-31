@@ -43,7 +43,8 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
   }
 
   /* load the blob header */
-  st = m_env->get_blob_manager()->read_chunk(0, &hdrpage, table_id, 0,
+  DiskBlobManager *dbm = (DiskBlobManager *)m_env->get_blob_manager();
+  st = dbm->read_chunk(0, &hdrpage, table_id, 0,
                   (ham_u8_t *)&hdr, sizeof(hdr));
   if (st)
     return (st);
@@ -69,7 +70,7 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
     return (HAM_OUT_OF_MEMORY);
 
   /* then read the rest of the blob */
-  st = m_env->get_blob_manager()->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
+  st = dbm->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
                     0, (ham_u8_t *)table, (ham_size_t)hdr.get_size());
   if (st)
     return (st);

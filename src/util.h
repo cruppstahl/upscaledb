@@ -47,19 +47,19 @@ class ByteArray
         clear();
     }
 
-    ham_status_t resize(ham_size_t size) {
+    void *resize(ham_size_t size) {
       if (size > m_size) {
         m_ptr = m_alloc->realloc(m_ptr, size);
         m_size = size;
       }
-      return (m_ptr != 0 ? 0 : HAM_OUT_OF_MEMORY);
+      return (m_ptr);
     }
 
-    ham_status_t resize(ham_size_t size, ham_u8_t fill_byte) {
+    void *resize(ham_size_t size, ham_u8_t fill_byte) {
       resize(size);
       if (m_ptr)
         memset(m_ptr, fill_byte, size);
-      return (m_ptr != 0 ? 0 : HAM_OUT_OF_MEMORY);
+      return (m_ptr);
     }
 
     void set_allocator(Allocator *alloc) {

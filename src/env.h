@@ -453,7 +453,7 @@ class Environment
 
     /** get the blob manager */
     BlobManager *get_blob_manager() {
-      return (&m_blob_manager);
+      return (m_blob_manager);
     }
 
     /** get the duplicate manager */
@@ -497,6 +497,10 @@ class Environment
     }
 
   protected:
+    /** the BlobManager */
+    // TODO move to LocalEnvironment
+    BlobManager *m_blob_manager;
+
     /** The PageManager instance */
     // TODO move to LocalEnvironment
     PageManager *m_page_manager;
@@ -572,10 +576,6 @@ class Environment
 
     /** the directory of the log file and journal files */
     std::string m_log_directory;
-
-    /** the BlobManager */
-    // TODO move to LocalEnvironment
-    BlobManager m_blob_manager;
 
     /** the DuplicateManager */
     // TODO move to LocalEnvironment

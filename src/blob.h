@@ -20,7 +20,6 @@
 
 #include "internal_fwd_decl.h"
 #include "endianswap.h"
-#include "error.h"
 #include "page.h"
 
 namespace hamsterdb {
@@ -109,12 +108,117 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 
 /**
  * The BlobManager manages blobs (not a surprise)
+ *
+ * This is an abstract baseclass, derived for In-Memory- and Disk-based
+ * Environments.
  */
 class BlobManager
 {
   public:
     BlobManager(Environment *env)
       : m_env(env) {
+    }
+
+    virtual ~BlobManager() { }
+
+    /**
+     * Allocates/create a new blob
+     * This function returns the blob-id (the start address of the blob
+     * header) in @a blob_id
+     */
+    virtual ham_status_t allocate(Database *db, ham_record_t *record,
+                    ham_u32_t flags, ham_u64_t *blob_id) = 0;
+
+    /**
+     * Reads a blob and stores the data in @a record
+     * @ref flags: either 0 or HAM_DIRECT_ACCESS
+     */
+    virtual ham_status_t read(Database *db, Transaction *txn, ham_u64_t blob_id,
+                    ham_record_t *record, ham_u32_t flags) = 0;
+
+    /**
+     * Retrieves the size of a blob
+     */
+    virtual ham_status_t get_datasize(Database *db, ham_u64_t blob_id,
+                    ham_u64_t *size) = 0;
+
+    /**
+     * Overwrites an existing blob
+     *
+     * Will return an error if the blob does not exist. Returns the blob-id
+     * (the start address of the blob header) in @a new_blob_id
+     */
+    virtual ham_status_t overwrite(Database *db, ham_u64_t old_blob_id,
+                    ham_record_t *record, ham_u32_t flags,
+                    ham_u64_t *new_blob_id) = 0;
+
+    /**
+     * Deletes an existing blob
+     */
+    virtual ham_status_t free(Database *db, ham_u64_t blob_id,
+                    Page *page = 0, ham_u32_t flags = 0) = 0;
+
+  protected:
+    /** the Environment which created this BlobManager */
+    Environment *m_env;
+};
+
+/**
+ * A BlobManager for in-memory blobs
+ */
+class InMemoryBlobManager : public BlobManager {
+  public:
+    InMemoryBlobManager(Environment *env)
+      : BlobManager(env) {
+    }
+
+    /**
+     * Allocates/create a new blob
+     * This function returns the blob-id (the start address of the blob
+     * header) in @a blob_id
+     */
+    ham_status_t allocate(Database *db, ham_record_t *record,
+                    ham_u32_t flags, ham_u64_t *blobid);
+
+    /**
+     * Reads a blob and stores the data in @a record
+     * @ref flags: either 0 or HAM_DIRECT_ACCESS
+     */
+    ham_status_t read(Database *db, Transaction *txn, ham_u64_t blobid,
+                    ham_record_t *record, ham_u32_t flags);
+
+    /**
+     * Retrieves the size of a blob
+     */
+    ham_status_t get_datasize(Database *db, ham_u64_t blobid,
+                    ham_u64_t *size);
+
+    /**
+     * Overwrites an existing blob
+     *
+     * Will return an error if the blob does not exist. Returns the blob-id
+     * (the start address of the blob header) in @a new_blob_id
+     */
+    ham_status_t overwrite(Database *db, ham_u64_t old_blobid,
+                    ham_record_t *record, ham_u32_t flags,
+                    ham_u64_t *new_blobid);
+
+    /**
+     * Deletes an existing blob
+     */
+    ham_status_t free(Database *db, ham_u64_t blobid,
+                    Page *page = 0, ham_u32_t flags = 0);
+};
+
+
+/**
+ * A BlobManager for disk-based databases
+ */
+class DiskBlobManager : public BlobManager
+{
+  public:
+    DiskBlobManager(Environment *env)
+      : BlobManager(env) {
     }
 
     /**
@@ -150,7 +254,8 @@ class BlobManager
     /**
      * delete an existing blob
      */
-    ham_status_t free(Database *db, ham_u64_t blobid, ham_u32_t flags);
+    ham_status_t free(Database *db, ham_u64_t blobid,
+                    Page *page = 0, ham_u32_t flags = 0);
 
   private:
     friend class DuplicateManager;
@@ -182,9 +287,6 @@ class BlobManager
      * the cache. otherwise use direct I/O
      */
     bool blob_from_cache(ham_size_t size);
-
-    /** the Environment which created this BlobManager */
-    Environment *m_env;
 };
 
 } // namespace hamsterdb

@@ -47,11 +47,11 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_page_manager(0), m_file_mode(0644), m_txn_id(0),
+  : m_blob_manager(0), m_page_manager(0), m_file_mode(0644), m_txn_id(0),
     m_context(0), m_device(0), m_alloc(Allocator::create()), m_hdrpage(0),
     m_oldest_txn(0), m_newest_txn(0), m_log(0), m_journal(0), m_flags(0),
     m_changeset(this), m_pagesize(0), m_max_databases_cached(0),
-    m_blob_manager(this), m_duplicate_manager(this)
+    m_duplicate_manager(this)
 {
   memset(&m_perf_data, 0, sizeof(m_perf_data));
 }
@@ -82,6 +82,11 @@ Environment::~Environment()
     }
     delete device;
     set_device(0);
+  }
+  
+  if (m_blob_manager) {
+    delete m_blob_manager;
+    m_blob_manager = 0;
   }
 
   /* close the allocator */
@@ -343,10 +348,14 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
 
   /* initialize the device if it does not yet exist */
   Device *device;
-  if (flags & HAM_IN_MEMORY)
+  if (flags & HAM_IN_MEMORY) {
+    m_blob_manager = new InMemoryBlobManager(this);
     device = new InMemoryDevice(this, flags);
-  else
+  }
+  else {
+    m_blob_manager = new DiskBlobManager(this);
     device = new DiskDevice(this, flags);
+  }
   device->set_pagesize(get_pagesize());
   set_device(device);
 
@@ -425,10 +434,14 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 
   /* initialize the device if it does not yet exist */
   Device *device;
-  if (flags & HAM_IN_MEMORY)
+  if (flags & HAM_IN_MEMORY) {
+    m_blob_manager = new InMemoryBlobManager(this);
     device = new InMemoryDevice(this, flags);
-  else
+  }
+  else {
+    m_blob_manager = new DiskBlobManager(this);
     device = new DiskDevice(this, flags);
+  }
   set_device(device);
   if (filename)
     set_filename(filename);

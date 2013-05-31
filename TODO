@@ -61,6 +61,13 @@ o new option to disable the freelist
     o review unittest Freelist::overflow4
     o "old" hamsterdb.cc has different method to deal with freelist in header
         page
+    x split BlobManager into subclasses (in-memory, disk)
+        x use ByteArray for "zeroes" when filling partial gaps
+
+    o review unittest Freelist::overflow4
+    o "old" hamsterdb.cc has different method to deal with freelist in header
+        page - unify (or leave as is? no need to change it)
+    o merge freelist and freelist_statistics, if it makes sense
 
     o new option HAM_PARAM_DISABLE_FREELIST
         o alte Feelist umbenennen in BitmapFreelist
