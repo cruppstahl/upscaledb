@@ -153,7 +153,7 @@ o AES encryption
 o collect file format incompatibilities
     o for the new Btree code
     o get rid of the statistics-structures
-    o reduce the PBlobHeader
+    o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
 
 o DiskBlobManager::write_internal: only uses direct I/O if blob is at the

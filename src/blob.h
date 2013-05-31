@@ -20,63 +20,84 @@
 
 #include "internal_fwd_decl.h"
 #include "endianswap.h"
+#include "error.h"
+#include "page.h"
 
 namespace hamsterdb {
 
 #include "packstart.h"
 
 /**
- * a blob structure (PBlobHeader)
+ * A blob header structure
  *
- * every blob has a PBlobHeader header; it holds flags and some other
- * administrative information
+ * This header is prepended to the blob's payload. It holds the blob size and
+ * the blob's address (which is not required but useful for error checking.)
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 PBlobHeader
+HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 {
+  public:
+    PBlobHeader() {
+      memset(this, 0, sizeof(PBlobHeader));
+    }
+
+    static PBlobHeader *from_page(Page *page, ham_u64_t address) {
+      ham_size_t readstart = (ham_size_t)(address - page->get_self());
+      return (PBlobHeader *)&page->get_raw_payload()[readstart];
+    }
+
+    /** Returns the absolute address of the blob */
+    ham_u64_t get_self() const {
+      return (ham_db2h_offset(m_blobid));
+    }
+
+    /** Sets the absolute address of the blob */
+    void set_self(ham_u64_t id) {
+      m_blobid = ham_h2db_offset(id);
+    }
+
+    /** Returns the payload size of the blob */
+    ham_u64_t get_size() const {
+      return (ham_db2h_offset(m_size));
+    }
+
+    /** Sets the payload size of the blob */
+    void set_size(ham_u64_t size) {
+      m_size = ham_h2db_offset(size);
+    }
+
+    /** get the allocated size of the blob (includes padding) */
+    ham_u64_t get_alloc_size() const {
+      return (ham_db2h_offset(m_allocated_size));
+    }
+
+    /** set the allocated size of a blob (includes padding) */
+    void set_alloc_size(ham_u64_t size) {
+      m_allocated_size = ham_h2db64(size);
+    }
+
+  private:
     /**
-     * the blob ID - which is the absolute address/offset of this
-     * PBlobHeader structure in the file
+     * The blob ID - which is the absolute address/offset of this
+     * structure in the file
      */
-    ham_u64_t _blobid;
+    ham_u64_t m_blobid;
 
     /**
      * the allocated size of the blob; this is the size, which is used
      * by the blob and it's header and maybe additional padding
      */
-    ham_u64_t _allocated_size;
+    ham_u64_t m_allocated_size;
 
-    /** the size of the blob */
-    ham_u64_t _size;
+    /** The size of the blob (excluding the header) */
+    ham_u64_t m_size;
 
-    /** additional flags */
-    ham_u32_t _flags;
-} HAM_PACK_2 PBlobHeader;
+    /* flags are currently unused, but removing them would break file
+     * compatibility; they will be removed with the next file format
+     * update */
+    ham_u32_t unused_flags;
+} HAM_PACK_2;
 
 #include "packstop.h"
-
-/** get the blob ID (blob start address) of a PBlobHeader */
-#define blob_get_self(b)               (ham_db2h_offset((b)->_blobid))
-
-/** set the blob ID (blob start address) of a PBlobHeader */
-#define blob_set_self(b, s)            (b)->_blobid=ham_h2db_offset(s)
-
-/** get the allocated size of a PBlobHeader */
-#define blob_get_alloc_size(b)         (ham_db2h64((b)->_allocated_size))
-
-/** set the allocated size of a PBlobHeader */
-#define blob_set_alloc_size(b, s)      (b)->_allocated_size=ham_h2db64(s)
-
-/** get the size of a PBlobHeader */
-#define blob_get_size(b)               (ham_db2h64((b)->_size))
-
-/** get the size of a PBlobHeader */
-#define blob_set_size(b, s)            (b)->_size=ham_h2db64(s)
-
-/** get flags of a PBlobHeader */
-#define blob_get_flags(b)              (ham_db2h32((b)->_flags))
-
-/** set flags of a PBlobHeader */
-#define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 
 #if defined(_MSC_VER) && defined(_CRTDBG_MAP_ALLOC)

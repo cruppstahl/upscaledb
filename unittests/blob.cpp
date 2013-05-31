@@ -103,19 +103,15 @@ public:
 
   void structureTest() {
     PBlobHeader b;
-    ::memset(&b, 0, sizeof(b));
 
-    blob_set_self(&b, (ham_u64_t)0x12345ull);
-    BFC_ASSERT_EQUAL((ham_u64_t)0x12345ull, blob_get_self(&b));
+    b.set_self((ham_u64_t)0x12345ull);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x12345ull, b.get_self());
 
-    blob_set_alloc_size(&b, 0x789ull);
-    BFC_ASSERT_EQUAL((ham_u64_t)0x789ull, blob_get_alloc_size(&b));
+    b.set_alloc_size(0x789ull);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x789ull, b.get_alloc_size());
 
-    blob_set_size(&b, 0x123ull);
-    BFC_ASSERT_EQUAL((ham_u64_t)0x123ull, blob_get_size(&b));
-
-    blob_set_flags(&b, 0x13);
-    BFC_ASSERT_EQUAL((ham_u32_t)0x13, blob_get_flags(&b));
+    b.set_size(0x123ull);
+    BFC_ASSERT_EQUAL((ham_u64_t)0x123ull, b.get_size());
   }
 
   void dupeStructureTest() {

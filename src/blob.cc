@@ -209,7 +209,6 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   ham_status_t st = 0;
   Page *page = 0;
   ham_u64_t addr = 0;
-  PBlobHeader hdr;
   ham_u8_t *chunk_data[2];
   ham_size_t alloc_size;
   ham_size_t chunk_size[2];
@@ -245,9 +244,9 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     /* initialize the header */
     hdr = (PBlobHeader *)p;
     memset(hdr, 0, sizeof(*hdr));
-    blob_set_self(hdr, (ham_u64_t)PTR_TO_U64(p));
-    blob_set_alloc_size(hdr, record->size + sizeof(PBlobHeader));
-    blob_set_size(hdr, record->size);
+    hdr->set_self((ham_u64_t)PTR_TO_U64(p));
+    hdr->set_alloc_size(record->size + sizeof(PBlobHeader));
+    hdr->set_size(record->size);
 
     /* do we have gaps? if yes, fill them with zeroes */
     if (flags & HAM_PARTIAL) {
@@ -267,6 +266,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     return (0);
   }
 
+  PBlobHeader hdr;
   memset(&hdr, 0, sizeof(hdr));
 
   /* blobs are CHUNKSIZE-allocated */
@@ -295,7 +295,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       /* move the remaining space to the freelist */
       m_env->get_page_manager()->add_to_freelist(addr + alloc_size,
                     m_env->get_pagesize() - alloc_size);
-      blob_set_alloc_size(&hdr, alloc_size);
+      hdr.set_alloc_size(alloc_size);
     }
     else {
       /* otherwise use direct IO to allocate the space */
@@ -313,10 +313,10 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
         ham_size_t diff = aligned - alloc_size;
         if (diff > SMALLEST_CHUNK_SIZE) {
           m_env->get_page_manager()->add_to_freelist(addr + alloc_size, diff);
-          blob_set_alloc_size(&hdr, aligned - diff);
+          hdr.set_alloc_size(aligned - diff);
         }
         else {
-          blob_set_alloc_size(&hdr, aligned);
+          hdr.set_alloc_size(aligned);
         }
       }
       freshly_created = true;
@@ -324,11 +324,11 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   }
   else {
     ham_assert(st == 0);
-    blob_set_alloc_size(&hdr, alloc_size);
+    hdr.set_alloc_size(alloc_size);
   }
 
-  blob_set_size(&hdr, record->size);
-  blob_set_self(&hdr, addr);
+  hdr.set_size(record->size);
+  hdr.set_self(addr);
 
   /*
    * PARTIAL WRITE
@@ -413,7 +413,7 @@ BlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   }
 
   /* store the blobid; it will be returned to the caller */
-  *blobid = blob_get_self(&hdr);
+  *blobid = hdr.get_self();
 
   /*
    * PARTIAL WRITES:
@@ -479,7 +479,6 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
 {
   ham_status_t st;
   Page *page;
-  PBlobHeader hdr;
   ham_size_t blobsize = 0;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
@@ -500,7 +499,7 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
       return (0);
     }
 
-    blobsize = (ham_size_t)blob_get_size(hdr);
+    blobsize = (ham_size_t)hdr->get_size();
 
     if (flags & HAM_PARTIAL) {
       if (record->partial_offset > blobsize) {
@@ -546,20 +545,20 @@ BlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
   ham_assert(blobid % DB_CHUNKSIZE==0);
 
   /* first step: read the blob header */
-  st=read_chunk(0, &page, blobid, db,
-                    (ham_u8_t *)&hdr, sizeof(hdr));
+  PBlobHeader hdr;
+  st = read_chunk(0, &page, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
   if (st)
     return (st);
 
-  ham_assert(blob_get_alloc_size(&hdr) % DB_CHUNKSIZE == 0);
+  ham_assert(hdr.get_alloc_size() % DB_CHUNKSIZE == 0);
 
   /* sanity check */
-  if (blob_get_self(&hdr) != blobid) {
+  if (hdr.get_self() != blobid) {
     ham_log(("blob %lld not found", blobid));
     return (HAM_BLOB_NOT_FOUND);
   }
 
-  blobsize = (ham_size_t)blob_get_size(&hdr);
+  blobsize = (ham_size_t)hdr.get_size();
 
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
@@ -604,7 +603,6 @@ BlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 {
   ham_status_t st;
   Page *page;
-  PBlobHeader hdr;
 
   /*
    * in-memory-database: the blobid is actually a pointer to the memory
@@ -612,21 +610,22 @@ BlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
    */
   if (m_env->get_flags() & HAM_IN_MEMORY) {
     PBlobHeader *hdr = (PBlobHeader *)U64_TO_PTR(blobid);
-    *size = (ham_size_t)blob_get_size(hdr);
+    *size = (ham_size_t)hdr->get_size();
     return (0);
   }
 
   ham_assert(blobid % DB_CHUNKSIZE == 0);
 
   /* read the blob header */
-  st=read_chunk(0, &page, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
+  PBlobHeader hdr;
+  st = read_chunk(0, &page, blobid, db, (ham_u8_t *)&hdr, sizeof(hdr));
   if (st)
     return (st);
 
-  if (blob_get_self(&hdr) != blobid)
+  if (hdr.get_self() != blobid)
     return (HAM_BLOB_NOT_FOUND);
 
-  *size = blob_get_size(&hdr);
+  *size = hdr.get_size();
   return (0);
 }
 
@@ -658,9 +657,9 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
    * the data)
    */
   if (m_env->get_flags() & HAM_IN_MEMORY) {
-    PBlobHeader *nhdr, *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
+    PBlobHeader *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
 
-    if (blob_get_size(phdr) == record->size) {
+    if (phdr->get_size() == record->size) {
       ham_u8_t *p = (ham_u8_t *)phdr;
       if (flags & HAM_PARTIAL) {
         memmove(p + sizeof(PBlobHeader) + record->partial_offset,
@@ -675,8 +674,6 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
       st = m_env->get_blob_manager()->allocate(db, record, flags, new_blobid);
       if (st)
         return (st);
-      nhdr = (PBlobHeader *)U64_TO_PTR(*new_blobid);
-      blob_set_flags(nhdr, blob_get_flags(phdr));
 
       m_env->get_allocator()->free(phdr);
     }
@@ -701,29 +698,28 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
   if (st)
     return (st);
 
-  ham_assert(blob_get_alloc_size(&old_hdr) % DB_CHUNKSIZE == 0);
+  ham_assert(old_hdr.get_alloc_size() % DB_CHUNKSIZE == 0);
 
   /* sanity check */
-  ham_assert(blob_get_self(&old_hdr) == old_blobid);
-  if (blob_get_self(&old_hdr) != old_blobid)
+  ham_assert(old_hdr.get_self() == old_blobid);
+  if (old_hdr.get_self() != old_blobid)
     return (HAM_BLOB_NOT_FOUND);
 
   /*
    * now compare the sizes; does the new data fit in the old allocated
    * space?
    */
-  if (alloc_size <= blob_get_alloc_size(&old_hdr)) {
+  if (alloc_size <= old_hdr.get_alloc_size()) {
     ham_u8_t *chunk_data[2];
     ham_size_t chunk_size[2];
 
     /* setup the new blob header */
-    blob_set_self(&new_hdr, blob_get_self(&old_hdr));
-    blob_set_size(&new_hdr, record->size);
-    blob_set_flags(&new_hdr, blob_get_flags(&old_hdr));
-    if (blob_get_alloc_size(&old_hdr) - alloc_size > SMALLEST_CHUNK_SIZE)
-      blob_set_alloc_size(&new_hdr, alloc_size);
+    new_hdr.set_self(old_hdr.get_self());
+    new_hdr.set_size(record->size);
+    if (old_hdr.get_alloc_size() - alloc_size > SMALLEST_CHUNK_SIZE)
+      new_hdr.set_alloc_size(alloc_size);
     else
-      blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
+      new_hdr.set_alloc_size(old_hdr.get_alloc_size());
 
     /*
      * PARTIAL WRITE
@@ -735,14 +731,14 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
     if ((flags&HAM_PARTIAL) && (record->partial_offset)) {
       chunk_data[0] = (ham_u8_t *)&new_hdr;
       chunk_size[0] = sizeof(new_hdr);
-      st = write_chunks(db, page, blob_get_self(&new_hdr), false,
+      st = write_chunks(db, page, new_hdr.get_self(), false,
                         false, chunk_data, chunk_size, 1);
       if (st)
         return (st);
 
       chunk_data[0] = (ham_u8_t *)record->data;
       chunk_size[0] = record->partial_size;
-      st = write_chunks(db, page, blob_get_self(&new_hdr) + sizeof(new_hdr)
+      st = write_chunks(db, page, new_hdr.get_self() + sizeof(new_hdr)
                             + record->partial_offset, false, false,
                             chunk_data, chunk_size, 1);
       if (st)
@@ -756,22 +752,22 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
                           ? record->partial_size
                           : record->size;
 
-      st = write_chunks(db, page, blob_get_self(&new_hdr), false,
+      st = write_chunks(db, page, new_hdr.get_self(), false,
                             false, chunk_data, chunk_size, 2);
       if (st)
         return (st);
     }
 
     /* move remaining data to the freelist */
-    if (blob_get_alloc_size(&old_hdr) != blob_get_alloc_size(&new_hdr)) {
+    if (old_hdr.get_alloc_size() != new_hdr.get_alloc_size()) {
       m_env->get_page_manager()->add_to_freelist(
-                    blob_get_self(&new_hdr) + blob_get_alloc_size(&new_hdr),
-                    (ham_size_t)(blob_get_alloc_size(&old_hdr) -
-                        blob_get_alloc_size(&new_hdr)));
+                    new_hdr.get_self() + new_hdr.get_alloc_size(),
+                    (ham_size_t)(old_hdr.get_alloc_size() -
+                        new_hdr.get_alloc_size()));
     }
 
     /* the old rid is the new rid */
-    *new_blobid = blob_get_self(&new_hdr);
+    *new_blobid = new_hdr.get_self();
 
     return (HAM_SUCCESS);
   }
@@ -785,7 +781,7 @@ BlobManager::overwrite(Database *db, ham_u64_t old_blobid,
       return (st);
 
     m_env->get_page_manager()->add_to_freelist(old_blobid,
-                  (ham_size_t)blob_get_alloc_size(&old_hdr));
+                  (ham_size_t)old_hdr.get_alloc_size());
   }
 
   return (HAM_SUCCESS);
@@ -813,16 +809,16 @@ BlobManager::free(Database *db, ham_u64_t blobid, ham_u32_t flags)
   if (st)
     return (st);
 
-  ham_assert(blob_get_alloc_size(&hdr) % DB_CHUNKSIZE == 0);
+  ham_assert(hdr.get_alloc_size() % DB_CHUNKSIZE == 0);
 
   /* sanity check */
-  ham_verify(blob_get_self(&hdr) == blobid);
-  if (blob_get_self(&hdr) != blobid)
+  ham_verify(hdr.get_self() == blobid);
+  if (hdr.get_self() != blobid)
     return (HAM_BLOB_NOT_FOUND);
 
   /* move the blob to the freelist */
   m_env->get_page_manager()->add_to_freelist(blobid,
-                (ham_size_t)blob_get_alloc_size(&hdr));
+                (ham_size_t)hdr.get_alloc_size());
   return (0);
 }
 

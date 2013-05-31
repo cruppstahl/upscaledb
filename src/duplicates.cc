@@ -53,7 +53,7 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
    * pages), just return a pointer directly in the page
    */
   if (hdrpage->get_self() + m_env->get_usable_pagesize()
-        >= table_id + blob_get_size(&hdr)) {
+        >= table_id + hdr.get_size()) {
     ham_u8_t *p = hdrpage->get_raw_payload();
     /* yes, table is in the page */
     *page = hdrpage;
@@ -64,13 +64,13 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
 
   /* otherwise allocate memory for the table */
   table = (PDupeTable *)m_env->get_allocator()->alloc(
-              (ham_size_t)blob_get_size(&hdr));
+              (ham_size_t)hdr.get_size());
   if (!table)
     return (HAM_OUT_OF_MEMORY);
 
   /* then read the rest of the blob */
   st = m_env->get_blob_manager()->read_chunk(hdrpage, 0, table_id + sizeof(hdr),
-                    0, (ham_u8_t *)table, (ham_size_t)blob_get_size(&hdr));
+                    0, (ham_u8_t *)table, (ham_size_t)hdr.get_size());
   if (st)
     return (st);
 
