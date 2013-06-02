@@ -24,7 +24,6 @@
 #include "../src/env.h"
 #include "../src/btree.h"
 #include "../src/btree_key.h"
-#include "../src/freelist.h"
 #include "../src/cache.h"
 #include "os.hpp"
 

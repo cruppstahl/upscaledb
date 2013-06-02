@@ -59,22 +59,13 @@ class Log;
 
 class Journal;
 
-struct extkey_t;
-typedef struct extkey_t extkey_t;
-
 class ExtKeyCache;
 
-class Freelist;
-struct FreelistEntry;
-
-struct freelist_hints_t;
-typedef struct freelist_hints_t freelist_hints_t;
+class FullFreelist;
+struct FullFreelistEntry;
 
 struct RuntimePageStatistics;
 typedef struct RuntimePageStatistics RuntimePageStatistics;
-
-struct freelist_global_hints_t;
-typedef struct freelist_global_hints_t freelist_global_hints_t;
 
 struct find_hints_t;
 typedef struct find_hints_t find_hints_t;
@@ -89,7 +80,7 @@ class TransactionCursor;
 
 #include "packstart.h"
 
-struct PFreelistPayload;
+struct PFullFreelistPayload;
 
 #include "packstop.h"
 

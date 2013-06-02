@@ -268,7 +268,7 @@ public:
     BFC_ASSERT(compare_sizes(sizeof(PBtreeKey), 12));
     BFC_ASSERT(compare_sizes(sizeof(PEnvHeader), 20));
     BFC_ASSERT(compare_sizes(sizeof(PBtreeDescriptor), 32));
-    BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
+    BFC_ASSERT(compare_sizes(sizeof(PFullFreelistPayload),
         16 + 13 + sizeof(PFreelistPageStatistics)));
     BFC_ASSERT(compare_sizes(sizeof(PFreelistPageStatistics),
         4 * 8 + sizeof(PFreelistSlotsizeStats)

@@ -432,11 +432,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\freelist.cc"
+			RelativePath="..\..\src\bm_freelist.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\freelist.h"
+			RelativePath="..\..\src\bm_freelist.h"
 			>
 		</File>
 		<File
@@ -446,6 +446,9 @@
 		<File
 			RelativePath="..\..\src\freelist_statistics.h"
 			>
+		</File>
+		<File
+			RelativePath="..\..\src\simple_freelist.h"
 		</File>
 		<File
 			RelativePath="..\..\src\hamsterdb.cc"

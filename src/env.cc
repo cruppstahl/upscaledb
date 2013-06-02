@@ -104,11 +104,17 @@ Environment::get_descriptor(int i)
   return (d + i);
 }
 
-PFreelistPayload *
+ham_size_t
+Environment::sizeof_full_header()
+{
+  return (sizeof(PEnvHeader) + get_max_databases() * sizeof(PBtreeDescriptor));
+}
+
+PFullFreelistPayload *
 Environment::get_freelist_payload()
 {
-  return ((PFreelistPayload *)(get_header_page()->get_payload() +
-            SIZEOF_FULL_HEADER(this)));
+  return ((PFullFreelistPayload *)(get_header_page()->get_payload() +
+              sizeof_full_header()));
 }
 
 void

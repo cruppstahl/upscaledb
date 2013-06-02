@@ -109,12 +109,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 #include "packstop.h"
 
-#define SIZEOF_FULL_HEADER(env)                                             \
-    (sizeof(PEnvHeader) +                                                   \
-     (env)->get_max_databases() * sizeof(PBtreeDescriptor))
-
 class PBtreeDescriptor;
 class PageManager;
+class PFullFreelistPayload;
 
 /**
  * the Environment structure
@@ -328,6 +325,9 @@ class Environment
       m_pagesize = ps;
     }
 
+    /** Returns the size of the occupied portion in the header structure;
+     * the remaining data is the size of the freelist */
+    ham_size_t sizeof_full_header();
 
     /**
      * get the maximum number of databases for this file (cached, not read
@@ -435,11 +435,11 @@ class Environment
     /** set the serial number */
     void set_serialno(ham_u32_t n) {
       PEnvHeader *hdr = (PEnvHeader *)(get_header_page()->get_payload());
-      hdr->_serialno=ham_h2db32(n);
+      hdr->_serialno = ham_h2db32(n);
     }
 
     /** get the freelist object of the database */
-    PFreelistPayload *get_freelist_payload();
+    PFullFreelistPayload *get_freelist_payload();
 
     /** set the logfile directory */
     void set_log_directory(const std::string &dir) {

@@ -480,11 +480,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\freelist.cc"
+			RelativePath="..\..\src\reduced_freelist.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\freelist.h"
+			RelativePath="..\..\src\reduced_freelist.h"
 			>
 		</File>
 		<File
@@ -493,6 +493,14 @@
 		</File>
 		<File
 			RelativePath="..\..\src\freelist_statistics.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\full_freelist.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\full_freelist.h"
 			>
 		</File>
 		<File

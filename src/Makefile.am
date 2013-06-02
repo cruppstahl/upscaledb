@@ -48,8 +48,8 @@ libhamsterdb_la_SOURCES = blob.cc \
 	error.h \
 	errorinducer.h \
 	extkeys.h \
-	freelist.cc \
-	freelist.h \
+	full_freelist.cc \
+	full_freelist.h \
 	freelist_statistics.cc \
 	freelist_statistics.h \
 	hamsterdb.cc \
@@ -73,6 +73,8 @@ libhamsterdb_la_SOURCES = blob.cc \
 	rb.h \
 	remote.cc \
 	serial.h \
+	reduced_freelist.h \
+	reduced_freelist.cc \
 	statistics.h \
 	txn.cc \
 	txn_cursor.cc \

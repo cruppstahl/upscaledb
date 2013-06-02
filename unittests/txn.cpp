@@ -23,7 +23,6 @@
 #include "../src/page.h"
 #include "../src/error.h"
 #include "../src/env.h"
-#include "../src/freelist.h"
 #include "../src/os.h"
 
 #include "bfc-testsuite.hpp"

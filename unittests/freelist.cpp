@@ -17,7 +17,7 @@
 
 #include "../src/db.h"
 #include "../src/page.h"
-#include "../src/freelist.h"
+#include "../src/full_freelist.h"
 #include "../src/env.h"
 #include "../src/page_manager.h"
 
@@ -27,20 +27,33 @@
 using namespace bfc;
 using namespace hamsterdb;
 
-class FreelistBaseTest : public hamsterDB_fixture {
+class FullFreelistTest : public hamsterDB_fixture {
   define_super(hamsterDB_fixture);
 
 public:
-  FreelistBaseTest(const char *name, unsigned pagesize = 4096)
-    : hamsterDB_fixture(name), m_env(0), m_db(0), m_freelist(0) {
-    m_pagesize = pagesize;
+  FullFreelistTest()
+    : hamsterDB_fixture("FullFreelistTest"), m_env(0), m_db(0),
+      m_freelist(0) {
+    testrunner::get_instance()->register_fixture(this);
+    BFC_REGISTER_TEST(FullFreelistTest, checkStructurePackingTest);
+    BFC_REGISTER_TEST(FullFreelistTest, structureTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocAlignedTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocPageTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocHighOffsetTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocRangeTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocOverflowTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocOverflow2Test);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocOverflow3Test);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocAlignTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocAlignMultipleTest);
+    BFC_REGISTER_TEST(FullFreelistTest, markAllocTwiceTest);
+    BFC_REGISTER_TEST(FullFreelistTest, simpleReopenTest);
   }
 
 protected:
   ham_env_t *m_env;
   ham_db_t *m_db;
-  ham_u32_t m_pagesize;
-  Freelist *m_freelist;
+  FullFreelist *m_freelist;
 
 public:
   virtual ham_status_t open(ham_u32_t flags) {
@@ -62,7 +75,7 @@ public:
     __super::setup();
 
     ham_parameter_t p[] = {
-      { HAM_PARAM_PAGESIZE, m_pagesize },
+      { HAM_PARAM_PAGESIZE, 4096 },
       { 0, 0 }
     };
 
@@ -85,7 +98,7 @@ public:
   }
 
   void structureTest() {
-    PFreelistPayload *f;
+    PFullFreelistPayload *f;
 
     f = (((Environment *)m_env)->get_freelist_payload());
 
@@ -279,45 +292,6 @@ public:
     BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
   }
 
-  void markAllocOverflow4Test() {
-    // TODO re-enable this after the freelist was rewritten
-#if 0
-
-    ham_u64_t o=(ham_u64_t)1024*1024*1024*4;
-    ham_txn_t *txn;
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-
-    BFC_ASSERT_EQUAL(0,
-         m_freelist->free_area(o, DB_CHUNKSIZE * 2));
-    ham_u64_t addr;
-    BFC_ASSERT_EQUAL(0,
-        m_freelist->alloc_area(&addr, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL(o, addr);
-    BFC_ASSERT(((Environment *)m_env)->is_dirty());
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-
-    /* need to clear the changeset, otherwise ham_db_close() will complain */
-    ((Environment *)m_env)->get_changeset().clear();
-
-    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
-    BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
-
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-
-    BFC_ASSERT_EQUAL(0,
-        m_freelist->alloc_area(&addr, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL((ham_u64_t)o+DB_CHUNKSIZE, addr);
-
-    BFC_ASSERT_EQUAL(0,
-         m_freelist->free_area(o, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL(0,
-        m_freelist->alloc_area(&addr, DB_CHUNKSIZE));
-    BFC_ASSERT_EQUAL(o, addr);
-
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-#endif
-  }
-
   void markAllocOverflow3Test() {
     ham_txn_t *txn;
     BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -366,7 +340,7 @@ public:
 
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
-    BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
+    BFC_ASSERT(compare_sizes(sizeof(PFullFreelistPayload),
         16 + 13 + sizeof(PFreelistPageStatistics)));
     BFC_ASSERT(compare_sizes(freel_get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
@@ -405,30 +379,5 @@ public:
   }
 };
 
-class FreelistTest : public FreelistBaseTest
-{
-  define_super(FreelistBaseTest);
-
-public:
-  FreelistTest()
-    : FreelistBaseTest("FreelistTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(FreelistTest, checkStructurePackingTest);
-    BFC_REGISTER_TEST(FreelistTest, structureTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocAlignedTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocPageTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocHighOffsetTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocRangeTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocOverflowTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocOverflow2Test);
-    BFC_REGISTER_TEST(FreelistTest, markAllocOverflow3Test);
-    BFC_REGISTER_TEST(FreelistTest, markAllocOverflow4Test);
-    BFC_REGISTER_TEST(FreelistTest, markAllocAlignTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocAlignMultipleTest);
-    BFC_REGISTER_TEST(FreelistTest, markAllocTwiceTest);
-    BFC_REGISTER_TEST(FreelistTest, simpleReopenTest);
-  }
-};
-
-BFC_REGISTER_FIXTURE(FreelistTest);
+BFC_REGISTER_FIXTURE(FullFreelistTest);
 

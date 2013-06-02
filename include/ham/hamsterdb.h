@@ -664,13 +664,27 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * configured when the Environment is created (see @sa ham_env_create).
  *
  * Each Database in an Environment is identified by a positive 16bit
- * value (except 0 and values at or above 0xf000).
+ * value. 0 and values at or above 0xf000 are reserved.
  *
  * This function initializes the ham_db_t handle (the second parameter).
  * When the handle is no longer in use, it should be closed with
  * @ref ham_db_close. Alternatively, the Database handle is closed
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
+ *
+ * Starting with 2.1.1 you can choose a "freelist policy" by setting the
+ * parameter @ref HAM_PARAM_FREELIST_POLICY. Two policies are supported:
+ * <ul>
+ *   <li>@ref HAM_PARAM_FREELIST_POLICY_FULL</li> to fully reuse the free
+ *   space in the file. This aligns blobs to 32byte chunks and stores the
+ *   freelist information in a persistent bitmap. Slower, but recommended
+ *   if the application erases many key/record pairs. This is enabled by
+ *   default.
+ *   <li>@ref HAM_PARAM_FREELIST_POLICY_REDUCED</li> if the application does
+ *   not erase many key/value pairs, or frequently inserts new records
+ *   immediately after erasing others. The reduced freelist only keeps track
+ *   of the largest free areas and does not persist those areas to disk.
+ * </ul>
  *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
@@ -704,6 +718,9 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <ul>
  *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *      index. The default size is 21 bytes.
+ *    <li>@ref HAM_PARAM_FREELIST_POLICY </li> Either @ref
+ *      HAM_PARAM_FREELIST_POLICY_FULL or
+ *      @ref HAM_PARAM_FREELIST_POLICY_REDUCED. This flag is persisted.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1540,6 +1557,13 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
+
+/** Parameter name for @ref ham_env_create_db: sets the freelist policy */
+#define HAM_PARAM_FREELIST_POLICY       0x00000106
+
+#define HAM_PARAM_FREELIST_POLICY_FULL           0
+
+#define HAM_PARAM_FREELIST_POLICY_REDUCED        1
 
 /**
  * Retrieve the Database/Environment flags as were specified at the time of

@@ -17,7 +17,6 @@
 #include "cache.h"
 #include "db.h"
 #include "device.h"
-#include "freelist.h"
 #include "blob.h"
 
 namespace hamsterdb {
@@ -28,7 +27,7 @@ PageManager::PageManager(Environment *env, ham_size_t cachesize)
   m_cache = new Cache(env, cachesize);
   if (!(m_env->get_flags() & HAM_IN_MEMORY)
       && !(m_env->get_flags() & HAM_READ_ONLY))
-    m_freelist = new Freelist(m_env);
+    m_freelist = new FullFreelist(m_env);
 }
 
 PageManager::~PageManager()

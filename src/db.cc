@@ -28,7 +28,6 @@
 #include "env.h"
 #include "error.h"
 #include "extkeys.h"
-#include "freelist.h"
 #include "log.h"
 #include "journal.h"
 #include "mem.h"

@@ -63,42 +63,33 @@ o new option to disable the freelist
         page
     x split BlobManager into subclasses (in-memory, disk)
         x use ByteArray for "zeroes" when filling partial gaps
-
-    o review unittest Freelist::overflow4
-    o "old" hamsterdb.cc has different method to deal with freelist in header
+    x review unittest Freelist::overflow4 - remove
+    x "old" hamsterdb.cc has different method to deal with freelist in header
         page - unify (or leave as is? no need to change it)
-    o merge freelist and freelist_statistics, if it makes sense
 
-    o new option HAM_PARAM_DISABLE_FREELIST
-        o alte Feelist umbenennen in BitmapFreelist
-        o erzeugt neue Freelist SimpleFreelist *nur für diese Datenbank*
-        o neue freelist speichert nur die 20 größten freien slots, keine
-            persistenz (auch mit mehr slots testen - bis zu 500)
-        o slots sind nach größe sortiert
-        o blobs müssen nicht DB_CHUNKSIZE-aligned sein
-        o Freelist::mark_free(...overwrite) never used, same about set_bits()
-        o alignment ist property d. freelist
-            BitmapFreelist::get_aligned() -> DB_CHUNKSIZE;
-            SimpleFreelist::get_aligned() -> 1;
-        o page_manager dispatcht an bitmap-freelist oder neue implementierung
-        o globale (bitmap) freelist nur erzeugen wenn sie wirklich
-            gebraucht wird!
-        o komplett freie pages werden an die bitmap weitergegeben, but only
-            if the bitmap freelist exists (really??)
-        o increase file version if this new freelist is used
-        o do not log Freelist pages in the changeset
+    o both derive from the same interface
+
+    o new option HAM_PARAM_FREELIST_POLICY
+            - 0: FULL
+            - 1: REDUCED
+        x requires documentation - when to choose which?
+        o for ham_env_create_db
+        o extend ham_env_get_parameters
+        o option is persistent!
+            o unittest
+        o alignment is property of freelist:
+            BitmapFreelist::get_alignment() -> DB_CHUNKSIZE;
+            SimpleFreelist::get_alignment() -> 1;
+        o page_manager dispatches to new freelist if flag is set
+        o only create BitmapFreelist if it's really required
         o run benchmarks with different number of slots (up to 1024)
-    o also for Java
-    o also for .NET
+        o merge unittests from ~/tmp/hamsterdb
+        o also for Java
+        o also for .NET
 
     o "old" freelist branch has optimization in btree_cursor.cc and
         duplicates.cc for fetching duplicates
     o "old" freelist branch does not use Transaction in blob_manager.cc
-
-o reduce file size if freelist adds page at end of file:
-    o not possible if freelist is disabled
-    o just test the freelist bitmap if the last N bits are free
-    o if yes: truncate the file, but also truncate the freelist!
 
 o Partial read: record->size returns the partial size that was retrieved.
     I think record->size should return the original size, and

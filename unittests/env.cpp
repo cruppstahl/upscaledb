@@ -20,7 +20,6 @@
 #include "../src/env.h"
 #include "../src/cache.h"
 #include "../src/page.h"
-#include "../src/freelist.h"
 #include "../src/db.h"
 #include "../src/env.h"
 #include "../src/os.h"

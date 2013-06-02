@@ -24,7 +24,6 @@ test_SOURCES    = bfc-testsuite.cpp \
                   page_manager.cpp \
                   changeset.cpp \
                   misc.cpp \
-                  freelist.cpp \
                   btree_erase.cpp \
                   freelist.cpp \
                   btree_insert.cpp \

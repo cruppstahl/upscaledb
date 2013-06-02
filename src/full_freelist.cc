@@ -19,7 +19,7 @@
 #include "endianswap.h"
 #include "env.h"
 #include "error.h"
-#include "freelist.h"
+#include "full_freelist.h"
 #include "mem.h"
 #include "btree_stats.h"
 #include "txn.h"
@@ -436,13 +436,13 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 }
 
 ham_status_t
-Freelist::free_page(Page *page)
+FullFreelist::free_page(Page *page)
 {
   return (free_area(page->get_self(), m_env->get_pagesize()));
 }
 
 ham_status_t
-Freelist::free_area(ham_u64_t address, ham_size_t size)
+FullFreelist::free_area(ham_u64_t address, ham_size_t size)
 {
   ham_status_t st;
   Page *page = 0;
@@ -458,11 +458,11 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
 
   /* split the chunk if it doesn't fit in one freelist page */
   while (size) {
-    PFreelistPayload *fp;
-    freelist_hints_t hints = { 0 };
+    PFullFreelistPayload *fp;
+    FullFreelistStatistics::Hints hints = { 0 };
 
     /* get the cache entry of this address */
-    FreelistEntry *entry = get_entry_for_address(address);
+    FullFreelistEntry *entry = get_entry_for_address(address);
 
     /* allocate a new page if necessary */
     if (!entry->page_id) {
@@ -509,21 +509,21 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
 }
 
 ham_status_t
-Freelist::alloc_page(ham_u64_t *paddr)
+FullFreelist::alloc_page(ham_u64_t *paddr)
 {
   return (alloc_area(paddr, m_env->get_pagesize(), true, 0));
 }
 
 ham_status_t
-Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
+FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
                 ham_u64_t lower_bound_address)
 {
   ham_status_t st;
-  FreelistEntry *entry = NULL;
-  PFreelistPayload *fp = NULL;
+  FullFreelistEntry *entry = NULL;
+  PFullFreelistPayload *fp = NULL;
   Page *page = 0;
   ham_s32_t s = -1;
-  freelist_global_hints_t global_hints =
+  FullFreelistStatistics::GlobalHints global_hints =
   {
     0,
     1,
@@ -536,7 +536,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
     size / DB_CHUNKSIZE,
     get_entry_maxspan()
   };
-  freelist_hints_t hints = {0};
+  FullFreelistStatistics::Hints hints = {0};
 
   ham_assert(paddr != 0);
   *paddr = 0;
@@ -547,7 +547,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
       return (st);
   }
 
-  freelist_get_global_hints(this, &global_hints);
+  FullFreelistStatistics::get_global_hints(this, &global_hints);
 
   ham_assert(size % DB_CHUNKSIZE == 0);
   ham_assert(global_hints.page_span_width >= 1);
@@ -620,7 +620,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
       for (start_idx = 0; ++start_idx < pagecount_required; ) {
         ham_assert(i >= (ham_s32_t)start_idx);
         ham_assert(i - start_idx >= global_hints.start_entry);
-        FreelistEntry *e = entry - start_idx;
+        FullFreelistEntry *e = entry - start_idx;
         if (e->allocated_bits != e->max_bits)
           break;
         available += e->allocated_bits;
@@ -644,7 +644,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
       /* round up: */
       pagecount_required += hints.freelist_pagesize_bits - 1;
       pagecount_required /= hints.freelist_pagesize_bits;
-      FreelistEntry *e = entry + 1;
+      FullFreelistEntry *e = entry + 1;
       for (end_idx = 1;
           end_idx < pagecount_required
                 && i + end_idx < m_entries.size()
@@ -670,7 +670,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
 
       if (available < hints.size_bits) {
         /* register the NO HIT */
-        freelist_globalhints_no_hit(this, entry, &hints);
+        FullFreelistStatistics::globalhints_no_hit(this, entry, &hints);
       }
       else {
         ham_size_t len;
@@ -760,7 +760,7 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
       }
       else {
         /* register the NO HIT */
-        freelist_globalhints_no_hit(this, entry, &hints);
+        FullFreelistStatistics::globalhints_no_hit(this, entry, &hints);
       }
     }
   }
@@ -779,8 +779,8 @@ Freelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
 }
 
 ham_s32_t
-Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
-        ham_size_t size_bits, freelist_hints_t *hints)
+FullFreelist::search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
+        ham_size_t size_bits, FullFreelistStatistics::Hints *hints)
 {
   ham_assert(hints->cost == 1);
   ham_u64_t *p64 = (ham_u64_t *)freel_get_bitmap(f);
@@ -835,7 +835,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
    * anyway.
    */
   if (start + size_bits > end) {
-    freelist_stats_fail(this, entry, f, hints);
+    FullFreelistStatistics::fail(this, entry, f, hints);
     return (-1);
   }
 
@@ -910,7 +910,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
      * for a hit anyway.
      */
     if (start + size_bits > end) {
-      freelist_stats_fail(this, entry, f, hints);
+      FullFreelistStatistics::fail(this, entry, f, hints);
       return (-1);
     }
   }
@@ -975,7 +975,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
       /* report our failure to find a free slot */
       if (bm_l >= bm_r) {
-        freelist_stats_fail(this, entry, f, hints);
+        FullFreelistStatistics::fail(this, entry, f, hints);
         return (-1);
       }
 
@@ -1050,7 +1050,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             }
             if (r == l) {
               /* a perfect hit: report this one as a match! */
-              freelist_stats_update(this, entry, f, bm_l * 64, hints);
+              FullFreelistStatistics::update(this, entry, f, bm_l * 64, hints);
               return (bm_l * 64);
             }
           }
@@ -1074,7 +1074,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           }
           if (r == l) {
             /* a perfect hit: report this one as a match! */
-            freelist_stats_update(this, entry, f, bm_l * 64, hints);
+            FullFreelistStatistics::update(this, entry, f, bm_l * 64, hints);
             return (bm_l * 64);
           }
         }
@@ -1116,7 +1116,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
         if (bm_l >= bm_r) {
           /* report our failure to find a free slot */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
       }
@@ -1159,7 +1159,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
       if (bm_l >= bm_r) {
         /* report our failure to find a free slot */
-        freelist_stats_fail(this, entry, f, hints);
+        FullFreelistStatistics::fail(this, entry, f, hints);
         return (-1);
       }
 
@@ -1234,7 +1234,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             }
             if (r == l) {
               /* a perfect hit: report this one as a match! */
-              freelist_stats_update(this, entry, f, bm_l * 8, hints);
+              FullFreelistStatistics::update(this, entry, f, bm_l * 8, hints);
               return (bm_l * 8);
             }
           }
@@ -1258,7 +1258,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           }
           if (r == l) {
             /* a perfect hit: report this one as a match! */
-            freelist_stats_update(this, entry, f, bm_l * 8, hints);
+            FullFreelistStatistics::update(this, entry, f, bm_l * 8, hints);
             return (bm_l * 8);
           }
         }
@@ -1300,7 +1300,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
         if (bm_l >= bm_r) {
           /* report our failure to find a free slot */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
       }
@@ -1354,7 +1354,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
       if (bm_l >= bm_r) {
         /* report our failure to find a free slot */
-        freelist_stats_fail(this, entry, f, hints);
+        FullFreelistStatistics::fail(this, entry, f, hints);
         return (-1);
       }
 
@@ -1492,7 +1492,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           ham_assert((bm_l - 1) * 64 >= lpos);
           if (size_bits <= (bm_l - 1) * 64 - lpos) {
             /* yeah! */
-            freelist_stats_update(this, entry, f, lpos, hints);
+            FullFreelistStatistics::update(this, entry, f, lpos, hints);
             return (lpos);
           }
 
@@ -1507,7 +1507,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
            */
           if (bm_l >= bm_r) {
             /* upper bound hit: we won't be able to report a match. */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
           else { /* if (size_bits <= bm_l * 64 - lpos) */
@@ -1531,7 +1531,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             /* again: do we have enough free space now? */
             if (size_bits <= rpos - lpos) {
               /* yeah! */
-              freelist_stats_update(this, entry, f, lpos, hints);
+              FullFreelistStatistics::update(this, entry, f, lpos, hints);
               return (lpos);
             }
           }
@@ -1540,7 +1540,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           /* do we have enough free space now? */
           if (size_bits <= (bm_l - l) * 64) {
             /* yeah! */
-            freelist_stats_update(this, entry, f, l * 64, hints);
+            FullFreelistStatistics::update(this, entry, f, l * 64, hints);
             return (l * 64);
           }
 
@@ -1555,7 +1555,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
            */
           if (bm_l >= bm_r) {
             /* upper bound hit: we won't be able to report a match. */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
           else { /* if (size_bits <= (bm_l - l) * 64) */
@@ -1581,7 +1581,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             ham_assert(rpos >= l * 64);
             if (size_bits <= rpos - l * 64) {
               /* yeah! */
-              freelist_stats_update(this, entry, f, l*64, hints);
+              FullFreelistStatistics::update(this, entry, f, l*64, hints);
               return (l * 64);
             }
           }
@@ -1611,7 +1611,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
         if (bm_l >= bm_r) {
           /* report our failure to find a free slot */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
       }
@@ -1652,7 +1652,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
       if (bm_l >= bm_r) {
         /* report our failure to find a free slot */
-        freelist_stats_fail(this, entry, f, hints);
+        FullFreelistStatistics::fail(this, entry, f, hints);
         return (-1);
       }
 
@@ -1787,7 +1787,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           /* do we have enough free space now? */
           if (size_bits <= (bm_l - 1) * 8 - lpos) {
             /* yeah! */
-            freelist_stats_update(this, entry, f, lpos, hints);
+            FullFreelistStatistics::update(this, entry, f, lpos, hints);
             return (lpos);
           }
 
@@ -1802,7 +1802,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
            */
           if (bm_l >= bm_r) {
             /* upper bound hit: we won't be able to report a match. */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
           else { /* if (size_bits <= bm_l * 8 - lpos) */
@@ -1826,7 +1826,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             /* again: do we have enough free space now? */
             if (size_bits <= rpos - lpos) {
               /* yeah! */
-              freelist_stats_update(this, entry, f, lpos, hints);
+              FullFreelistStatistics::update(this, entry, f, lpos, hints);
               return (lpos);
             }
           }
@@ -1835,7 +1835,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           /* do we have enough free space now? */
           if (size_bits <= (bm_l - l) * 8) {
             /* yeah! */
-            freelist_stats_update(this, entry, f, l * 8, hints);
+            FullFreelistStatistics::update(this, entry, f, l * 8, hints);
             return (l * 8);
           }
 
@@ -1850,7 +1850,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
            */
           if (bm_l >= bm_r) {
             /* upper bound hit: we won't be able to report a match. */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
           else { /* if (size_bits <= (bm_l - l) * 8) */
@@ -1874,7 +1874,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
             /* again: do we have enough free space now? */
             if (size_bits <= rpos - l * 8) {
               /* yeah! */
-              freelist_stats_update(this, entry, f, l * 8, hints);
+              FullFreelistStatistics::update(this, entry, f, l * 8, hints);
               return (l * 8);
             }
           }
@@ -1904,7 +1904,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
         if (bm_l >= bm_r) {
           /* report our failure to find a free slot */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
       }
@@ -1970,7 +1970,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 
           if (bm_l >= bm_r) {
             /* report our failure to find a free slot */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
           continue;
@@ -1989,7 +1989,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
           bm_l += min_slice_width;
           if (bm_l >= bm_r) {
             /* report our failure to find a free slot */
-            freelist_stats_fail(this, entry, f, hints);
+            FullFreelistStatistics::fail(this, entry, f, hints);
             return (-1);
           }
         }
@@ -2103,7 +2103,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
         /* do we have enough free space now? */
         if (size_bits <= (bm_l - l)) {
           /* yeah! */
-          freelist_stats_update(this, entry, f, l, hints);
+          FullFreelistStatistics::update(this, entry, f, l, hints);
           return (l);
         }
 
@@ -2170,7 +2170,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
          */
         if (bm_l >= bm_r) {
           /* upper bound hit: we won't be able to report a match. */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
       }
@@ -2304,7 +2304,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
         if (!p[0]) {
           /* we struck end of loop without a hit!
           report our failure to find a free slot */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
 
@@ -2327,7 +2327,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
         ham_assert(bm_l <= l);
         ham_assert(size_bits == 1);
         /* found a slot! */
-        freelist_stats_update(this, entry, f, l, hints);
+        FullFreelistStatistics::update(this, entry, f, l, hints);
         return (l);
       }
       else {
@@ -2357,7 +2357,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
            *
            * report our failure to find a free slot
            */
-          freelist_stats_fail(this, entry, f, hints);
+          FullFreelistStatistics::fail(this, entry, f, hints);
           return (-1);
         }
 
@@ -2380,7 +2380,7 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
         ham_assert(bm_l <= l);
         ham_assert(size_bits == 1);
         /* found a slot! */
-        freelist_stats_update(this, entry, f, l, hints);
+        FullFreelistStatistics::update(this, entry, f, l, hints);
         return (l);
       }
       // should never get here
@@ -2389,10 +2389,10 @@ Freelist::search_bits(FreelistEntry *entry, PFreelistPayload *f,
 }
 
 ham_s32_t
-Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
-        freelist_global_hints_t *hints, ham_s32_t start_index)
+FullFreelist::locate_sufficient_free_space(FullFreelistStatistics::Hints *dst,
+        FullFreelistStatistics::GlobalHints *hints, ham_s32_t start_index)
 {
-  FreelistEntry *entry;
+  FullFreelistEntry *entry;
 
   if (hints->max_rounds == 0
       || get_count() < hints->start_entry + hints->page_span_width) {
@@ -2567,7 +2567,7 @@ Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
       dst->aligned = true;
     }
     else {
-      freelist_get_entry_hints(this, entry, dst);
+      FullFreelistStatistics::get_entry_hints(this, entry, dst);
       if (dst->startpos + dst->size_bits > dst->endpos)
         /* forget it: not enough space in there anyway! */
         continue;
@@ -2599,17 +2599,17 @@ Freelist::locate_sufficient_free_space(freelist_hints_t *dst,
 }
 
 ham_status_t
-Freelist::initialize()
+FullFreelist::initialize()
 {
-  FreelistEntry entry = {0};
-  PFreelistPayload *fp = m_env->get_freelist_payload();
+  FullFreelistEntry entry = {0};
+  PFullFreelistPayload *fp = m_env->get_freelist_payload();
 
   ham_assert(m_entries.empty());
 
   /* add the header page to the freelist */
   entry.start_address = m_env->get_pagesize();
   ham_size_t size = m_env->get_usable_pagesize();
-  size -= SIZEOF_FULL_HEADER(m_env);
+  size -= m_env->sizeof_full_header();
   size -= freel_get_bitmap_offset();
   size -= size % sizeof(ham_u64_t);
 
@@ -2638,7 +2638,7 @@ Freelist::initialize()
       return (st);
 
     fp = page_get_freelist(page);
-    FreelistEntry *pentry = &m_entries[m_entries.size() - 1];
+    FullFreelistEntry *pentry = &m_entries[m_entries.size() - 1];
     ham_assert(pentry->start_address == freel_get_start_address(fp));
     pentry->allocated_bits = freel_get_allocated_bits(fp);
     pentry->page_id = page->get_self();
@@ -2647,14 +2647,14 @@ Freelist::initialize()
   return (0);
 }
 
-FreelistEntry *
-Freelist::get_entry_for_address(ham_u64_t address)
+FullFreelistEntry *
+FullFreelist::get_entry_for_address(ham_u64_t address)
 {
   ham_size_t i;
 
   while (true) {
     for (i = 0; i < m_entries.size(); i++) {
-      FreelistEntry *entry = &m_entries[i];
+      FullFreelistEntry *entry = &m_entries[i];
 
       ham_assert(address >= entry->start_address);
 
@@ -2686,7 +2686,7 @@ Freelist::get_entry_for_address(ham_u64_t address)
 }
 
 ham_size_t
-Freelist::get_entry_maxspan()
+FullFreelist::get_entry_maxspan()
 {
   ham_size_t size = m_env->get_usable_pagesize() - freel_get_bitmap_offset();
   ham_assert((size % sizeof(ham_u64_t)) == 0);
@@ -2698,7 +2698,7 @@ Freelist::get_entry_maxspan()
 }
 
 void
-Freelist::resize(ham_size_t new_count)
+FullFreelist::resize(ham_size_t new_count)
 {
   ham_size_t size_bits = get_entry_maxspan();
   ham_assert(((size_bits / 8) % sizeof(ham_u64_t)) == 0);
@@ -2706,9 +2706,9 @@ Freelist::resize(ham_size_t new_count)
   ham_assert(new_count > m_entries.size());
 
   for (ham_size_t i = m_entries.size(); i < new_count; i++) {
-    FreelistEntry entry = {0};
+    FullFreelistEntry entry = {0};
 
-    FreelistEntry *prev = &m_entries[m_entries.size() - 1];
+    FullFreelistEntry *prev = &m_entries[m_entries.size() - 1];
 
     entry.start_address = prev->start_address + prev->max_bits * DB_CHUNKSIZE;
     entry.max_bits = (ham_u32_t)size_bits;
@@ -2718,11 +2718,11 @@ Freelist::resize(ham_size_t new_count)
 }
 
 ham_status_t
-Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
+FullFreelist::alloc_freelist_page(Page **ppage, FullFreelistEntry *entry)
 {
-  FreelistEntry *entries = &m_entries[0];
+  FullFreelistEntry *entries = &m_entries[0];
   Page *page = 0;
-  PFreelistPayload *fp;
+  PFullFreelistPayload *fp;
   ham_size_t size_bits = get_entry_maxspan();
 
   ham_assert(((size_bits / 8) % sizeof(ham_u64_t)) == 0);
@@ -2796,9 +2796,9 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
 }
 
 ham_size_t
-Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
+FullFreelist::set_bits(FullFreelistEntry *entry, PFullFreelistPayload *fp,
             ham_size_t start_bit, ham_size_t size_bits,
-            bool set, freelist_hints_t *hints)
+            bool set, FullFreelistStatistics::Hints *hints)
 {
   ham_size_t i;
   ham_u8_t *p = freel_get_bitmap(fp);
@@ -2814,7 +2814,8 @@ Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
 
   qw_end = (start_bit + size_bits) >> 6;  /* one past the last full QWORD */
 
-  freelist_stats_edit(this, entry, fp, start_bit, size_bits, set, hints);
+  FullFreelistStatistics::edit(this, entry, fp, start_bit, size_bits,
+          set, hints);
 
   /* Set the bits to '1' */
   if (set) {
@@ -2885,7 +2886,7 @@ Freelist::set_bits(FreelistEntry *entry, PFreelistPayload *fp,
 }
 
 void
-Freelist::mark_dirty(Page *page)
+FullFreelist::mark_dirty(Page *page)
 {
   if (!page)
     page = m_env->get_header_page();

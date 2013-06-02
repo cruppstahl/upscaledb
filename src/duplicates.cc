@@ -19,7 +19,6 @@
 #include "device.h"
 #include "env.h"
 #include "error.h"
-#include "freelist.h"
 #include "duplicates.h"
 
 namespace hamsterdb {

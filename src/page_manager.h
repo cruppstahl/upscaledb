@@ -22,7 +22,8 @@
 
 #include "internal_fwd_decl.h"
 #include "error.h"
-#include "freelist.h"
+#include "full_freelist.h"
+#include "reduced_freelist.h"
 
 namespace hamsterdb {
 
@@ -117,7 +118,7 @@ class PageManager {
     }
 
     /** Returns the Freelist (required for testing) */
-    Freelist *get_freelist() {
+    FullFreelist *get_freelist() {
       return (m_freelist);
     }
 
@@ -150,8 +151,7 @@ class PageManager {
     Cache *m_cache;
 
     /** the Freelist manages the free space in the file */
-    Freelist *m_freelist;
-
+    FullFreelist *m_freelist;
 };
 
 } // namespace hamsterdb

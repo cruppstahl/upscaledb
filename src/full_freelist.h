@@ -14,13 +14,14 @@
  *
  */
 
-#ifndef HAM_FREELIST_H__
-#define HAM_FREELIST_H__
+#ifndef HAM_BITMAP_FREELIST_H__
+#define HAM_BITMAP_FREELIST_H__
 
 #include <vector>
 
 #include "internal_fwd_decl.h"
 #include "freelist_statistics.h"
+#include "statistics.h"
 
 namespace hamsterdb {
 
@@ -30,7 +31,7 @@ namespace hamsterdb {
 /**
  * an entry in the freelist cache
  */
-struct FreelistEntry {
+struct FullFreelistEntry {
   /** the start address of this freelist page */
   ham_u64_t start_address;
 
@@ -49,18 +50,18 @@ struct FreelistEntry {
    * This is done as a union as it will reduce code complexity
    * significantly in the common freelist processing areas.
    */
-  RuntimePageStatistics perf_data;
+  PFreelistPageStatistics perf_data;
 };
 
 
 /**
  * the freelist class structure
  */
-class Freelist
+class FullFreelist
 {
   public:
     /** Constructor */
-    Freelist(Environment *env)
+    FullFreelist(Environment *env)
       : m_env(env) {
     }
 
@@ -98,9 +99,11 @@ class Freelist
       return (m_env);
     }
 
+  private:
+    friend class FullFreelistStatistics;
+
     /** Retrieves the first freelist entry */
-    // TODO make this private
-    FreelistEntry *get_entries() {
+    FullFreelistEntry *get_entries() {
       return (m_entries.size() ? &m_entries[0] : 0);
     }
 
@@ -114,8 +117,9 @@ class Freelist
     /** lazily initializes the freelist structure */
     ham_status_t initialize();
 
-    /** retrieves the FreelistEntry which manages a specific file address */
-    FreelistEntry *get_entry_for_address(ham_u64_t address);
+    /** retrieves the FullFreelistEntry which manages a specific
+     * file address */
+    FullFreelistEntry *get_entry_for_address(ham_u64_t address);
 
     /** returns maximum bits that fit in a regular page */
     ham_size_t get_entry_maxspan();
@@ -124,16 +128,16 @@ class Freelist
     void resize(ham_size_t new_count);
 
     /** allocates a page for a given entry */
-    ham_status_t alloc_freelist_page(Page **ppage, FreelistEntry *entry);
+    ham_status_t alloc_freelist_page(Page **ppage, FullFreelistEntry *entry);
 
     /** sets (or resets) all bits in a given range */
-    ham_size_t set_bits(FreelistEntry *entry, PFreelistPayload *fp,
+    ham_size_t set_bits(FullFreelistEntry *entry, PFullFreelistPayload *fp,
                     ham_size_t start_bit, ham_size_t size_bits,
-                    bool set, freelist_hints_t *hints);
+                    bool set, FullFreelistStatistics::Hints *hints);
 
     /** searches for a free bit array in the whole list */
-    ham_s32_t search_bits(FreelistEntry *entry, PFreelistPayload *f,
-                    ham_size_t size_bits, freelist_hints_t *hints);
+    ham_s32_t search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
+                    ham_size_t size_bits, FullFreelistStatistics::Hints *hints);
 
     /**
      * Report if the requested size can be obtained from the given freelist
@@ -151,8 +155,9 @@ class Freelist
      *
      * Return -1 to signal there's no chance at all.
      */
-    ham_s32_t locate_sufficient_free_space(freelist_hints_t *dst,
-                    freelist_global_hints_t *hints, ham_s32_t start_index);
+    ham_s32_t locate_sufficient_free_space(FullFreelistStatistics::Hints *dst,
+                    FullFreelistStatistics::GlobalHints *hints,
+                    ham_s32_t start_index);
 
     /**
      * replacement for env->set_dirty() and page->set_dirty(); will dirty page
@@ -164,7 +169,7 @@ class Freelist
     Environment *m_env;
 
     /** the cached freelist entries */
-    std::vector<FreelistEntry> m_entries;
+    std::vector<FullFreelistEntry> m_entries;
 };
 
 #include "packstart.h"
@@ -172,7 +177,7 @@ class Freelist
 /**
  * a freelist-payload; it spans the persistent part of a Page
  */
-HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
+HAM_PACK_0 struct HAM_PACK_1 PFullFreelistPayload
 {
   /** "real" address of the first bit */
   ham_u64_t _start_address;
@@ -222,7 +227,7 @@ HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
 #include "packstop.h"
 
 /** get the size of the persistent freelist header (new style) */
-#define freel_get_bitmap_offset()  (OFFSETOF(PFreelistPayload, _bitmap))
+#define freel_get_bitmap_offset()  (OFFSETOF(PFullFreelistPayload, _bitmap))
 
 /** get the address of the first bitmap-entry of this page */
 #define freel_get_start_address(fl)    (ham_db2h64((fl)->_start_address))
@@ -248,8 +253,8 @@ HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
 /** set the address of the next overflow page */
 #define freel_set_overflow(fl, o)    (fl)->_overflow=ham_h2db_offset(o)
 
-/** get a PFreelistPayload from a Page */
-#define page_get_freelist(p)      ((PFreelistPayload *)p->get_payload())
+/** get a PFullFreelistPayload from a Page */
+#define page_get_freelist(p)      ((PFullFreelistPayload *)p->get_payload())
 
 /** get the bitmap of the freelist */
 #define freel_get_bitmap(fl)       (fl)->_bitmap
@@ -259,4 +264,4 @@ HAM_PACK_0 struct HAM_PACK_1 PFreelistPayload
 
 } // namespace hamsterdb
 
-#endif /* HAM_FREELIST_H__ */
+#endif /* HAM_BITMAP_FREELIST_H__ */

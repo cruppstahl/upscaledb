@@ -21,7 +21,6 @@
 #include "../src/env.h"
 #include "../src/page.h"
 #include "../src/btree_key.h"
-#include "../src/freelist.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
