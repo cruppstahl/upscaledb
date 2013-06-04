@@ -105,7 +105,7 @@ public:
     BFC_ASSERT(ps % 1024 == 0);
     cps = m_dev->get_pagesize();
     BFC_ASSERT(cps != 0);
-    BFC_ASSERT(cps % DB_CHUNKSIZE == 0);
+    BFC_ASSERT(cps % 1024 == 0);
     if (!m_inmemory)
       BFC_ASSERT_EQUAL(cps, ps);
   }

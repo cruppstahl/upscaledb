@@ -107,8 +107,9 @@ class PageManager {
      * TODO return void?
      */
     ham_status_t free_page(Page *page) {
-      if (m_freelist)
-        m_freelist->free_page(page);
+      Freelist *f = get_freelist(page->get_db());
+      if (f)
+        f->free_page(page);
       return (0);
     }
 
@@ -117,9 +118,15 @@ class PageManager {
       return (m_cache);
     }
 
-    /** Returns the Freelist (required for testing) */
-    FullFreelist *get_freelist() {
-      return (m_freelist);
+    /** retrieves the freelist for the database (or uses a global bitmap
+     * freelist as a fallback)
+     *
+     * public because it's required for testing */
+    Freelist *get_freelist(Database *db);
+
+    /** returns the alignment for blobs for a specific database */
+    int get_blob_alignment(Database *db) {
+      return (get_freelist(db)->get_blob_alignment());
     }
 
     /** 
@@ -130,24 +137,27 @@ class PageManager {
 
     /** Adds a page to the freelist */
     void add_to_freelist(Page *page) {
-      if (m_freelist)
-        m_freelist->free_page(page);
+      Freelist *f = get_freelist(page->get_db());
+      if (f)
+        f->free_page(page);
     }
 
     /** Adds an area to the freelist; used for blobs, but make sure to add
      * sizeof(PBlobHeader) to the blob's payload size! */
-    void add_to_freelist(ham_u64_t address, ham_size_t size) {
-      if (m_freelist)
-        m_freelist->free_area(address, size);
+    void add_to_freelist(Database *db, ham_u64_t address, ham_size_t size) {
+      Freelist *f = get_freelist(db);
+      if (f)
+        f->free_area(address, size);
     }
 
   private:
     /** traverses a blob page, adds all free blobs to the freelist */
     void add_free_blobs_to_freelist(Page *page);
 
+    /** The current Environment handle */
     Environment *m_env;
 
-    /** the cache caches the database pages */
+    /** the Cache caches the database pages */
     Cache *m_cache;
 
     /** the Freelist manages the free space in the file */

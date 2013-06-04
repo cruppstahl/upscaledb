@@ -1096,7 +1096,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /* reserved: DB_IS_REMOTE   (not persistent)        0x00200000 */
 
-/* reserved: DB_DISABLE_AUTO_FLUSH (not persistent) 0x00400000 */
+/* reserved: DB_REDUCED_FREELIST (persistent)       0x00400000 */
 
 /**
  * Returns the last error code
@@ -1528,6 +1528,9 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_KEYSIZE</li> returns the Btree key size
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
+ *    <li>HAM_PARAM_FREELIST_POLICY</li> returns the freelist policy
+ *        for this database (@ref HAM_PARAM_FREELIST_POLICY_FULL or
+ *        @ref HAM_PARAM_FREELIST_POLICY_REDUCED)
  *    </ul>
  *
  * @param db A valid Database handle

@@ -172,7 +172,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
   : m_env(env), m_name(name), m_error(0), m_context(0), m_btree(0),
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
-    m_extkey_cache(0), m_optree(this)
+    m_extkey_cache(0), m_optree(this), m_freelist(0)
 {
   m_key_arena.set_allocator(env->get_allocator());
   m_record_arena.set_allocator(env->get_allocator());
@@ -1323,6 +1323,11 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         break;
       case HAM_PARAM_DATABASE_NAME:
         p->value = (ham_u64_t)get_name();
+        break;
+      case HAM_PARAM_FREELIST_POLICY:
+        p->value = get_rt_flags() & DB_REDUCED_FREELIST
+                    ? HAM_PARAM_FREELIST_POLICY_REDUCED
+                    : HAM_PARAM_FREELIST_POLICY_FULL;
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         if (get_btree()) {

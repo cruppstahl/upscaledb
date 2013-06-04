@@ -22,6 +22,7 @@
 #include "internal_fwd_decl.h"
 #include "freelist_statistics.h"
 #include "statistics.h"
+#include "freelist.h"
 
 namespace hamsterdb {
 
@@ -57,41 +58,45 @@ struct FullFreelistEntry {
 /**
  * the freelist class structure
  */
-class FullFreelist
+class FullFreelist : public Freelist
 {
+  enum {
+    kBlobAlignment = 32
+  };
+
   public:
     /** Constructor */
     FullFreelist(Environment *env)
-      : m_env(env) {
+      : Freelist(env) {
     }
 
     /** mark a page in the file as "free" */
-    ham_status_t free_page(Page *page);
+    virtual ham_status_t free_page(Page *page);
 
     /**
      * mark an area in the file as "free"
      * @note will assert that address and size are aligned!
      */
-    ham_status_t free_area(ham_u64_t address, ham_size_t size);
+    virtual ham_status_t free_area(ham_u64_t address, ham_size_t size);
 
     /**
      * try to allocate (possibly aligned) space from the freelist,
      * where the allocated space should be positioned at or beyond
      * the given address.
      *
-     * @note will assert that size is DB_CHUNKSIZE-aligned!
-     *
-     * @note The lower_bound_address is assumed to be on a DB_CHUNKSIZE
-     * boundary at least. @a aligned space will end up at a
-     * @ref DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes boundary.
-     * Regardless, the lower address bound check will be performed
-     * on a DB_CHUNKSIZE boundary level anyhow.
+     * @note will assert that size is properly aligned!
      */
-    ham_status_t alloc_area(ham_u64_t *paddr, ham_size_t size,
-                    bool aligned = false, ham_u64_t lower_bound_address = 0);
+    virtual ham_status_t alloc_area(ham_size_t size, ham_u64_t *paddress) {
+      return (alloc_area_impl(size, paddress, false, 0));
+    }
 
     /** try to allocate an (aligned) page from the freelist */
-    ham_status_t alloc_page(ham_u64_t *paddr);
+    virtual ham_status_t alloc_page(ham_u64_t *paddr);
+
+    /** returns the alignment for blobs */
+    virtual int get_blob_alignment() const {
+      return (kBlobAlignment);
+    }
 
     /** get a pointer to the environment (reqd for freelist_statistics) */
     // TODO remove this
@@ -101,6 +106,10 @@ class FullFreelist
 
   private:
     friend class FullFreelistStatistics;
+
+    /** @note The lower_bound_address is assumed to be aligned. */
+    ham_status_t alloc_area_impl(ham_size_t size, ham_u64_t *paddr,
+                bool aligned, ham_u64_t lower_bound_address);
 
     /** Retrieves the first freelist entry */
     FullFreelistEntry *get_entries() {
@@ -164,9 +173,6 @@ class FullFreelist
      * (or env) and also add the page (or header page) to the changeset
      */
     void mark_dirty(Page *page);
-
-    /** the Environment */
-    Environment *m_env;
 
     /** the cached freelist entries */
     std::vector<FullFreelistEntry> m_entries;

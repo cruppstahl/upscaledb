@@ -400,10 +400,13 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 
   PBlobHeader blob_header;
 
-  /* blobs are CHUNKSIZE-allocated */
+  /* blobs are aligned! */
   alloc_size = sizeof(PBlobHeader) + record->size;
-  alloc_size += DB_CHUNKSIZE - 1;
-  alloc_size -= alloc_size % DB_CHUNKSIZE;
+  int alignment = m_env->get_page_manager()->get_blob_alignment(db);
+  if (alignment > 1) {
+    alloc_size += alignment - 1;
+    alloc_size -= alloc_size % alignment;
+  }
 
   /* check if we have space in the freelist */
   bool tmp;
@@ -424,7 +427,7 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
       addr = page->get_self();
       /* move the remaining space to the freelist */
-      m_env->get_page_manager()->add_to_freelist(addr + alloc_size,
+      m_env->get_page_manager()->add_to_freelist(db, addr + alloc_size,
                     m_env->get_pagesize() - alloc_size);
       blob_header.set_alloc_size(alloc_size);
     }
@@ -443,7 +446,8 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       {
         ham_size_t diff = aligned - alloc_size;
         if (diff > SMALLEST_CHUNK_SIZE) {
-          m_env->get_page_manager()->add_to_freelist(addr + alloc_size, diff);
+          m_env->get_page_manager()->add_to_freelist(db,
+                  addr + alloc_size, diff);
           blob_header.set_alloc_size(aligned - diff);
         }
         else {
@@ -609,7 +613,8 @@ DiskBlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
                           ? &db->get_record_arena()
                           : &txn->get_record_arena();
 
-  ham_assert(blobid % DB_CHUNKSIZE==0);
+  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  
 
   /* first step: read the blob header */
   PBlobHeader blob_header;
@@ -618,7 +623,8 @@ DiskBlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
   if (st)
     return (st);
 
-  ham_assert(blob_header.get_alloc_size() % DB_CHUNKSIZE == 0);
+  ham_assert(blob_header.get_alloc_size()
+          % m_env->get_page_manager()->get_blob_alignment(db) == 0);
 
   /* sanity check */
   if (blob_header.get_self() != blobid) {
@@ -671,7 +677,7 @@ DiskBlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 {
   *size = 0;
 
-  ham_assert(blobid % DB_CHUNKSIZE == 0);
+  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
 
   /* read the blob header */
   PBlobHeader blob_header;
@@ -708,12 +714,15 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
       flags &= ~HAM_PARTIAL;
   }
 
-  ham_assert(old_blobid % DB_CHUNKSIZE == 0);
-
-  /* blobs are CHUNKSIZE-allocated */
+  /* blobs are aligned! */
   ham_size_t alloc_size = sizeof(PBlobHeader) + record->size;
-  alloc_size += DB_CHUNKSIZE - 1;
-  alloc_size -= alloc_size % DB_CHUNKSIZE;
+  int alignment = m_env->get_page_manager()->get_blob_alignment(db);
+  if (alignment > 1) {
+    alloc_size += alignment - 1;
+    alloc_size -= alloc_size % alignment;
+  }
+
+  ham_assert(old_blobid % alignment == 0);
 
   /*
    * first, read the blob header; if the new blob fits into the
@@ -725,7 +734,7 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
   if (st)
     return (st);
 
-  ham_assert(old_blob_header.get_alloc_size() % DB_CHUNKSIZE == 0);
+  ham_assert(old_blob_header.get_alloc_size() % alignment == 0);
 
   /* sanity check */
   ham_assert(old_blob_header.get_self() == old_blobid);
@@ -787,7 +796,7 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
 
     /* move remaining data to the freelist */
     if (old_blob_header.get_alloc_size() != new_blob_header.get_alloc_size()) {
-      m_env->get_page_manager()->add_to_freelist(
+      m_env->get_page_manager()->add_to_freelist(db,
                   new_blob_header.get_self() + new_blob_header.get_alloc_size(),
                   (ham_size_t)(old_blob_header.get_alloc_size() -
                         new_blob_header.get_alloc_size()));
@@ -805,7 +814,7 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
     if (st)
       return (st);
 
-    m_env->get_page_manager()->add_to_freelist(old_blobid,
+    m_env->get_page_manager()->add_to_freelist(db, old_blobid,
                   (ham_size_t)old_blob_header.get_alloc_size());
   }
 
@@ -816,7 +825,7 @@ ham_status_t
 DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
                 ham_u32_t flags)
 {
-  ham_assert(blobid % DB_CHUNKSIZE == 0);
+  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
 
   /* fetch the blob header */
   PBlobHeader blob_header;
@@ -825,7 +834,8 @@ DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
   if (st)
     return (st);
 
-  ham_assert(blob_header.get_alloc_size() % DB_CHUNKSIZE == 0);
+  ham_assert(blob_header.get_alloc_size()
+          % m_env->get_page_manager()->get_blob_alignment(db) == 0);
 
   /* sanity check */
   ham_verify(blob_header.get_self() == blobid);
@@ -833,7 +843,7 @@ DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
     return (HAM_BLOB_NOT_FOUND);
 
   /* move the blob to the freelist */
-  m_env->get_page_manager()->add_to_freelist(blobid,
+  m_env->get_page_manager()->add_to_freelist(db, blobid,
                 (ham_size_t)blob_header.get_alloc_size());
   return (0);
 }

@@ -365,10 +365,6 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   device->set_pagesize(get_pagesize());
   set_device(device);
 
-  /* now make sure the pagesize is a multiple of
-   * DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes */
-  ham_assert(0 == (get_pagesize() % DB_PAGESIZE_MIN_REQD_ALIGNMENT));
-
   /* create the file */
   st = device->create(filename, flags, mode);
   if (st) {
@@ -875,7 +871,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   *pdb = 0;
 
   if (get_flags() & HAM_READ_ONLY) {
-    ham_trace(("cannot create database in an read-only environment"));
+    ham_trace(("cannot create database in a read-only environment"));
     return (HAM_WRITE_PROTECTED);
   }
 
@@ -904,6 +900,15 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
             }
           }
           break;
+        case HAM_PARAM_FREELIST_POLICY:
+          if (param->value != HAM_PARAM_FREELIST_POLICY_FULL && 
+              param->value != HAM_PARAM_FREELIST_POLICY_REDUCED) {
+            ham_trace(("invalid freelist policy %u", param->value));
+            return (HAM_INV_PARAMETER);
+          }
+          if (param->value == HAM_PARAM_FREELIST_POLICY_REDUCED)
+            flags |= DB_REDUCED_FREELIST;
+          break;
         default:
           ham_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
           return (HAM_INV_PARAMETER);
@@ -927,7 +932,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
                     | HAM_ENABLE_DUPLICATES
                     | HAM_ENABLE_EXTENDED_KEYS
-                    | HAM_RECORD_NUMBER;
+                    | HAM_RECORD_NUMBER
+                    | DB_REDUCED_FREELIST;
   if (flags & ~mask) {
     ham_trace(("invalid flags(s) 0x%x", flags & ~mask));
     return (HAM_INV_PARAMETER);

@@ -74,7 +74,7 @@ public:
 
     BFC_ASSERT(pm->get_cache() != 0);
     if (m_inmemory)
-      BFC_ASSERT(pm->get_freelist() == 0);
+      BFC_ASSERT(pm->get_freelist(0) == 0);
   }
 
   void fetchPageTest() {

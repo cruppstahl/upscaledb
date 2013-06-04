@@ -27,6 +27,8 @@
 
 namespace hamsterdb {
 
+#define DB_CHUNKSIZE 32
+
 /**
  * statistics gatherer/hinter:
  *

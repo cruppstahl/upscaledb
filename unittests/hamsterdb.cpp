@@ -125,6 +125,7 @@ public:
     BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
     BFC_REGISTER_TEST(HamsterdbTest, openVersion1x);
     BFC_REGISTER_TEST(HamsterdbTest, overwriteLogDirectoryTest);
+    BFC_REGISTER_TEST(HamsterdbTest, persistentFreelistPolicyTest);
   }
 
 protected:
@@ -1995,6 +1996,62 @@ public:
     BFC_ASSERT_EQUAL(0, strcmp("data", (const char *)ps[0].value));
 
     BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+  }
+
+  void persistentFreelistPolicyTest() {
+    ham_env_t *env;
+    ham_db_t *db;
+    ham_parameter_t params[] = {
+        { HAM_PARAM_FREELIST_POLICY, HAM_PARAM_FREELIST_POLICY_FULL },
+        { 0, 0 }
+    };
+
+    ham_parameter_t params_out[] = {
+        { HAM_PARAM_FREELIST_POLICY, 0 },
+        { 0, 0 }
+    };
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&env, BFC_OPATH("test.db"), 0, 0, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(env, &db, 1, 0, &params[0]));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, &params_out[0]));
+    BFC_ASSERT_EQUAL(HAM_PARAM_FREELIST_POLICY_FULL, (int)params_out[0].value);
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_open(&env, BFC_OPATH("test.db"), 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_env_open_db(env, &db, 1, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, &params_out[0]));
+    BFC_ASSERT_EQUAL(HAM_PARAM_FREELIST_POLICY_FULL, (int)params_out[0].value);
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    params[0].value = HAM_PARAM_FREELIST_POLICY_REDUCED;
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&env, BFC_OPATH("test.db"), 0, 0, 0));
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create_db(env, &db, 1, 0, &params[0]));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, &params_out[0]));
+    BFC_ASSERT_EQUAL(HAM_PARAM_FREELIST_POLICY_REDUCED,
+            (int)params_out[0].value);
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_open(&env, BFC_OPATH("test.db"), 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_env_open_db(env, &db, 1, 0, 0));
+    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(db, &params_out[0]));
+    BFC_ASSERT_EQUAL(HAM_PARAM_FREELIST_POLICY_REDUCED,
+            (int)params_out[0].value);
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    params[0].value = 999;
+
+    BFC_ASSERT_EQUAL(0,
+        ham_env_create(&env, BFC_OPATH("test.db"), 0, 0, 0));
+    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        ham_env_create_db(env, &db, 1, 0, &params[0]));
+    BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 };
 

@@ -27,12 +27,12 @@ namespace hamsterdb {
 
 /* 
  * As we [can] support record sizes up to 4Gb, at least theoretically,
- * we can express this size range as a spanning DB_CHUNKSIZE size range:
- * 1..N, where N = log2(4Gb) - log2(DB_CHUNKSIZE). As we happen to know
- * DB_CHUNKSIZE == 32, at least for all regular hamsterdb builds, our
+ * we can express this size range as a spanning aligned size range:
+ * 1..N, where N = log2(4Gb) - log2(alignment). As we happen to know
+ * alignment == 32, at least for all regular hamsterdb builds, our
  * biggest power-of-2 for the freelist slot count ~ 32-5 = 27, where 0
- * represents slot size = 1 DB_CHUNKSIZE, 1 represents size of 2
- * DB_CHUNKSIZEs, 2 ~ 4 DB_CHUNKSIZEs, and so on.
+ * represents slot size = 1 alignment, 1 represents size of 2 * 32,
+ * 2 ~ 4 * 32, and so on.
  *
  * EDIT:
  * In order to cut down on statistics management cost due to overhead

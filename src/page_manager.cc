@@ -25,9 +25,6 @@ PageManager::PageManager(Environment *env, ham_size_t cachesize)
   : m_env(env), m_cache(0), m_freelist(0)
 {
   m_cache = new Cache(env, cachesize);
-  if (!(m_env->get_flags() & HAM_IN_MEMORY)
-      && !(m_env->get_flags() & HAM_READ_ONLY))
-    m_freelist = new FullFreelist(m_env);
 }
 
 PageManager::~PageManager()
@@ -110,8 +107,9 @@ PageManager::alloc_page(Page **ppage, Database *db, ham_u32_t page_type,
                   | PageManager::CLEAR_WITH_ZERO)));
 
   /* first, we ask the freelist for a page */
-  if (!(flags & PageManager::IGNORE_FREELIST) && m_freelist) {
-    if ((st = m_freelist->alloc_page(&tellpos)))
+  Freelist *f = get_freelist(db);
+  if (!(flags & PageManager::IGNORE_FREELIST) && f) {
+    if ((st = f->alloc_page(&tellpos)))
       return (st);
     if (tellpos > 0) {
       ham_assert(tellpos % m_env->get_pagesize() == 0);
@@ -179,9 +177,11 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
   *address = 0;
   *allocated = false;
 
+  Freelist *f = get_freelist(db);
+
   // first check the freelist
-  if (m_freelist) {
-    ham_status_t st = m_freelist->alloc_area(address, size);
+  if (f) {
+    ham_status_t st = f->alloc_area(size, address);
     if (st)
       return (st);
     if (*address)
@@ -342,6 +342,19 @@ PageManager::close_database(Database *db)
 {
   if (get_cache())
     (void)get_cache()->visit(db_close_callback, db, 0);
+}
+
+Freelist *
+PageManager::get_freelist(Database *db)
+{
+  Freelist *f = db ? db->get_reduced_freelist() : 0;
+  if (f)
+    return (f);
+  if (!m_freelist
+      && !(m_env->get_flags() & HAM_IN_MEMORY)
+      && !(m_env->get_flags() & HAM_READ_ONLY))
+    m_freelist = new FullFreelist(m_env);
+  return (m_freelist);
 }
 
 } // namespace hamsterdb

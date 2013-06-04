@@ -57,14 +57,14 @@ namespace hamsterdb {
  * - 'aligned' search is searching for space aligned at a DB page
  *   edge (256 bytes or bigger) and since we 'know' the requested size
  *   is also large (and very, very probably a multiple of
- *   64 * DB_CHUNKSIZE (== 2K) as the only one requesting page-aligned
+ *   64 * kBlobAlignment (== 2K) as the only one requesting page-aligned
  *   storage is requesting an entire page (>=2K!) of storage anyway), we
  *   can get away here by NOT scanning at bit level, but at QWORD level only.
  *
  *   EDIT v1.1.1: This has been augmented by a BYTE-level search as
  *        odd-Kb pagesizes do exist (e.g. 1K pages) and these
  *        are NOT aligned to the QWORD boundary of
- *        <code>64 * DB_CHUNKSIZE</code> = 2Kbytes (this is the
+ *        <code>64 * kBlobAlignment</code> = 2Kbytes (this is the
  *        amount of storage space covered by a single QWORD
  *        worth of freelist bits). See also the
  *        @ref DB_PAGESIZE_MIN_REQD_ALIGNMENT define.
@@ -447,8 +447,8 @@ FullFreelist::free_area(ham_u64_t address, ham_size_t size)
   ham_status_t st;
   Page *page = 0;
 
-  ham_assert(size % DB_CHUNKSIZE == 0);
-  ham_assert(address % DB_CHUNKSIZE == 0);
+  ham_assert(size % kBlobAlignment == 0);
+  ham_assert(address % kBlobAlignment == 0);
 
   if (m_entries.empty()) {
     st = initialize();
@@ -492,8 +492,8 @@ FullFreelist::free_area(ham_u64_t address, ham_size_t size)
     /* set the bits and update the values in the cache and the fp */
     ham_size_t s = set_bits(entry, fp,
         (ham_size_t)(address - freel_get_start_address(fp))
-            / DB_CHUNKSIZE,
-        size / DB_CHUNKSIZE, true, &hints);
+            / kBlobAlignment,
+        size / kBlobAlignment, true, &hints);
 
     freel_set_allocated_bits(fp, (ham_u32_t)(freel_get_allocated_bits(fp) + s));
     entry->allocated_bits = freel_get_allocated_bits(fp);
@@ -501,8 +501,8 @@ FullFreelist::free_area(ham_u64_t address, ham_size_t size)
     // mark page (or header page) as dirty
     mark_dirty(page);
 
-    size -= s * DB_CHUNKSIZE;
-    address += s * DB_CHUNKSIZE;
+    size -= s * kBlobAlignment;
+    address += s * kBlobAlignment;
   }
 
   return (0);
@@ -511,11 +511,11 @@ FullFreelist::free_area(ham_u64_t address, ham_size_t size)
 ham_status_t
 FullFreelist::alloc_page(ham_u64_t *paddr)
 {
-  return (alloc_area(paddr, m_env->get_pagesize(), true, 0));
+  return (alloc_area_impl(m_env->get_pagesize(), paddr, true, 0));
 }
 
 ham_status_t
-FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
+FullFreelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
                 ham_u64_t lower_bound_address)
 {
   ham_status_t st;
@@ -533,7 +533,7 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
     0, /* span_width will be set by the hinter */
     aligned,
     lower_bound_address,
-    size / DB_CHUNKSIZE,
+    size / kBlobAlignment,
     get_entry_maxspan()
   };
   FullFreelistStatistics::Hints hints = {0};
@@ -549,7 +549,7 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
 
   FullFreelistStatistics::get_global_hints(this, &global_hints);
 
-  ham_assert(size % DB_CHUNKSIZE == 0);
+  ham_assert(size % kBlobAlignment == 0);
   ham_assert(global_hints.page_span_width >= 1);
 
   /*
@@ -574,7 +574,7 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
      * large sequence of /completely free/ freelist pages; the worst
      * case space utilization of this speedup is >50% as the worst case
      * is looking for a chunk of space as large as one freelist page
-     * (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the second
+     * (~ kBlobAlignment db pages) + 1 byte, in which case the second
      * freelist page will not be checked against a subsequent huge size
      * request as it is not 'completely free' any longer, thus effectively
      * occupying 2 freelist page spans where 1 (and a bit) would have
@@ -735,7 +735,7 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
        * This particular optimization was already present in pre-v1.1.0
        * hamsterdb, BTW.
        */
-      ham_assert(entry->allocated_bits >= size/DB_CHUNKSIZE);
+      ham_assert(entry->allocated_bits >= size/kBlobAlignment);
       ham_assert(hints.startpos + hints.size_bits <= hints.endpos);
 
       /* yes, load the payload structure */
@@ -751,9 +751,9 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
       }
 
       /* now try to allocate from this payload */
-      s = search_bits(entry, fp, size / DB_CHUNKSIZE, &hints);
+      s = search_bits(entry, fp, size / kBlobAlignment, &hints);
       if (s != -1) {
-        set_bits(entry, fp, s, size / DB_CHUNKSIZE, false, &hints);
+        set_bits(entry, fp, s, size / kBlobAlignment, false, &hints);
         // mark page (or header page) as dirty
         mark_dirty(page);
         break;
@@ -769,10 +769,10 @@ FullFreelist::alloc_area(ham_u64_t *paddr, ham_size_t size, bool aligned,
 
   if (s != -1) {
     freel_set_allocated_bits(fp,
-        (ham_u32_t)(freel_get_allocated_bits(fp) - size / DB_CHUNKSIZE));
+        (ham_u32_t)(freel_get_allocated_bits(fp) - size / kBlobAlignment));
     entry->allocated_bits = freel_get_allocated_bits(fp);
 
-    *paddr = (freel_get_start_address(fp) + (s * DB_CHUNKSIZE));
+    *paddr = (freel_get_start_address(fp) + (s * kBlobAlignment));
   }
 
   return (HAM_SUCCESS);
@@ -841,8 +841,8 @@ FullFreelist::search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
 
   /* determine the first aligned starting point: */
   if (hints->aligned) {
-    ham_u32_t chunked_pagesize = m_env->get_pagesize() / DB_CHUNKSIZE;
-    ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / DB_CHUNKSIZE);
+    ham_u32_t chunked_pagesize = m_env->get_pagesize() / kBlobAlignment;
+    ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / kBlobAlignment);
     offset %= chunked_pagesize;
     offset = chunked_pagesize - offset;
     offset %= chunked_pagesize;
@@ -2543,7 +2543,7 @@ FullFreelist::locate_sufficient_free_space(FullFreelistStatistics::Hints *dst,
     dst->startpos = 0;
     if (entry->start_address < hints->lower_bound_address) {
       dst->startpos = (ham_u32_t)((hints->lower_bound_address
-                              - entry->start_address) / DB_CHUNKSIZE);
+                              - entry->start_address) / kBlobAlignment);
     }
     dst->endpos = entry->max_bits;
     dst->skip_distance = hints->size_bits;
@@ -2660,7 +2660,7 @@ FullFreelist::get_entry_for_address(ham_u64_t address)
 
       if (address >= entry->start_address
           && address < entry->start_address +
-              entry->max_bits * DB_CHUNKSIZE) {
+              entry->max_bits * kBlobAlignment) {
         return (entry);
       }
     }
@@ -2672,8 +2672,8 @@ FullFreelist::get_entry_for_address(ham_u64_t address)
     ham_assert(i == m_entries.size());
     ham_size_t add = (ham_size_t)(address - m_entries[i - 1].start_address
               - m_entries[i - 1].max_bits);
-    add += DB_CHUNKSIZE - 1;
-    add /= DB_CHUNKSIZE;
+    add += kBlobAlignment - 1;
+    add /= kBlobAlignment;
 
     ham_size_t single_size_bits = get_entry_maxspan();
 
@@ -2710,7 +2710,7 @@ FullFreelist::resize(ham_size_t new_count)
 
     FullFreelistEntry *prev = &m_entries[m_entries.size() - 1];
 
-    entry.start_address = prev->start_address + prev->max_bits * DB_CHUNKSIZE;
+    entry.start_address = prev->start_address + prev->max_bits * kBlobAlignment;
     entry.max_bits = (ham_u32_t)size_bits;
 
     m_entries.push_back(entry);

@@ -21,14 +21,15 @@
 
 using namespace hamsterdb;
 
-ham_u64_t
-ReducedFreelist::alloc_page()
+ham_status_t
+ReducedFreelist::alloc_page(ham_u64_t *paddress)
 {
   ham_assert(0 == check_integrity());
-  return (alloc(m_env->get_pagesize(), true));
+  *paddress = alloc(m_env->get_pagesize(), true);
+  return (0);
 }
 
-void
+ham_status_t
 ReducedFreelist::free_page(Page *page)
 {
   ham_assert(0 == check_integrity());
@@ -63,10 +64,10 @@ ReducedFreelist::free_page(Page *page)
   }
 
   // now add this page to the freelist
-  free_area(page->get_self(), page_size);
+  return (free_area(page->get_self(), page_size));
 }
 
-void
+ham_status_t
 ReducedFreelist::free_area(ham_u64_t address, ham_size_t size)
 {
   ham_size_t page_size = m_env->get_pagesize();
@@ -81,18 +82,18 @@ ReducedFreelist::free_area(ham_u64_t address, ham_size_t size)
       address += sizeof(PBlobHeader);
     }
     else
-      return;
+      return (0);
   }
 
   // we're only interested in blobs which can fit a PBlobHeader
   if (size < sizeof(PBlobHeader))
-    return;
+    return (0);
 
   // if this blob is too small, and we already have many small blobs in the
   // list: just discard it
   if (size < SMALL_SIZE_THRESHOLD) {
     if (m_small_blobs > SMALL_BLOB_THRESHOLD)
-      return;
+      return (0);
     m_small_blobs++;
   }
 
@@ -115,6 +116,7 @@ ReducedFreelist::free_area(ham_u64_t address, ham_size_t size)
   m_entries.push_back(Entry(address, size));
 
   ham_assert(0 == check_integrity());
+  return (0);
 }
 
 ham_u64_t

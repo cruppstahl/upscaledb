@@ -256,9 +256,8 @@ public:
     /* make sure that at least 64bit are in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      FullFreelist *f =
-          ((Environment *)m_env)->get_page_manager()->get_freelist();
-      BFC_ASSERT_EQUAL(0, f->alloc_area(&addr, 64));
+      Freelist *f = ((Environment *)m_env)->get_page_manager()->get_freelist(0);
+      BFC_ASSERT_EQUAL(0, f->alloc_area(64, &addr));
       BFC_ASSERT(addr != 0);
     }
 
@@ -267,9 +266,8 @@ public:
     /* and now another 64bit should be in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      FullFreelist *f =
-          ((Environment *)m_env)->get_page_manager()->get_freelist();
-      BFC_ASSERT_EQUAL(0, f->alloc_area(&addr, 64));
+      Freelist *f = ((Environment *)m_env)->get_page_manager()->get_freelist(0);
+      BFC_ASSERT_EQUAL(0, f->alloc_area(64, &addr));
       BFC_ASSERT(addr != 0);
     }
   }

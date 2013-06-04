@@ -48,28 +48,11 @@ struct ham_env_t {
 
 namespace hamsterdb {
 
-/**
- * This is the minimum chunk size; all chunks (pages and blobs) are aligned
- * to this size.
- *
- * WARNING: pages (and 'aligned' huge blobs) are aligned to
- * a DB_PAGESIZE_MIN_REQD_ALIGNMENT boundary, that is, any 'aligned=true'
- * freelist allocations will produce blocks which are aligned to a
- * 8*32 == 256 bytes boundary.
- */
-#define DB_CHUNKSIZE                        32
-
 /** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                        0x00200000
 
-/**
- * The minimum required database page alignment: since the freelist scanner
- * works on a byte-boundary basis for aligned storage, all aligned storage
- * must/align to an 8-bits times 1 DB_CHUNKSIZE-per-bit boundary. Which for a
- * 32 bytes chunksize means your pagesize minimum required alignment/size
- * is 8*32 = 256 bytes.
- */
-#define DB_PAGESIZE_MIN_REQD_ALIGNMENT      (8 * DB_CHUNKSIZE)
+/** An internal database flag - use the reduced freelist */
+#define DB_REDUCED_FREELIST                 0x00400000
 
 #include "packstart.h"
 

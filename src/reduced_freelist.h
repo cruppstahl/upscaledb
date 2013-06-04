@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef HAM_SIMPLE_FREELIST_H__
-#define HAM_SIMPLE_FREELIST_H__
+#ifndef HAM_REDUCED_FREELIST_H__
+#define HAM_REDUCED_FREELIST_H__
 
 #include <vector>
 #include <utility> // for std::pair
@@ -23,6 +23,7 @@
 #include "internal_fwd_decl.h"
 #include "page.h"
 #include "env.h"
+#include "freelist.h"
 
 namespace hamsterdb {
 
@@ -31,7 +32,7 @@ class Database;
 /**
  * The freelist class structure
  */
-class ReducedFreelist
+class ReducedFreelist : public Freelist
 {
   public:
     typedef std::pair<ham_u64_t, ham_size_t> Entry;
@@ -47,37 +48,46 @@ class ReducedFreelist
       SMALL_BLOB_THRESHOLD = 1000,
 
       /** Number of entries that we can store */
-      MAX_ENTRIES = 32
+      MAX_ENTRIES = 512,
+
+      /** required alignment for all blobs - none */
+      kBlobAlignment = 1
     };
 
     /** constructor */
     ReducedFreelist(Environment *env)
-      : m_env(env), m_small_blobs(0) {
+      : Freelist(env), m_small_blobs(0) {
       m_entries.reserve(MAX_ENTRIES);
     }
 
     /** tries to allocate a page from the freelist */
-    ham_u64_t alloc_page();
+    virtual ham_status_t alloc_page(ham_u64_t *paddress);
 
     /** tries to allocate a blob area from the freelist */
-    ham_u64_t alloc_blob(ham_size_t size) {
+    virtual ham_status_t alloc_area(ham_size_t size, ham_u64_t *paddress) {
       ham_assert(size > 0);
 
       ham_assert(0 == check_integrity());
       ham_u64_t rv = alloc(size, false);
       if (m_small_blobs > 0 && rv != 0 && size < SMALL_SIZE_THRESHOLD)
         m_small_blobs--;
-      return (rv);
+      *paddress = rv;
+      return (0);
     }
 
     /** adds an unused page to the freelist */
-    void free_page(Page *page);
+    virtual ham_status_t free_page(Page *page);
 
     /** adds an unused area to the freelist */
-    void free_area(ham_u64_t address, ham_size_t size);
+    virtual ham_status_t free_area(ham_u64_t address, ham_size_t size);
+
+    /** returns the alignment for blobs */
+    virtual int get_blob_alignment() const {
+      return (kBlobAlignment);
+    }
 
     /** verifies integrity of the freelist */
-    ham_status_t check_integrity();
+    virtual ham_status_t check_integrity();
 
     /** retrieves entries; only for testing! */
     const EntryVec &get_entries() const {
@@ -90,9 +100,6 @@ class ReducedFreelist
      */
     ham_u64_t alloc(ham_size_t size, bool aligned);
 
-    /** the Environment */
-    Environment *m_env;
-
     /** Number of small blobs (< SMALL_SIZE_THRESHOLD) currently in the list */
     ham_size_t m_small_blobs;
 
@@ -102,4 +109,4 @@ class ReducedFreelist
 
 } // namespace hamsterdb
 
-#endif /* HAM_SIMPLE_FREELIST_H__ */
+#endif /* HAM_REDUCED_FREELIST_H__ */
