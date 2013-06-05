@@ -788,192 +788,192 @@ public:
   }
 };
 
-class PartialWriteTest1024k : public PartialWriteTest {
+class PartialWriteTest1024 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  PartialWriteTest1024k()
-    : PartialWriteTest(1024, "PartialWriteTest1024k") {
+  PartialWriteTest1024()
+    : PartialWriteTest(1024, "PartialWriteTest1024") {
   }
 };
 
-class PartialWriteTest2048k : public PartialWriteTest {
+class PartialWriteTest2048 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  PartialWriteTest2048k()
-    : PartialWriteTest(2048, "PartialWriteTest2048k") {
+  PartialWriteTest2048()
+    : PartialWriteTest(2048, "PartialWriteTest2048") {
   }
 };
 
-class PartialWriteTest4096k : public PartialWriteTest {
+class PartialWriteTest4096 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  PartialWriteTest4096k()
-    : PartialWriteTest(4096, "PartialWriteTest4096k") {
+  PartialWriteTest4096()
+    : PartialWriteTest(4096, "PartialWriteTest4096") {
   }
 };
 
-class PartialWriteTest16384k : public PartialWriteTest {
+class PartialWriteTest16384 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  PartialWriteTest16384k()
-    : PartialWriteTest(16384, "PartialWriteTest16384k") {
+  PartialWriteTest16384()
+    : PartialWriteTest(16384, "PartialWriteTest16384") {
   }
 };
 
-class PartialWriteTest65536k : public PartialWriteTest {
+class PartialWriteTest65536 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  PartialWriteTest65536k()
-    : PartialWriteTest(65536, "PartialWriteTest65536k") {
+  PartialWriteTest65536()
+    : PartialWriteTest(65536, "PartialWriteTest65536") {
   }
 };
 
-class InMemoryPartialWriteTest1024k : public PartialWriteTest {
+class InMemoryPartialWriteTest1024 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  InMemoryPartialWriteTest1024k()
-    : PartialWriteTest(1024, "InMemoryPartialWriteTest1024k", true) {
+  InMemoryPartialWriteTest1024()
+    : PartialWriteTest(1024, "InMemoryPartialWriteTest1024", true) {
   }
 };
 
-class InMemoryPartialWriteTest2048k : public PartialWriteTest {
+class InMemoryPartialWriteTest2048 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  InMemoryPartialWriteTest2048k()
-    : PartialWriteTest(2048, "InMemoryPartialWriteTest2048k", true) {
+  InMemoryPartialWriteTest2048()
+    : PartialWriteTest(2048, "InMemoryPartialWriteTest2048", true) {
   }
 };
 
-class InMemoryPartialWriteTest4096k : public PartialWriteTest {
+class InMemoryPartialWriteTest4096 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  InMemoryPartialWriteTest4096k()
-    : PartialWriteTest(4096, "InMemoryPartialWriteTest4096k", true) {
+  InMemoryPartialWriteTest4096()
+    : PartialWriteTest(4096, "InMemoryPartialWriteTest4096", true) {
   }
 };
 
-class InMemoryPartialWriteTest16384k : public PartialWriteTest {
+class InMemoryPartialWriteTest16384 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  InMemoryPartialWriteTest16384k()
-    : PartialWriteTest(16384, "InMemoryPartialWriteTest16384k", true) {
+  InMemoryPartialWriteTest16384()
+    : PartialWriteTest(16384, "InMemoryPartialWriteTest16384", true) {
   }
 };
 
-class InMemoryPartialWriteTest65536k : public PartialWriteTest {
+class InMemoryPartialWriteTest65536 : public PartialWriteTest {
   define_super(PartialWriteTest);
 
 public:
-  InMemoryPartialWriteTest65536k()
-    : PartialWriteTest(65536, "InMemoryPartialWriteTest65536k", true) {
+  InMemoryPartialWriteTest65536()
+    : PartialWriteTest(65536, "InMemoryPartialWriteTest65536", true) {
   }
 };
 
-class OverwritePartialWriteTest1024k : public OverwritePartialWriteTest {
+class OverwritePartialWriteTest1024 : public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  OverwritePartialWriteTest1024k()
-    : OverwritePartialWriteTest("OverwritePartialWriteTest1024k", 1024) {
+  OverwritePartialWriteTest1024()
+    : OverwritePartialWriteTest("OverwritePartialWriteTest1024", 1024) {
   }
 };
 
-class OverwritePartialWriteTest2048k : public OverwritePartialWriteTest {
+class OverwritePartialWriteTest2048 : public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  OverwritePartialWriteTest2048k()
-    : OverwritePartialWriteTest("OverwritePartialWriteTest2048k", 2048) {
+  OverwritePartialWriteTest2048()
+    : OverwritePartialWriteTest("OverwritePartialWriteTest2048", 2048) {
   }
 };
 
-class OverwritePartialWriteTest4096k : public OverwritePartialWriteTest {
+class OverwritePartialWriteTest4096 : public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  OverwritePartialWriteTest4096k()
-    : OverwritePartialWriteTest("OverwritePartialWriteTest4096k", 4096) {
+  OverwritePartialWriteTest4096()
+    : OverwritePartialWriteTest("OverwritePartialWriteTest4096", 4096) {
   }
 };
 
-class OverwritePartialWriteTest16384k : public OverwritePartialWriteTest {
+class OverwritePartialWriteTest16384 : public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  OverwritePartialWriteTest16384k()
-    : OverwritePartialWriteTest("OverwritePartialWriteTest16384k", 16384) {
+  OverwritePartialWriteTest16384()
+    : OverwritePartialWriteTest("OverwritePartialWriteTest16384", 16384) {
   }
 };
 
-class OverwritePartialWriteTest65536k : public OverwritePartialWriteTest {
+class OverwritePartialWriteTest65536 : public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  OverwritePartialWriteTest65536k()
-    : OverwritePartialWriteTest("OverwritePartialWriteTest65536k", 65536) {
+  OverwritePartialWriteTest65536()
+    : OverwritePartialWriteTest("OverwritePartialWriteTest65536", 65536) {
   }
 };
 
-class InMemoryOverwritePartialWriteTest1024k :
+class InMemoryOverwritePartialWriteTest1024 :
       public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  InMemoryOverwritePartialWriteTest1024k()
-    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest1024k",
+  InMemoryOverwritePartialWriteTest1024()
+    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest1024",
       1024, true) {
   }
 };
 
-class InMemoryOverwritePartialWriteTest2048k :
+class InMemoryOverwritePartialWriteTest2048 :
       public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  InMemoryOverwritePartialWriteTest2048k()
-    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest2048k",
+  InMemoryOverwritePartialWriteTest2048()
+    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest2048",
       2048, true) {
   }
 };
 
-class InMemoryOverwritePartialWriteTest4096k :
+class InMemoryOverwritePartialWriteTest4096 :
       public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  InMemoryOverwritePartialWriteTest4096k()
-    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest4096k",
+  InMemoryOverwritePartialWriteTest4096()
+    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest4096",
       4096, true) {
   }
 };
 
-class InMemoryOverwritePartialWriteTest16384k :
+class InMemoryOverwritePartialWriteTest16384 :
       public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  InMemoryOverwritePartialWriteTest16384k()
-    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest16384k",
+  InMemoryOverwritePartialWriteTest16384()
+    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest16384",
       16384, true) {
   }
 };
 
-class InMemoryOverwritePartialWriteTest65536k :
+class InMemoryOverwritePartialWriteTest65536 :
       public OverwritePartialWriteTest {
   define_super(OverwritePartialWriteTest);
 
 public:
-  InMemoryOverwritePartialWriteTest65536k()
-    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest65536k",
+  InMemoryOverwritePartialWriteTest65536()
+    : OverwritePartialWriteTest("InMemoryOverwritePartialWriteTest65536",
       65536, true) {
   }
 };
@@ -1128,8 +1128,9 @@ public:
 
     memset(&buffer[0], 0, record_size);
     fillBuffer(&buffer[0], partial_offset, partial_size);
-    BFC_ASSERT_EQUAL(partial_size, rec.size);
-    BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+    BFC_ASSERT_EQUAL(partial_size, rec.partial_size);
+    BFC_ASSERT_EQUAL(record_size, rec.size);
+    BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.partial_size));
 
     free(buffer);
   }
@@ -1195,142 +1196,142 @@ public:
   }
 };
 
-class PartialReadTest1024k : public PartialReadTest {
+class PartialReadTest1024 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  PartialReadTest1024k()
-    : PartialReadTest("PartialReadTest1024k", 1024) {
+  PartialReadTest1024()
+    : PartialReadTest("PartialReadTest1024", 1024) {
   }
 };
 
-class PartialReadTest2048k : public PartialReadTest {
+class PartialReadTest2048 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  PartialReadTest2048k()
-    : PartialReadTest("PartialReadTest2048k", 2048) {
+  PartialReadTest2048()
+    : PartialReadTest("PartialReadTest2048", 2048) {
   }
 };
 
-class PartialReadTest4096k : public PartialReadTest {
+class PartialReadTest4096 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  PartialReadTest4096k()
-    : PartialReadTest("PartialReadTest4096k", 4096) {
+  PartialReadTest4096()
+    : PartialReadTest("PartialReadTest4096", 4096) {
   }
 };
 
-class PartialReadTest16384k : public PartialReadTest {
+class PartialReadTest16384 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  PartialReadTest16384k()
-    : PartialReadTest("PartialReadTest16384k", 16384) {
+  PartialReadTest16384()
+    : PartialReadTest("PartialReadTest16384", 16384) {
   }
 };
 
-class PartialReadTest65536k : public PartialReadTest {
+class PartialReadTest65536 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  PartialReadTest65536k()
-    : PartialReadTest("PartialReadTest65536k", 65536) {
+  PartialReadTest65536()
+    : PartialReadTest("PartialReadTest65536", 65536) {
   }
 };
 
-class InMemoryPartialReadTest1024k : public PartialReadTest {
+class InMemoryPartialReadTest1024 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  InMemoryPartialReadTest1024k()
-    : PartialReadTest("InMemoryPartialReadTest1024k", 1024, true) {
+  InMemoryPartialReadTest1024()
+    : PartialReadTest("InMemoryPartialReadTest1024", 1024, true) {
   }
 };
 
-class InMemoryPartialReadTest2048k : public PartialReadTest {
+class InMemoryPartialReadTest2048 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  InMemoryPartialReadTest2048k()
-    : PartialReadTest("InMemoryPartialReadTest2048k", 2048, true) {
+  InMemoryPartialReadTest2048()
+    : PartialReadTest("InMemoryPartialReadTest2048", 2048, true) {
   }
 };
 
-class InMemoryPartialReadTest4096k : public PartialReadTest {
+class InMemoryPartialReadTest4096 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  InMemoryPartialReadTest4096k()
-    : PartialReadTest("InMemoryPartialReadTest4096k", 4096, true) {
+  InMemoryPartialReadTest4096()
+    : PartialReadTest("InMemoryPartialReadTest4096", 4096, true) {
   }
 };
 
-class InMemoryPartialReadTest16384k : public PartialReadTest {
+class InMemoryPartialReadTest16384 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  InMemoryPartialReadTest16384k()
-    : PartialReadTest("InMemoryPartialReadTest16384k", 16384, true) {
+  InMemoryPartialReadTest16384()
+    : PartialReadTest("InMemoryPartialReadTest16384", 16384, true) {
   }
 };
 
-class InMemoryPartialReadTest65536k : public PartialReadTest {
+class InMemoryPartialReadTest65536 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  InMemoryPartialReadTest65536k()
-    : PartialReadTest("InMemoryPartialReadTest65536k", 65536, true) {
+  InMemoryPartialReadTest65536()
+    : PartialReadTest("InMemoryPartialReadTest65536", 65536, true) {
   }
 };
 
-class DirectAccessPartialReadTest1024k : public PartialReadTest {
+class DirectAccessPartialReadTest1024 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  DirectAccessPartialReadTest1024k()
-    : PartialReadTest("DirectAccessPartialReadTest1024k", 1024,
+  DirectAccessPartialReadTest1024()
+    : PartialReadTest("DirectAccessPartialReadTest1024", 1024,
         true, HAM_DIRECT_ACCESS) {
   }
 };
 
-class DirectAccessPartialReadTest2048k : public PartialReadTest {
+class DirectAccessPartialReadTest2048 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  DirectAccessPartialReadTest2048k()
-    : PartialReadTest("DirectAccessPartialReadTest2048k", 2048,
+  DirectAccessPartialReadTest2048()
+    : PartialReadTest("DirectAccessPartialReadTest2048", 2048,
         true, HAM_DIRECT_ACCESS) {
   }
 };
 
-class DirectAccessPartialReadTest4096k : public PartialReadTest {
+class DirectAccessPartialReadTest4096 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  DirectAccessPartialReadTest4096k()
-    : PartialReadTest("DirectAccessPartialReadTest4096k", 4096,
+  DirectAccessPartialReadTest4096()
+    : PartialReadTest("DirectAccessPartialReadTest4096", 4096,
         true, HAM_DIRECT_ACCESS) {
   }
 };
 
-class DirectAccessPartialReadTest16384k : public PartialReadTest {
+class DirectAccessPartialReadTest16384 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  DirectAccessPartialReadTest16384k()
-    : PartialReadTest("DirectAccessPartialReadTest16384k", 16384,
+  DirectAccessPartialReadTest16384()
+    : PartialReadTest("DirectAccessPartialReadTest16384", 16384,
         true, HAM_DIRECT_ACCESS) {
   }
 };
 
-class DirectAccessPartialReadTest65536k : public PartialReadTest {
+class DirectAccessPartialReadTest65536 : public PartialReadTest {
   define_super(PartialReadTest);
 
 public:
-  DirectAccessPartialReadTest65536k()
-    : PartialReadTest("DirectAccessPartialReadTest65536k", 65536,
+  DirectAccessPartialReadTest65536()
+    : PartialReadTest("DirectAccessPartialReadTest65536", 65536,
         true, HAM_DIRECT_ACCESS) {
   }
 };
@@ -1351,6 +1352,7 @@ public:
     BFC_REGISTER_TEST(MiscPartialTests, reduceSizeTest);
     BFC_REGISTER_TEST(MiscPartialTests, disabledSmallRecordsTest);
     BFC_REGISTER_TEST(MiscPartialTests, disabledTransactionsTest);
+    BFC_REGISTER_TEST(MiscPartialTests, partialSizeTest);
   }
 
   ham_db_t *m_db;
@@ -1498,13 +1500,15 @@ public:
     rec.partial_offset = 100;
     rec.partial_size = 450;
     BFC_ASSERT_EQUAL(0,
-        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
-    BFC_ASSERT_EQUAL(400u, rec.size);
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL | m_find_flags));
+    BFC_ASSERT_EQUAL(400u, rec.partial_size);
+    BFC_ASSERT_EQUAL(500u, rec.size);
     BFC_ASSERT_EQUAL(0,
         ham_cursor_find(c, &key, 0, 0));
     BFC_ASSERT_EQUAL(0,
-        ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
-    BFC_ASSERT_EQUAL(400u, rec.size);
+        ham_cursor_move(c, &key, &rec, HAM_PARTIAL | m_find_flags));
+    BFC_ASSERT_EQUAL(400u, rec.partial_size);
+    BFC_ASSERT_EQUAL(500u, rec.size);
 
     /* partial_size > size */
     rec.partial_offset = 0;
@@ -1611,6 +1615,25 @@ public:
     BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
   }
+
+  void partialSizeTest() {
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    ham_u8_t buffer[500];
+
+    rec.data = (void *)&buffer[0];
+    rec.size = sizeof(buffer);
+    BFC_ASSERT_EQUAL(0,
+        ham_db_insert(m_db, 0, &key, &rec, 0));
+
+    rec.partial_offset = 50;
+    rec.partial_size = 400;
+    BFC_ASSERT_EQUAL(0,
+        ham_db_find(m_db, 0, &key, &rec, HAM_PARTIAL | m_find_flags));
+    BFC_ASSERT_EQUAL(500u, rec.size);
+    BFC_ASSERT_EQUAL(400u, rec.partial_size);
+    BFC_ASSERT_EQUAL(50u, rec.partial_offset);
+  }
 };
 
 class InMemoryMiscPartialTests : public MiscPartialTests {
@@ -1632,44 +1655,44 @@ public:
   }
 };
 
-BFC_REGISTER_FIXTURE(PartialWriteTest1024k);
-BFC_REGISTER_FIXTURE(PartialWriteTest2048k);
-BFC_REGISTER_FIXTURE(PartialWriteTest4096k);
-BFC_REGISTER_FIXTURE(PartialWriteTest16384k);
-BFC_REGISTER_FIXTURE(PartialWriteTest65536k);
-BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest1024k);
-BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest2048k);
-BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest4096k);
-BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest16384k);
-BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest65536k);
-BFC_REGISTER_FIXTURE(OverwritePartialWriteTest1024k);
-BFC_REGISTER_FIXTURE(OverwritePartialWriteTest2048k);
-BFC_REGISTER_FIXTURE(OverwritePartialWriteTest4096k);
-BFC_REGISTER_FIXTURE(OverwritePartialWriteTest16384k);
-BFC_REGISTER_FIXTURE(OverwritePartialWriteTest65536k);
-BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest1024k);
-BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest2048k);
-BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest4096k);
-BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest16384k);
-BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest65536k);
+BFC_REGISTER_FIXTURE(PartialWriteTest1024);
+BFC_REGISTER_FIXTURE(PartialWriteTest2048);
+BFC_REGISTER_FIXTURE(PartialWriteTest4096);
+BFC_REGISTER_FIXTURE(PartialWriteTest16384);
+BFC_REGISTER_FIXTURE(PartialWriteTest65536);
+BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest1024);
+BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest2048);
+BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest4096);
+BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest16384);
+BFC_REGISTER_FIXTURE(InMemoryPartialWriteTest65536);
+BFC_REGISTER_FIXTURE(OverwritePartialWriteTest1024);
+BFC_REGISTER_FIXTURE(OverwritePartialWriteTest2048);
+BFC_REGISTER_FIXTURE(OverwritePartialWriteTest4096);
+BFC_REGISTER_FIXTURE(OverwritePartialWriteTest16384);
+BFC_REGISTER_FIXTURE(OverwritePartialWriteTest65536);
+BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest1024);
+BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest2048);
+BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest4096);
+BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest16384);
+BFC_REGISTER_FIXTURE(InMemoryOverwritePartialWriteTest65536);
 BFC_REGISTER_FIXTURE(ShrinkPartialWriteTest);
 BFC_REGISTER_FIXTURE(GrowPartialWriteTest);
 
-BFC_REGISTER_FIXTURE(PartialReadTest1024k);
-BFC_REGISTER_FIXTURE(PartialReadTest2048k);
-BFC_REGISTER_FIXTURE(PartialReadTest4096k);
-BFC_REGISTER_FIXTURE(PartialReadTest16384k);
-BFC_REGISTER_FIXTURE(PartialReadTest65536k);
-BFC_REGISTER_FIXTURE(InMemoryPartialReadTest1024k);
-BFC_REGISTER_FIXTURE(InMemoryPartialReadTest2048k);
-BFC_REGISTER_FIXTURE(InMemoryPartialReadTest4096k);
-BFC_REGISTER_FIXTURE(InMemoryPartialReadTest16384k);
-BFC_REGISTER_FIXTURE(InMemoryPartialReadTest65536k);
-BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest1024k);
-BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest2048k);
-BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest4096k);
-BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest16384k);
-BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest65536k);
+BFC_REGISTER_FIXTURE(PartialReadTest1024);
+BFC_REGISTER_FIXTURE(PartialReadTest2048);
+BFC_REGISTER_FIXTURE(PartialReadTest4096);
+BFC_REGISTER_FIXTURE(PartialReadTest16384);
+BFC_REGISTER_FIXTURE(PartialReadTest65536);
+BFC_REGISTER_FIXTURE(InMemoryPartialReadTest1024);
+BFC_REGISTER_FIXTURE(InMemoryPartialReadTest2048);
+BFC_REGISTER_FIXTURE(InMemoryPartialReadTest4096);
+BFC_REGISTER_FIXTURE(InMemoryPartialReadTest16384);
+BFC_REGISTER_FIXTURE(InMemoryPartialReadTest65536);
+BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest1024);
+BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest2048);
+BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest4096);
+BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest16384);
+BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest65536);
 
 BFC_REGISTER_FIXTURE(MiscPartialTests);
 BFC_REGISTER_FIXTURE(InMemoryMiscPartialTests);

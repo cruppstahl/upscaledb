@@ -678,7 +678,7 @@ BtreeIndex::read_record(Transaction *txn, ham_record_t *record,
   bool noblob = false;
   ham_size_t blobsize;
 
-  ByteArray *arena= (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &m_db->get_record_arena()
             : &txn->get_record_arena();
 

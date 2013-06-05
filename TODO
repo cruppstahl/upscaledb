@@ -31,6 +31,12 @@ x all packed structures that are directly mapped to the file
     (BlobPageHeader, BlobHeader and others) should be named
     "PXXX" (for "Persistent" or "Packed")
 
+x Partial read: record->size returns the partial size that was retrieved.
+    I think record->size should return the original size, and
+    record->partial_size should return the size that was read.
+    -- really?? yes, this is much cleaner
+    x document this in the header file
+
 x benchmark/prototype new freelist based on discarded one
     x a flat array (std::vector), not sorted
     x reserve 20 entries
@@ -105,12 +111,6 @@ x get rid of memory allocator, use the new (static) one
             libcurl, libprotobuf etc - not necessary; can use libtool
     x run performance tests
     x configure: print warning if tcmalloc is missing
-
-o ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
-    this test is slower than before
-    o run in valgrind with 2.1.1
-    o run in valgrind with 2.1.0
-    o improve performance
 
 o full_freelist: clean up the code
     o merge statistics and freelist code

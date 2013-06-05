@@ -324,8 +324,6 @@ class BtreeFindAction
           return (st);
       }
 
-      // TODO merge these two calls
-      stats->find_failed();
       return (0);
     }
 

@@ -103,13 +103,15 @@ InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
 
   ham_size_t blobsize = (ham_size_t)blob_header->get_size();
 
+  record->size = blobsize;
+
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
       ham_trace(("partial offset is greater than the total record size"));
       return (HAM_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
-      blobsize = blobsize-record->partial_offset;
+      record->partial_size = blobsize = blobsize - record->partial_offset;
     else
       blobsize = record->partial_size;
   }
@@ -126,7 +128,6 @@ InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
 
     if ((flags & HAM_DIRECT_ACCESS)
           && !(record->flags & HAM_RECORD_USER_ALLOC)) {
-      record->size = blobsize;
       record->data = d;
     }
     else {
@@ -137,7 +138,6 @@ InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
       }
       /* and copy the data */
       memcpy(record->data, d, blobsize);
-      record->size = blobsize;
     }
   }
 
@@ -628,13 +628,15 @@ DiskBlobManager::read(Database *db, ham_u64_t blobid,
 
   ham_size_t blobsize = (ham_size_t)blob_header.get_size();
 
+  record->size = blobsize;
+
   if (flags & HAM_PARTIAL) {
     if (record->partial_offset > blobsize) {
       ham_trace(("partial offset+size is greater than the total record size"));
       return (HAM_INV_PARAMETER);
     }
     if (record->partial_offset + record->partial_size > blobsize)
-      blobsize = blobsize - record->partial_offset;
+      record->partial_size = blobsize = blobsize - record->partial_offset;
     else
       blobsize = record->partial_size;
   }
@@ -660,8 +662,6 @@ DiskBlobManager::read(Database *db, ham_u64_t blobid,
                   db, (ham_u8_t *)record->data, blobsize);
   if (st)
     return (st);
-
-  record->size = blobsize;
 
   return (0);
 }
