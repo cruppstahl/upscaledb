@@ -49,7 +49,7 @@ struct FreelistEntry {
    * This is done as a union as it will reduce code complexity
    * significantly in the common freelist processing areas.
    */
-  runtime_statistics_pagedata_t perf_data;
+  RuntimePageStatistics perf_data;
 };
 
 

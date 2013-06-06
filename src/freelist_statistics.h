@@ -168,7 +168,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
 /**
  * freelist algorithm specific run-time info per freelist entry (page)
  */
-struct runtime_statistics_pagedata_t
+struct RuntimePageStatistics
 {
     PFreelistPageStatistics _persisted_stats;
 

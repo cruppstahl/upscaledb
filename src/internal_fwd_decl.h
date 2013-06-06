@@ -70,8 +70,8 @@ struct FreelistEntry;
 struct freelist_hints_t;
 typedef struct freelist_hints_t freelist_hints_t;
 
-struct runtime_statistics_pagedata_t;
-typedef struct runtime_statistics_pagedata_t runtime_statistics_pagedata_t;
+struct RuntimePageStatistics;
+typedef struct RuntimePageStatistics RuntimePageStatistics;
 
 struct freelist_global_hints_t;
 typedef struct freelist_global_hints_t freelist_global_hints_t;
