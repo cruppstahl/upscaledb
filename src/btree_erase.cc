@@ -947,10 +947,14 @@ cleanup:
 
       if (rhs->get_flags() & PBtreeKey::KEY_IS_EXTENDED) {
         ham_record_t record = {0};
+        ByteArray *arena = (m_txn == 0
+                                || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
+                            ? &db->get_record_arena()
+                            : &m_txn->get_record_arena();
 
         ham_u64_t rhsblobid = rhs->get_extended_rid(db);
-        ham_status_t st = db->get_env()->get_blob_manager()->read(db, m_txn,
-                                rhsblobid, &record, 0);
+        ham_status_t st = db->get_env()->get_blob_manager()->read(db,
+                                rhsblobid, &record, 0, arena);
         if (st)
           return (st);
 
@@ -1012,10 +1016,14 @@ cleanup:
        */
       if (rhs->get_flags() & PBtreeKey::KEY_IS_EXTENDED) {
         ham_record_t record = {0};
+        ByteArray *arena = (m_txn == 0
+                                || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
+                            ? &db->get_record_arena()
+                            : &m_txn->get_record_arena();
 
         ham_u64_t rhsblobid = rhs->get_extended_rid(db);
         ham_status_t st = db->get_env()->get_blob_manager()->read(db,
-                                m_txn, rhsblobid, &record, 0);
+                                rhsblobid, &record, 0, arena);
         if (st)
           return (st);
 

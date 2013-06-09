@@ -146,9 +146,11 @@ public:
         m_blob_manager->allocate((Database *)m_db, &record, 0, &blobid));
     BFC_ASSERT(blobid != 0);
 
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
+
     BFC_ASSERT_EQUAL(0,
         m_blob_manager->read((Database *)m_db,
-                0, blobid, &record, 0));
+                blobid, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer, record.data, record.size));
 
@@ -169,8 +171,9 @@ public:
         m_blob_manager->allocate((Database *)m_db, &record, 0, &blobid));
     BFC_ASSERT(blobid != 0);
 
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer, record.data, record.size));
 
@@ -182,7 +185,7 @@ public:
     BFC_ASSERT(blobid2 != 0);
 
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid2, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer2, record.data, record.size));
 
@@ -203,8 +206,9 @@ public:
         m_blob_manager->allocate((Database *)m_db, &record, 0, &blobid));
     BFC_ASSERT(blobid != 0);
 
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer, record.data, record.size));
 
@@ -216,7 +220,7 @@ public:
     BFC_ASSERT(blobid2 != 0);
 
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid2, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer2, record.data, record.size));
 
@@ -237,8 +241,9 @@ public:
         m_blob_manager->allocate((Database *)m_db, &record, 0, &blobid));
     BFC_ASSERT(blobid != 0);
 
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer, record.data, record.size));
 
@@ -250,7 +255,7 @@ public:
     BFC_ASSERT(blobid2 != 0);
 
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid2, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid2, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
     BFC_ASSERT_EQUAL(0, ::memcmp(buffer2, record.data, record.size));
 
@@ -291,8 +296,9 @@ public:
     BFC_ASSERT(blobid != 0);
 
     /* verify it */
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
     BFC_ASSERT_EQUAL(0,
-        m_blob_manager->read((Database *)m_db, 0, blobid, &record, 0));
+        m_blob_manager->read((Database *)m_db, blobid, &record, 0, arena));
     BFC_ASSERT_EQUAL(record.size, (ham_size_t)ps * BLOCKS * 2);
 
     /* and erase it */
@@ -350,14 +356,16 @@ public:
       ::free(buffer);
     }
 
+    ByteArray *arena = &((Database *)m_db)->get_record_arena();
+
     for (int i = 0; i < loops; i++) {
       buffer = (ham_u8_t *)::malloc((i + 1) * factor);
       BFC_ASSERT_I(buffer != 0, i);
       ::memset(buffer, (char)i, (i + 1) * factor);
 
       BFC_ASSERT_EQUAL_I(0,
-          m_blob_manager->read((Database *)m_db, 0, blobid[i],
-              &record, 0), i);
+          m_blob_manager->read((Database *)m_db, blobid[i], &record,
+                    0, arena), i);
       BFC_ASSERT_EQUAL_I(record.size, (ham_size_t)(i+1)*factor, i);
       BFC_ASSERT_EQUAL_I(0, ::memcmp(buffer, record.data, record.size), i);
 

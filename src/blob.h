@@ -24,6 +24,8 @@
 
 namespace hamsterdb {
 
+class ByteArray;
+
 #include "packstart.h"
 
 /**
@@ -133,8 +135,9 @@ class BlobManager
      * Reads a blob and stores the data in @a record
      * @ref flags: either 0 or HAM_DIRECT_ACCESS
      */
-    virtual ham_status_t read(Database *db, Transaction *txn, ham_u64_t blob_id,
-                    ham_record_t *record, ham_u32_t flags) = 0;
+    virtual ham_status_t read(Database *db, ham_u64_t blob_id,
+                    ham_record_t *record, ham_u32_t flags,
+                    ByteArray *arena) = 0;
 
     /**
      * Retrieves the size of a blob
@@ -184,8 +187,9 @@ class InMemoryBlobManager : public BlobManager {
      * Reads a blob and stores the data in @a record
      * @ref flags: either 0 or HAM_DIRECT_ACCESS
      */
-    ham_status_t read(Database *db, Transaction *txn, ham_u64_t blobid,
-                    ham_record_t *record, ham_u32_t flags);
+    ham_status_t read(Database *db, ham_u64_t blobid,
+                    ham_record_t *record, ham_u32_t flags,
+                    ByteArray *arena);
 
     /**
      * Retrieves the size of a blob
@@ -232,8 +236,9 @@ class DiskBlobManager : public BlobManager
      * reads a blob and stores the data in @a record
      * flags: either 0 or HAM_DIRECT_ACCESS
      */
-    ham_status_t read(Database *db, Transaction *txn, ham_u64_t blobid,
-                    ham_record_t *record, ham_u32_t flags);
+    ham_status_t read(Database *db, ham_u64_t blobid,
+                    ham_record_t *record, ham_u32_t flags,
+                    ByteArray *arena);
 
     /**
      * retrieves a blob size

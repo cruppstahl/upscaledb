@@ -84,13 +84,10 @@ InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
 }
 
 ham_status_t
-InMemoryBlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
-                    ham_record_t *record, ham_u32_t flags)
+InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
+                    ham_record_t *record, ham_u32_t flags,
+                    ByteArray *arena)
 {
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                          ? &db->get_record_arena()
-                          : &txn->get_record_arena();
-
   /*
    * in-memory-database: the blobid is actually a pointer to the memory
    * buffer, in which the blob is stored
@@ -605,17 +602,13 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 }
 
 ham_status_t
-DiskBlobManager::read(Database *db, Transaction *txn, ham_u64_t blobid,
-                ham_record_t *record, ham_u32_t flags)
+DiskBlobManager::read(Database *db, ham_u64_t blobid,
+                ham_record_t *record, ham_u32_t flags,
+                ByteArray *arena)
 {
   Page *page;
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                          ? &db->get_record_arena()
-                          : &txn->get_record_arena();
-
   ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
-  
 
   /* first step: read the blob header */
   PBlobHeader blob_header;

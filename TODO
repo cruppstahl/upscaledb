@@ -40,7 +40,7 @@ x benchmark/prototype new freelist based on discarded one
     x check_integrity: not sure yet how, but need to implement it
     x run benchmarks
 
-o new option to disable the freelist
+x new option to disable the freelist
     x clean up statistics.h
     x clean up PFreelistPageStatistics
     x clean up runtime_statistics_pagedata_t
@@ -94,22 +94,21 @@ o new option to disable the freelist
         x also for Java
         x also for .NET
 
-    o "old" freelist branch has optimization in btree_cursor.cc and
-        duplicates.cc for fetching duplicates
-    o "old" freelist branch does not use Transaction in blob_manager.cc
+x BlobManager interface: get rid of Transaction pointer, not required
 
 o get rid of memory allocator, use the new (static) one
     o but first check whether the allocator's lookaside list is really
         required
-    o fix monster test and use the new memory metrics
 
 o full_freelist: clean up the code
     o merge statistics and freelist code
+    o get rid of GlobalStatistics, directly use first_page_with_space
+        in FullFreelist
     o goal is to inline the statistics-functions because they eat lots of
         performance
 
 o we need more metrics in the monster tests:
-    o fix memory allocations
+    o fix memory allocations, use the new metrics
     o track page reads
     o track page writes
     o track direct I/O blob reads
@@ -118,10 +117,10 @@ o we need more metrics in the monster tests:
 o cache improvements
     o when flushing, sort pages by ID/offset and use writev to flush them
     o give priority to index pages
-    o introduce new cache policy "USE_AS_MUCH_AS_YOU_WANT": keeps all index
+    . introduce new cache policy "USE_AS_MUCH_AS_YOU_WANT": keeps all index
         pages in memory and cache some of the blob pages
-    o should this become the new default?
-    o add to monster tests
+    . should this become the new default?
+    . add to monster tests
 
 o win32: get rid of boost_thread
 

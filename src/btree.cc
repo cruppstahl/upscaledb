@@ -749,8 +749,12 @@ BtreeIndex::read_record(Transaction *txn, ham_record_t *record,
     }
   }
   else if (!noblob && blobsize != 0) {
-    return (m_db->get_env()->get_blob_manager()->read(m_db, txn,
-                record->_rid, record, flags));
+    ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                            ? &m_db->get_record_arena()
+                            : &txn->get_record_arena();
+
+    return (m_db->get_env()->get_blob_manager()->read(m_db,
+                record->_rid, record, flags, arena));
   }
 
   return (HAM_SUCCESS);

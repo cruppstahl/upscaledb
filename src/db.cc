@@ -380,7 +380,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   record.size = key_length - (get_keysize() - sizeof(ham_u64_t));
   record.flags = HAM_RECORD_USER_ALLOC;
 
-  st = m_env->get_blob_manager()->read(this, 0, blobid, &record, 0);
+  st = m_env->get_blob_manager()->read(this, blobid, &record, 0, 0);
   if (st)
     return (st);
 

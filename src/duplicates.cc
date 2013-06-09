@@ -227,19 +227,22 @@ DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
             ham_size_t position, bool erase_all_duplicates,
             ham_u64_t *new_table_id)
 {
-  ham_status_t st;
   ham_record_t rec = {0};
-  PDupeTable *table;
   ham_u64_t rid;
 
   if (new_table_id)
     *new_table_id = table_id;
 
-  st = m_env->get_blob_manager()->read(db, txn, table_id, &rec, 0);
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+                      ? &db->get_record_arena()
+                      : &txn->get_record_arena();
+
+  ham_status_t st = m_env->get_blob_manager()->read(db, table_id, &rec,
+          0, arena);
   if (st)
     return (st);
 
-  table = (PDupeTable *)rec.data;
+  PDupeTable *table = (PDupeTable *)rec.data;
 
   /*
    * if erase_all_duplicates is set *OR* if the last duplicate is deleted:
