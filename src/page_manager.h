@@ -24,6 +24,8 @@
 #include "error.h"
 #include "full_freelist.h"
 #include "reduced_freelist.h"
+#include "db.h"
+#include "env.h"
 
 namespace hamsterdb {
 
@@ -122,7 +124,16 @@ class PageManager {
      * freelist as a fallback)
      *
      * public because it's required for testing */
-    Freelist *get_freelist(Database *db);
+    Freelist *get_freelist(Database *db) {
+      Freelist *f = db ? db->get_reduced_freelist() : 0;
+      if (f)
+        return (f);
+      if (!m_freelist
+          && !(m_env->get_flags() & HAM_IN_MEMORY)
+          && !(m_env->get_flags() & HAM_READ_ONLY))
+        m_freelist = new FullFreelist(m_env);
+      return (m_freelist);
+    }
 
     /** returns the alignment for blobs for a specific database */
     int get_blob_alignment(Database *db) {

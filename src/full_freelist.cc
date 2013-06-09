@@ -20,6 +20,7 @@
 #include "env.h"
 #include "error.h"
 #include "full_freelist.h"
+#include "page_manager.h"
 #include "mem.h"
 #include "btree_stats.h"
 #include "txn.h"

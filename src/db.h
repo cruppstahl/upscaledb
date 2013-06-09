@@ -29,6 +29,7 @@
 #include "btree.h"
 #include "btree_key.h"
 #include "mem.h"
+#include "reduced_freelist.h"
 
 /**
  * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an

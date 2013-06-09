@@ -19,6 +19,7 @@
 #include "device.h"
 #include "env.h"
 #include "error.h"
+#include "page_manager.h"
 #include "log.h"
 #include "mem.h"
 #include "page.h"

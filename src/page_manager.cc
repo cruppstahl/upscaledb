@@ -217,37 +217,6 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
   }
 
   return (0);
-
-#if 0
-  if (ppage)
-    *ppage = 0;
-
-  for (ham_size_t i = 0; i < num_pages; i++) {
-    Page *page;
-    ham_status_t st = alloc_page(&page, db, Page::TYPE_BLOB,
-            PageManager::IGNORE_FREELIST);
-    if (st)
-      return (st);
-
-    if (i == 0) {
-      *address = page->get_self() + sizeof(PBlobPageHeader);
-      if (ppage)
-        *ppage = page;
-    }
-
-    ham_size_t last_size = size;
-    size -= std::min(size, (ham_size_t)(pag_size - sizeof(PBlobPageHeader)));
-    // if there's space left then add it to the freelist
-    if (size == 0 && m_freelist) {
-      ham_size_t size_left = pag_size - sizeof(PBlobPageHeader) - last_size;
-      if (size_left > 0)
-        m_freelist->free_area(page->get_self() + sizeof(PBlobPageHeader)
-               + last_size, size_left);
-    }
-  }
-#endif
-
-  return (0);
 }
 
 static bool
@@ -342,19 +311,6 @@ PageManager::close_database(Database *db)
 {
   if (get_cache())
     (void)get_cache()->visit(db_close_callback, db, 0);
-}
-
-Freelist *
-PageManager::get_freelist(Database *db)
-{
-  Freelist *f = db ? db->get_reduced_freelist() : 0;
-  if (f)
-    return (f);
-  if (!m_freelist
-      && !(m_env->get_flags() & HAM_IN_MEMORY)
-      && !(m_env->get_flags() & HAM_READ_ONLY))
-    m_freelist = new FullFreelist(m_env);
-  return (m_freelist);
 }
 
 } // namespace hamsterdb

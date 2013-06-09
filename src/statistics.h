@@ -19,44 +19,6 @@
 namespace hamsterdb {
 
 /**
- * The upper bound value which will trigger a statistics data rescale operation
- * to be initiated in order to prevent integer overflow in the statistics data
- * elements.
- */
-#define HAM_STATISTICS_HIGH_WATER_MARK  0x7FFFFFFF /* could be 0xFFFFFFFF */
-
-/* 
- * As we [can] support record sizes up to 4Gb, at least theoretically,
- * we can express this size range as a spanning aligned size range:
- * 1..N, where N = log2(4Gb) - log2(alignment). As we happen to know
- * alignment == 32, at least for all regular hamsterdb builds, our
- * biggest power-of-2 for the freelist slot count ~ 32-5 = 27, where 0
- * represents slot size = 1 alignment, 1 represents size of 2 * 32,
- * 2 ~ 4 * 32, and so on.
- *
- * EDIT:
- * In order to cut down on statistics management cost due to overhead
- * caused by having to keep up with the latest for VERY large sizes, we
- * cut this number down to support sizes up to a maximum size of 64Kb ~
- * 2^16, meaning any requests for more than 64Kb/CHUNKSIZE bytes is
- * sharing their statistics.
- *
- */
-#define HAM_FREELIST_SLOT_SPREAD   (16-5+1) /* 1 chunk .. 2^(SPREAD-1) chunks */
-
-/**
- * global freelist algorithm specific run-time info
- */
-struct EnvironmentStatistics
-{
-  EnvironmentStatistics() {
-    memset(this, 0, sizeof(*this));
-  }
-
-  ham_u32_t first_page_with_free_space[HAM_FREELIST_SLOT_SPREAD];
-};
-
-/**
  * @defgroup ham_operation_types hamsterdb Database Operation Types
  * @{
  *

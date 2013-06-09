@@ -31,30 +31,14 @@ x all packed structures that are directly mapped to the file
     (BlobPageHeader, BlobHeader and others) should be named
     "PXXX" (for "Persistent" or "Packed")
 
-o benchmark/prototype new freelist based on discarded one
+x benchmark/prototype new freelist based on discarded one
     x a flat array (std::vector), not sorted
     x reserve 20 entries
     x free_area: append at end, if full then overwrite smallest
     x free_page: traverse all entries, remove if necessary
     x alloc: traverse lineary, pick best fit
     x check_integrity: not sure yet how, but need to implement it
-    o run benchmarks
-
-=========================================
-- clean up TODO file
-- fix unittests
-- reduced_freelist: insert at end and search from end; pick the first
-    element that fits (this might give priority to recently freed blobs
-    and the page is still cached)
-- or keep sorted list, use binary search
-- check benchmarks; it feels that the percentages are not calculated properly
-- run benchmarks
-- there are some missing commits that have to be merged manually
-    - 1801f0bbd2c1ee00b873af774b9f78eb07a364da
-    - eaa03fd265d54a84f909261ddb028fd232b82f36
-    - 509530c5b49767a9e687521a1935fbed1b33ad53
-    - 9b138028484c5b4d31422bf5d38e62c8fdd462c9 (broken!)
-=========================================
+    x run benchmarks
 
 o new option to disable the freelist
     x clean up statistics.h
@@ -66,32 +50,28 @@ o new option to disable the freelist
         x remove fields that are not required
         x create class FreelistStatistics::Hints, file freelist_stats.h/cc
     x same for freelist_global_hints_t
-    o freelist_stats.h has global functions; move into FreelistStatistics
+    x freelist_stats.h has global functions; move into FreelistStatistics
         namespace
-    o run performance tests, just to make sure that we did not break anything
-    o EnvironmentStatistics::m_perf_data: move to Freelist
-
+    x run performance tests, just to make sure that we did not break anything
     x re-introduce page_manager (has ownership of Freelist, Cache, Pages etc)
-    o clean up PageManager::alloc_blob
+    x clean up PageManager::alloc_blob
 
-    o review unittest Freelist::overflow4
-    o "old" hamsterdb.cc has different method to deal with freelist in header
-        page
+    x "old" hamsterdb.cc has different method to deal with freelist in header
+        page - leave as is
     x split BlobManager into subclasses (in-memory, disk)
         x use ByteArray for "zeroes" when filling partial gaps
     x review unittest Freelist::overflow4 - remove
-    x "old" hamsterdb.cc has different method to deal with freelist in header
-        page - unify (or leave as is? no need to change it)
 
     x merge freelist and freelist_statistics
-    x rename to BitmapFreelist
     x also rename unittests!
     x new Freelist is called "SimpleFreelist", owned by PageManager
     x rename SimpleFreelist to ReducedFreelist (and rename the files, too)
 
     x both derive from the same interface
 
-    o new option HAM_PARAM_FREELIST_POLICY
+    x EnvironmentStatistics::m_perf_data: move to Freelist
+
+    x new option HAM_PARAM_FREELIST_POLICY
             - 0: FULL
             - 1: REDUCED
         x requires documentation - when to choose which?
@@ -106,23 +86,27 @@ o new option to disable the freelist
             FullFreelist::get_blob_alignment() -> DB_CHUNKSIZE;
             ReducedFreelist::get_blob_alignment() -> 1;
             x see 2 x TODO in freelist.cpp unittests
-        o extend (and run) the monster tests
-        o extend (and run) the performance tests
-        o run benchmarks with different number of slots (up to 1024)
-            o insert sorted and use binary search?
-        o also for Java
-        o also for .NET
+        x extend (and run) the monster tests
+        x extend (and run) the performance tests
+        x check benchmarks; it feels that the percentages are not
+            calculated properly
+        x run benchmarks - does it make sense to have this new option??
+        x also for Java
+        x also for .NET
 
     o "old" freelist branch has optimization in btree_cursor.cc and
         duplicates.cc for fetching duplicates
     o "old" freelist branch does not use Transaction in blob_manager.cc
 
-o Partial read: record->size returns the partial size that was retrieved.
-    I think record->size should return the original size, and
-    record->partial_size should return the size that was read.
-    -- really?? yes, this is much cleaner
-
 o get rid of memory allocator, use the new (static) one
+    o but first check whether the allocator's lookaside list is really
+        required
+    o fix monster test and use the new memory metrics
+
+o full_freelist: clean up the code
+    o merge statistics and freelist code
+    o goal is to inline the statistics-functions because they eat lots of
+        performance
 
 o we need more metrics in the monster tests:
     o fix memory allocations

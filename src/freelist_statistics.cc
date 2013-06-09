@@ -24,6 +24,7 @@
 #include "freelist_statistics.h"
 #include "mem.h"
 #include "util.h"
+#include "full_freelist.h"
 
 namespace hamsterdb {
 
@@ -380,8 +381,7 @@ FullFreelistStatistics::edit(FullFreelist *fl, FullFreelistEntry *entry,
    * overall staistics gathering.
   */
   if (hints->lower_bound_address == 0) {
-    EnvironmentStatistics *globalstats
-          = fl->get_env()->get_global_perf_data();
+    GlobalStatistics *globalstats = fl->get_global_statistics();
     PFreelistPageStatistics *entrystats = &entry->perf_data;
 
     ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
@@ -487,7 +487,7 @@ FullFreelistStatistics::edit(FullFreelist *fl, FullFreelistEntry *entry,
 
         ham_assert(entrystats->persisted_bits == 0);
         entrystats->persisted_bits = position +
-          size_bits + entry->allocated_bits;
+            size_bits + entry->allocated_bits;
       }
 
       /*
@@ -511,8 +511,7 @@ FullFreelistStatistics::edit(FullFreelist *fl, FullFreelistEntry *entry,
          * here; we can ALWAYS DECREMENT the lower bound, as we do
          * in the 'free_these' branch above.
          */
-        if (globalstats->first_page_with_free_space[bucket] == entry_index)
-        {
+        if (globalstats->first_page_with_free_space[bucket] == entry_index) {
           for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
             if (globalstats->first_page_with_free_space[b] <= entry_index)
               globalstats->first_page_with_free_space[b] = entry_index + 1;
@@ -529,7 +528,7 @@ void
 FullFreelistStatistics::globalhints_no_hit(FullFreelist *fl,
     FullFreelistEntry *entry, FullFreelistStatistics::Hints *hints)
 {
-  EnvironmentStatistics *globalstats = fl->get_env()->get_global_perf_data();
+  GlobalStatistics *globalstats = fl->get_global_statistics();
 
   ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
   ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
@@ -550,7 +549,8 @@ FullFreelistStatistics::globalhints_no_hit(FullFreelist *fl,
 
     for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
       if (globalstats->first_page_with_free_space[b] <= entry_index)
-        globalstats->first_page_with_free_space[b] = entry_index + hints->page_span_width;
+        globalstats->first_page_with_free_space[b]
+            = entry_index + hints->page_span_width;
       /* also update buckets for smaller chunks at the same time */
     }
   }
@@ -573,7 +573,7 @@ void
 FullFreelistStatistics::get_global_hints(FullFreelist *fl,
     FullFreelistStatistics::GlobalHints *dst)
 {
-  EnvironmentStatistics *globalstats = fl->get_env()->get_global_perf_data();
+  GlobalStatistics *globalstats = fl->get_global_statistics();
 
   ham_u32_t offset;
   ham_size_t pos;
@@ -836,7 +836,7 @@ FullFreelistStatistics::get_entry_hints(FullFreelist *fl,
 #if 0 /* disabled printing of statistics */
   {
   static int c = 0;
-  EnvironmentStatistics *globalstats = env->get_global_perf_data();
+  GlobalStatistics *globalstats = fl->get_global_statistics();
   c++;
   if (c % 100000 == 999) {
     /*

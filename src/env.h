@@ -28,14 +28,12 @@
 #  include "protocol/protocol.h"
 #endif
 
-#include "statistics.h"
 #include "endianswap.h"
 #include "error.h"
 #include "page.h"
 #include "changeset.h"
 #include "blob.h"
 #include "duplicates.h"
-#include "page_manager.h"
 
 /**
  * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
@@ -369,11 +367,6 @@ class Environment
       get_header()->_pagesize=ham_h2db32(ps);
     }
 
-    /** get a reference to the DB FILE (global) statistics */
-    EnvironmentStatistics *get_global_perf_data() {
-      return (&m_perf_data);
-    }
-
     /** set the 'magic' field of a file header */
     void set_magic(ham_u8_t m1, ham_u8_t m2, ham_u8_t m3, ham_u8_t m4) {
       get_header()->_magic[0] = m1;
@@ -552,10 +545,6 @@ class Environment
     /** the max. number of databases which was specified when the env
      * was created */
     ham_u16_t m_max_databases_cached;
-
-    /** some freelist algorithm specific run-time data */
-    // TODO move to LocalEnvironment
-    EnvironmentStatistics m_perf_data;
 
     /** the directory of the log file and journal files */
     std::string m_log_directory;

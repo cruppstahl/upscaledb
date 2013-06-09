@@ -53,7 +53,6 @@ Environment::Environment()
     m_changeset(this), m_pagesize(0), m_max_databases_cached(0),
     m_duplicate_manager(this)
 {
-  memset(&m_perf_data, 0, sizeof(m_perf_data));
 }
 
 Environment::~Environment()

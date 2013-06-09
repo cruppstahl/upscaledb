@@ -126,6 +126,11 @@ class FullFreelist : public Freelist
     /** lazily initializes the freelist structure */
     ham_status_t initialize();
 
+    /** get a reference to the DB FILE (global) statistics */
+    GlobalStatistics *get_global_statistics() {
+      return (&m_perf_data);
+    }
+
     /** retrieves the FullFreelistEntry which manages a specific
      * file address */
     FullFreelistEntry *get_entry_for_address(ham_u64_t address);
@@ -176,6 +181,9 @@ class FullFreelist : public Freelist
 
     /** the cached freelist entries */
     std::vector<FullFreelistEntry> m_entries;
+
+    /** some freelist algorithm specific run-time data */
+    GlobalStatistics m_perf_data;
 };
 
 #include "packstart.h"

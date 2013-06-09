@@ -45,6 +45,7 @@
 #include "txn.h"
 #include "util.h"
 #include "version.h"
+#include "full_freelist.h"
 
 using namespace hamsterdb;
 

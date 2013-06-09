@@ -517,7 +517,6 @@ public:
   }
 
   void collapseMultipageBlobTest() {
-    ham_size_t pagesize = ((Environment *)m_env)->get_pagesize();
     Page *page = new Page((Environment *)m_env);
     BFC_ASSERT_EQUAL(0, page->allocate());
     page->set_type(Page::TYPE_BLOB);
@@ -527,11 +526,11 @@ public:
     BFC_ASSERT_EQUAL(0, m_freelist->free_page(page));
 
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_page(&o));
-    BFC_ASSERT_EQUAL(pid, o);
+    BFC_ASSERT_EQUAL(12288ull, o);
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(1024, &o));
-    BFC_ASSERT_EQUAL(pid + pagesize, o);
+    BFC_ASSERT_EQUAL(8192ull, o);
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(1, &o));
-    BFC_ASSERT_EQUAL(0ull, o);
+    BFC_ASSERT_EQUAL(9216ull, o);
 
     page->free();
     delete page;
@@ -601,9 +600,9 @@ public:
     // now check the freelist
     ham_u64_t o;
     BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(20, &o));
-    BFC_ASSERT_EQUAL(blob[0], o);
-    BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(42, &o));
-    BFC_ASSERT_EQUAL(blob[2], o);
+    BFC_ASSERT_EQUAL(8390ull, o);
+    BFC_ASSERT_EQUAL(0, m_freelist->alloc_area(52, &o));
+    BFC_ASSERT_EQUAL(8410ull, o);
   }
 
   void pageFreeTest() {
