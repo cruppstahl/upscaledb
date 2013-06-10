@@ -56,12 +56,12 @@ compare(void *vlhs, void *vrhs)
 }
 
 static void *
-copy_key_data(Allocator *alloc, ham_key_t *key)
+copy_key_data(ham_key_t *key)
 {
   void *data = 0;
 
   if (key->data && key->size) {
-    data = (void *)alloc->alloc(key->size);
+    data = Memory::allocate<void>(key->size);
     if (!data)
       return (0);
     memcpy(data, key->data, key->size);
@@ -78,10 +78,8 @@ txn_op_free(Environment *env, Transaction *txn, TransactionOperation *op)
 
   // TODO move to destructor of TransactionOperation
   rec = op->get_record();
-  if (rec->data) {
-    env->get_allocator()->free(rec->data);
-    rec->data = 0;
-  }
+  Memory::release(rec->data);
+  rec->data = 0;
 
   /* remove 'op' from the two linked lists */
   TransactionOperation *next = op->get_next_in_node();
@@ -120,12 +118,11 @@ TransactionOperation::TransactionOperation(Transaction *txn,
   m_referenced_dupe(0), m_lsn(lsn), m_cursors(0), m_node_next(0),
   m_node_prev(0), m_txn_next(0), m_txn_prev(0)
 {
-  Allocator *alloc = txn->get_env()->get_allocator();
   /* create a copy of the record structure */
   if (record) {
     m_record = *record;
     if (record->size && record->data) {
-      m_record.data = alloc->alloc(record->size);
+      m_record.data = Memory::allocate<void>(record->size);
       memcpy(m_record.data, record->data, record->size);
     }
     else {
@@ -202,15 +199,13 @@ TransactionNode::TransactionNode(Database *db, ham_key_t *key, bool dont_insert)
   : m_db(db), m_tree(db->get_optree()), m_oldest_op(0), m_newest_op(0),
   m_dont_insert(dont_insert)
 {
-  Allocator *alloc = db->get_env()->get_allocator();
-
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
   // TransactionIndex::get() creates a new TransactionNode
   // ham_assert(TransactionIndex::get(key, 0) == 0);
 
   m_key = *key;
-  m_key.data = copy_key_data(alloc, key);
+  m_key.data = copy_key_data(key);
 
   /* store the node in the tree */
   if (dont_insert == false)
@@ -228,8 +223,7 @@ TransactionNode::~TransactionNode()
   if (m_dont_insert == false && m_tree)
     rbt_remove(m_tree, this);
 
-  if (m_key.data)
-    m_db->get_env()->get_allocator()->free(m_key.data);
+  Memory::release(m_key.data);
 }
 
 TransactionOperation *
@@ -281,15 +275,11 @@ TransactionIndex::close()
 
 Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
   : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
-  m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
+    m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
   m_id = env->get_txn_id() + 1;
   env->set_txn_id(m_id);
   if (name)
-  m_name = name;
-  if (!(flags & HAM_TXN_TEMPORARY)) {
-  get_key_arena().set_allocator(env->get_allocator());
-  get_record_arena().set_allocator(env->get_allocator());
-  }
+    m_name = name;
 
   /* link this txn with the Environment */
   env->append_txn(this);

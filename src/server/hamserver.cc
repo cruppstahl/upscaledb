@@ -119,16 +119,15 @@ send_wrapper(ham_env_t *henv, struct mg_connection *conn, Protocol *wrapper)
 {
   ham_u8_t *data;
   ham_size_t data_size;
-  Environment *env = (Environment *)henv;
 
-  if (!wrapper->pack(env->get_allocator(), &data, &data_size))
+  if (!wrapper->pack(&data, &data_size))
     return;
 
   ham_trace(("type %u: sending %d bytes", wrapper->type(), data_size));
   mg_printf(conn, "%s", standard_reply);
   mg_write(conn, data, data_size);
 
-  env->get_allocator()->free(data);
+  Memory::release(data);
 }
 
 static void

@@ -26,6 +26,7 @@
 #include "txn.h"
 #include "btree.h"
 #include "btree_key.h"
+#include "util.h"
 
 using namespace hamsterdb;
 
@@ -53,8 +54,7 @@ InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
    * in-memory-database: the blobid is actually a pointer to the memory
    * buffer, in which the blob (with the blob-header) is stored
    */
-  ham_u8_t *p = (ham_u8_t *)m_env->get_allocator()->alloc(
-                              record->size + sizeof(PBlobHeader));
+  ham_u8_t *p = Memory::allocate<ham_u8_t>(record->size + sizeof(PBlobHeader));
   if (!p)
     return (HAM_OUT_OF_MEMORY);
 
@@ -194,7 +194,7 @@ InMemoryBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
     if (st)
       return (st);
 
-    m_env->get_allocator()->free(phdr);
+    Memory::release(phdr);
   }
 
   return (HAM_SUCCESS);
@@ -204,7 +204,7 @@ ham_status_t
 InMemoryBlobManager::free(Database *db, ham_u64_t blobid,
                     Page *page, ham_u32_t flags)
 {
-  m_env->get_allocator()->free((void *)U64_TO_PTR(blobid));
+  Memory::release((void *)U64_TO_PTR(blobid));
   return (0);
 }
 
@@ -379,7 +379,7 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
   ham_size_t chunk_size[2];
   Device *device = m_env->get_device();
   bool freshly_created = false;
-  ByteArray zeroes(m_env->get_allocator());
+  ByteArray zeroes;
 
   *blobid = 0;
 

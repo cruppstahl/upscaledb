@@ -30,13 +30,13 @@ namespace hamsterdb {
 class ByteArray
 {
   public:
-    ByteArray(Allocator *alloc = 0, ham_size_t size = 0)
-      : m_alloc(alloc), m_ptr(0), m_size(0), m_own(true) {
+    ByteArray(ham_size_t size = 0)
+      : m_ptr(0), m_size(0), m_own(true) {
       resize(size);
     }
 
-    ByteArray(Allocator *alloc, ham_size_t size, ham_u8_t fill_byte)
-      : m_alloc(alloc), m_ptr(0), m_size(0), m_own(true) {
+    ByteArray(ham_size_t size, ham_u8_t fill_byte)
+      : m_ptr(0), m_size(0), m_own(true) {
       resize(size);
       if (m_ptr)
         ::memset(m_ptr, fill_byte, m_size);
@@ -49,7 +49,7 @@ class ByteArray
 
     void *resize(ham_size_t size) {
       if (size > m_size) {
-        m_ptr = m_alloc->realloc(m_ptr, size);
+        m_ptr = Memory::reallocate<void>(m_ptr, size);
         m_size = size;
       }
       return (m_ptr);
@@ -60,10 +60,6 @@ class ByteArray
       if (m_ptr)
         memset(m_ptr, fill_byte, size);
       return (m_ptr);
-    }
-
-    void set_allocator(Allocator *alloc) {
-      m_alloc = alloc;
     }
 
     ham_size_t get_size() {
@@ -81,8 +77,7 @@ class ByteArray
     }
 
     void clear() {
-      if (m_ptr)
-        m_alloc->free(m_ptr);
+      Memory::release(m_ptr);
       m_ptr = 0;
       m_size = 0;
     }
@@ -92,7 +87,6 @@ class ByteArray
     }
 
   private:
-    Allocator *m_alloc;
     void *m_ptr;
     ham_size_t m_size;
     bool m_own;

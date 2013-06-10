@@ -380,13 +380,13 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, void **aux)
 
   /* read auxiliary data if it's available */
   if (entry->followup_size) {
-    *aux = allocate((ham_size_t)entry->followup_size);
+    *aux = Memory::allocate<void>((ham_size_t)entry->followup_size);
     if (!*aux)
       return (HAM_OUT_OF_MEMORY);
 
     st = os_pread(m_fd[iter->fdidx], iter->offset, *aux, entry->followup_size);
     if (st) {
-      alloc_free(*aux);
+      Memory::release(*aux);
       *aux = 0;
       return (st);
     }
@@ -534,10 +534,7 @@ Journal::recover()
   do {
     PJournalEntry entry;
 
-    if (aux) {
-      alloc_free(aux);
-      aux = 0;
-    }
+    Memory::release(aux);
 
     /* get the next entry */
     st = get_entry(&it, &entry, (void **)&aux);
@@ -642,10 +639,7 @@ Journal::recover()
   } while (1);
 
 bail:
-  if (aux) {
-      alloc_free(aux);
-      aux = 0;
-  }
+  Memory::release(aux);
 
   /* all transactions which are not yet committed will be aborted */
   (void)__abort_uncommitted_txns(m_env);

@@ -29,8 +29,8 @@ AC_HEADER_STDC
 AC_C_CONST
 AC_TYPE_SIZE_T
 AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev pread pwrite)
-AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
-AC_CHECK_LIB(tcmalloc_minimal, malloc)
+AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h google/tcmalloc.h)
+AC_CHECK_LIB(tcmalloc_minimal, tc_malloc)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
 BOOST_REQUIRE()
@@ -324,6 +324,10 @@ printf "#\n"
 printf "# The Java API is not built because you specified\n"
 printf "# --disable-java or because \$JDK is not set\n"
 fi
+if test "x$ac_cv_lib_tcmalloc_minimal_tc_malloc" != "xyes"; then
+printf "# Recommendation: install google's performance tools to maximize performance\n"
+fi
+
 printf '#================================================================\n'
 
 # build protobuf files

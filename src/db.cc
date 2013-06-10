@@ -174,8 +174,6 @@ Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
     m_extkey_cache(0), m_optree(this), m_freelist(0)
 {
-  m_key_arena.set_allocator(env->get_allocator());
-  m_record_arena.set_allocator(env->get_allocator());
 }
 
 ham_status_t
@@ -310,7 +308,6 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   ham_size_t temp;
   ham_record_t record;
   ham_u8_t *ptr;
-  Allocator *alloc = m_env->get_allocator();
 
   ham_assert(key_flags & PBtreeKey::KEY_IS_EXTENDED);
 
@@ -338,7 +335,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
       ham_assert(temp == key_length);
 
       if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-        ext_key->data = (ham_u8_t *)alloc->alloc(key_length);
+        ext_key->data = Memory::allocate<ham_u8_t>(key_length);
         if (!ext_key->data)
           return (HAM_OUT_OF_MEMORY);
       }
@@ -366,7 +363,7 @@ Database::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
    * memory space for the faked record-based blob_read() below.
    */
   if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-    ext_key->data = (ham_u8_t *)alloc->alloc(key_length);
+    ext_key->data = Memory::allocate<ham_u8_t>(key_length);
     if (!ext_key->data)
       return (HAM_OUT_OF_MEMORY);
   }
@@ -1110,7 +1107,7 @@ retry:
     ham_key_t *k = op->get_node()->get_key();
     txnkey.size = k->size;
     txnkey._flags = PBtreeKey::KEY_IS_APPROXIMATE;
-    txnkey.data = db->get_env()->get_allocator()->alloc(txnkey.size);
+    txnkey.data = Memory::allocate<ham_u8_t>(txnkey.size);
     memcpy(txnkey.data, k->data, txnkey.size);
 
     ham_key_set_intflags(key, 0);
@@ -1128,7 +1125,7 @@ retry:
       }
       if (txnkey.data) {
         memcpy(key->data, txnkey.data, txnkey.size);
-        db->get_env()->get_allocator()->free(txnkey.data);
+        Memory::release(txnkey.data);
       }
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
@@ -1140,8 +1137,7 @@ retry:
     // the btree key is a direct match? then return it
     if ((!(ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE))
         && (flags & HAM_FIND_EXACT_MATCH)) {
-      if (txnkey.data)
-        db->get_env()->get_allocator()->free(txnkey.data);
+      Memory::release(txnkey.data);
       return (0);
     }
     // if there's an approx match in the btree: compare both keys and
@@ -1161,8 +1157,7 @@ retry:
       ham_assert(!"shouldn't be here");
 
     if (use_btree) {
-      if (txnkey.data)
-        db->get_env()->get_allocator()->free(txnkey.data);
+      Memory::release(txnkey.data);
       // lookup again, with the same flags and the btree key.
       // this will check if the key was erased or overwritten
       // in a transaction
@@ -1179,7 +1174,7 @@ retry:
       }
       if (txnkey.data) {
         memcpy(key->data, txnkey.data, txnkey.size);
-        db->get_env()->get_allocator()->free(txnkey.data);
+        Memory::release(txnkey.data);
       }
       key->size = txnkey.size;
       key->_flags = txnkey._flags;

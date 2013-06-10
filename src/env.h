@@ -208,16 +208,6 @@ class Environment
       m_device = device;
     }
 
-    /** get the allocator */
-    Allocator *get_allocator() {
-      return (m_alloc);
-    }
-
-    /** set the allocator */
-    void set_allocator(Allocator *alloc) {
-      m_alloc = alloc;
-    }
-
     /** get the header page */
     Page *get_header_page() {
       return (m_hdrpage);
@@ -508,9 +498,6 @@ class Environment
     /** the device (either a file or an in-memory-db) */
     // TODO move to LocalEnvironment
     Device *m_device;
-
-    /** the memory allocator */
-    Allocator *m_alloc;
 
     /** the file header page */
     // TODO move to LocalEnvironment

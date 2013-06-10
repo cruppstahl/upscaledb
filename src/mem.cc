@@ -12,136 +12,55 @@
 
 #include "config.h"
 
-#include <string.h>
-#include <stack>
-
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
 #else
 #  include <stdlib.h>
 #endif
+#include <unistd.h> // sysconf
+#ifdef HAVE_GOOGLE_TCMALLOC_H
+#  include <google/malloc_extension.h>
+#endif
 
-#include "db.h"
-#include "error.h"
 #include "mem.h"
-#include "txn.h"
 
 namespace hamsterdb {
 
-class DefaultAllocator : public Allocator
+Memory::Metrics Memory::ms_metrics;
+
+
+void
+Memory::get_global_metrics(Metrics *metrics)
 {
-    struct Lookasides
-    {
-      typedef std::stack<void *> LookasideList;
-
-      Lookasides()
-      : max_sizes(2) {
-        sizes[0] = sizeof(TransactionOperation);
-        sizes[1] = sizeof(TransactionNode);
-      }
-
-      LookasideList lists[2];
-      ham_u32_t sizes[2];
-      int max_sizes;
-    };
-
-  public:
-    /** a constructor */
-    DefaultAllocator() {
-    }
-
-    /** a virtual destructor */
-    virtual ~DefaultAllocator() {
-      for (int i = 0; i < m_ls.max_sizes; i++) {
-        while (!m_ls.lists[i].empty()) {
-          void *p = (char *)m_ls.lists[i].top();
-          m_ls.lists[i].pop();
-#if defined(_CRTDBG_MAP_ALLOC)
-          ::_free_dbg((void *)p, _NORMAL_BLOCK);
-#else
-          ::free((void *)p);
+#ifdef HAVE_GOOGLE_TCMALLOC_H
+  size_t value = 0;
+  MallocExtension::instance()->GetNumericProperty(
+                  "generic.current_allocated_bytes", &value);
+  ms_metrics.current_memory = value;
+  if (ms_metrics.peak_memory < value)
+    ms_metrics.peak_memory = value;
+  MallocExtension::instance()->GetNumericProperty(
+                  "generic.heap_size", &value);
+  ms_metrics.heap_size = value;
 #endif
-        }
-      }
-    }
 
-    /** allocate a chunk of memory */
-    virtual void *alloc(ham_size_t size) {
-      void *p = 0;
+  *metrics = ms_metrics;
+}
 
-      for (int i = 0; i < m_ls.max_sizes; i++) {
-        if (size == m_ls.sizes[i] && !m_ls.lists[i].empty()) {
-          p = m_ls.lists[i].top();
-          m_ls.lists[i].pop();
-          break;
-        }
-      }
-
-      if (p)
-        return ((char *)p + sizeof(ham_u32_t));
-
-#if defined(_CRTDBG_MAP_ALLOC)
-      p = ::_malloc_dbg(size + sizeof(ham_u32_t), _NORMAL_BLOCK,
-                  __FILE__, __LINE__);
-#else
-      p = ::malloc(size+sizeof(ham_u32_t));
-#endif
-      if (p) {
-        *(ham_u32_t *)p = size;
-        return ((char *)p + sizeof(ham_u32_t));
-      }
-      return (0);
-    }
-
-    /** release a chunk of memory */
-    void free(const void *ptr) {
-      ham_u32_t size;
-      void *p = 0;
-
-      ham_assert(ptr);
-
-      p = (char *)ptr - sizeof(ham_u32_t);
-      size = *(ham_u32_t *)p;
-
-      for (int i = 0; i < m_ls.max_sizes; i++) {
-        if (size == m_ls.sizes[i] && m_ls.lists[i].size() < 10) {
-          m_ls.lists[i].push(p);
-          return;
-        }
-      }
-
-#if defined(_CRTDBG_MAP_ALLOC)
-      ::_free_dbg((void *)p, _NORMAL_BLOCK);
-#else
-      ::free((void *)p);
-#endif
-    }
-
-    /** re-allocate a chunk of memory */
-    virtual void *realloc(const void *ptr, ham_size_t size) {
-      void *p = ptr ? (char *)ptr - sizeof(ham_u32_t) : 0;
-
-#if defined(_CRTDBG_MAP_ALLOC)
-      ptr = ::_realloc_dbg((void *)p, size + sizeof(ham_u32_t),
-            _NORMAL_BLOCK, __FILE__, __LINE__);
-#else
-      ptr = ::realloc((void *)p, size + sizeof(ham_u32_t));
-#endif
-      if (ptr) {
-        *(ham_u32_t *)ptr = size;
-        return ((char *)ptr + sizeof(ham_u32_t));
-      }
-      return (0);
-    }
-
-  private:
-    Lookasides m_ls;
-};
-
-Allocator *
-Allocator::create()
+size_t 
+Memory::get_vm_pagesize()
 {
-  return (new DefaultAllocator());
+  return ((size_t)::sysconf(_SC_PAGE_SIZE));
+}
+
+void 
+Memory::release_to_system()
+{
+#ifdef HAVE_GOOGLE_TCMALLOC_H
+  MallocExtension::instance()->ReleaseFreeMemory();
+#else
+  ::malloc_trim(get_vm_pagesize());
+#endif
 }
 
 } // namespace hamsterdb

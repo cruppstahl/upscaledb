@@ -78,13 +78,13 @@ class ExtKeyCache
           node->next = other;
         }
 
-        bool remove_if(const ExtKey *node) {
+        bool remove_if(ExtKey *node) {
           if (m_removeall) {
-            m_env->get_allocator()->free(node);
+            Memory::release(node);
             return (true);
           }
           if (m_env->get_txn_id()-node->age > EXTKEY_MAX_AGE) {
-            m_env->get_allocator()->free(node);
+            Memory::release(node);
             return (true);
           }
           return (false);
@@ -123,7 +123,7 @@ class ExtKeyCache
       /* DEBUG build: make sure that the item is not inserted twice!  */
       ham_assert(m_hash.get(blobid) == 0);
 
-      e = (ExtKey *)env->get_allocator()->alloc(SIZEOF_EXTKEY_T + size);
+      e = (ExtKey *)Memory::allocate<ExtKey>(SIZEOF_EXTKEY_T + size);
       e->blobid = blobid;
       /* TODO do not use txn id but lsn for age */
       e->age = env->get_txn_id();
@@ -141,7 +141,7 @@ class ExtKeyCache
       ExtKey *e = m_hash.remove(blobid);
       if (e) {
         m_usedsize -= e->size;
-        m_db->get_env()->get_allocator()->free(e);
+        Memory::release(e);
       }
     }
 

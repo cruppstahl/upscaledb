@@ -285,7 +285,7 @@ class DiskDevice : public Device {
     /** frees a page on the device; plays counterpoint to @ref alloc_page */
     virtual void free_page(Page *page) {
       if (page->get_pers() && page->get_flags() & Page::NPERS_MALLOC) {
-        get_env()->get_allocator()->free(page->get_pers());
+        Memory::release(page->get_pers());
         page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
       }
       page->set_pers(0);
@@ -414,9 +414,9 @@ class InMemoryDevice : public Device {
     virtual ham_status_t alloc_page(Page *page) {
       ham_assert(page->get_pers() == 0);
 
-      ham_u8_t *p = (ham_u8_t *)get_env()->get_allocator()->alloc(m_pagesize);
+      ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
       if (!p)
-          return (HAM_OUT_OF_MEMORY);
+        return (HAM_OUT_OF_MEMORY);
       page->set_pers((PageData *)p);
       page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
       page->set_self((ham_u64_t)PTR_TO_U64(p));
@@ -429,7 +429,7 @@ class InMemoryDevice : public Device {
       ham_assert(page->get_flags() | Page::NPERS_MALLOC);
 
       page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-      get_env()->get_allocator()->free(page->get_pers());
+      Memory::release(page->get_pers());
       page->set_pers(0);
     }
 

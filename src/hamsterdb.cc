@@ -1819,14 +1819,3 @@ ham_env_get_device(ham_env_t *henv)
   return ((ham_device_t *)env->get_device());
 }
 
-ham_status_t HAM_CALLCONV
-ham_env_set_allocator(ham_env_t *henv, void *alloc)
-{
-  Environment *env = (Environment *)henv;
-  if (!env || !alloc)
-    return (HAM_INV_PARAMETER);
-
-  ScopedLock lock(env->get_mutex());
-  env->set_allocator((Allocator *)alloc);
-  return (0);
-}

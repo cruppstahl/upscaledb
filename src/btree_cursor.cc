@@ -37,14 +37,11 @@ namespace hamsterdb {
 void
 BtreeCursor::set_to_nil()
 {
-  Environment *env = get_db()->get_env();
-
   /* uncoupled cursor: free the cached pointer */
   if (is_uncoupled()) {
     ham_key_t *key = get_uncoupled_key();
-    if (key->data)
-      env->get_allocator()->free(key->data);
-    env->get_allocator()->free(key);
+    Memory::release(key->data);
+    Memory::release(key);
     set_uncoupled_key(0);
   }
   /* coupled cursor: remove from page */
@@ -53,9 +50,8 @@ BtreeCursor::set_to_nil()
 
   ham_key_t *key = get_uncoupled_key();
   if (key) {
-    if (key->data)
-      env->get_allocator()->free(key->data);
-    env->get_allocator()->free(key);
+    Memory::release(key->data);
+    Memory::release(key);
     set_uncoupled_key(0);
   }
 
@@ -79,7 +75,6 @@ BtreeCursor::uncouple(ham_u32_t flags)
 {
   ham_status_t st;
   Database *db = get_db();
-  Environment *env = db->get_env();
 
   if (is_uncoupled() || is_nil())
     return (0);
@@ -94,16 +89,15 @@ BtreeCursor::uncouple(ham_u32_t flags)
   /* copy the key */
   ham_key_t *key = get_uncoupled_key();
   if (!key) {
-    key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
+    key = Memory::callocate<ham_key_t>(sizeof(*key));
     if (!key)
       return (HAM_OUT_OF_MEMORY);
   }
 
   st = db->get_btree()->copy_key(entry, key);
   if (st) {
-    if (key->data)
-      env->get_allocator()->free(key->data);
-    env->get_allocator()->free(key);
+    Memory::release(key->data);
+    Memory::release(key);
     set_uncoupled_key(0);
     return (st);
   }
@@ -121,9 +115,6 @@ BtreeCursor::uncouple(ham_u32_t flags)
 void
 BtreeCursor::clone(BtreeCursor *other)
 {
-  Database *db = other->get_db();
-  Environment *env = db->get_env();
-
   set_dupe_id(other->get_dupe_id());
 
   /* if the old cursor is coupled: couple the new cursor, too */
@@ -136,9 +127,9 @@ BtreeCursor::clone(BtreeCursor *other)
   else if (other->is_uncoupled()) {
     ham_key_t *key = get_uncoupled_key();
     if (!key)
-      key = (ham_key_t *)env->get_allocator()->calloc(sizeof(*key));
+      key = Memory::callocate<ham_key_t>(sizeof(*key));
     else {
-      env->get_allocator()->free(key->data);
+      Memory::release(key->data);
       key->data = 0;
       key->size = 0;
     }
@@ -470,7 +461,7 @@ BtreeCursor::get_duplicate_table(PDupeTable **ptable, bool *needs_free)
   if (!(entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES)) {
     PDupeEntry *e;
     PDupeTable *t;
-    t = (PDupeTable *)env->get_allocator()->calloc(sizeof(*t));
+    t = Memory::callocate<PDupeTable>(sizeof(*t));
     if (!t)
       return (HAM_OUT_OF_MEMORY);
     dupe_table_set_capacity(t, 1);
@@ -560,7 +551,7 @@ BtreeCursor::couple()
 {
   ham_key_t key = {0};
   Database *db = get_db();
-  Environment *env = db->get_env();
+  ham_u32_t dupe_id = get_dupe_id();
 
   ham_assert(is_uncoupled());
 
@@ -572,19 +563,15 @@ BtreeCursor::couple()
    * and restore it afterwards
    */
   ham_status_t st = db->copy_key(get_uncoupled_key(), &key);
-  if (st) {
-    if (key.data)
-      env->get_allocator()->free(key.data);
-    return (st);
-  }
+  if (st)
+    goto bail;
 
-  ham_u32_t dupe_id = get_dupe_id();
   st = find(&key, 0, 0);
   set_dupe_id(dupe_id);
 
   /* free the cached key */
-  if (key.data)
-    env->get_allocator()->free(key.data);
+bail:
+  Memory::release(key.data);
 
   return (st);
 }

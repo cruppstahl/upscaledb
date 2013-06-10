@@ -1,3 +1,6 @@
+Jun 10, 2013 - chris ---------------------------------------------------
+o Improved integration of tcmalloc, removed ham_env_set_allocator
+
 Jun 09, 2013 - chris ---------------------------------------------------
 o Added HAM_PARAM_REDUCE_FREELIST: if enabled, freelist functionality is
 	extremely reduced and not persisted

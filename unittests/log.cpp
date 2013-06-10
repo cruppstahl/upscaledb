@@ -220,8 +220,7 @@ public:
     BFC_ASSERT_NOTNULL(data);
     BFC_ASSERT_EQUAL((ham_u32_t)0, entry.flags);
 
-    if (data)
-      m_env->get_allocator()->free(data);
+    Memory::release(data);
 
     BFC_ASSERT_EQUAL((ham_u64_t)1, log->get_lsn());
 
@@ -237,7 +236,7 @@ public:
     }
     else {
       BFC_ASSERT_NOTNULL(data);
-      m_env->get_allocator()->free(data);
+      Memory::release(data);
     }
   }
 
@@ -563,14 +562,12 @@ public:
       BFC_ASSERT_EQUAL((*vit).offset, entry.offset);
       BFC_ASSERT_EQUAL((*vit).data_size, entry.data_size);
 
-      if (data)
-        ((Environment *)env)->get_allocator()->free(data);
+      Memory::release(data);
 
       vit++;
     }
 
-    if (data)
-      ((Environment *)env)->get_allocator()->free(data);
+    Memory::release(data);
     BFC_ASSERT_EQUAL(vec.size(), size);
 
     BFC_ASSERT_EQUAL(0, log->close(true));

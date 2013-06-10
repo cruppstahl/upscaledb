@@ -1511,13 +1511,12 @@ public:
   }
 
   void callocTest() {
-    Environment *env = (Environment *)m_env;
-    char *p = (char *)env->get_allocator()->calloc(20);
+    char *p = Memory::callocate<char>(20);
 
     for (int i = 0; i < 20; i++)
       BFC_ASSERT_EQUAL('\0', p[i]);
 
-    env->get_allocator()->free(p);
+    Memory::release(p);
   }
 
   void strerrorTest() {

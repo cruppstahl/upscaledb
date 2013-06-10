@@ -38,8 +38,7 @@ namespace hamsterdb {
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
   : m_db(db), m_keysize(0), m_descriptor_index(descriptor), m_flags(flags),
-    m_rootpage(0), m_maxkeys(0), m_keydata1(db->get_env()->get_allocator()),
-    m_keydata2(db->get_env()->get_allocator()), m_statistics(db)
+    m_rootpage(0), m_maxkeys(0), m_keydata1(), m_keydata2(), m_statistics(db)
 {
 }
 
@@ -603,8 +602,6 @@ BtreeIndex::compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs_int)
 ham_status_t
 BtreeIndex::read_key(Transaction *txn, PBtreeKey *source, ham_key_t *dest)
 {
-  Allocator *alloc = m_db->get_env()->get_allocator();
-
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
             ? &m_db->get_key_arena()
             : &txn->get_key_arena();
@@ -623,7 +620,7 @@ BtreeIndex::read_key(Transaction *txn, PBtreeKey *source, ham_key_t *dest)
        */
       if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
         if (dest->data && arena->get_ptr() != dest->data)
-           alloc->free(dest->data);
+           Memory::release(dest->data);
         dest->data = 0;
       }
       return (st);
@@ -763,8 +760,6 @@ BtreeIndex::read_record(Transaction *txn, ham_record_t *record,
 ham_status_t
 BtreeIndex::copy_key(const PBtreeKey *source, ham_key_t *dest)
 {
-  Allocator *alloc = m_db->get_env()->get_allocator();
-
   /* extended key: copy the whole key */
   if (source->get_flags() & PBtreeKey::KEY_IS_EXTENDED) {
     ham_status_t st = m_db->get_extended_key((ham_u8_t *)source->get_key(),
@@ -778,9 +773,8 @@ BtreeIndex::copy_key(const PBtreeKey *source, ham_key_t *dest)
   else if (source->get_size()) {
     if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
       if (!dest->data || dest->size < source->get_size()) {
-        if (dest->data)
-          alloc->free(dest->data);
-        dest->data = (ham_u8_t *)alloc->alloc(source->get_size());
+        Memory::release(dest->data);
+        dest->data = Memory::allocate<ham_u8_t>(source->get_size());
         if (!dest->data)
           return (HAM_OUT_OF_MEMORY);
       }
@@ -792,8 +786,7 @@ BtreeIndex::copy_key(const PBtreeKey *source, ham_key_t *dest)
   else {
     /* key.size is 0 */
     if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-      if (dest->data)
-        alloc->free(dest->data);
+      Memory::release(dest->data);
       dest->data = 0;
     }
     dest->size = 0;

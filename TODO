@@ -96,9 +96,21 @@ x new option to disable the freelist
 
 x BlobManager interface: get rid of Transaction pointer, not required
 
-o get rid of memory allocator, use the new (static) one
-    o but first check whether the allocator's lookaside list is really
-        required
+x get rid of memory allocator, use the new (static) one
+    x Memory::release should check for null - clean up usage code
+    x use HAVE_TCMALLOC!
+    x get rid of the lookaside list
+    x need to link in tcmalloc! (monster tests fail with linker errors)
+        x clean up other libraries of monster test - don't link against
+            libcurl, libprotobuf etc - not necessary; can use libtool
+    x run performance tests
+    x configure: print warning if tcmalloc is missing
+
+o ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
+    this test is slower than before
+    o run in valgrind with 2.1.1
+    o run in valgrind with 2.1.0
+    o improve performance
 
 o full_freelist: clean up the code
     o merge statistics and freelist code

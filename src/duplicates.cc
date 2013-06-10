@@ -63,8 +63,7 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
   }
 
   /* otherwise allocate memory for the table */
-  table = (PDupeTable *)m_env->get_allocator()->alloc(
-              (ham_size_t)hdr.get_size());
+  table = Memory::allocate<PDupeTable>((ham_size_t)hdr.get_size());
   if (!table)
     return (HAM_OUT_OF_MEMORY);
 
@@ -97,8 +96,8 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
   if (!table_id) {
     ham_assert(num_entries == 2);
     /* allocates space for 8 (!) entries */
-    table = (PDupeTable *)m_env->get_allocator()->calloc(
-                    sizeof(PDupeTable) + 7 * sizeof(PDupeEntry));
+    table = Memory::allocate<PDupeTable>(sizeof(PDupeTable)
+            + 7 * sizeof(PDupeEntry));
     if (!table)
       return (HAM_OUT_OF_MEMORY);
     dupe_table_set_capacity(table, 8);
@@ -132,7 +131,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
     else
       new_cap += new_cap / 3;
 
-    table = (PDupeTable *)m_env->get_allocator()->calloc(
+    table = Memory::allocate<PDupeTable>(
                 sizeof(PDupeTable) + (new_cap - 1) * sizeof(PDupeEntry));
     if (!table)
       return (HAM_OUT_OF_MEMORY);
@@ -141,7 +140,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
     memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),
                    dupe_table_get_count(old) * sizeof(PDupeEntry));
     if (alloc_table)
-      m_env->get_allocator()->free(old);
+      Memory::release(old);
 
     alloc_table = true;
     resize = true;
@@ -214,7 +213,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
   }
 
   if (alloc_table)
-    m_env->get_allocator()->free(table);
+    Memory::release(table);
 
   if (new_position)
     *new_position = position;
@@ -257,7 +256,7 @@ DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
                                     | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
         st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
         if (st) {
-          m_env->get_allocator()->free(table);
+          Memory::release(table);
           return (st);
         }
       }
@@ -280,7 +279,7 @@ DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
                                   | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
       st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
       if (st) {
-        m_env->get_allocator()->free(table);
+        Memory::release(table);
         return (st);
       }
     }
@@ -293,7 +292,7 @@ DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
                     * sizeof(PDupeEntry);
     st = m_env->get_blob_manager()->overwrite(db, table_id, &rec, 0, &rid);
     if (st) {
-      m_env->get_allocator()->free(table);
+      Memory::release(table);
       return (st);
     }
     if (new_table_id)
@@ -323,9 +322,10 @@ DuplicateManager::get_count(ham_u64_t table_id, ham_size_t *count,
   if (entry)
     memcpy(entry, dupe_table_get_entry(table, (*count) - 1), sizeof(*entry));
 
-  if (!(m_env->get_flags() & HAM_IN_MEMORY))
+  if (!(m_env->get_flags() & HAM_IN_MEMORY)) {
     if (!page)
-      m_env->get_allocator()->free(table);
+      Memory::release(table);
+  }
 
   return (0);
 }
@@ -345,14 +345,14 @@ DuplicateManager::get(ham_u64_t table_id, ham_size_t position,
   if (position >= dupe_table_get_count(table)) {
     if (!(m_env->get_flags() & HAM_IN_MEMORY))
       if (!page)
-        m_env->get_allocator()->free(table);
+        Memory::release(table);
     return (HAM_KEY_NOT_FOUND);
   }
   memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
 
   if (!(m_env->get_flags() & HAM_IN_MEMORY))
     if (!page)
-      m_env->get_allocator()->free(table);
+      Memory::release(table);
 
   return (0);
 }

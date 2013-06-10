@@ -48,8 +48,8 @@ typedef struct free_cb_context_t
 
 Environment::Environment()
   : m_blob_manager(0), m_page_manager(0), m_file_mode(0644), m_txn_id(0),
-    m_context(0), m_device(0), m_alloc(Allocator::create()), m_hdrpage(0),
-    m_oldest_txn(0), m_newest_txn(0), m_log(0), m_journal(0), m_flags(0),
+    m_context(0), m_device(0), m_hdrpage(0), m_oldest_txn(0),
+    m_newest_txn(0), m_log(0), m_journal(0), m_flags(0),
     m_changeset(this), m_pagesize(0), m_max_databases_cached(0),
     m_duplicate_manager(this)
 {
@@ -86,12 +86,6 @@ Environment::~Environment()
   if (m_blob_manager) {
     delete m_blob_manager;
     m_blob_manager = 0;
-  }
-
-  /* close the allocator */
-  if (get_allocator()) {
-    delete get_allocator();
-    set_allocator(0);
   }
 }
 
@@ -1036,7 +1030,6 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
   /* create a new Database object */
   LocalDatabase *db = new LocalDatabase(this, dbname, flags);
 
-  ham_assert(get_allocator());
   ham_assert(get_device());
   ham_assert(0 != get_header_page());
   ham_assert(get_max_databases() > 0);

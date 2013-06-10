@@ -78,10 +78,10 @@ class Protocol : public hamsterdb::ProtoWrapper
      * Packs the Protocol structure into a memory buffer and returns
      * a pointer to the buffer and the buffer size
      */
-    bool pack(Allocator *alloc, ham_u8_t **data, ham_size_t *size) {
+    bool pack(ham_u8_t **data, ham_size_t *size) {
       ham_size_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
-      ham_u8_t *p = (ham_u8_t *)alloc->alloc(packed_size + 8);
+      ham_u8_t *p = Memory::allocate<ham_u8_t>(packed_size + 8);
       if (!p)
         return (false);
 
@@ -91,7 +91,7 @@ class Protocol : public hamsterdb::ProtoWrapper
 
       /* now write the packed structure */
       if (!SerializeToArray(&p[8], packed_size)) {
-        alloc->free(p);
+        Memory::release(p);
         return (false);
       }
 

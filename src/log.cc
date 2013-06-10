@@ -116,17 +116,16 @@ Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ham_u8_t **data)
 
   /* now read the extended data, if it's available */
   if (entry->data_size) {
-    ham_u64_t pos = (*iter)-entry->data_size;
+    ham_u64_t pos = (*iter) - entry->data_size;
     pos -= (pos % 8);
 
-    *data = (ham_u8_t *)m_env->get_allocator()->alloc(
-                (ham_size_t)entry->data_size);
+    *data = Memory::allocate<ham_u8_t>((ham_size_t)entry->data_size);
     if (!*data)
       return (HAM_OUT_OF_MEMORY);
 
     st = os_pread(m_fd, pos, *data, (ham_size_t)entry->data_size);
     if (st) {
-      m_env->get_allocator()->free(*data);
+      Memory::release(*data);
       *data = 0;
       return (st);
     }
@@ -178,7 +177,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
             page->get_self(), p, size);
 
   if (p != page->get_raw_payload())
-    m_env->get_allocator()->free(p);
+    Memory::release(p);
 
   return (st);
 }
@@ -208,7 +207,7 @@ Log::recover()
   while (1) {
     /* clean up memory of the previous loop */
     if (data) {
-      m_env->get_allocator()->free(data);
+      Memory::release(data);
       data = 0;
     }
 
@@ -290,10 +289,8 @@ bail:
   m_env->set_flags(m_env->get_flags() | HAM_ENABLE_RECOVERY);
 
   /* clean up memory */
-  if (data) {
-    m_env->get_allocator()->free(data);
-    data = 0;
-  }
+  Memory::release(data);
+  data = 0;
 
   return (st);
 }

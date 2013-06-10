@@ -213,16 +213,6 @@ class Journal
     /** clears a single file */
     ham_status_t clear_file(int idx);
 
-    /** helper function for the allocator */
-    void *allocate(ham_size_t size) {
-      return (m_env->get_allocator()->alloc(size));
-    }
-
-    /** helper function for the allocator */
-    void alloc_free(void *ptr) {
-      return (m_env->get_allocator()->free(ptr));
-    }
-
     /** references the Environment this journal file is for */
     Environment *m_env;
 

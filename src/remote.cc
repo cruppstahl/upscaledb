@@ -36,7 +36,6 @@ typedef struct curl_buffer_t
   ham_u8_t *packed_data;
   ham_size_t offset;
   Protocol *wrapper;
-  Allocator *alloc;
 } curl_buffer_t;
 
 static size_t
@@ -64,7 +63,7 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 
     /* otherwise we have to buffer the received data */
     buf->packed_size = payload_size + 8;
-    buf->packed_data = (ham_u8_t *)buf->alloc->alloc(buf->packed_size);
+    buf->packed_data = Memory::allocate<ham_u8_t>(buf->packed_size);
     if (!buf->packed_data)
       return (0);
     memcpy(buf->packed_data, &cbuf[0], size * nmemb);
@@ -81,7 +80,7 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
     buf->wrapper = Protocol::unpack(buf->packed_data, buf->packed_size);
     if (!buf->wrapper)
       return (0);
-    buf->alloc->free(buf->packed_data);
+    Memory::release(buf->packed_data);
     if (!buf->wrapper)
       return 0;
   }
@@ -123,11 +122,9 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
   curl_buffer_t wbuf = {0};
   struct curl_slist *slist = 0;
 
-  wbuf.alloc = get_allocator();
-
   *reply = 0;
 
-  if (!request->pack(wbuf.alloc, &rbuf.packed_data, &rbuf.packed_size)) {
+  if (!request->pack(&rbuf.packed_data, &rbuf.packed_size)) {
     ham_log(("protoype Protocol::pack failed"));
     return (HAM_INTERNAL_ERROR);
   }
@@ -151,8 +148,7 @@ RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 
   cc = curl_easy_perform(m_curl);
 
-  if (rbuf.packed_data)
-    get_allocator()->free(rbuf.packed_data);
+  Memory::release(rbuf.packed_data);
   curl_slist_free_all(slist);
 
   if (cc) {

@@ -322,7 +322,7 @@ public:
     BFC_ASSERT_EQUAL(0, strcmp("key1", (char *)ins->get_key_data()));
     BFC_ASSERT_EQUAL(0, strcmp("rec1", (char *)ins->get_record_data()));
 
-    j->alloc_free(ins);
+    Memory::release(ins);
 
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
   }
@@ -369,7 +369,7 @@ public:
     BFC_ASSERT_EQUAL(0, strcmp("key1", (char *)ins->get_key_data()));
     BFC_ASSERT_EQUAL(0, strcmp("rec1", (char *)ins->get_record_data()));
 
-    j->alloc_free(ins);
+    Memory::release(ins);
 
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
   }
@@ -407,7 +407,7 @@ public:
     BFC_ASSERT_EQUAL(1u, er->duplicate);
     BFC_ASSERT_EQUAL(0, strcmp("key1", (char *)er->get_key_data()));
 
-    j->alloc_free(er);
+    Memory::release(er);
 
     BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
   }
@@ -531,15 +531,13 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp((char *)aux, vec->name));
       }
 
-      if (aux)
-        journal->alloc_free(aux);
+      Memory::release(aux);
 
       vec++;
 
     } while (1);
 
-    if (aux)
-      journal->alloc_free(aux);
+    Memory::release(aux);
     BFC_ASSERT_EQUAL(s, size);
   }
 

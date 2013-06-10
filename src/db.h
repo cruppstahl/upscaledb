@@ -385,10 +385,8 @@ class Database
       else if (source->size) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
           if (!dest->data || dest->size < source->size) {
-            if (dest->data)
-              get_env()->get_allocator()->free(dest->data);
-            dest->data = (ham_u8_t *)
-                      get_env()->get_allocator()->alloc(source->size);
+            Memory::release(dest->data);
+            dest->data = Memory::allocate<ham_u8_t>(source->size);
             if (!dest->data)
               return (HAM_OUT_OF_MEMORY);
           }
@@ -400,8 +398,7 @@ class Database
       else {
         /* key.size is 0 */
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-          if (dest->data)
-            get_env()->get_allocator()->free(dest->data);
+          Memory::release(dest->data);
           dest->data = 0;
         }
         dest->size = 0;

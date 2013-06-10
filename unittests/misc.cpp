@@ -87,7 +87,7 @@ public:
     BFC_ASSERT_EQUAL(dest.size, src.size);
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-    ((Environment *)m_env)->get_allocator()->free(dest.data);
+    Memory::release(dest.data);
   }
 
   void copyExtendedKeyTest() {
@@ -103,7 +103,7 @@ public:
     BFC_ASSERT_EQUAL(dest.size, src.size);
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
-    ((Environment *)m_env)->get_allocator()->free(dest.data);
+    Memory::release(dest.data);
   }
 
   void copyKeyInt2PubEmptyTest() {
@@ -135,7 +135,7 @@ public:
     BFC_ASSERT_EQUAL(0, m_btree->copy_key(&src, &dest));
     BFC_ASSERT_EQUAL(1, dest.size);
     BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
-    ((Environment *)m_env)->get_allocator()->free(dest.data);
+    Memory::release(dest.data);
   }
 
   void copyKeyInt2PubSmallTest() {
@@ -152,7 +152,7 @@ public:
     BFC_ASSERT_EQUAL(0, m_btree->copy_key(src, &dest));
     BFC_ASSERT_EQUAL(dest.size, src->get_size());
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
-    ((Environment *)m_env)->get_allocator()->free(dest.data);
+    Memory::release(dest.data);
   }
 
   void copyKeyInt2PubFullTest() {
@@ -170,7 +170,7 @@ public:
     BFC_ASSERT_EQUAL(dest.size, src->get_size());
     BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
-    ((Environment *)m_env)->get_allocator()->free(dest.data);
+    Memory::release(dest.data);
   }
 };
 

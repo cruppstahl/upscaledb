@@ -53,8 +53,7 @@ DiskDevice::read_page(Page *page)
   if (page->get_self() < m_mapped_size && m_mmapptr != 0) {
     /* ok, this page is mapped. If the Page object has a memory buffer:
      * free it */
-    if (page->get_pers() != 0)
-      get_env()->get_allocator()->free(page->get_pers());
+    Memory::release(page->get_pers());
 
     page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
     page->set_pers((PageData *)&m_mmapptr[page->get_self()]);
@@ -63,7 +62,7 @@ DiskDevice::read_page(Page *page)
 
   /* this page is not in the mapped area; allocate a buffer */
   if (page->get_pers() == 0) {
-    ham_u8_t *p = (ham_u8_t *)get_env()->get_allocator()->alloc(m_pagesize);
+    ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
     if (!p)
       return (HAM_OUT_OF_MEMORY);
     page->set_pers((PageData *)p);
@@ -75,7 +74,7 @@ DiskDevice::read_page(Page *page)
   if (st == 0)
     return (0);
 
-  get_env()->get_allocator()->free(page->get_pers());
+  Memory::release(page->get_pers());
   page->set_pers((PageData *)0);
   return (st);
 }
