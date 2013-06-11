@@ -21,7 +21,7 @@
 #include "endianswap.h"
 #include "env.h"
 #include "error.h"
-#include "freelist_statistics.h"
+#include "full_freelist_stats.h"
 #include "mem.h"
 #include "util.h"
 #include "full_freelist.h"

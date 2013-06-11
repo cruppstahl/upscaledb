@@ -50,8 +50,8 @@ libhamsterdb_la_SOURCES = blob.cc \
 	extkeys.h \
 	full_freelist.cc \
 	full_freelist.h \
-	freelist_statistics.cc \
-	freelist_statistics.h \
+	full_freelist_stats.cc \
+	full_freelist_stats.h \
 	hamsterdb.cc \
 	hash-table.h \
 	internal_fwd_decl.h \

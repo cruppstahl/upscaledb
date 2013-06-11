@@ -25,7 +25,6 @@
 #include "endianswap.h"
 #include "env.h"
 #include "error.h"
-#include "freelist_statistics.h"
 #include "mem.h"
 #include "page.h"
 #include "btree_stats.h"

@@ -118,6 +118,7 @@ o full_freelist: clean up the code
         in FullFreelist
     o goal is to inline the statistics-functions because they eat lots of
         performance
+    o then check ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
 
 o we need more metrics in the monster tests:
     o fix memory allocations, use the new metrics

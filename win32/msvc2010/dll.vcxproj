@@ -198,9 +198,9 @@
     <ClInclude Include="..\..\src\error.h" />
     <ClInclude Include="..\..\src\extkeys.h" />
     <ClInclude Include="..\..\src\freelist.h" />
-    <ClInclude Include="..\..\src\freelist_statistics.h" />
-    <ClInclude Include="..\..\src\bm_freelist.h" />
-    <ClInclude Include="..\..\src\simple_freelist.h" />
+    <ClInclude Include="..\..\src\full_freelist_stats.h" />
+    <ClInclude Include="..\..\src\full_freelist.h" />
+    <ClInclude Include="..\..\src\reduced_freelist.h" />
     <ClInclude Include="..\..\src\internal_fwd_decl.h" />
     <ClInclude Include="..\..\src\journal.h" />
     <ClInclude Include="..\..\src\journal_entries.h" />
@@ -236,13 +236,9 @@
     <ClCompile Include="..\..\src\duplicates.cc" />
     <ClCompile Include="..\..\src\env.cc" />
     <ClCompile Include="..\..\src\error.cc" />
-<<<<<<< HEAD
-    <ClCompile Include="..\..\src\freelist.cc" />
-    <ClCompile Include="..\..\src\freelist_statistics.cc" />
-=======
-    <ClCompile Include="..\..\src\bm_freelist.cc" />
-    <ClCompile Include="..\..\src\simple_freelist.cc" />
->>>>>>> 6f6fcdf... More refactoring, added new ReducedFreelist (not yet active, though)
+    <ClCompile Include="..\..\src\full_freelist_stats.cc" />
+    <ClCompile Include="..\..\src\full_freelist.cc" />
+    <ClCompile Include="..\..\src\reduced_freelist.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
     <ClCompile Include="..\..\src\log.cc" />

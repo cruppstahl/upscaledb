@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "internal_fwd_decl.h"
-#include "freelist_statistics.h"
+#include "full_freelist_stats.h"
 #include "statistics.h"
 #include "freelist.h"
 
@@ -98,7 +98,7 @@ class FullFreelist : public Freelist
       return (kBlobAlignment);
     }
 
-    /** get a pointer to the environment (reqd for freelist_statistics) */
+    /** get a pointer to the environment (reqd for full_freelist_stats) */
     // TODO remove this
     Environment *get_env() {
       return (m_env);
