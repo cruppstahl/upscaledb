@@ -112,20 +112,9 @@ x get rid of memory allocator, use the new (static) one
     x run performance tests
     x configure: print warning if tcmalloc is missing
 
-o full_freelist: clean up the code
-    o merge statistics and freelist code
-    o get rid of GlobalStatistics, directly use first_page_with_space
-        in FullFreelist
-    o goal is to inline the statistics-functions because they eat lots of
-        performance
-    o then check ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
-
-o we need more metrics in the monster tests:
-    o fix memory allocations, use the new metrics
-    o track page reads
-    o track page writes
-    o track direct I/O blob reads
-    o track direct I/O blob writes
+x full_freelist: clean up the code
+    x inline the statistics-functions because they require lots of performance
+    x then check ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
 
 o cache improvements
     o when flushing, sort pages by ID/offset and use writev to flush them
@@ -134,6 +123,21 @@ o cache improvements
         pages in memory and cache some of the blob pages
     . should this become the new default?
     . add to monster tests
+
+o we need more metrics in the monster tests:
+    o create new module Metrics, with structure and API in hamsterdb_int.h
+    o existing Statistics are renamed to Optimizer
+    o retrieve the following metrics
+        o Memory::Metrics
+        o track page reads (page_manager)
+        o track page writes (page_manager)
+        o track cache fetches (cache)
+        o track cache misses (cache)
+        o track direct I/O blob reads (device)
+        o track direct I/O blob writes (device)
+        o total bytes inserted (env)
+        o total bytes erased (env)
+    o use in monster test
 
 o win32: get rid of boost_thread
 
@@ -145,22 +149,24 @@ o win32: get rid of boost_thread
 
 
 
+o AES encryption
+
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
     o use libevent2 on server side, get rid of mongoose
     o use boost sockets on client side, get rid of libcurl
+    o use Pickle module, get rid of protocol buffers
 
 o reduce the file size if freelist adds page at end of file
     (maybe cache the filesize in the device, to avoid frequent calls
     to os_get_filesize(); but compare both if HAM_DEBUG == 1)
-    o only do this in in Freelist::write_to_disk
-    o ... which should be called during ham_env_flush
-    o ... and also when the Environment is closed
+    o only do this in ham_env_close and ham_env_flush
     o attention: if a file is truncated then recovery can re-create pages
-        that are "outside" of the file boundaries!
-
-o AES encryption
+        that are "outside" of the file boundaries! (we could do this only
+        when the log is empty?!)
+    o for reduced freelist we might have to make sure that we store free blobs
+        if they are at the end of the file
 
 . pre-allocate index
     o see roadmap document for more information
@@ -181,28 +187,22 @@ o AES encryption
 
 o collect file format incompatibilities
     o for the new Btree code
+    o persistent freelist statistics
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
 
-o DiskBlobManager::write_internal: only uses direct I/O if blob is at the
-    beginning of the page. Fix this and also use direct I/O when writing blobs
-    in the middle. In this case we have to read/modify/write the
-    PBlobPageHeader structure, though
-
 . also remove locking from C# and Java APIs
 
-o refactor unittests, use boost unittest framework
-    http://www.boost.org/doc/libs/1_35_0/libs/test/doc/components/utf/index.html
-    http://www.beroux.com/english/articles/boost_unit_testing/
-    http://www.alittlemadness.com/2009/03/31/c-unit-testing-with-boosttest/
+o refactor unittests, use same framework as hamsterdb-cluster
 
 o BtreeCursor: use memory arena for uncoupling the key
 
-o split Transaction into local and remote class
-    o keep in mind that sooner or later the BtreeNode will expect template arguments;
-        can we do something similar with the TransactionNode?
-    o hamsterdb.cc directly calls into Transaction class instead of Environment
+o split Transaction into local and remote class (really?)
+    hamsterdb.cc directly calls into Transaction class instead of Environment
+    o keep in mind that sooner or later the BtreeNode will expect
+        template arguments; can we do something similar with the
+        TransactionNode?
     o try to cleanup the flow; move more code from db.cc to txn.cc,
         reorg TransactionIndex similar to BtreeIndex
     o try to get the methods/design analoguous to the Btree
@@ -218,10 +218,11 @@ o split Transaction into local and remote class
     o try to replace some of the linked lists with boost::intrusive_list
     o document the tree structure in the header file
 
-o split Cursor into local and remote class
+o split Cursor into local and remote class (really?)
     o hamsterdb: directly call into Cursor class (instead of Database)
 
-o is the recovery working if there's a crash during ham_db_close or ham_env_close?
+o is the recovery working if there's a crash during ham_db_close
+    or ham_env_close?
 
 o allow transactions w/o journal
 
@@ -245,8 +246,6 @@ o fully (!) automize the whole release process for unix; the result (on
     o the output of the monster tests and the performance test
     o windows-packages
 
-o when flushing a changeset: sort by offset, use writev()
-
 o update documentation
     x in header file
     o in the wiki
@@ -267,13 +266,6 @@ o update documentation
 
 
 
-
-------------------- web page ----------------------------------------------
-
-o look for a nice wordpress template
-o integrate the blog (hamsterdb.com/blog)
-o crupp.de just forwards to hamsterdb.com/blog
-o have regular backups to remote storage
 
 ------------------- idea soup ---------------------------------------------
 

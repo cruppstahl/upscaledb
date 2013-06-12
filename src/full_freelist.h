@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "internal_fwd_decl.h"
-#include "full_freelist_stats.h"
 #include "statistics.h"
 #include "freelist.h"
 
@@ -28,6 +27,186 @@ namespace hamsterdb {
 
 #define HAM_DAM_RANDOM_WRITE            1
 #define HAM_DAM_SEQUENTIAL_INSERT       2
+
+/**
+ * The upper bound value which will trigger a statistics data rescale operation
+ * to be initiated in order to prevent integer overflow in the statistics data
+ * elements.
+ */
+#define HAM_STATISTICS_HIGH_WATER_MARK  0x7FFFFFFF /* could be 0xFFFFFFFF */
+
+/* 
+ * As we [can] support record sizes up to 4Gb, at least theoretically,
+ * we can express this size range as a spanning aligned size range:
+ * 1..N, where N = log2(4Gb) - log2(alignment). As we happen to know
+ * alignment == 32, at least for all regular hamsterdb builds, our
+ * biggest power-of-2 for the freelist slot count ~ 32-5 = 27, where 0
+ * represents slot size = 1 alignment, 1 represents size of 2 * 32,
+ * 2 ~ 4 * 32, and so on.
+ *
+ * EDIT:
+ * In order to cut down on statistics management cost due to overhead
+ * caused by having to keep up with the latest for VERY large sizes, we
+ * cut this number down to support sizes up to a maximum size of 64Kb ~
+ * 2^16, meaning any requests for more than 64Kb/CHUNKSIZE bytes is
+ * sharing their statistics.
+ *
+ */
+#define HAM_FREELIST_SLOT_SPREAD   (16-5+1) /* 1 chunk .. 2^(SPREAD-1) chunks */
+
+/**
+ * global freelist algorithm specific run-time info
+ */
+struct GlobalStatistics
+{
+  GlobalStatistics() {
+    memset(this, 0, sizeof(*this));
+  }
+
+  ham_u32_t first_page_with_free_space[HAM_FREELIST_SLOT_SPREAD];
+};
+
+#include "packstart.h"
+
+/**
+ * We keep track of VERY first free slot index + free slot index
+ * pointing at last (~ supposed largest) free range + 'utilization' of the
+ * range between FIRST and LAST as a ratio of number of free slots in
+ * there vs. total number of slots in that range (giving us a 'fill'
+ * ratio) + a fragmentation indication, determined by counting the number
+ * of freelist slot searches that FAILed vs. SUCCEEDed within the
+ * first..last range, when the search begun at the 'first' position
+ * (a FAIL here meaning the freelist scan did not deliver a free slot
+ * WITHIN the first..last range, i.e. it has scanned this entire range
+ * without finding anything suitably large).
+ *
+ * Note that the free_fill in here is AN ESTIMATE.
+ */
+typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistSlotsizeStats
+{
+  ham_u32_t first_start;
+  /* reserved: */
+  ham_u32_t free_fill;
+  ham_u32_t epic_fail_midrange;
+  ham_u32_t epic_win_midrange;
+
+  /** number of scans per size range */
+  ham_u32_t scan_count;
+  ham_u32_t ok_scan_count;
+
+  /** summed cost ('duration') of all scans per size range.  */
+  ham_u32_t scan_cost;
+  ham_u32_t ok_scan_cost;
+
+} HAM_PACK_2 PFreelistSlotsizeStats;
+
+#include "packstop.h"
+
+
+#include "packstart.h"
+
+/**
+ * freelist statistics as they are persisted on disc.
+ *
+ * Stats are kept with each freelist entry record, but we also keep
+ * some derived data in the nonpermanent space with each freelist:
+ * it's not required to keep a freelist page in cache just so the
+ * statistics + our operational mode combined can tell us it's a waste
+ * of time to go there.
+ */
+typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
+{
+  /**
+   * k-way statistics which stores requested space slot size related data.
+   *
+   * The data is stored in @ref HAM_FREELIST_SLOT_SPREAD different buckets
+   * which partition the statistical info across the entire space request
+   * range by using a logarithmic partitioning function.
+   *
+   * That way, very accurate, independent statistics can be stores for both
+   * small, medium and large sized space requests, so that the freelist hinter
+   * can deliver a high quality search hint for various requests.
+   */
+  PFreelistSlotsizeStats per_size[HAM_FREELIST_SLOT_SPREAD];
+
+  /**
+   * (bit) offset which tells us which free slot is the EVER LAST
+   * created one; after all, freelistpage:maxbits is a scandalously
+   * optimistic lie: all it tells us is how large the freelist page
+   * _itself_ can grow, NOT how many free slots we actually have
+   * _alive_ in there.
+   *
+   * 0: special case, meaning: not yet initialized...
+   */
+  ham_u32_t last_start;
+
+  /**
+   * total number of available bits in the page ~ all the chunks which
+   * actually represent a chunk in the DB storage space.
+   *
+   * (Note that a freelist can be larger (_max_bits) than the actual
+   * number of storage pages currently sitting in the database file.)
+   *
+   * The number of chunks already in use in the database therefore ~
+   * persisted_bits - _allocated_bits.
+   */
+  ham_u32_t persisted_bits;
+
+  /**
+   * count the number of insert operations where this freelist page
+   * played a role
+   */
+  ham_u32_t insert_count;
+  /**
+   * count the number of delete operations where this freelist page
+   * played a role
+   */
+  ham_u32_t delete_count;
+  /**
+   * count the number of times the freelist size was adjusted as new storage
+   * space was added to the database.
+   *
+   * This can occur in two situations: either when a new page is allocated and
+   * a part of it is marked as 'free' as it is not used up in its entirety, or
+   * when a page is released (freed) which was previously allocated
+   * without involvement of the freelist manager (this can happen when new
+   * HUGE BOBs are inserted, then erased again).
+   */
+  ham_u32_t extend_count;
+
+  /**
+   * count the number of times a freelist free space search (alloc
+   * operation) failed to find any suitably large free space in this
+   * freelist page.
+   */
+  ham_u32_t fail_count;
+
+  /**
+   * count the number of find operations where this freelist page
+   * played a role
+   */
+  ham_u32_t search_count;
+
+  /**
+   * Tracks the ascent of the various statistical counters in here in order
+   * to prevent integer overflow.
+   *
+   * This is accomplished by tracking the summed hinting costs over time in
+   * this variable and when that number surpasses a predetermined 'high
+   * water mark', all statistics counters are 'rescaled', which scales
+   * down all counters and related data so that new data can be added again
+   * multiple times before the risk of integer overflow may occur again.
+   *
+   * The goal here is to balance usable statistical numerical data while
+   * assuring integer overflows @e never happen for @e any of the statistics
+   * items.
+   */
+  ham_u32_t rescale_monitor;
+
+} HAM_PACK_2 PFreelistPageStatistics;
+
+#include "packstop.h"
+
 
 /**
  * an entry in the freelist cache
@@ -45,15 +224,12 @@ struct FullFreelistEntry {
   /** the page ID */
   ham_u64_t page_id;
 
-  /**
-   * freelist algorithm specific run-time data
-   *
-   * This is done as a union as it will reduce code complexity
-   * significantly in the common freelist processing areas.
-   */
+  /** freelist algorithm specific run-time data */
   PFreelistPageStatistics perf_data;
 };
 
+class FullFreelistStatisticsHints;
+class FullFreelistStatisticsGlobalHints;
 
 /**
  * the freelist class structure
@@ -147,11 +323,11 @@ class FullFreelist : public Freelist
     /** sets (or resets) all bits in a given range */
     ham_size_t set_bits(FullFreelistEntry *entry, PFullFreelistPayload *fp,
                     ham_size_t start_bit, ham_size_t size_bits,
-                    bool set, FullFreelistStatistics::Hints *hints);
+                    bool set, FullFreelistStatisticsHints *hints);
 
     /** searches for a free bit array in the whole list */
     ham_s32_t search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
-                    ham_size_t size_bits, FullFreelistStatistics::Hints *hints);
+                    ham_size_t size_bits, FullFreelistStatisticsHints *hints);
 
     /**
      * Report if the requested size can be obtained from the given freelist
@@ -169,8 +345,8 @@ class FullFreelist : public Freelist
      *
      * Return -1 to signal there's no chance at all.
      */
-    ham_s32_t locate_sufficient_free_space(FullFreelistStatistics::Hints *dst,
-                    FullFreelistStatistics::GlobalHints *hints,
+    ham_s32_t locate_sufficient_free_space(FullFreelistStatisticsHints *dst,
+                    FullFreelistStatisticsGlobalHints *hints,
                     ham_s32_t start_index);
 
     /**
