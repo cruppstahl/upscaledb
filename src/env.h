@@ -457,6 +457,9 @@ class Environment
       return (m_page_manager);
     }
 
+    // Fills in the current metrics
+    void get_metrics(ham_env_metrics_t *metrics) const;
+
   protected:
     /** the BlobManager */
     // TODO move to LocalEnvironment

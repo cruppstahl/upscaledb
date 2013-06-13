@@ -15,6 +15,8 @@
 #include <string.h>
 #include <vector>
 
+#include "ham/hamsterdb_int.h"
+
 #include "error.h"
 #include "freelist.h"
 #include "env.h"
@@ -47,6 +49,10 @@ class PageManager {
     // Destructor
     ~PageManager();
 
+    // Fills in the current metrics for the PageManager, the Cache and the
+    // Freelist
+    void get_metrics(ham_env_metrics_t *metrics) const;
+
     // Fetches a page from disk
     //
     // @param page Will point to the allocated page
@@ -66,6 +72,15 @@ class PageManager {
     ham_status_t alloc_page(Page **page, Database *db, ham_u32_t page_type,
                     ham_u32_t flags);
 
+    // Flushes a Page to disk
+    ham_status_t flush_page(Page *page) {
+      if (page->is_dirty()) {
+        m_page_count_flushed++;
+        return (page->flush());
+      }
+      return (0);
+    }
+
     // Allocates space for a blob, either by using the freelist or by
     // allocating free disk space at the end of the file
     //
@@ -84,9 +99,9 @@ class PageManager {
     // Purges the cache if the cache limits are exceeded
     ham_status_t purge_cache();
 
-    // retrieves the freelist for the database (or uses a global bitmap
-    // freelist as a fallback)
-    // public because it's required for testing
+    // retrieves the freelist
+    // this is public because it's required for testing */
+    // TODO rename to test_
     Freelist *get_freelist(Database *db) {
       if (!m_freelist
           && !(m_env->get_flags() & HAM_IN_MEMORY)
@@ -137,6 +152,21 @@ class PageManager {
 
     // the Freelist manages the free space in the file; can be NULL
     Freelist *m_freelist;
+
+    // tracks number of fetched pages
+    ham_u64_t m_page_count_fetched;
+
+    // tracks number of flushed pages
+    ham_u64_t m_page_count_flushed;
+
+    // tracks number of index pages
+    ham_u64_t m_page_count_index;
+
+    // tracks number of blob pages
+    ham_u64_t m_page_count_blob;
+
+    // tracks number of freelist pages
+    ham_u64_t m_page_count_freelist;
 };
 
 } // namespace hamsterdb

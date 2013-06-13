@@ -144,12 +144,12 @@ class Page {
     ~Page();
 
     /** is this the header page? */
-    bool is_header() {
+    bool is_header() const {
       return (m_self == 0);
     }
 
     /** get the address of this page */
-    ham_u64_t get_self() {
+    ham_u64_t get_self() const {
       return (m_self);
     }
 
@@ -179,7 +179,7 @@ class Page {
     }
 
     /** get non-persistent page flags */
-    ham_u32_t get_flags() {
+    ham_u32_t get_flags() const {
       return (m_flags);
     }
 
@@ -189,7 +189,7 @@ class Page {
     }
 
     /** is this page dirty? */
-    bool is_dirty() {
+    bool is_dirty() const {
       return (m_dirty);
     }
 

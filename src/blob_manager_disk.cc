@@ -87,6 +87,8 @@ DiskBlobManager::write_chunks(Database *db, Page *page, ham_u64_t addr,
         if (s > pageid + page_size - addr)
           s = (ham_size_t)(pageid + page_size - addr);
 
+        m_blob_direct_written++;
+
         st = m_env->get_device()->write(addr, chunk_data[i], s);
         if (st)
           return st;
@@ -147,6 +149,8 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
       if (s > pageid + page_size - addr)
         s = (ham_size_t)(pageid + page_size - addr);
 
+      m_blob_direct_read++;
+
       st = m_env->get_device()->read(addr, data, s);
       if (st)
         return st;
@@ -166,6 +170,8 @@ ham_status_t
 DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
         ham_u64_t *blobid)
 {
+  m_blob_total_allocated++;
+
   Page *page = 0;
   ham_u64_t addr = 0;
   ham_u8_t *chunk_data[2];
@@ -220,6 +226,8 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
       ham_size_t aligned = alloc_size;
       aligned += m_env->get_pagesize() - 1;
       aligned -= aligned % m_env->get_pagesize();
+
+      m_blob_direct_allocated++;
 
       st = m_env->get_device()->alloc(aligned, &addr);
       if (st)
@@ -385,6 +393,8 @@ ham_status_t
 DiskBlobManager::read(Database *db, ham_u64_t blobid, ham_record_t *record,
         ham_u32_t flags, ByteArray *arena)
 {
+  m_blob_total_read++;
+
   Page *page;
 
   ham_assert(blobid % Freelist::kBlobAlignment == 0);

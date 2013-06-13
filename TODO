@@ -139,28 +139,24 @@ x really leave reduced freelist? the performance gains are not worth the
 
 x refactor unittests, use same framework as hamsterdb-cluster
 
-o we need more metrics in the monster tests:
-    o create new module Metrics, with structure and API in hamsterdb_int.h
-    o existing Statistics are renamed to Optimizer
-    o retrieve the following metrics
-        o Memory::Metrics
-        o track page reads (page_manager)
-        o track page writes (page_manager)
-        o number of index pages (page_manager)
-        o number of blob pages (page_manager)
-        o number of freelist pages (page_manager)
-        o number of bytes marked "used" (freelist)
-        o number of bytes marked "free" (freelist)
-        o number of freelist hits (freelist)
-        o number of freelist misses (freelist)
-        o track cache hits (cache)
-        o track cache misses (cache)
-        o number of cache buckets (cache)
-        o track direct I/O blob reads (device)
-        o track direct I/O blob writes (device)
-        o total bytes inserted (env)
-        o total bytes erased (env)
-    o use in monster test
+x we need more metrics in the monster tests:
+    x create new module Metrics, with structure and API in hamsterdb_int.h
+    x retrieve the following metrics
+        x Memory::Metrics
+        x track page fetch (page_manager)
+        x track page flush (page_manager)
+        x number of index pages (page_manager)
+        x number of blob pages (page_manager)
+        x number of freelist pages (page_manager)
+        x number of freelist hits (freelist)
+        x number of freelist misses (freelist)
+        x track cache hits (cache)
+        x track cache misses (cache)
+        x track number of blobs written (blob)
+        x track direct I/O blob reads (blob)
+        x track direct I/O blob writes (blob)
+    x use in monster test
+    x compare in performance test (show 3 columns: old, new, diff %)
 
 o win32: get rid of boost_thread
 
@@ -175,6 +171,14 @@ o win32: get rid of boost_thread
 
 
 o AES encryption
+    AES encryption with libcrypto (for 2.1.2):
+    http://saju.net.in/code/misc/openssl_aes.c.txt
+
+    Windows compilation:
+    http://www.ski-epic.com/2007_notes_on_openssl/index.html
+    http://developer.covenanteyes.com/building-openssl-for-visual-studio/
+    http://wiki.openuru.org/index.php?title=Build_OpenSSL_with_MS_Visual_C%2B%2B
+    http://eran.geek.co.il/wp/archives/3897
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve

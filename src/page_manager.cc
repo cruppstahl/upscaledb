@@ -20,7 +20,9 @@
 namespace hamsterdb {
 
 PageManager::PageManager(Environment *env, ham_size_t cachesize)
-  : m_env(env), m_cache(0), m_freelist(0)
+  : m_env(env), m_cache(0), m_freelist(0), m_page_count_fetched(0),
+    m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
+    m_page_count_freelist(0)
 {
   m_cache = new Cache(env, cachesize);
 }
@@ -38,6 +40,22 @@ PageManager::~PageManager()
     delete m_cache;
     m_cache = 0;
   }
+}
+
+void
+PageManager::get_metrics(ham_env_metrics_t *metrics) const
+{
+  metrics->page_count_fetched = m_page_count_fetched;
+  metrics->page_count_flushed = m_page_count_flushed;
+  metrics->page_count_type_index   = m_page_count_index;
+  metrics->page_count_type_blob    = m_page_count_blob;
+  metrics->page_count_type_freelist= m_page_count_freelist;
+
+  if (m_cache)
+    m_cache->get_metrics(metrics);
+
+  if (m_freelist)
+    m_freelist->get_metrics(metrics);
 }
 
 ham_status_t
@@ -87,6 +105,8 @@ PageManager::fetch_page(Page **ppage, Database *db, ham_u64_t address,
     m_env->get_changeset().add_page(page);
 
   *ppage = page;
+
+  m_page_count_fetched++;
 
   return (0);
 }
@@ -161,6 +181,21 @@ done:
   /* store the page in the cache */
   m_cache->put_page(page);
 
+  switch (page_type) {
+    case Page::TYPE_B_ROOT:
+    case Page::TYPE_B_INDEX:
+      m_page_count_index++;
+      break;
+    case Page::TYPE_FREELIST:
+      m_page_count_freelist++;
+      break;
+    case Page::TYPE_BLOB:
+      m_page_count_blob++;
+      break;
+    default:
+      break;
+  }
+
   *ppage = page;
   return (0);
 }
@@ -187,8 +222,7 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
 static bool
 flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
 {
-  (void)db;
-  (void)page->flush();
+  page->get_device()->get_env()->get_page_manager()->flush_page(page);
 
   /*
    * if the page is deleted, uncouple all cursors, then
@@ -216,7 +250,7 @@ purge_callback(Page *page)
   if (st)
     return (st);
 
-  st = page->flush();
+  st = page->get_device()->get_env()->get_page_manager()->flush_page(page);
   if (st)
     return (st);
 
@@ -242,7 +276,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
   Environment *env = page->get_device()->get_env();
 
   if (page->get_db() == db && page != env->get_header_page()) {
-    (void)page->flush();
+    (void)env->get_page_manager()->flush_page(page);
     (void)page->uncouple_all_cursors();
 
     /*

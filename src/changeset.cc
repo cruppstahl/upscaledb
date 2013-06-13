@@ -16,6 +16,7 @@
 #include "device.h"
 #include "db.h"
 #include "errorinducer.h"
+#include "page_manager.h"
 
 #define INDUCE(id)                                                  \
   while (m_inducer) {                                               \
@@ -209,8 +210,9 @@ Changeset::flush(ham_u64_t lsn)
 
   /* now write all the pages to the file; if any of these writes fail,
    * we can still recover from the log */
+  PageManager *pm = m_env->get_page_manager();
   while (p) {
-    st = p->flush();
+    st = pm->flush_page(p);
     if (st)
       return (st);
     p = p->get_next(Page::LIST_CHANGESET);

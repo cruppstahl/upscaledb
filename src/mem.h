@@ -20,6 +20,8 @@
 #  include <google/tcmalloc.h>
 #endif
 
+struct ham_env_metrics_t;
+
 namespace hamsterdb {
 
 /*
@@ -33,32 +35,7 @@ namespace hamsterdb {
  * constructor.
  */
 class Memory {
-  enum {
-    // Version tag for the pickled metrics
-    kMetricsVersion = 1
-  };
-
   public:
-    // Memory usage metrics
-    struct Metrics {
-      // number of total allocations for the whole lifetime of the process
-      ham_u64_t total_allocations;
-
-      // currently active allocations
-      ham_u64_t current_allocations;
-
-      // current amount of memory allocated and tracked by the process
-      // (excludes memory used by the kernel or not allocated with
-      // malloc/free)
-      ham_u64_t current_memory;
-
-      // peak usage of memory
-      ham_u64_t peak_memory;
-
-      // the heap size of this process
-      ham_u64_t heap_size;
-    };
-
     // allocates a byte array of |size| elements, casted into type |T *|;
     // returns null if out of memory.
     // usage:
@@ -67,8 +44,8 @@ class Memory {
     //
     template<typename T>
     static T *allocate(size_t size) {
-      ms_metrics.total_allocations++;
-      ms_metrics.current_allocations++;
+      ms_total_allocations++;
+      ms_current_allocations++;
 
 #ifdef HAVE_GOOGLE_TCMALLOC_H
       return ((T *)::tc_malloc(size));
@@ -85,8 +62,8 @@ class Memory {
     //
     template<typename T>
     static T *callocate(size_t size) {
-      ms_metrics.total_allocations++;
-      ms_metrics.current_allocations++;
+      ms_total_allocations++;
+      ms_current_allocations++;
 
 #ifdef HAVE_GOOGLE_TCMALLOC_H
       return ((T *)::tc_calloc(1, size));
@@ -103,6 +80,10 @@ class Memory {
     //
     template<typename T>
     static T *reallocate(T *ptr, size_t size) {
+      if (ptr == 0) {
+        ms_total_allocations++;
+        ms_current_allocations++;
+      }
 #ifdef HAVE_GOOGLE_TCMALLOC_H
       return ((T *)::tc_realloc(ptr, size));
 #else
@@ -113,7 +94,7 @@ class Memory {
     // releases a memory block; can deal with NULL pointers.
     static void release(void *ptr) {
       if (ptr) {
-        ms_metrics.current_allocations--;
+        ms_current_allocations--;
 #ifdef HAVE_GOOGLE_TCMALLOC_H
         ::tc_free(ptr);
 #else
@@ -123,7 +104,7 @@ class Memory {
     }
 
     // updates and returns the collected metrics
-    static void get_global_metrics(Metrics *metrics);
+    static void get_global_metrics(ham_env_metrics_t *metrics);
 
     // returns the virtual memory pagesize
     static size_t get_vm_pagesize();
@@ -132,8 +113,14 @@ class Memory {
     static void release_to_system();
 
   private:
-    // the collected metrics
-    static Metrics ms_metrics;
+    // peak memory usage
+    static ham_u64_t ms_peak_memory;
+
+    // total memory allocations
+    static ham_u64_t ms_total_allocations;
+
+    // currently active allocations
+    static ham_u64_t ms_current_allocations;
 };
 
 } // namespace hamsterdb

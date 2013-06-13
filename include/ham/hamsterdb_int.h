@@ -119,6 +119,88 @@ HAM_EXPORT ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor);
 
 /**
+ * Retrieves collected metrics from the hamsterdb Environment. Used mainly
+ * for testing.
+ * See below for the structure with the currently available metrics.
+ * This structure will change a lot; the first field is a version indicator
+ * that applications can use to verify that the structure layout is compatible.
+ *
+ * These metrics are NOT persisted to disk.
+ */
+#define HAM_METRICS_VERSION         1
+
+typedef struct ham_env_metrics_t {
+  // the version indicator - must be HAM_METRICS_VERSION
+  ham_u16_t version;
+
+  // number of total allocations for the whole lifetime of the process
+  ham_u64_t mem_total_allocations;
+
+  // currently active allocations for the whole process
+  ham_u64_t mem_current_allocations;
+
+  // current amount of memory allocated and tracked by the process
+  // (excludes memory used by the kernel or not allocated with
+  // malloc/free)
+  ham_u64_t mem_current_usage;
+
+  // peak usage of memory (for the whole process)
+  ham_u64_t mem_peak_usage;
+
+  // the heap size of this process
+  ham_u64_t mem_heap_size;
+
+  // amount of pages fetched from disk
+  ham_u64_t page_count_fetched;
+
+  // amount of pages written to disk
+  ham_u64_t page_count_flushed;
+
+  // number of index pages in this Environment
+  ham_u64_t page_count_type_index;
+
+  // number of blob pages in this Environment
+  ham_u64_t page_count_type_blob;
+
+  // number of freelist pages in this Environment
+  ham_u64_t page_count_type_freelist;
+
+  // number of successful freelist hits
+  ham_u64_t freelist_hits;
+
+  // number of freelist misses
+  ham_u64_t freelist_misses;
+
+  // number of successful cache hits
+  ham_u64_t cache_hits;
+
+  // number of cache misses
+  ham_u64_t cache_misses;
+
+  // number of blobs allocated
+  ham_u64_t blob_total_allocated;
+
+  // number of blobs read
+  ham_u64_t blob_total_read;
+
+  // number of direct I/O bytes read (disk only)
+  ham_u64_t blob_direct_read;
+
+  // number of direct I/O bytes written (disk only)
+  ham_u64_t blob_direct_written;
+
+  // number of direct I/O bytes allocated (disk only)
+  ham_u64_t blob_direct_allocated;
+
+} ham_env_metrics_t;
+
+/**
+ * Retrieves the current metrics from an Environment
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_get_metrics(ham_env_t *env, ham_env_metrics_t *metrics);
+
+/**
  * @}
  */
 

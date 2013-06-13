@@ -22,6 +22,8 @@ ham_status_t
 InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
         ham_u32_t flags, ham_u64_t *blobid)
 {
+  m_blob_total_allocated++;
+
   // PARTIAL WRITE
   //
   // if offset+partial_size equals the full record size, then we won't
@@ -61,6 +63,7 @@ InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
   }
 
   *blobid = (ham_u64_t)PTR_TO_U64(p);
+
   return (0);
 }
 
@@ -69,6 +72,8 @@ InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
 {
+  m_blob_total_read++;
+
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob is stored
   PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);

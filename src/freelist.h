@@ -66,7 +66,7 @@ class Freelist
 
     /** Constructor */
     Freelist(Environment *env)
-      : m_env(env) {
+      : m_env(env), m_count_hits(0), m_count_misses(0) {
     }
 
     /** mark a page in the file as "free" */
@@ -91,6 +91,9 @@ class Freelist
 
     /** try to allocate an (aligned) page from the freelist */
     ham_status_t alloc_page(ham_u64_t *paddr);
+
+    // Fills in the collected metrics and usage statistics
+    void get_metrics(ham_env_metrics_t *metrics) const;
 
     /** get a pointer to the environment (reqd for freelist_stats) */
     // TODO remove this
@@ -178,6 +181,12 @@ class Freelist
 
     /** the cached freelist entries */
     std::vector<FreelistEntry> m_entries;
+
+    /** count the freelist hits */
+    ham_u64_t m_count_hits;
+
+    /** count the freelist misses */
+    ham_u64_t m_count_misses;
 
     /** some freelist algorithm specific run-time data */
     GlobalStatistics m_perf_data;

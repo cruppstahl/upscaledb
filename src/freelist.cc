@@ -14,6 +14,8 @@
 
 #include <string.h>
 
+#include "ham/hamsterdb_int.h"
+
 #include "db.h"
 #include "device.h"
 #include "endianswap.h"
@@ -610,8 +612,10 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
       ham_size_t available = entry->allocated_bits;
 
       ham_assert(entry->allocated_bits <= entry->max_bits);
-      if (i < (ham_s32_t)hints.page_span_width)
+      if (i < (ham_s32_t)hints.page_span_width) {
+        m_count_misses++;
         return (0);
+      }
       ham_assert(i >= (ham_s32_t)hints.page_span_width);
       /*
        * entry points at a freelist entry in the possible sequence, scan
@@ -719,6 +723,7 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
 
         ham_assert(addr != 0);
         *paddr = addr;
+        m_count_hits++;
         return (HAM_SUCCESS);
       }
     }
@@ -773,7 +778,10 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
     entry->allocated_bits = freel_get_allocated_bits(fp);
 
     *paddr = (freel_get_start_address(fp) + (s * kBlobAlignment));
+    m_count_hits++;
   }
+  else
+    m_count_misses++;
 
   return (HAM_SUCCESS);
 }
@@ -2894,6 +2902,13 @@ Freelist::mark_dirty(Page *page)
   page->set_dirty(true);
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
     m_env->get_changeset().add_page(page);
+}
+
+void
+Freelist::get_metrics(ham_env_metrics_t *metrics) const
+{
+  metrics->freelist_hits = m_count_hits;
+  metrics->freelist_misses = m_count_misses;
 }
 
 } // namespace hamsterdb

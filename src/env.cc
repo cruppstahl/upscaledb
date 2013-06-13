@@ -202,6 +202,15 @@ Environment::get_incremented_lsn(ham_u64_t *lsn)
   return (0);
 }
 
+void
+Environment::get_metrics(ham_env_metrics_t *metrics) const
+{
+  // PageManager metrics (incl. cache and freelist)
+  m_page_manager->get_metrics(metrics);
+  // the BlobManagers
+  m_blob_manager->get_metrics(metrics);
+}
+
 ham_status_t
 Environment::flush_txn(Transaction *txn)
 {
@@ -409,7 +418,8 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    return (get_header_page()->flush());
+    return (m_page_manager->flush_page(get_header_page()));
+
   return (0);
 }
 
@@ -577,7 +587,7 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
 
   /* flush the header page if logging is enabled */
   if (get_flags() & HAM_ENABLE_RECOVERY)
-    return (get_header_page()->flush());
+    return (m_page_manager->flush_page(get_header_page()));
 
   return (0);
 }
@@ -819,7 +829,7 @@ LocalEnvironment::flush(ham_u32_t flags)
 
   /* update the header page, if necessary */
   if (is_dirty()) {
-    st = get_header_page()->flush();
+    st = get_page_manager()->flush_page(get_header_page());
     if (st)
       return st;
   }

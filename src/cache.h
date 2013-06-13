@@ -58,8 +58,10 @@ class Cache
       }
 
       /* not found? then return */
-      if (!page)
+      if (!page) {
+        m_cache_misses++;
         return (0);
+      }
 
       /* otherwise remove the page from the cache */
       remove_page(page);
@@ -72,6 +74,9 @@ class Cache
        * candidates to be deleted when the cache is purged. */
       if (flags & Cache::NOREMOVE)
         put_page(page);
+
+      m_cache_hits++;
+
       return (page);
     }
 
@@ -233,16 +238,27 @@ class Cache
     }
 
     /** get the capacity (in bytes) */
-    ham_u64_t get_capacity() {
+    ham_u64_t get_capacity() const {
       return (m_capacity);
+    }
+
+    /** get the number of currently cached elements */
+    ham_u64_t get_current_elements() const {
+      return (m_cur_elements);
     }
 
     /** check the cache integrity */
     ham_status_t check_integrity();
 
+    // Fills in the current metrics
+    void get_metrics(ham_env_metrics_t *metrics) const {
+      metrics->cache_hits = m_cache_hits;
+      metrics->cache_misses = m_cache_misses;
+    }
+
   private:
     /** calculate the hash of a page address */
-    ham_u64_t calc_hash(ham_u64_t o) {
+    ham_u64_t calc_hash(ham_u64_t o) const {
       return (o % CACHE_BUCKET_SIZE);
     }
 
@@ -273,6 +289,12 @@ class Cache
 
     /** the buckets - a linked list of Page pointers */
     std::vector<Page *> m_buckets;
+
+    // counts the cache hits
+    ham_u64_t m_cache_hits;
+
+    // counts the cache misses
+    ham_u64_t m_cache_misses;
 };
 
 } // namespace hamsterdb

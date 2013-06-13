@@ -1793,3 +1793,28 @@ ham_set_errhandler(ham_errhandler_fun f)
     hamsterdb::g_handler = hamsterdb::default_errhandler;
 }
 
+ham_status_t HAM_CALLCONV
+ham_env_get_metrics(ham_env_t *henv, ham_env_metrics_t *metrics)
+{
+  Environment *env = (Environment *)henv;
+  if (!env) {
+    ham_trace(("parameter 'env' must not be NULL"));
+    return (HAM_INV_PARAMETER);
+  }
+  if (!metrics) {
+    ham_trace(("parameter 'metrics' must not be NULL"));
+    return (HAM_INV_PARAMETER);
+  }
+
+  memset(metrics, 0, sizeof(ham_env_metrics_t));
+  metrics->version = HAM_METRICS_VERSION;
+
+  ScopedLock lock(env->get_mutex());
+  // fill in memory metrics
+  Memory::get_global_metrics(metrics);
+  // ... and everything else
+  env->get_metrics(metrics);
+
+  return (0);
+}
+

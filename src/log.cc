@@ -26,6 +26,7 @@
 #include "os.h"
 #include "txn.h"
 #include "util.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -264,7 +265,7 @@ Log::recover()
 
     /* flush the modified page to disk */
     page->set_dirty(true);
-    st = page->flush();
+    st = m_env->get_page_manager()->flush_page(page);
     if (st)
       goto bail;
     page->free();

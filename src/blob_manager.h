@@ -114,7 +114,9 @@ class BlobManager
 {
   public:
     BlobManager(Environment *env)
-      : m_env(env) {
+      : m_env(env), m_blob_total_allocated(0), m_blob_total_read(0),
+        m_blob_direct_read(0), m_blob_direct_written(0),
+        m_blob_direct_allocated(0) {
     }
 
     virtual ~BlobManager() { }
@@ -157,9 +159,33 @@ class BlobManager
     virtual ham_status_t free(Database *db, ham_u64_t blob_id,
                     Page *page = 0, ham_u32_t flags = 0) = 0;
 
+    // Fills in the current metrics
+    void get_metrics(ham_env_metrics_t *metrics) const {
+      metrics->blob_total_allocated = m_blob_total_allocated;
+      metrics->blob_total_read = m_blob_total_read;
+      metrics->blob_direct_read = m_blob_direct_read;
+      metrics->blob_direct_written = m_blob_direct_written;
+      metrics->blob_direct_allocated = m_blob_direct_allocated;
+    }
+
   protected:
     /** the Environment which created this BlobManager */
     Environment *m_env;
+
+    // usage tracking - number of blobs allocated
+    ham_u64_t m_blob_total_allocated;
+
+    // usage tracking - number of blobs read
+    ham_u64_t m_blob_total_read;
+
+    // usage tracking - number of direct I/O reads
+    ham_u64_t m_blob_direct_read;
+
+    // usage tracking - number of direct I/O writes
+    ham_u64_t m_blob_direct_written;
+
+    // usage tracking - number of direct I/O allocations
+    ham_u64_t m_blob_direct_allocated;
 };
 
 } // namespace hamsterdb
