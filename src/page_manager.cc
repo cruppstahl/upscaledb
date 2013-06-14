@@ -11,13 +11,11 @@
 
 #include <string.h>
 
-#include "page_manager.h"
-#include "env.h"
 #include "page.h"
 #include "cache.h"
-#include "db.h"
 #include "device.h"
-#include "blob.h"
+
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -103,12 +101,12 @@ PageManager::alloc_page(Page **ppage, Database *db, ham_u32_t page_type,
   bool allocated_by_me = false;
 
   *ppage = 0;
-  ham_assert(0 == (flags & ~(PageManager::IGNORE_FREELIST
-                  | PageManager::CLEAR_WITH_ZERO)));
+  ham_assert(0 == (flags & ~(PageManager::kIgnoreFreelist
+                  | PageManager::kClearWithZero)));
 
   /* first, we ask the freelist for a page */
   Freelist *f = get_freelist(db);
-  if (!(flags & PageManager::IGNORE_FREELIST) && f) {
+  if (!(flags & PageManager::kIgnoreFreelist) && f) {
     if ((st = f->alloc_page(&tellpos)))
       return (st);
     if (tellpos > 0) {
@@ -154,7 +152,7 @@ done:
   page->set_db(db);
 
   /* clear the page with zeroes?  */
-  if (flags & PageManager::CLEAR_WITH_ZERO)
+  if (flags & PageManager::kClearWithZero)
     memset(page->get_pers(), 0, m_env->get_pagesize());
 
   /* an allocated page is always flushed if recovery is enabled */
@@ -172,8 +170,6 @@ ham_status_t
 PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
                         bool *allocated)
 {
-  ham_size_t page_size = m_env->get_pagesize();
-
   *address = 0;
   *allocated = false;
 
@@ -186,34 +182,6 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
       return (st);
     if (*address)
       return (0);
-  }
-
-  return (0); // TODO should continue here!?
-
-  // otherwise allocate the number of pages without using the freelist;
-  // the pages will be appended at the end of the file.
-  ham_size_t num_pages = size / page_size + 1;
-
-  ham_status_t st = m_env->get_device()->alloc(page_size * num_pages,
-                address);
-  if (st)
-    return (st);
-  *allocated = true;
-
-  // if there's space left then add it to the freelist
-  ham_u64_t page_id = *address;
-  ham_assert(page_id % page_size == 0);
-
-  for (ham_size_t i = 0; i < num_pages; i++) {
-    ham_size_t last_size = size;
-    size -= std::min(size, page_size);
-    // if there's space left then add it to the freelist
-    if (size == 0 && m_freelist) {
-      ham_size_t size_left = page_size - last_size;
-      if (size_left > 0)
-        m_freelist->free_area(page_id + last_size, size_left);
-    }
-    page_id += page_size;
   }
 
   return (0);
@@ -306,11 +274,25 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
   return (false);
 }
 
+ham_status_t
+PageManager::check_integrity()
+{
+  if (m_cache)
+    return (m_cache->check_integrity());
+  return (0);
+}
+
+ham_u64_t
+PageManager::get_cache_capacity() const
+{
+  return (m_cache->get_capacity());
+}
+
 void
 PageManager::close_database(Database *db)
 {
-  if (get_cache())
-    (void)get_cache()->visit(db_close_callback, db, 0);
+  if (m_cache)
+    (void)m_cache->visit(db_close_callback, db, 0);
 }
 
 } // namespace hamsterdb

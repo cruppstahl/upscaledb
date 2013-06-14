@@ -9,20 +9,12 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * This file describes the configuration of hamster - serial number,
- * enabled features etc.
- *
- */
-
-#ifndef __HAM_CONFIG_H__
-#define __HAM_CONFIG_H__
+#ifndef HAM_CONFIG_H__
+#define HAM_CONFIG_H__
 
 #include <ham/types.h>
 
-/*
- * include autoconf header file; otherwise, assume sane default values
- */
+// include autoconf header file; otherwise, assume sane default values
 #ifdef HAVE_CONFIG_H
 #   include "../config.h"
 #else
@@ -37,9 +29,7 @@
 #   define HAVE_PWRITE            1
 #endif
 
-/*
- * check for a valid build
- */
+// check for a valid build
 #if (!defined(HAM_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
 #     define HAM_DEBUG 1
@@ -49,25 +39,18 @@
 #   endif
 #endif
 
-/*
- * the endian-architecture of the host computer; set this to
- * HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN
- */
+// the endian-architecture of the host computer; set this to
+// HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN
 #ifndef HAM_LITTLE_ENDIAN
 #   ifndef HAM_BIG_ENDIAN
 #     error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
 #   endif
 #endif
 
-/*
- * the default cache size is 2 MB
- */
+// the default cache size is 2 MB
 #define HAM_DEFAULT_CACHESIZE    (2 * 1024 * 1024)
 
-/*
- * the default page size is 16 kb
- */
+// the default page size is 16 kb
 #define HAM_DEFAULT_PAGESIZE     (16 * 1024)
 
-
-#endif /* __HAM_CONFIG_H__ */
+#endif /* HAM_CONFIG_H__ */

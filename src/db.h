@@ -19,8 +19,6 @@
 
 #include "internal_fwd_decl.h"
 
-#include "statistics.h"
-
 #include "endianswap.h"
 #include "error.h"
 #include "util.h"
@@ -294,6 +292,9 @@ class Database
      *         successful key comparison (0 if both keys match, -1 when
      *         LHS < RHS key, +1 when LHS > RHS key).
      */
+#if __GNUC__
+    __attribute__((hot))
+#endif
     int compare_keys(ham_key_t *lhs, ham_key_t *rhs) {
       int cmp = HAM_PREFIX_REQUEST_FULLKEY;
       ham_compare_func_t foo = get_compare_func();
@@ -348,7 +349,7 @@ class Database
         }
 
         /* 3. run the comparison function */
-        cmp=foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
+        cmp = foo((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
                         (ham_u8_t *)rhs->data, rhs->size);
       }
       return (cmp);
@@ -417,6 +418,9 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
+#if __GNUC__
+    __attribute__((hot))
+#endif
     static int HAM_CALLCONV default_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length);
@@ -431,6 +435,9 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
+#if __GNUC__
+    __attribute__((hot))
+#endif
     static int HAM_CALLCONV default_recno_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length);
@@ -445,6 +452,9 @@ class Database
      * @return values less than -1 are @ref ham_status_t error codes and
      *    indicate a failed comparison execution
      */
+#if __GNUC__
+    __attribute__((hot))
+#endif
     static int HAM_CALLCONV default_prefix_compare(ham_db_t *db,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 ham_size_t lhs_real_length,

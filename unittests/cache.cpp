@@ -235,7 +235,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
 
-    Cache *cache = ((Environment *)m_env)->get_page_manager()->get_cache();
+    Cache *cache = ((Environment *)m_env)->get_page_manager()->test_get_cache();
 
     BFC_ASSERT_EQUAL(cache->get_capacity(), 1024 * 1024 * 2u);
 
@@ -265,7 +265,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
 
-    Cache *cache = ((Environment *)m_env)->get_page_manager()->get_cache();
+    Cache *cache = ((Environment *)m_env)->get_page_manager()->test_get_cache();
 
     BFC_ASSERT_EQUAL(100 * 1024u, cache->get_capacity());
   }
@@ -281,7 +281,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"), 0, &param[0]));
 
-    Cache *cache = ((Environment *)m_env)->get_page_manager()->get_cache();
+    Cache *cache = ((Environment *)m_env)->get_page_manager()->test_get_cache();
 
     BFC_ASSERT_EQUAL(100 * 1024u, cache->get_capacity());
   }
@@ -301,7 +301,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_create_db(m_env, &m_db, 13, 0, 0));
 
-    Cache *cache = ((Environment *)m_env)->get_page_manager()->get_cache();
+    Cache *cache = ((Environment *)m_env)->get_page_manager()->test_get_cache();
 
     BFC_ASSERT_EQUAL(100 * 1024u, cache->get_capacity());
   }
@@ -322,7 +322,7 @@ public:
     BFC_ASSERT_EQUAL(0,
         ham_env_open(&m_env, BFC_OPATH(".test"), 0, &param[0]));
 
-    Cache *cache = ((Environment *)m_env)->get_page_manager()->get_cache();
+    Cache *cache = ((Environment *)m_env)->get_page_manager()->test_get_cache();
 
     BFC_ASSERT_EQUAL(100 * 1024u, cache->get_capacity());
   }

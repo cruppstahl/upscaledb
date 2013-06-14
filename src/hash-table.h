@@ -9,7 +9,7 @@
  * See files COPYING.* for License information.
  */
 
-/**
+/*
  * @brief A simple hash_table implementation using linked lists as
  * overflow buckets.
  *
@@ -27,8 +27,7 @@
 #include <vector>
 
 template<class T, class Key, class Helper>
-class hash_table
-{
+class hash_table {
   typedef std::vector<T *> bucket_list;
   typedef typename std::vector<T *>::iterator bucket_iterator;
 

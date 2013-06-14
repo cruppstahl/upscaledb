@@ -17,6 +17,8 @@
 #ifndef HAM_TXN_H__
 #define HAM_TXN_H__
 
+#include <string>
+
 #include "internal_fwd_decl.h"
 #include "rb.h"
 #include "util.h"

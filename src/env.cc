@@ -17,7 +17,8 @@
 #include "db.h"
 #include "env.h"
 #include "btree_stats.h"
-#include "device.h"
+#include "device_factory.h"
+#include "blob_manager_factory.h"
 #include "version.h"
 #include "serial.h"
 #include "txn.h"
@@ -31,7 +32,7 @@
 #include "journal.h"
 #include "btree_key.h"
 #include "os.h"
-#include "blob.h"
+#include "blob_manager.h"
 #include "txn_cursor.h"
 #include "cursor.h"
 #include "btree_cursor.h"
@@ -47,11 +48,10 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 Environment::Environment()
-  : m_blob_manager(0), m_page_manager(0), m_file_mode(0644), m_txn_id(0),
-    m_context(0), m_device(0), m_hdrpage(0), m_oldest_txn(0),
-    m_newest_txn(0), m_log(0), m_journal(0), m_flags(0),
-    m_changeset(this), m_pagesize(0), m_max_databases_cached(0),
-    m_duplicate_manager(this)
+  : m_blob_manager(0), m_page_manager(0), m_device(0), m_file_mode(0644),
+    m_txn_id(0), m_context(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0),
+    m_log(0), m_journal(0), m_flags(0), m_changeset(this), m_pagesize(0),
+    m_max_databases_cached(0), m_duplicate_manager(this)
 {
 }
 
@@ -80,7 +80,7 @@ Environment::~Environment()
       (void)device->close();
     }
     delete device;
-    set_device(0);
+    m_device = 0;
   }
   
   if (m_blob_manager) {
@@ -346,23 +346,15 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   set_max_databases_cached(maxdbs);
 
   /* initialize the device if it does not yet exist */
-  Device *device;
-  if (flags & HAM_IN_MEMORY) {
-    m_blob_manager = new InMemoryBlobManager(this);
-    device = new InMemoryDevice(this, flags);
-  }
-  else {
-    m_blob_manager = new DiskBlobManager(this);
-    device = new DiskDevice(this, flags);
-  }
-  device->set_pagesize(get_pagesize());
-  set_device(device);
+  m_blob_manager = BlobManagerFactory::create(this, flags);
+  m_device = DeviceFactory::create(this, flags);
+  m_device->set_pagesize(get_pagesize());
 
   /* create the file */
-  st = device->create(filename, flags, mode);
+  st = m_device->create(filename, flags, mode);
   if (st) {
-    delete device;
-    set_device(0);
+    delete m_device;
+    m_device = 0;
     return (st);
   }
 
@@ -370,7 +362,7 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   {
     Page *page = new Page(this);
     /* manually set the device pointer */
-    page->set_device(device);
+    page->set_device(m_device);
     st = page->allocate();
     if (st) {
       delete page;
@@ -425,28 +417,20 @@ ham_status_t
 LocalEnvironment::open(const char *filename, ham_u32_t flags,
         ham_size_t cachesize)
 {
-  ham_status_t st;
-
   /* initialize the device if it does not yet exist */
-  Device *device;
-  if (flags & HAM_IN_MEMORY) {
-    m_blob_manager = new InMemoryBlobManager(this);
-    device = new InMemoryDevice(this, flags);
-  }
-  else {
-    m_blob_manager = new DiskBlobManager(this);
-    device = new DiskDevice(this, flags);
-  }
-  set_device(device);
+  m_blob_manager = BlobManagerFactory::create(this, flags);
+  m_device = DeviceFactory::create(this, flags);
+  m_device->set_pagesize(get_pagesize());
+
   if (filename)
     set_filename(filename);
   set_flags(flags);
 
   /* open the file */
-  st = device->open(filename, flags);
+  ham_status_t st = m_device->open(filename, flags);
   if (st) {
-    delete device;
-    set_device(0);
+    delete m_device;
+    m_device = 0;
     return (st);
   }
 
@@ -485,12 +469,12 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
      * format support here this was getting hairier and hairier.
      * So we now fake it all the way instead.
      */
-    st = device->read(0, hdrbuf, sizeof(hdrbuf));
+    st = m_device->read(0, hdrbuf, sizeof(hdrbuf));
     if (st)
       goto fail_with_fake_cleansing;
 
     set_pagesize(get_persistent_pagesize());
-    device->set_pagesize(get_persistent_pagesize());
+    m_device->set_pagesize(get_persistent_pagesize());
 
     /** check the file magic */
     if (!verify_magic('H', 'A', 'M', '\0')) {
@@ -524,14 +508,14 @@ fail_with_fake_cleansing:
 
     /* exit when an error was signaled */
     if (st) {
-      delete device;
-      set_device(0);
+      delete m_device;
+      m_device = 0;
       return (st);
     }
 
     /* now read the "real" header page and store it in the Environment */
     page = new Page(this);
-    page->set_device(device);
+    page->set_device(m_device);
     st = page->fetch(0);
     if (st) {
       delete page;
@@ -664,7 +648,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   get_descriptor(descriptor)->set_dbname(0);
   get_header_page()->set_dirty(true);
 
-  return (0);
+  return (st);
 }
 
 ham_status_t
@@ -750,7 +734,7 @@ LocalEnvironment::close(ham_u32_t flags)
       device->close();
     }
     delete device;
-    set_device(0);
+    m_device = 0;
   }
 
   /* close the log and the journal */
@@ -780,7 +764,7 @@ LocalEnvironment::get_parameters(ham_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case HAM_PARAM_CACHESIZE:
-        p->value = get_page_manager()->get_cache()->get_capacity();
+        p->value = get_page_manager()->get_cache_capacity();
         break;
       case HAM_PARAM_PAGESIZE:
         p->value = get_pagesize();

@@ -17,7 +17,7 @@
 #include "db.h"
 #include "errorinducer.h"
 
-#define induce(id)                                                  \
+#define INDUCE(id)                                                  \
   while (m_inducer) {                                               \
     ham_status_t st = m_inducer->induce(id);                        \
     if (st)                                                         \
@@ -84,7 +84,7 @@ Changeset::log_bucket(Page **bucket, ham_size_t bucket_size,
 
     Log *log = m_env->get_log();
 
-    induce(ErrorInducer::CHANGESET_FLUSH);
+    INDUCE(ErrorInducer::kChangesetFlush);
 
     ham_assert(page_count > 0);
 
@@ -112,7 +112,7 @@ Changeset::flush(ham_u64_t lsn)
   if (!p)
     return (0);
 
-  induce(ErrorInducer::CHANGESET_FLUSH);
+  INDUCE(ErrorInducer::kChangesetFlush);
 
   m_blobs_size = 0;
   m_freelists_size = 0;
@@ -155,16 +155,16 @@ Changeset::flush(ham_u64_t lsn)
     page_count++;
     p = n;
 
-    induce(ErrorInducer::CHANGESET_FLUSH);
+    INDUCE(ErrorInducer::kChangesetFlush);
   }
 
   if (page_count == 0) {
-    induce(ErrorInducer::CHANGESET_FLUSH);
+    INDUCE(ErrorInducer::kChangesetFlush);
     clear();
     return (0);
   }
 
-  induce(ErrorInducer::CHANGESET_FLUSH);
+  INDUCE(ErrorInducer::kChangesetFlush);
 
   bool log_written = false;
 
@@ -196,7 +196,7 @@ Changeset::flush(ham_u64_t lsn)
   if (m_env->get_flags() & HAM_ENABLE_FSYNC && log_written)
     m_env->get_log()->flush();
 
-  induce(ErrorInducer::CHANGESET_FLUSH);
+  INDUCE(ErrorInducer::kChangesetFlush);
 
   // now flush all modified pages to disk
   ham_assert(log != 0);
@@ -215,7 +215,7 @@ Changeset::flush(ham_u64_t lsn)
       return (st);
     p = p->get_next(Page::LIST_CHANGESET);
 
-    induce(ErrorInducer::CHANGESET_FLUSH);
+    INDUCE(ErrorInducer::kChangesetFlush);
   }
 
   /* flush the file handle (if required) */

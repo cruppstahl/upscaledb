@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
-#include "../src/blob.h"
+#include "../src/blob_manager.h"
 #include "../src/btree.h"
 #include "../src/endianswap.h"
 #include "../src/cursor.h"

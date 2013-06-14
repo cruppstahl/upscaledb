@@ -12,8 +12,8 @@
 
 #include "config.h"
 
-#define _GNU_SOURCE   1 /* for O_LARGEFILE */
-#define __USE_XOPEN2K 1 /* for ftruncate() */
+#define _GNU_SOURCE   1 // for O_LARGEFILE
+#define __USE_XOPEN2K 1 // for ftruncate()
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -44,13 +44,11 @@ static ham_status_t
 lock_exclusive(int fd, bool lock)
 {
 #ifdef HAM_SOLARIS
-  /*
-   * SunOS 5.9 doesn't have LOCK_* unless i include /usr/ucbinclude; but then,
-   * mmap behaves strangely (the first write-access to the mmapped buffer
-   * leads to a segmentation fault.
-   *
-   * Tell me if this troubles you/if you have suggestions for fixes.
-   */
+  // SunOS 5.9 doesn't have LOCK_* unless i include /usr/ucbinclude; but then,
+  // mmap behaves strangely (the first write-access to the mmapped buffer
+  // leads to a segmentation fault.
+  //
+  // Tell me if this troubles you/if you have suggestions for fixes.
   return (HAM_NOT_IMPLEMENTED);
 #else
   int flags;
@@ -62,8 +60,8 @@ lock_exclusive(int fd, bool lock)
 
   if (0 != flock(fd, flags)) {
     ham_log(("flock failed with status %u (%s)", errno, strerror(errno)));
-    /* it seems that linux does not only return EWOULDBLOCK, as stated
-     * in the documentation (flock(2)), but also other errors... */
+    // it seems that linux does not only return EWOULDBLOCK, as stated
+    // in the documentation (flock(2)), but also other errors...
     if (errno)
       if (lock)
         return (HAM_WOULD_BLOCK);
@@ -77,9 +75,9 @@ lock_exclusive(int fd, bool lock)
 static void
 enable_largefile(int fd)
 {
-  /* not available on cygwin... */
+  // not available on cygwin...
 #ifdef HAVE_O_LARGEFILE
-  int oflag=fcntl(fd, F_GETFL, 0);
+  int oflag = fcntl(fd, F_GETFL, 0);
   fcntl(fd, F_SETFL, oflag | O_LARGEFILE);
 #endif
 }
@@ -170,7 +168,7 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
   ham_u64_t total = 0;
 
   while (total < bufferlen) {
-    r=pread(fd, (ham_u8_t *)buffer + total, bufferlen - total, addr + total);
+    r = pread(fd, (ham_u8_t *)buffer + total, bufferlen - total, addr + total);
     if (r < 0) {
       ham_log(("os_pread failed with status %u (%s)",
           errno, strerror(errno)));
@@ -203,7 +201,7 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
   const char *p = (const char *)buffer;
 
   while (total < bufferlen) {
-    w=write(fd, p + total, bufferlen - total);
+    w = write(fd, p + total, bufferlen - total);
     if (w < 0)
       return (HAM_IO_ERROR);
     if (w == 0)
@@ -306,14 +304,9 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
   }
   return (0);
 #else
-  /*
-   * Win32 also has a writev implementation, but it requires the pointers
-   * to be memory page aligned
-   */
-  ham_status_t st;
   ham_u64_t rollback;
 
-  st = os_tell(fd, &rollback);
+  ham_status_t st = os_tell(fd, &rollback);
   if (st)
     return (st);
 
@@ -343,7 +336,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
 
 bail:
   if (st) {
-    /* rollback the previous change */
+    // rollback the previous change
     (void)os_seek(fd, rollback, HAM_OS_SEEK_SET);
   }
   return (st);
@@ -370,9 +363,7 @@ os_tell(ham_fd_t fd, ham_u64_t *offset)
 ham_status_t
 os_get_filesize(ham_fd_t fd, ham_u64_t *size)
 {
-  ham_status_t st;
-
-  st = os_seek(fd, 0, HAM_OS_SEEK_END);
+  ham_status_t st = os_seek(fd, 0, HAM_OS_SEEK_END);
   if (st)
     return (st);
   st = os_tell(fd, size);
@@ -395,7 +386,7 @@ ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
   ham_status_t st;
-  int osflags = O_CREAT|O_RDWR|O_TRUNC;
+  int osflags = O_CREAT | O_RDWR | O_TRUNC;
 #if HAVE_O_NOATIME
   flags |= O_NOATIME;
 #endif
@@ -451,7 +442,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
   else
     osflags |= O_RDWR;
 #if HAVE_O_NOATIME
-  flags |= O_NOATIME;
+  osflags |= O_NOATIME;
 #endif
 
   *fd = open(filename, osflags);
@@ -475,18 +466,16 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 ham_status_t
 os_close(ham_fd_t fd)
 {
-  ham_status_t st;
-
-  /* on posix, we most likely don't want to close descriptors 0 and 1 */
+  // on posix, we most likely don't want to close descriptors 0 and 1
   ham_assert(fd != 0 && fd != 1);
 
-  /* unlock the file - this is default behaviour since 1.1.0 */
-  st=lock_exclusive(fd, false);
+  // unlock the file - this is default behaviour since 1.1.0
+  ham_status_t st = lock_exclusive(fd, false);
   if (st)
     return (st);
 
-  /* now close the descriptor */
-  if (close(fd)==-1)
+  // now close the descriptor
+  if (close(fd) == -1)
     return (HAM_IO_ERROR);
 
   return (HAM_SUCCESS);

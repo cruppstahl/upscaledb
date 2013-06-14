@@ -17,7 +17,7 @@
 #include <ham/hamsterdb.h>
 
 #include "../src/db.h"
-#include "../src/blob.h"
+#include "../src/blob_manager.h"
 #include "../src/env.h"
 #include "../src/page.h"
 #include "../src/btree_key.h"

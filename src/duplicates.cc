@@ -14,7 +14,7 @@
 
 #include <string.h>
 
-#include "blob.h"
+#include "blob_manager_disk.h"
 #include "db.h"
 #include "device.h"
 #include "env.h"

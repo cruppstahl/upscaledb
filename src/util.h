@@ -17,9 +17,9 @@
 #ifndef HAM_UTIL_H__
 #define HAM_UTIL_H__
 
-
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "ham/hamsterdb.h"
 
@@ -27,6 +27,10 @@
 
 namespace hamsterdb {
 
+/*
+ * The ByteArray class is a dynamic, resizable array. The internal memory
+ * is released when the ByteArray instance is destructed.
+ */
 class ByteArray
 {
   public:
@@ -92,23 +96,23 @@ class ByteArray
     bool m_own;
 };
 
-/**
- * vsnprintf replacement/wrapper
- *
- * uses sprintf on platforms which do not define snprintf
- */
+//
+// vsnprintf replacement/wrapper
+//
+// uses vsprintf on platforms which do not define vsnprintf
+//
 extern int
 util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
-/**
- * snprintf replacement/wrapper
- *
- * uses sprintf on platforms which do not define snprintf
- */
+//
+// snprintf replacement/wrapper
+//
+// uses sprintf on platforms which do not define snprintf
+//
 #ifndef HAM_OS_POSIX
-#define util_snprintf _snprintf
+#  define util_snprintf _snprintf
 #else
-#define util_snprintf snprintf
+#  define util_snprintf snprintf
 #endif
 
 } // namespace hamsterdb

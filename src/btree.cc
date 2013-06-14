@@ -155,7 +155,7 @@ BtreeIndex::create(ham_u16_t keysize)
   /* allocate a new root page */
   Page *root = 0;
   ham_status_t st = m_db->alloc_page(&root, Page::TYPE_B_ROOT,
-          PageManager::IGNORE_FREELIST);
+          PageManager::kIgnoreFreelist);
   if (st)
     return (st);
 

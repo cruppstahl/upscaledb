@@ -19,7 +19,7 @@
 #include <algorithm>
 
 #include "internal_fwd_decl.h"
-#include "blob.h"
+#include "blob_manager.h"
 #include "btree.h"
 #include "btree_cursor.h"
 #include "extkeys.h"

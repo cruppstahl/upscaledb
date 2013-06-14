@@ -116,13 +116,26 @@ x full_freelist: clean up the code
     x inline the statistics-functions because they require lots of performance
     x then check ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
 
-o cache improvements
-    o when flushing, sort pages by ID/offset and use writev to flush them
-    o give priority to index pages
-    . introduce new cache policy "USE_AS_MUCH_AS_YOU_WANT": keeps all index
-        pages in memory and cache some of the blob pages
-    . should this become the new default?
-    . add to monster tests
+x cache improvements
+    x when flushing, sort pages by ID/offset and use writev to flush them
+    x use a dynamic hash table (std::vector); if vector becomes too full then
+        resize and rehash
+        o this needs a test
+    --> performance degraded; try to avoid std::vector, use local array 
+            on stack instead
+    --> still no good; revert
+
+x gcc has some nice attributes
+    x __attribute__ ((noreturn))
+        for ham_assert/ham_verify
+    x __attribute__ ((hot))
+        for the compare function
+
+x run clang static analyzer
+
+o really leave reduced freelist? the performance gains are not worth the
+    additional complexity and we would introduce lots of technical debt
+    -> remove it...
 
 o we need more metrics in the monster tests:
     o create new module Metrics, with structure and API in hamsterdb_int.h
@@ -131,8 +144,16 @@ o we need more metrics in the monster tests:
         o Memory::Metrics
         o track page reads (page_manager)
         o track page writes (page_manager)
-        o track cache fetches (cache)
+        o number of index pages (page_manager)
+        o number of blob pages (page_manager)
+        o number of freelist pages (page_manager)
+        o number of bytes marked "used" (freelist)
+        o number of bytes marked "free" (freelist)
+        o number of freelist hits (freelist)
+        o number of freelist misses (freelist)
+        o track cache hits (cache)
         o track cache misses (cache)
+        o number of cache buckets (cache)
         o track direct I/O blob reads (device)
         o track direct I/O blob writes (device)
         o total bytes inserted (env)
@@ -140,6 +161,8 @@ o we need more metrics in the monster tests:
     o use in monster test
 
 o win32: get rid of boost_thread
+
+. run a performance test clang++ vs g++
 
 . boost: configure script should make sure that only boost v 1.46 (or newer)
     is accepted
@@ -200,6 +223,7 @@ o BtreeCursor: use memory arena for uncoupling the key
 
 o split Transaction into local and remote class (really?)
     hamsterdb.cc directly calls into Transaction class instead of Environment
+    o create PoolAllocator based on ByteArray
     o keep in mind that sooner or later the BtreeNode will expect
         template arguments; can we do something similar with the
         TransactionNode?

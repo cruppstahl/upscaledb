@@ -128,7 +128,7 @@ insert(int argc, char **argv) {
 
   ErrorInducer *ei = new ErrorInducer();
   ((Environment *)env)->get_changeset().m_inducer=ei;
-  ei->add(ErrorInducer::CHANGESET_FLUSH, inducer);
+  ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {
     // modify key at end of buffer to make sure that extended keys
@@ -210,7 +210,7 @@ erase(int argc, char **argv) {
 
   ErrorInducer *ei = new ErrorInducer();
   ((Environment *)env)->get_changeset().m_inducer = ei;
-  ei->add(ErrorInducer::CHANGESET_FLUSH, inducer);
+  ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {
     // modify key at end of buffer to make sure that extended keys

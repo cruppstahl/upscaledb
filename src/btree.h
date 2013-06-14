@@ -26,7 +26,6 @@
 #include "db.h"
 #include "util.h"
 #include "btree_stats.h"
-#include "statistics.h"
 
 namespace hamsterdb {
 
@@ -195,7 +194,7 @@ class BtreeIndex
      * insert (or update) a key in the index
      *
      * the btree is responsible for inserting or updating the
-     * record. (see blob.h for blob management functions)
+     * record. (see blob_manager.h for blob management functions)
      */
     ham_status_t insert(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);

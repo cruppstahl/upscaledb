@@ -20,6 +20,7 @@
 #include "../src/full_freelist.h"
 #include "../src/env.h"
 #include "../src/page_manager.h"
+#include "../src/blob_manager_disk.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
@@ -612,7 +613,7 @@ public:
     // allocate a page, store it in the freelist
     BFC_ASSERT_EQUAL(0, env->get_page_manager()->alloc_page(&page, 0, 0, 0));
     ham_u64_t pid = page->get_self();
-    BFC_ASSERT_EQUAL(0, env->get_page_manager()->free_page(page));
+    BFC_ASSERT_EQUAL(0, env->get_page_manager()->add_to_freelist(page));
     // make sure that the modified page is written to disk (free_page changes
     // the page type)
     BFC_ASSERT_EQUAL(0, env->get_page_manager()->flush_all_pages(true));

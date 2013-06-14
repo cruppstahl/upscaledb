@@ -35,7 +35,7 @@ public:
   PageTest(bool inmemorydb = false, bool mmap = true,
       const char *name = "PageTest")
     : hamsterDB_fixture(name), m_db(0), m_inmemory(inmemorydb),
-    m_usemmap(mmap), m_dev(0) {
+      m_usemmap(mmap) {
     testrunner::get_instance()->register_fixture(this);
     BFC_REGISTER_TEST(PageTest, newDeleteTest);
     BFC_REGISTER_TEST(PageTest, allocFreeTest);
@@ -48,7 +48,6 @@ protected:
   ham_env_t *m_env;
   bool m_inmemory;
   bool m_usemmap;
-  ham_device_t *m_dev;
 
 public:
   virtual void setup() {

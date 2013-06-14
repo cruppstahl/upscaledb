@@ -36,7 +36,6 @@ public:
     BFC_REGISTER_TEST(DeviceTest, newDeleteTest);
     BFC_REGISTER_TEST(DeviceTest, createCloseTest);
     BFC_REGISTER_TEST(DeviceTest, openCloseTest);
-    BFC_REGISTER_TEST(DeviceTest, pagesizeTest);
     BFC_REGISTER_TEST(DeviceTest, allocTest);
     BFC_REGISTER_TEST(DeviceTest, allocFreeTest);
     BFC_REGISTER_TEST(DeviceTest, flushTest);
@@ -98,18 +97,6 @@ public:
     }
   }
 
-  void pagesizeTest() {
-    ham_size_t cps;
-    ham_size_t ps = m_dev->get_pagesize();
-    BFC_ASSERT(ps != 0);
-    BFC_ASSERT(ps % 1024 == 0);
-    cps = m_dev->get_pagesize();
-    BFC_ASSERT(cps != 0);
-    BFC_ASSERT(cps % 1024 == 0);
-    if (!m_inmemory)
-      BFC_ASSERT_EQUAL(cps, ps);
-  }
-
   void allocTest() {
     int i;
     ham_u64_t address;
@@ -141,7 +128,7 @@ public:
   void mmapUnmapTest() {
     int i;
     Page pages[10];
-    ham_size_t ps = m_dev->get_pagesize();
+    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
     BFC_ASSERT_EQUAL(true, m_dev->is_open());
@@ -173,10 +160,10 @@ public:
   void readWriteTest() {
     int i;
     ham_u8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    ham_size_t ps = m_dev->get_pagesize();
+    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
-    m_dev->set_flags(HAM_DISABLE_MMAP);
+    m_dev->test_disable_mmap();
 
     BFC_ASSERT_EQUAL(true, m_dev->is_open());
     BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 10));
@@ -200,12 +187,12 @@ public:
   void readWritePageTest() {
     int i;
     Page *pages[2];
-    ham_size_t ps = m_dev->get_pagesize();
+    ham_size_t ps = HAM_DEFAULT_PAGESIZE;
 
-    m_dev->set_flags(HAM_DISABLE_MMAP);
+    m_dev->test_disable_mmap();
 
     BFC_ASSERT_EQUAL(1, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps*2));
+    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 2));
     for (i = 0; i < 2; i++) {
       BFC_ASSERT((pages[i] = new Page((Environment *)m_env)));
       pages[i]->set_self(ps * i);
@@ -242,7 +229,6 @@ public:
     BFC_REGISTER_TEST(InMemoryDeviceTest, newDeleteTest);
     BFC_REGISTER_TEST(InMemoryDeviceTest, createCloseTest);
     BFC_REGISTER_TEST(InMemoryDeviceTest, openCloseTest);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, pagesizeTest);
     BFC_REGISTER_TEST(InMemoryDeviceTest, allocFreeTest);
     BFC_REGISTER_TEST(InMemoryDeviceTest, flushTest);
   }

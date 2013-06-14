@@ -91,26 +91,5 @@ struct PBtreeKey;
 
 } // namespace hamsterdb
 
-#include <boost/version.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/tss.hpp>
-#include <boost/thread/condition.hpp>
-
-typedef boost::mutex::scoped_lock ScopedLock;
-typedef boost::thread Thread;
-typedef boost::condition Condition;
-
-class Mutex : public boost::mutex {
-public:
-#if BOOST_VERSION < 103500
-  typedef boost::detail::thread::lock_ops<boost::mutex> Ops;
-
-  void lock() { Ops::lock(*this); }
-
-  void unlock() { Ops::unlock(*this); }
-#endif
-};
-
 #endif
 

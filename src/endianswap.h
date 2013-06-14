@@ -17,10 +17,7 @@
 #ifndef HAM_ENDIANSWAP_H__
 #define HAM_ENDIANSWAP_H__
 
-
-/**
- * byte swapping macros - we use little endian
- */
+// byte swapping macros - we use little endian
 #ifdef HAM_BIG_ENDIAN
 #  define ham_h2db16(x)      _ham_byteswap16(x)
 #  define ham_h2db32(x)      _ham_byteswap32(x)
@@ -32,7 +29,7 @@
 #  define ham_db2h64(x)      _ham_byteswap64(x)
 #  define ham_db2h_offset(x) _ham_byteswap64(x)
 #  define ham_db2h_size(x)   _ham_byteswap32(x)
-#else /* HAM_LITTLE_ENDIAN */
+#else // HAM_LITTLE_ENDIAN
 #  define ham_h2db16(x)      (x)
 #  define ham_h2db32(x)      (x)
 #  define ham_h2db64(x)      (x)

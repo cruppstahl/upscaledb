@@ -16,7 +16,7 @@
 #include <math.h>
 #include <float.h>
 
-#include "blob.h"
+#include "blob_manager.h"
 #include "btree.h"
 #include "cache.h"
 #include "cursor.h"
@@ -1353,7 +1353,7 @@ LocalDatabase::check_integrity(Transaction *txn)
 
   /* check the cache integrity */
   if (!(get_rt_flags() & HAM_IN_MEMORY)) {
-    st = m_env->get_page_manager()->get_cache()->check_integrity();
+    st = m_env->get_page_manager()->check_integrity();
     if (st)
       return (st);
   }

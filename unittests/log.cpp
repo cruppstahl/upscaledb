@@ -583,7 +583,7 @@ public:
     Page *page;
 
     BFC_ASSERT_EQUAL(0,
-        db->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -633,7 +633,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -688,7 +688,7 @@ public:
     Database *db = (Database *)m_db;
 
     BFC_ASSERT_EQUAL(0,
-        db->alloc_page(&page, 0, PageManager::IGNORE_FREELIST));
+        db->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     BFC_ASSERT_EQUAL(ps * 2, page->get_self());
     for (int i = 0; i < 200; i++)
@@ -738,7 +738,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)
@@ -797,7 +797,7 @@ public:
 
     for (int i = 0; i < 10; i++) {
       BFC_ASSERT_EQUAL(0,
-          db->alloc_page(&page[i], 0, PageManager::IGNORE_FREELIST));
+          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       BFC_ASSERT_EQUAL(ps * (2 + i), page[i]->get_self());
       for (int j = 0; j < 200; j++)

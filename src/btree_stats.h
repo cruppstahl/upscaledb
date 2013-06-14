@@ -22,6 +22,14 @@ namespace hamsterdb {
 
 class BtreeStatistics {
   public:
+    // Indices into find/insert/erase specific statistics
+    enum {
+      kOperationFind      = 0,
+      kOperationInsert    = 1,
+      kOperationErase     = 2,
+      kOperationMax       = 3
+    };
+
     struct FindHints {
       /* the original flags of ham_find */
       ham_u32_t original_flags;
@@ -90,16 +98,20 @@ class BtreeStatistics {
     void reset_page(Page *page);
 
   private:
-    /** get a reference to the per-database statistics */
-    DatabaseStatistics *get_perf_data() {
-      return (&m_perf_data);
-    }
-
     /** the Database */
     Database *m_db;
 
-    /** some database specific run-time data */
-    DatabaseStatistics m_perf_data;
+    /* last leaf page for find/insert/erase */
+    ham_u64_t m_last_leaf_pages[kOperationMax];
+
+    /* count of how often this leaf page was used */
+    ham_size_t m_last_leaf_count[kOperationMax];
+
+    /* count the number of appends */
+    ham_size_t m_append_count;
+
+    /* count the number of prepends */
+    ham_size_t m_prepend_count;
 };
 
 

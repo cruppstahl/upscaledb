@@ -32,8 +32,9 @@
 #include "error.h"
 #include "page.h"
 #include "changeset.h"
-#include "blob.h"
+#include "blob_manager.h"
 #include "duplicates.h"
+#include "mutex.h"
 
 /**
  * A helper structure; ham_env_t is declared in ham/hamsterdb.h as an
@@ -198,14 +199,8 @@ class Environment
     }
 
     /** get the device */
-    // TODO move to LocalEnvironment
     Device *get_device() {
       return (m_device);
-    }
-
-    /** set the device */
-    void set_device(Device *device) {
-      m_device = device;
     }
 
     /** get the header page */
@@ -471,6 +466,9 @@ class Environment
     // TODO move to LocalEnvironment
     PageManager *m_page_manager;
 
+    /** the device (either a file or an in-memory-db) */
+    Device *m_device;
+
   private:
     /** Flushes a single, committed transaction to disk */
     // TODO move to LocalEnvironment
@@ -494,10 +492,6 @@ class Environment
 
     /** a map of all opened Databases */
     DatabaseMap m_database_map;
-
-    /** the device (either a file or an in-memory-db) */
-    // TODO move to LocalEnvironment
-    Device *m_device;
 
     /** the file header page */
     // TODO move to LocalEnvironment

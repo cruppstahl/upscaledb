@@ -72,7 +72,7 @@ public:
   void newDeleteTest() {
     PageManager *pm = ((Environment *)m_env)->get_page_manager();
 
-    BFC_ASSERT(pm->get_cache() != 0);
+    BFC_ASSERT(pm->test_get_cache() != 0);
     if (m_inmemory)
       BFC_ASSERT(pm->get_freelist(0) == 0);
   }
@@ -98,7 +98,7 @@ public:
     page = 0;
     BFC_ASSERT_EQUAL(0,
             pm->alloc_page(&page, 0, Page::TYPE_FREELIST,
-                PageManager::CLEAR_WITH_ZERO));
+                PageManager::kClearWithZero));
     if (m_inmemory == false)
       BFC_ASSERT_EQUAL(page->get_self(), 2 * 16 * 1024ull);
     BFC_ASSERT(page != 0);

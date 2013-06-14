@@ -9,64 +9,62 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief extended key cache
- *
- */
-
 #ifndef HAM_EXTKEYS_H__
 #define HAM_EXTKEYS_H__
 
 #include <vector>
 
-#include "internal_fwd_decl.h"
 #include "hash-table.h"
 #include "mem.h"
 #include "env.h"
 
 namespace hamsterdb {
 
-#define EXTKEY_MAX_AGE  25
-
 /**
  * a cache for extended keys
  */
-class ExtKeyCache
-{
+class ExtKeyCache {
+  private:
     struct ExtKey {
-      /** the blobid of this key */
+      // the blobid of this key
       ham_u64_t blobid;
 
-      /** the age of this extkey */
+      // the age of this extkey
       ham_u64_t age;
 
-      /** pointer to the next key in the linked list */
+      // pointer to the next key in the linked list
       ExtKey *next;
 
-      /** the size of the extended key */
+      // the size of the extended key
       ham_size_t size;
 
-      /** the key data */
+      // the key data
       ham_u8_t data[1];
     };
 
-    /** the size of the ExtKey structure (without room for the key data) */
-    static const int SIZEOF_EXTKEY_T = sizeof(ExtKey) - 1;
+    enum {
+      // when purging, keys > 25 will be removed
+      kMaxAge       = 25,
 
-    class ExtKeyHelper
-    {
+      // the size of the ExtKey structure (without room for the key data)
+      kSizeofExtkey = sizeof(ExtKey) - 1
+    };
+
+    class ExtKeyHelper {
       public:
-        ExtKeyHelper(Environment *env) : m_env(env) { }
+        ExtKeyHelper(Environment *env)
+          : m_env(env) {
+        }
 
-        unsigned hash(const ExtKey *extkey) {
+        unsigned hash(const ExtKey *extkey) const {
           return ((unsigned)extkey->blobid);
         }
 
-        unsigned hash(const ham_u64_t &rid) {
+        unsigned hash(const ham_u64_t &rid) const {
           return ((unsigned)rid);
         }
 
-        bool matches(const ExtKey *lhs, ham_u64_t key) {
+        bool matches(const ExtKey *lhs, ham_u64_t key) const {
           return (lhs->blobid == key);
         }
 
@@ -79,11 +77,7 @@ class ExtKeyCache
         }
 
         bool remove_if(ExtKey *node) {
-          if (m_removeall) {
-            Memory::release(node);
-            return (true);
-          }
-          if (m_env->get_txn_id()-node->age > EXTKEY_MAX_AGE) {
+          if (m_removeall || (m_env->get_txn_id() - node->age > kMaxAge)) {
             Memory::release(node);
             return (true);
           }
@@ -99,33 +93,31 @@ class ExtKeyCache
     };
 
   public:
-    /** the default constructor */
+    // the default constructor
     ExtKeyCache(Database *db)
       : m_db(db), m_usedsize(0),
       m_extkeyhelper(new ExtKeyHelper(db->get_env())),
       m_hash(*m_extkeyhelper) {
     }
 
-    /** the destructor */
+    // the destructor
     ~ExtKeyCache() {
       purge_all();
       delete m_extkeyhelper;
     }
 
-    /**
-     * insert a new extended key in the cache
-     * will assert that there's no duplicate key!
-     */
+    // insert a new extended key in the cache
+    // will assert that there's no duplicate key!
     void insert(ham_u64_t blobid, ham_size_t size, const ham_u8_t *data) {
       ExtKey *e;
       Environment *env=m_db->get_env();
 
-      /* DEBUG build: make sure that the item is not inserted twice!  */
+      // DEBUG build: make sure that the item is not inserted twice!
       ham_assert(m_hash.get(blobid) == 0);
 
-      e = (ExtKey *)Memory::allocate<ExtKey>(SIZEOF_EXTKEY_T + size);
+      e = (ExtKey *)Memory::allocate<ExtKey>(kSizeofExtkey + size);
       e->blobid = blobid;
-      /* TODO do not use txn id but lsn for age */
+      // TODO do not use txn id but lsn for age
       e->age = env->get_txn_id();
       e->size = size;
       memcpy(e->data, data, size);
@@ -133,10 +125,8 @@ class ExtKeyCache
       m_hash.put(e);
     }
 
-    /**
-     * remove an extended key from the cache
-     * returns HAM_KEY_NOT_FOUND if the extkey was not found
-     */
+    // remove an extended key from the cache
+    // returns HAM_KEY_NOT_FOUND if the extkey was not found
     void remove(ham_u64_t blobid) {
       ExtKey *e = m_hash.remove(blobid);
       if (e) {
@@ -145,16 +135,14 @@ class ExtKeyCache
       }
     }
 
-    /**
-     * fetches an extended key from the cache
-     * returns HAM_KEY_NOT_FOUND if the extkey was not found
-     */
+    // fetches an extended key from the cache
+    // returns HAM_KEY_NOT_FOUND if the extkey was not found
     ham_status_t fetch(ham_u64_t blobid, ham_size_t *size, ham_u8_t **data) {
       ExtKey *e = m_hash.get(blobid);
       if (e) {
         *size = e->size;
         *data = e->data;
-        /* TODO do not use txn id but lsn for age */
+        // TODO do not use txn id but lsn for age
         e->age = m_db->get_env()->get_txn_id();
         return (0);
       }
@@ -162,29 +150,29 @@ class ExtKeyCache
         return (HAM_KEY_NOT_FOUND);
     }
 
-    /** removes all OLD keys from the cache */
+    // removes all OLD keys from the cache
     void purge() {
       m_extkeyhelper->m_removeall = false;
       m_hash.remove_if();
     }
 
-    /** removes ALL keys from the cache */
+    // removes ALL keys from the cache
     void purge_all() {
       m_extkeyhelper->m_removeall = true;
       m_hash.remove_if();
     }
 
   private:
-    /** the owner of the cache */
+    // the owner of the cache
     Database *m_db;
 
-    /** the used size, in byte */
+    // the used size, in byte
     ham_size_t m_usedsize;
 
-    /** ExtKeyHelper instance for the hash table */
+    // ExtKeyHelper instance for the hash table
     ExtKeyHelper *m_extkeyhelper;
 
-    /** the buckets - a list of ExtKey pointers */
+    // the buckets - a list of ExtKey pointers
     hash_table<ExtKey, ham_u64_t, ExtKeyHelper> m_hash;
 };
 

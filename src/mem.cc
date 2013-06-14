@@ -17,7 +17,7 @@
 #else
 #  include <stdlib.h>
 #endif
-#include <unistd.h> // sysconf
+#include <unistd.h> // for sysconf
 #ifdef HAVE_GOOGLE_TCMALLOC_H
 #  include <google/malloc_extension.h>
 #endif

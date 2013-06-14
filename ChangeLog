@@ -1,4 +1,7 @@
-<<<<<<< HEAD
+Jun 14, 2013 - chris ---------------------------------------------------
+o Removed internal (but exported) functions ham_env_get_device,
+	ham_env_set_device
+
 Jun 10, 2013 - chris ---------------------------------------------------
 o Improved integration of tcmalloc, removed ham_env_set_allocator
 

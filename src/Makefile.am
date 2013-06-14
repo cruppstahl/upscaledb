@@ -12,8 +12,13 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 EXTRA_DIST = os_win32.cc
 
-libhamsterdb_la_SOURCES = blob.cc \
-	blob.h \
+libhamsterdb_la_SOURCES = \
+	blob_manager.h \
+	blob_manager_inmem.h \
+	blob_manager_inmem.cc \
+	blob_manager_disk.h \
+	blob_manager_disk.cc \
+	blob_manager_factory.h \
 	btree.cc \
 	btree_check.cc \
 	btree_cursor.cc \
@@ -37,8 +42,10 @@ libhamsterdb_la_SOURCES = blob.cc \
 	cursor.h \
 	db.cc \
 	db.h \
-	device.cc \
 	device.h \
+	device_disk.h \
+	device_inmem.h \
+	device_factory.h \
 	duplicates.cc \
 	duplicates.h \
 	endianswap.h \
@@ -75,7 +82,6 @@ libhamsterdb_la_SOURCES = blob.cc \
 	serial.h \
 	reduced_freelist.h \
 	reduced_freelist.cc \
-	statistics.h \
 	txn.cc \
 	txn_cursor.cc \
 	txn_cursor.h \

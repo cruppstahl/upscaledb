@@ -14,7 +14,7 @@
 
 #include <string.h>
 
-#include "blob.h"
+#include "blob_manager.h"
 #include "btree.h"
 #include "db.h"
 #include "env.h"

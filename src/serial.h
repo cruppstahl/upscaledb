@@ -8,39 +8,22 @@
  *
  * See files COPYING.* for License information.
  *
- *
- * this file describes the configuration of hamster - serial number,
- * licensing information etc.
- *
  */
 
-#ifndef SERIAL_H__
-#define SERIAL_H__
+#ifndef HAM_SERIAL_H__
+#define HAM_SERIAL_H__
 
-
-/*
- * the serial number; for GPL versions, this is always
- * 0x0; only non-GPL versions get a serial number.
- */
+// the serial number; for GPL versions, this is always
+// 0x0; only non-GPL versions get a serial number.
 #define HAM_SERIALNO                  0x0
 
-/*
- * the name of the licensee; for GPL, this string is empty ("")
- */
+// the name of the licensee; for GPL, this string is empty ("")
 #define HAM_LICENSEE                  ""
 
-/*
- * product list; describes the products which were licensed.
- *
- * the basic storage functionality is always enabled.
- */
+// product list; describes the products which were licensed.
 #define HAM_PRODUCT_STORAGE           1
 
-/*
- * same as above, but as a readable string
- */
+// same as above, but as a readable string
 #define HAM_PRODUCT_NAME              "hamsterdb embedded storage"
 
-
-#endif /* SERIAL_H__ */
-
+#endif /* HAM_SERIAL_H__ */

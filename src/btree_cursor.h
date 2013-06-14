@@ -32,7 +32,7 @@
 #define HAM_BTREE_CURSORS_H__
 
 #include "internal_fwd_decl.h"
-#include "blob.h"
+#include "blob_manager.h"
 #include "duplicates.h"
 #include "error.h"
 

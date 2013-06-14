@@ -9,10 +9,6 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief this file has error logging routines, assert macros etc
- */
-
 #ifndef HAM_ERROR_H__
 #define HAM_ERROR_H__
 
@@ -20,23 +16,31 @@
 
 namespace hamsterdb {
 
-/** function prototypes */
+// the global error handler function
+extern ham_errhandler_fun g_handler;
+
+// the default error handler
+void HAM_CALLCONV default_errhandler(int level, const char *message);
+
+// function prototypes, required for asserts etc
 extern void dbg_lock(void);
+
 extern void dbg_unlock(void);
+
 extern void dbg_prepare(int level, const char *file, int line,
     const char *function, const char *expr);
+
 extern void dbg_log(const char *format, ...);
+
 extern void dbg_verify_failed(const char *format, ...);
 
-/** a hook for unittests */
+// a hook for unittests; will be triggered when an assert fails
 extern void (*ham_test_abort)();
 
-/*
- * if your compiler does not support __FUNCTION__, you can define it here:
- *  #define __FUNCTION__ 0
- */
+// if your compiler does not support __FUNCTION__, you can define it here:
+//  #define __FUNCTION__ 0
 
-/**
+/*
  * in debug mode we write trace()-messages to stderr, and assert()
  * is enabled.
  *
@@ -57,7 +61,7 @@ extern void (*ham_test_abort)();
 #   define ham_assert(e)      (void)0
 #endif /* HAM_DEBUG */
 
-/** ham_log() and ham_verify() are available in every build */
+// ham_log() and ham_verify() are available in every build
 #define ham_trace(f)     do {                                                 \
                 hamsterdb::dbg_lock();                                        \
                 hamsterdb::dbg_prepare(HAM_DEBUG_LEVEL_DEBUG, __FILE__,       \

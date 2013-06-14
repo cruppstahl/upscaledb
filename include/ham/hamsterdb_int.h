@@ -109,52 +109,6 @@ HAM_EXPORT void * HAM_CALLCONV
 ham_get_context_data(ham_db_t *db, ham_bool_t dont_lock);
 
 /**
- * Install a custom device object
- *
- * Custom device objects can be used to overwrite the functions which
- * open, create, read, write etc. to/from the file.
- *
- * The device structure is defined in src/device.h. The default device
- * objects (for file-based access and for in-memory access) are implemented
- * in src/device.c.
- *
- * This function has to be called after the Environment handle has been
- * allocated (with @a ham_env_new) and before the Environment is created
- * or opened (with @a ham_env_create[_ex] or @a ham_env_open[_ex]).
- *
- * @param env A valid Environment handle
- * @param device A pointer to a ham_device_t structure
- *
- * @return @a HAM_SUCCESS upon success
- * @return @a HAM_INV_PARAMETER if @a db or @a device is NULL
- * @return @a HAM_ALREADY_INITIALIZED if this function was already called
- *            for this Environment
- */
-struct ham_device_t;
-typedef struct ham_device_t ham_device_t;
-
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_set_device(ham_env_t *env, ham_device_t *device);
-
-/**
- * Retrieves the current device object
- *
- * Custom device objects can be used to overwrite the functions which
- * open, create, read, write etc. to/from the file.
- *
- * The device structure is defined in src/device.h. The default device
- * objects (for file-based access and for in-memory access) are implemented
- * in src/device.c.
- *
- * @param env A valid Environment handle
- *
- * @return A pointer to a ham_device_t structure, or NULL if the device was
- *            not yet initialized
- */
-HAM_EXPORT ham_device_t * HAM_CALLCONV
-ham_env_get_device(ham_env_t *env);
-
-/**
  * Retrieves the Database handle of a Cursor
  *
  * @param cursor A valid Cursor handle

@@ -66,7 +66,6 @@ Cursor::update_dupecache(ham_u32_t what)
     st = btc->get_duplicate_table(&table, &needs_free);
     if (st && st != HAM_CURSOR_IS_NIL)
       return (st);
-    st = 0;
     if (table) {
       for (i = 0; i < dupe_table_get_count(table); i++) {
         dc->append(DupeCacheLine(true, i));

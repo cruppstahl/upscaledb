@@ -81,7 +81,7 @@
 #include "error.h"
 #include "txn_cursor.h"
 #include "btree_cursor.h"
-#include "blob.h"
+#include "blob_manager.h"
 #include "env.h"
 #include "db.h"
 

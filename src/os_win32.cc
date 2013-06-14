@@ -73,10 +73,8 @@ utf8_string(const char *filename, WCHAR *wfilename, int wlen)
 static int
 calc_wlen4str(const char *str)
 {
-  /*
-   * Since we call MultiByteToWideChar with an input length of -1, the
-   * output will include the wchar NUL sentinel as well, so count it
-   */
+  // Since we call MultiByteToWideChar with an input length of -1, the
+  // output will include the wchar NUL sentinel as well, so count it
   size_t len = strlen(str) + 1;
   return (int)len;
 }
@@ -234,7 +232,7 @@ os_writev(ham_fd_t fd, void *buffer1, ham_u64_t buffer1_len,
             void *buffer5, ham_u64_t buffer5_len)
 {
   /*
-   * Win32 also has a writev implementation, but it requires the pointers
+   * Win32 has a writev implementation, but it requires the pointers
    * to be memory page aligned
    */
   ham_status_t st;
@@ -347,9 +345,7 @@ os_get_filesize(ham_fd_t fd, ham_u64_t *size)
 ham_status_t
 os_truncate(ham_fd_t fd, ham_u64_t newsize)
 {
-  ham_status_t st;
-
-  st = os_seek(fd, newsize, HAM_OS_SEEK_SET);
+  ham_status_t st = os_seek(fd, newsize, HAM_OS_SEEK_SET);
   if (st)
     return (st);
 

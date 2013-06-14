@@ -18,7 +18,7 @@
 
 #include <string.h>
 
-#include "blob.h"
+#include "blob_manager.h"
 #include "btree.h"
 #include "cache.h"
 #include "db.h"

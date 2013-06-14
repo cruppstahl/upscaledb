@@ -26,7 +26,7 @@
 #  include "protocol/protocol.h"
 #endif
 
-#include "blob.h"
+#include "blob_manager.h"
 #include "btree.h"
 #include "btree_cursor.h"
 #include "cache.h"
@@ -1784,38 +1784,12 @@ ham_db_get_key_count(ham_db_t *hdb, ham_txn_t *htxn, ham_u32_t flags,
   return (db->set_error(db->get_key_count(txn, flags, keycount)));
 }
 
-ham_status_t HAM_CALLCONV
-ham_env_set_device(ham_env_t *henv, ham_device_t *hdevice)
+void HAM_CALLCONV
+ham_set_errhandler(ham_errhandler_fun f)
 {
-  Environment *env = (Environment *)henv;
-  if (!env) {
-    ham_trace(("parameter 'env' must not be NULL"));
-    return (HAM_INV_PARAMETER);
-  }
-  if (!hdevice) {
-    ham_trace(("parameter 'device' must not be NULL"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  ScopedLock lock(env->get_mutex());
-
-  if (env->get_device()) {
-    ham_trace(("Environment already has a device object attached"));
-    return (HAM_ALREADY_INITIALIZED);
-  }
-
-  env->set_device((Device *)hdevice);
-  return (0);
-}
-
-ham_device_t * HAM_CALLCONV
-ham_env_get_device(ham_env_t *henv)
-{
-  Environment *env = (Environment *)henv;
-  if (!env)
-    return (0);
-
-  ScopedLock lock(env->get_mutex());
-  return ((ham_device_t *)env->get_device());
+  if (f)
+    hamsterdb::g_handler = f;
+  else
+    hamsterdb::g_handler = hamsterdb::default_errhandler;
 }
 

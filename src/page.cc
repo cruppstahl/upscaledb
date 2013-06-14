@@ -61,7 +61,7 @@ Page::fetch(ham_u64_t address)
 ham_status_t
 Page::flush()
 {
-  if (!is_dirty() || get_device()->get_env()->get_flags() & HAM_IN_MEMORY)
+  if (!is_dirty())
     return (HAM_SUCCESS);
 
   ham_status_t st = get_device()->write_page(this);

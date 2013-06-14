@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,20 +17,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ham/hamsterdb.h>
-
 #include "error.h"
-#include "mem.h"
 #include "util.h"
-#include "internal_fwd_decl.h"
+#include "mutex.h"
 
 namespace hamsterdb {
 
-static int     g_level   =0;
-static const char *g_file  =0;
-static int     g_line  =0;
-static const char *g_expr  =0;
-static const char *g_function=0;
+static int         g_level    = 0;
+static const char *g_file     = 0;
+static int         g_line     = 0;
+static const char *g_expr     = 0;
+static const char *g_function = 0;
 
 void (*ham_test_abort)(void);
 
@@ -41,14 +38,14 @@ dbg_snprintf(char *str, size_t size, const char *format, ...)
 
   va_list ap;
   va_start(ap, format);
-  s=util_vsnprintf(str, size, format, ap);
+  s = util_vsnprintf(str, size, format, ap);
   va_end(ap);
 
   return (s);
 }
 
-static void HAM_CALLCONV
-dbg_errhandler(int level, const char *message)
+void HAM_CALLCONV
+default_errhandler(int level, const char *message)
 {
 #ifndef HAM_DEBUG
   if (level == HAM_DEBUG_LEVEL_DEBUG)
@@ -57,7 +54,7 @@ dbg_errhandler(int level, const char *message)
   fprintf(stderr, "%s\n", message);
 }
 
-static ham_errhandler_fun g_hand = dbg_errhandler;
+ham_errhandler_fun g_handler = default_errhandler;
 
 static Mutex dbg_mutex;
 
@@ -102,7 +99,7 @@ dbg_log(const char *format, ...)
 #endif
   va_end(ap);
 
-  g_hand(g_level, buffer);
+  g_handler(g_level, buffer);
 }
 
 void
@@ -125,7 +122,7 @@ dbg_verify_failed(const char *format, ...)
     va_end(ap);
   }
 
-  g_hand(g_level, buffer);
+  g_handler(g_level, buffer);
 
   if (ham_test_abort)
     ham_test_abort();
@@ -135,15 +132,4 @@ dbg_verify_failed(const char *format, ...)
 }
 
 } // namespace hamsterdb
-
-// global namespace...
-
-void HAM_CALLCONV
-ham_set_errhandler(ham_errhandler_fun f)
-{
-  if (f)
-    hamsterdb::g_hand = f;
-  else
-    hamsterdb::g_hand = hamsterdb::dbg_errhandler;
-}
 

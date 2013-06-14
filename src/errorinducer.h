@@ -18,13 +18,13 @@
 #include <ham/hamsterdb.h>
 #include "error.h"
 
-namespace hamsterdb
-{
+namespace hamsterdb {
 
-class ErrorInducer
-{
+class ErrorInducer {
   struct State {
-    State() : loops(0), error(HAM_INTERNAL_ERROR) { }
+    State()
+      : loops(0), error(HAM_INTERNAL_ERROR) {
+    }
 
     int loops;
     ham_status_t error;
@@ -32,8 +32,9 @@ class ErrorInducer
 
   public:
     enum Action {
-      CHANGESET_FLUSH,
-      MAX_ACTIONS
+      // simulates a failure in Changeset::flush
+      kChangesetFlush,
+      kMaxActions
     };
 
     ErrorInducer() {
@@ -54,7 +55,7 @@ class ErrorInducer
     }
 
   private:
-    State m_state[MAX_ACTIONS];
+    State m_state[kMaxActions];
 };
 
 } // namespace hamsterdb

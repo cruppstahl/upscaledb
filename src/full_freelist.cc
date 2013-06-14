@@ -19,12 +19,11 @@
 #include "endianswap.h"
 #include "env.h"
 #include "error.h"
+#include "full_freelist.h"
 #include "page_manager.h"
 #include "mem.h"
 #include "btree_stats.h"
 #include "txn.h"
-#include "full_freelist.h"
-#include "full_freelist_stats.h"
 
 namespace hamsterdb {
 
@@ -461,7 +460,7 @@ FullFreelist::free_area(ham_u64_t address, ham_size_t size)
   /* split the chunk if it doesn't fit in one freelist page */
   while (size) {
     PFullFreelistPayload *fp;
-    FullFreelistStatisticsHints hints = { 0 };
+    FullFreelistStatistics::Hints hints = { 0 };
 
     /* get the cache entry of this address */
     FullFreelistEntry *entry = get_entry_for_address(address);
@@ -525,7 +524,7 @@ FullFreelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
   PFullFreelistPayload *fp = NULL;
   Page *page = 0;
   ham_s32_t s = -1;
-  FullFreelistStatisticsGlobalHints global_hints =
+  FullFreelistStatistics::GlobalHints global_hints =
   {
     0,
     1,
@@ -538,7 +537,7 @@ FullFreelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
     size / kBlobAlignment,
     get_entry_maxspan()
   };
-  FullFreelistStatisticsHints hints = {0};
+  FullFreelistStatistics::Hints hints = {0};
 
   ham_assert(paddr != 0);
   *paddr = 0;
@@ -680,7 +679,6 @@ FullFreelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
 
         /* we have a hit! */
         i -= start_idx;
-        end_idx += start_idx;
 
         start_idx = 0;
         for (len = hints.size_bits; len > 0; i++, start_idx++) {
@@ -782,7 +780,7 @@ FullFreelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
 
 ham_s32_t
 FullFreelist::search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
-        ham_size_t size_bits, FullFreelistStatisticsHints *hints)
+        ham_size_t size_bits, FullFreelistStatistics::Hints *hints)
 {
   ham_assert(hints->cost == 1);
   ham_u64_t *p64 = (ham_u64_t *)freel_get_bitmap(f);
@@ -2391,8 +2389,8 @@ FullFreelist::search_bits(FullFreelistEntry *entry, PFullFreelistPayload *f,
 }
 
 ham_s32_t
-FullFreelist::locate_sufficient_free_space(FullFreelistStatisticsHints *dst,
-        FullFreelistStatisticsGlobalHints *hints, ham_s32_t start_index)
+FullFreelist::locate_sufficient_free_space(FullFreelistStatistics::Hints *dst,
+        FullFreelistStatistics::GlobalHints *hints, ham_s32_t start_index)
 {
   FullFreelistEntry *entry;
 
@@ -2800,7 +2798,7 @@ FullFreelist::alloc_freelist_page(Page **ppage, FullFreelistEntry *entry)
 ham_size_t
 FullFreelist::set_bits(FullFreelistEntry *entry, PFullFreelistPayload *fp,
             ham_size_t start_bit, ham_size_t size_bits,
-            bool set, FullFreelistStatisticsHints *hints)
+            bool set, FullFreelistStatistics::Hints *hints)
 {
   ham_size_t i;
   ham_u8_t *p = freel_get_bitmap(fp);

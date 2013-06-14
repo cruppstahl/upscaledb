@@ -9,11 +9,6 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief memory management routines
- *
- */
-
 #ifndef HAM_MEM_H__
 #define HAM_MEM_H__
 
@@ -27,7 +22,7 @@
 
 namespace hamsterdb {
 
-/**
+/*
  * The static Memory class provides memory management functions in a common
  * c++ namespace. The functions can allocate, reallocate and free memory
  * while tracking usage statistics.
