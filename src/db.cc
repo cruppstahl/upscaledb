@@ -172,7 +172,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
   : m_env(env), m_name(name), m_error(0), m_context(0), m_btree(0),
     m_cursors(0), m_prefix_func(0), m_cmp_func(0), m_rt_flags(flags),
-    m_extkey_cache(0), m_optree(this), m_freelist(0)
+    m_extkey_cache(0), m_optree(this)
 {
 }
 

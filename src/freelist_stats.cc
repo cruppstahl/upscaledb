@@ -21,14 +21,12 @@
 #include "endianswap.h"
 #include "env.h"
 #include "error.h"
-#include "full_freelist_stats.h"
 #include "mem.h"
 #include "util.h"
-#include "full_freelist.h"
+#include "freelist.h"
+#include "freelist_stats.h"
 
 namespace hamsterdb {
-
-#define DB_CHUNKSIZE 32
 
 /**
  * statistics gatherer/hinter:
@@ -171,7 +169,7 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
 }
 
 static void
-rescale_freelist_page_stats(FullFreelist *cache, FullFreelistEntry *entry)
+rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
 {
   ham_u16_t b;
   PFreelistPageStatistics *entrystats = &entry->perf_data;
@@ -200,8 +198,8 @@ rescale_freelist_page_stats(FullFreelist *cache, FullFreelistEntry *entry)
 }
 
 void
-FullFreelistStatistics::fail(FullFreelist *fl, FullFreelistEntry *entry,
-    PFullFreelistPayload *f, FullFreelistStatistics::Hints *hints)
+FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
+    PFreelistPayload *f, FreelistStatistics::Hints *hints)
 {
   /*
    * freelist scans with a non-zero lower bound address are SPECIAL searches,
@@ -285,9 +283,9 @@ FullFreelistStatistics::fail(FullFreelist *fl, FullFreelistEntry *entry,
 }
 
 void
-FullFreelistStatistics::update(FullFreelist *fl, FullFreelistEntry *entry,
-    PFullFreelistPayload *f, ham_u32_t position,
-    FullFreelistStatistics::Hints *hints)
+FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
+    PFreelistPayload *f, ham_u32_t position,
+    FreelistStatistics::Hints *hints)
 {
   /*
    * freelist scans with a non-zero lower bound address are SPECIAL searches,
@@ -370,9 +368,9 @@ FullFreelistStatistics::update(FullFreelist *fl, FullFreelistEntry *entry,
  * below.
  */
 void
-FullFreelistStatistics::edit(FullFreelist *fl, FullFreelistEntry *entry,
-    PFullFreelistPayload *f, ham_u32_t position, ham_size_t size_bits,
-    bool free_these, FullFreelistStatistics::Hints *hints)
+FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
+    PFreelistPayload *f, ham_u32_t position, ham_size_t size_bits,
+    bool free_these, FreelistStatistics::Hints *hints)
 {
   /*
    * freelist scans with a non-zero lower bound address are SPECIAL searches,
@@ -525,8 +523,8 @@ FullFreelistStatistics::edit(FullFreelist *fl, FullFreelistEntry *entry,
 }
 
 void
-FullFreelistStatistics::globalhints_no_hit(FullFreelist *fl,
-    FullFreelistEntry *entry, FullFreelistStatistics::Hints *hints)
+FreelistStatistics::globalhints_no_hit(Freelist *fl,
+    FreelistEntry *entry, FreelistStatistics::Hints *hints)
 {
   GlobalStatistics *globalstats = fl->get_global_statistics();
 
@@ -570,8 +568,8 @@ FullFreelistStatistics::globalhints_no_hit(FullFreelist *fl,
  * freelist pages visited.
  */
 void
-FullFreelistStatistics::get_global_hints(FullFreelist *fl,
-    FullFreelistStatistics::GlobalHints *dst)
+FreelistStatistics::get_global_hints(Freelist *fl,
+        FreelistStatistics::GlobalHints *dst)
 {
   GlobalStatistics *globalstats = fl->get_global_statistics();
 
@@ -643,8 +641,10 @@ FullFreelistStatistics::get_global_hints(FullFreelist *fl,
   determine where the search range starts; usually this is at the first
   freelist page.
   */
-  ham_assert(HAM_MAX_U32 >= dst->lower_bound_address / (DB_CHUNKSIZE * dst->freelist_pagesize_bits));
-  pos = (ham_size_t)(dst->lower_bound_address / (DB_CHUNKSIZE * dst->freelist_pagesize_bits));
+  ham_assert(HAM_MAX_U32 >= dst->lower_bound_address
+                  / (Freelist::kBlobAlignment * dst->freelist_pagesize_bits));
+  pos = (ham_size_t)(dst->lower_bound_address / (Freelist::kBlobAlignment
+                          * dst->freelist_pagesize_bits));
   if (dst->start_entry < pos)
     dst->start_entry = pos;
 
@@ -813,8 +813,8 @@ FullFreelistStatistics::get_global_hints(FullFreelist *fl,
  * where it deems necessary.
  */
 void
-FullFreelistStatistics::get_entry_hints(FullFreelist *fl,
-        FullFreelistEntry *entry, FullFreelistStatistics::Hints *dst)
+FreelistStatistics::get_entry_hints(Freelist *fl,
+        FreelistEntry *entry, FreelistStatistics::Hints *dst)
 {
   PFreelistPageStatistics *entrystats = &entry->perf_data;
 
@@ -976,7 +976,8 @@ FullFreelistStatistics::get_entry_hints(FullFreelist *fl,
 
     /* take alignment into account as well! */
     if (dst->aligned) {
-      ham_u32_t alignment = fl->get_env()->get_pagesize() / DB_CHUNKSIZE;
+      ham_u32_t alignment = fl->get_env()->get_pagesize()
+              / Freelist::kBlobAlignment;
       dst->startpos += alignment - 1;
       dst->startpos -= dst->startpos % alignment;
     }

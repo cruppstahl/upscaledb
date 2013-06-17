@@ -133,7 +133,7 @@ x gcc has some nice attributes
 
 x run clang static analyzer
 
-o really leave reduced freelist? the performance gains are not worth the
+x really leave reduced freelist? the performance gains are not worth the
     additional complexity and we would introduce lots of technical debt
     -> remove it...
 
@@ -181,7 +181,7 @@ o improve client/server performance
     o use boost sockets on client side, get rid of libcurl
     o use Pickle module, get rid of protocol buffers
 
-o reduce the file size if freelist adds page at end of file
+. reduce the file size if freelist adds page at end of file
     (maybe cache the filesize in the device, to avoid frequent calls
     to os_get_filesize(); but compare both if HAM_DEBUG == 1)
     o only do this in ham_env_close and ham_env_flush
@@ -215,11 +215,11 @@ o collect file format incompatibilities
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
 
-. also remove locking from C# and Java APIs
-
 o refactor unittests, use same framework as hamsterdb-cluster
 
 o BtreeCursor: use memory arena for uncoupling the key
+
+. also remove locking from C# and Java APIs
 
 o split Transaction into local and remote class (really?)
     hamsterdb.cc directly calls into Transaction class instead of Environment

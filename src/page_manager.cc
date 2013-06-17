@@ -105,9 +105,8 @@ PageManager::alloc_page(Page **ppage, Database *db, ham_u32_t page_type,
                   | PageManager::kClearWithZero)));
 
   /* first, we ask the freelist for a page */
-  Freelist *f = get_freelist(db);
-  if (!(flags & PageManager::kIgnoreFreelist) && f) {
-    if ((st = f->alloc_page(&tellpos)))
+  if (!(flags & PageManager::kIgnoreFreelist) && m_freelist) {
+    if ((st = m_freelist->alloc_page(&tellpos)))
       return (st);
     if (tellpos > 0) {
       ham_assert(tellpos % m_env->get_pagesize() == 0);
@@ -173,11 +172,9 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
   *address = 0;
   *allocated = false;
 
-  Freelist *f = get_freelist(db);
-
   // first check the freelist
-  if (f) {
-    ham_status_t st = f->alloc_area(size, address);
+  if (m_freelist) {
+    ham_status_t st = m_freelist->alloc_area(size, address);
     if (st)
       return (st);
     if (*address)

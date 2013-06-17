@@ -27,7 +27,6 @@
 #include "btree.h"
 #include "btree_key.h"
 #include "mem.h"
-#include "reduced_freelist.h"
 
 /**
  * A helper structure; ham_db_t is declared in ham/hamsterdb.h as an
@@ -213,14 +212,6 @@ class Database
     // TODO move to LocalDatabase
     void set_compare_func(ham_compare_func_t f) {
       m_cmp_func = f;
-    }
-
-    /** returns the freelist for this Database, but only if the reduced
-     * freelist is enabled; return 0 otherwise */
-    ReducedFreelist *get_reduced_freelist() {
-      if (!m_freelist && m_rt_flags & DB_REDUCED_FREELIST)
-        m_freelist = new ReducedFreelist(m_env);
-      return (m_freelist);
     }
 
     /**
@@ -535,10 +526,6 @@ class Database
     /** this is where record->data points to when returning a
      * record to the user; used if Transactions are disabled */
     ByteArray m_record_arena;
-
-    /** the reduced freelist; null unless enabled with
-     * HAM_PARAM_SET_FREELIST_POLICY_REDUCED */
-    ReducedFreelist *m_freelist;
 };
 
 /**

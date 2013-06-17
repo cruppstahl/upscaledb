@@ -103,10 +103,10 @@ Environment::sizeof_full_header()
   return (sizeof(PEnvHeader) + get_max_databases() * sizeof(PBtreeDescriptor));
 }
 
-PFullFreelistPayload *
+PFreelistPayload *
 Environment::get_freelist_payload()
 {
-  return ((PFullFreelistPayload *)(get_header_page()->get_payload() +
+  return ((PFreelistPayload *)(get_header_page()->get_payload() +
               sizeof_full_header()));
 }
 

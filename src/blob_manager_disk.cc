@@ -16,6 +16,7 @@
 #include "error.h"
 #include "page_manager.h"
 #include "log.h"
+#include "freelist.h"
 
 #include "blob_manager_disk.h"
 
@@ -189,11 +190,8 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 
   // blobs are aligned!
   alloc_size = sizeof(PBlobHeader) + record->size;
-  int alignment = m_env->get_page_manager()->get_blob_alignment(db);
-  if (alignment > 1) {
-    alloc_size += alignment - 1;
-    alloc_size -= alloc_size % alignment;
-  }
+  alloc_size += Freelist::kBlobAlignment - 1;
+  alloc_size -= alloc_size % Freelist::kBlobAlignment;
 
   // check if we have space in the freelist
   bool tmp;
@@ -389,7 +387,7 @@ DiskBlobManager::read(Database *db, ham_u64_t blobid, ham_record_t *record,
 {
   Page *page;
 
-  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  ham_assert(blobid % Freelist::kBlobAlignment == 0);
 
   // first step: read the blob header
   PBlobHeader blob_header;
@@ -398,8 +396,7 @@ DiskBlobManager::read(Database *db, ham_u64_t blobid, ham_record_t *record,
   if (st)
     return (st);
 
-  ham_assert(blob_header.get_alloc_size()
-          % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  ham_assert(blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   if (blob_header.get_self() != blobid) {
@@ -452,7 +449,7 @@ DiskBlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 {
   *size = 0;
 
-  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  ham_assert(blobid % Freelist::kBlobAlignment == 0);
 
   // read the blob header
   PBlobHeader blob_header;
@@ -488,13 +485,10 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
 
   // blobs are aligned!
   ham_size_t alloc_size = sizeof(PBlobHeader) + record->size;
-  int alignment = m_env->get_page_manager()->get_blob_alignment(db);
-  if (alignment > 1) {
-    alloc_size += alignment - 1;
-    alloc_size -= alloc_size % alignment;
-  }
+  alloc_size += Freelist::kBlobAlignment - 1;
+  alloc_size -= alloc_size % Freelist::kBlobAlignment;
 
-  ham_assert(old_blobid % alignment == 0);
+  ham_assert(old_blobid % Freelist::kBlobAlignment == 0);
 
   // first, read the blob header; if the new blob fits into the
   // old blob, we overwrite the old blob (and add the remaining
@@ -504,7 +498,7 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
   if (st)
     return (st);
 
-  ham_assert(old_blob_header.get_alloc_size() % alignment == 0);
+  ham_assert(old_blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   ham_assert(old_blob_header.get_self() == old_blobid);
@@ -589,7 +583,7 @@ ham_status_t
 DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
                 ham_u32_t flags)
 {
-  ham_assert(blobid % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  ham_assert(blobid % Freelist::kBlobAlignment == 0);
 
   // fetch the blob header
   PBlobHeader blob_header;
@@ -598,8 +592,7 @@ DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
   if (st)
     return (st);
 
-  ham_assert(blob_header.get_alloc_size()
-          % m_env->get_page_manager()->get_blob_alignment(db) == 0);
+  ham_assert(blob_header.get_alloc_size() % Freelist::kBlobAlignment == 0);
 
   // sanity check
   ham_verify(blob_header.get_self() == blobid);

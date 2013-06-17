@@ -5,10 +5,6 @@ o Removed internal (but exported) functions ham_env_get_device,
 Jun 10, 2013 - chris ---------------------------------------------------
 o Improved integration of tcmalloc, removed ham_env_set_allocator
 
-Jun 09, 2013 - chris ---------------------------------------------------
-o Added HAM_PARAM_REDUCE_FREELIST: if enabled, freelist functionality is
-	extremely reduced and not persisted
-
 Jun 05, 2013 - chris ---------------------------------------------------
 o A small semantic change: when retrieving partial records with
 	ham_db_find or ham_cursor_find, the partial size is now stored in

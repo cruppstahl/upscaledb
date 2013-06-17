@@ -16,8 +16,7 @@
 #include <vector>
 
 #include "error.h"
-#include "full_freelist.h"
-#include "reduced_freelist.h"
+#include "freelist.h"
 #include "env.h"
 #include "db.h"
 
@@ -79,34 +78,21 @@ class PageManager {
 
     // Flush all pages, and clear the cache.
     //
-    // @param clear_cache Set to true if you do NOT want the cache to be cleared
+    // Set |clear_cache| to true if you want the cache to be cleared
     ham_status_t flush_all_pages(bool clear_cache = false);
 
     // Purges the cache if the cache limits are exceeded
     ham_status_t purge_cache();
 
-    // Returns the cache pointer
-    Cache *get_xcache() {
-      return (m_cache);
-    }
-
     // retrieves the freelist for the database (or uses a global bitmap
     // freelist as a fallback)
     // public because it's required for testing
     Freelist *get_freelist(Database *db) {
-      Freelist *f = db ? db->get_reduced_freelist() : 0;
-      if (f)
-        return (f);
       if (!m_freelist
           && !(m_env->get_flags() & HAM_IN_MEMORY)
           && !(m_env->get_flags() & HAM_READ_ONLY))
-        m_freelist = new FullFreelist(m_env);
+        m_freelist = new Freelist(m_env);
       return (m_freelist);
-    }
-
-    // returns the alignment for blobs for a specific database
-    int get_blob_alignment(Database *db) {
-      return (get_freelist(db)->get_blob_alignment());
     }
 
     // flush all pages of a database (but not the header page,
@@ -150,7 +136,7 @@ class PageManager {
     Cache *m_cache;
 
     // the Freelist manages the free space in the file; can be NULL
-    FullFreelist *m_freelist;
+    Freelist *m_freelist;
 };
 
 } // namespace hamsterdb

@@ -59,8 +59,8 @@ class Journal;
 
 class ExtKeyCache;
 
-class FullFreelist;
-struct FullFreelistEntry;
+class Freelist;
+struct FreelistEntry;
 
 struct RuntimePageStatistics;
 typedef struct RuntimePageStatistics RuntimePageStatistics;
@@ -78,7 +78,7 @@ class TransactionCursor;
 
 #include "packstart.h"
 
-struct PFullFreelistPayload;
+struct PFreelistPayload;
 
 #include "packstop.h"
 

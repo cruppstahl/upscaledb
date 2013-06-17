@@ -55,10 +55,10 @@ libhamsterdb_la_SOURCES = \
 	error.h \
 	errorinducer.h \
 	extkeys.h \
-	full_freelist.cc \
-	full_freelist.h \
-	full_freelist_stats.cc \
-	full_freelist_stats.h \
+	freelist.cc \
+	freelist.h \
+	freelist_stats.cc \
+	freelist_stats.h \
 	hamsterdb.cc \
 	hash-table.h \
 	internal_fwd_decl.h \
@@ -80,8 +80,6 @@ libhamsterdb_la_SOURCES = \
 	rb.h \
 	remote.cc \
 	serial.h \
-	reduced_freelist.h \
-	reduced_freelist.cc \
 	txn.cc \
 	txn_cursor.cc \
 	txn_cursor.h \

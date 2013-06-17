@@ -211,9 +211,9 @@ struct RuntimePageStatistics
   bool _dirty;
 };
 
-struct FullFreelistEntry;
+struct FreelistEntry;
 
-class FullFreelistStatistics {
+class FreelistStatistics {
   public:
   struct Hints {
     /** [in/out] INCLUSIVE bound: where free slots start */
@@ -306,27 +306,26 @@ class FullFreelistStatistics {
     ham_size_t freelist_pagesize_bits;
   };
 
-  static void globalhints_no_hit(FullFreelist *fl, FullFreelistEntry *entry,
-                FullFreelistStatistics::Hints *hints);
+  static void globalhints_no_hit(Freelist *fl, FreelistEntry *entry,
+                FreelistStatistics::Hints *hints);
 
-  static void edit(FullFreelist *fl, FullFreelistEntry *entry,
-                PFullFreelistPayload *f, ham_u32_t position,
+  static void edit(Freelist *fl, FreelistEntry *entry,
+                PFreelistPayload *f, ham_u32_t position,
                 ham_size_t size_bits, bool free_these,
-                FullFreelistStatistics::Hints *hints);
+                FreelistStatistics::Hints *hints);
 
-  static void fail(FullFreelist *fl, FullFreelistEntry *entry,
-                PFullFreelistPayload *f,
-                FullFreelistStatistics::Hints *hints);
+  static void fail(Freelist *fl, FreelistEntry *entry,
+                PFreelistPayload *f, FreelistStatistics::Hints *hints);
 
-  static void update(FullFreelist *fl, FullFreelistEntry *entry,
-                PFullFreelistPayload *f, ham_u32_t position,
-                FullFreelistStatistics::Hints *hints);
+  static void update(Freelist *fl, FreelistEntry *entry,
+                PFreelistPayload *f, ham_u32_t position,
+                FreelistStatistics::Hints *hints);
 
-  static void get_entry_hints(FullFreelist *fl, FullFreelistEntry *entry,
-                FullFreelistStatistics::Hints *dst);
+  static void get_entry_hints(Freelist *fl, FreelistEntry *entry,
+                FreelistStatistics::Hints *dst);
 
-  static void get_global_hints(FullFreelist *fl,
-                FullFreelistStatistics::GlobalHints *dst);
+  static void get_global_hints(Freelist *fl,
+                FreelistStatistics::GlobalHints *dst);
 };
 
 } // namespace hamsterdb

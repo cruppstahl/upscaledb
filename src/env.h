@@ -93,7 +93,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 class PBtreeDescriptor;
 class PageManager;
-class PFullFreelistPayload;
+class PFreelistPayload;
 
 /**
  * the Environment structure
@@ -400,7 +400,7 @@ class Environment
     }
 
     /** get the freelist object of the database */
-    PFullFreelistPayload *get_freelist_payload();
+    PFreelistPayload *get_freelist_payload();
 
     /** set the logfile directory */
     void set_log_directory(const std::string &dir) {
