@@ -11,10 +11,10 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
+#include "3rdparty/catch/catch.hpp"
 
-#include <ham/hamsterdb.h>
+#include "globals.h"
+#include "os.hpp"
 
 #include "../src/db.h"
 #include "../src/btree.h"
@@ -23,76 +23,45 @@
 #include "../src/page.h"
 #include "../src/env.h"
 #include "../src/btree_node.h"
-#include "os.hpp"
-
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
-using namespace hamsterdb;
 
 namespace hamsterdb {
 
-class KeyTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  KeyTest()
-    : hamsterDB_fixture("KeyTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(KeyTest, structureTest);
-    BFC_REGISTER_TEST(KeyTest, extendedRidTest);
-    BFC_REGISTER_TEST(KeyTest, endianTest);
-    BFC_REGISTER_TEST(KeyTest, getSetExtendedKeyTest);
-    BFC_REGISTER_TEST(KeyTest, setRecordTest);
-    BFC_REGISTER_TEST(KeyTest, overwriteRecordTest);
-    BFC_REGISTER_TEST(KeyTest, duplicateRecordTest);
-    BFC_REGISTER_TEST(KeyTest, eraseRecordTest);
-    BFC_REGISTER_TEST(KeyTest, eraseDuplicateRecordTest);
-    BFC_REGISTER_TEST(KeyTest, eraseAllDuplicateRecordTest);
-  }
-
-protected:
+struct BtreeKeyFixture {
   ham_db_t *m_db;
   Database *m_dbp;
   ham_env_t *m_env;
 
-public:
-  virtual void setup() {
-    __super::setup();
+  BtreeKeyFixture() {
+    os::unlink(Globals::opath(".test"));
 
-    os::unlink(BFC_OPATH(".test"));
-
-    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, BFC_OPATH(".test"), 0, 0644, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     m_dbp = (Database *)m_db;
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
+  ~BtreeKeyFixture() {
     if (m_env)
-	  BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
+	  REQUIRE(0 == ham_env_close(m_env, 0));
   }
 
   void structureTest() {
     Page *page = new Page((Environment *)m_env);
-    BFC_ASSERT(page != 0);
-    BFC_ASSERT_EQUAL(0, page->allocate());
+    REQUIRE(page != 0);
+    REQUIRE(0 == page->allocate());
     PBtreeNode *node = PBtreeNode::from_page(page);
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
     PBtreeKey *key = node->get_key(m_dbp, 0);
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key->get_flags());
-    BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key->get_key());
+    REQUIRE((ham_u64_t)0 == key->get_ptr());
+    REQUIRE((ham_u8_t)0 == key->get_flags());
+    REQUIRE((ham_u8_t)'\0' == *key->get_key());
 
     key->set_ptr((ham_u64_t)0x12345);
-    BFC_ASSERT_EQUAL((ham_u64_t)0x12345, key->get_ptr());
+    REQUIRE((ham_u64_t)0x12345 == key->get_ptr());
 
     key->set_flags((ham_u8_t)0x13);
-    BFC_ASSERT_EQUAL((ham_u8_t)0x13, key->get_flags());
+    REQUIRE((ham_u8_t)0x13 == key->get_flags());
 
     page->free();
     delete page;
@@ -100,18 +69,18 @@ public:
 
   void extendedRidTest() {
     Page *page = new Page((Environment *)m_env);
-    BFC_ASSERT(page != 0);
-    BFC_ASSERT_EQUAL(0, page->allocate());
+    REQUIRE(page != 0);
+    REQUIRE(0 == page->allocate());
     PBtreeNode *node = PBtreeNode::from_page(page);
     ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
 
     PBtreeKey *key = node->get_key(m_dbp, 0);
     ham_u64_t blobid = key->get_extended_rid(m_dbp);
-    BFC_ASSERT_EQUAL((ham_u64_t)0, blobid);
+    REQUIRE((ham_u64_t)0 == blobid);
 
     key->set_extended_rid(m_dbp, (ham_u64_t)0xbaadbeef);
     blobid = key->get_extended_rid(m_dbp);
-    BFC_ASSERT_EQUAL((ham_u64_t)0xbaadbeef, blobid);
+    REQUIRE((ham_u64_t)0xbaadbeef == blobid);
 
     page->free();
     delete page;
@@ -131,10 +100,10 @@ public:
 
     PBtreeKey *key = (PBtreeKey *)&buffer[0];
 
-    BFC_ASSERT_EQUAL((ham_u64_t)0x0123456789abcdefull,
+    REQUIRE((ham_u64_t)0x0123456789abcdefull ==
         key->get_ptr());
-    BFC_ASSERT_EQUAL((ham_u8_t)0xf0, key->get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0xfedcba9876543210ull,
+    REQUIRE((ham_u8_t)0xf0 == key->get_flags());
+    REQUIRE((ham_u64_t)0xfedcba9876543210ull ==
         key->get_extended_rid(m_dbp));
   }
 
@@ -144,7 +113,7 @@ public:
     memset(buffer, 0, sizeof(buffer));
 
     key->set_extended_rid(m_dbp, 0x12345);
-    BFC_ASSERT_EQUAL((ham_u64_t)0x12345, key->get_extended_rid(m_dbp));
+    REQUIRE((ham_u64_t)0x12345 == key->get_extended_rid(m_dbp));
   }
 
   void insertEmpty(PBtreeKey *key, ham_u32_t flags) {
@@ -153,16 +122,16 @@ public:
     if (!flags)
       memset(key, 0, sizeof(*key));
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE))
-      BFC_ASSERT_EQUAL((ham_u64_t)0, key->get_ptr());
+      REQUIRE((ham_u64_t)0 == key->get_ptr());
 
     if (!(flags & HAM_DUPLICATE)) {
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_EMPTY,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_EMPTY ==
           key->get_flags());
     }
     else {
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES ==
           key->get_flags());
     }
   }
@@ -190,21 +159,21 @@ public:
     rec.data = (void *)data;
     rec.size = size;
 
-    BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE))
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_TINY,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_TINY ==
         key->get_flags());
     else
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES ==
           key->get_flags());
 
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
             &rec2, &rec2._rid, 0));
-      BFC_ASSERT_EQUAL(rec.size, rec2.size);
-      BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+      REQUIRE(rec.size == rec2.size);
+      REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
   }
 
@@ -230,23 +199,23 @@ public:
     rec.data = (void *)data;
     rec.size = sizeof(ham_u64_t);
 
-    BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (!(flags & HAM_DUPLICATE)) {
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_SMALL,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_BLOB_SIZE_SMALL ==
         key->get_flags());
     }
     else {
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES ==
           key->get_flags());
     }
 
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
             &rec2, &rec2._rid, 0));
-      BFC_ASSERT_EQUAL(rec.size, rec2.size);
-      BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+      REQUIRE(rec.size == rec2.size);
+      REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
   }
 
@@ -273,18 +242,18 @@ public:
     rec.data = (void *)data;
     rec.size = size;
 
-    BFC_ASSERT_EQUAL(0, key->set_record(m_dbp, 0, &rec, 0, flags, 0));
+    REQUIRE(0 == key->set_record(m_dbp, 0, &rec, 0, flags, 0));
     if (flags & HAM_DUPLICATE)
-      BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES,
+      REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES ==
           key->get_flags());
 
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
           &rec2, &rec2._rid, 0));
-      BFC_ASSERT_EQUAL(rec.size, rec2.size);
-      BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+      REQUIRE(rec.size == rec2.size);
+      REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
     }
   }
 
@@ -366,23 +335,23 @@ public:
 
   void checkDupe(PBtreeKey *key, int position,
       const char *data, ham_size_t size) {
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key->get_flags());
+    REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES == key->get_flags());
 
     PDupeEntry entry;
     DuplicateManager *dm = ((Environment *)m_env)->get_duplicate_manager();
-    BFC_ASSERT_EQUAL(0, dm->get(key->get_ptr(), (ham_size_t)position, &entry));
+    REQUIRE(0 == dm->get(key->get_ptr(), (ham_size_t)position, &entry));
 
     ham_record_t rec;
     memset(&rec, 0, sizeof(rec));
 
     rec._intflags = dupe_entry_get_flags(&entry);
     rec._rid = dupe_entry_get_rid(&entry);
-    BFC_ASSERT_EQUAL(0, m_dbp->get_btree()->read_record(0, &rec, &rec._rid, 0));
-    BFC_ASSERT_EQUAL(rec.size, size);
+    REQUIRE(0 == m_dbp->get_btree()->read_record(0, &rec, &rec._rid, 0));
+    REQUIRE(rec.size == size);
     if (size)
-      BFC_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));
+      REQUIRE(0 == memcmp(rec.data, data, rec.size));
     else
-      BFC_ASSERT_EQUAL((void *)0, rec.data);
+      REQUIRE((void *)0 == rec.data);
   }
 
   void duplicateRecordTest() {
@@ -490,27 +459,27 @@ public:
 
     /* insert empty key, then delete it */
     prepareEmpty(&key);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert tiny key, then delete it */
     prepareTiny(&key, "1234", 4);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert small key, then delete it */
     prepareSmall(&key, "12345678");
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert normal key, then delete it */
     prepareNormal(&key, "1234123456785678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
   }
 
   void eraseDuplicateRecordTest() {
@@ -521,36 +490,36 @@ public:
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, 0, 0);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, true));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny(&key, "1234", 4);
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "1234", 4);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, true));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert small key, then a duplicate; delete both */
     prepareSmall(&key, "12345678");
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "12345678", 8);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, true));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert normal key, then a duplicate; delete both */
     prepareNormal(&key, "1234123456785678", 16);
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "1234123456785678", 16);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, true));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, true));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
   }
 
   void eraseAllDuplicateRecordTest() {
@@ -561,51 +530,109 @@ public:
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, 0, 0);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES == key.get_flags());
     checkDupe(&key, 0, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert tiny key, then a duplicate; delete both at once */
     prepareTiny(&key, "1234", 4);
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "1234", 4);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 1, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 1, false));
+    REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES == key.get_flags());
     checkDupe(&key, 0, "1234", 4);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert small key, then a duplicate; delete both at once */
     prepareSmall(&key, "12345678");
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "12345678", 8);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES == key.get_flags());
     checkDupe(&key, 0, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
 
     /* insert normal key, then a duplicate; delete both at once */
     prepareNormal(&key, "1234123456785678", 16);
     duplicateNormal(&key, "abc4567812345678", 16);
     checkDupe(&key, 0, "1234123456785678", 16);
     checkDupe(&key, 1, "abc4567812345678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 1, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES, key.get_flags());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 1, false));
+    REQUIRE((ham_u8_t)PBtreeKey::KEY_HAS_DUPLICATES == key.get_flags());
     checkDupe(&key, 0, "1234123456785678", 16);
-    BFC_ASSERT_EQUAL(0, key.erase_record(m_dbp, 0, 0, false));
-    BFC_ASSERT_EQUAL((ham_u8_t)0, key.get_flags());
-    BFC_ASSERT_EQUAL((ham_u64_t)0, key.get_ptr());
+    REQUIRE(0 == key.erase_record(m_dbp, 0, 0, false));
+    REQUIRE((ham_u8_t)0 == key.get_flags());
+    REQUIRE((ham_u64_t)0 == key.get_ptr());
   }
 };
 
-BFC_REGISTER_FIXTURE(KeyTest);
+TEST_CASE("BtreeKey/copyKeyInt2PubFullTest", "")
+{
+  BtreeKeyFixture f;
+  f.structureTest();
+}
+
+TEST_CASE("BtreeKey/extendedRid", "")
+{
+  BtreeKeyFixture f;
+  f.extendedRidTest();
+}
+
+TEST_CASE("BtreeKey/endian", "")
+{
+  BtreeKeyFixture f;
+  f.endianTest();
+}
+
+TEST_CASE("BtreeKey/getSetExtendedKey", "")
+{
+  BtreeKeyFixture f;
+  f.getSetExtendedKeyTest();
+}
+
+TEST_CASE("BtreeKey/setRecord", "")
+{
+  BtreeKeyFixture f;
+  f.setRecordTest();
+}
+
+TEST_CASE("BtreeKey/overwriteRecord", "")
+{
+  BtreeKeyFixture f;
+  f.overwriteRecordTest();
+}
+
+TEST_CASE("BtreeKey/duplicateRecord", "")
+{
+  BtreeKeyFixture f;
+  f.duplicateRecordTest();
+}
+
+TEST_CASE("BtreeKey/eraseRecord", "")
+{
+  BtreeKeyFixture f;
+  f.eraseRecordTest();
+}
+
+TEST_CASE("BtreeKey/eraseDuplicateRecord", "")
+{
+  BtreeKeyFixture f;
+  f.eraseDuplicateRecordTest();
+}
+
+TEST_CASE("BtreeKey/eraseAllDuplicateRecord", "")
+{
+  BtreeKeyFixture f;
+  f.eraseAllDuplicateRecordTest();
+}
 
 } // namespace hamsterdb

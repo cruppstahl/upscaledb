@@ -11,13 +11,13 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <string.h>
 #include <vector>
 #include <string>
-#include <algorithm>
 
-#include <ham/hamsterdb.h>
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
+#include "os.hpp"
 
 #include "../src/db.h"
 #include "../src/blob_manager.h"
@@ -26,196 +26,33 @@
 #include "../src/cursor.h"
 #include "../src/env.h"
 #include "../src/btree_cursor.h"
-#include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class DupeTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  DupeTest(ham_u32_t flags = 0, const char *name = "DupeTest")
-    : hamsterDB_fixture(name), m_flags(flags) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(DupeTest, invalidFlagsTest);
-    BFC_REGISTER_TEST(DupeTest, insertDuplicatesTest);
-    BFC_REGISTER_TEST(DupeTest, overwriteDuplicatesTest);
-    BFC_REGISTER_TEST(DupeTest, overwriteVariousDuplicatesTest);
-    BFC_REGISTER_TEST(DupeTest, insertMoveForwardTest);
-    BFC_REGISTER_TEST(DupeTest, insertMoveBackwardTest);
-    BFC_REGISTER_TEST(DupeTest, insertEraseTest);
-    BFC_REGISTER_TEST(DupeTest, insertTest);
-    BFC_REGISTER_TEST(DupeTest, insertSkipDuplicatesTest);
-    BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest);
-    BFC_REGISTER_TEST(DupeTest, insertOnlyDuplicatesTest2);
-    BFC_REGISTER_TEST(DupeTest, coupleUncoupleTest);
-    BFC_REGISTER_TEST(DupeTest, moveToLastDuplicateTest);
-
-    /*
-     * insert 2 dupes, create 2 cursors (both on the first dupe).
-     * delete the first cursor, make sure that both cursors are
-     * NILled and the second dupe is still available
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseDuplicateTest);
-
-    /*
-     * same as above, but uncouples the cursor before the first cursor
-     * is deleted
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseDuplicateUncoupledTest);
-
-    /*
-     * insert 2 dupes, create 2 cursors (both on the second dupe).
-     * delete the first cursor, make sure that both cursors are
-     * NILled and the first dupe is still available
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseSecondDuplicateTest);
-
-    /*
-     * same as above, but uncouples the cursor before the second cursor
-     * is deleted
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseSecondDuplicateUncoupledTest);
-
-    /*
-     * insert 2 dupes, create 2 cursors (one on the first, the other on the
-     * second dupe). delete the first cursor, make sure that it's NILled
-     * and the other cursor is still valid.
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseOtherDuplicateTest);
-
-    /*
-     * same as above, but uncouples the cursor before the second cursor
-     * is deleted
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseOtherDuplicateUncoupledTest);
-
-    /*
-     * inserts 3 dupes, creates 2 cursors on the middle item; delete the
-     * first cursor, make sure that the second is NILled and that the first
-     * and last item still exists
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseMiddleDuplicateTest);
-
-    /*
-     * inserts a few TINY dupes, then erases them all but the last element
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseTinyDuplicatesTest);
-
-    /*
-     * inserts a few duplicates, reopens the database; continues inserting
-     */
-    BFC_REGISTER_TEST(DupeTest, reopenTest);
-
-    /*
-     * test ham_cursor_move(... HAM_CURSOR_PREVIOUS)
-     */
-    BFC_REGISTER_TEST(DupeTest, moveToPreviousDuplicateTest);
-
-    /*
-     * overwrite duplicates using ham_db_insert(... HAM_OVERWRITE)
-     */
-    BFC_REGISTER_TEST(DupeTest, overwriteTest);
-
-    /*
-     * overwrite duplicates using ham_cursor_insert(... HAM_OVERWRITE)
-     */
-    BFC_REGISTER_TEST(DupeTest, overwriteCursorTest);
-
-    /*
-     * same as overwriteCursorTest, but uses multiple cursors and makes
-     * sure that their positions are not modified
-     */
-    BFC_REGISTER_TEST(DupeTest, overwriteMultipleCursorTest);
-
-    /*
-     * reads a big-endian database (if started on a little-endian system)
-     * or vice versa
-     */
-    BFC_REGISTER_TEST(DupeTest, endianTest);
-
-    /*
-     * insert a few duplicate items, then delete them all with a cursor
-     */
-    BFC_REGISTER_TEST(DupeTest, eraseCursorTest);
-
-    /*
-     * tests HAM_DUPLICATE_INSERT_LAST and makes sure that the cursor
-     * always points to the inserted duplicate
-     */
-    BFC_REGISTER_TEST(DupeTest, insertLastTest);
-
-    /*
-     * tests HAM_DUPLICATE_INSERT_FIRST and makes sure that the cursor
-     * always points to the inserted duplicate
-     */
-    BFC_REGISTER_TEST(DupeTest, insertFirstTest);
-
-    /*
-     * tests HAM_DUPLICATE_INSERT_AFTER and makes sure that the cursor
-     * always points to the inserted duplicate
-     */
-    BFC_REGISTER_TEST(DupeTest, insertAfterTest);
-
-    /*
-     * tests HAM_DUPLICATE_INSERT_BEFORE and makes sure that the cursor
-     * always points to the inserted duplicate
-     */
-    BFC_REGISTER_TEST(DupeTest, insertBeforeTest);
-
-    /*
-     * overwrite NULL-, TINY- and SMALL-duplicates with other
-     * NULL-, TINY- and SMALL-duplicates
-     */
-    BFC_REGISTER_TEST(DupeTest, overwriteVariousSizesTest);
-
-    /*
-     * tests get_cuplicate_count
-     */
-    BFC_REGISTER_TEST(DupeTest, getDuplicateCountTest);
-
-    /*
-     * insert a lot of duplicates to provoke a page-split in the duplicate
-     * table
-     */
-    BFC_REGISTER_TEST(DupeTest, insertManyManyTest);
-
-    /*
-     * insert several duplicates; then set a cursor to the 2nd duplicate.
-     * clone the cursor, move it to the next element. then erase the
-     * first cursor.
-     */
-    BFC_REGISTER_TEST(DupeTest, cloneTest);
-  }
-
-protected:
+struct DuplicateFixture {
   ham_u32_t m_flags;
   ham_db_t *m_db;
   ham_env_t *m_env;
   std::vector<std::string> m_data;
 
-public:
-  virtual void setup() {
-    __super::setup();
+  DuplicateFixture(ham_u32_t flags = 0)
+    : m_flags(flags) {
+    (void)os::unlink(Globals::opath(".test"));
 
-    (void)os::unlink(BFC_OPATH(".test"));
-
-    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           m_flags, 0664, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1,
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
           HAM_ENABLE_DUPLICATES, 0));
 
     m_data.resize(0);
   }
 
-  virtual void teardown() {
-    __super::teardown();
+  ~DuplicateFixture() {
+    teardown();
+  }
 
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  void teardown() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void insertDuplicatesTest() {
@@ -228,14 +65,14 @@ public:
       rec.data = data;
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
     ::memset(&data, 0x15, sizeof(data));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
-    BFC_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE((ham_size_t)sizeof(data) == rec2.size);
+    REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
   }
 
   void overwriteDuplicatesTest()
@@ -247,41 +84,41 @@ public:
     ham_size_t count;
     char data[16];
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       rec.data = data;
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
     rec.data = data;
     rec.size = sizeof(data);
     ::memset(&data, 0x99, sizeof(data));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_move(c, &key, &rec2, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
-    BFC_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+    REQUIRE(0 == ham_cursor_move(c, &key, &rec2, HAM_CURSOR_FIRST));
+    REQUIRE((ham_size_t)sizeof(data) == rec2.size);
+    REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
 
     for (int i = 1; i < 5; i++) {
       ::memset(&data, i+0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(c, &key, &rec2, HAM_CURSOR_NEXT));
-      BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
-      BFC_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+      REQUIRE((ham_size_t)sizeof(data) == rec2.size);
+      REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
     }
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)5, count);
+    REQUIRE((ham_size_t)5 == count);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void overwriteVariousDuplicatesTest() {
@@ -302,19 +139,19 @@ public:
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-      BFC_ASSERT_EQUAL(sizes[i], rec.size);
+      REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
-        BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizes[i]));
+        REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
         free(data);
       }
     }
 
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)0, rec2.size);
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE((ham_size_t)0 == rec2.size);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     for (unsigned i = 0; i < M; i++) {
       if (sizes[i]) {
@@ -323,21 +160,21 @@ public:
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
-      BFC_ASSERT_EQUAL(sizes[i], rec.size);
+      REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
-        BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizes[i]));
+        REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
         free(data);
       }
     }
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(cursor, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)M, count);
+    REQUIRE((ham_size_t)M == count);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     for (int i = M - 1; i >= 0; i--) {
       if (sizes[i]) {
@@ -346,31 +183,31 @@ public:
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
-      BFC_ASSERT_EQUAL(sizes[i], rec.size);
+      REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
-        BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizes[i]));
+        REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
         free(data);
       }
     }
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(cursor, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)M, count);
+    REQUIRE((ham_size_t)M == count);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
 
     data = (char *)malloc(16);
     ::memset(data, 0x99, 16);
     rec.data = data;
     rec.size = 16;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
 
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)16, rec2.size);
-    BFC_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, 16));
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE((ham_size_t)16 == rec2.size);
+    REQUIRE(0 == ::memcmp(data, rec2.data, 16));
     free(data);
   }
 
@@ -386,28 +223,28 @@ public:
       rec.data = data;
       rec.size = sizeof(data);
       ::memset(&data, i+0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       ::memset(&key, 0, sizeof(key));
       ::memset(&rec, 0, sizeof(rec));
       ::memset(&data, i + 0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
-      BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec.size);
-      BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizeof(data)));
+      REQUIRE((ham_size_t)sizeof(data) == rec.size);
+      REQUIRE(0 == ::memcmp(data, rec.data, sizeof(data)));
     }
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void insertMoveBackwardTest() {
@@ -422,28 +259,28 @@ public:
       rec.data = data;
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     for (int i = 4; i >= 0; i--) {
       ::memset(&key, 0, sizeof(key));
       ::memset(&rec, 0, sizeof(rec));
       ::memset(&data, i + 0x15, sizeof(data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
-      BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec.size);
-      BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizeof(data)));
+      REQUIRE((ham_size_t)sizeof(data) == rec.size);
+      REQUIRE(0 == ::memcmp(data, rec.data, sizeof(data)));
     }
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_PREVIOUS));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void insertEraseTest() {
@@ -456,45 +293,45 @@ public:
     ::memset(&data, 0x13, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     ::memset(&data, 0x14, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     ::memset(&data, 0x15, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     ::memset(&rec, 0, sizeof(rec));
     ::memset(&data, 0x13, sizeof(data));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)sizeof(data), rec.size);
-    BFC_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizeof(data)));
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE((ham_size_t)sizeof(data) == rec.size);
+    REQUIRE(0 == ::memcmp(data, rec.data, sizeof(data)));
 
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
   void insert(ham_key_t *key, ham_record_t *rec) {
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, key, rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, key, rec, HAM_DUPLICATE));
   }
 
   void find(ham_key_t *key, ham_record_t *rec) {
     ham_record_t record = {};
 
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, key, &record, 0));
-    BFC_ASSERT_EQUAL(rec->size, record.size);
-    BFC_ASSERT_EQUAL(0, ::memcmp(rec->data, record.data, rec->size));
+    REQUIRE(0 == ham_db_find(m_db, 0, key, &record, 0));
+    REQUIRE(rec->size == record.size);
+    REQUIRE(0 == ::memcmp(rec->data, record.data, rec->size));
 
     rec->_rid = record._rid;
   }
 
   void erase(ham_key_t *key) {
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, key, 0));
   }
 
   void insertData(const char *k, const char *data) {
@@ -505,7 +342,7 @@ public:
     key.data = (void *)k;
     key.size = (ham_u16_t)(k ? ::strlen(k)+1 : 0);
 
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
   }
 
   void checkData(ham_cursor_t *cursor, ham_u32_t flags,
@@ -513,17 +350,17 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(expected,
+    REQUIRE(expected ==
         ham_cursor_move(cursor, &key, &rec, flags));
 
     if (expected == 0) {
       if (data) {
-        BFC_ASSERT_EQUAL(rec.size, (ham_size_t)::strlen(data) + 1);
-        BFC_ASSERT_EQUAL(0, ::memcmp(rec.data, data, rec.size));
+        REQUIRE(rec.size == (ham_size_t)::strlen(data) + 1);
+        REQUIRE(0 == ::memcmp(rec.data, data, rec.size));
       }
       else {
-        BFC_ASSERT_EQUAL(rec.size, (ham_size_t)0);
-        BFC_ASSERT_EQUAL((void *)0, rec.data);
+        REQUIRE(rec.size == (ham_size_t)0);
+        REQUIRE((void *)0 == rec.data);
       }
     }
   }
@@ -532,7 +369,7 @@ public:
     ham_cursor_t *c;
     ham_size_t count;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -573,9 +410,9 @@ public:
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
     checkData(c, HAM_CURSOR_NEXT,   0, "3333333333");
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)10, count);
+    REQUIRE((ham_size_t)10 == count);
 
     ham_cursor_close(c);
   }
@@ -583,7 +420,7 @@ public:
   void insertSkipDuplicatesTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "1111111111");
@@ -614,7 +451,7 @@ public:
   void insertOnlyDuplicatesTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "8888888888");
@@ -645,7 +482,7 @@ public:
   void insertOnlyDuplicatesTest2() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData("1", "1");
     insertData("1", "2");
@@ -659,11 +496,11 @@ public:
     key.size = 2;
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
     for (int i = 0; i < 3; i++) {
-      BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
-      BFC_ASSERT_EQUAL(0, strcmp(exp[i], (char *)rec.data));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 == ham_cursor_move(c, 0, &rec, 0));
+      REQUIRE(0 == strcmp(exp[i], (char *)rec.data));
+      REQUIRE(0 ==
           ham_cursor_move(c, &key, &rec,
               HAM_CURSOR_NEXT | HAM_ONLY_DUPLICATES));
     }
@@ -678,7 +515,7 @@ public:
     ham_cursor_t *c;
     Page *page;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "1111111111");
@@ -695,26 +532,26 @@ public:
     insertData("333", "cccccccccc");
 
     BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
-    BFC_ASSERT_EQUAL(0, ((Database *)m_db)->fetch_page(&page,
+    REQUIRE(0 == ((Database *)m_db)->fetch_page(&page,
                 be->get_rootpage()));
-    BFC_ASSERT(page != 0);
+    REQUIRE(page != 0);
 
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT,   0, "aaaaaaaaaa");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT,   0, "1111111111");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
     ham_cursor_close(c);
@@ -728,49 +565,49 @@ public:
 
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c2)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseMiddleDuplicateTest() {
@@ -784,71 +621,71 @@ public:
     value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     ::memset(&rec, 0, sizeof(rec));
     value=3;
     rec.data=&value;
     rec.size=sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(3, *(int *)rec.data);
+    REQUIRE(3 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(3, *(int *)rec.data);
+    REQUIRE(3 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(3, *(int *)rec.data);
+    REQUIRE(3 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_PREVIOUS));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseTinyDuplicatesTest() {
@@ -860,21 +697,21 @@ public:
     insertData("111", "444");
     insertData("111", "555");
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     checkData(c, HAM_CURSOR_FIRST,  0, "111");
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "222");
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "333");
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "444");
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "555");
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
     checkData(c, HAM_CURSOR_FIRST,  HAM_KEY_NOT_FOUND, "555");
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void reopenTest() {
@@ -889,14 +726,14 @@ public:
     if (!(m_flags&HAM_IN_MEMORY)) {
       /* reopen the database */
       teardown();
-      BFC_ASSERT_EQUAL(0,
-          ham_env_open(&m_env, BFC_OPATH(".test"), m_flags, 0));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
+          ham_env_open(&m_env, Globals::opath(".test"), m_flags, 0));
+      REQUIRE(0 ==
           ham_env_open_db(m_env, &m_db, 1, 0, 0));
     }
-    BFC_ASSERT(((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES);
+    REQUIRE((((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData("111", "4444444444");
     insertData("111", "5555555555");
@@ -916,13 +753,13 @@ public:
     checkData(c, HAM_CURSOR_NEXT,
             HAM_KEY_NOT_FOUND, 0);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void moveToLastDuplicateTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData(0, "3333333333");
     insertData(0, "2222222222");
@@ -943,49 +780,49 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c1, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c2, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseDuplicateUncoupledTest() {
@@ -999,53 +836,53 @@ public:
     value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c1, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c1, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c2, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c2, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c1)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c2)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseSecondDuplicateTest() {
@@ -1058,47 +895,47 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseSecondDuplicateUncoupledTest() {
@@ -1111,51 +948,51 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c1)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c2)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void eraseOtherDuplicateTest() {
@@ -1168,53 +1005,53 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(1, *(int *)rec.data);
+    REQUIRE(1 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c1, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 
   void moveToPreviousDuplicateTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1255,7 +1092,7 @@ public:
     ham_record_t rec;
     ::memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1270,7 +1107,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"3333333333333333333333333333333333333333333333333333";
     rec.size = (ham_size_t)strlen((char *)rec.data)+1;
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(c, &rec, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "1111111111");
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
     checkData(c, HAM_CURSOR_NEXT,   0,
@@ -1280,7 +1117,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"44";
     rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(c, &rec, 0));
 
     checkData(c, HAM_CURSOR_LAST,   0, "5555555555");
     checkData(c, HAM_CURSOR_PREVIOUS, 0, "44");
@@ -1296,9 +1133,9 @@ public:
     ham_record_t rec;
     ::memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c3, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c3, m_db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1317,7 +1154,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"3333333333333333333333333333333333333333333333333333";
     rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(c1, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(c1, &rec, 0));
     checkData(c1, 0,           0,
         "3333333333333333333333333333333333333333333333333333");
     checkData(c2, HAM_CURSOR_FIRST,  0, "1111111111");
@@ -1333,7 +1170,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"44";
     rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(c1, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(c1, &rec, 0));
     checkData(c3, 0,           0, "44");
     checkData(c3, HAM_CURSOR_PREVIOUS, 0,
         "3333333333333333333333333333333333333333333333333333");
@@ -1355,8 +1192,8 @@ public:
   void invalidFlagsTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(HAM_INV_PARAMETER ==
         ham_cursor_move(c, 0, 0,
             HAM_SKIP_DUPLICATES | HAM_ONLY_DUPLICATES));
 
@@ -1373,8 +1210,8 @@ public:
     insertData(0, "333");
     insertData(0, "4444444444");
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c2, m_db, 0, 0));
 
     checkData(c1, HAM_CURSOR_FIRST, 0, "111");
     checkData(c1, HAM_CURSOR_NEXT,  0, "2222222222");
@@ -1384,7 +1221,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"1111111111111111111111111111111111111111";
     rec.size = (ham_size_t)strlen((char *)rec.data)+1;
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     checkData(c2, 0,          0,
         "1111111111111111111111111111111111111111");
 
@@ -1392,7 +1229,7 @@ public:
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"00";
     rec.size = (ham_size_t)strlen((char *)rec.data)+1;
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     checkData(c2, 0,          0, "00");
 
     checkData(c1, HAM_CURSOR_PREVIOUS,  0, "00");
@@ -1411,53 +1248,53 @@ public:
     ham_cursor_t *c;
 
     /* close the existing database handle */
-    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
+    REQUIRE(0 == ham_db_close(m_db, 0));
 
-    (void)os::unlink(BFC_OPATH(".test"));
+    (void)os::unlink(Globals::opath(".test"));
 
     /* generated with `cat ../COPYING.GPL2 | ./db5` */
 #if defined(HAM_LITTLE_ENDIAN)
-    BFC_ASSERT_EQUAL(true,
+    REQUIRE(true ==
       os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-          BFC_OPATH(".test")));
+          Globals::opath(".test")));
 #else
-    BFC_ASSERT_EQUAL(true,
+    REQUIRE(true ==
       os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-          BFC_OPATH(".test")));
+          Globals::opath(".test")));
 #endif
-    BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+    REQUIRE(0 == ham_open(m_db, Globals::opath(".test"), 0));
 
     memset(&key, 0, sizeof(key));
     key.data = (void *)"written";
     key.size = 8;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
-    BFC_ASSERT_EQUAL(_ham_byteswap32(125), *(unsigned int *)rec.data);
+    REQUIRE(0 == ham_cursor_move(c, 0, &rec, 0));
+    REQUIRE(_ham_byteswap32(125) == *(unsigned int *)rec.data);
 
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec,
+    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
                 HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    BFC_ASSERT_EQUAL(_ham_byteswap32(142), *(unsigned int *)rec.data);
+    REQUIRE(_ham_byteswap32(142) == *(unsigned int *)rec.data);
 
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec,
+    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
                 HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    BFC_ASSERT_EQUAL(_ham_byteswap32(235), *(unsigned int *)rec.data);
+    REQUIRE(_ham_byteswap32(235) == *(unsigned int *)rec.data);
 
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec,
+    REQUIRE(0 == ham_cursor_move(c, 0, &rec,
                 HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
-    BFC_ASSERT_EQUAL(_ham_byteswap32(331), *(unsigned int *)rec.data);
+    REQUIRE(_ham_byteswap32(331) == *(unsigned int *)rec.data);
 
     memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(c, 0, &rec,
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_move(c, 0, &rec,
                 HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
 #endif
   }
 
@@ -1465,7 +1302,7 @@ public:
     ham_key_t key;
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1474,30 +1311,30 @@ public:
     insertData(0, "5555555555");
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+    REQUIRE(0 == ham_cursor_find(c, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(c, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
             ham_cursor_find(c, &key, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void insertLastTest() {
@@ -1508,22 +1345,21 @@ public:
 
     memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.data = (void *)values[i];
       rec.size = (ham_size_t)strlen((char *)rec.data)+1;
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_insert(c, &key, &rec,
                 HAM_DUPLICATE_INSERT_LAST));
       memset(&rec, 0, sizeof(rec));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, &rec, 0));
-      BFC_ASSERT_EQUAL(strlen((char *)rec.data)+1,
-              strlen(values[i])+1);
-      BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
-      BFC_ASSERT_EQUAL((ham_size_t)i,
+      REQUIRE(strlen(values[i]) == strlen((char *)rec.data));
+      REQUIRE(0 == strcmp(values[i], (char *)rec.data));
+      REQUIRE((ham_size_t)i ==
           ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
     }
 
@@ -1533,7 +1369,7 @@ public:
     checkData(c, HAM_CURSOR_NEXT,  0, values[3]);
     checkData(c, HAM_CURSOR_NEXT,  HAM_KEY_NOT_FOUND, values[3]);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void insertFirstTest() {
@@ -1544,22 +1380,21 @@ public:
 
     memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.data = (void *)values[i];
       rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_insert(c, &key, &rec,
                 HAM_DUPLICATE_INSERT_FIRST));
       memset(&rec, 0, sizeof(rec));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, &rec, 0));
-      BFC_ASSERT_EQUAL(strlen((char *)rec.data)+1,
-              strlen(values[i])+1);
-      BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
-      BFC_ASSERT_EQUAL((ham_size_t)0,
+      REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
+      REQUIRE(0 == strcmp(values[i], (char *)rec.data));
+      REQUIRE((ham_size_t)0 ==
           ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
     }
 
@@ -1569,7 +1404,7 @@ public:
     checkData(c, HAM_CURSOR_NEXT,  0, values[0]);
     checkData(c, HAM_CURSOR_NEXT,  HAM_KEY_NOT_FOUND, values[0]);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void insertAfterTest() {
@@ -1580,24 +1415,23 @@ public:
 
     memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.data = (void *)values[i];
       rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_insert(c, &key, &rec,
                 HAM_DUPLICATE_INSERT_AFTER));
       memset(&rec, 0, sizeof(rec));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, &rec, 0));
-      BFC_ASSERT_EQUAL(strlen((char *)rec.data) + 1,
-              strlen(values[i]) + 1);
-      BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
-      BFC_ASSERT_EQUAL((ham_size_t)(i >= 1 ? 1 : 0),
+      REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
+      REQUIRE(0 == strcmp(values[i], (char *)rec.data));
+      REQUIRE((ham_size_t)(i >= 1 ? 1 : 0) ==
             ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
     }
 
@@ -1607,7 +1441,7 @@ public:
     checkData(c, HAM_CURSOR_NEXT,   0, values[1]);
     checkData(c, HAM_CURSOR_NEXT,   HAM_KEY_NOT_FOUND, values[0]);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void insertBeforeTest() {
@@ -1618,24 +1452,23 @@ public:
 
     memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.data = (void *)values[i];
       rec.size = (ham_size_t)strlen((char *)rec.data) + 1;
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_insert(c, &key, &rec,
                 HAM_DUPLICATE_INSERT_BEFORE));
       memset(&rec, 0, sizeof(rec));
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, &rec, 0));
-      BFC_ASSERT_EQUAL(strlen((char *)rec.data) + 1,
-              strlen(values[i]) + 1);
-      BFC_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
-      BFC_ASSERT_EQUAL((ham_size_t)(i <= 1 ? 0 : i-1),
+      REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
+      REQUIRE(0 == strcmp(values[i], (char *)rec.data));
+      REQUIRE((ham_size_t)(i <= 1 ? 0 : i-1) ==
             ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
     }
 
@@ -1645,7 +1478,7 @@ public:
     checkData(c, HAM_CURSOR_NEXT,   0, values[0]);
     checkData(c, HAM_CURSOR_NEXT,   HAM_KEY_NOT_FOUND, values[0]);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void overwriteVariousSizesTest() {
@@ -1658,7 +1491,7 @@ public:
 
     memset(&key, 0, sizeof(key));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int s = 0; s < 5; s++) {
       for (int i = s, j = 0; i < s + 4; i++, j++) {
@@ -1675,16 +1508,16 @@ public:
 
         if (s == 0) {
           /* first round: insert the duplicates */
-          BFC_ASSERT_EQUAL(0,
+          REQUIRE(0 ==
               ham_cursor_insert(c, &key, &rec,
                   HAM_DUPLICATE_INSERT_LAST));
         }
         else {
           /* other rounds: just overwrite them */
-          BFC_ASSERT_EQUAL(0,
+          REQUIRE(0 ==
               ham_cursor_overwrite(c, &rec, 0));
           if (i != (s + 4) - 1)
-            BFC_ASSERT_EQUAL(0,
+            REQUIRE(0 ==
               ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
         }
       }
@@ -1699,69 +1532,69 @@ public:
       checkData(c, HAM_CURSOR_FIRST,  0, newvalues[0]);
     }
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void getDuplicateCountTest() {
     ham_size_t count;
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+    REQUIRE(HAM_INV_PARAMETER ==
         ham_cursor_get_duplicate_count(0, &count, 0));
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+    REQUIRE(HAM_INV_PARAMETER ==
         ham_cursor_get_duplicate_count(c, 0, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
+    REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)0, count);
+    REQUIRE((ham_size_t)0 == count);
 
     insertData(0, "1111111111");
     checkData(c, HAM_CURSOR_NEXT,   0, "1111111111");
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)1, count);
+    REQUIRE((ham_size_t)1 == count);
 
     insertData(0, "2222222222");
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)2, count);
+    REQUIRE((ham_size_t)2 == count);
 
     insertData(0, "3333333333");
     checkData(c, HAM_CURSOR_NEXT,   0, "3333333333");
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Cursor *)c)->get_btree_cursor()->uncouple());
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)3, count);
+    REQUIRE((ham_size_t)3 == count);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
+    REQUIRE(0 == ham_cursor_erase(c, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_get_duplicate_count(c, &count, 0));
     checkData(c, HAM_CURSOR_FIRST,  0, "1111111111");
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
-    BFC_ASSERT_EQUAL((ham_size_t)2, count);
+    REQUIRE((ham_size_t)2 == count);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
 
     if (!(m_flags & HAM_IN_MEMORY)) {
       /* reopen the database */
       teardown();
-      BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"),
+      REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
               m_flags, 0));
-      BFC_ASSERT_EQUAL(0, ham_env_open_db(m_env, &m_db, 1, 0, 0));
-      BFC_ASSERT(((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES);
+      REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
+      REQUIRE((((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
 
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+      REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
       checkData(c, HAM_CURSOR_NEXT,   0, "1111111111");
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_get_duplicate_count(c, &count, 0));
-      BFC_ASSERT_EQUAL((ham_size_t)2, count);
+      REQUIRE((ham_size_t)2 == count);
 
-      BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+      REQUIRE(0 == ham_cursor_close(c));
     }
   }
 
@@ -1775,35 +1608,35 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           m_flags, 0664, &params[0]));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 
           HAM_ENABLE_DUPLICATES, 0));
 
     memset(&key, 0, sizeof(key));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
     for (int i = 0; i < 256; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.size = sizeof(i);
       rec.data = &i;
 
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
 
     for (int i = 0; i < 256; i++) {
       memset(&rec, 0, sizeof(rec));
 
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
-      BFC_ASSERT_EQUAL((ham_size_t)4, rec.size);
-      BFC_ASSERT_EQUAL(i, *(int *)rec.data);
+      REQUIRE((ham_size_t)4 == rec.size);
+      REQUIRE(i == *(int *)rec.data);
     }
 
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void cloneTest() {
@@ -1817,59 +1650,663 @@ public:
     value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 3;
     rec.data = &value;
     rec.size = sizeof(value);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c1, m_db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(2, *(int *)rec.data);
+    REQUIRE(2 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_clone(c1, &c2));
+    REQUIRE(0 == ham_cursor_clone(c1, &c2));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(3, *(int *)rec.data);
+    REQUIRE(3 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
-    BFC_ASSERT(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    BFC_ASSERT(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(0 == ham_cursor_erase(c1, 0));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(c2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(3, *(int *)rec.data);
+    REQUIRE(3 == *(int *)rec.data);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c1));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    REQUIRE(0 == ham_cursor_close(c1));
+    REQUIRE(0 == ham_cursor_close(c2));
   }
 };
 
-class InMemoryDupeTest : public DupeTest {
-public:
-  InMemoryDupeTest()
-    : DupeTest(HAM_IN_MEMORY, "InMemoryDupeTest") {
-  }
-};
+TEST_CASE("DuplicateFixture/invalidFlagsTest", "")
+{
+  DuplicateFixture f;
+  f.invalidFlagsTest();
+}
 
-BFC_REGISTER_FIXTURE(DupeTest);
-BFC_REGISTER_FIXTURE(InMemoryDupeTest);
+TEST_CASE("DuplicateFixture/insertDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.insertDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/overwriteDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/overwriteVariousDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteVariousDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/insertMoveForwardTest", "")
+{
+  DuplicateFixture f;
+  f.insertMoveForwardTest();
+}
+
+TEST_CASE("DuplicateFixture/insertMoveBackwardTest", "")
+{
+  DuplicateFixture f;
+  f.insertMoveBackwardTest();
+}
+
+TEST_CASE("DuplicateFixture/insertEraseTest", "")
+{
+  DuplicateFixture f;
+  f.insertEraseTest();
+}
+
+TEST_CASE("DuplicateFixture/insertTest", "")
+{
+  DuplicateFixture f;
+  f.insertTest();
+}
+
+TEST_CASE("DuplicateFixture/insertSkipDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.insertSkipDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/insertOnlyDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.insertOnlyDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture/insertOnlyDuplicatesTest2", "")
+{
+  DuplicateFixture f;
+  f.insertOnlyDuplicatesTest2();
+}
+
+TEST_CASE("DuplicateFixture/coupleUncoupleTest", "")
+{
+  DuplicateFixture f;
+  f.coupleUncoupleTest();
+}
+
+TEST_CASE("DuplicateFixture/moveToLastDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.moveToLastDuplicateTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (both on the first dupe).
+ * delete the first cursor, make sure that both cursors are
+ * NILled and the second dupe is still available
+ */
+TEST_CASE("DuplicateFixture/eraseDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.eraseDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the first cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture/eraseDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f;
+  f.eraseDuplicateUncoupledTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (both on the second dupe).
+ * delete the first cursor, make sure that both cursors are
+ * NILled and the first dupe is still available
+ */
+TEST_CASE("DuplicateFixture/eraseSecondDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.eraseSecondDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the second cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture/eraseSecondDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f;
+  f.eraseSecondDuplicateUncoupledTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (one on the first, the other on the
+ * second dupe). delete the first cursor, make sure that it's NILled
+ * and the other cursor is still valid.
+ */
+TEST_CASE("DuplicateFixture/eraseOtherDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.eraseOtherDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the second cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture/eraseOtherDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f;
+  f.eraseOtherDuplicateUncoupledTest();
+}
+
+/*
+ * inserts 3 dupes, creates 2 cursors on the middle item; delete the
+ * first cursor, make sure that the second is NILled and that the first
+ * and last item still exists
+ */
+TEST_CASE("DuplicateFixture/eraseMiddleDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.eraseMiddleDuplicateTest();
+}
+
+/*
+ * inserts a few TINY dupes, then erases them all but the last element
+ */
+TEST_CASE("DuplicateFixture/eraseTinyDuplicatesTest", "")
+{
+  DuplicateFixture f;
+  f.eraseTinyDuplicatesTest();
+}
+
+/*
+ * inserts a few duplicates, reopens the database; continues inserting
+ */
+TEST_CASE("DuplicateFixture/reopenTest", "")
+{
+  DuplicateFixture f;
+  f.reopenTest();
+}
+
+/*
+ * test ham_cursor_move(... HAM_CURSOR_PREVIOUS)
+ */
+TEST_CASE("DuplicateFixture/moveToPreviousDuplicateTest", "")
+{
+  DuplicateFixture f;
+  f.moveToPreviousDuplicateTest();
+}
+
+/*
+ * overwrite duplicates using ham_db_insert(... HAM_OVERWRITE)
+ */
+TEST_CASE("DuplicateFixture/overwriteTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteTest();
+}
+
+/*
+ * overwrite duplicates using ham_cursor_insert(... HAM_OVERWRITE)
+ */
+TEST_CASE("DuplicateFixture/overwriteCursorTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteCursorTest();
+}
+
+/*
+ * same as overwriteCursorTest, but uses multiple cursors and makes
+ * sure that their positions are not modified
+ */
+TEST_CASE("DuplicateFixture/overwriteMultipleCursorTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteMultipleCursorTest();
+}
+
+/*
+ * reads a big-endian database (if started on a little-endian system)
+ * or vice versa
+ */
+TEST_CASE("DuplicateFixture/endianTest", "")
+{
+  DuplicateFixture f;
+  f.endianTest();
+}
+
+/*
+ * insert a few duplicate items, then delete them all with a cursor
+ */
+TEST_CASE("DuplicateFixture/eraseCursorTest", "")
+{
+  DuplicateFixture f;
+  f.eraseCursorTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_LAST and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture/insertLastTest", "")
+{
+  DuplicateFixture f;
+  f.insertLastTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_FIRST and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture/insertFirstTest", "")
+{
+  DuplicateFixture f;
+  f.insertFirstTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_AFTER and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture/insertAfterTest", "")
+{
+  DuplicateFixture f;
+  f.insertAfterTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_BEFORE and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture/insertBeforeTest", "")
+{
+  DuplicateFixture f;
+  f.insertBeforeTest();
+}
+
+/*
+ * overwrite NULL-, TINY- and SMALL-duplicates with other
+ * NULL-, TINY- and SMALL-duplicates
+ */
+TEST_CASE("DuplicateFixture/overwriteVariousSizesTest", "")
+{
+  DuplicateFixture f;
+  f.overwriteVariousSizesTest();
+}
+
+/*
+ * tests get_cuplicate_count
+ */
+TEST_CASE("DuplicateFixture/getDuplicateCountTest", "")
+{
+  DuplicateFixture f;
+  f.getDuplicateCountTest();
+}
+
+/*
+ * insert a lot of duplicates to provoke a page-split in the duplicate
+ * table
+ */
+TEST_CASE("DuplicateFixture/insertManyManyTest", "")
+{
+  DuplicateFixture f;
+  f.insertManyManyTest();
+}
+
+/*
+ * insert several duplicates; then set a cursor to the 2nd duplicate.
+ * clone the cursor, move it to the next element. then erase the
+ * first cursor.
+ */
+TEST_CASE("DuplicateFixture/cloneTest", "")
+{
+  DuplicateFixture f;
+  f.cloneTest();
+}
+
+
+TEST_CASE("DuplicateFixture-inmem/invalidFlagsTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.invalidFlagsTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/overwriteDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/overwriteVariousDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteVariousDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertMoveForwardTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertMoveForwardTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertMoveBackwardTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertMoveBackwardTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertEraseTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertEraseTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertSkipDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertSkipDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertOnlyDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertOnlyDuplicatesTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/insertOnlyDuplicatesTest2", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertOnlyDuplicatesTest2();
+}
+
+TEST_CASE("DuplicateFixture-inmem/coupleUncoupleTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.coupleUncoupleTest();
+}
+
+TEST_CASE("DuplicateFixture-inmem/moveToLastDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.moveToLastDuplicateTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (both on the first dupe).
+ * delete the first cursor, make sure that both cursors are
+ * NILled and the second dupe is still available
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the first cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseDuplicateUncoupledTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (both on the second dupe).
+ * delete the first cursor, make sure that both cursors are
+ * NILled and the first dupe is still available
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseSecondDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the second cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseSecondDuplicateUncoupledTest();
+}
+
+/*
+ * insert 2 dupes, create 2 cursors (one on the first, the other on the
+ * second dupe). delete the first cursor, make sure that it's NILled
+ * and the other cursor is still valid.
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseOtherDuplicateTest();
+}
+
+/*
+ * same as above, but uncouples the cursor before the second cursor
+ * is deleted
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateUncoupledTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseOtherDuplicateUncoupledTest();
+}
+
+/*
+ * inserts 3 dupes, creates 2 cursors on the middle item; delete the
+ * first cursor, make sure that the second is NILled and that the first
+ * and last item still exists
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseMiddleDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseMiddleDuplicateTest();
+}
+
+/*
+ * inserts a few TINY dupes, then erases them all but the last element
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseTinyDuplicatesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseTinyDuplicatesTest();
+}
+
+/*
+ * inserts a few duplicates, reopens the database; continues inserting
+ */
+TEST_CASE("DuplicateFixture-inmem/reopenTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.reopenTest();
+}
+
+/*
+ * test ham_cursor_move(... HAM_CURSOR_PREVIOUS)
+ */
+TEST_CASE("DuplicateFixture-inmem/moveToPreviousDuplicateTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.moveToPreviousDuplicateTest();
+}
+
+/*
+ * overwrite duplicates using ham_db_insert(... HAM_OVERWRITE)
+ */
+TEST_CASE("DuplicateFixture-inmem/overwriteTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteTest();
+}
+
+/*
+ * overwrite duplicates using ham_cursor_insert(... HAM_OVERWRITE)
+ */
+TEST_CASE("DuplicateFixture-inmem/overwriteCursorTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteCursorTest();
+}
+
+/*
+ * same as overwriteCursorTest, but uses multiple cursors and makes
+ * sure that their positions are not modified
+ */
+TEST_CASE("DuplicateFixture-inmem/overwriteMultipleCursorTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteMultipleCursorTest();
+}
+
+/*
+ * reads a big-endian database (if started on a little-endian system)
+ * or vice versa
+ */
+TEST_CASE("DuplicateFixture-inmem/endianTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.endianTest();
+}
+
+/*
+ * insert a few duplicate items, then delete them all with a cursor
+ */
+TEST_CASE("DuplicateFixture-inmem/eraseCursorTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.eraseCursorTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_LAST and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture-inmem/insertLastTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertLastTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_FIRST and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture-inmem/insertFirstTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertFirstTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_AFTER and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture-inmem/insertAfterTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertAfterTest();
+}
+
+/*
+ * tests HAM_DUPLICATE_INSERT_BEFORE and makes sure that the cursor
+ * always points to the inserted duplicate
+ */
+TEST_CASE("DuplicateFixture-inmem/insertBeforeTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertBeforeTest();
+}
+
+/*
+ * overwrite NULL-, TINY- and SMALL-duplicates with other
+ * NULL-, TINY- and SMALL-duplicates
+ */
+TEST_CASE("DuplicateFixture-inmem/overwriteVariousSizesTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.overwriteVariousSizesTest();
+}
+
+/*
+ * tests get_cuplicate_count
+ */
+TEST_CASE("DuplicateFixture-inmem/getDuplicateCountTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.getDuplicateCountTest();
+}
+
+/*
+ * insert a lot of duplicates to provoke a page-split in the duplicate
+ * table
+ */
+TEST_CASE("DuplicateFixture-inmem/insertManyManyTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.insertManyManyTest();
+}
+
+/*
+ * insert several duplicates; then set a cursor to the 2nd duplicate.
+ * clone the cursor, move it to the next element. then erase the
+ * first cursor.
+ */
+TEST_CASE("DuplicateFixture-inmem/cloneTest", "")
+{
+  DuplicateFixture f(HAM_IN_MEMORY);
+  f.cloneTest();
+}
+

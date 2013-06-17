@@ -11,44 +11,27 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
-#include <ham/hamsterdb.h>
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
+#include "os.hpp"
+
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/page.h"
 #include "../src/env.h"
 #include "../src/btree.h"
 #include "../src/btree_node.h"
-#include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class BtreeInsertTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  BtreeInsertTest()
-    : hamsterDB_fixture("BtreeInsertTest"), m_db(0)  {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(BtreeInsertTest, defaultPivotTest);
-    BFC_REGISTER_TEST(BtreeInsertTest, defaultLatePivotTest);
-    BFC_REGISTER_TEST(BtreeInsertTest, sequentialInsertPivotTest);
-  }
-
-protected:
+struct BtreeInsertFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   Environment *m_environ;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
+  BtreeInsertFixture()
+    : m_db(0), m_env(0), m_environ(0) {
     ham_parameter_t p1[] = {
       { HAM_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
@@ -58,19 +41,17 @@ public:
       { 0, 0 }
     };
 
-    os::unlink(BFC_OPATH(".test"));
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"), 0, 0644, &p1[0]));
-    BFC_ASSERT_EQUAL(0,
+    os::unlink(Globals::opath(".test"));
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, &p1[0]));
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
     m_environ = (Environment *)m_env;
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
+  ~BtreeInsertFixture() {
     if (m_env)
-	  BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
+	  REQUIRE(0 == ham_env_close(m_env, 0));
   }
 
   void defaultPivotTest() {
@@ -81,7 +62,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -92,23 +73,23 @@ public:
      */
     Page *page;
     PBtreeNode *node;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
-    BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
+    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(7, node->get_count());
+    REQUIRE(7 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
-    BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
+    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(5, node->get_count());
+    REQUIRE(5 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
-    BFC_ASSERT(Page::TYPE_B_INDEX & page->get_type());
+    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(1, node->get_count());
+    REQUIRE(1 == node->get_count());
   }
 
   void defaultLatePivotTest() {
@@ -119,7 +100,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -130,23 +111,23 @@ public:
      */
     Page *page;
     PBtreeNode *node;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(8, node->get_count());
+    REQUIRE(8 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(3, node->get_count());
+    REQUIRE(3 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(1, node->get_count());
+    REQUIRE(1 == node->get_count());
   }
 
   void sequentialInsertPivotTest() {
@@ -157,7 +138,7 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -168,25 +149,41 @@ public:
      */
     Page *page;
     PBtreeNode *node;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(8, node->get_count());
+    REQUIRE(8 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_INDEX, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(3, node->get_count());
+    REQUIRE(3 == node->get_count());
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
-    BFC_ASSERT_EQUAL((unsigned)Page::TYPE_B_ROOT, page->get_type());
+    REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
     node = PBtreeNode::from_page(page);
-    BFC_ASSERT_EQUAL(1, node->get_count());
+    REQUIRE(1 == node->get_count());
   }
 };
 
-BFC_REGISTER_FIXTURE(BtreeInsertTest);
+TEST_CASE("BtreeInsert/defaultPivotTest", "")
+{
+  BtreeInsertFixture f;
+  f.defaultPivotTest();
+}
+
+TEST_CASE("BtreeInsert/defaultLatePivotTest", "")
+{
+  BtreeInsertFixture f;
+  f.defaultLatePivotTest();
+}
+
+TEST_CASE("BtreeInsert/sequentialInsertPivotTest", "")
+{
+  BtreeInsertFixture f;
+  f.sequentialInsertPivotTest();
+}
 

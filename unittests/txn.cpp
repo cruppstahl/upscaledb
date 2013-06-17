@@ -11,10 +11,10 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstdlib>
-#include <cstring>
-#include <vector>
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
+#include "os.hpp"
 
 #include <ham/hamsterdb.h>
 
@@ -25,189 +25,146 @@
 #include "../src/env.h"
 #include "../src/os.h"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class TxnTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  TxnTest()
-    : hamsterDB_fixture("TxnTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(TxnTest, checkIfLogCreatedTest);
-    BFC_REGISTER_TEST(TxnTest, beginCommitTest);
-    BFC_REGISTER_TEST(TxnTest, multipleBeginCommitTest);
-    BFC_REGISTER_TEST(TxnTest, beginAbortTest);
-    BFC_REGISTER_TEST(TxnTest, txnStructureTest);
-    BFC_REGISTER_TEST(TxnTest, txnTreeStructureTest);
-    BFC_REGISTER_TEST(TxnTest, txnMultipleTreesTest);
-    BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
-    BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
-    BFC_REGISTER_TEST(TxnTest, txnMultipleOpsTest);
-    BFC_REGISTER_TEST(TxnTest, txnInsertConflict1Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertConflict2Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertConflict3Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertConflict4Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertConflict5Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFind1Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFind2Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFind3Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFind4Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFind5Test);
-    //BFC_REGISTER_TEST(TxnTest, txnPartialInsertFindTest);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFindErase1Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFindErase2Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFindErase3Test);
-    BFC_REGISTER_TEST(TxnTest, txnInsertFindErase4Test);
-  }
-
-protected:
+struct TxnFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   Database *m_dbp;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+  TxnFixture() {
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
     m_dbp = (Database *)m_db;
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  ~TxnFixture() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void checkIfLogCreatedTest() {
-    BFC_ASSERT(((Environment *)m_env)->get_log() != 0);
-    BFC_ASSERT(m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY);
+    REQUIRE(((Environment *)m_env)->get_log() != 0);
+    REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY));
   }
 
   void beginCommitTest() {
     ham_txn_t *txn;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void multipleBeginCommitTest() {
     ham_txn_t *txn1, *txn2, *txn3;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn3, m_env, 0, 0, 0));
 
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn1)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)txn2,
+    REQUIRE((Transaction *)txn2 ==
         ((Transaction *)txn1)->get_newer());
 
-    BFC_ASSERT_EQUAL((Transaction *)txn1,
+    REQUIRE((Transaction *)txn1 ==
         ((Transaction *)txn2)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)txn3,
+    REQUIRE((Transaction *)txn3 ==
         ((Transaction *)txn2)->get_newer());
 
-    BFC_ASSERT_EQUAL((Transaction *)txn2,
+    REQUIRE((Transaction *)txn2 ==
         ((Transaction *)txn3)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn3)->get_newer());
 
     /* have to commit the txns in the same order as they were created,
      * otherwise env_flush_committed_txns() will not flush the oldest
      * transaction */
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
 
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn2)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)txn3,
+    REQUIRE((Transaction *)txn3 ==
         ((Transaction *)txn2)->get_newer());
-    BFC_ASSERT_EQUAL((Transaction *)txn2,
+    REQUIRE((Transaction *)txn2 ==
         ((Transaction *)txn3)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn3)->get_newer());
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
 
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn3)->get_older());
-    BFC_ASSERT_EQUAL((Transaction *)0,
+    REQUIRE((Transaction *)0 ==
         ((Transaction *)txn3)->get_newer());
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn3, 0));
+    REQUIRE(0 == ham_txn_commit(txn3, 0));
   }
 
   void beginAbortTest() {
     ham_txn_t *txn;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 
   void txnStructureTest() {
     Transaction *txn;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(m_env, txn->get_env());
-    BFC_ASSERT_EQUAL((ham_u64_t)1, txn->get_id());
+    REQUIRE(0 == ham_txn_begin((ham_txn_t **)&txn, m_env, 0, 0, 0));
+    REQUIRE(m_env == (ham_env_t *)txn->get_env());
+    REQUIRE((ham_u64_t)1 == txn->get_id());
 
     txn->set_flags(0x99);
-    BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn->get_flags());
+    REQUIRE((ham_u32_t)0x99 == txn->get_flags());
 
     txn->set_log_desc(4);
-    BFC_ASSERT_EQUAL(4, txn->get_log_desc());
+    REQUIRE(4 == txn->get_log_desc());
     txn->set_log_desc(0);
 
     txn->set_oldest_op((TransactionOperation *)2);
-    BFC_ASSERT_EQUAL((TransactionOperation *)2, txn->get_oldest_op());
+    REQUIRE((TransactionOperation *)2 == txn->get_oldest_op());
     txn->set_oldest_op((TransactionOperation *)0);
 
     txn->set_newest_op((TransactionOperation *)2);
-    BFC_ASSERT_EQUAL((TransactionOperation *)2, txn->get_newest_op());
+    REQUIRE((TransactionOperation *)2 == txn->get_newest_op());
     txn->set_newest_op((TransactionOperation *)0);
 
     txn->set_newer((Transaction *)1);
-    BFC_ASSERT_EQUAL((Transaction *)1, txn->get_newer());
+    REQUIRE((Transaction *)1 == txn->get_newer());
     txn->set_newer((Transaction *)0);
 
     txn->set_older((Transaction *)3);
-    BFC_ASSERT_EQUAL((Transaction *)3, txn->get_older());
+    REQUIRE((Transaction *)3 == txn->get_older());
     txn->set_older((Transaction *)0);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit((ham_txn_t *)txn, 0));
+    REQUIRE(0 == ham_txn_commit((ham_txn_t *)txn, 0));
   }
 
   void txnTreeStructureTest() {
     ham_txn_t *txn;
     TransactionIndex *tree;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->get_optree();
-    BFC_ASSERT(tree != 0);
+    REQUIRE(tree != 0);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnTreeCreatedOnceTest() {
     ham_txn_t *txn;
     TransactionIndex *tree, *tree2;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->get_optree();
-    BFC_ASSERT(tree != 0);
+    REQUIRE(tree != 0);
     tree2 = m_dbp->get_optree();
-    BFC_ASSERT_EQUAL(tree, tree2);
+    REQUIRE(tree == tree2);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnMultipleTreesTest() {
@@ -215,20 +172,20 @@ public:
     ham_txn_t *txn;
     TransactionIndex *tree1, *tree2, *tree3;
 
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &db2, 14, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &db3, 15, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &db2, 14, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &db3, 15, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree1 = m_dbp->get_optree();
     tree2 = ((Database *)db2)->get_optree();
     tree3 = ((Database *)db3)->get_optree();
-    BFC_ASSERT(tree1 != 0);
-    BFC_ASSERT(tree2 != 0);
-    BFC_ASSERT(tree3 != 0);
+    REQUIRE(tree1 != 0);
+    REQUIRE(tree2 != 0);
+    REQUIRE(tree3 != 0);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_close(db2, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_close(db3, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_db_close(db2, 0));
+    REQUIRE(0 == ham_db_close(db3, 0));
   }
 
   void txnNodeCreatedOnceTest() {
@@ -244,17 +201,17 @@ public:
     ham_record_t rec;
     memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key1);
-    BFC_ASSERT(node != 0);
+    REQUIRE(node != 0);
     node2 = m_dbp->get_optree()->get(&key1, 0);
-    BFC_ASSERT_EQUAL(node, node2);
+    REQUIRE(node == node2);
     node2 = m_dbp->get_optree()->get(&key2, 0);
-    BFC_ASSERT_EQUAL((TransactionNode *)NULL, node2);
+    REQUIRE((TransactionNode *)NULL == node2);
     node2 = new TransactionNode(m_dbp, &key2);
-    BFC_ASSERT(node != node2);
+    REQUIRE(node != node2);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnMultipleNodesTest() {
@@ -267,17 +224,17 @@ public:
     ham_record_t rec;
     memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key);
-    BFC_ASSERT(node1 != 0);
+    REQUIRE(node1 != 0);
     key.data = (void *)"2222";
     node2 = new TransactionNode(m_dbp, &key);
-    BFC_ASSERT(node2 != 0);
+    REQUIRE(node2 != 0);
     key.data = (void *)"3333";
     node3 = new TransactionNode(m_dbp, &key);
-    BFC_ASSERT(node3 != 0);
+    REQUIRE(node3 != 0);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnMultipleOpsTest() {
@@ -293,19 +250,19 @@ public:
     rec.data = (void *)"world";
     rec.size = 5;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key);
     op1 = node->append((Transaction *)txn, 
         0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
-    BFC_ASSERT(op1 != 0);
+    REQUIRE(op1 != 0);
     op2 = node->append((Transaction *)txn,
         0, TransactionOperation::TXN_OP_ERASE, 55, &rec);
-    BFC_ASSERT(op2 != 0);
+    REQUIRE(op2 != 0);
     op3 = node->append((Transaction *)txn,
         0, TransactionOperation::TXN_OP_NOP, 55, &rec);
-    BFC_ASSERT(op3 != 0);
+    REQUIRE(op3 != 0);
 
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnInsertConflict1Test() {
@@ -318,13 +275,13 @@ public:
     memset(&rec, 0, sizeof(rec));
 
     /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(HAM_TXN_CONFLICT ==
           ham_db_insert(m_db, txn2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict2Test() {
@@ -337,13 +294,13 @@ public:
     memset(&rec, 0, sizeof(rec));
 
     /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> duplicate */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(HAM_DUPLICATE_KEY ==
           ham_db_insert(m_db, txn2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict3Test() {
@@ -357,13 +314,13 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * insert(T2, a, OW) -> ok */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 ==
           ham_db_insert(m_db, txn2, &key, &rec, HAM_OVERWRITE));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict4Test() {
@@ -377,13 +334,13 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * insert(T2, a, DUP) -> ok */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 ==
           ham_db_insert(m_db, txn2, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertConflict5Test() {
@@ -397,12 +354,12 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1);
      * insert(T2, a) */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_abort(txn1, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn2, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind1Test() {
@@ -419,15 +376,15 @@ public:
     memset(&rec2, 0, sizeof(rec2));
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); find(T2, a) -> ok */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn2, &key, &rec2, 0));
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn2, &key, &rec2, 0));
 
-    BFC_ASSERT_EQUAL(rec.size, rec2.size);
-    BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec2.size));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(rec.size == rec2.size);
+    REQUIRE(0 == memcmp(rec.data, rec2.data, rec2.size));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind2Test() {
@@ -444,13 +401,13 @@ public:
     memset(&rec2, 0, sizeof(rec2));
 
     /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(HAM_TXN_CONFLICT ==
           ham_db_find(m_db, txn2, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind3Test() {
@@ -468,15 +425,15 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * commit(T2); find(temp, a) -> ok */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
 
-    BFC_ASSERT_EQUAL(rec.size, rec2.size);
-    BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec2.size));
+    REQUIRE(rec.size == rec2.size);
+    REQUIRE(0 == memcmp(rec.data, rec2.data, rec2.size));
   }
 
   void txnInsertFind4Test() {
@@ -490,13 +447,13 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1);
      * find(T2, a) -> fail */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_abort(txn1, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_find(m_db, txn2, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFind5Test(void)
@@ -515,13 +472,13 @@ public:
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1);
      * find(T2, c) -> fail */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_abort(txn1, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_find(m_db, txn2, &key2, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
 #if 0
@@ -539,16 +496,16 @@ public:
     rec.partial_size=2;
 
     /* insert partial record */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, HAM_PARTIAL));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, HAM_PARTIAL));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* and read it back */
     ham_record_t rec2;
     memset(&rec2, 0, sizeof(rec2));
     rec2.partial_offset=1;
     rec2.partial_size=2;
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec2, HAM_PARTIAL));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec2, HAM_PARTIAL));
 
 TODO weiter hier - compare record; must be "\0or\0\0\0\0\0\0\0" (ists
 aber nicht)
@@ -570,15 +527,15 @@ aber nicht)
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); erase(T2, a);
      * find(T2, a) -> fail */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn2, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_find(m_db, txn2, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_erase(m_db, txn2, &key, 0));
   }
 
@@ -597,15 +554,15 @@ aber nicht)
 
     /* begin(T1); begin(T2); insert(T1, a); commit(T1); commit(T2);
      * erase(T3, a) -> ok; find(T2, a) -> fail */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn2, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(0 == ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_find(m_db, txn2, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_erase(m_db, txn2, &key, 0));
   }
 
@@ -622,12 +579,12 @@ aber nicht)
 
     /* begin(T1); begin(T2); insert(T1, a); abort(T1); erase(T2, a) -> fail;
      * commit(T2); */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_erase(m_db, txn2, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_abort(txn1, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, txn2, &key, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
 
   void txnInsertFindErase4Test() {
@@ -645,113 +602,237 @@ aber nicht)
 
     /* begin(T1); begin(T2); insert(T1, a); erase(T1, a); -> ok;
      * commit(T2); */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn1, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn1, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_begin(&txn1, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ham_db_erase(m_db, txn1, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_erase(m_db, txn1, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(0 == ham_txn_commit(txn1, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_db_erase(m_db, txn2, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    REQUIRE(0 == ham_txn_commit(txn2, 0));
   }
-
 };
 
-class HighLevelTxnTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
+TEST_CASE("Txn/checkIfLogCreatedTest", "")
+{
+  TxnFixture f;
+  f.checkIfLogCreatedTest();
+}
 
-public:
-  HighLevelTxnTest()
-    : hamsterDB_fixture("HighLevelTxnTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(HighLevelTxnTest, noPersistentDatabaseFlagTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, noPersistentEnvironmentFlagTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, cursorStillOpenTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, txnStillOpenTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, clonedCursorStillOpenTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, autoAbortDatabaseTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, autoCommitDatabaseTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, autoAbortEnvironmentTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, autoCommitEnvironmentTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, insertFindCommitTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountDupesTest);
-    BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountOverwriteTest);
-  }
+TEST_CASE("Txn/beginCommitTest", "")
+{
+  TxnFixture f;
+  f.beginCommitTest();
+}
 
-protected:
+TEST_CASE("Txn/multipleBeginCommitTest", "")
+{
+  TxnFixture f;
+  f.multipleBeginCommitTest();
+}
+
+TEST_CASE("Txn/beginAbortTest", "")
+{
+  TxnFixture f;
+  f.beginAbortTest();
+}
+
+TEST_CASE("Txn/txnStructureTest", "")
+{
+  TxnFixture f;
+  f.txnStructureTest();
+}
+
+TEST_CASE("Txn/txnTreeStructureTest", "")
+{
+  TxnFixture f;
+  f.txnTreeStructureTest();
+}
+
+TEST_CASE("Txn/txnMultipleTreesTest", "")
+{
+  TxnFixture f;
+  f.txnMultipleTreesTest();
+}
+
+TEST_CASE("Txn/txnNodeCreatedOnceTest", "")
+{
+  TxnFixture f;
+  f.txnNodeCreatedOnceTest();
+}
+
+TEST_CASE("Txn/txnMultipleNodesTest", "")
+{
+  TxnFixture f;
+  f.txnMultipleNodesTest();
+}
+
+TEST_CASE("Txn/txnMultipleOpsTest", "")
+{
+  TxnFixture f;
+  f.txnMultipleOpsTest();
+}
+
+TEST_CASE("Txn/txnInsertConflict1Test", "")
+{
+  TxnFixture f;
+  f.txnInsertConflict1Test();
+}
+
+TEST_CASE("Txn/txnInsertConflict2Test", "")
+{
+  TxnFixture f;
+  f.txnInsertConflict2Test();
+}
+
+TEST_CASE("Txn/txnInsertConflict3Test", "")
+{
+  TxnFixture f;
+  f.txnInsertConflict3Test();
+}
+
+TEST_CASE("Txn/txnInsertConflict4Test", "")
+{
+  TxnFixture f;
+  f.txnInsertConflict4Test();
+}
+
+TEST_CASE("Txn/txnInsertConflict5Test", "")
+{
+  TxnFixture f;
+  f.txnInsertConflict5Test();
+}
+
+TEST_CASE("Txn/txnInsertFind1Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFind1Test();
+}
+
+TEST_CASE("Txn/txnInsertFind2Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFind2Test();
+}
+
+TEST_CASE("Txn/txnInsertFind3Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFind3Test();
+}
+
+TEST_CASE("Txn/txnInsertFind4Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFind4Test();
+}
+
+TEST_CASE("Txn/txnInsertFind5Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFind5Test();
+}
+
+TEST_CASE("Txn/txnInsertFindErase1Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFindErase1Test();
+}
+
+TEST_CASE("Txn/txnInsertFindErase2Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFindErase2Test();
+}
+
+TEST_CASE("Txn/txnInsertFindErase3Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFindErase3Test();
+}
+
+TEST_CASE("Txn/txnInsertFindErase4Test", "")
+{
+  TxnFixture f;
+  f.txnInsertFindErase4Test();
+}
+
+
+struct HighLevelTxnFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-public:
-  virtual void setup() {
+  HighLevelTxnFixture()
+    : m_db(0), m_env(0) {
   }
 
-  virtual void teardown() {
+  ~HighLevelTxnFixture() {
+    teardown();
+  }
+
+  void teardown() {
     if (m_env) {
-      BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
       m_env = 0;
     }
   }
 
   void noPersistentDatabaseFlagTest() {
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags());
-    BFC_ASSERT(HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_rt_flags());
+    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
+    REQUIRE((HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_rt_flags()));
     teardown();
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
+    REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
   }
 
   void noPersistentEnvironmentFlagTest() {
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT(HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags());
-    BFC_ASSERT(HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags());
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
+    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
+    REQUIRE((HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
+    REQUIRE(0 == ham_env_close(m_env, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
-    BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
-    BFC_ASSERT(!(HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
+    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(!(HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
+    REQUIRE(!(HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
   }
 
   void cursorStillOpenTest() {
     ham_txn_t *txn;
     ham_cursor_t *cursor;
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(HAM_CURSOR_STILL_OPEN == ham_txn_commit(txn, 0));
+    REQUIRE(HAM_CURSOR_STILL_OPEN == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void txnStillOpenTest() {
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     ham_txn_t *txn;
@@ -760,30 +841,30 @@ public:
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_STILL_OPEN, ham_db_close(m_db, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(HAM_TXN_STILL_OPEN == ham_db_close(m_db, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void clonedCursorStillOpenTest() {
     ham_txn_t *txn;
     ham_cursor_t *cursor, *clone;
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
             
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_clone(cursor, &clone));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(HAM_CURSOR_STILL_OPEN == ham_txn_commit(txn, 0));
+    REQUIRE(HAM_CURSOR_STILL_OPEN == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_cursor_close(clone));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 
   void autoAbortDatabaseTest()
@@ -794,23 +875,23 @@ public:
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
     teardown();
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
             ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
@@ -821,25 +902,25 @@ public:
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 ==
         ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_TXN_AUTO_COMMIT));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
@@ -850,23 +931,23 @@ public:
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_env_close(m_env, 0));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
@@ -877,24 +958,24 @@ public:
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 ==
         ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_TXN_AUTO_COMMIT));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_db_find(m_db, 0, &key, &rec, 0));
   }
 
@@ -909,18 +990,18 @@ public:
     rec.data = &buffer[0];
     rec.size = sizeof(buffer);
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_db_find(m_db, 0, &key, &rec2, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec2, 0));
+    REQUIRE(HAM_TXN_CONFLICT == ham_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_db_find(m_db, 0, &key, &rec2, 0));
   }
 
   void insertFindEraseTest()
@@ -934,18 +1015,18 @@ public:
     rec.data = &buffer[0];
     rec.size = sizeof(buffer);
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, ham_db_erase(m_db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(HAM_TXN_CONFLICT == ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
   }
 
   ham_status_t insert(ham_txn_t *txn, const char *keydata,
@@ -975,8 +1056,8 @@ public:
     st=ham_db_find(m_db, txn, &key, &rec, 0);
     if (st)
       return (st);
-    BFC_ASSERT_EQUAL(0, strcmp(recorddata, (char *)rec.data));
-    BFC_ASSERT_EQUAL(rec.size, strlen(recorddata) + 1);
+    REQUIRE(0 == strcmp(recorddata, (char *)rec.data));
+    REQUIRE(rec.size == strlen(recorddata) + 1);
     return (0);
   }
 
@@ -984,169 +1065,230 @@ public:
     ham_txn_t *txn;
     ham_u64_t count;
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     /* without txn */
-    BFC_ASSERT_EQUAL(0, insert(0, "key1", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, find(0, "key1", "rec1"));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &count));
-    BFC_ASSERT_EQUAL(1ull, count);
+    REQUIRE(0 == insert(0, "key1", "rec1", 0));
+    REQUIRE(0 == find(0, "key1", "rec1"));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(1ull == count);
 
     /* in an active txn */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(1ull, count);
-    BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec2", 0));
-    BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, find(0, "key2", "rec2"));
-    BFC_ASSERT_EQUAL(0, find(txn, "key2", "rec2"));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
-    BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec2", HAM_OVERWRITE));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    BFC_ASSERT_EQUAL(0, find(0, "key2", "rec2"));
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(1ull == count);
+    REQUIRE(0 == insert(txn, "key2", "rec2", 0));
+    REQUIRE(HAM_TXN_CONFLICT == find(0, "key2", "rec2"));
+    REQUIRE(0 == find(txn, "key2", "rec2"));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(2ull == count);
+    REQUIRE(0 == insert(txn, "key2", "rec2", HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(2ull == count);
+    REQUIRE(0 == ham_txn_commit(txn, 0));
+    REQUIRE(0 == find(0, "key2", "rec2"));
 
     /* after commit */
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(2ull == count);
 
     /* in temp. txn */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == insert(txn, "key3", "rec1", 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(3ull == count);
+    REQUIRE(0 == ham_txn_abort(txn, 0));
 
     /* after abort */
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(2ull == count);
   }
 
   void getKeyCountDupesTest() {
     ham_txn_t *txn;
     ham_u64_t count;
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
     /* without txn */
-    BFC_ASSERT_EQUAL(0, insert(0, "key1", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, insert(0, "key2", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
+    REQUIRE(0 == insert(0, "key1", "rec1", 0));
+    REQUIRE(0 == insert(0, "key2", "rec1", 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(2ull == count);
 
     /* in an active txn */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
-    BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec3", 0));
-    BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec4", HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(2ull == count);
+    REQUIRE(0 == insert(txn, "key3", "rec3", 0));
+    REQUIRE(0 == insert(txn, "key3", "rec4", HAM_DUPLICATE));
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(4ull, count);
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(4ull == count);
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(3ull == count);
+    REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* after commit */
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(4ull, count);
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(4ull == count);
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
+    REQUIRE(3ull == count);
   }
 
   void getKeyCountOverwriteTest() {
     ham_txn_t *txn;
     ham_u64_t count;
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
     /* without txn */
-    BFC_ASSERT_EQUAL(0, insert(0, "key1", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, insert(0, "key2", "rec1", 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, 0, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
+    REQUIRE(0 == insert(0, "key1", "rec1", 0));
+    REQUIRE(0 == insert(0, "key2", "rec1", 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(2ull == count);
 
     /* in an active txn */
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
-    BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec4", HAM_OVERWRITE));
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(2ull, count);
-    BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec3", 0));
-    BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec4", HAM_OVERWRITE));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_txn_begin(&txn, ham_db_get_env(m_db), 0, 0, 0));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(2ull == count);
+    REQUIRE(0 == insert(txn, "key2", "rec4", HAM_OVERWRITE));
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(2ull == count);
+    REQUIRE(0 == insert(txn, "key3", "rec3", 0));
+    REQUIRE(0 == insert(txn, "key3", "rec4", HAM_OVERWRITE));
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(3ull == count);
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(3ull == count);
+    REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* after commit */
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, 0, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(3ull == count);
+    REQUIRE(0 ==
           ham_db_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
-    BFC_ASSERT_EQUAL(3ull, count);
+    REQUIRE(3ull == count);
   }
 };
 
-class InMemoryTxnTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
+TEST_CASE("Txn-high/noPersistentDatabaseFlagTest", "")
+{
+  HighLevelTxnFixture f;
+  f.noPersistentDatabaseFlagTest();
+}
 
-public:
-  InMemoryTxnTest()
-    : hamsterDB_fixture("InMemoryTxnTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(InMemoryTxnTest, createCloseTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, insertTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, eraseTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, findTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorInsertTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorEraseTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorFindTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorGetDuplicateCountTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorGetRecordSizeTest);
-    BFC_REGISTER_TEST(InMemoryTxnTest, cursorOverwriteTest);
-  }
+TEST_CASE("Txn-high/noPersistentEnvironmentFlagTest", "")
+{
+  HighLevelTxnFixture f;
+  f.noPersistentEnvironmentFlagTest();
+}
 
-protected:
+TEST_CASE("Txn-high/cursorStillOpenTest", "")
+{
+  HighLevelTxnFixture f;
+  f.cursorStillOpenTest();
+}
+
+TEST_CASE("Txn-high/txnStillOpenTest", "")
+{
+  HighLevelTxnFixture f;
+  f.txnStillOpenTest();
+}
+
+TEST_CASE("Txn-high/clonedCursorStillOpenTest", "")
+{
+  HighLevelTxnFixture f;
+  f.clonedCursorStillOpenTest();
+}
+
+TEST_CASE("Txn-high/autoAbortDatabaseTest", "")
+{
+  HighLevelTxnFixture f;
+  f.autoAbortDatabaseTest();
+}
+
+TEST_CASE("Txn-high/autoCommitDatabaseTest", "")
+{
+  HighLevelTxnFixture f;
+  f.autoCommitDatabaseTest();
+}
+
+TEST_CASE("Txn-high/autoAbortEnvironmentTest", "")
+{
+  HighLevelTxnFixture f;
+  f.autoAbortEnvironmentTest();
+}
+
+TEST_CASE("Txn-high/autoCommitEnvironmentTest", "")
+{
+  HighLevelTxnFixture f;
+  f.autoCommitEnvironmentTest();
+}
+
+TEST_CASE("Txn-high/insertFindCommitTest", "")
+{
+  HighLevelTxnFixture f;
+  f.insertFindCommitTest();
+}
+
+TEST_CASE("Txn-high/insertFindEraseTest", "")
+{
+  HighLevelTxnFixture f;
+  f.insertFindEraseTest();
+}
+
+TEST_CASE("Txn-high/getKeyCountTest", "")
+{
+  HighLevelTxnFixture f;
+  f.getKeyCountTest();
+}
+
+TEST_CASE("Txn-high/getKeyCountDupesTest", "")
+{
+  HighLevelTxnFixture f;
+  f.getKeyCountDupesTest();
+}
+
+TEST_CASE("Txn-high/getKeyCountOverwriteTest", "")
+{
+  HighLevelTxnFixture f;
+  f.getKeyCountOverwriteTest();
+}
+
+
+struct InMemoryTxnFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+  InMemoryTxnFixture() {
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_IN_MEMORY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  ~InMemoryTxnFixture() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void createCloseTest() {
@@ -1158,12 +1300,12 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void eraseTest() {
@@ -1171,10 +1313,10 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn, &key, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_erase(m_db, txn, &key, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void findTest() {
@@ -1182,12 +1324,12 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, txn, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_find(m_db, txn, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_db_erase(m_db, txn, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_find(m_db, txn, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorInsertTest() {
@@ -1196,11 +1338,11 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorEraseTest() {
@@ -1209,14 +1351,14 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_erase(cursor, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorFindTest() {
@@ -1225,17 +1367,17 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorGetDuplicateCountTest() {
@@ -1244,19 +1386,19 @@ public:
     ham_key_t key = {};
     ham_record_t rec = {};
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
 
     ham_u64_t keycount;
-    BFC_ASSERT_EQUAL(0, ham_db_get_key_count(m_db, txn, 0, &keycount));
-    BFC_ASSERT_EQUAL(3ull, keycount);
+    REQUIRE(0 == ham_db_get_key_count(m_db, txn, 0, &keycount));
+    REQUIRE(3ull == keycount);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorGetRecordSizeTest() {
@@ -1267,17 +1409,17 @@ public:
     rec.data = (void *)"12345";
     rec.size = 6;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
 
     ham_u64_t recsize;
-    BFC_ASSERT_EQUAL(0, ham_cursor_get_record_size(cursor, &recsize));
-    BFC_ASSERT_EQUAL(6ull, recsize);
+    REQUIRE(0 == ham_cursor_get_record_size(cursor, &recsize));
+    REQUIRE(6ull == recsize);
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void cursorOverwriteTest() {
@@ -1291,23 +1433,78 @@ public:
     rec2.data = (void *)"1234567890";
     rec2.size = 11;
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, txn, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec2, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, txn, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_cursor_overwrite(cursor, &rec2, 0));
+    REQUIRE(0 == ham_cursor_find(cursor, &key, &rec, 0));
 
-    BFC_ASSERT_EQUAL(11u, rec.size);
-    BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "1234567890"));
+    REQUIRE(11u == rec.size);
+    REQUIRE(0 == strcmp((char *)rec.data, "1234567890"));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
-
 };
 
-BFC_REGISTER_FIXTURE(TxnTest);
-BFC_REGISTER_FIXTURE(HighLevelTxnTest);
-BFC_REGISTER_FIXTURE(InMemoryTxnTest);
+TEST_CASE("Txn-inmem/createCloseTest", "")
+{
+  InMemoryTxnFixture f;
+  f.createCloseTest();
+}
+
+TEST_CASE("Txn-inmem/insertTest", "")
+{
+  InMemoryTxnFixture f;
+  f.insertTest();
+}
+
+TEST_CASE("Txn-inmem/eraseTest", "")
+{
+  InMemoryTxnFixture f;
+  f.eraseTest();
+}
+
+TEST_CASE("Txn-inmem/findTest", "")
+{
+  InMemoryTxnFixture f;
+  f.findTest();
+}
+
+TEST_CASE("Txn-inmem/cursorInsertTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorInsertTest();
+}
+
+TEST_CASE("Txn-inmem/cursorEraseTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorEraseTest();
+}
+
+TEST_CASE("Txn-inmem/cursorFindTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorFindTest();
+}
+
+TEST_CASE("Txn-inmem/cursorGetDuplicateCountTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorGetDuplicateCountTest();
+}
+
+TEST_CASE("Txn-inmem/cursorGetRecordSizeTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorGetRecordSizeTest();
+}
+
+TEST_CASE("Txn-inmem/cursorOverwriteTest", "")
+{
+  InMemoryTxnFixture f;
+  f.cursorOverwriteTest();
+}
 

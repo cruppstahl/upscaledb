@@ -11,118 +11,103 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <string.h>
+#include "3rdparty/catch/catch.hpp"
 
-#include <ham/hamsterdb.h>
+#include "globals.h"
 
 #include "../src/changeset.h"
 #include "../src/page.h"
 #include "../src/db.h"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class ChangesetTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  ChangesetTest()
-    : hamsterDB_fixture("ChangesetTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(ChangesetTest, addPagesTest);
-    BFC_REGISTER_TEST(ChangesetTest, getPagesTest);
-    BFC_REGISTER_TEST(ChangesetTest, clearTest);
-  }
-
-protected:
-  ham_db_t *m_db;
-  ham_env_t *m_env;
-
-public:
-  virtual void setup() {
-    __super::setup();
-
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
-            HAM_ENABLE_RECOVERY, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+struct ChangesetFixture {
+  ChangesetFixture() {
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
+                HAM_ENABLE_RECOVERY, 0644, 0));
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  ~ChangesetFixture() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void addPagesTest() {
-    Changeset ch((Environment *)m_env);
-    Page *page[3];
-    for (int i = 0; i < 3; i++) {
-      page[i] = new Page((Environment *)m_env);
-      page[i]->set_self(1024 * i);
-    }
-    for (int i = 0; i < 3; i++)
-      ch.add_page(page[i]);
-    BFC_ASSERT_EQUAL(page[1],
-          page[2]->get_next(Page::LIST_CHANGESET));
-    BFC_ASSERT_EQUAL(page[0],
-          page[1]->get_next(Page::LIST_CHANGESET));
-    BFC_ASSERT_EQUAL((Page *)NULL,
-          page[0]->get_next(Page::LIST_CHANGESET));
-    BFC_ASSERT_EQUAL(page[1],
-          page[0]->get_previous(Page::LIST_CHANGESET));
-    BFC_ASSERT_EQUAL(page[2],
-          page[1]->get_previous(Page::LIST_CHANGESET));
-    BFC_ASSERT_EQUAL((Page *)NULL,
-          page[2]->get_previous(Page::LIST_CHANGESET));
-    for (int i = 0; i < 3; i++)
-      delete page[i];
-  }
-
-  void getPagesTest() {
-    Changeset ch((Environment *)m_env);
-    Page *page[3];
-    for (int i = 0; i < 3; i++) {
-      page[i] = new Page((Environment *)m_env);
-      page[i]->set_self(1024 * i);
-    }
-    for (int i = 0; i < 3; i++)
-      ch.add_page(page[i]);
-
-    for (int i = 0; i < 3; i++)
-      BFC_ASSERT_EQUAL(page[i], ch.get_page(page[i]->get_self()));
-    BFC_ASSERT_EQUAL((Page *)NULL, ch.get_page(999));
-
-    for (int i = 0; i < 3; i++)
-      delete page[i];
-  }
-
-  void clearTest() {
-    Changeset ch((Environment *)m_env);
-    Page *page[3];
-    for (int i = 0; i < 3; i++) {
-      page[i] = new Page((Environment *)m_env);
-      page[i]->set_self(1024*i);
-    }
-    for (int i = 0; i < 3; i++)
-      ch.add_page(page[i]);
-
-    BFC_ASSERT_EQUAL(false, ch.is_empty());
-    ch.clear();
-    BFC_ASSERT_EQUAL(true, ch.is_empty());
-
-    for (int i = 0; i < 3; i++)
-      BFC_ASSERT_EQUAL((Page *)NULL, ch.get_page(page[i]->get_self()));
-
-    for (int i = 0; i < 3; i++)
-      delete page[i];
-  }
+  ham_db_t *m_db;
+  ham_env_t *m_env;
 };
 
-BFC_REGISTER_FIXTURE(ChangesetTest);
+TEST_CASE("Changeset/addPages",
+          "Basic test of the Changeset internals")
+{
+  ChangesetFixture f;
+  Changeset ch((Environment *)f.m_env);
+  Page *page[3];
+  for (int i = 0; i < 3; i++) {
+    page[i] = new Page((Environment *)f.m_env);
+    page[i]->set_self(1024 * i);
+  }
+  for (int i = 0; i < 3; i++)
+    ch.add_page(page[i]);
+  REQUIRE(page[1] ==
+      page[2]->get_next(Page::LIST_CHANGESET));
+  REQUIRE(page[0] ==
+        page[1]->get_next(Page::LIST_CHANGESET));
+  REQUIRE((Page *)NULL ==
+        page[0]->get_next(Page::LIST_CHANGESET));
+  REQUIRE(page[1] ==
+        page[0]->get_previous(Page::LIST_CHANGESET));
+  REQUIRE(page[2] ==
+        page[1]->get_previous(Page::LIST_CHANGESET));
+  REQUIRE((Page *)NULL ==
+        page[2]->get_previous(Page::LIST_CHANGESET));
+  for (int i = 0; i < 3; i++)
+    delete page[i];
+}
+
+TEST_CASE("Changeset/getPages",
+          "Basic test of the Changeset internals")
+{
+  ChangesetFixture f;
+  Changeset ch((Environment *)f.m_env);
+  Page *page[3];
+  for (int i = 0; i < 3; i++) {
+    page[i] = new Page((Environment *)f.m_env);
+    page[i]->set_self(1024 * i);
+  }
+  for (int i = 0; i < 3; i++)
+    ch.add_page(page[i]);
+
+  for (int i = 0; i < 3; i++)
+    REQUIRE(page[i] == ch.get_page(page[i]->get_self()));
+  REQUIRE((Page *)NULL == ch.get_page(999));
+
+  for (int i = 0; i < 3; i++)
+    delete page[i];
+}
+
+TEST_CASE("Changeset/clear",
+          "Basic test of the Changeset internals")
+{
+  ChangesetFixture f;
+  Changeset ch((Environment *)f.m_env);
+  Page *page[3];
+  for (int i = 0; i < 3; i++) {
+    page[i] = new Page((Environment *)f.m_env);
+    page[i]->set_self(1024*i);
+  }
+  for (int i = 0; i < 3; i++)
+    ch.add_page(page[i]);
+
+  REQUIRE(false == ch.is_empty());
+  ch.clear();
+  REQUIRE(true == ch.is_empty());
+
+  for (int i = 0; i < 3; i++)
+    REQUIRE((Page *)NULL == ch.get_page(page[i]->get_self()));
+
+  for (int i = 0; i < 3; i++)
+    delete page[i];
+}
 

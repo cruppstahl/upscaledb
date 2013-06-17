@@ -11,11 +11,10 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
-#include <vector>
+#include "3rdparty/catch/catch.hpp"
 
-#include <ham/hamsterdb.h>
+#include "globals.h"
+#include "os.hpp"
 
 #include "../src/btree_cursor.h"
 #include "../src/db.h"
@@ -24,44 +23,17 @@
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/cursor.h"
-#include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class BtreeCursorTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  BtreeCursorTest(bool inmemory = false, ham_size_t pagesize = 0,
-          const char *name = "BtreeCursorTest")
-    : hamsterDB_fixture(name), m_db(0), m_inmemory(inmemory),
-        m_pagesize(pagesize) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(BtreeCursorTest, createCloseTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, cloneTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, moveTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, moveSplitTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, overwriteTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, linkedListTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, linkedListReverseCloseTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, cursorGetErasedItemTest);
-    BFC_REGISTER_TEST(BtreeCursorTest, couplingTest);
-  }
-
-protected:
+struct BtreeCursorFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   bool m_inmemory;
   ham_size_t m_pagesize;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
+  BtreeCursorFixture(bool inmemory = false, ham_size_t pagesize = 0)
+    : m_db(0), m_inmemory(inmemory), m_pagesize(pagesize) {
     ham_parameter_t params[] = {
       // set pagesize, otherwise 16-bit limit bugs in freelist
       // will fire on Win32
@@ -69,39 +41,41 @@ public:
       { 0, 0 }
     };
 
-    os::unlink(BFC_OPATH(".test"));
+    os::unlink(Globals::opath(".test"));
 
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
               m_inmemory ? HAM_IN_MEMORY : 0, 0664, params));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
   }
 
-  virtual void teardown() {
-    __super::teardown();
+  ~BtreeCursorFixture() {
+    teardown();
+  }
 
+  void teardown() {
     if (m_env)
-      BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void createCloseTest() {
     ham_cursor_t *c;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
   void cloneTest() {
     ham_cursor_t *cursor, *clone;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
-    BFC_ASSERT(cursor != 0);
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(cursor != 0);
     Cursor *c = new Cursor(*(Cursor *)cursor);
     clone = (ham_cursor_t *)c;
-    BFC_ASSERT(clone != 0);
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(clone != 0);
+    REQUIRE(0 == ham_cursor_close(clone));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void overwriteTest() {
@@ -116,20 +90,20 @@ public:
     rec.size = sizeof(x);
     rec.data = &x;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 
     BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     Page *page;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));
-    BFC_ASSERT(page != 0);
-    BFC_ASSERT_EQUAL(0, page->uncouple_all_cursors());
+    REQUIRE(page != 0);
+    REQUIRE(0 == page->uncouple_all_cursors());
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void moveSplitTest() {
@@ -148,16 +122,16 @@ public:
     memset(&rec, 0, sizeof(rec));
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             (m_inmemory ? HAM_IN_MEMORY : 0),
             0664, &p1[0]));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor2, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor3, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor3, m_db, 0, 0));
 
     for (int i = 0; i < 64; i++) {
       key.size = sizeof(i);
@@ -165,108 +139,105 @@ public:
       rec.size = sizeof(i);
       rec.data = &i;
 
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(0, *(int *)key.data);
-    BFC_ASSERT_EQUAL(0, *(int *)rec.data);
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == *(int *)key.data);
+    REQUIRE(0 == *(int *)rec.data);
+    REQUIRE(0 ==
         ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(63, *(int *)key.data);
-    BFC_ASSERT_EQUAL(63, *(int *)rec.data);
+    REQUIRE(63 == *(int *)key.data);
+    REQUIRE(63 == *(int *)rec.data);
 
     for (int i = 0; i < 64; i++) {
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor2, &key, &rec, HAM_CURSOR_NEXT));
-      BFC_ASSERT_EQUAL(i, *(int *)key.data);
-      BFC_ASSERT_EQUAL(i, *(int *)rec.data);
+      REQUIRE(i == *(int *)key.data);
+      REQUIRE(i == *(int *)rec.data);
     }
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor2, 0, 0, HAM_CURSOR_NEXT));
     for (int i = 63; i >= 0; i--) {
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_move(cursor3, &key, &rec, HAM_CURSOR_PREVIOUS));
-      BFC_ASSERT_EQUAL(i, *(int *)key.data);
-      BFC_ASSERT_EQUAL(i, *(int *)rec.data);
+      REQUIRE(i == *(int *)key.data);
+      REQUIRE(i == *(int *)rec.data);
     }
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
         ham_cursor_move(cursor3, 0, 0, HAM_CURSOR_PREVIOUS));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor3));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor2));
+    REQUIRE(0 == ham_cursor_close(cursor3));
   }
 
   void moveTest() {
     ham_cursor_t *cursor;
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
     /* no move, and cursor is nil: returns 0 if key/rec is 0 */
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
           ham_cursor_move(cursor, 0, 0, 0));
 
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(cursor, 0, 0, HAM_CURSOR_LAST));
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+    REQUIRE(HAM_KEY_NOT_FOUND ==
           ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void linkedListTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    BFC_ASSERT_EQUAL((ham_cursor_t *)0, ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], m_db, 0, 0));
-      BFC_ASSERT_EQUAL(cursor[i], ((Database *)m_db)->get_cursors());
+      REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
+      REQUIRE((Cursor *)cursor[i] == ((Database *)m_db)->get_cursors());
     }
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor[0], &clone));
-    BFC_ASSERT(clone != 0);
-    BFC_ASSERT_EQUAL(clone, ((Database *)m_db)->get_cursors());
+    REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
+    REQUIRE(clone != 0);
+    REQUIRE((Cursor *)clone == ((Database *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
-      BFC_ASSERT_EQUAL(0,
+      REQUIRE(0 ==
           ham_cursor_close(cursor[i]));
     }
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    REQUIRE(0 == ham_cursor_close(clone));
 
-    BFC_ASSERT_EQUAL((ham_cursor_t *)0, ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
   }
 
   void linkedListReverseCloseTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    BFC_ASSERT_EQUAL((ham_cursor_t *)0, ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
-      BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor[i], m_db, 0, 0));
-      BFC_ASSERT(cursor[i] != 0);
-      BFC_ASSERT_EQUAL(cursor[i], ((Database *)m_db)->get_cursors());
+      REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
+      REQUIRE(cursor[i] != 0);
+      REQUIRE((Cursor *)cursor[i] == ((Database *)m_db)->get_cursors());
     }
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor[0], &clone));
-    BFC_ASSERT(clone != 0);
-    BFC_ASSERT_EQUAL((ham_cursor_t *)clone,
-        ((Database *)m_db)->get_cursors());
+    REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
+    REQUIRE(clone != 0);
+    REQUIRE((Cursor *)clone == ((Database *)m_db)->get_cursors());
 
     for (int i = 4; i >= 0; i--) {
-      BFC_ASSERT_EQUAL(0,
-          ham_cursor_close(cursor[i]));
+      REQUIRE(0 == ham_cursor_close(cursor[i]));
     }
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    REQUIRE(0 == ham_cursor_close(clone));
 
-    BFC_ASSERT_EQUAL((ham_cursor_t *)0,
-        ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
   }
 
   void cursorGetErasedItemTest() {
@@ -280,28 +251,28 @@ public:
     key.size = sizeof(value);
 
     value = 1;
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     value = 2;
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor2, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor2, m_db, 0, 0));
     value = 1;
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
+    REQUIRE(0 == ham_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_move(cursor, &key, 0, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(cursor, &key, 0, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_move(cursor2, &key, 0, HAM_CURSOR_FIRST));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_cursor_erase(cursor, 0));
-    BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL,
+    REQUIRE(HAM_CURSOR_IS_NIL ==
         ham_cursor_move(cursor2, &key, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
+    REQUIRE(0 == ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor2));
   }
 
   void couplingTest() {
@@ -322,81 +293,266 @@ public:
     key3.data = (void *)&v3;
     memset(&rec, 0, sizeof(rec));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
     btc = ((Cursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
-    BFC_ASSERT(!btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(!btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
     /* after insert: cursor is NIL */
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key2, &rec, 0));
-    BFC_ASSERT(!btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, 0));
+    REQUIRE(!btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
     /* move to item: cursor is coupled */
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0, 0));
-    BFC_ASSERT(btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
+    REQUIRE(btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
     /* clone the coupled cursor */
-    BFC_ASSERT_EQUAL(0, ham_cursor_clone(c, &clone));
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    REQUIRE(0 == ham_cursor_clone(c, &clone));
+    REQUIRE(0 == ham_cursor_close(clone));
 
     /* insert item BEFORE the first item - cursor is uncoupled */
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key1, &rec, 0));
-    BFC_ASSERT(!btc->is_coupled());
-    BFC_ASSERT(btc->is_uncoupled());
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key1, &rec, 0));
+    REQUIRE(!btc->is_coupled());
+    REQUIRE(btc->is_uncoupled());
 
     /* move to item: cursor is coupled */
-    BFC_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0, 0));
-    BFC_ASSERT(btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
+    REQUIRE(btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
     /* insert duplicate - cursor stays coupled */
-    BFC_ASSERT_EQUAL(0,
-        ham_db_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
-    BFC_ASSERT(btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
+    REQUIRE(btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
     /* insert item AFTER the middle item - cursor stays coupled */
-    BFC_ASSERT_EQUAL(0,
-        ham_db_insert(m_db, 0, &key3, &rec, 0));
-    BFC_ASSERT(btc->is_coupled());
-    BFC_ASSERT(!btc->is_uncoupled());
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec, 0));
+    REQUIRE(btc->is_coupled());
+    REQUIRE(!btc->is_uncoupled());
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    REQUIRE(0 == ham_cursor_close(c));
   }
 
 };
 
-class BtreeCursorTest64Kpage : public BtreeCursorTest {
-public:
-  BtreeCursorTest64Kpage(bool inmemory = false, ham_size_t pagesize = 64*1024,
-      const char *name = "BtreeCursorTest64Kpage")
-    : BtreeCursorTest(inmemory, pagesize, name) {
-  }
-};
+TEST_CASE("BtreeCursor/createCloseTest", "")
+{
+  BtreeCursorFixture f;
+  f.createCloseTest();
+}
 
-class InMemoryBtreeCursorTest : public BtreeCursorTest {
-public:
-  InMemoryBtreeCursorTest(ham_size_t pagesize = 0,
-      const char *name = "InMemoryBtreeCursorTest")
-    : BtreeCursorTest(true, pagesize, name) {
-  }
-};
+TEST_CASE("BtreeCursor/cloneTest", "")
+{
+  BtreeCursorFixture f;
+  f.cloneTest();
+}
 
-class InMemoryBtreeCursorTest64Kpage : public InMemoryBtreeCursorTest {
-public:
-  InMemoryBtreeCursorTest64Kpage(ham_size_t pagesize = 64*1024,
-      const char *name = "InMemoryBtreeCursorTest64Kpage")
-    : InMemoryBtreeCursorTest(pagesize, name) {
-  }
-};
+TEST_CASE("BtreeCursor/moveTest", "")
+{
+  BtreeCursorFixture f;
+  f.moveTest();
+}
 
-BFC_REGISTER_FIXTURE(BtreeCursorTest);
-BFC_REGISTER_FIXTURE(InMemoryBtreeCursorTest);
+TEST_CASE("BtreeCursor/moveSplitTest", "")
+{
+  BtreeCursorFixture f;
+  f.moveSplitTest();
+}
 
-BFC_REGISTER_FIXTURE(BtreeCursorTest64Kpage);
-BFC_REGISTER_FIXTURE(InMemoryBtreeCursorTest64Kpage);
+TEST_CASE("BtreeCursor/overwriteTest", "")
+{
+  BtreeCursorFixture f;
+  f.overwriteTest();
+}
+
+TEST_CASE("BtreeCursor/linkedListTest", "")
+{
+  BtreeCursorFixture f;
+  f.linkedListTest();
+}
+
+TEST_CASE("BtreeCursor/linkedListReverseCloseTest", "")
+{
+  BtreeCursorFixture f;
+  f.linkedListReverseCloseTest();
+}
+
+TEST_CASE("BtreeCursor/cursorGetErasedItemTest", "")
+{
+  BtreeCursorFixture f;
+  f.cursorGetErasedItemTest();
+}
+
+TEST_CASE("BtreeCursor/couplingTest", "")
+{
+  BtreeCursorFixture f;
+  f.couplingTest();
+}
 
 
+TEST_CASE("BtreeCursor-64k/createCloseTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.createCloseTest();
+}
+
+TEST_CASE("BtreeCursor-64k/cloneTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.cloneTest();
+}
+
+TEST_CASE("BtreeCursor-64k/moveTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.moveTest();
+}
+
+TEST_CASE("BtreeCursor-64k/moveSplitTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.moveSplitTest();
+}
+
+TEST_CASE("BtreeCursor-64k/overwriteTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.overwriteTest();
+}
+
+TEST_CASE("BtreeCursor-64k/linkedListTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.linkedListTest();
+}
+
+TEST_CASE("BtreeCursor-64k/linkedListReverseCloseTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.linkedListReverseCloseTest();
+}
+
+TEST_CASE("BtreeCursor-64k/cursorGetErasedItemTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.cursorGetErasedItemTest();
+}
+
+TEST_CASE("BtreeCursor-64k/couplingTest", "")
+{
+  BtreeCursorFixture f(false, 1024 * 64);
+  f.couplingTest();
+}
+
+
+TEST_CASE("BtreeCursor-inmem/createCloseTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.createCloseTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/cloneTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.cloneTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/moveTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.moveTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/moveSplitTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.moveSplitTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/overwriteTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.overwriteTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/linkedListTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.linkedListTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/linkedListReverseCloseTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.linkedListReverseCloseTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/cursorGetErasedItemTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.cursorGetErasedItemTest();
+}
+
+TEST_CASE("BtreeCursor-inmem/couplingTest", "")
+{
+  BtreeCursorFixture f(true);
+  f.couplingTest();
+}
+
+
+TEST_CASE("BtreeCursor-64k-inmem/createCloseTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.createCloseTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/cloneTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.cloneTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/moveTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.moveTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/moveSplitTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.moveSplitTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/overwriteTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.overwriteTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/linkedListTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.linkedListTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/linkedListReverseCloseTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.linkedListReverseCloseTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/cursorGetErasedItemTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.cursorGetErasedItemTest();
+}
+
+TEST_CASE("BtreeCursor-64k-inmem/couplingTest", "")
+{
+  BtreeCursorFixture f(true, 1024 * 64);
+  f.couplingTest();
+}

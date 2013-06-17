@@ -9,17 +9,14 @@
  * See files COPYING.* for License information.
  */
 
-#include <stdexcept>
-#include <cstring>
-#include <cassert>
-#include <ham/hamsterdb_int.h>
+#include <string.h>
+#include <assert.h>
+
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
+
 #include "../src/error.h"
-
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
-using namespace hamsterdb;
 
 static void HAM_CALLCONV
 my_handler(int level, const char *msg) {
@@ -45,55 +42,34 @@ my_abort_handler() {
   g_aborted = 1;
 }
 
-class ErrorTest : public hamsterDB_fixture
+TEST_CASE("ErrorTest/handler",
+           "Tests the error logging handler")
 {
-  define_super(hamsterDB_fixture);
+  ham_set_errhandler(my_handler);
+  ham_trace(("hello world"));
+  ham_set_errhandler(0);
+  ham_log(("testing error handler - hello world\n"));
+}
 
-public:
-  ErrorTest()
-    : hamsterDB_fixture("ErrorTest") {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(ErrorTest, errorHandlerTest);
-    BFC_REGISTER_TEST(ErrorTest, verifyTest);
-  }
+TEST_CASE("ErrorTest/verify",
+           "Tests the ham_verify handler")
+{
+  ham_set_errhandler(my_handler);
+  hamsterdb::ham_test_abort = my_abort_handler;
 
-public:
-  virtual void setup() {
-    __super::setup();
+  g_aborted = 0;
+  ham_verify(0);
+  REQUIRE(1 == g_aborted);
+  g_aborted = 0;
+  ham_verify(1);
+  REQUIRE(0 == g_aborted);
+  g_aborted = 0;
+  ham_verify(!"expr");
+  REQUIRE(1 == g_aborted);
+  ham_verify(!"expr");
+  REQUIRE(1 == g_aborted);
 
-    ham_set_errhandler(my_handler);
-  }
-
-  virtual void teardown() {
-    __super::teardown();
-
-    ham_set_errhandler(0);
-  }
-
-  void errorHandlerTest() {
-    ham_trace(("hello world"));
-    ham_set_errhandler(0);
-    ham_log(("testing error handler - hello world\n"));
-  }
-
-  void verifyTest() {
-    ham_test_abort = my_abort_handler;
-
-    g_aborted = 0;
-    ham_verify(0);
-    BFC_ASSERT_EQUAL(1, g_aborted);
-    g_aborted = 0;
-    ham_verify(1);
-    BFC_ASSERT_EQUAL(0, g_aborted);
-    g_aborted = 0;
-    ham_verify(!"expr");
-    BFC_ASSERT_EQUAL(1, g_aborted);
-    ham_verify(!"expr");
-    BFC_ASSERT_EQUAL(1, g_aborted);
-
-    ham_test_abort = 0;
-  }
-};
-
-BFC_REGISTER_FIXTURE(ErrorTest);
+  hamsterdb::ham_test_abort = 0;
+  ham_set_errhandler(0);
+}
 

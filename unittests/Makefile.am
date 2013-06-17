@@ -1,48 +1,43 @@
 
 EXTRA_DIST      = recovery.pl suppressions.valgrind data/*
 
-noinst_PROGRAMS = test bfc_sample recovery
+noinst_PROGRAMS = test recovery
 
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
-test_SOURCES    = bfc-testsuite.cpp \
-                  bfc-testsuite.hpp \
-                  os.hpp \
-                  hamster_fixture.hpp \
-                  bfc-signal.h \
-                  bfc-signal.c \
-                  check.cpp \
-                  error.cpp \
-                  os.cpp \
-                  endian.cpp \
-                  journal.cpp \
-                  duplicates.cpp \
-                  device.cpp \
-                  approx.cpp \
-                  recno.cpp \
-                  cache.cpp \
-                  page_manager.cpp \
-                  changeset.cpp \
-                  misc.cpp \
-                  btree_erase.cpp \
-                  freelist.cpp \
-                  btree_insert.cpp \
-                  page.cpp \
-                  extkeys.cpp \
-                  api110.cpp \
-                  blob.cpp \
+test_SOURCES    = api110.cpp \
+			      approx.cpp \
+                  blob_manager.cpp \
                   btree_cursor.cpp \
-                  btree_key.cpp \
-                  env.cpp \
-                  hamsterdb.cpp \
-                  partial.cpp \
-                  db.cpp \
-                  txn.cpp \
-                  txn_cursor.cpp \
-                  cursor.cpp \
-                  log.cpp \
+                  btree_erase.cpp \
+                  btree_insert.cpp \
+				  btree_key.cpp \
+			 	  cache.cpp \
+				  changeset.cpp \
+				  check.cpp \
                   cppapi.cpp \
-                  main.cpp
+                  cursor.cpp \
+                  db.cpp \
+                  device.cpp \
+                  duplicates.cpp \
+				  endian.cpp \
+                  env.cpp \
+                  error.cpp \
+                  extkeys.cpp \
+                  freelist.cpp \
+                  hamsterdb.cpp \
+                  journal.cpp \
+                  log.cpp \
+				  main.cpp \
+                  misc.cpp \
+                  os.cpp \
+				  os.hpp \
+                  page.cpp \
+                  page_manager.cpp \
+                  partial.cpp \
+                  recno.cpp \
+                  txn.cpp \
+                  txn_cursor.cpp
 
 test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a -lpthread -ldl
 
@@ -53,25 +48,15 @@ test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
 				  -lprotobuf -lcurl
 endif
 
-bfc_sample_SOURCES = bfc-sample.cpp \
-                  empty_sample.cpp \
-                  bfc-testsuite.cpp \
-                  bfc-testsuite.hpp \
-                  os.hpp \
-                  bfc-signal.h \
-                  bfc-signal.c
-
 valgrind:
 	valgrind --suppressions=suppressions.valgrind --leak-check=full \
 			--num-callers=20 --show-reachable=yes .libs/lt-test 
-
-bfc_sample_LDADD = -ldl
 
 recovery_SOURCES = recovery.cpp
 
 recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la -ldl
 
-noinst_BIN       = test bfc_sample recovery
+noinst_BIN       = test recovery
 
 test_recovery:
 	perl recovery.pl

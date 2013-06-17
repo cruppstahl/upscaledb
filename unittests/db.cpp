@@ -11,7 +11,9 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
 
 #include <ham/hamsterdb.h>
 
@@ -26,107 +28,80 @@
 #include "../src/log.h"
 #include "../src/btree_node.h"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
 using namespace hamsterdb;
 
-class DbTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  DbTest(bool inmemory = false, const char *name = "DbTest")
-    : hamsterDB_fixture(name), m_db(0), m_dbp(0), m_env(0),
-      m_inmemory(inmemory) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(DbTest, checkStructurePackingTest);
-    BFC_REGISTER_TEST(DbTest, headerTest);
-    BFC_REGISTER_TEST(DbTest, structureTest);
-    BFC_REGISTER_TEST(DbTest, envStructureTest);
-    BFC_REGISTER_TEST(DbTest, defaultCompareTest);
-    BFC_REGISTER_TEST(DbTest, defaultPrefixCompareTest);
-    BFC_REGISTER_TEST(DbTest, allocPageTest);
-    BFC_REGISTER_TEST(DbTest, fetchPageTest);
-    BFC_REGISTER_TEST(DbTest, flushPageTest);
-  }
-
-protected:
+struct DbFixture {
   ham_db_t *m_db;
   Database *m_dbp;
   ham_env_t *m_env;
   bool m_inmemory;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
+  DbFixture(bool inmemory = false)
+    : m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory) {
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13,
             HAM_ENABLE_DUPLICATES, 0));
     m_dbp=(Database *)m_db;
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
-    ham_env_close(m_env, HAM_AUTO_CLEANUP);
+  ~DbFixture() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void headerTest() {
     ((Environment *)m_env)->set_magic('1', '2', '3', '4');
-    BFC_ASSERT_EQUAL(true,
+    REQUIRE(true ==
         ((Environment *)m_env)->verify_magic('1', '2', '3', '4'));
 
     ((Environment *)m_env)->set_version(1, 2, 3, 4);
-    BFC_ASSERT_EQUAL((ham_u8_t)1, ((Environment *)m_env)->get_version(0));
-    BFC_ASSERT_EQUAL((ham_u8_t)2, ((Environment *)m_env)->get_version(1));
-    BFC_ASSERT_EQUAL((ham_u8_t)3, ((Environment *)m_env)->get_version(2));
-    BFC_ASSERT_EQUAL((ham_u8_t)4, ((Environment *)m_env)->get_version(3));
+    REQUIRE((ham_u8_t)1 == ((Environment *)m_env)->get_version(0));
+    REQUIRE((ham_u8_t)2 == ((Environment *)m_env)->get_version(1));
+    REQUIRE((ham_u8_t)3 == ((Environment *)m_env)->get_version(2));
+    REQUIRE((ham_u8_t)4 == ((Environment *)m_env)->get_version(3));
 
     ((Environment *)m_env)->set_serialno(0x1234);
-    BFC_ASSERT_EQUAL(0x1234u, ((Environment *)m_env)->get_serialno());
+    REQUIRE(0x1234u == ((Environment *)m_env)->get_serialno());
   }
 
   void structureTest() {
-    BFC_ASSERT(((Environment *)m_env)->get_header_page()!=0);
+    REQUIRE(((Environment *)m_env)->get_header_page()!=0);
 
-    BFC_ASSERT_EQUAL(0, m_dbp->get_error());
+    REQUIRE(0 == m_dbp->get_error());
     m_dbp->set_error(HAM_IO_ERROR);
-    BFC_ASSERT_EQUAL(HAM_IO_ERROR, m_dbp->get_error());
+    REQUIRE(HAM_IO_ERROR == m_dbp->get_error());
 
-    BFC_ASSERT_NOTNULL(m_dbp->get_btree());// already initialized
+    REQUIRE(m_dbp->get_btree());// already initialized
     BtreeIndex *oldbe = m_dbp->get_btree();
     m_dbp->set_btree((BtreeIndex *)15);
-    BFC_ASSERT_EQUAL((BtreeIndex *)15, m_dbp->get_btree());
+    REQUIRE((BtreeIndex *)15 == m_dbp->get_btree());
     m_dbp->set_btree(oldbe);
 
-    BFC_ASSERT_NOTNULL(((Environment *)m_env)->get_page_manager()->test_get_cache());
+    REQUIRE(((Environment *)m_env)->get_page_manager()->test_get_cache());
 
-    BFC_ASSERT(0 != m_dbp->get_prefix_compare_func());
+    REQUIRE(0 != m_dbp->get_prefix_compare_func());
     ham_prefix_compare_func_t oldfoo = m_dbp->get_prefix_compare_func();
     m_dbp->set_prefix_compare_func((ham_prefix_compare_func_t)18);
-    BFC_ASSERT_EQUAL((ham_prefix_compare_func_t)18,
+    REQUIRE((ham_prefix_compare_func_t)18 ==
         m_dbp->get_prefix_compare_func());
     m_dbp->set_prefix_compare_func(oldfoo);
 
     ham_compare_func_t oldfoo2 = m_dbp->get_compare_func();
-    BFC_ASSERT(0 != m_dbp->get_compare_func());
+    REQUIRE(0 != m_dbp->get_compare_func());
     m_dbp->set_compare_func((ham_compare_func_t)19);
-    BFC_ASSERT_EQUAL((ham_compare_func_t)19, m_dbp->get_compare_func());
+    REQUIRE((ham_compare_func_t)19 == m_dbp->get_compare_func());
     m_dbp->set_compare_func(oldfoo2);
 
     ((Environment *)m_env)->get_header_page()->set_dirty(false);
-    BFC_ASSERT(!((Environment *)m_env)->is_dirty());
+    REQUIRE(!((Environment *)m_env)->is_dirty());
     ((Environment *)m_env)->set_dirty(true);
-    BFC_ASSERT(((Environment *)m_env)->is_dirty());
+    REQUIRE(((Environment *)m_env)->is_dirty());
 
-    BFC_ASSERT(0!=m_dbp->get_rt_flags());
+    REQUIRE(0!=m_dbp->get_rt_flags());
 
-    BFC_ASSERT(m_dbp->get_env() != 0);
+    REQUIRE(m_dbp->get_env() != 0);
   }
 
   void envStructureTest() {
@@ -144,56 +119,56 @@ public:
   }
 
   void defaultCompareTest() {
-    BFC_ASSERT_EQUAL( 0, Database::default_compare(0,
+    REQUIRE( 0 == Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"abc", 3));
-    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
+    REQUIRE(-1 == Database::default_compare(0,
             (ham_u8_t *)"ab",  2, (ham_u8_t *)"abc", 3));
-    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
+    REQUIRE(-1 == Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"bcd", 3));
-    BFC_ASSERT_EQUAL(+1, Database::default_compare(0,
+    REQUIRE(+1 == Database::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)0,   0));
-    BFC_ASSERT_EQUAL(-1, Database::default_compare(0,
+    REQUIRE(-1 == Database::default_compare(0,
             (ham_u8_t *)0,   0, (ham_u8_t *)"abc", 3));
   }
 
   void defaultPrefixCompareTest() {
-    BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
+    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"abc", 3, 3));
     // comparison code has become 'smarter' so can resolve this one 
     // without the need for further help
-    BFC_ASSERT_EQUAL(-1,
+    REQUIRE(-1 ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 2,
             (ham_u8_t *)"abc", 3, 3));
-    BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
+    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 3,
             (ham_u8_t *)"abc", 3, 3));
-    BFC_ASSERT_EQUAL(-1,
+    REQUIRE(-1 ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"bcd", 3, 3));
     // comparison code has become 'smarter' so can resolve this 
     // one without the need for further help
-    BFC_ASSERT_EQUAL(+1,
+    REQUIRE(+1 ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 0));
-    BFC_ASSERT_EQUAL(-1,
+    REQUIRE(-1 ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 0,
             (ham_u8_t *)"abc", 3, 3));
-    BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
+    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 3));
-    BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
+    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 3,
             (ham_u8_t *)"abc", 3, 3));
-    BFC_ASSERT_EQUAL(HAM_PREFIX_REQUEST_FULLKEY,
+    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
         Database::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 80239,
             (ham_u8_t *)"abc", 3, 2));
@@ -201,9 +176,9 @@ public:
 
   void allocPageTest() {
     Page *page;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         m_dbp->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
-    BFC_ASSERT_EQUAL(m_dbp, page->get_db());
+    REQUIRE(m_dbp == page->get_db());
     page->free();
     ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
     delete page;
@@ -211,11 +186,11 @@ public:
 
   void fetchPageTest() {
     Page *p1, *p2;
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         m_dbp->alloc_page(&p1, 0, PageManager::kIgnoreFreelist));
-    BFC_ASSERT_EQUAL(m_dbp, p1->get_db());
-    BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&p2, p1->get_self()));
-    BFC_ASSERT_EQUAL(p2->get_self(), p1->get_self());
+    REQUIRE(m_dbp == p1->get_db());
+    REQUIRE(0 == m_dbp->fetch_page(&p2, p1->get_self()));
+    REQUIRE(p2->get_self() == p1->get_self());
     p1->free();
     ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(p1);
     delete p1;
@@ -226,23 +201,23 @@ public:
     ham_u64_t address;
     ham_u8_t *p;
 
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
             m_dbp->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
 
-    BFC_ASSERT_EQUAL(m_dbp, page->get_db());
+    REQUIRE(m_dbp == page->get_db());
     p = page->get_raw_payload();
     for (int i = 0; i < 16; i++)
       p[i] = (ham_u8_t)i;
     page->set_dirty(true);
     address = page->get_self();
-    BFC_ASSERT_EQUAL(0, page->flush());
+    REQUIRE(0 == page->flush());
     page->free();
     ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
     delete page;
 
-    BFC_ASSERT_EQUAL(0, m_dbp->fetch_page(&page, address));
-    BFC_ASSERT(page != 0);
-    BFC_ASSERT_EQUAL(address, page->get_self());
+    REQUIRE(0 == m_dbp->fetch_page(&page, address));
+    REQUIRE(page != 0);
+    REQUIRE(address == page->get_self());
     p = page->get_raw_payload();
     page->free();
     ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
@@ -257,32 +232,32 @@ public:
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
-    BFC_ASSERT(compare_sizes(sizeof(PBlobHeader), 28));
-    BFC_ASSERT(compare_sizes(sizeof(PDupeEntry), 16));
-    BFC_ASSERT(compare_sizes(sizeof(PDupeTable),
+    REQUIRE(compare_sizes(sizeof(PBlobHeader), 28));
+    REQUIRE(compare_sizes(sizeof(PDupeEntry), 16));
+    REQUIRE(compare_sizes(sizeof(PDupeTable),
         8 + sizeof(PDupeEntry)));
-    BFC_ASSERT(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
-    BFC_ASSERT(compare_sizes(sizeof(PBtreeKey), 12));
-    BFC_ASSERT(compare_sizes(sizeof(PEnvHeader), 20));
-    BFC_ASSERT(compare_sizes(sizeof(PBtreeDescriptor), 32));
-    BFC_ASSERT(compare_sizes(sizeof(PFreelistPayload),
+    REQUIRE(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
+    REQUIRE(compare_sizes(sizeof(PBtreeKey), 12));
+    REQUIRE(compare_sizes(sizeof(PEnvHeader), 20));
+    REQUIRE(compare_sizes(sizeof(PBtreeDescriptor), 32));
+    REQUIRE(compare_sizes(sizeof(PFreelistPayload),
         16 + 13 + sizeof(PFreelistPageStatistics)));
-    BFC_ASSERT(compare_sizes(sizeof(PFreelistPageStatistics),
+    REQUIRE(compare_sizes(sizeof(PFreelistPageStatistics),
         4 * 8 + sizeof(PFreelistSlotsizeStats)
             * HAM_FREELIST_SLOT_SPREAD));
-    BFC_ASSERT(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
-    BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
-    BFC_ASSERT(compare_sizes(freel_get_bitmap_offset(),
+    REQUIRE(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
+    REQUIRE(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
+    REQUIRE(compare_sizes(freel_get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
-    BFC_ASSERT(compare_sizes(PBtreeKey::ms_sizeof_overhead, 11));
-    BFC_ASSERT(compare_sizes(sizeof(Log::PHeader), 16));
-    BFC_ASSERT(compare_sizes(sizeof(Log::PEntry), 32));
-    BFC_ASSERT(compare_sizes(sizeof(PageData), 13));
+    REQUIRE(compare_sizes(PBtreeKey::ms_sizeof_overhead, 11));
+    REQUIRE(compare_sizes(sizeof(Log::PHeader), 16));
+    REQUIRE(compare_sizes(sizeof(Log::PEntry), 32));
+    REQUIRE(compare_sizes(sizeof(PageData), 13));
     PageData p;
-    BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
-    BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
+    REQUIRE(compare_sizes(sizeof(p._s), 13));
+    REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
 
-    BFC_ASSERT(compare_sizes(OFFSETOF(PBtreeNode, _entries), 28));
+    REQUIRE(compare_sizes(OFFSETOF(PBtreeNode, _entries), 28));
     Page page;
     LocalDatabase db((Environment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
@@ -291,7 +266,7 @@ public:
     page.set_db(&db);
     db.set_btree(&be);
     be.set_keysize(666);
-    BFC_ASSERT(compare_sizes(Page::sizeof_persistent_header, 12));
+    REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
     struct {
@@ -302,31 +277,110 @@ public:
     hdrpage.set_pers((PageData *)&hdrpage_pers);
     Page *hp = &hdrpage;
     ham_u8_t *pl1 = hp->get_payload();
-    BFC_ASSERT(pl1);
-    BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_pers(), 12));
+    REQUIRE(pl1);
+    REQUIRE(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_pers(), 12));
     PEnvHeader *hdrptr = (PEnvHeader *)(hdrpage.get_payload());
-    BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr)
+    REQUIRE(compare_sizes(((ham_u8_t *)hdrptr)
         - (ham_u8_t *)hdrpage.get_pers(), 12));
     hdrpage.set_pers(0);
   }
 
 };
 
-class DbInMemoryTest : public DbTest {
-public:
-  DbInMemoryTest()
-    : DbTest(true, "DbInMemoryTest") {
-    clear_tests(); // don't inherit tests
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(DbInMemoryTest, checkStructurePackingTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, headerTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, structureTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, envStructureTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, defaultCompareTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, defaultPrefixCompareTest);
-    BFC_REGISTER_TEST(DbInMemoryTest, allocPageTest);
-  }
-};
+TEST_CASE("Db/checkStructurePackingTest", "")
+{
+  DbFixture f;
+  f.checkStructurePackingTest();
+}
 
-BFC_REGISTER_FIXTURE(DbTest);
-BFC_REGISTER_FIXTURE(DbInMemoryTest);
+TEST_CASE("Db/headerTest", "")
+{
+  DbFixture f;
+  f.headerTest();
+}
+
+TEST_CASE("Db/structureTest", "")
+{
+  DbFixture f;
+  f.structureTest();
+}
+
+TEST_CASE("Db/envStructureTest", "")
+{
+  DbFixture f;
+  f.envStructureTest();
+}
+
+TEST_CASE("Db/defaultCompareTest", "")
+{
+  DbFixture f;
+  f.defaultCompareTest();
+}
+
+TEST_CASE("Db/defaultPrefixCompareTest", "")
+{
+  DbFixture f;
+  f.defaultPrefixCompareTest();
+}
+
+TEST_CASE("Db/allocPageTest", "")
+{
+  DbFixture f;
+  f.allocPageTest();
+}
+
+TEST_CASE("Db/fetchPageTest", "")
+{
+  DbFixture f;
+  f.fetchPageTest();
+}
+
+TEST_CASE("Db/flushPageTest", "")
+{
+  DbFixture f;
+  f.flushPageTest();
+}
+
+
+TEST_CASE("Db-inmem/checkStructurePackingTest", "")
+{
+  DbFixture f(true);
+  f.checkStructurePackingTest();
+}
+
+TEST_CASE("Db-inmem/headerTest", "")
+{
+  DbFixture f(true);
+  f.headerTest();
+}
+
+TEST_CASE("Db-inmem/structureTest", "")
+{
+  DbFixture f(true);
+  f.structureTest();
+}
+
+TEST_CASE("Db-inmem/envStructureTest", "")
+{
+  DbFixture f(true);
+  f.envStructureTest();
+}
+
+TEST_CASE("Db-inmem/defaultCompareTest", "")
+{
+  DbFixture f(true);
+  f.defaultCompareTest();
+}
+
+TEST_CASE("Db-inmem/defaultPrefixCompareTest", "")
+{
+  DbFixture f(true);
+  f.defaultPrefixCompareTest();
+}
+
+TEST_CASE("Db-inmem/allocPageTest", "")
+{
+  DbFixture f(true);
+  f.allocPageTest();
+}
+

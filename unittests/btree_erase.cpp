@@ -11,54 +11,35 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
+#include "3rdparty/catch/catch.hpp"
 
-#include <ham/hamsterdb.h>
+#include "globals.h"
+#include "os.hpp"
 
 #include "../src/db.h"
 #include "../src/version.h"
-#include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
-
-class BtreeEraseTest : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  BtreeEraseTest(ham_u32_t flags = 0, const char *name = "BtreeEraseTest")
-    : hamsterDB_fixture(name), m_db(0), m_flags(flags) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(BtreeEraseTest, collapseRootTest);
-    BFC_REGISTER_TEST(BtreeEraseTest, shiftFromRightTest);
-    BFC_REGISTER_TEST(BtreeEraseTest, shiftFromLeftTest);
-    BFC_REGISTER_TEST(BtreeEraseTest, mergeWithLeftTest);
-  }
-
-protected:
+struct BtreeEraseFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
   ham_u32_t m_flags;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
-    os::unlink(BFC_OPATH(".test"));
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"), m_flags, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+  BtreeEraseFixture(ham_u32_t flags = 0)
+    : m_db(0), m_env(0), m_flags(flags) {
+    os::unlink(Globals::opath(".test"));
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"), m_flags, 0644, 0));
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
-  virtual void teardown() {
-    __super::teardown();
+  ~BtreeEraseFixture() {
+    teardown();
+  }
 
+  void teardown() {
     if (m_env)
-	  BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void prepare(int num_inserts) {
@@ -75,10 +56,10 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"), m_flags, 0644,
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"), m_flags, 0644,
             &p1[0]));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
 
     for (int i = 0; i < num_inserts * 10; i += 10) {
@@ -87,7 +68,7 @@ public:
       key.size = sizeof(i);
       rec.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
   }
 
@@ -96,13 +77,13 @@ public:
 
     prepare(8);
 
-    BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(HAM_KEY_NOT_FOUND == ham_db_erase(m_db, 0, &key, 0));
 
     for (int i = 0; i < 80; i += 10) {
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
     }
   }
 
@@ -115,7 +96,7 @@ public:
     key.data = &i;
     key.size = sizeof(i);
 
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
   }
 
   void shiftFromLeftTest() {
@@ -130,34 +111,34 @@ public:
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     i = 22;
     key.data = &i;
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     i = 23;
     key.data = &i;
     key.size = sizeof(i);
     rec.data = &i;
     rec.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
 
     i = 70;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
 
     i = 60;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
 
     i = 50;
     key.data = &i;
     key.size = sizeof(i);
-    BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
   }
 
   void mergeWithLeftTest() {
@@ -169,18 +150,57 @@ public:
       key.data = &i;
       key.size = sizeof(i);
 
-      BFC_ASSERT_EQUAL(0, ham_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ham_db_erase(m_db, 0, &key, 0));
     }
   }
 };
 
-class InMemoryBtreeEraseTest : public BtreeEraseTest {
-public:
-  InMemoryBtreeEraseTest()
-    : BtreeEraseTest(HAM_IN_MEMORY, "InMemoryBtreeEraseTest") {
-  }
-};
+TEST_CASE("BtreeErase/collapseRootTest", "")
+{
+  BtreeEraseFixture f;
+  f.collapseRootTest();
+}
 
-BFC_REGISTER_FIXTURE(BtreeEraseTest);
-BFC_REGISTER_FIXTURE(InMemoryBtreeEraseTest);
+TEST_CASE("BtreeErase/shiftFromRightTest", "")
+{
+  BtreeEraseFixture f;
+  f.shiftFromRightTest();
+}
+
+TEST_CASE("BtreeErase/shiftFromLeftTest", "")
+{
+  BtreeEraseFixture f;
+  f.shiftFromLeftTest();
+}
+
+TEST_CASE("BtreeErase/mergeWithLeftTest", "")
+{
+  BtreeEraseFixture f;
+  f.mergeWithLeftTest();
+}
+
+
+TEST_CASE("BtreeErase-inmem/collapseRootTest", "")
+{
+  BtreeEraseFixture f(HAM_IN_MEMORY);
+  f.collapseRootTest();
+}
+
+TEST_CASE("BtreeErase-inmem/shiftFromRightTest", "")
+{
+  BtreeEraseFixture f(HAM_IN_MEMORY);
+  f.shiftFromRightTest();
+}
+
+TEST_CASE("BtreeErase-inmem/shiftFromLeftTest", "")
+{
+  BtreeEraseFixture f(HAM_IN_MEMORY);
+  f.shiftFromLeftTest();
+}
+
+TEST_CASE("BtreeErase-inmem/mergeWithLeftTest", "")
+{
+  BtreeEraseFixture f(HAM_IN_MEMORY);
+  f.mergeWithLeftTest();
+}
 

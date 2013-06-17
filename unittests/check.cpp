@@ -9,62 +9,42 @@
  * See files COPYING.* for License information.
  */
 
-#include "../src/config.h"
+#include "3rdparty/catch/catch.hpp"
 
-#include <stdexcept>
-#include <string.h>
-#include <ham/hamsterdb.h>
-#include "../src/db.h"
+#include "globals.h"
 #include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
-using namespace bfc;
-
-class CheckIntegrityTest : public hamsterDB_fixture
-{
-  define_super(hamsterDB_fixture);
-
-public:
-  CheckIntegrityTest(bool inmemorydb = false,
-      const char *name = "CheckIntegrityTest")
-    : hamsterDB_fixture(name), m_inmemory(inmemorydb) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(CheckIntegrityTest, emptyDatabaseTest);
-    BFC_REGISTER_TEST(CheckIntegrityTest, smallDatabaseTest);
-    BFC_REGISTER_TEST(CheckIntegrityTest, levelledDatabaseTest);
+struct CheckIntegrityFixture {
+  CheckIntegrityFixture(bool inmemory = false, ham_parameter_t *env_params = 0,
+                  ham_parameter_t *db_params = 0)
+    : m_inmemory(inmemory) {
+    setup(env_params, db_params);
   }
 
-protected:
+  ~CheckIntegrityFixture() {
+    teardown();
+  }
+
+  void setup(ham_parameter_t *env_params, ham_parameter_t *db_params) {
+    os::unlink(Globals::opath(".test"));
+    REQUIRE(0 ==
+      ham_env_create(&m_env, Globals::opath(".test"),
+          m_inmemory ? HAM_IN_MEMORY : 0, 0644, env_params));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33, 0, db_params));
+  } 
+
+  void teardown() {
+    REQUIRE(0 == ham_db_close(m_db, 0));
+    REQUIRE(0 == ham_env_close(m_env, 0));
+  }
+
+  bool m_inmemory;
   ham_db_t *m_db;
   ham_env_t *m_env;
-  bool m_inmemory;
-
-public:
-  virtual void setup() {
-    __super::setup();
-
-    os::unlink(BFC_OPATH(".test"));
-
-    BFC_ASSERT_EQUAL(0,
-      ham_env_create(&m_env, BFC_OPATH(".test"),
-          m_inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 33, 0, 0));
-  }
-
-  virtual void teardown() {
-    __super::teardown();
-
-    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
-  }
 
   void emptyDatabaseTest() {
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-        ham_db_check_integrity(0, 0));
-    BFC_ASSERT_EQUAL(0,
-        ham_db_check_integrity(m_db, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_db_check_integrity(0, 0));
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
   }
 
   void smallDatabaseTest() {
@@ -74,10 +54,10 @@ public:
     for (int i = 0; i < 5; i++) {
       key.size = sizeof(i);
       key.data = &i;
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(m_db, 0));
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
   }
 
   void levelledDatabaseTest() {
@@ -94,29 +74,57 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-      ham_env_create(&m_env, BFC_OPATH(".test"),
-          m_inmemory ? HAM_IN_MEMORY : 0, 0644, env_params));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 33, 0, db_params));
+    setup(env_params, db_params);
 
     for (int i = 0; i < 100; i++) {
       key.size = sizeof(i);
       key.data = &i;
-      BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    BFC_ASSERT_EQUAL(0, ham_db_check_integrity(m_db, 0));
+    REQUIRE(0 == ham_db_check_integrity(m_db, 0));
   }
 };
 
-class InMemoryCheckIntegrityTest : public CheckIntegrityTest
+TEST_CASE("CheckIntegrity-disk/emptyDatabaseTest",
+          "Runs integrity check on an empty database")
 {
-public:
-  InMemoryCheckIntegrityTest()
-    : CheckIntegrityTest(true, "InMemoryCheckIntegrityTest") {
-  }
-};
+  CheckIntegrityFixture f;
+  f.emptyDatabaseTest();
+}
 
-BFC_REGISTER_FIXTURE(CheckIntegrityTest);
-BFC_REGISTER_FIXTURE(InMemoryCheckIntegrityTest);
+TEST_CASE("CheckIntegrity-disk/smallDatabaseTest",
+          "Runs integrity check on a small database")
+{
+  CheckIntegrityFixture f;
+  f.smallDatabaseTest();
+}
+
+TEST_CASE("CheckIntegrity-disk/levelledDatabaseTest",
+          "Runs integrity check on a database with multiple btree levels")
+{
+  CheckIntegrityFixture f;
+  f.levelledDatabaseTest();
+}
+
+TEST_CASE("CheckIntegrity-inmem/emptyDatabaseTest",
+          "Runs integrity check on an empty database")
+{
+  CheckIntegrityFixture f(true);
+  f.emptyDatabaseTest();
+}
+
+TEST_CASE("CheckIntegrity-inmem/smallDatabaseTest",
+          "Runs integrity check on a small database")
+{
+  CheckIntegrityFixture f(true);
+  f.smallDatabaseTest();
+}
+
+TEST_CASE("CheckIntegrity-inmem/levelledDatabaseTest",
+          "Runs integrity check on a database with multiple btree levels")
+{
+  CheckIntegrityFixture f(true);
+  f.levelledDatabaseTest();
+}
 

@@ -137,6 +137,8 @@ x really leave reduced freelist? the performance gains are not worth the
     additional complexity and we would introduce lots of technical debt
     -> remove it...
 
+x refactor unittests, use same framework as hamsterdb-cluster
+
 o we need more metrics in the monster tests:
     o create new module Metrics, with structure and API in hamsterdb_int.h
     o existing Statistics are renamed to Optimizer
@@ -214,8 +216,6 @@ o collect file format incompatibilities
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
-
-o refactor unittests, use same framework as hamsterdb-cluster
 
 o BtreeCursor: use memory arena for uncoupling the key
 

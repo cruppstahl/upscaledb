@@ -169,8 +169,8 @@ class Log
     ham_status_t recover();
 
   private:
-	friend class LogTest;
-	friend class LogHighLevelTest;
+	friend class LogFixture;
+	friend class LogHighLevelFixture;
 
     /**
      * returns the next log entry

@@ -11,11 +11,12 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
 #include <time.h>
 
-#include <ham/hamsterdb.h>
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
+#include "os.hpp"
 
 #include "../src/db.h"
 #include "../src/env.h"
@@ -24,107 +25,85 @@
 #include "../src/btree.h"
 #include "../src/btree_stats.h"
 #include "../src/os.h"
-#include "os.hpp"
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
 
-using namespace bfc;
 using namespace hamsterdb;
 
-
-class APIv110Test : public hamsterDB_fixture {
-  define_super(hamsterDB_fixture);
-
-public:
-  APIv110Test()
-    : hamsterDB_fixture("APIv110Test"), m_db(NULL) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(APIv110Test, transactionTest);
-    BFC_REGISTER_TEST(APIv110Test, v10xDBformatDetectTest);
-    BFC_REGISTER_TEST(APIv110Test, getInitializedEnvParamsTest);
-    BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyEnvParamsTest);
-    BFC_REGISTER_TEST(APIv110Test, getInitializedDbParamsTest);
-    BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyDbParamsTest);
-    BFC_REGISTER_TEST(APIv110Test, negativeApproxMatchingTest);
-    BFC_REGISTER_TEST(APIv110Test, issue7Test);
-  }
-
-protected:
+struct APIv110Fixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
 
-public:
-  virtual void setup() {
-    __super::setup();
-
-    os::unlink(BFC_OPATH(".test"));
-    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+  APIv110Fixture()
+    : m_db(0) {
+    os::unlink(Globals::opath(".test"));
+    REQUIRE(0 == ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
-  virtual void teardown() {
-    __super::teardown();
+  ~APIv110Fixture() {
+    teardown();
+  }
 
+  void teardown() {
     if (m_env)
-      BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void transactionTest() {
     ham_txn_t *txn;
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_txn_abort(txn, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(HAM_INV_PARAMETER == ham_txn_abort(txn, 0));
 
     // reopen the database, check the transaction flag vs. actual
     // use of transactions
     teardown();
 
-    BFC_ASSERT_EQUAL(0, ham_env_create(&m_env, BFC_OPATH(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
   };
 
   void v10xDBformatDetectTest() {
 #ifndef HAM_OS_WIN32
 	teardown();
-    os::unlink(BFC_OPATH(".test"));
+    os::unlink(Globals::opath(".test"));
 
-    BFC_ASSERT_EQUAL(true,
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-        BFC_OPATH(".test")));
-    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
-
-    teardown();
-    os::unlink(BFC_OPATH(".test"));
-
-    BFC_ASSERT_EQUAL(true,
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-        BFC_OPATH(".test")));
-    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+    REQUIRE(true ==
+      os::copy(Globals::ipath("data/dupe-endian-test-open-database-be.hdb"),
+        Globals::opath(".test")));
+    REQUIRE(HAM_INV_FILE_VERSION ==
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
 
     teardown();
-    os::unlink(BFC_OPATH(".test"));
+    os::unlink(Globals::opath(".test"));
+
+    REQUIRE(true ==
+      os::copy(Globals::ipath("data/dupe-endian-test-open-database-le.hdb"),
+        Globals::opath(".test")));
+    REQUIRE(HAM_INV_FILE_VERSION ==
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+
+    teardown();
+    os::unlink(Globals::opath(".test"));
 
     /* now the same, environment-based */
-    BFC_ASSERT_EQUAL(true,
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"),
-        BFC_OPATH(".test")));
-    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+    REQUIRE(true ==
+      os::copy(Globals::ipath("data/dupe-endian-test-open-database-be.hdb"),
+        Globals::opath(".test")));
+    REQUIRE(HAM_INV_FILE_VERSION ==
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
 
     teardown();
-    os::unlink(BFC_OPATH(".test"));
+    os::unlink(Globals::opath(".test"));
 
-    BFC_ASSERT_EQUAL(true,
-      os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"),
-        BFC_OPATH(".test")));
+    REQUIRE(true ==
+      os::copy(Globals::ipath("data/dupe-endian-test-open-database-le.hdb"),
+        Globals::opath(".test")));
 
-    BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION,
-        ham_env_open(&m_env, BFC_OPATH(".test"), 0, 0));
+    REQUIRE(HAM_INV_FILE_VERSION ==
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
 #endif
   }
 
@@ -154,23 +133,22 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"), HAM_DISABLE_MMAP,
                 0664, &set_params[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_env_get_parameters(m_env, params));
+    REQUIRE(0 == ham_env_get_parameters(m_env, params));
 
-    BFC_ASSERT_EQUAL(1024 * 32u,
-        get_param_value(params, HAM_PARAM_CACHESIZE));
-    BFC_ASSERT_EQUAL(1024 * 64u,
-        get_param_value(params, HAM_PARAM_PAGESIZE));
-    BFC_ASSERT_EQUAL((ham_u64_t)32,
-        get_param_value(params, HAM_PARAM_MAX_DATABASES));
-    BFC_ASSERT_EQUAL((ham_u64_t)HAM_DISABLE_MMAP,
+    REQUIRE(get_param_value(params, HAM_PARAM_CACHESIZE)
+                    == (ham_u64_t)(1024 * 32));
+    REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
+                    == (ham_u64_t)(1024 * 64));
+    REQUIRE(get_param_value(params, HAM_PARAM_MAX_DATABASES) == 32ull);
+    REQUIRE((ham_u64_t)HAM_DISABLE_MMAP ==
         get_param_value(params, HAM_PARAM_FLAGS));
-    BFC_ASSERT_EQUAL((ham_u64_t)0664,
+    REQUIRE((ham_u64_t)0664 ==
         get_param_value(params, HAM_PARAM_FILEMODE));
-    BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
+    REQUIRE(0 == strcmp(Globals::opath(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
   }
 
@@ -192,26 +170,26 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"), HAM_DISABLE_MMAP,
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"), HAM_DISABLE_MMAP,
                 0664, &set_params[0]));
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_open(&m_env, BFC_OPATH(".test"), HAM_READ_ONLY, 0));
+    REQUIRE(0 ==
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_READ_ONLY, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_env_get_parameters(m_env, params));
+    REQUIRE(0 == ham_env_get_parameters(m_env, params));
 
-    BFC_ASSERT_EQUAL((ham_u64_t)HAM_DEFAULT_CACHESIZE,
+    REQUIRE((ham_u64_t)HAM_DEFAULT_CACHESIZE ==
         get_param_value(params, HAM_PARAM_CACHESIZE));
-    BFC_ASSERT_EQUAL(1024 * 64u,
-        get_param_value(params, HAM_PARAM_PAGESIZE));
-    BFC_ASSERT_EQUAL((ham_u64_t)32,
+    REQUIRE(get_param_value(params, HAM_PARAM_PAGESIZE)
+                    == (ham_u64_t)(1024 * 64));
+    REQUIRE((ham_u64_t)32 ==
         get_param_value(params, HAM_PARAM_MAX_DATABASES));
-    BFC_ASSERT_EQUAL((ham_u64_t)HAM_READ_ONLY,
+    REQUIRE((ham_u64_t)HAM_READ_ONLY ==
         get_param_value(params, HAM_PARAM_FLAGS));
-    BFC_ASSERT_EQUAL((ham_u64_t)0644,
+    REQUIRE((ham_u64_t)0644 ==
         get_param_value(params, HAM_PARAM_FILEMODE));
-    BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
+    REQUIRE(0 == strcmp(Globals::opath(".test"),
         (char *)get_param_value(params, HAM_PARAM_FILENAME)));
   }
 
@@ -236,20 +214,20 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test.db"),
             HAM_CACHE_STRICT, 0644, &env_params[0]));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
-    BFC_ASSERT_EQUAL(16u,
+    REQUIRE(0 == ham_db_get_parameters(m_db, params));
+    REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    BFC_ASSERT_EQUAL((ham_u64_t)36,
+    REQUIRE((ham_u64_t)36 ==
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-    BFC_ASSERT_EQUAL((ham_u64_t)1,
+    REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
+    REQUIRE((unsigned)HAM_CACHE_STRICT ==
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 
@@ -274,24 +252,24 @@ public:
     };
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test.db"),
             HAM_CACHE_STRICT, 0644, &env_params[0]));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
-    BFC_ASSERT_EQUAL(0, ham_db_close(m_db, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 == ham_db_close(m_db, 0));
+    REQUIRE(0 ==
         ham_env_open_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_db_get_parameters(m_db, params));
-    BFC_ASSERT_EQUAL(16u,
+    REQUIRE(0 == ham_db_get_parameters(m_db, params));
+    REQUIRE(16u ==
         get_param_value(params, HAM_PARAM_KEYSIZE));
-    BFC_ASSERT_EQUAL((ham_u64_t)36,
+    REQUIRE((ham_u64_t)36 ==
         get_param_value(params, HAM_PARAM_MAX_KEYS_PER_PAGE));
-    BFC_ASSERT_EQUAL((ham_u64_t)1,
+    REQUIRE((ham_u64_t)1 ==
         get_param_value(params, HAM_PARAM_DATABASE_NAME));
-    BFC_ASSERT_EQUAL((unsigned)HAM_CACHE_STRICT,
+    REQUIRE((unsigned)HAM_CACHE_STRICT ==
         get_param_value(params, HAM_PARAM_FLAGS));
   }
 
@@ -300,17 +278,17 @@ public:
     ham_cursor_t *cursor;
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test.db"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
 
-    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+    REQUIRE(HAM_INV_PARAMETER ==
           ham_cursor_find(cursor, &key, 0, HAM_FIND_GEQ_MATCH));
 
-    BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    REQUIRE(0 == ham_cursor_close(cursor));
   }
 
   void issue7Test() {
@@ -326,21 +304,67 @@ public:
     key2.size = strlen("Foo")+1;
 
     teardown();
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test.db"),
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test.db"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_env, 0, 0, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_insert(m_db, txn, &key1, &rec1, 0));
-    BFC_ASSERT_EQUAL(0, ham_db_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
-    BFC_ASSERT_EQUAL(0, strcmp((const char *)key2.data, "FooBar"));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ham_db_insert(m_db, txn, &key1, &rec1, 0));
+    REQUIRE(0 == ham_db_find(m_db, txn, &key2, &rec2, HAM_FIND_GT_MATCH));
+    REQUIRE(0 == strcmp((const char *)key2.data, "FooBar"));
 
-    BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    REQUIRE(0 == ham_txn_abort(txn, 0));
   }
 };
 
 
-BFC_REGISTER_FIXTURE(APIv110Test);
+TEST_CASE("APIv110/transactionTest", "")
+{
+  APIv110Fixture f;
+  f.transactionTest();
+}
+
+TEST_CASE("APIv110/v10xDBformatDetectTest", "")
+{
+  APIv110Fixture f;
+  f.v10xDBformatDetectTest();
+}
+
+TEST_CASE("APIv110/getInitializedEnvParamsTest", "")
+{
+  APIv110Fixture f;
+  f.getInitializedEnvParamsTest();
+}
+
+TEST_CASE("APIv110/getInitializedReadonlyEnvParamsTest", "")
+{
+  APIv110Fixture f;
+  f.getInitializedReadonlyEnvParamsTest();
+}
+
+TEST_CASE("APIv110/getInitializedDbParamsTest", "")
+{
+  APIv110Fixture f;
+  f.getInitializedDbParamsTest();
+}
+
+TEST_CASE("APIv110/getInitializedReadonlyDbParamsTest", "")
+{
+  APIv110Fixture f;
+  f.getInitializedReadonlyDbParamsTest();
+}
+
+TEST_CASE("APIv110/negativeApproxMatchingTest", "")
+{
+  APIv110Fixture f;
+  f.negativeApproxMatchingTest();
+}
+
+TEST_CASE("APIv110/issue7Test", "")
+{
+  APIv110Fixture f;
+  f.issue7Test();
+}
 

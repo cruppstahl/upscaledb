@@ -11,101 +11,69 @@
 
 #include "../src/config.h"
 
-#include <stdexcept>
-#include <cstring>
-#include <ham/hamsterdb.h>
-#include "../src/db.h"
-#include "../src/device.h"
-#include "../src/env.h"
+#include "3rdparty/catch/catch.hpp"
+
+#include "globals.h"
 #include "os.hpp"
 
-#include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
+#include "../src/device.h"
+#include "../src/env.h"
 
-using namespace bfc;
 using namespace hamsterdb;
 
-class DeviceTest : public hamsterDB_fixture
+struct DeviceFixture
 {
-  define_super(hamsterDB_fixture);
-
-public:
-  DeviceTest(bool inmemory = false, const char *name = "DeviceTest")
-    : hamsterDB_fixture(name), m_db(0), m_inmemory(inmemory), m_dev(0) {
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(DeviceTest, newDeleteTest);
-    BFC_REGISTER_TEST(DeviceTest, createCloseTest);
-    BFC_REGISTER_TEST(DeviceTest, openCloseTest);
-    BFC_REGISTER_TEST(DeviceTest, allocTest);
-    BFC_REGISTER_TEST(DeviceTest, allocFreeTest);
-    BFC_REGISTER_TEST(DeviceTest, flushTest);
-    BFC_REGISTER_TEST(DeviceTest, mmapUnmapTest);
-    BFC_REGISTER_TEST(DeviceTest, readWriteTest);
-    BFC_REGISTER_TEST(DeviceTest, readWritePageTest);
-  }
-
-protected:
   ham_db_t *m_db;
   ham_env_t *m_env;
-  bool m_inmemory;
   Device *m_dev;
 
-public:
-  virtual void setup() {
-    __super::setup();
+  DeviceFixture(bool inmemory) {
+    (void)os::unlink(Globals::opath(".test"));
 
-    (void)os::unlink(BFC_OPATH(".test"));
-
-    BFC_ASSERT_EQUAL(0,
-        ham_env_create(&m_env, BFC_OPATH(".test"),
-            m_inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
-    BFC_ASSERT_EQUAL(0,
+    REQUIRE(0 ==
+        ham_env_create(&m_env, Globals::opath(".test"),
+            inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
+    REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
     m_dev = ((Environment *)m_env)->get_device();
   }
 
-  virtual void teardown() {
-    __super::teardown();
-
-    BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+  ~DeviceFixture() {
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   void newDeleteTest() {
   }
 
   void createCloseTest() {
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    if (!m_inmemory) {
-      BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(false, m_dev->is_open());
-      BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    }
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->close());
+    REQUIRE(false == m_dev->is_open());
+    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    REQUIRE(true == m_dev->is_open());
   }
 
   void openCloseTest() {
-    if (!m_inmemory) {
-      BFC_ASSERT_EQUAL(true, m_dev->is_open());
-      BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(false, m_dev->is_open());
-      BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(true, m_dev->is_open());
-      BFC_ASSERT_EQUAL(0, m_dev->close());
-      BFC_ASSERT_EQUAL(false, m_dev->is_open());
-      BFC_ASSERT_EQUAL(0, m_dev->open(BFC_OPATH(".test"), 0));
-      BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    }
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->close());
+    REQUIRE(false == m_dev->is_open());
+    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->close());
+    REQUIRE(false == m_dev->is_open());
+    REQUIRE(0 == m_dev->open(Globals::opath(".test"), 0));
+    REQUIRE(true == m_dev->is_open());
   }
 
   void allocTest() {
     int i;
     ham_u64_t address;
 
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
+    REQUIRE(true == m_dev->is_open());
     for (i = 0; i < 10; i++) {
-      BFC_ASSERT_EQUAL(0, m_dev->alloc(1024, &address));
-      BFC_ASSERT_EQUAL((((Environment *)m_env)->get_pagesize() * 2) + 1024 * i,
-                address);
+      REQUIRE(0 == m_dev->alloc(1024, &address));
+      REQUIRE(address ==
+                  (((Environment *)m_env)->get_pagesize() * 2) + 1024 * i);
     }
   }
 
@@ -113,16 +81,16 @@ public:
     Page page((Environment *)m_env);
     page.set_db((Database *)m_db);
 
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->alloc_page(&page));
-    BFC_ASSERT(page.get_pers() != 0);
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->alloc_page(&page));
+    REQUIRE(page.get_pers() != 0);
     m_dev->free_page(&page);
   }
 
   void flushTest() {
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->flush());
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->flush());
+    REQUIRE(true == m_dev->is_open());
   }
 
   void mmapUnmapTest() {
@@ -131,26 +99,26 @@ public:
     ham_size_t ps = HAM_DEFAULT_PAGESIZE;
     ham_u8_t *temp = (ham_u8_t *)malloc(ps);
 
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 10));
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->truncate(ps * 10));
     for (i = 0; i < 10; i++) {
       memset(&pages[i], 0, sizeof(Page));
       pages[i].set_db((Database *)m_db);
       pages[i].set_self(i * ps);
-      BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
+      REQUIRE(0 == m_dev->read_page(&pages[i]));
     }
     for (i = 0; i < 10; i++)
       memset(pages[i].get_pers(), i, ps);
     for (i = 0; i < 10; i++)
-      BFC_ASSERT_EQUAL(0, m_dev->write_page(&pages[i]));
+      REQUIRE(0 == m_dev->write_page(&pages[i]));
     for (i = 0; i < 10; i++) {
       ham_u8_t *buffer;
       memset(temp, i, ps);
       m_dev->free_page(&pages[i]);
 
-      BFC_ASSERT_EQUAL(0, m_dev->read_page(&pages[i]));
+      REQUIRE(0 == m_dev->read_page(&pages[i]));
       buffer = (ham_u8_t *)pages[i].get_pers();
-      BFC_ASSERT_EQUAL(0, memcmp(buffer, temp, ps));
+      REQUIRE(0 == memcmp(buffer, temp, ps));
     }
     for (i = 0; i < 10; i++)
       m_dev->free_page(&pages[i]);
@@ -165,20 +133,20 @@ public:
 
     m_dev->test_disable_mmap();
 
-    BFC_ASSERT_EQUAL(true, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 10));
+    REQUIRE(true == m_dev->is_open());
+    REQUIRE(0 == m_dev->truncate(ps * 10));
     for (i = 0; i < 10; i++) {
       buffer[i] = (ham_u8_t *)malloc(ps);
-      BFC_ASSERT_EQUAL(0, m_dev->read(i * ps, buffer[i], ps));
+      REQUIRE(0 == m_dev->read(i * ps, buffer[i], ps));
     }
     for (i = 0; i < 10; i++)
       memset(buffer[i], i, ps);
     for (i = 0; i < 10; i++)
-      BFC_ASSERT_EQUAL(0, m_dev->write(i * ps, buffer[i], ps));
+      REQUIRE(0 == m_dev->write(i * ps, buffer[i], ps));
     for (i = 0; i < 10; i++) {
-      BFC_ASSERT_EQUAL(0, m_dev->read(i * ps, buffer[i], ps));
+      REQUIRE(0 == m_dev->read(i * ps, buffer[i], ps));
       memset(temp, i, ps);
-      BFC_ASSERT_EQUAL(0, memcmp(buffer[i], temp, ps));
+      REQUIRE(0 == memcmp(buffer[i], temp, ps));
       free(buffer[i]);
     }
     free(temp);
@@ -191,17 +159,17 @@ public:
 
     m_dev->test_disable_mmap();
 
-    BFC_ASSERT_EQUAL(1, m_dev->is_open());
-    BFC_ASSERT_EQUAL(0, m_dev->truncate(ps * 2));
+    REQUIRE(1 == m_dev->is_open());
+    REQUIRE(0 == m_dev->truncate(ps * 2));
     for (i = 0; i < 2; i++) {
-      BFC_ASSERT((pages[i] = new Page((Environment *)m_env)));
+      REQUIRE((pages[i] = new Page((Environment *)m_env)));
       pages[i]->set_self(ps * i);
-      BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
+      REQUIRE(0 == m_dev->read_page(pages[i]));
     }
     for (i = 0; i < 2; i++) {
-      BFC_ASSERT(pages[i]->get_flags() & Page::NPERS_MALLOC);
+      REQUIRE((pages[i]->get_flags() & Page::NPERS_MALLOC) != 0);
       memset(pages[i]->get_pers(), i + 1, ps);
-      BFC_ASSERT_EQUAL(0, m_dev->write_page(pages[i]));
+      REQUIRE(0 == m_dev->write_page(pages[i]));
       pages[i]->free();
       delete pages[i];
     }
@@ -209,31 +177,86 @@ public:
     for (i = 0; i < 2; i++) {
       char temp[1024];
       memset(temp, i + 1, sizeof(temp));
-      BFC_ASSERT((pages[i] = new Page((Environment *)m_env)));
+      REQUIRE((pages[i] = new Page((Environment *)m_env)));
       pages[i]->set_self(ps * i);
-      BFC_ASSERT_EQUAL(0, m_dev->read_page(pages[i]));
-      BFC_ASSERT_EQUAL(0, memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
+      REQUIRE(0 == m_dev->read_page(pages[i]));
+      REQUIRE(0 == memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
       pages[i]->free();
       delete pages[i];
     }
   }
-
 };
 
-class InMemoryDeviceTest : public DeviceTest {
-public:
-  InMemoryDeviceTest()
-    : DeviceTest(true, "InMemoryDeviceTest") {
-    clear_tests(); // don't inherit tests
-    testrunner::get_instance()->register_fixture(this);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, newDeleteTest);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, createCloseTest);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, openCloseTest);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, allocFreeTest);
-    BFC_REGISTER_TEST(InMemoryDeviceTest, flushTest);
-  }
-};
+TEST_CASE("Device/newDelete", "")
+{
+  DeviceFixture f(false);
+  f. newDeleteTest();
+}
 
-BFC_REGISTER_FIXTURE(DeviceTest);
-BFC_REGISTER_FIXTURE(InMemoryDeviceTest);
+TEST_CASE("Device/createClose", "")
+{
+  DeviceFixture f(false);
+  f. createCloseTest();
+}
+
+TEST_CASE("Device/openClose", "")
+{
+  DeviceFixture f(false);
+  f. openCloseTest();
+}
+
+TEST_CASE("Device/alloc", "")
+{
+  DeviceFixture f(false);
+  f. allocTest();
+}
+
+TEST_CASE("Device/allocFree", "")
+{
+  DeviceFixture f(false);
+  f. allocFreeTest();
+}
+
+TEST_CASE("Device/flush", "")
+{
+  DeviceFixture f(false);
+  f. flushTest();
+}
+
+TEST_CASE("Device/mmapUnmap", "")
+{
+  DeviceFixture f(false);
+  f. mmapUnmapTest();
+}
+
+TEST_CASE("Device/readWrite", "")
+{
+  DeviceFixture f(false);
+  f. readWriteTest();
+}
+
+TEST_CASE("Device/readWritePage", "")
+{
+  DeviceFixture f(false);
+  f. readWritePageTest();
+}
+
+
+TEST_CASE("Device-inmem/newDelete", "")
+{
+  DeviceFixture f(true);
+  f. newDeleteTest();
+}
+
+TEST_CASE("Device-inmem/allocFree", "")
+{
+  DeviceFixture f(true);
+  f. allocFreeTest();
+}
+
+TEST_CASE("Device-inmem/flush", "")
+{
+  DeviceFixture f(true);
+  f. flushTest();
+}
 
