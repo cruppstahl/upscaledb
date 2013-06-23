@@ -1319,11 +1319,6 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
       case HAM_PARAM_DATABASE_NAME:
         p->value = (ham_u64_t)get_name();
         break;
-      case HAM_PARAM_FREELIST_POLICY:
-        p->value = get_rt_flags() & DB_REDUCED_FREELIST
-                    ? HAM_PARAM_FREELIST_POLICY_REDUCED
-                    : HAM_PARAM_FREELIST_POLICY_FULL;
-        break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
         if (get_btree()) {
           ham_size_t count = 0, size = get_keysize();

@@ -672,20 +672,6 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
  *
- * Starting with 2.1.1 you can choose a "freelist policy" by setting the
- * parameter @ref HAM_PARAM_FREELIST_POLICY. Two policies are supported:
- * <ul>
- *   <li>@ref HAM_PARAM_FREELIST_POLICY_FULL</li> to fully reuse the free
- *   space in the file. This aligns blobs to 32byte chunks and stores the
- *   freelist information in a persistent bitmap. Slower, but recommended
- *   if the application erases many key/record pairs. This is enabled by
- *   default.
- *   <li>@ref HAM_PARAM_FREELIST_POLICY_REDUCED</li> if the application does
- *   not erase many key/value pairs, or frequently inserts new records
- *   immediately after erasing others. The reduced freelist only keeps track
- *   of the largest free areas and does not persist those areas to disk.
- * </ul>
- *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *      Database. To close the handle, use @ref ham_db_close.
@@ -718,9 +704,6 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <ul>
  *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *      index. The default size is 21 bytes.
- *    <li>@ref HAM_PARAM_FREELIST_POLICY </li> Either @ref
- *      HAM_PARAM_FREELIST_POLICY_FULL or
- *      @ref HAM_PARAM_FREELIST_POLICY_REDUCED. This flag is persisted.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1529,9 +1512,6 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_KEYSIZE</li> returns the Btree key size
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
- *    <li>HAM_PARAM_FREELIST_POLICY</li> returns the freelist policy
- *        for this database (@ref HAM_PARAM_FREELIST_POLICY_FULL or
- *        @ref HAM_PARAM_FREELIST_POLICY_REDUCED)
  *    </ul>
  *
  * @param db A valid Database handle
@@ -1561,13 +1541,6 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
-
-/** Parameter name for @ref ham_env_create_db: sets the freelist policy */
-#define HAM_PARAM_FREELIST_POLICY       0x00000106
-
-#define HAM_PARAM_FREELIST_POLICY_FULL           0
-
-#define HAM_PARAM_FREELIST_POLICY_REDUCED        1
 
 /**
  * Retrieve the Database/Environment flags as were specified at the time of

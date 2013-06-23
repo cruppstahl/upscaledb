@@ -1914,62 +1914,6 @@ struct HamsterdbFixture {
 
     REQUIRE(0 == ham_env_close(env, 0));
   }
-
-  void persistentFreelistPolicyTest() {
-    ham_env_t *env;
-    ham_db_t *db;
-    ham_parameter_t params[] = {
-        { HAM_PARAM_FREELIST_POLICY, HAM_PARAM_FREELIST_POLICY_FULL },
-        { 0, 0 }
-    };
-
-    ham_parameter_t params_out[] = {
-        { HAM_PARAM_FREELIST_POLICY, 0 },
-        { 0, 0 }
-    };
-
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, 0, &params[0]));
-    REQUIRE(0 == ham_db_get_parameters(db, &params_out[0]));
-    REQUIRE(HAM_PARAM_FREELIST_POLICY_FULL == (int)params_out[0].value);
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-
-    REQUIRE(0 ==
-        ham_env_open(&env, Globals::opath("test.db"), 0, 0));
-    REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
-    REQUIRE(0 == ham_db_get_parameters(db, &params_out[0]));
-    REQUIRE(HAM_PARAM_FREELIST_POLICY_FULL == (int)params_out[0].value);
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-
-    params[0].value = HAM_PARAM_FREELIST_POLICY_REDUCED;
-
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, 0, &params[0]));
-    REQUIRE(0 == ham_db_get_parameters(db, &params_out[0]));
-    REQUIRE(HAM_PARAM_FREELIST_POLICY_REDUCED ==
-            (int)params_out[0].value);
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-
-    REQUIRE(0 ==
-        ham_env_open(&env, Globals::opath("test.db"), 0, 0));
-    REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
-    REQUIRE(0 == ham_db_get_parameters(db, &params_out[0]));
-    REQUIRE(HAM_PARAM_FREELIST_POLICY_REDUCED ==
-            (int)params_out[0].value);
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-
-    params[0].value = 999;
-
-    REQUIRE(0 ==
-        ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
-    REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_create_db(env, &db, 1, 0, &params[0]));
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
-  }
 };
 
 TEST_CASE("Hamsterdb/versionTest", "")
@@ -2336,11 +2280,5 @@ TEST_CASE("Hamsterdb/overwriteLogDirectoryTest", "")
 {
   HamsterdbFixture f;
   f.overwriteLogDirectoryTest();
-}
-
-TEST_CASE("Hamsterdb/persistentFreelistPolicyTest", "")
-{
-  HamsterdbFixture f;
-  f.persistentFreelistPolicyTest();
 }
 

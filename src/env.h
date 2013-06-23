@@ -50,9 +50,6 @@ namespace hamsterdb {
 /** An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                        0x00200000
 
-/** An internal database flag - use the reduced freelist */
-#define DB_REDUCED_FREELIST                 0x00400000
-
 #include "packstart.h"
 
 /**
