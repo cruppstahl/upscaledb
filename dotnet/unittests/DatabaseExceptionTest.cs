@@ -19,7 +19,7 @@ using Hamster;
 namespace Unittests
 {
     [TestClass()]
-    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.1.0.dll")]
+    [DeploymentItem("..\\win32\\msvc2008\\out\\dll_debug\\hamsterdb-2.1.1.dll")]
     public class DatabaseExceptionTest
     {
         [TestMethod()]

@@ -7,7 +7,7 @@ dnl information
 dnl
 
 dnl Initialize autoconf/automake
-AC_INIT(hamsterdb, 2.1.0)
+AC_INIT(hamsterdb, 2.1.1)
 LT_INIT
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/hamsterdb.cc)

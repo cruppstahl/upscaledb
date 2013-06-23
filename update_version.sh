@@ -17,8 +17,6 @@ fi
 FILES="README
 configure.in
 documentation/Doxyfile
-documentation/Doxyfile.bfc
-documentation/Doxyfile.int
 win32/msvc2008/dll.vcproj
 win32/msvc2008/lib.vcproj
 win32/msvc2008/server_dll.vcproj
