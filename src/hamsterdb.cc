@@ -24,7 +24,7 @@
 #  include <curl/curl.h>
 #  include <curl/easy.h>
 #  include "protocol/protocol.h"
-#endif // HAM_ENABLE_REMOTE
+#endif
 
 #include "blob.h"
 #include "btree.h"
