@@ -25,6 +25,7 @@ test_SOURCES    = api110.cpp \
                   error.cpp \
                   extkeys.cpp \
                   freelist.cpp \
+                  globals.h \
                   hamsterdb.cpp \
                   journal.cpp \
                   log.cpp \
