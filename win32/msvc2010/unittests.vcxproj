@@ -78,7 +78,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -103,7 +103,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -124,7 +124,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -148,7 +148,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -168,11 +168,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="lib.vcxproj">
+      <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="server_lib.vcxproj">
+      <Project>{11dcd767-dfbe-4196-9258-111d4caf09b0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\..\unittests\api110.cpp" />
     <ClCompile Include="..\..\unittests\approx.cpp" />
-    <ClCompile Include="..\..\unittests\bfc-signal.c" />
-    <ClCompile Include="..\..\unittests\bfc-testsuite.cpp" />
-    <ClCompile Include="..\..\unittests\blob.cpp" />
+    <ClCompile Include="..\..\unittests\blob_manager.cpp" />
     <ClCompile Include="..\..\unittests\btree_cursor.cpp" />
     <ClCompile Include="..\..\unittests\btree_erase.cpp" />
     <ClCompile Include="..\..\unittests\btree_insert.cpp" />
@@ -185,7 +193,6 @@
     <ClCompile Include="..\..\unittests\db.cpp" />
     <ClCompile Include="..\..\unittests\device.cpp" />
     <ClCompile Include="..\..\unittests\duplicates.cpp" />
-    <ClCompile Include="..\..\unittests\empty_sample.cpp" />
     <ClCompile Include="..\..\unittests\endian.cpp" />
     <ClCompile Include="..\..\unittests\env.cpp" />
     <ClCompile Include="..\..\unittests\error.cpp" />
@@ -198,6 +205,7 @@
     <ClCompile Include="..\..\unittests\misc.cpp" />
     <ClCompile Include="..\..\unittests\os.cpp" />
     <ClCompile Include="..\..\unittests\page.cpp" />
+    <ClCompile Include="..\..\unittests\page_manager.cpp" />
     <ClCompile Include="..\..\unittests\partial.cpp" />
     <ClCompile Include="..\..\unittests\recno.cpp" />
     <ClCompile Include="..\..\unittests\remote.cpp" />
@@ -205,20 +213,44 @@
     <ClCompile Include="..\..\unittests\txn_cursor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\unittests\bfc-signal.h" />
-    <ClInclude Include="..\..\unittests\bfc-testsuite.hpp" />
-    <ClInclude Include="..\..\unittests\hamster_fixture.hpp" />
+    <ClInclude Include="..\..\3rdparty\catch\catch.hpp" />
+    <ClInclude Include="..\..\unittests\globals.h" />
     <ClInclude Include="..\..\unittests\os.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="lib.vcxproj">
-      <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="server_lib.vcxproj">
-      <Project>{11dcd767-dfbe-4196-9258-111d4caf09b0}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-inmem-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-overwrite-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-read-direct-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-read-direct-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-read-direct-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-read-direct-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-read-direct-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-read-inmem-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-read-inmem-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-read-inmem-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-read-inmem-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-read-inmem-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-read-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-read-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-read-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-read-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-read-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-write-inmem-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-write-inmem-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-write-inmem-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-write-inmem-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-write-inmem-ps64.h" />
+    <ClInclude Include="..\..\unittests\partial-write-ps1.h" />
+    <ClInclude Include="..\..\unittests\partial-write-ps16.h" />
+    <ClInclude Include="..\..\unittests\partial-write-ps2.h" />
+    <ClInclude Include="..\..\unittests\partial-write-ps4.h" />
+    <ClInclude Include="..\..\unittests\partial-write-ps64.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

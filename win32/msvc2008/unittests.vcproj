@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
 				PreprocessorDefinitions="WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -123,7 +123,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
 				PreprocessorDefinitions="WIN64;WIN32;HAM_DEBUG;DEBUG;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -201,7 +201,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -279,7 +279,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../..;../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -344,23 +344,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\bfc-signal.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\unittests\bfc-signal.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\unittests\bfc-testsuite.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\unittests\bfc-testsuite.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\unittests\blob.cpp"
+			RelativePath="..\..\unittests\blob_manager.cpp"
 			>
 		</File>
 		<File
@@ -381,6 +365,10 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\cache.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\3rdparty\catch\catch.hpp"
 			>
 		</File>
 		<File
@@ -412,10 +400,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\empty_sample.cpp"
-			>
-		</File>
-		<File
 			RelativePath="..\..\unittests\endian.cpp"
 			>
 		</File>
@@ -436,7 +420,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\unittests\hamster_fixture.hpp"
+			RelativePath="..\..\unittests\globals.h"
 			>
 		</File>
 		<File
@@ -469,6 +453,150 @@
 		</File>
 		<File
 			RelativePath="..\..\unittests\page.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\page_manager.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-inmem-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-inmem-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-inmem-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-inmem-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-inmem-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-overwrite-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-direct-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-direct-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-direct-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-direct-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-direct-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-inmem-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-inmem-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-inmem-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-inmem-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-inmem-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-read-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-inmem-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-inmem-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-inmem-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-inmem-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-inmem-ps64.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-ps1.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-ps16.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-ps2.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-ps4.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\unittests\partial-write-ps64.h"
 			>
 		</File>
 		<File

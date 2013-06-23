@@ -487,7 +487,7 @@ struct RecordNumberFixture {
     BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     Page *page;
     REQUIRE(0 == ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));
-    REQUIRE(page != 0);
+    REQUIRE(page);
     REQUIRE(0 == page->uncouple_all_cursors());
 
     for (int i = 0; i < 5; i++) {

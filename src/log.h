@@ -169,8 +169,8 @@ class Log
     ham_status_t recover();
 
   private:
-	friend class LogFixture;
-	friend class LogHighLevelFixture;
+	friend struct LogFixture;
+	friend struct LogHighLevelFixture;
 
     /**
      * returns the next log entry

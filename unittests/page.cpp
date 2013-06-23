@@ -52,7 +52,7 @@ struct PageFixture {
   void newDeleteTest() {
     Page *page;
     page = new Page((Environment *)m_env);
-    REQUIRE(page != 0);
+    REQUIRE(page);
     delete page;
   }
 

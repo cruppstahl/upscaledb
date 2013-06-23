@@ -269,23 +269,24 @@ TEST_CASE("OsTest/writevTest",
   char buffer[128];
 
   REQUIRE(0 == os_create(Globals::opath(".test"), 0, 0664, &fd));
-  REQUIRE(0 == os_truncate(fd, 128));
-
   REQUIRE(0 ==
       os_writev(fd, (void *)hello, strlen(hello),
             (void *)world, strlen(world) + 1));
+  REQUIRE(0 == os_close(fd));
+  
   memset(buffer, 0, sizeof(buffer));
-  REQUIRE(0 == os_pread(fd, 0, buffer, sizeof(buffer)));
+  REQUIRE(0 == os_open(Globals::opath(".test"), 0, &fd));
+  REQUIRE(0 == os_pread(fd, 0, buffer, 12));
   REQUIRE(0 == strcmp("hello world!", buffer));
 
   REQUIRE(0 == os_seek(fd, 10, HAM_OS_SEEK_SET));
   REQUIRE(0 ==
       os_writev(fd, (void *)hello, strlen(hello),
             (void *)world, strlen(world) + 1));
-  REQUIRE(0 == os_pread(fd, 10, buffer, sizeof(buffer)-10));
-  REQUIRE(0 == strcmp("hello world!", buffer));
-
+  REQUIRE(0 == os_pread(fd, 10, buffer, 12));
   REQUIRE(0 == os_close(fd));
+
+  REQUIRE(0 == strcmp("hello world!", buffer));
 }
 
 TEST_CASE("OsTest/seekTellTest",

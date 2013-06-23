@@ -46,8 +46,8 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE(((Environment *)m_env)->get_log() != 0);
-    REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY));
+    REQUIRE(((Environment *)m_env)->get_log() != (Log *)0);
+    REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY) != 0);
   }
 
   void beginCommitTest() {
@@ -149,7 +149,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->get_optree();
-    REQUIRE(tree != 0);
+    REQUIRE(tree != (TransactionIndex *)0);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -160,7 +160,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->get_optree();
-    REQUIRE(tree != 0);
+    REQUIRE(tree);
     tree2 = m_dbp->get_optree();
     REQUIRE(tree == tree2);
 
@@ -203,7 +203,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key1);
-    REQUIRE(node != 0);
+    REQUIRE(node);
     node2 = m_dbp->get_optree()->get(&key1, 0);
     REQUIRE(node == node2);
     node2 = m_dbp->get_optree()->get(&key2, 0);
@@ -226,10 +226,10 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key);
-    REQUIRE(node1 != 0);
+    REQUIRE(node1);
     key.data = (void *)"2222";
     node2 = new TransactionNode(m_dbp, &key);
-    REQUIRE(node2 != 0);
+    REQUIRE(node2);
     key.data = (void *)"3333";
     node3 = new TransactionNode(m_dbp, &key);
     REQUIRE(node3 != 0);
@@ -254,13 +254,13 @@ struct TxnFixture {
     node = new TransactionNode(m_dbp, &key);
     op1 = node->append((Transaction *)txn, 
         0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
-    REQUIRE(op1 != 0);
+    REQUIRE(op1);
     op2 = node->append((Transaction *)txn,
         0, TransactionOperation::TXN_OP_ERASE, 55, &rec);
-    REQUIRE(op2 != 0);
+    REQUIRE(op2);
     op3 = node->append((Transaction *)txn,
         0, TransactionOperation::TXN_OP_NOP, 55, &rec);
-    REQUIRE(op3 != 0);
+    REQUIRE(op3);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -786,8 +786,8 @@ struct HighLevelTxnFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()));
-    REQUIRE((HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_rt_flags()));
+    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_rt_flags()) != 0);
+    REQUIRE((HAM_ENABLE_RECOVERY & ((Database *)m_db)->get_rt_flags()) != 0);
     teardown();
 
     REQUIRE(0 ==
@@ -801,8 +801,8 @@ struct HighLevelTxnFixture {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
-    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
-    REQUIRE((HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
+    REQUIRE((HAM_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()) != 0);
+    REQUIRE((HAM_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()) != 0);
     REQUIRE(0 == ham_env_close(m_env, 0));
 
     REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
@@ -1036,9 +1036,9 @@ struct HighLevelTxnFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     key.data = (void *)keydata;
-    key.size = strlen(keydata) + 1;
+    key.size = (ham_u16_t)strlen(keydata) + 1;
     rec.data = (void *)recorddata;
-    rec.size = strlen(recorddata) + 1;
+    rec.size = (ham_u32_t)strlen(recorddata) + 1;
 
     return (ham_db_insert(m_db, txn, &key, &rec, flags));
   }
@@ -1051,13 +1051,13 @@ struct HighLevelTxnFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     key.data = (void *)keydata;
-    key.size = strlen(keydata) + 1;
+    key.size = (ham_u16_t)strlen(keydata) + 1;
 
-    st=ham_db_find(m_db, txn, &key, &rec, 0);
+    st = ham_db_find(m_db, txn, &key, &rec, 0);
     if (st)
       return (st);
     REQUIRE(0 == strcmp(recorddata, (char *)rec.data));
-    REQUIRE(rec.size == strlen(recorddata) + 1);
+    REQUIRE(rec.size == (ham_u32_t)strlen(recorddata) + 1);
     return (0);
   }
 

@@ -83,7 +83,7 @@ struct DeviceFixture
 
     REQUIRE(true == m_dev->is_open());
     REQUIRE(0 == m_dev->alloc_page(&page));
-    REQUIRE(page.get_pers() != 0);
+    REQUIRE(page.get_pers());
     m_dev->free_page(&page);
   }
 

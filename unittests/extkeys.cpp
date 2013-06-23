@@ -30,7 +30,7 @@ struct ExtendedKeyFixture {
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
     ExtKeyCache *c = new ExtKeyCache((Database *)m_db);
-    REQUIRE(c != 0);
+    REQUIRE(c);
     ((Database *)m_db)->set_extkey_cache(c);
   }
 

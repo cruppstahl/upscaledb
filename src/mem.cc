@@ -18,12 +18,12 @@
 #else
 #  include <stdlib.h>
 #endif
-#include <unistd.h> // for sysconf
 #ifdef HAVE_GOOGLE_TCMALLOC_H
 #  include <google/malloc_extension.h>
 #endif
 
 #include "mem.h"
+#include "os.h"
 
 namespace hamsterdb {
 
@@ -51,19 +51,15 @@ Memory::get_global_metrics(ham_env_metrics_t *metrics)
   metrics->mem_current_allocations = ms_current_allocations;
 }
 
-size_t 
-Memory::get_vm_pagesize()
-{
-  return ((size_t)::sysconf(_SC_PAGE_SIZE));
-}
-
 void 
 Memory::release_to_system()
 {
 #ifdef HAVE_GOOGLE_TCMALLOC_H
   MallocExtension::instance()->ReleaseFreeMemory();
 #else
-  ::malloc_trim(get_vm_pagesize());
+#  ifndef WIN32
+  ::malloc_trim(os_get_granularity());
+#  endif
 #endif
 }
 

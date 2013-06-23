@@ -93,7 +93,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 class PBtreeDescriptor;
 class PageManager;
-class PFreelistPayload;
+struct PFreelistPayload;
 
 /**
  * the Environment structure

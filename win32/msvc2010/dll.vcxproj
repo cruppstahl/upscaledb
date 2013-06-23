@@ -180,11 +180,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\blob.h" />
+    <ProjectReference Include="protocol.vcxproj">
+      <Project>{10dcd767-dfbe-4096-9258-111d4cf899b1}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\ham\hamsterdb.h" />
+    <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
+    <ClInclude Include="..\..\include\ham\types.h" />
+    <ClInclude Include="..\..\src\blob_manager.h" />
+    <ClInclude Include="..\..\src\blob_manager_disk.h" />
+    <ClInclude Include="..\..\src\blob_manager_factory.h" />
+    <ClInclude Include="..\..\src\blob_manager_inmem.h" />
     <ClInclude Include="..\..\src\btree.h" />
-    <ClInclude Include="..\..\src\btree_node.h" />
     <ClInclude Include="..\..\src\btree_cursor.h" />
     <ClInclude Include="..\..\src\btree_key.h" />
+    <ClInclude Include="..\..\src\btree_node.h" />
     <ClInclude Include="..\..\src\btree_stats.h" />
     <ClInclude Include="..\..\src\cache.h" />
     <ClInclude Include="..\..\src\changeset.h" />
@@ -192,33 +204,40 @@
     <ClInclude Include="..\..\src\cursor.h" />
     <ClInclude Include="..\..\src\db.h" />
     <ClInclude Include="..\..\src\device.h" />
+    <ClInclude Include="..\..\src\device_disk.h" />
+    <ClInclude Include="..\..\src\device_factory.h" />
+    <ClInclude Include="..\..\src\device_inmem.h" />
     <ClInclude Include="..\..\src\duplicates.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
     <ClInclude Include="..\..\src\error.h" />
+    <ClInclude Include="..\..\src\errorinducer.h" />
     <ClInclude Include="..\..\src\extkeys.h" />
     <ClInclude Include="..\..\src\freelist.h" />
-    <ClInclude Include="..\..\src\full_freelist_stats.h" />
-    <ClInclude Include="..\..\src\full_freelist.h" />
-    <ClInclude Include="..\..\src\reduced_freelist.h" />
+    <ClInclude Include="..\..\src\freelist_stats.h" />
+    <ClInclude Include="..\..\src\hash-table.h" />
     <ClInclude Include="..\..\src\internal_fwd_decl.h" />
     <ClInclude Include="..\..\src\journal.h" />
     <ClInclude Include="..\..\src\journal_entries.h" />
     <ClInclude Include="..\..\src\log.h" />
     <ClInclude Include="..\..\src\mem.h" />
+    <ClInclude Include="..\..\src\mutex.h" />
     <ClInclude Include="..\..\src\os.h" />
     <ClInclude Include="..\..\src\packstart.h" />
     <ClInclude Include="..\..\src\packstop.h" />
     <ClInclude Include="..\..\src\page.h" />
+    <ClInclude Include="..\..\src\page_manager.h" />
     <ClInclude Include="..\..\src\rb.h" />
     <ClInclude Include="..\..\src\serial.h" />
+    <ClInclude Include="..\..\src\statistics.h" />
     <ClInclude Include="..\..\src\txn.h" />
     <ClInclude Include="..\..\src\txn_cursor.h" />
     <ClInclude Include="..\..\src\util.h" />
     <ClInclude Include="..\..\src\version.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\blob.cc" />
+    <ClCompile Include="..\..\src\blob_manager_disk.cc" />
+    <ClCompile Include="..\..\src\blob_manager_inmem.cc" />
     <ClCompile Include="..\..\src\btree.cc" />
     <ClCompile Include="..\..\src\btree_check.cc" />
     <ClCompile Include="..\..\src\btree_cursor.cc" />
@@ -232,29 +251,22 @@
     <ClCompile Include="..\..\src\changeset.cc" />
     <ClCompile Include="..\..\src\cursor.cc" />
     <ClCompile Include="..\..\src\db.cc" />
-    <ClCompile Include="..\..\src\device.cc" />
     <ClCompile Include="..\..\src\duplicates.cc" />
     <ClCompile Include="..\..\src\env.cc" />
     <ClCompile Include="..\..\src\error.cc" />
-    <ClCompile Include="..\..\src\full_freelist_stats.cc" />
-    <ClCompile Include="..\..\src\full_freelist.cc" />
-    <ClCompile Include="..\..\src\reduced_freelist.cc" />
+    <ClCompile Include="..\..\src\freelist.cc" />
+    <ClCompile Include="..\..\src\freelist_stats.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />
     <ClCompile Include="..\..\src\journal.cc" />
     <ClCompile Include="..\..\src\log.cc" />
     <ClCompile Include="..\..\src\mem.cc" />
     <ClCompile Include="..\..\src\os_win32.cc" />
     <ClCompile Include="..\..\src\page.cc" />
+    <ClCompile Include="..\..\src\page_manager.cc" />
     <ClCompile Include="..\..\src\remote.cc" />
     <ClCompile Include="..\..\src\txn.cc" />
     <ClCompile Include="..\..\src\txn_cursor.cc" />
     <ClCompile Include="..\..\src\util.cc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="protocol.vcxproj">
-      <Project>{10dcd767-dfbe-4096-9258-111d4cf899b1}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

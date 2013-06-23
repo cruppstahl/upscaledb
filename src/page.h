@@ -27,6 +27,11 @@
 
 namespace hamsterdb {
 
+#if defined(_MSC_VER)
+#  pragma push_macro("free")
+#  undef free
+#endif
+	
 #include "packstart.h"
 
 /*

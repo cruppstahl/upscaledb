@@ -29,22 +29,6 @@ void gnutls_global_deinit(void);
 int
 main(int argc, char *const argv[])
 {
-  /*
-   * when running in visual studio, the working directory is different
-   * from the unix/cygwin environment. this can be changed, but the
-   * working directory setting is not stored in the unittests.vcproj file,
-   * but in unittests.vcproj.<hostname><username>; and this file is not
-   * distributed.
-   *
-   * therefore, at runtime, if we're compiling under visual studio, set
-   * the working directory manually.
-   */
-#ifdef VISUAL_STUDIO
-#  ifdef UNITTEST_PATH
-  SetCurrentDirectoryA(UNITTEST_PATH);
-#  endif
-#endif
-
   int result = Catch::Main(argc, argv);
 
 #ifdef HAM_ENABLE_REMOTE

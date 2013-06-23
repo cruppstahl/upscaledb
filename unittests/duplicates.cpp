@@ -534,7 +534,7 @@ struct DuplicateFixture {
     BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
     REQUIRE(0 == ((Database *)m_db)->fetch_page(&page,
                 be->get_rootpage()));
-    REQUIRE(page != 0);
+    REQUIRE(page);
 
     REQUIRE(0 == page->uncouple_all_cursors());
     checkData(c, HAM_CURSOR_NEXT,   0, "aaaaaaaaaa");

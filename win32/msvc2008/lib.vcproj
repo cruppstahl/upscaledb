@@ -292,11 +292,27 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\src\blob.cc"
+			RelativePath="..\..\src\blob_manager.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\blob.h"
+			RelativePath="..\..\src\blob_manager_disk.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager_disk.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager_factory.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager_inmem.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\blob_manager_inmem.h"
 			>
 		</File>
 		<File
@@ -392,11 +408,19 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\device.cc"
+			RelativePath="..\..\src\device.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\device.h"
+			RelativePath="..\..\src\device_disk.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\device_factory.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\device_inmem.h"
 			>
 		</File>
 		<File
@@ -428,30 +452,39 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\errorinducer.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\extkeys.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\bm_freelist.cc"
+			RelativePath="..\..\src\freelist.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\bm_freelist.h"
+			RelativePath="..\..\src\freelist.h"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\full_freelist_stats.cc"
+			RelativePath="..\..\src\freelist_stats.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\full_freelist_stats.h"
+			RelativePath="..\..\src\freelist_stats.h"
 			>
-		</File>
-		<File
-			RelativePath="..\..\src\simple_freelist.h"
 		</File>
 		<File
 			RelativePath="..\..\src\hamsterdb.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\include\ham\hamsterdb.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\include\ham\hamsterdb_int.h"
 			>
 		</File>
 		<File
@@ -491,6 +524,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\mutex.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\os.h"
 			>
 		</File>
@@ -515,6 +552,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\page_manager.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\page_manager.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\rb.h"
 			>
 		</File>
@@ -524,6 +569,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\serial.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\statistics.h"
 			>
 		</File>
 		<File
@@ -540,6 +589,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\txn_cursor.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\include\ham\types.h"
 			>
 		</File>
 		<File

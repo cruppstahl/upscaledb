@@ -907,7 +907,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
     if (reply->db_find_reply().has_key()) {
       ham_assert(key);
       key->_flags = reply->db_find_reply().key().intflags();
-      key->size = reply->db_find_reply().key().data().size();
+      key->size = (ham_u16_t)reply->db_find_reply().key().data().size();
       if (!(key->flags & HAM_KEY_USER_ALLOC)) {
         key_arena->resize(key->size);
         key->data = key_arena->get_ptr();
@@ -1252,7 +1252,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   if (reply->cursor_move_reply().has_key()) {
     ham_assert(key);
     key->_flags = reply->cursor_move_reply().key().intflags();
-    key->size = reply->cursor_move_reply().key().data().size();
+    key->size = (ham_u16_t)reply->cursor_move_reply().key().data().size();
     if (!(key->flags & HAM_KEY_USER_ALLOC)) {
       key_arena->resize(key->size);
       key->data = key_arena->get_ptr();

@@ -802,7 +802,7 @@ struct HamsterdbFixture {
     key.flags = HAM_KEY_USER_ALLOC;
     REQUIRE(0 == ham_db_find(db, 0, &key, &rec, HAM_FIND_NEAR_MATCH));
     REQUIRE(rec.data != key.data);
-    REQUIRE(rec.data != 0);
+    REQUIRE(rec.data);
     r = (my_rec_t *)rec.data;
     k = (my_key_t *)key.data;
     REQUIRE(r->rec_val1 == (unsigned)1000);
@@ -1439,7 +1439,7 @@ struct HamsterdbFixture {
 
   void strerrorTest() {
     for (int i = -300; i <= 0; i++) {
-      REQUIRE(ham_strerror((ham_status_t)i) != 0);
+      REQUIRE(ham_strerror((ham_status_t)i));
     }
     REQUIRE(0 == strcmp("Unknown error",
           ham_strerror((ham_status_t)-204)));

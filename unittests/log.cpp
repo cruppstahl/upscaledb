@@ -182,7 +182,7 @@ struct LogFixture {
     REQUIRE(0 == log->close(true));
 
     REQUIRE(0 == log->open());
-    REQUIRE(log != 0);
+    REQUIRE(log);
 
     Log::Iterator iter = 0;
 
@@ -207,7 +207,7 @@ struct LogFixture {
         ham_u8_t *data) {
     REQUIRE(lsn == entry->lsn);
     if (entry->data_size == 0) {
-      REQUIRE(data == 0);
+      REQUIRE(!data);
     }
     else {
       REQUIRE(data);

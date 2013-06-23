@@ -339,8 +339,8 @@ class BtreeIndex
     friend class BtreeEraseAction;
     friend class BtreeInsertAction;
     friend class BtreeCursor;
-    friend class MiscFixture;
-    friend class BtreeKeyFixture;
+    friend struct MiscFixture;
+    friend struct BtreeKeyFixture;
 
     /** calculate the "maxkeys" values - the limit of keys per page */
     ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);

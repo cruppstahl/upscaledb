@@ -49,9 +49,9 @@ struct PageManagerFixture {
   void newDeleteTest() {
     PageManager *pm = ((Environment *)m_env)->get_page_manager();
 
-    REQUIRE(pm->test_get_cache() != 0);
+    REQUIRE(pm->test_get_cache());
     if (m_inmemory)
-      REQUIRE(pm->get_freelist(0) == 0);
+      REQUIRE(!pm->get_freelist(0));
   }
 
   void fetchPageTest() {
@@ -65,7 +65,7 @@ struct PageManagerFixture {
     page = 0;
     REQUIRE(0 == pm->fetch_page(&page, 0, 16 * 1024ull, true));
     REQUIRE(page->get_self() == 16 * 1024ull);
-    REQUIRE(page != 0);
+    REQUIRE(page);
   }
 
   void allocPageTest() {
@@ -79,7 +79,7 @@ struct PageManagerFixture {
     if (m_inmemory == false)
       REQUIRE(page->get_self() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
-    REQUIRE(page->get_db() == 0);
+    REQUIRE(!page->get_db());
   }
 
   void fetchInvalidPageTest() {

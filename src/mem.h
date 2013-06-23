@@ -106,9 +106,6 @@ class Memory {
     // updates and returns the collected metrics
     static void get_global_metrics(ham_env_metrics_t *metrics);
 
-    // returns the virtual memory pagesize
-    static size_t get_vm_pagesize();
-
     // releases unused memory back to the operating system
     static void release_to_system();
 

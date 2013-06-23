@@ -489,7 +489,7 @@ struct JournalFixture {
       REQUIRE(vec->type == entry.type);
       REQUIRE(vec->dbname == entry.dbname);
       if (strlen(vec->name)) {
-        REQUIRE(aux != 0);
+        REQUIRE(aux);
         REQUIRE(0 == strcmp((char *)aux, vec->name));
       }
 
@@ -598,7 +598,7 @@ struct JournalFixture {
     ham_u64_t size;
     m_environ = (Environment *)m_env;
     Journal *j = m_environ->get_journal();
-    REQUIRE(j != 0);
+    REQUIRE(j);
     REQUIRE(0 == os_get_filesize(j->m_fd[0], &size));
     REQUIRE(sizeof(Journal::PHeader) == size);
     REQUIRE(0 == os_get_filesize(j->m_fd[1], &size));

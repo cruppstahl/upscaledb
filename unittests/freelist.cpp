@@ -307,7 +307,7 @@ struct FreelistFixture {
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
     REQUIRE(sizeof(PFreelistPayload) ==
-        16 + 13 + sizeof(PFreelistPageStatistics));
+        (size_t)(16 + 13 + sizeof(PFreelistPageStatistics)));
     REQUIRE(freel_get_bitmap_offset() ==
         16 + 12 + sizeof(PFreelistPageStatistics));
     REQUIRE(sizeof(PFreelistPageStatistics) ==
