@@ -51,6 +51,12 @@ class ByteArray
         clear();
     }
 
+    void append(void *ptr, ham_size_t size) {
+      ham_size_t oldsize = m_size;
+      char *p = (char *)resize(m_size + size);
+      ::memcpy(p + oldsize, ptr, size);
+    }
+
     void *resize(ham_size_t size) {
       if (size > m_size) {
         m_ptr = Memory::reallocate<void>(m_ptr, size);
@@ -66,8 +72,12 @@ class ByteArray
       return (m_ptr);
     }
 
-    ham_size_t get_size() {
+    ham_size_t get_size() const {
       return (m_size);
+    }
+
+    void set_size(ham_size_t size) {
+      m_size = size;
     }
 
     void *get_ptr() {
@@ -84,6 +94,10 @@ class ByteArray
       Memory::release(m_ptr);
       m_ptr = 0;
       m_size = 0;
+    }
+
+    bool is_empty() const {
+      return (m_size == 0);
     }
 
     void disown() {

@@ -20,9 +20,6 @@
 #include <string.h>
 
 #ifdef HAM_ENABLE_REMOTE
-#  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
-#  include <curl/curl.h>
-#  include <curl/easy.h>
 #  include "protocol/protocol.h"
 #endif
 
@@ -55,7 +52,7 @@ using namespace hamsterdb;
 static bool
 __filename_is_local(const char *filename)
 {
-  if (filename && strstr(filename, "http://") == filename)
+  if (filename && strstr(filename, "ham://") == filename)
     return (false);
   return (true);
 }
@@ -409,7 +406,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
         encryption_key = (ham_u8_t *)param->value;
         flags |= HAM_DISABLE_MMAP;
 #else
-        ham_trace(("aes encryption was disabled at compile time"));
+        ham_trace(("aes encrpytion was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
 #endif
         break;
@@ -482,7 +479,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   }
 
 #ifdef HAM_ENABLE_REMOTE
-  atexit(curl_global_cleanup);
   atexit(Protocol::shutdown);
 #endif
 
@@ -708,7 +704,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   }
 
 #ifdef HAM_ENABLE_REMOTE
-  atexit(curl_global_cleanup);
   atexit(Protocol::shutdown);
 #endif
 

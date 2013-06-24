@@ -21,6 +21,8 @@
 
 namespace hamsterdb {
 
+class PBtreeHeader;
+class PFreelistPayload;
 class Log;
 class Journal;
 class PageManager;

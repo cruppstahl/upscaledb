@@ -6,6 +6,9 @@
 /* Defined if the requested minimum BOOST version is satisfied */
 #undef HAVE_BOOST
 
+/* Define to 1 if you have <boost/system/error_code.hpp> */
+#undef HAVE_BOOST_SYSTEM_ERROR_CODE_HPP
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
@@ -84,6 +87,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <uv.h> header file. */
+#undef HAVE_UV_H
 
 /* Define to 1 if you have the `writev' function. */
 #undef HAVE_WRITEV

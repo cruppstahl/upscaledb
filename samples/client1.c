@@ -18,7 +18,7 @@
 #include <stdlib.h> /* for exit() */
 #include <ham/hamsterdb.h>
 
-#define LOOP 10
+#define LOOP 1000
 
 void
 error(const char *foo, ham_status_t st) {
@@ -39,7 +39,7 @@ main(int argc, char **argv) {
    * Connect to the server which should listen at 8080. The server is
    * implemented in server1.c.
    */
-  st = ham_env_create(&env, "http://localhost:8080/env1.db", 0, 0, 0);
+  st = ham_env_create(&env, "ham://localhost:8080/env1.db", 0, 0, 0);
   if (st != HAM_SUCCESS)
     error("ham_env_create", st);
 
@@ -101,6 +101,11 @@ main(int argc, char **argv) {
   st = ham_db_close(db, 0);
   if (st != HAM_SUCCESS)
     error("ham_db_close", st);
+
+  /* close the environment handle */
+  st = ham_env_close(env, 0);
+  if (st != HAM_SUCCESS)
+    error("ham_env_close", st);
 
   printf("success!\n");
   return (0);

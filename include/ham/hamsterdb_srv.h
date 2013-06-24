@@ -33,10 +33,12 @@ typedef struct {
   /** The server port */
   ham_u16_t port;
 
-  /** Path of the access log, or NULL if no log should be written */
+  /* Path of the access log, or NULL if no log should be written 
+   * - currently NOT USED! */
   const char *access_log_path;
 
-  /** Path of the error log, or NULL if no log should be written */
+  /** Path of the error log, or NULL if no log should be written
+   * - currently NOT USED! */
   const char *error_log_path;
 
 } ham_srv_config_t;
@@ -68,7 +70,7 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **srv);
  *
  * This function adds a new hamsterdb Environment to the server. The
  * Environment has to be initialized properly by the caller. It will be
- * served at http://localhost:port/urlname, where @a port was specified
+ * served at ham://localhost:port/urlname, where @a port was specified
  * for @ref ham_srv_init and @a urlname is the third parameter to this
  * function.
  *

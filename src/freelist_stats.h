@@ -20,7 +20,7 @@
 namespace hamsterdb {
 
 class Freelist;
-struct PFreelistPayload;
+class PFreelistPayload;
 
 #include "packstart.h"
 

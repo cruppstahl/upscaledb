@@ -32,8 +32,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_dump", "ham_dump.vcxpro
 		{10DCD767-DFBE-4096-9258-111D4CF899B1} = {10DCD767-DFBE-4096-9258-111D4CF899B1}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_mongoose", "3rdparty_mongoose.vcxproj", "{AB99816E-52C4-4420-B8DD-63892A380173}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_server1", "sample_server1.vcxproj", "{57E4D0EF-945D-46A7-A189-208A9B2B7096}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_client1", "sample_client1.vcxproj", "{57E4D0EF-945D-46A7-B189-20940FFB7096}"
@@ -49,9 +47,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_json", "3rdparty_json.vcxproj", "{A199816E-52C4-44CE-B8DD-604DCA2398FF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "java_dll", "java_dll.vcxproj", "{3E6B895E-36F2-49E6-AAFB-CA714D582402}"
-	ProjectSection(ProjectDependencies) = postProject
-		{AB99816E-52C4-4420-B8DD-63892A380173} = {AB99816E-52C4-4420-B8DD-63892A380173}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_import", "ham_import.vcxproj", "{D12AE71E-716F-46B0-9DEF-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -183,14 +178,6 @@ Global
 		{D11CE71E-716F-46B0-9DDD-74125DA7985A}.Release|Win32.Build.0 = Release|Win32
 		{D11CE71E-716F-46B0-9DDD-74125DA7985A}.Release|x64.ActiveCfg = Release|x64
 		{D11CE71E-716F-46B0-9DDD-74125DA7985A}.Release|x64.Build.0 = Release|x64
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Debug|Win32.ActiveCfg = Debug|Win32
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Debug|Win32.Build.0 = Debug|Win32
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Debug|x64.ActiveCfg = Debug|x64
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Debug|x64.Build.0 = Debug|x64
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Release|Win32.ActiveCfg = Release|Win32
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Release|Win32.Build.0 = Release|Win32
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Release|x64.ActiveCfg = Release|x64
-		{AB99816E-52C4-4420-B8DD-63892A380173}.Release|x64.Build.0 = Release|x64
 		{57E4D0EF-945D-46A7-A189-208A9B2B7096}.Debug|Win32.ActiveCfg = Debug|Win32
 		{57E4D0EF-945D-46A7-A189-208A9B2B7096}.Debug|Win32.Build.0 = Debug|Win32
 		{57E4D0EF-945D-46A7-A189-208A9B2B7096}.Debug|x64.ActiveCfg = Debug|x64

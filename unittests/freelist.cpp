@@ -291,7 +291,7 @@ struct FreelistFixture {
     for (int i = 2; i < 5; i++) {
       REQUIRE(true  == m_freelist->is_page_free(page[i]->get_address()));
       REQUIRE(0 == m_freelist->truncate_page(page[i]->get_address()));
-      REQUIRE(false == m_freelist->is_page_free(page[i]->get_address()));
+      REQUIRE(false == m_freelist->is_page_free((2 + i) * pagesize));
     }
 
     // reopen and check again

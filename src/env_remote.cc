@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -10,220 +10,111 @@
  *
  */
 
+#ifdef HAM_ENABLE_REMOTE
+
 #include "config.h"
 
 #include "txn.h"
 #include "mem.h"
+#include "os.h"
 #include "cursor.h"
 #include "db_remote.h"
 #include "env_remote.h"
-
-#ifdef HAM_ENABLE_REMOTE
-
-#define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
-#include <curl/curl.h>
-#include <curl/easy.h>
 
 #include "protocol/protocol.h"
 
 namespace hamsterdb {
 
-typedef struct curl_buffer_t
-{
-  ham_size_t packed_size;
-  ham_u8_t *packed_data;
-  ham_size_t offset;
-  Protocol *wrapper;
-} curl_buffer_t;
-
-static size_t
-__writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
-{
-  curl_buffer_t *buf = (curl_buffer_t *)ptr;
-  char *cbuf = (char *)buffer;
-  ham_size_t payload_size = 0;
-
-  if (buf->offset == 0) {
-    if (*(ham_u32_t *)&cbuf[0] != ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
-      ham_trace(("invalid protocol version"));
-      return (0);
-    }
-    payload_size = ham_h2db32(*(ham_u32_t *)&cbuf[4]);
-
-    /* did we receive the whole data in this packet? */
-    if (payload_size + 8 == size * nmemb) {
-      buf->wrapper = Protocol::unpack((ham_u8_t *)&cbuf[0],
-                (ham_size_t)(size * nmemb));
-      if (!buf->wrapper)
-        return (0);
-      return (size * nmemb);
-    }
-
-    /* otherwise we have to buffer the received data */
-    buf->packed_size = payload_size + 8;
-    buf->packed_data = Memory::allocate<ham_u8_t>(buf->packed_size);
-    if (!buf->packed_data)
-      return (0);
-    memcpy(buf->packed_data, &cbuf[0], size * nmemb);
-    buf->offset += (ham_size_t)(size * nmemb);
-  }
-  /* append to an existing buffer? */
-  else {
-    memcpy(buf->packed_data + buf->offset, &cbuf[0], size * nmemb);
-    buf->offset += (ham_size_t)(size * nmemb);
-  }
-
-  /* check if we've received the whole data */
-  if (buf->offset == buf->packed_size) {
-    buf->wrapper = Protocol::unpack(buf->packed_data, buf->packed_size);
-    if (!buf->wrapper)
-      return (0);
-    Memory::release(buf->packed_data);
-    if (!buf->wrapper)
-      return 0;
-  }
-
-  return (size * nmemb);
-}
-
-static size_t
-__readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
-{
-  curl_buffer_t *buf = (curl_buffer_t *)ptr;
-  size_t remaining = buf->packed_size-buf->offset;
-
-  if (remaining == 0)
-    return (0);
-
-  if (nmemb > remaining)
-    nmemb = remaining;
-
-  memcpy(buffer, buf->packed_data + buf->offset, nmemb);
-  buf->offset += (ham_size_t)nmemb;
-  return (nmemb);
-}
-
-#define SETOPT(curl, opt, val)                                      \
-          if ((cc = curl_easy_setopt(curl, opt, val))) {            \
-            ham_log(("curl_easy_setopt failed: %d/%s", cc,          \
-                     curl_easy_strerror(cc)));                      \
-            return (HAM_INTERNAL_ERROR);                            \
-          }
-
 ham_status_t
 RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 {
-  CURLcode cc;
-  long response = 0;
-  char header[128];
-  curl_buffer_t rbuf = {0};
-  curl_buffer_t wbuf = {0};
-  struct curl_slist *slist = 0;
-
   *reply = 0;
 
-  if (!request->pack(&rbuf.packed_data, &rbuf.packed_size)) {
+  // use ByteArray to avoid frequent reallocs!
+  m_buffer.clear();
+
+  if (!request->pack(&m_buffer)) {
     ham_log(("protoype Protocol::pack failed"));
     return (HAM_INTERNAL_ERROR);
   }
 
-  sprintf(header, "Content-Length: %u", rbuf.packed_size);
-  slist = curl_slist_append(slist, header);
-  slist = curl_slist_append(slist, "Transfer-Encoding:");
-  slist = curl_slist_append(slist, "Expect:");
+  ham_status_t st = os_socket_send(m_socket, (ham_u8_t *)m_buffer.get_ptr(),
+          m_buffer.get_size());
+  if (st)
+    return (st);
 
-#ifdef HAM_DEBUG
-  SETOPT(m_curl, CURLOPT_VERBOSE, 1);
-#endif
-  SETOPT(m_curl, CURLOPT_URL, get_filename().c_str());
-  SETOPT(m_curl, CURLOPT_READFUNCTION, __readfunc);
-  SETOPT(m_curl, CURLOPT_READDATA, &rbuf);
-  SETOPT(m_curl, CURLOPT_UPLOAD, 1);
-  SETOPT(m_curl, CURLOPT_PUT, 1);
-  SETOPT(m_curl, CURLOPT_WRITEFUNCTION, __writefunc);
-  SETOPT(m_curl, CURLOPT_WRITEDATA, &wbuf);
-  SETOPT(m_curl, CURLOPT_HTTPHEADER, slist);
-
-  cc = curl_easy_perform(m_curl);
-
-  Memory::release(rbuf.packed_data);
-  curl_slist_free_all(slist);
-
-  if (cc) {
-    ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
-    return (HAM_NETWORK_ERROR);
+  // now block and wait for the reply; first read the header, then the
+  // remaining data
+  st = os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr(), 8);
+  if (st) {
+    os_socket_close(&m_socket);
+    return (HAM_IO_ERROR);
   }
 
-  cc = curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &response);
-  if (cc) {
-    ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
-    return (HAM_NETWORK_ERROR);
+  // no need to check the magic; it's verified in Protocol::unpack
+  ham_u32_t size = *(ham_u32_t *)((char *)m_buffer.get_ptr() + 4);
+  m_buffer.resize(ham_db2h32(size) + 8);
+  st = os_socket_recv(m_socket, (ham_u8_t *)m_buffer.get_ptr() + 8, size);
+  if (st) {
+    os_socket_close(&m_socket);
+    return (HAM_IO_ERROR);
   }
 
-  if (response != 200) {
-    ham_trace(("server returned error %u", response));
-    return (HAM_NETWORK_ERROR);
-  }
-
-  *reply = wbuf.wrapper;
+  *reply = Protocol::unpack((const ham_u8_t *)m_buffer.get_ptr(), size + 8);
 
   return (0);
 }
 
 ham_status_t
-RemoteEnvironment::create(const char *filename, ham_u32_t flags,
+RemoteEnvironment::create(const char *url, ham_u32_t flags,
         ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,
         ham_u16_t maxdbs)
 {
-  ham_status_t st;
-  Protocol *reply = 0;
-  m_curl = curl_easy_init();
-
-  set_flags(flags);
-  if (filename)
-    m_filename = filename;
-
-  Protocol request(Protocol::CONNECT_REQUEST);
-  request.mutable_connect_request()->set_path(filename);
-
-  st = perform_request(&request, &reply);
-  if (st) {
-    curl_easy_cleanup(m_curl);
-    m_curl = 0;
-    delete reply;
-    return (st);
-  }
-
-  ham_assert(reply != 0);
-  ham_assert(reply->type() == Protocol::CONNECT_REPLY);
-
-  st = reply->connect_reply().status();
-  if (st == 0)
-    set_flags(get_flags() | reply->connect_reply().env_flags());
-
-  delete reply;
-  return (st);
+  // the 'create' operation is identical to 'open'
+  return (open(url, flags, cachesize));
 }
 
 ham_status_t
-RemoteEnvironment::open(const char *filename, ham_u32_t flags,
+RemoteEnvironment::open(const char *url, ham_u32_t flags,
         ham_size_t cachesize)
 {
-  ham_status_t st;
-  Protocol *reply = 0;
-  m_curl = curl_easy_init();
+  (void)cachesize;
 
-  set_flags(flags);
-  if (filename)
-    m_filename = filename;
+  if (m_socket != HAM_INVALID_FD)
+    (void)os_socket_close(&m_socket);
+
+  ham_assert(url != 0);
+  ham_assert(::strstr(url, "ham://") == url);
+  const char *ip = url + 6;
+  const char *port_str = strstr(ip, ":");
+  if (!port_str) {
+    ham_trace(("remote uri does not include port - expected "
+                "`ham://<ip>:<port>`"));
+    return (HAM_INV_PARAMETER);
+  }
+  ham_u16_t port = (ham_u16_t)atoi(port_str + 1);
+  if (!port) {
+    ham_trace(("remote uri includes invalid port - expected "
+                "`ham://<ip>:<port>`"));
+    return (HAM_INV_PARAMETER);
+  }
+
+  const char *filename = strstr(port_str, "/");
+
+  std::string hostname(ip, port_str);
+  ham_status_t st = os_socket_connect(hostname.c_str(), port, &m_socket);
+  if (st) {
+    (void)os_socket_close(&m_socket);
+    return (HAM_NETWORK_ERROR);
+  }
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
 
+  Protocol *reply = 0;
   st = perform_request(&request, &reply);
   if (st) {
-    curl_easy_cleanup(m_curl);
-    m_curl = 0;
+    (void)os_socket_close(&m_socket);
     delete reply;
     return (st);
   }
@@ -232,11 +123,13 @@ RemoteEnvironment::open(const char *filename, ham_u32_t flags,
   ham_assert(reply->type() == Protocol::CONNECT_REPLY);
 
   st = reply->connect_reply().status();
-  if (st == 0)
-    set_flags(get_flags() | reply->connect_reply().env_flags());
+  if (st == 0) {
+    m_filename = url;
+    set_flags(flags | reply->connect_reply().env_flags());
+    m_remote_handle = reply->connect_reply().env_handle();
+  }
 
   delete reply;
-
   return (st);
 }
 
@@ -248,6 +141,7 @@ RemoteEnvironment::rename_db( ham_u16_t oldname, ham_u16_t newname,
   Protocol *reply = 0;
 
   Protocol request(Protocol::ENV_RENAME_REQUEST);
+  request.mutable_env_rename_request()->set_env_handle(m_remote_handle);
   request.mutable_env_rename_request()->set_oldname(oldname);
   request.mutable_env_rename_request()->set_newname(newname);
   request.mutable_env_rename_request()->set_flags(flags);
@@ -274,6 +168,7 @@ RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   Protocol *reply = 0;
 
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
+  request.mutable_env_erase_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_erase_db_request()->set_name(name);
   request.mutable_env_erase_db_request()->set_flags(flags);
 
@@ -295,14 +190,13 @@ RemoteEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 ham_status_t
 RemoteEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
 {
-  ham_status_t st;
-  ham_size_t i;
   Protocol *reply = 0;
 
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
+  request.mutable_env_get_database_names_request()->set_env_handle(m_remote_handle);
 
-  st = perform_request(&request, &reply);
+  ham_status_t st = perform_request(&request, &reply);
   if (st) {
     delete reply;
     return (st);
@@ -318,6 +212,7 @@ RemoteEnvironment::get_database_names(ham_u16_t *names, ham_size_t *count)
   }
 
   /* copy the retrieved names */
+  ham_size_t i;
   for (i = 0;
       i < (ham_size_t)reply->env_get_database_names_reply().names_size()
         && i < *count;
@@ -342,6 +237,7 @@ RemoteEnvironment::get_parameters(ham_parameter_t *param)
     return (HAM_INV_PARAMETER);
 
   Protocol request(Protocol::ENV_GET_PARAMETERS_REQUEST);
+  request.mutable_env_get_parameters_request()->set_env_handle(m_remote_handle);
   while (p && p->name != 0) {
     request.mutable_env_get_parameters_request()->add_names(p->name);
     p++;
@@ -410,6 +306,7 @@ RemoteEnvironment::flush(ham_u32_t flags)
 
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
+  request.mutable_env_flush_request()->set_env_handle(m_remote_handle);
 
   ham_status_t st = perform_request(&request, &reply);
   if (st) {
@@ -433,6 +330,7 @@ RemoteEnvironment::create_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
   const ham_parameter_t *p;
 
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
+  request.mutable_env_create_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_create_db_request()->set_dbname(dbname);
   request.mutable_env_create_db_request()->set_flags(flags);
 
@@ -488,6 +386,7 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
     return (HAM_DATABASE_ALREADY_OPEN);
 
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
+  request.mutable_env_open_db_request()->set_env_handle(m_remote_handle);
   request.mutable_env_open_db_request()->set_dbname(dbname);
   request.mutable_env_open_db_request()->set_flags(flags);
 
@@ -521,10 +420,8 @@ RemoteEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
 
   delete reply;
 
-  /*
-   * on success: store the open database in the environment's list of
-   * opened databases
-   */
+  // on success: store the open database in the environment's list of
+  // opened databases
   get_database_map()[dbname] = *pdb;
 
   return (0);
@@ -549,12 +446,25 @@ RemoteEnvironment::close(ham_u32_t flags)
       return (st);
   }
 
-  if (m_curl) {
-    curl_easy_cleanup(m_curl);
-    m_curl = 0;
+  Protocol request(Protocol::DISCONNECT_REQUEST);
+  request.mutable_disconnect_request()->set_env_handle(m_remote_handle);
+
+  Protocol *reply = 0;
+  st = perform_request(&request, &reply);
+  if (st) {
+    delete reply;
+    return (st);
   }
 
-  return (0);
+  ham_assert(reply != 0);
+  ham_assert(reply->type() == Protocol::DISCONNECT_REPLY);
+
+  st = reply->disconnect_reply().status();
+  if (st == 0)
+    m_remote_handle = 0;
+
+  delete reply;
+  return (st);
 }
 
 ham_status_t
@@ -565,6 +475,7 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
   Protocol *reply = 0;
 
   Protocol request(Protocol::TXN_BEGIN_REQUEST);
+  request.mutable_txn_begin_request()->set_env_handle(m_remote_handle);
   request.mutable_txn_begin_request()->set_flags(flags);
   if (name)
     request.mutable_txn_begin_request()->set_name(name);

@@ -206,13 +206,66 @@ x add client/server testing to monster testsuite
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
-    o configure.in: remove --diable-server, always use --diable-remote
-    o create/define a benchmark (i.e. based on client1.c/server1.c sample)
-    o use libuv on server side, get rid of mongoose
-        http://nikhilm.github.io/uvbook/networking.html
-    o use libuv on client side, get rid of libcurl
-    o test build with --disable-remote, add this to the release process
-    . use Pickle module, get rid of protocol buffers (or better leave for now?)
+    x configure.in: remove --diable-server, always use --diable-remote
+    x remove mongoose
+    x check for libuv in configure.in
+    x rewrite server side with libuv
+        x server1 should compile and run
+        x read_cb must use one ByteArray *per client*
+        x accept() must allocate client structure
+        x close_cb must release client structure
+        x use uv_async_send for ham_srv_add_env
+        x then continue with dispatch()
+    x in on_read_data(): need a way to get the ham_srv_t structure AND
+        the ByteArray buffer
+    x handles:
+        ham_srv_t stores these tables:
+        - handles for environments
+        - handles for databases
+        - handles for transactions
+        - handles for cursors
+        - all of them are std::vector< Handle<X> >
+            - Handle stores handle, X * (and later maybe even timestamps)
+        - handle & 0xffff0000 verweisen auf index i.d. tabelle
+        - handle & 0x00001111 ist ein counter
+    x handle_connect: needs to send env-path and return env-handle
+        x implement in server
+        x implement in client
+            os_posix.cc: socket-funktionen implementieren
+            x server
+            x client
+        x implement disconnect as well
+    x implement all other requests
+    x Remote/getEnvParamsTest is still failing
+    x remove debug output
+    x run valgrind tests
+    x remove references to access.log, error.log from the configuration file
+        x also in hamzilla
+    x reduce memory allocation when packing/unpacking requests
+    x run server1/client1 with 10000 keys, then run client1 with a
+        local database and compare the performance -> not much better
+        than before
+    x revert changes in client1, server1
+    x run a test with hamzilla
+    x port to win32
+    x currently it's not allowed to have multiple clients opening the same
+        database
+        x in handle_db_open: return the open handle if it already is open
+    x combining multiple transactions fails in a remote setup:
+        ./test --enable-remote --use-transactions=5 --num-threads=5 ../../testfiles/1/01.tst
+      ASSERT FAILED in file env.cc, line 53:
+        "!"not yet implemented""
+        problem: unlike the LocalEnvironment, transactions are not "flushed"
+            but simply removed from the linked list, and this is not yet
+            implemented.
+        Either "flush" them or fix the linked list implementation.
+    x unittest/valgrind.txt -> check memory leaks
+    x unittest/valgrind.txt -> has warnings
+        x CursorFindRequest: sends Record structure, but boolean flag 
+            should be enough
+        x same for CursorMoveRequest
+    x test darwin/MacOS compilation
+    o win32: crashes - see Phillip's mail
 
 . java-test fails on a slower machine (race cond. in finalize()?)
     -> this is just a test issue
@@ -250,8 +303,18 @@ o rewrite configure.in
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
 
-. prepare btree rewrite; the goal is to move all node-specific operations
+o collect file format incompatibilities
+    o for the new Btree code
+    o persistent freelist statistics
+    o persistent freelist payload
+    o page header
+    o get rid of the statistics-structures
+    o reduce the PBlobHeader (remove flags, alloc_size)
+    o what else?
+
+o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
+
     o analyze node; move all node operations to the node itself
         o PBtreeNode::get_key()
         o find(key) -> position || kNotFound (== -1)
@@ -293,16 +356,6 @@ o rewrite configure.in
                 o for variable size (existing) keys
                 o for fixed size keys (uint32, uint64...)
         o then rewrite BtreeEnumAction
-
-
-o collect file format incompatibilities
-    o for the new Btree code
-    o persistent freelist statistics
-    o persistent freelist payload
-    o page header
-    o get rid of the statistics-structures
-    o reduce the PBlobHeader (remove flags, alloc_size)
-    o what else?
 
 o start with the Btree rewrite; btree nodes are accepting template parameters
     and policies. The default parameter uses the callback function provided

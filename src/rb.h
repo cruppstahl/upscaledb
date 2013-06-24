@@ -65,6 +65,8 @@
 #ifndef RB_H_
 #define RB_H_
 
+#include "config.h"
+
 #ifndef HAM_OS_WIN32
 #   include <stdint.h>
 #   include <sys/cdefs.h>

@@ -80,8 +80,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -131,8 +131,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/protobuf/msvc2010/include;../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -180,19 +180,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\server\hamserver.cc" />
-    <ClCompile Include="..\..\src\server\os.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\server\os.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="servicemsg.mc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="3rdparty_mongoose.vcxproj">
-      <Project>{ab99816e-52c4-4420-b8dd-63892a380173}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="lib.vcxproj">
       <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

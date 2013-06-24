@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/boost&quot;"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -67,8 +67,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
+				AdditionalDependencies="libuv_debug.lib psapi.lib Iphlpapi.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories=";../../../hamsterdb-alien/boost"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -123,7 +124,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,10 +146,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
+				AdditionalDependencies="libuv_x64_debug.lib psapi.lib Iphlpapi.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories=";../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -202,7 +203,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -223,8 +224,9 @@
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
+				AdditionalDependencies="libuv.lib psapi.lib Iphlpapi.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories=";../../../hamsterdb-alien/boost"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -281,7 +283,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -300,10 +302,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
+				AdditionalDependencies="libuv_x64.lib psapi.lib Iphlpapi.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories=";../../../hamsterdb-alien/boost/x64"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -340,14 +342,6 @@
 	<Files>
 		<File
 			RelativePath="..\..\src\server\hamserver.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\server\os.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\server\os.h"
 			>
 		</File>
 		<File

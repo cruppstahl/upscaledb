@@ -823,7 +823,7 @@ Freelist::is_page_free(ham_u64_t address)
   else {
     st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
     if (st)
-      return (st);
+      return (false);
     fp = PFreelistPayload::from_page(page);
     ham_assert(fp->get_start_address() != 0);
   }

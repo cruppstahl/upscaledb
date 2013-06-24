@@ -26,6 +26,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -134,7 +137,6 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 #endif
 }
 
-#ifndef HAVE_PREAD
 static ham_status_t
 os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
 {
@@ -160,7 +162,6 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
   }
   return (HAM_SUCCESS);
 }
-#endif
 
 ham_status_t
 os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
@@ -490,10 +491,69 @@ os_close(ham_fd_t fd)
     return (st);
 
   // now close the descriptor
-  if (close(fd) == -1)
+  if (::close(fd) == -1)
     return (HAM_IO_ERROR);
 
   return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_socket_connect(const char *hostname, ham_u16_t port, ham_fd_t *socket)
+{
+  *socket = HAM_INVALID_FD;
+
+  ham_fd_t s = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (s < 0) {
+    ham_log(("failed creating socket: %s", strerror(errno)));
+    return (HAM_IO_ERROR);
+  }
+
+  struct hostent *server = ::gethostbyname(hostname);
+  if (!server) {
+    ham_log(("unable to resolve hostname %s: %s", hostname,
+                hstrerror(h_errno)));
+    ::close(s);
+    return (HAM_IO_ERROR);
+  }
+
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  memcpy(&addr.sin_addr.s_addr, server->h_addr, server->h_length);
+  addr.sin_port = htons(port);
+  if (::connect(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    ham_log(("unable to connect to %s:%d: %s", hostname, (int)port,
+                strerror(errno)));
+    ::close(s);
+    return (HAM_IO_ERROR);
+  }
+
+  *socket = s;
+
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_socket_send(ham_fd_t socket, const ham_u8_t *data, ham_size_t data_size)
+{
+  return (os_write(socket, data, data_size));
+}
+
+ham_status_t
+os_socket_recv(ham_fd_t socket, ham_u8_t *data, ham_size_t data_size)
+{
+  return (os_read(socket, data, data_size));
+}
+
+ham_status_t
+os_socket_close(ham_fd_t *socket)
+{
+  if (*socket != HAM_INVALID_FD) {
+    if (::close(*socket) == -1)
+      return (HAM_IO_ERROR);
+    *socket = HAM_INVALID_FD;
+  }
+  return (0);
 }
 
 } // namespace hamsterdb

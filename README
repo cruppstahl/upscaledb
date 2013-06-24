@@ -20,8 +20,11 @@ statistics that are useful for profiling. When closing the database file,
 unused space at the end of the file is truncated and the file will shrink.
 
 The client- and server-side implementation of the remote network access has been
-rewritten. The server now uses libuv (which is part of Node.js), which resulted
-in a performance improvement.
+rewritten. The server now uses libuv (a component of Node.js), which resulted
+in a performance improvement. libcurl is no longer required as a client-side
+dependency. Instead of http, a plain tcp connection is now used. To open a
+remote environment, use the prefix "ham://" instead of the now obsolete
+"http://", i.e. "ham://localhost:12345/env.db".
 
 Unused space at the end of the file is now truncated, and the file size shrinks
 when the Environment is closed. (This feature is disabled on Win32 if memory
@@ -39,7 +42,7 @@ Bugfixes
 
 Other Changes
 * Client- and server-side implementation of the remote network access has
-    been rewritten.
+    been rewritten (use "ham://" instead of "http://" for the url!).
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -57,7 +60,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Support for logging and recovery
 - Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
-- Support for network access (remote databases)
+- Support for network access (remote databases) via TCP/Protocol Buffers
 - Support for transparent AES encryption (using libcrypto)
 - Very fast database cursors
 - Configurable page size, cache size and index key size
@@ -98,21 +101,21 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 6.3 Dependencies
 
 hamsterdb will compile out of the box. On Unix, however, remote functionality
-will be disabled if libcurl and Google protobuf SDKs are not installed. If
+will be disabled if libuv and Google protobuf SDKs are not installed. If
 you want to include remote functionality, then you have to download the
 dependencies from here:
     http://code.google.com/p/protobuf/
-    http://curl.haxx.se/libcurl/
+    https://github.com/joyent/libuv
     http://www.boost.org
 
 On Ubuntu, you can install the following packages:
     protobuf-compiler
     libprotobuf-dev
-    libcurl-dev
     libboost-dev
+    (libuv needs to be installed from sources - see above)
 
-For Windows, precompiled libcurl/protobuf libraries are available on
-hamsterdb.com.
+For Windows, precompiled libraries are available here:
+https://github.com/cruppstahl/hamsterdb-alien
 
 7. Testing and Example Code
 
@@ -172,56 +175,6 @@ Author of hamsterdb Embedded Storage is
 
 13. Other Copyrights
 
-The mongoose http server in '3rdparty/mongoose' is (C) Sergey Lyubka and
-Gilbert Wellisch.
-It has the following license:
-
-   Copyright (c) 2004-2009 Sergey Lyubka
-   Portions Copyright (c) 2009 Gilbert Wellisch
-
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be included in
-   all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-   THE SOFTWARE.
-
-The libcurl library is Copyright (c) 1996 - 2010, Daniel Stenberg,
-<daniel@haxx.se>. It has the following license:
-    COPYRIGHT AND PERMISSION NOTICE
-
-    Copyright (c) 1996 - 2010, Daniel Stenberg, <daniel@haxx.se>.
-
-    All rights reserved.
-
-    Permission to use, copy, modify, and distribute this software for any
-    purpose with or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-    OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-    USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-    Except as contained in this notice, the name of a copyright holder shall not
-    be used in advertising or otherwise to promote the sale, use or other
-    dealings in this Software without prior written authorization of the
-    copyright holder.
-
 The Google Protocol Buffers ("protobuf") library is Copyright 2008, Google Inc.
 It has the following license:
 
@@ -258,4 +211,26 @@ It has the following license:
     of the input file used when generating it.  This code is not
     standalone and requires a support library to be linked with it.  This
     support library is itself covered by the above license.
+
+The libuv library is part of the Node project: http://nodejs.org/
+libuv may be distributed alone under Node's license:
+
+    Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to
+    deal in the Software without restriction, including without limitation the
+    rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+    sell copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+    IN THE SOFTWARE.
 

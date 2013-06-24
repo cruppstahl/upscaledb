@@ -44,8 +44,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -68,7 +68,8 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				OutputFile="$(OutDir)\libhamserver-2.1.2.lib"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost"
+				AdditionalDependencies="libuv_debug.lib"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -112,8 +113,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -135,9 +136,9 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.1.2.lib"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalDependencies="libuv_x64_debug.lib"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -180,8 +181,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -200,9 +201,9 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.1.2.lib"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost"
+				AdditionalDependencies="libuv.lib"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -246,8 +247,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../3rdparty;../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				AdditionalIncludeDirectories="../../include;../../src;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/libuv/include&quot;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -266,9 +267,9 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="ws2_32.lib"
 				OutputFile="$(OutDir)\libhamserver-2.1.2.lib"
-				AdditionalLibraryDirectories="../../../hamsterdb-alien/boost/x64"
+				AdditionalDependencies="libuv_x64.lib"
+				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -292,14 +293,6 @@
 	<Files>
 		<File
 			RelativePath="..\..\src\server\hamserver.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\server\os.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\server\os.h"
 			>
 		</File>
 	</Files>

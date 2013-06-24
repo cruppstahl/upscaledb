@@ -30,8 +30,6 @@ struct ham_env_t {
 
 namespace hamsterdb {
 
-class PBtreeHeader;
-struct PFreelistPayload;
 class Database;
 class Transaction;
 

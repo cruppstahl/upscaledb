@@ -76,8 +76,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -91,7 +91,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x86_debug.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.2.lib</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
@@ -101,7 +101,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -116,7 +116,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x64_debug.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)\libhamsterdb-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -124,8 +124,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -137,7 +137,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x86.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -149,7 +149,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libcurl/msvc2010;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2010/include;../../include;../../../hamsterdb-alien/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -162,7 +162,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\libcurl\msvc2010/libcurl_x64.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamsterdb-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -193,6 +193,8 @@
     <ClInclude Include="..\..\src\config.h" />
     <ClInclude Include="..\..\src\cursor.h" />
     <ClInclude Include="..\..\src\db.h" />
+    <ClInclude Include="..\..\src\db_local.h" />
+    <ClInclude Include="..\..\src\db_remote.h" />
     <ClInclude Include="..\..\src\device.h" />
     <ClInclude Include="..\..\src\device_disk.h" />
     <ClInclude Include="..\..\src\device_factory.h" />
@@ -200,16 +202,12 @@
     <ClInclude Include="..\..\src\duplicates.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
-    <ClInclude Include="..\..\src\env.cc" />
     <ClInclude Include="..\..\src\env_header.h" />
-    <ClInclude Include="..\..\src\env_local.cc" />
     <ClInclude Include="..\..\src\env_local.h" />
-    <ClInclude Include="..\..\src\env_remote.cc" />
     <ClInclude Include="..\..\src\env_remote.h" />
     <ClInclude Include="..\..\src\error.h" />
     <ClInclude Include="..\..\src\errorinducer.h" />
     <ClInclude Include="..\..\src\extkeys.h" />
-    <ClInclude Include="..\..\src\extkeys.cc" />
     <ClInclude Include="..\..\src\freelist.h" />
     <ClInclude Include="..\..\src\freelist_stats.h" />
     <ClInclude Include="..\..\src\hash-table.h" />
@@ -247,8 +245,14 @@
     <ClCompile Include="..\..\src\changeset.cc" />
     <ClCompile Include="..\..\src\cursor.cc" />
     <ClCompile Include="..\..\src\db.cc" />
+    <ClCompile Include="..\..\src\db_local.cc" />
+    <ClCompile Include="..\..\src\db_remote.cc" />
     <ClCompile Include="..\..\src\duplicates.cc" />
+    <ClCompile Include="..\..\src\env.cc" />
+    <ClCompile Include="..\..\src\env_local.cc" />
+    <ClCompile Include="..\..\src\env_remote.cc" />
     <ClCompile Include="..\..\src\error.cc" />
+    <ClCompile Include="..\..\src\extkeys.cc" />
     <ClCompile Include="..\..\src\freelist.cc" />
     <ClCompile Include="..\..\src\freelist_stats.cc" />
     <ClCompile Include="..\..\src\hamsterdb.cc" />

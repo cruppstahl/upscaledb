@@ -13,6 +13,7 @@
 #include "config.h"
 
 #include <windows.h>
+#include <winsock.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -479,4 +480,93 @@ os_close(ham_fd_t fd)
   return (HAM_SUCCESS);
 }
 
+ham_status_t
+os_socket_connect(const char *hostname, ham_u16_t port, ham_socket_t *socket)
+{
+  *socket = HAM_INVALID_FD;
+
+  WORD sockVersion = MAKEWORD(1, 1);
+  WSADATA wsaData;
+  WSAStartup(sockVersion, &wsaData);
+
+  ham_socket_t s = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s < 0) {
+    ham_log(("failed creating socket: %s", strerror(errno)));
+    return (HAM_IO_ERROR);
+  }
+
+  LPHOSTENT server = ::gethostbyname(hostname);
+  if (!server) {
+    ham_log(("unable to resolve hostname %s", hostname));
+    ::closesocket(s);
+    return (HAM_IO_ERROR);
+  }
+
+  SOCKADDR_IN addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr = *((LPIN_ADDR)*server->h_addr_list);
+  addr.sin_port = htons(port);
+  if (::connect(s, (LPSOCKADDR)&addr, sizeof(addr)) < 0) {
+    ham_log(("unable to connect to %s:%d: %s", hostname, (int)port,
+                strerror(errno)));
+    ::closesocket(s);
+    return (HAM_IO_ERROR);
+  }
+
+  *socket = s;
+
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_socket_send(ham_socket_t socket, const ham_u8_t *data, ham_size_t data_size)
+{
+  int sent = 0;
+  char buf[256];
+  ham_status_t st;
+  
+  while (sent != data_size) {
+    int s = ::send(socket, (const char *)(data + sent), data_size - sent, 0);
+	if (s <= 0) {
+      st = (ham_status_t)GetLastError();
+      ham_log(("send failed with OS status %u (%s)", st,
+              DisplayError(buf, sizeof(buf), st)));
+	  return (HAM_IO_ERROR);
+	}
+	sent += s;
+  }
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_socket_recv(ham_socket_t socket, ham_u8_t *data, ham_size_t data_size)
+{
+  int read = 0;
+  char buf[256];
+  ham_status_t st;
+  
+  while (read != data_size) {
+    int r = ::recv(socket, (char *)(data + read), data_size - read, 0);
+	if (r <= 0) {
+      st = (ham_status_t)GetLastError();
+      ham_log(("recv failed with OS status %u (%s)", st,
+              DisplayError(buf, sizeof(buf), st)));
+	  return (HAM_IO_ERROR);
+	}
+	read += r;
+  }
+  return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_socket_close(ham_socket_t *socket)
+{
+  if (*socket != HAM_INVALID_FD) {
+    if (::closesocket(*socket) == -1)
+      return (HAM_IO_ERROR);
+    *socket = HAM_INVALID_FD;
+  }
+  return (0);
+}
 } // namespace hamsterdb

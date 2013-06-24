@@ -76,8 +76,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -92,8 +92,8 @@
     </ProjectReference>
     <Lib>
       <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2010/;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv_debug.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -124,8 +124,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../3rdparty;../../include;../../src;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2010/include;../../../hamsterdb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -137,9 +137,9 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../../../hamsterdb-alien/libuv/msvc2010;../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories);Iphlpapi.lib</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -167,16 +167,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\server\hamserver.cc" />
-    <ClCompile Include="..\..\src\server\os.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\server\os.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="3rdparty_mongoose.vcxproj">
-      <Project>{ab99816e-52c4-4420-b8dd-63892a380173}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

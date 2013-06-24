@@ -149,6 +149,7 @@ typedef unsigned char      ham_u8_t;
  */
 #ifdef HAM_OS_POSIX
 typedef int                ham_fd_t;
+typedef int	               ham_socket_t;
 #  define HAM_INVALID_FD  (-1)
 #endif
 
@@ -158,8 +159,10 @@ typedef int                ham_fd_t;
 #ifdef HAM_OS_WIN32
 #  ifdef CYGWIN
 typedef int                ham_fd_t;
+typedef int	               ham_socket_t;
 #  else
 typedef HANDLE             ham_fd_t;
+typedef SOCKET             ham_socket_t;
 #  endif
 #  define HAM_INVALID_FD   (0)
 #endif

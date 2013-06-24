@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include;../../../hamsterdb-alien/libcurl/msvc2008"
+				AdditionalIncludeDirectories="../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008\libcurl_x86_debug.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x86_debug.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -123,7 +123,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008\libcurl_x64_debug.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x64_debug.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;..\..\..\hamsterdb-alien\boost\x64&quot;"
@@ -202,7 +202,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="../../include;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;&quot;../../../hamsterdb-alien/openssl/include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -222,7 +222,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008\libcurl_x86.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x86.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\..\..\hamsterdb-alien\boost"
@@ -282,7 +282,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/libcurl/msvc2008&quot;"
+				AdditionalIncludeDirectories="&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;;../../include;../../3rdparty/aes;&quot;../../../hamsterdb-alien/boost&quot;"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;HAM_ENABLE_ENCRYPTION"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -301,7 +301,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008\libcurl_x64.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x64.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\hamsterdb-alien\boost\x64&quot;"
@@ -460,6 +460,22 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\db_local.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_local.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_remote.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_remote.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\device.h"
 			>
 		</File>
@@ -505,6 +521,10 @@
 		</File>
 		<File
 			RelativePath="..\..\src\env_local.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\env_remote.cc"
 			>
 		</File>
 		<File
@@ -629,10 +649,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\rb.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\remote.cc"
 			>
 		</File>
 		<File

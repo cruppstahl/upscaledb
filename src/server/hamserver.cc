@@ -9,16 +9,8 @@
  * See files COPYING.* for License information.
  */
 
-
-#include <stdio.h> /* needed for mongoose.h */
-#ifdef HAVE_MALLOC_H
-#  include <malloc.h>
-#else
-#  include <stdlib.h>
-#endif
 #include <string.h>
-
-#include <mongoose/mongoose.h>
+#include <uv.h>
 
 #include <ham/types.h>
 #include <ham/hamsterdb_srv.h>
@@ -26,131 +18,318 @@
 #include "os.h"
 #include "db.h"
 #include "error.h"
-#include "assert.h"
+#include "mutex.h"
 #include "cursor.h"
 #include "mem.h"
 #include "env.h"
 
+template<typename T>
+struct Handle {
+  Handle(ham_u64_t _index, T *_object)
+    : index(_index), object(_object) {
+  }
+
+  ham_u64_t index;
+  T *object;
+};
+
+typedef std::vector< Handle<Environment> > EnvironmentVector;
+typedef std::vector< Handle<Database> > DatabaseVector;
+typedef std::vector< Handle<Cursor> > CursorVector;
+typedef std::vector< Handle<Transaction> > TransactionVector;
+typedef std::map<std::string, Environment *> EnvironmentMap;
+
+struct ham_srv_t {
+  bool dummy;
+};
+
+class ServerContext {
+  public:
+    ServerContext()
+      : thread_id(0), loop(0), m_handle_counter(1) {
+    }
+
+    // allocates a new handle
+    // TODO the allocate_handle methods have lots of duplicate code;
+    // try to find a generic solution!
+    ham_u64_t allocate_handle(Environment *env) {
+      ham_u64_t c = 0;
+      for (EnvironmentVector::iterator it = m_environments.begin();
+              it != m_environments.end(); it++, c++) {
+        if (it->index == 0) {
+          c |= m_handle_counter << 32;
+          m_handle_counter++;
+          it->index = c;
+          it->object = env;
+          return (c);
+        }
+      }
+
+      c = m_environments.size() | m_handle_counter << 32;
+      m_handle_counter++;
+      m_environments.push_back(Handle<Environment>(c, env));
+      return (c);
+    }
+
+    ham_u64_t allocate_handle(Database *db) {
+      ham_u64_t c = 0;
+      for (DatabaseVector::iterator it = m_databases.begin();
+              it != m_databases.end(); it++, c++) {
+        if (it->index == 0) {
+          c |= m_handle_counter << 32;
+          m_handle_counter++;
+          it->index = c;
+          it->object = db;
+          return (c);
+        }
+      }
+
+      c = m_databases.size() | m_handle_counter << 32;
+      m_handle_counter++;
+      m_databases.push_back(Handle<Database>(c, db));
+      return (c);
+    }
+
+    ham_u64_t allocate_handle(Transaction *txn) {
+      ham_u64_t c = 0;
+      for (TransactionVector::iterator it = m_transactions.begin();
+              it != m_transactions.end(); it++, c++) {
+        if (it->index == 0) {
+          c |= m_handle_counter << 32;
+          m_handle_counter++;
+          it->index = c;
+          it->object = txn;
+          return (c);
+        }
+      }
+
+      c = m_transactions.size() | m_handle_counter << 32;
+      m_handle_counter++;
+      m_transactions.push_back(Handle<Transaction>(c, txn));
+      return (c);
+    }
+
+    ham_u64_t allocate_handle(Cursor *cursor) {
+      ham_u64_t c = 0;
+      for (CursorVector::iterator it = m_cursors.begin();
+              it != m_cursors.end(); it++, c++) {
+        if (it->index == 0) {
+          c |= m_handle_counter << 32;
+          m_handle_counter++;
+          it->index = c;
+          it->object = cursor;
+          return (c);
+        }
+      }
+
+      c = m_cursors.size() | m_handle_counter << 32;
+      m_handle_counter++;
+      m_cursors.push_back(Handle<Cursor>(c, cursor));
+      return (c);
+    }
+
+    void remove_env_handle(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_environments.size());
+      if (index >= m_environments.size())
+        return;
+      EnvironmentVector::iterator it = m_environments.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return;
+      it->index = 0;
+      it->object = 0;
+    }
+
+    void remove_db_handle(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_databases.size());
+      if (index >= m_databases.size())
+        return;
+      DatabaseVector::iterator it = m_databases.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return;
+      it->index = 0;
+      it->object = 0;
+    }
+
+    void remove_txn_handle(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_transactions.size());
+      if (index >= m_transactions.size())
+        return;
+      TransactionVector::iterator it = m_transactions.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return;
+      it->index = 0;
+      it->object = 0;
+    }
+
+    void remove_cursor_handle(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_cursors.size());
+      if (index >= m_cursors.size())
+        return;
+      CursorVector::iterator it = m_cursors.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return;
+      it->index = 0;
+      it->object = 0;
+    }
+
+    Environment *get_env(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_environments.size());
+      if (index >= m_environments.size())
+        return (0);
+      EnvironmentVector::iterator it = m_environments.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return (0);
+      return (it->object);
+    }
+
+    Database *get_db(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_databases.size());
+      if (index >= m_databases.size())
+        return (0);
+      DatabaseVector::iterator it = m_databases.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return (0);
+      return (it->object);
+    }
+
+    Transaction *get_txn(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_transactions.size());
+      if (index >= m_transactions.size())
+        return (0);
+      TransactionVector::iterator it = m_transactions.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return (0);
+      return (it->object);
+    }
+
+    Cursor *get_cursor(ham_u64_t handle) {
+      ham_u32_t index = handle & 0xffffffff;
+      ham_assert(index < m_cursors.size());
+      if (index >= m_cursors.size())
+        return (0);
+      CursorVector::iterator it = m_cursors.begin() + index;
+      ham_assert(it->index == handle);
+      if (it->index != handle)
+        return (0);
+      return (it->object);
+    }
+
+    Handle<Database> get_db_by_name(ham_u16_t dbname) {
+      for (size_t i = 0; i < m_databases.size(); i++) {
+        Database *db = m_databases[i].object;
+        if (db && db->get_name() == dbname)
+          return (m_databases[i]);
+      }
+      return (Handle<Database>(0, 0));
+    }
+
+    uv_tcp_t server;
+    uv_thread_t thread_id;
+    uv_async_t async;
+	uv_loop_t *loop;
+    EnvironmentMap open_envs;
+
+    Mutex open_queue_mutex;
+    EnvironmentMap open_queue;
+
+  private:
+    EnvironmentVector m_environments;
+    DatabaseVector m_databases;
+    CursorVector m_cursors;
+    TransactionVector m_transactions;
+    ham_u64_t m_handle_counter;
+};
+
+struct ClientContext {
+  ClientContext(ServerContext *_srv)
+    : buffer(0), srv(_srv) {
+    ham_assert(srv != 0);
+  }
+
+  ByteArray buffer;
+  ServerContext *srv;
+};
+
 namespace hamsterdb {
 
-/* max. number of open hamsterdb Environments - if you change this, also change
- * MAX_CALLBACKS in 3rdparty/mongoose/mongoose.c! */
-#define MAX_ENVIRONMENTS  128
-#define MAX_DATABASES     512
-
-static const char *standard_reply = "HTTP/1.1 200 OK\r\n"
-                  "Content-Type: text/plain\r\n"
-                  "Connection: close\r\n\r\n";
-
-#define HANDLE_TYPE_DATABASE 1
-#define HANDLE_TYPE_TRANSACTION 2
-#define HANDLE_TYPE_CURSOR 3
-
-typedef struct srv_handle_t
+static void
+on_write_cb(uv_write_t *req, int status)
 {
-  void *ptr;
-  int type;
-  ham_u64_t handle;
-} srv_handle_t;
-
-struct env_t {
-  ::ham_env_t *env;
-  os_critsec_t cs;
-  char *urlname;
-  srv_handle_t *handles;
-  ham_u32_t handles_ctr;
-  ham_u32_t handles_size;
-} env_t;
-
-static ham_u64_t
-__store_handle(struct env_t *envh, void *ptr, int type)
-{
-  unsigned i;
-  ham_u64_t ret;
-
-  for (i = 0; i < envh->handles_size; i++) {
-    if (envh->handles[i].ptr == 0) {
-      break;
-    }
-  }
-
-  if (i == envh->handles_size) {
-    envh->handles_size += 10;
-    envh->handles=(srv_handle_t *)realloc(envh->handles,
-            sizeof(srv_handle_t)*envh->handles_size);
-    if (!envh->handles)
-      return 0; /* not so nice, but if we're out of memory then
-             * it does not make sense to go on... */
-    memset(&envh->handles[envh->handles_size - 10], 0,
-            sizeof(srv_handle_t) * 10);
-  }
-
-  ret = ++envh->handles_ctr;
-  ret = ret << 32;
-
-  envh->handles[i].ptr = ptr;
-  envh->handles[i].handle = ret | i;
-  envh->handles[i].type = type;
-
-  return (envh->handles[i].handle);
-}
-
-static void *
-__get_handle(struct env_t *envh, ham_u64_t handle)
-{
-  srv_handle_t *h = &envh->handles[handle & 0xffffffff];
-  if (h->handle != handle)
-    return (0);
-  return h->ptr;
-}
+  Memory::release(req->data);
+  delete req;
+};
 
 static void
-__remove_handle(struct env_t *envh, ham_u64_t handle)
-{
-  srv_handle_t *h = &envh->handles[handle & 0xffffffff];
-  ham_assert(h->handle == handle);
-  if (h->handle != handle)
-    return;
-  memset(h, 0, sizeof(*h));
-}
-
-static void
-send_wrapper(ham_env_t *henv, struct mg_connection *conn, Protocol *wrapper)
+send_wrapper(ServerContext *srv, uv_stream_t *tcp, Protocol *reply)
 {
   ham_u8_t *data;
   ham_size_t data_size;
 
-  if (!wrapper->pack(&data, &data_size))
+  if (!reply->pack(&data, &data_size))
     return;
 
-  ham_trace(("type %u: sending %d bytes", wrapper->type(), data_size));
-  mg_printf(conn, "%s", standard_reply);
-  mg_write(conn, data, data_size);
-
-  Memory::release(data);
+  // |req| needs to exist till the request was finished asynchronously;
+  // therefore it must be allocated on the heap
+  uv_write_t *req = new uv_write_t();
+  uv_buf_t buf = uv_buf_init((char *)data, data_size);
+  req->data = data;
+  // |req| and |data| are freed in on_write_cb()
+  uv_write(req, (uv_stream_t *)tcp, &buf, 1, on_write_cb);
 }
 
 static void
-handle_connect(ham_env_t *env, struct mg_connection *conn,
-                const struct mg_request_info *ri, Protocol *request)
+handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_assert(request!=0);
+  ham_assert(request != 0);
+  Environment *env = srv->open_envs[request->connect_request().path()];
 
-  Protocol *reply = new Protocol(Protocol::CONNECT_REPLY);
-  reply->mutable_connect_reply()->set_status(0);
-  reply->mutable_connect_reply()->set_env_flags(
-          ((Environment *)env)->get_flags());
+  Protocol reply(Protocol::CONNECT_REPLY);
+  if (!env) {
+    reply.mutable_connect_reply()->set_status(HAM_FILE_NOT_FOUND);
+  }
+  else {
+    reply.mutable_connect_reply()->set_status(0);
+    reply.mutable_connect_reply()->set_env_flags(
+            ((Environment *)env)->get_flags());
+    reply.mutable_connect_reply()->set_env_handle(srv->allocate_handle(env));
+  }
 
-  send_wrapper(env, conn, reply);
-  delete reply;
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
-                const struct mg_request_info *ri, Protocol *request)
+handle_disconnect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
+  ham_assert(request != 0);
+  srv->remove_env_handle(request->disconnect_request().env_handle());
+
+  Protocol reply(Protocol::DISCONNECT_REPLY);
+  reply.mutable_disconnect_reply()->set_status(0);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
   ham_size_t i;
   ham_status_t st = 0;
+  Environment *env = 0;
   ham_parameter_t params[100]; /* 100 should be enough... */
 
   ham_assert(request != 0);
@@ -160,16 +339,18 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
   memset(&params[0], 0, sizeof(params));
   for (i = 0;
       i < (ham_size_t)request->env_get_parameters_request().names().size()
-      && i < 100; i++)
+        && i < 100; i++)
     params[i].name = request->mutable_env_get_parameters_request()->mutable_names()->mutable_data()[i];
 
   Protocol reply(Protocol::ENV_GET_PARAMETERS_REPLY);
 
+  env = srv->get_env(request->env_get_parameters_request().env_handle());
+
   /* and request the parameters from the Environment */
-  st = ham_env_get_parameters(env, &params[0]);
+  st = ham_env_get_parameters((ham_env_t *)env, &params[0]);
   reply.mutable_env_get_parameters_reply()->set_status(st);
   if (st) {
-    send_wrapper(env, conn, &reply);
+    send_wrapper(srv, tcp, &reply);
     return;
   }
 
@@ -209,15 +390,232 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
     }
   }
 
-  send_wrapper(env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
-                const struct mg_request_info *ri, Protocol *request)
+handle_env_get_database_names(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
-  ham_env_t *env = envh->env;
+  ham_size_t num_names = 1024;
+  ham_u16_t names[1024]; /* should be enough */
+  Environment *env = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_env_get_database_names_request());
+
+  env = srv->get_env(request->env_get_database_names_request().env_handle());
+
+  /* request the database names from the Environment */
+  ham_status_t st = ham_env_get_database_names((ham_env_t *)env,
+          &names[0], &num_names);
+
+  Protocol reply(Protocol::ENV_GET_DATABASE_NAMES_REPLY);
+  reply.mutable_env_get_database_names_reply()->set_status(st);
+  for (ham_u32_t i = 0; i < num_names; i++)
+    reply.mutable_env_get_database_names_reply()->add_names(names[i]);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_flush(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
+  Environment *env = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_env_flush_request());
+
+  env = srv->get_env(request->env_flush_request().env_handle());
+
+  /* request the database names from the Environment */
+  Protocol reply(Protocol::ENV_FLUSH_REPLY);
+  reply.mutable_env_flush_reply()->set_status(ham_env_flush((ham_env_t *)env,
+            request->env_flush_request().flags()));
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_rename(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
+  Environment *env = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_env_rename_request());
+
+  env = srv->get_env(request->env_rename_request().env_handle());
+
+  /* rename the databases */
+  ham_status_t st = ham_env_rename_db((ham_env_t *)env,
+          request->env_rename_request().oldname(),
+          request->env_rename_request().newname(),
+          request->env_rename_request().flags());
+
+  Protocol reply(Protocol::ENV_RENAME_REPLY);
+  reply.mutable_env_rename_reply()->set_status(st);
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
   ham_db_t *db;
+  Environment *env;
+  ham_status_t st = 0;
+  ham_u64_t db_handle = 0;
+  ham_parameter_t params[100] = {{0, 0}};
+
+  ham_assert(request != 0);
+  ham_assert(request->has_env_create_db_request());
+
+  env = srv->get_env(request->env_create_db_request().env_handle());
+
+  /* convert parameters */
+  ham_assert(request->env_create_db_request().param_names().size() < 100);
+  for (ham_size_t i = 0;
+      i < (ham_size_t)request->env_create_db_request().param_names().size();
+      i++) {
+    params[i].name  = request->mutable_env_create_db_request()->mutable_param_names()->data()[i];
+    params[i].value = request->mutable_env_create_db_request()->mutable_param_values()->data()[i];
+  }
+
+  /* create the database */
+  st = ham_env_create_db((ham_env_t *)env, &db,
+            request->env_create_db_request().dbname(),
+            request->env_create_db_request().flags(), &params[0]);
+
+  if (st == 0) {
+    /* allocate a new database handle in the Env wrapper structure */
+    db_handle = srv->allocate_handle((Database *)db);
+  }
+
+  Protocol reply(Protocol::ENV_CREATE_DB_REPLY);
+  reply.mutable_env_create_db_reply()->set_status(st);
+  if (db_handle) {
+    reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
+    reply.mutable_env_create_db_reply()->set_db_flags(
+        ((Database *)db)->get_rt_flags(true));
+  }
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_open_db(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
+  ham_db_t *db = 0;
+  ham_u64_t db_handle = 0;
+  ham_status_t st = 0;
+  ham_u16_t dbname = request->env_open_db_request().dbname();
+  ham_parameter_t params[100] = {{0, 0}};
+
+  ham_assert(request != 0);
+  ham_assert(request->has_env_open_db_request());
+
+  Environment *env = srv->get_env(request->env_open_db_request().env_handle());
+
+  /* convert parameters */
+  ham_assert(request->env_open_db_request().param_names().size() < 100);
+  for (ham_size_t i = 0;
+      i < (ham_size_t)request->env_open_db_request().param_names().size();
+      i++) {
+    params[i].name  = request->mutable_env_open_db_request()->mutable_param_names()->data()[i];
+    params[i].value = request->mutable_env_open_db_request()->mutable_param_values()->data()[i];
+  }
+
+  /* check if the database is already open */
+  Handle<Database> handle = srv->get_db_by_name(dbname);
+  db = (ham_db_t *)handle.object;
+  db_handle = handle.index;
+
+  /* if not found: check if the Database was opened by another
+   * connection
+   * TODO this is not thread safe! - not really a problem because the server
+   * is currently single-threaded, though
+   */
+  if (!db) {
+    Environment::DatabaseMap::iterator it
+            = env->get_database_map().find(dbname);
+    if (it != env->get_database_map().end())
+      db = (ham_db_t *)it->second;
+    db_handle = srv->allocate_handle((Database *)db);
+  }
+
+  if (!db) {
+    /* still not found: open the database */
+    st = ham_env_open_db((ham_env_t *)env, &db, dbname,
+                request->env_open_db_request().flags(), &params[0]);
+
+    if (st == 0)
+      db_handle = srv->allocate_handle((Database *)db);
+  }
+
+  Protocol reply(Protocol::ENV_OPEN_DB_REPLY);
+  reply.mutable_env_open_db_reply()->set_status(st);
+  if (st == 0) {
+    reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
+    reply.mutable_env_open_db_reply()->set_db_flags(
+        ((Database *)db)->get_rt_flags(true));
+  }
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_env_erase_db(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
+  ham_assert(request != 0);
+  ham_assert(request->has_env_erase_db_request());
+
+  Environment *env = srv->get_env(request->env_erase_db_request().env_handle());
+
+  ham_status_t st = ham_env_erase_db((ham_env_t *)env,
+            request->env_erase_db_request().name(),
+            request->env_erase_db_request().flags());
+
+  Protocol reply(Protocol::ENV_ERASE_DB_REPLY);
+  reply.mutable_env_erase_db_reply()->set_status(st);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_db_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
+  ham_status_t st = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_db_close_request());
+
+  Database *db = srv->get_db(request->db_close_request().db_handle());
+  if (!db) {
+    /* accept this - most likely the database was already closed by
+     * another process */
+    st = 0;
+    srv->remove_db_handle(request->db_close_request().db_handle());
+  }
+  else {
+    st = ham_db_close((ham_db_t *)db, request->db_close_request().flags());
+    if (st == 0)
+      srv->remove_db_handle(request->db_close_request().db_handle());
+  }
+
+  Protocol reply(Protocol::DB_CLOSE_REPLY);
+  reply.mutable_db_close_reply()->set_status(st);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
+{
   ham_status_t st = 0;
   ham_parameter_t params[100]; /* 100 should be enough... */
 
@@ -231,9 +629,8 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
         && i < 100; i++)
     params[i].name = request->mutable_db_get_parameters_request()->mutable_names()->mutable_data()[i];
 
-  /* and request the parameters from the Environment */
-  db = (ham_db_t *)__get_handle(envh,
-                request->db_get_parameters_request().db_handle());
+  /* and request the parameters from the Database */
+  Database *db = srv->get_db(request->db_get_parameters_request().db_handle());
   if (!db)
     st = HAM_INV_PARAMETER;
   else
@@ -243,7 +640,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
   reply.mutable_db_get_parameters_reply()->set_status(st);
 
   if (st) {
-    send_wrapper(env, conn, &reply);
+    send_wrapper(srv, tcp, &reply);
     return;
   }
 
@@ -276,359 +673,66 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
     }
   }
 
-  send_wrapper(env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_db_check_integrity(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
-  ham_size_t num_names = 1024;
-  ham_u16_t names[1024]; /* should be enough */
-
-  ham_assert(request != 0);
-  ham_assert(request->has_env_get_database_names_request());
-
-  /* request the database names from the Environment */
-  ham_status_t st = ham_env_get_database_names(env, &names[0], &num_names);
-
-  Protocol reply(Protocol::ENV_GET_DATABASE_NAMES_REPLY);
-  reply.mutable_env_get_database_names_reply()->set_status(st);
-  for (ham_u32_t i = 0; i < num_names; i++)
-    reply.mutable_env_get_database_names_reply()->add_names(names[i]);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_env_flush(ham_env_t *env, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_assert(request != 0);
-  ham_assert(request->has_env_flush_request());
-
-  /* request the database names from the Environment */
-  Protocol reply(Protocol::ENV_FLUSH_REPLY);
-  reply.mutable_env_flush_reply()->set_status(ham_env_flush(env,
-        request->env_flush_request().flags()));
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_env_rename(ham_env_t *env, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_assert(request != 0);
-  ham_assert(request->has_env_rename_request());
-
-  /* rename the databases */
-  ham_status_t st = ham_env_rename_db(env,
-          request->env_rename_request().oldname(),
-          request->env_rename_request().newname(),
-          request->env_rename_request().flags());
-
-  Protocol reply(Protocol::ENV_RENAME_REPLY);
-  reply.mutable_env_rename_reply()->set_status(st);
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_env_create_db(struct env_t *envh, ham_env_t *env,
-            struct mg_connection *conn, const struct mg_request_info *ri,
-            Protocol *request)
-{
-  ham_db_t *db;
-  ham_status_t st = 0;
-  ham_u64_t db_handle = 0;
-  ham_parameter_t params[100] = {{0, 0}};
-
-  ham_assert(request != 0);
-  ham_assert(request->has_env_create_db_request());
-
-  /* convert parameters */
-  ham_assert(request->env_create_db_request().param_names().size() < 100);
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->env_create_db_request().param_names().size();
-      i++) {
-    params[i].name  = request->mutable_env_create_db_request()->mutable_param_names()->data()[i];
-    params[i].value = request->mutable_env_create_db_request()->mutable_param_values()->data()[i];
-  }
-
-  /* create the database */
-  st = ham_env_create_db(env, &db,
-            request->env_create_db_request().dbname(),
-            request->env_create_db_request().flags(), &params[0]);
-
-  if (st == 0) {
-    /* allocate a new database handle in the Env wrapper structure */
-    db_handle = __store_handle(envh, db, HANDLE_TYPE_DATABASE);
-  }
-
-  Protocol reply(Protocol::ENV_CREATE_DB_REPLY);
-  reply.mutable_env_create_db_reply()->set_status(st);
-  if (db_handle) {
-    reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
-    reply.mutable_env_create_db_reply()->set_db_flags(
-        ((Database *)db)->get_rt_flags(true));
-  }
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_env_open_db(struct env_t *envh, ham_env_t *env,
-            struct mg_connection *conn, const struct mg_request_info *ri,
-            Protocol *request)
-{
-  ham_db_t *db = 0;
-  ham_u64_t db_handle = 0;
-  ham_status_t st = 0;
-  ham_u16_t dbname = request->env_open_db_request().dbname();
-  ham_parameter_t params[100] = {{0, 0}};
-
-  ham_assert(request != 0);
-  ham_assert(request->has_env_open_db_request());
-
-  /* convert parameters */
-  ham_assert(request->env_open_db_request().param_names().size() < 100);
-  for (ham_size_t i = 0;
-      i < (ham_size_t)request->env_open_db_request().param_names().size();
-      i++) {
-    params[i].name  = request->mutable_env_open_db_request()->mutable_param_names()->data()[i];
-    params[i].value = request->mutable_env_open_db_request()->mutable_param_values()->data()[i];
-  }
-
-  /* check if the database is already open */
-  for (ham_size_t i = 0; i < envh->handles_size; i++) {
-    if (envh->handles[i].ptr != 0) {
-      if (envh->handles[i].type == HANDLE_TYPE_DATABASE) {
-        db = (ham_db_t *)envh->handles[i].ptr;
-        if (((Database *)db)->get_name() == dbname) {
-          db_handle = envh->handles[i].handle;
-          break;
-        }
-        else
-          db = 0;
-      }
-    }
-  }
-
-  /* if not found: open the database */
-  if (!db) {
-    st = ham_env_open_db(env, &db, dbname,
-                request->env_open_db_request().flags(), &params[0]);
-
-    if (st == 0) {
-      /* allocate a new database handle in the Env wrapper structure */
-      db_handle = __store_handle(envh, db, HANDLE_TYPE_DATABASE);
-    }
-  }
-
-  Protocol reply(Protocol::ENV_OPEN_DB_REPLY);
-  reply.mutable_env_open_db_reply()->set_status(st);
-  if (st == 0) {
-    reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
-    reply.mutable_env_open_db_reply()->set_db_flags(
-        ((Database *)db)->get_rt_flags(true));
-  }
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_assert(request != 0);
-  ham_assert(request->has_env_erase_db_request());
-
-  ham_status_t st = ham_env_erase_db(env,
-            request->env_erase_db_request().name(),
-            request->env_erase_db_request().flags());
-
-  Protocol reply(Protocol::ENV_ERASE_DB_REPLY);
-  reply.mutable_env_erase_db_reply()->set_status(st);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_db_close(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_db_t *db;
-  ham_status_t st = 0;
-  ham_env_t *env = envh->env;
-
-  ham_assert(request != 0);
-  ham_assert(request->has_db_close_request());
-
-  db = (ham_db_t *)__get_handle(envh, request->db_close_request().db_handle());
-  if (!db) {
-    /* accept this - most likely the database was already closed by
-     * another process */
-    st = 0;
-  }
-  else {
-    st = ham_db_close(db, request->db_close_request().flags());
-    if (st == 0)
-      __remove_handle(envh, request->db_close_request().db_handle());
-  }
-
-  Protocol reply(Protocol::DB_CLOSE_REPLY);
-  reply.mutable_db_close_reply()->set_status(st);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_txn_t *txn;
-  ham_status_t st = 0;
-  ham_u64_t handle = 0;
-  ham_env_t *env = envh->env;
-
-  ham_assert(request != 0);
-  ham_assert(request->has_txn_begin_request());
-
-  st = ham_txn_begin(&txn, env, request->txn_begin_request().has_name()
-              ? request->txn_begin_request().name().c_str()
-              : 0,
-            0, request->txn_begin_request().flags());
-
-  if (st == 0)
-    handle = __store_handle(envh, txn, HANDLE_TYPE_TRANSACTION);
-
-  Protocol reply(Protocol::TXN_BEGIN_REPLY);
-  reply.mutable_txn_begin_reply()->set_status(st);
-  reply.mutable_txn_begin_reply()->set_txn_handle(handle);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_txn_t *txn;
-  ham_env_t *env = envh->env;
-  ham_status_t st = 0;
-
-  ham_assert(request != 0);
-  ham_assert(request->has_txn_commit_request());
-
-  txn = (ham_txn_t *)__get_handle(envh,
-            request->txn_commit_request().txn_handle());
-  if (!txn) {
-    st = HAM_INV_PARAMETER;
-  }
-  else {
-    st = ham_txn_commit(txn, request->txn_commit_request().flags());
-    if (st == 0) {
-      /* remove the handle from the Env wrapper structure */
-      __remove_handle(envh,
-            request->txn_commit_request().txn_handle());
-    }
-  }
-
-  Protocol reply(Protocol::TXN_COMMIT_REPLY);
-  reply.mutable_txn_commit_reply()->set_status(st);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_txn_t *txn;
-  ham_status_t st = 0;
-  ham_env_t *env = envh->env;
-
-  ham_assert(request != 0);
-  ham_assert(request->has_txn_abort_request());
-
-  txn = (ham_txn_t *)__get_handle(envh,
-            request->txn_abort_request().txn_handle());
-  if (!txn) {
-    st = HAM_INV_PARAMETER;
-  }
-  else {
-    st = ham_txn_abort(txn, request->txn_abort_request().flags());
-    if (st == 0) {
-      /* remove the handle from the Env wrapper structure */
-      __remove_handle(envh, request->txn_abort_request().txn_handle());
-    }
-  }
-
-  Protocol reply(Protocol::TXN_ABORT_REPLY);
-  reply.mutable_txn_abort_reply()->set_status(st);
-
-  send_wrapper(env, conn, &reply);
-}
-
-static void
-handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
-{
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
   ham_status_t st = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_db_check_integrity_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+
   if (request->db_check_integrity_request().txn_handle()) {
-    txn=(ham_txn_t *)__get_handle(envh,
-            request->db_check_integrity_request().txn_handle());
+    txn = srv->get_txn(request->db_check_integrity_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh,
-            request->db_check_integrity_request().db_handle());
+    db = srv->get_db(request->db_check_integrity_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else
-      st = ham_db_check_integrity(db, txn);
+      st = ham_db_check_integrity((ham_db_t *)db, (ham_txn_t *)txn);
   }
 
   Protocol reply(Protocol::DB_CHECK_INTEGRITY_REPLY);
   reply.mutable_db_check_integrity_reply()->set_status(st);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_db_get_key_count(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
   ham_status_t st = 0;
   ham_u64_t keycount;
 
   ham_assert(request!=0);
   ham_assert(request->has_db_get_key_count_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+  
   if (request->db_get_key_count_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh,
-            request->db_get_key_count_request().txn_handle());
+    txn = srv->get_txn(request->db_get_key_count_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh,
-                request->db_get_key_count_request().db_handle());
+   db = srv->get_db(request->db_get_key_count_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else
-      st = ham_db_get_key_count(db, txn,
+      st = ham_db_get_key_count((ham_db_t *)db, (ham_txn_t *)txn,
                 request->db_get_key_count_request().flags(), &keycount);
   }
 
@@ -637,15 +741,13 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
   if (st == 0)
     reply.mutable_db_get_key_count_reply()->set_keycount(keycount);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_insert(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
   ham_status_t st = 0;
   bool send_key = false;
   ham_key_t key;
@@ -654,16 +756,17 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_db_insert_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+
   if (request->db_insert_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh,
-            request->db_insert_request().txn_handle());
+    txn = srv->get_txn(request->db_insert_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh,
-        request->db_insert_request().db_handle());
+    db = srv->get_db(request->db_insert_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else {
@@ -686,7 +789,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
         rec.flags = request->db_insert_request().record().flags()
                     & (~HAM_RECORD_USER_ALLOC);
       }
-      st = ham_db_insert(db, txn, &key, &rec,
+      st = ham_db_insert((ham_db_t *)db, (ham_txn_t *)txn, &key, &rec,
                     request->db_insert_request().flags());
 
       /* recno: return the modified key */
@@ -703,15 +806,13 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
   if (send_key)
     Protocol::assign_key(reply.mutable_db_insert_reply()->mutable_key(), &key);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_find(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_db_find(ServerContext *srv, uv_stream_t *tcp,
+                Protocol *request)
 {
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
   ham_status_t st = 0;
   ham_key_t key;
   ham_record_t rec;
@@ -720,16 +821,17 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_db_find_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+
   if (request->db_find_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh,
-                request->db_find_request().txn_handle());
+    txn = srv->get_txn(request->db_find_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh,
-                request->db_find_request().db_handle());
+    db = srv->get_db(request->db_find_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else {
@@ -747,7 +849,8 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
       rec.flags = request->db_find_request().record().flags()
                   & (~HAM_RECORD_USER_ALLOC);
 
-      st = ham_db_find(db, txn, &key, &rec, request->db_find_request().flags());
+      st = ham_db_find((ham_db_t *)db, (ham_txn_t *)txn, &key,
+              &rec, request->db_find_request().flags());
       if (st == 0) {
         /* approx matching: key->_flags was modified! */
         if (key._flags)
@@ -763,30 +866,28 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
   Protocol::assign_record(reply.mutable_db_find_reply()->mutable_record(),
                 &rec);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_db_erase(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_db_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
   ham_status_t st = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_db_erase_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+
   if (request->db_erase_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh,
-                request->db_erase_request().txn_handle());
+    txn = srv->get_txn(request->db_erase_request().txn_handle());
     if (!txn)
       st = HAM_INV_PARAMETER;
   }
 
   if (st == 0) {
-    db = (ham_db_t *)__get_handle(envh,
-                request->db_erase_request().db_handle());
+    db = srv->get_db(request->db_erase_request().db_handle());
     if (!db)
       st = HAM_INV_PARAMETER;
     else {
@@ -798,22 +899,102 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
       key.flags = request->db_erase_request().key().flags()
                   & (~HAM_KEY_USER_ALLOC);
 
-      st = ham_db_erase(db, txn, &key, request->db_erase_request().flags());
+      st = ham_db_erase((ham_db_t *)db, (ham_txn_t *)txn, &key,
+              request->db_erase_request().flags());
     }
   }
 
   Protocol reply(Protocol::DB_ERASE_REPLY);
   reply.mutable_db_erase_reply()->set_status(st);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_txn_begin(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_txn_t *txn = 0;
-  ham_db_t *db;
+  ham_txn_t *txn;
+  ham_status_t st = 0;
+  ham_u64_t txn_handle = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_txn_begin_request());
+
+  Environment *env = srv->get_env(request->txn_begin_request().env_handle());
+
+  st = ham_txn_begin(&txn, (ham_env_t *)env,
+            request->txn_begin_request().has_name()
+              ? request->txn_begin_request().name().c_str()
+              : 0,
+            0, request->txn_begin_request().flags());
+
+  if (st == 0)
+    txn_handle = srv->allocate_handle((Transaction *)txn);
+
+  Protocol reply(Protocol::TXN_BEGIN_REPLY);
+  reply.mutable_txn_begin_reply()->set_status(st);
+  reply.mutable_txn_begin_reply()->set_txn_handle(txn_handle);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_txn_commit(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
+  ham_status_t st = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_txn_commit_request());
+
+  Transaction *txn = srv->get_txn(request->txn_commit_request().txn_handle());
+  if (!txn) {
+    st = HAM_INV_PARAMETER;
+  }
+  else {
+    st = ham_txn_commit((ham_txn_t *)txn,
+            request->txn_commit_request().flags());
+    if (st == 0) {
+      /* remove the handle from the Env wrapper structure */
+      srv->remove_txn_handle(request->txn_commit_request().txn_handle());
+    }
+  }
+
+  Protocol reply(Protocol::TXN_COMMIT_REPLY);
+  reply.mutable_txn_commit_reply()->set_status(st);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_txn_abort(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
+  ham_status_t st = 0;
+
+  ham_assert(request != 0);
+  ham_assert(request->has_txn_abort_request());
+
+  Transaction *txn = srv->get_txn(request->txn_abort_request().txn_handle());
+  if (!txn) {
+    st = HAM_INV_PARAMETER;
+  }
+  else {
+    st = ham_txn_abort((ham_txn_t *)txn,
+            request->txn_abort_request().flags());
+    if (st == 0) {
+      /* remove the handle from the Env wrapper structure */
+      srv->remove_txn_handle(request->txn_abort_request().txn_handle());
+    }
+  }
+
+  Protocol reply(Protocol::TXN_ABORT_REPLY);
+  reply.mutable_txn_abort_reply()->set_status(st);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
+static void
+handle_cursor_create(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
   ham_cursor_t *cursor;
   ham_status_t st = 0;
   ham_u64_t handle = 0;
@@ -821,29 +1002,30 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_create_request());
 
+  Transaction *txn = 0;
+  Database *db = 0;
+
   if (request->cursor_create_request().txn_handle()) {
-    txn = (ham_txn_t *)__get_handle(envh,
-                request->cursor_create_request().txn_handle());
+    txn = srv->get_txn(request->cursor_create_request().txn_handle());
     if (!txn) {
       st = HAM_INV_PARAMETER;
       goto bail;
     }
   }
 
-  db = (ham_db_t *)__get_handle(envh,
-            request->cursor_create_request().db_handle());
+  db = srv->get_db(request->cursor_create_request().db_handle());
   if (!db) {
     st = HAM_INV_PARAMETER;
     goto bail;
   }
 
   /* create the cursor */
-  st = ham_cursor_create(&cursor, db, txn,
+  st = ham_cursor_create(&cursor, (ham_db_t *)db, (ham_txn_t *)txn,
         request->cursor_create_request().flags());
 
   if (st == 0) {
     /* allocate a new handle in the Env wrapper structure */
-    handle = __store_handle(envh, cursor, HANDLE_TYPE_CURSOR);
+    handle = srv->allocate_handle((Cursor *)cursor);
   }
 
 bail:
@@ -851,14 +1033,12 @@ bail:
   reply.mutable_cursor_create_reply()->set_status(st);
   reply.mutable_cursor_create_reply()->set_cursor_handle(handle);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
-        const struct mg_request_info *ri, Protocol *request)
+handle_cursor_clone(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *src;
   ham_cursor_t *dest;
   ham_status_t st = 0;
   ham_u64_t handle = 0;
@@ -866,16 +1046,15 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_clone_request());
 
-  src = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_clone_request().cursor_handle());
+  Cursor *src = srv->get_cursor(request->cursor_clone_request().cursor_handle());
   if (!src)
     st = HAM_INV_PARAMETER;
   else {
     /* clone the cursor */
-    st = ham_cursor_clone(src, &dest);
+    st = ham_cursor_clone((ham_cursor_t *)src, &dest);
     if (st == 0) {
       /* allocate a new handle in the Env wrapper structure */
-      handle = __store_handle(envh, dest, HANDLE_TYPE_CURSOR);
+      handle = srv->allocate_handle((Cursor *)dest);
     }
   }
 
@@ -883,14 +1062,12 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
   reply.mutable_cursor_clone_reply()->set_status(st);
   reply.mutable_cursor_clone_reply()->set_cursor_handle(handle);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_key_t key;
   ham_record_t rec;
   ham_status_t st = 0;
@@ -899,8 +1076,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_insert_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-        request->cursor_insert_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_insert_request().cursor_handle());
   if (!cursor) {
     st = HAM_INV_PARAMETER;
     goto bail;
@@ -926,13 +1102,12 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_insert(cursor, &key, &rec,
+  st = ham_cursor_insert((ham_cursor_t *)cursor, &key, &rec,
             request->cursor_insert_request().flags());
 
   /* recno: return the modified key */
   if (st == 0) {
-    Cursor *c = (Cursor *)cursor;
-    if (c->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
+    if (cursor->get_db()->get_rt_flags(true) & HAM_RECORD_NUMBER) {
       ham_assert(key.size == sizeof(ham_u64_t));
       send_key = true;
     }
@@ -944,37 +1119,33 @@ bail:
   if (send_key)
     Protocol::assign_key(reply.mutable_cursor_insert_reply()->mutable_key(),
                 &key);
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_erase(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_status_t st = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_erase_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_erase_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_erase_request().cursor_handle());
   if (!cursor)
     st = HAM_INV_PARAMETER;
   else
-    st = ham_cursor_erase(cursor, request->cursor_erase_request().flags());
+    st = ham_cursor_erase((ham_cursor_t *)cursor,
+            request->cursor_erase_request().flags());
 
   Protocol reply(Protocol::CURSOR_ERASE_REPLY);
   reply.mutable_cursor_erase_reply()->set_status(st);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_find(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_key_t key;
   ham_record_t rec;
   ham_status_t st = 0;
@@ -984,8 +1155,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_find_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_find_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_find_request().cursor_handle());
   if (!cursor) {
     st = HAM_INV_PARAMETER;
     goto bail;
@@ -1009,7 +1179,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_find(cursor, &key, send_rec ? &rec : 0,
+  st = ham_cursor_find((ham_cursor_t *)cursor, &key, send_rec ? &rec : 0,
                 request->cursor_find_request().flags());
   if (st==0) {
     /* approx matching: key->_flags was modified! */
@@ -1027,49 +1197,44 @@ bail:
     Protocol::assign_record(reply.mutable_cursor_find_reply()->mutable_record(),
                     &rec);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_get_duplicate_count(struct env_t *envh,
-            struct mg_connection *conn, const struct mg_request_info *ri,
+handle_cursor_get_duplicate_count(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_status_t st = 0;
   ham_size_t count = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_get_duplicate_count_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_get_duplicate_count_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_get_duplicate_count_request().cursor_handle());
   if (!cursor)
     st = HAM_INV_PARAMETER;
   else
-    st = ham_cursor_get_duplicate_count(cursor, &count,
+    st = ham_cursor_get_duplicate_count((ham_cursor_t *)cursor, &count,
             request->cursor_get_duplicate_count_request().flags());
 
   Protocol reply(Protocol::CURSOR_GET_DUPLICATE_COUNT_REPLY);
   reply.mutable_cursor_get_duplicate_count_reply()->set_status(st);
   reply.mutable_cursor_get_duplicate_count_reply()->set_count(count);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
+            Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_record_t rec;
   ham_status_t st = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_overwrite_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_overwrite_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_overwrite_request().cursor_handle());
   if (!cursor) {
     st = HAM_INV_PARAMETER;
     goto bail;
@@ -1083,21 +1248,19 @@ handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
   rec.flags = request->cursor_overwrite_request().record().flags()
               & (~HAM_RECORD_USER_ALLOC);
 
-  st = ham_cursor_overwrite(cursor, &rec,
+  st = ham_cursor_overwrite((ham_cursor_t *)cursor, &rec,
             request->cursor_overwrite_request().flags());
 
 bail:
   Protocol reply(Protocol::CURSOR_OVERWRITE_REPLY);
   reply.mutable_cursor_overwrite_reply()->set_status(st);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_move(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_key_t key;
   ham_record_t rec;
   ham_status_t st = 0;
@@ -1107,8 +1270,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
   ham_assert(request != 0);
   ham_assert(request->has_cursor_move_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-            request->cursor_move_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_move_request().cursor_handle());
   if (!cursor) {
     st = HAM_INV_PARAMETER;
     goto bail;
@@ -1136,8 +1298,10 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
                 & (~HAM_RECORD_USER_ALLOC);
   }
 
-  st = ham_cursor_move(cursor, send_key ? &key : 0, send_rec ? &rec : 0,
-                request->cursor_move_request().flags());
+  st = ham_cursor_move((ham_cursor_t *)cursor,
+                        send_key ? &key : 0,
+                        send_rec ? &rec : 0,
+                        request->cursor_move_request().flags());
 
 bail:
   Protocol reply(Protocol::CURSOR_MOVE_REPLY);
@@ -1149,288 +1313,336 @@ bail:
     Protocol::assign_record(reply.mutable_cursor_move_reply()->mutable_record(),
                     &rec);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
 static void
-handle_cursor_close(struct env_t *envh, struct mg_connection *conn,
-            const struct mg_request_info *ri, Protocol *request)
+handle_cursor_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ham_cursor_t *cursor;
   ham_status_t st = 0;
 
   ham_assert(request != 0);
   ham_assert(request->has_cursor_close_request());
 
-  cursor = (ham_cursor_t *)__get_handle(envh,
-                request->cursor_close_request().cursor_handle());
+  Cursor *cursor = srv->get_cursor(request->cursor_close_request().cursor_handle());
   if (!cursor)
     st = HAM_INV_PARAMETER;
   else
-    st = ham_cursor_close(cursor);
+    st = ham_cursor_close((ham_cursor_t *)cursor);
 
   if (st==0) {
     /* remove the handle from the Env wrapper structure */
-    __remove_handle(envh, request->cursor_close_request().cursor_handle());
+    srv->remove_cursor_handle(request->cursor_close_request().cursor_handle());
   }
 
   Protocol reply(Protocol::CURSOR_CLOSE_REPLY);
   reply.mutable_cursor_close_reply()->set_status(st);
 
-  send_wrapper(envh->env, conn, &reply);
+  send_wrapper(srv, tcp, &reply);
 }
 
-static void
-request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
-            void *user_data)
+static bool
+dispatch(ServerContext *srv, uv_stream_t *tcp, ham_u8_t *data, ham_size_t size)
 {
-  Protocol *wrapper = 0;
-  struct env_t *env = (struct env_t *)user_data;
-
-  mg_authorize(conn);
-
-  os_critsec_enter(&env->cs);
-
-  wrapper = Protocol::unpack((ham_u8_t *)ri->post_data, ri->post_data_len);
+  // returns false if client should be closed, otherwise true
+  Protocol *wrapper = Protocol::unpack(data, size);
   if (!wrapper) {
-    ham_trace(("failed to unpack wrapper (%d bytes)\n", ri->post_data_len));
-    goto bail;
+    ham_trace(("failed to unpack wrapper (%d bytes)\n", size));
+    return (false);
   }
 
   switch (wrapper->type()) {
-  case ProtoWrapper_Type_CONNECT_REQUEST:
-    ham_trace(("connect request"));
-    handle_connect(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_GET_PARAMETERS_REQUEST:
-    ham_trace(("env_get_parameters request"));
-    handle_env_get_parameters(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_GET_DATABASE_NAMES_REQUEST:
-    ham_trace(("env_get_database_names request"));
-    handle_env_get_database_names(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_FLUSH_REQUEST:
-    ham_trace(("env_flush request"));
-    handle_env_flush(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_RENAME_REQUEST:
-    ham_trace(("env_rename request"));
-    handle_env_rename(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_CREATE_DB_REQUEST:
-    ham_trace(("env_create_db request"));
-    handle_env_create_db(env, env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_OPEN_DB_REQUEST:
-    ham_trace(("env_open_db request"));
-    handle_env_open_db(env, env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_ENV_ERASE_DB_REQUEST:
-    ham_trace(("env_erase_db request"));
-    handle_env_erase_db(env->env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_CLOSE_REQUEST:
-    ham_trace(("db_close request"));
-    handle_db_close(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_GET_PARAMETERS_REQUEST:
-    ham_trace(("db_get_parameters request"));
-    handle_db_get_parameters(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_TXN_BEGIN_REQUEST:
-    ham_trace(("txn_begin request"));
-    handle_txn_begin(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_TXN_COMMIT_REQUEST:
-    ham_trace(("txn_commit request"));
-    handle_txn_commit(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_TXN_ABORT_REQUEST:
-    ham_trace(("txn_abort request"));
-    handle_txn_abort(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_CHECK_INTEGRITY_REQUEST:
-    ham_trace(("db_check_integrity request"));
-    handle_db_check_integrity(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_GET_KEY_COUNT_REQUEST:
-    ham_trace(("db_get_key_count request"));
-    handle_db_get_key_count(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_INSERT_REQUEST:
-    ham_trace(("db_insert request"));
-    handle_db_insert(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_FIND_REQUEST:
-    ham_trace(("db_find request"));
-    handle_db_find(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_DB_ERASE_REQUEST:
-    ham_trace(("db_erase request"));
-    handle_db_erase(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_CREATE_REQUEST:
-    ham_trace(("cursor_create request"));
-    handle_cursor_create(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_CLONE_REQUEST:
-    ham_trace(("cursor_clone request"));
-    handle_cursor_clone(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_INSERT_REQUEST:
-    ham_trace(("cursor_insert request"));
-    handle_cursor_insert(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_ERASE_REQUEST:
-    ham_trace(("cursor_erase request"));
-    handle_cursor_erase(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_FIND_REQUEST:
-    ham_trace(("cursor_find request"));
-    handle_cursor_find(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_GET_DUPLICATE_COUNT_REQUEST:
-    ham_trace(("cursor_get_duplicate_count request"));
-    handle_cursor_get_duplicate_count(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_OVERWRITE_REQUEST:
-    ham_trace(("cursor_overwrite request"));
-    handle_cursor_overwrite(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_MOVE_REQUEST:
-    ham_trace(("cursor_move request"));
-    handle_cursor_move(env, conn, ri, wrapper);
-    break;
-  case ProtoWrapper_Type_CURSOR_CLOSE_REQUEST:
-    ham_trace(("cursor_close request"));
-    handle_cursor_close(env, conn, ri, wrapper);
-    break;
-  default:
-    ham_trace(("ignoring unknown request"));
-    break;
+    case ProtoWrapper_Type_CONNECT_REQUEST:
+      handle_connect(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DISCONNECT_REQUEST:
+      handle_disconnect(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_GET_PARAMETERS_REQUEST:
+      handle_env_get_parameters(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_GET_DATABASE_NAMES_REQUEST:
+      handle_env_get_database_names(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_FLUSH_REQUEST:
+      handle_env_flush(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_RENAME_REQUEST:
+      handle_env_rename(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_CREATE_DB_REQUEST:
+      handle_env_create_db(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_OPEN_DB_REQUEST:
+      handle_env_open_db(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_ENV_ERASE_DB_REQUEST:
+      handle_env_erase_db(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_CLOSE_REQUEST:
+      handle_db_close(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_GET_PARAMETERS_REQUEST:
+      handle_db_get_parameters(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_CHECK_INTEGRITY_REQUEST:
+      handle_db_check_integrity(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_GET_KEY_COUNT_REQUEST:
+      handle_db_get_key_count(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_INSERT_REQUEST:
+      handle_db_insert(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_FIND_REQUEST:
+      handle_db_find(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_ERASE_REQUEST:
+      handle_db_erase(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_TXN_BEGIN_REQUEST:
+      handle_txn_begin(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_TXN_COMMIT_REQUEST:
+      handle_txn_commit(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_TXN_ABORT_REQUEST:
+      handle_txn_abort(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_CREATE_REQUEST:
+      handle_cursor_create(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_CLONE_REQUEST:
+      handle_cursor_clone(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_INSERT_REQUEST:
+      handle_cursor_insert(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_ERASE_REQUEST:
+      handle_cursor_erase(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_FIND_REQUEST:
+      handle_cursor_find(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_GET_DUPLICATE_COUNT_REQUEST:
+      handle_cursor_get_duplicate_count(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_OVERWRITE_REQUEST:
+      handle_cursor_overwrite(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_MOVE_REQUEST:
+      handle_cursor_move(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_CURSOR_CLOSE_REQUEST:
+      handle_cursor_close(srv, tcp, wrapper);
+      break;
+    default:
+      ham_trace(("ignoring unknown request"));
+      break;
   }
 
-#if 0
-    printf("Method: [%s]\n", ri->request_method);
-    printf("URI: [%s]\n", ri->uri);
-    printf("HTTP version: [%d.%d]\n", ri->http_version_major,
-      ri->http_version_minor);
-
-    for (i = 0; i < ri->num_headers; i++)
-        printf("HTTP header [%s]: [%s]\n",
-             ri->http_headers[i].name,
-             ri->http_headers[i].value);
-
-    printf("Query string: [%s]\n",
-            ri->query_string ? ri->query_string: "");
-    printf("POST data: [%.*s]\n",
-            ri->post_data_len, ri->post_data);
-    printf("Remote IP: [%lu]\n", ri->remote_ip);
-    printf("Remote port: [%d]\n", ri->remote_port);
-    printf("Remote user: [%s]\n",
-            ri->remote_user ? ri->remote_user : "");
-    printf("Hamsterdb url: [%s]\n", env->urlname);
-#endif
-
-bail:
   delete wrapper;
 
-  os_critsec_leave(&env->cs);
+  return (true);
+}
+
+static void
+on_close_connection(uv_handle_t *handle)
+{
+  delete (ClientContext *)handle->data;
+  Memory::release(handle);
+}
+
+static uv_buf_t
+on_alloc_buffer(uv_handle_t *handle, size_t size)
+{
+  return (uv_buf_init(Memory::allocate<char>(size), size));
+}
+
+static void
+on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
+{
+  ham_assert(tcp != 0);
+  ham_size_t size = 0;
+  bool close_client = false;
+  ClientContext *context = (ClientContext *)tcp->data;
+  ByteArray *buffer = &context->buffer;
+
+  // each request is prepended with a header:
+  //   4 byte magic
+  //   4 byte size  (without those 8 bytes)
+  if (nread >= 0) {
+    // if we already started buffering data: append the data to the buffer
+    if (!buffer->is_empty()) {
+      buffer->append(buf.base, nread);
+
+      // for each full package in the buffer...
+      while (buffer->get_size() > 8) {
+        ham_u8_t *p = (ham_u8_t *)buffer->get_ptr();
+        size = 8 + *(ham_size_t *)(p + 4);
+        // still not enough data? then return immediately
+        if (buffer->get_size() < size)
+          goto bail;
+        // otherwise dispatch the message
+        close_client = !dispatch(context->srv, tcp, p, size);
+        // and move the remaining data to "the left"
+        if (buffer->get_size() == size) {
+          buffer->clear();
+          goto bail;
+        }
+        else {
+          ham_size_t new_size = buffer->get_size() - size;
+          memmove(p, p + size, new_size);
+          buffer->set_size(new_size);
+          // fall through and repeat the loop
+        }
+      }
+      goto bail;
+    }
+
+    // we have not buffered data from previous calls; try to dispatch the
+    // current network packet
+    ham_u8_t *p = (ham_u8_t *)buf.base;
+    while (p < (ham_u8_t *)buf.base + nread) {
+      size = 8 + *(ham_size_t *)(p + 4);
+      if (size <= nread) {
+        close_client = !dispatch(context->srv, tcp, p, size);
+        if (close_client)
+          goto bail;
+        nread -= size;
+        p += size;
+        continue;
+      }
+      // not enough data? then cache it in the buffer
+      else {
+        ham_assert(buffer->is_empty());
+        buffer->append(p, nread);
+        goto bail;
+      }
+    }
+  }
+
+bail:
+  if (close_client)
+    uv_close((uv_handle_t *)tcp, on_close_connection);
+  Memory::release(buf.base);
+}
+
+static void
+on_new_connection(uv_stream_t *server, int status)
+{
+  if (status == -1)
+    return;
+
+  ServerContext *srv = (ServerContext *)server->data;
+
+  uv_tcp_t *client = Memory::allocate<uv_tcp_t>(sizeof(uv_tcp_t));
+  client->data = new ClientContext(srv);
+
+  uv_tcp_init(srv->loop, client);
+  if (uv_accept(server, (uv_stream_t *)client) == 0)
+    uv_read_start((uv_stream_t *)client, on_alloc_buffer, on_read_data);
+  else
+    uv_close((uv_handle_t *)client, 0);
+}
+
+static void
+on_run_thread(void *loop)
+{
+  uv_run((uv_loop_t *)loop, UV_RUN_DEFAULT);
+}
+
+static void
+on_async_cb(uv_async_t *handle, int status)
+{
+  ServerContext *srv = (ServerContext *)handle->data;
+
+  // simply copy the Environments in the queue to the map of opened
+  // Environments
+  ScopedLock lock(srv->open_queue_mutex);
+  for (EnvironmentMap::iterator it = srv->open_queue.begin();
+          it != srv->open_queue.end(); it++) {
+    srv->open_envs[it->first] = it->second;
+  }
 }
 
 } // namespace hamsterdb
 
 // global namespace is below
 
-struct ham_srv_t {
-  /* the mongoose context structure */
-  struct mg_context *mg_ctxt;
-
-  /* handlers for each Environment */
-  struct hamsterdb::env_t environments[MAX_ENVIRONMENTS];
-};
-
 ham_status_t
 ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
 {
-  ham_srv_t *srv;
-  char buf[32];
-  sprintf(buf, "%d", (int)config->port);
+  ServerContext *srv = new ServerContext();
 
-  srv = (ham_srv_t *)malloc(sizeof(ham_srv_t));
-  if (!srv)
-    return (HAM_OUT_OF_MEMORY);
-  memset(srv, 0, sizeof(*srv));
+  srv->loop = uv_loop_new();
 
-  srv->mg_ctxt = mg_start();
-  mg_set_option(srv->mg_ctxt, "ports", buf);
-  mg_set_option(srv->mg_ctxt, "dir_list", "no");
-  if (config->access_log_path) {
-    if (!mg_set_option(srv->mg_ctxt, "access_log", config->access_log_path)) {
-      ham_log(("failed to write access log file '%s'",
-            config->access_log_path));
-      mg_stop(srv->mg_ctxt);
-      free(srv);
-      return (HAM_IO_ERROR);
-    }
-  }
-  if (config->error_log_path) {
-    if (!mg_set_option(srv->mg_ctxt, "error_log", config->error_log_path)) {
-      ham_log(("failed to write access log'%s'", config->access_log_path));
-      mg_stop(srv->mg_ctxt);
-      free(srv);
-      return (HAM_IO_ERROR);
-    }
+  uv_tcp_init(srv->loop, &srv->server);
+
+  struct sockaddr_in bind_addr = uv_ip4_addr("0.0.0.0", config->port);
+  uv_tcp_bind(&srv->server, bind_addr);
+  srv->server.data = srv;
+  int r = uv_listen((uv_stream_t *)&srv->server, 128,
+          hamsterdb::on_new_connection);
+  if (r) {
+    ham_log(("failed to listen to port %d", config->port)); 
+    return (HAM_IO_ERROR);
   }
 
-  *psrv = srv;
+  srv->async.data = srv;
+  uv_async_init(srv->loop, &srv->async, on_async_cb);
+
+  uv_thread_create(&srv->thread_id, on_run_thread, srv->loop);
+
+  *psrv = (ham_srv_t *)srv;
   return (HAM_SUCCESS);
 }
 
 ham_status_t
-ham_srv_add_env(ham_srv_t *srv, ham_env_t *env, const char *urlname)
+ham_srv_add_env(ham_srv_t *hsrv, ham_env_t *env, const char *urlname)
 {
-  int i;
-
-  /* search for a free handler */
-  for (i = 0; i < MAX_ENVIRONMENTS; i++) {
-    if (!srv->environments[i].env) {
-      srv->environments[i].env = env;
-      srv->environments[i].urlname = strdup(urlname);
-      os_critsec_init(&srv->environments[i].cs);
-      break;
-    }
+  ServerContext *srv = (ServerContext *)hsrv;
+  if (!srv || !env || !urlname) {
+    ham_log(("parameters srv, env, urlname must not be NULL"));
+    return (HAM_INV_PARAMETER);
   }
 
-  if (i == MAX_ENVIRONMENTS)
-    return (HAM_LIMITS_REACHED);
+  {
+    ScopedLock lock(srv->open_queue_mutex);
+    srv->open_queue[urlname] = (Environment *)env;
+  }
 
-  mg_set_uri_callback(srv->mg_ctxt, urlname,
-            request_handler, &srv->environments[i]);
+  uv_async_send(&srv->async);
   return (HAM_SUCCESS);
 }
 
 void
-ham_srv_close(ham_srv_t *srv)
+ham_srv_close(ham_srv_t *hsrv)
 {
-  int i;
+  ServerContext *srv = (ServerContext *)hsrv;
+  if (!srv)
+    return;
 
-  /* clean up Environment handlers */
-  for (i = 0; i < MAX_ENVIRONMENTS; i++) {
-    if (srv->environments[i].env) {
-      if (srv->environments[i].urlname)
-        free(srv->environments[i].urlname);
-      if (srv->environments[i].handles)
-        free(srv->environments[i].handles);
-      os_critsec_close(&srv->environments[i].cs);
-      /* env will be closed by the caller */
-      srv->environments[i].env = 0;
-    }
-  }
+  uv_unref((uv_handle_t *)&srv->server);
+  uv_unref((uv_handle_t *)&srv->async);
 
-  mg_stop(srv->mg_ctxt);
-  free(srv);
+  // TODO clean up all allocated objects and handles
+
+  /* stop the event loop */
+  uv_stop(srv->loop);
+  uv_async_send(&srv->async);
+
+  /* join the libuv thread */
+  (void)uv_thread_join(&srv->thread_id);
+
+  /* close the async handle and the server socket */
+  uv_close((uv_handle_t *)&srv->async, 0);
+  uv_close((uv_handle_t *)&srv->server, 0);
+
+  /* clean up libuv */
+  uv_loop_delete(srv->loop);
+
+  delete srv;
 
   /* free libprotocol static data */
   Protocol::shutdown();

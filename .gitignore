@@ -20,5 +20,6 @@ config.sub
 depcomp
 ltmain.sh
 install-sh
+ar-lib
 missing
 

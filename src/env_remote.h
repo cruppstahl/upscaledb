@@ -17,7 +17,7 @@
 #include <ham/hamsterdb.h>
 
 #include "env.h"
-
+#include "util.h"
 #include "protocol/protocol.h"
 
 namespace hamsterdb {
@@ -29,7 +29,8 @@ class RemoteEnvironment : public Environment
 {
   public:
     RemoteEnvironment()
-      : Environment(), m_curl(0) {
+      : Environment(), m_remote_handle(0), m_socket(HAM_INVALID_FD),
+        m_buffer(1024 * 4) {
       set_flags(get_flags() | HAM_IS_REMOTE_INTERNAL);
     }
 
@@ -80,13 +81,19 @@ class RemoteEnvironment : public Environment
     // Closes the Environment (ham_env_close)
     virtual ham_status_t close(ham_u32_t flags);
 
-    // Performs a remote curl request
-    // TODO make this private
+    // Sends |request| to the remote server and blocks till |reply|
+    // was fully received
     ham_status_t perform_request(Protocol *request, Protocol **reply);
 
   private:
-    /** libcurl remote handle */
-    void *m_curl;
+    // the remote database handle
+    ham_u64_t m_remote_handle;
+
+    // the socket
+    ham_socket_t m_socket;
+
+    // a buffer to avoid frequent memory allocations
+    ByteArray m_buffer;
 };
 
 } // namespace hamsterdb

@@ -21,7 +21,7 @@ o Added tracking of internal metrics, exported via ham_env_get_metrics
 	(declared in ham/hamsterdb_int.h)
 
 Jun 25, 2013 - chris ---------------------------------------------------
-o Added support for AES encryption
+o added support for AES encryption
 
 Jun 23, 2013 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.1

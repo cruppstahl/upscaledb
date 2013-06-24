@@ -22,10 +22,6 @@
 
 #ifdef HAM_ENABLE_REMOTE
 
-#define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
-#include <curl/curl.h>
-#include <curl/easy.h>
-
 #include "protocol/protocol.h"
 
 namespace hamsterdb {
@@ -482,7 +478,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
                 key);
   if (record)
     Protocol::assign_record(request.mutable_cursor_find_request()->mutable_record(),
-                record);
+                record, false);
 
   st = env->perform_request(&request, &reply);
   if (st) {
@@ -610,10 +606,10 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
   request.mutable_cursor_move_request()->set_flags(flags);
   if (key)
     Protocol::assign_key(request.mutable_cursor_move_request()->mutable_key(),
-                  key);
+                  key, false);
   if (record)
     Protocol::assign_record(request.mutable_cursor_move_request()->mutable_record(),
-                  record);
+                  record, false);
 
   st = env->perform_request(&request, &reply);
   if (st) {

@@ -452,6 +452,12 @@ LocalEnvironment::close(ham_u32_t flags)
     m_header->get_header_page()->flush();
   }
 
+  /* close the page manager (includes cache and freelist) */
+  if (m_page_manager) {
+    delete m_page_manager;
+    m_page_manager = 0;
+  }
+
   /* close the header page */
   if (m_header && m_header->get_header_page()) {
     Page *page = m_header->get_header_page();
@@ -484,12 +490,6 @@ LocalEnvironment::close(ham_u32_t flags)
     m_journal->close(!!(flags & HAM_DONT_CLEAR_LOG));
     delete m_journal;
     m_journal = 0;
-  }
-
-  /* close the page manager (includes cache and freelist) */
-  if (m_page_manager) {
-    delete m_page_manager;
-    m_page_manager = 0;
   }
 
   if (m_blob_manager) {

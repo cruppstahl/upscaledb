@@ -855,7 +855,7 @@ class FreeBlobsVisitor : public BtreeVisitor {
     }
 
     virtual ham_status_t item(PBtreeNode *node, PBtreeKey *key) {
-      ham_status_t st;
+      ham_status_t st = 0;
 
       if (key->get_flags() & PBtreeKey::kExtended) {
         ham_u64_t blobid = key->get_extended_rid(m_db);

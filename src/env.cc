@@ -50,7 +50,12 @@ Environment::remove_txn(Transaction *txn)
       n->set_older(0);
   }
   else {
-    ham_assert(!"not yet implemented");
+    Transaction *n = txn->get_newer();
+    Transaction *o = txn->get_older();
+    if (o)
+      o->set_newer(n);
+    if (n)
+      n->set_older(o);
   }
 }
 

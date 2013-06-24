@@ -290,8 +290,8 @@ class LocalDatabase : public Database {
     virtual ham_status_t close_impl(ham_u32_t flags);
 
   private:
-    friend class DbFixture;
-    friend class HamsterdbFixture;
+    friend struct DbFixture;
+    friend struct HamsterdbFixture;
 
     // returns the next record number
     ham_u64_t get_incremented_recno() {

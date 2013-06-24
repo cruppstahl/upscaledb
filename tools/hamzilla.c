@@ -34,7 +34,7 @@
 #  include <fcntl.h>
 #  include <syslog.h>
 #  define STRTOK_SAFE strtok_r
-#  define EXENAME "hamsrvd"
+#  define EXENAME "hamzilla"
 #  define MAX_PATH_LENGTH   FILENAME_MAX
 #else
 #  include <process.h> /* _getpid() */
@@ -43,7 +43,7 @@
 #  include <winioctl.h>
 #  include <signal.h>
 #  define STRTOK_SAFE strtok_s
-#  define EXENAME "hamsrv.exe"
+#  define EXENAME "hamzilla.exe"
 #  define MAX_PATH_LENGTH   _MAX_PATH
 static TCHAR *serviceName = TEXT("hamsterdb Database Server");
 static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Databases.");
@@ -56,16 +56,16 @@ static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Da
 #include "getopts.h"
 #include "config.h"
 
-#define ARG_HELP      1
-#define ARG_FOREGROUND    2
-#define ARG_CONFIG      3
-#define ARG_PIDFILE     4
-#define ARG_INSTALL     5
-#define ARG_UNINSTALL     6
-#define ARG_STOP      7
-#define ARG_START       8
-#define ARG_RUN       9
-#define ARG_LOG_LEVEL    10
+#define ARG_HELP                1
+#define ARG_FOREGROUND          2
+#define ARG_CONFIG              3
+#define ARG_PIDFILE             4
+#define ARG_INSTALL             5
+#define ARG_UNINSTALL           6
+#define ARG_STOP                7
+#define ARG_START               8
+#define ARG_RUN                 9
+#define ARG_LOG_LEVEL           10
 
 /*
  * command line parameters
@@ -273,10 +273,10 @@ read_config(const char *configfile, config_table_t **params) {
   buf=(char *)malloc(len+1); /* for zero-terminating byte */
   fread(buf, 1, len, fp);
   fclose(fp);
-  buf[len]='\0';
+  buf[len] = '\0';
 
   /* parse the file */
-  st=config_parse_string(buf, params);
+  st = config_parse_string(buf, params);
   if (st) {
     hlog(LOG_FATAL, "failed to read configuration file: %s\n",
         ham_strerror(st));
@@ -363,7 +363,7 @@ initialize_server(ham_srv_t *srv, config_table_t *params) {
         created_env = HAM_TRUE;
       }
       else {
-        hlog(LOG_FATAL, "Failed to open Env %s: %s\n",
+        hlog(LOG_FATAL, "Failed to open Environment %s: %s\n",
               params->envs[e].path, ham_strerror(st));
         exit(-1);
       }
@@ -774,7 +774,7 @@ main(int argc, char **argv) {
         break;
       default:
         printf("Invalid or unknown parameter `%s'. "
-             "Enter `hamsterd --help' for usage.", param);
+             "Enter `./hamzilla --help' for usage.", param);
         return (-1);
     }
   }
@@ -818,24 +818,24 @@ main(int argc, char **argv) {
 #ifdef WIN32
   switch (win32_action) {
     case ARG_INSTALL:
-      hlog(LOG_NORMAL, "hamsrv is installing...\n");
+      hlog(LOG_NORMAL, "hamzilla is installing...\n");
       win32_service_install();
       goto cleanup;
     case ARG_UNINSTALL:
-      hlog(LOG_NORMAL, "hamsrv is uninstalling...\n");
+      hlog(LOG_NORMAL, "hamzilla is uninstalling...\n");
       win32_service_uninstall();
       goto cleanup;
     case ARG_STOP:
-      hlog(LOG_NORMAL, "hamsrv is stopping...\n");
+      hlog(LOG_NORMAL, "hamzilla is stopping...\n");
       win32_service_stop();
       goto cleanup;
     case ARG_START:
-      hlog(LOG_NORMAL, "hamsrv is starting...\n");
+      hlog(LOG_NORMAL, "hamzilla is starting...\n");
       win32_service_start();
       goto cleanup;
   }
 #else
-  hlog(LOG_NORMAL, "hamsrv is starting...\n");
+  hlog(LOG_NORMAL, "hamzilla is starting...\n");
 #endif
 
   if (params) {
@@ -897,7 +897,7 @@ main(int argc, char **argv) {
   }
 #endif
 
-  hlog(LOG_NORMAL, "hamsrv is stopping...\n");
+  hlog(LOG_NORMAL, "hamzilla is stopping...\n");
 
   /* avoid warning on linux that the cleanup label is never used */
   goto cleanup;

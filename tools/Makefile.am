@@ -13,7 +13,9 @@ ham_dump_SOURCES    = ham_dump.cc getopts.c getopts.h
 ham_dump_LDADD      = $(top_builddir)/src/libhamsterdb.la
 
 ham_export_SOURCES  = export.pb.cc ham_export.cc getopts.c getopts.h
-ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a -lprotobuf -lcurl
+ham_export_LDADD    = $(top_builddir)/src/.libs/libhamsterdb.a \
+					  -lprotobuf $(BOOST_SYSTEM_LIBS)
+ham_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
 
 ham_import_SOURCES  = export.pb.cc ham_import.cc getopts.c export.pb.h
 ham_import_LDADD    = $(top_builddir)/src/libhamsterdb.la -lprotobuf \

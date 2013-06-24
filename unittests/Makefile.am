@@ -76,13 +76,15 @@ test_SOURCES    = aes.cpp \
                   txn.cpp \
                   txn_cursor.cpp
 
-test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a -lpthread -ldl
+test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
+				  $(BOOST_SYSTEM_LIBS) -lpthread -ldl
+test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS)
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DHAM_ENABLE_REMOTE
 test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
-				  -lprotobuf -lcurl -ldl
+				  -lprotobuf -luv -ldl
 endif
 
 valgrind:
@@ -91,7 +93,9 @@ valgrind:
 
 recovery_SOURCES = recovery.cpp
 
-recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la -ldl
+recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la \
+				   $(BOOST_SYSTEM_LIBS) -ldl 
+recovery_LDFLAGS = $(BOOST_SYSTEM_LDFLAGS)
 
 noinst_BIN       = test recovery
 

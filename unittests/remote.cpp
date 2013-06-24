@@ -25,7 +25,7 @@
 
 using namespace hamsterdb;
 
-#define SERVER_URL "http://localhost:8989/test.db"
+#define SERVER_URL "ham://localhost:8989/test.db"
 
 struct RemoteFixture {
   ham_env_t *m_env;
@@ -35,36 +35,30 @@ struct RemoteFixture {
   RemoteFixture() {
     ham_srv_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
-    cfg.port=8989;
+    cfg.port = 8989;
 
-    REQUIRE(0 ==
-        ham_env_create(&m_env, "test.db",
+    REQUIRE(0 == ham_env_create(&m_env, "test.db",
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
 
-    REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 14, HAM_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 14, HAM_ENABLE_DUPLICATES, 0));
     ham_db_close(m_db, 0);
 
-    REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
     ham_db_close(m_db, 0);
 
-    REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 33,
-            HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33,
+            HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATES, 0));
     ham_db_close(m_db, 0);
 
-    REQUIRE(0 ==
-        ham_srv_init(&cfg, &m_srv));
+    REQUIRE(0 == ham_srv_init(&cfg, &m_srv));
 
-    REQUIRE(0 ==
-        ham_srv_add_env(m_srv, m_env, "/test.db"));
+    REQUIRE(0 == ham_srv_add_env(m_srv, m_env, "/test.db"));
   }
 
   ~RemoteFixture() {
     if (m_srv) {
       ham_srv_close(m_srv);
-      m_srv=0;
+      m_srv = 0;
     }
     ham_env_close(m_env, HAM_AUTO_CLEANUP);
   }
@@ -73,14 +67,14 @@ struct RemoteFixture {
     ham_env_t *env;
 
     REQUIRE(HAM_NETWORK_ERROR ==
-        ham_env_create(&env, "http://localhost:77/test.db", 0, 0664, 0));
+        ham_env_create(&env, "ham://localhost:77/test.db", 0, 0664, 0));
   }
 
   void invalidPathTest() {
     ham_env_t *env;
 
-    REQUIRE(HAM_NETWORK_ERROR ==
-        ham_env_create(&env, "http://localhost:8989/xxxtest.db", 0, 0, 0));
+    REQUIRE(HAM_FILE_NOT_FOUND ==
+        ham_env_create(&env, "ham://localhost:8989/xxxtest.db", 0, 0, 0));
   }
 
   void createCloseTest() {
@@ -196,12 +190,9 @@ struct RemoteFixture {
     ham_env_t *env;
     ham_db_t *db;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
-    REQUIRE(0x100000000ull ==
-        ((RemoteDatabase *)db)->get_remote_handle());
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
 
     REQUIRE(0 == ham_db_close(db, 0));
     REQUIRE(0 == ham_env_close(env, 0));
@@ -215,12 +206,9 @@ struct RemoteFixture {
       { 0,0 }
     };
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, &params[0]));
-    REQUIRE(0x100000000ull ==
-        ((RemoteDatabase *)db)->get_remote_handle());
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, &params[0]));
+    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
 
     params[0].value=0;
     REQUIRE(0 == ham_db_get_parameters(db, &params[0]));
@@ -234,19 +222,14 @@ struct RemoteFixture {
     ham_env_t *env;
     ham_db_t *db;
 
-    REQUIRE(0 ==
-        ham_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ham_env_create(&env, SERVER_URL, 0, 0664, 0));
 
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 22, 0, 0));
-    REQUIRE(0x100000000ull ==
-        ((RemoteDatabase *)db)->get_remote_handle());
+    REQUIRE(0 == ham_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0x200000000ull == ((RemoteDatabase *)db)->get_remote_handle());
     REQUIRE(0 == ham_db_close(db, 0));
 
-    REQUIRE(0 ==
-        ham_env_open_db(env, &db, 22, 0, 0));
-    REQUIRE(0x200000000ull ==
-        ((RemoteDatabase *)db)->get_remote_handle());
+    REQUIRE(0 == ham_env_open_db(env, &db, 22, 0, 0));
+    REQUIRE(0x400000001ull == ((RemoteDatabase *)db)->get_remote_handle());
     REQUIRE(0 == ham_db_close(db, 0));
 
     REQUIRE(0 == ham_env_close(env, 0));

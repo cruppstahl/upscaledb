@@ -5,422 +5,443 @@ package hamsterdb;
 option optimize_for = LITE_RUNTIME;
 
 message ProtoWrapper {
-    enum Type {
-            CONNECT_REQUEST = 10;
-            CONNECT_REPLY   = 11;
-            ENV_RENAME_REQUEST  = 20;
-            ENV_RENAME_REPLY    = 21;
-            ENV_GET_PARAMETERS_REQUEST = 30;
-            ENV_GET_PARAMETERS_REPLY = 31;
-            ENV_GET_DATABASE_NAMES_REQUEST = 40;
-            ENV_GET_DATABASE_NAMES_REPLY = 41;
-            ENV_FLUSH_REQUEST = 50;
-            ENV_FLUSH_REPLY = 51;
-            ENV_CREATE_DB_REQUEST = 60;
-            ENV_CREATE_DB_REPLY = 61;
-            ENV_OPEN_DB_REQUEST = 70;
-            ENV_OPEN_DB_REPLY = 71;
-            ENV_ERASE_DB_REQUEST = 80;
-            ENV_ERASE_DB_REPLY = 81;
-            DB_CLOSE_REQUEST = 90;
-            DB_CLOSE_REPLY = 91;
-            DB_GET_PARAMETERS_REQUEST = 100;
-            DB_GET_PARAMETERS_REPLY = 101;
-            // DB_FLUSH_REQUEST = 110;
-            // DB_FLUSH_REPLY = 111;
-            TXN_BEGIN_REQUEST = 120;
-            TXN_BEGIN_REPLY = 121;
-            TXN_COMMIT_REQUEST = 130;
-            TXN_COMMIT_REPLY = 131;
-            TXN_ABORT_REQUEST = 140;
-            TXN_ABORT_REPLY = 141;
-            DB_CHECK_INTEGRITY_REQUEST = 150;
-            DB_CHECK_INTEGRITY_REPLY = 151;
-            DB_GET_KEY_COUNT_REQUEST = 160;
-            DB_GET_KEY_COUNT_REPLY = 161;
-            DB_INSERT_REQUEST = 170;
-            DB_INSERT_REPLY = 171;
-            DB_ERASE_REQUEST = 180;
-            DB_ERASE_REPLY = 181;
-            DB_FIND_REQUEST = 190;
-            DB_FIND_REPLY = 191;
-            CURSOR_CREATE_REQUEST = 200;
-            CURSOR_CREATE_REPLY = 201;
-            CURSOR_CLONE_REQUEST = 210;
-            CURSOR_CLONE_REPLY = 211;
-            CURSOR_CLOSE_REQUEST = 220;
-            CURSOR_CLOSE_REPLY = 221;
-            CURSOR_INSERT_REQUEST = 230;
-            CURSOR_INSERT_REPLY = 231;
-            CURSOR_ERASE_REQUEST = 240;
-            CURSOR_ERASE_REPLY = 241;
-            CURSOR_FIND_REQUEST = 250;
-            CURSOR_FIND_REPLY = 251;
-            CURSOR_GET_DUPLICATE_COUNT_REQUEST = 260;
-            CURSOR_GET_DUPLICATE_COUNT_REPLY = 261;
-            CURSOR_OVERWRITE_REQUEST = 270;
-            CURSOR_OVERWRITE_REPLY = 271;
-            CURSOR_MOVE_REQUEST = 280;
-            CURSOR_MOVE_REPLY = 281;
-    }
+  enum Type {
+    CONNECT_REQUEST = 10;
+    CONNECT_REPLY   = 11;
+    DISCONNECT_REQUEST = 12;
+    DISCONNECT_REPLY   = 13;
+    ENV_RENAME_REQUEST  = 20;
+    ENV_RENAME_REPLY  = 21;
+    ENV_GET_PARAMETERS_REQUEST = 30;
+    ENV_GET_PARAMETERS_REPLY = 31;
+    ENV_GET_DATABASE_NAMES_REQUEST = 40;
+    ENV_GET_DATABASE_NAMES_REPLY = 41;
+    ENV_FLUSH_REQUEST = 50;
+    ENV_FLUSH_REPLY = 51;
+    ENV_CREATE_DB_REQUEST = 60;
+    ENV_CREATE_DB_REPLY = 61;
+    ENV_OPEN_DB_REQUEST = 70;
+    ENV_OPEN_DB_REPLY = 71;
+    ENV_ERASE_DB_REQUEST = 80;
+    ENV_ERASE_DB_REPLY = 81;
+    DB_CLOSE_REQUEST = 90;
+    DB_CLOSE_REPLY = 91;
+    DB_GET_PARAMETERS_REQUEST = 100;
+    DB_GET_PARAMETERS_REPLY = 101;
+    // DB_FLUSH_REQUEST = 110;
+    // DB_FLUSH_REPLY = 111;
+    TXN_BEGIN_REQUEST = 120;
+    TXN_BEGIN_REPLY = 121;
+    TXN_COMMIT_REQUEST = 130;
+    TXN_COMMIT_REPLY = 131;
+    TXN_ABORT_REQUEST = 140;
+    TXN_ABORT_REPLY = 141;
+    DB_CHECK_INTEGRITY_REQUEST = 150;
+    DB_CHECK_INTEGRITY_REPLY = 151;
+    DB_GET_KEY_COUNT_REQUEST = 160;
+    DB_GET_KEY_COUNT_REPLY = 161;
+    DB_INSERT_REQUEST = 170;
+    DB_INSERT_REPLY = 171;
+    DB_ERASE_REQUEST = 180;
+    DB_ERASE_REPLY = 181;
+    DB_FIND_REQUEST = 190;
+    DB_FIND_REPLY = 191;
+    CURSOR_CREATE_REQUEST = 200;
+    CURSOR_CREATE_REPLY = 201;
+    CURSOR_CLONE_REQUEST = 210;
+    CURSOR_CLONE_REPLY = 211;
+    CURSOR_CLOSE_REQUEST = 220;
+    CURSOR_CLOSE_REPLY = 221;
+    CURSOR_INSERT_REQUEST = 230;
+    CURSOR_INSERT_REPLY = 231;
+    CURSOR_ERASE_REQUEST = 240;
+    CURSOR_ERASE_REPLY = 241;
+    CURSOR_FIND_REQUEST = 250;
+    CURSOR_FIND_REPLY = 251;
+    CURSOR_GET_DUPLICATE_COUNT_REQUEST = 260;
+    CURSOR_GET_DUPLICATE_COUNT_REPLY = 261;
+    CURSOR_OVERWRITE_REQUEST = 270;
+    CURSOR_OVERWRITE_REPLY = 271;
+    CURSOR_MOVE_REQUEST = 280;
+    CURSOR_MOVE_REPLY = 281;
+  }
 
-    required Type type = 1;
+  required Type type = 1;
 
-    optional ConnectRequest connect_request = 10;
-    optional ConnectReply connect_reply     = 11;
-    optional EnvRenameRequest env_rename_request   = 20;
-    optional EnvRenameReply env_rename_reply       = 21;
-    optional EnvGetParametersRequest env_get_parameters_request = 30;
-    optional EnvGetParametersReply env_get_parameters_reply = 31;
-    optional EnvGetDatabaseNamesRequest env_get_database_names_request = 40;
-    optional EnvGetDatabaseNamesReply env_get_database_names_reply = 41;
-    optional EnvFlushRequest env_flush_request = 50;
-    optional EnvFlushReply env_flush_reply = 51;
-    optional EnvCreateDbRequest env_create_db_request = 60;
-    optional EnvCreateDbReply env_create_db_reply = 61;
-    optional EnvOpenDbRequest env_open_db_request = 70;
-    optional EnvOpenDbReply env_open_db_reply = 71;
-    optional EnvEraseDbRequest env_erase_db_request = 80;
-    optional EnvEraseDbReply env_erase_db_reply = 81;
-    optional DbCloseRequest db_close_request = 90;
-    optional DbCloseReply db_close_reply = 91;
-    optional DbGetParametersRequest db_get_parameters_request = 100;
-    optional DbGetParametersReply db_get_parameters_reply = 101;
-    optional TxnBeginRequest txn_begin_request = 120;
-    optional TxnBeginReply txn_begin_reply = 121;
-    optional TxnCommitRequest txn_commit_request = 130;
-    optional TxnCommitReply txn_commit_reply = 131;
-    optional TxnAbortRequest txn_abort_request = 140;
-    optional TxnAbortReply txn_abort_reply = 141;
-    optional DbCheckIntegrityRequest db_check_integrity_request = 150;
-    optional DbCheckIntegrityReply db_check_integrity_reply = 151;
-    optional DbGetKeyCountRequest db_get_key_count_request = 160;
-    optional DbGetKeyCountReply db_get_key_count_reply = 161;
-    optional DbInsertRequest db_insert_request = 170;
-    optional DbInsertReply db_insert_reply = 171;
-    optional DbEraseRequest db_erase_request = 180;
-    optional DbEraseReply db_erase_reply = 181;
-    optional DbFindRequest db_find_request = 190;
-    optional DbFindReply db_find_reply = 191;
-    optional CursorCreateRequest cursor_create_request = 200;
-    optional CursorCreateReply cursor_create_reply = 201;
-    optional CursorCloneRequest cursor_clone_request = 210;
-    optional CursorCloneReply cursor_clone_reply = 211;
-    optional CursorCloseRequest cursor_close_request = 220;
-    optional CursorCloseReply cursor_close_reply = 221;
-    optional CursorInsertRequest cursor_insert_request = 230;
-    optional CursorInsertReply cursor_insert_reply = 231;
-    optional CursorEraseRequest cursor_erase_request = 240;
-    optional CursorEraseReply cursor_erase_reply = 241;
-    optional CursorFindRequest cursor_find_request = 250;
-    optional CursorFindReply cursor_find_reply = 251;
-    optional CursorGetDuplicateCountRequest
-                cursor_get_duplicate_count_request = 260;
-    optional CursorGetDuplicateCountReply
-                cursor_get_duplicate_count_reply = 261;
-    optional CursorOverwriteRequest cursor_overwrite_request = 270;
-    optional CursorOverwriteReply cursor_overwrite_reply = 271;
-    optional CursorMoveRequest cursor_move_request = 280;
-    optional CursorMoveReply cursor_move_reply = 281;
+  optional ConnectRequest connect_request = 10;
+  optional ConnectReply connect_reply   = 11;
+  optional DisconnectRequest disconnect_request = 12;
+  optional DisconnectReply disconnect_reply   = 13;
+  optional EnvRenameRequest env_rename_request   = 20;
+  optional EnvRenameReply env_rename_reply     = 21;
+  optional EnvGetParametersRequest env_get_parameters_request = 30;
+  optional EnvGetParametersReply env_get_parameters_reply = 31;
+  optional EnvGetDatabaseNamesRequest env_get_database_names_request = 40;
+  optional EnvGetDatabaseNamesReply env_get_database_names_reply = 41;
+  optional EnvFlushRequest env_flush_request = 50;
+  optional EnvFlushReply env_flush_reply = 51;
+  optional EnvCreateDbRequest env_create_db_request = 60;
+  optional EnvCreateDbReply env_create_db_reply = 61;
+  optional EnvOpenDbRequest env_open_db_request = 70;
+  optional EnvOpenDbReply env_open_db_reply = 71;
+  optional EnvEraseDbRequest env_erase_db_request = 80;
+  optional EnvEraseDbReply env_erase_db_reply = 81;
+  optional DbCloseRequest db_close_request = 90;
+  optional DbCloseReply db_close_reply = 91;
+  optional DbGetParametersRequest db_get_parameters_request = 100;
+  optional DbGetParametersReply db_get_parameters_reply = 101;
+  optional TxnBeginRequest txn_begin_request = 120;
+  optional TxnBeginReply txn_begin_reply = 121;
+  optional TxnCommitRequest txn_commit_request = 130;
+  optional TxnCommitReply txn_commit_reply = 131;
+  optional TxnAbortRequest txn_abort_request = 140;
+  optional TxnAbortReply txn_abort_reply = 141;
+  optional DbCheckIntegrityRequest db_check_integrity_request = 150;
+  optional DbCheckIntegrityReply db_check_integrity_reply = 151;
+  optional DbGetKeyCountRequest db_get_key_count_request = 160;
+  optional DbGetKeyCountReply db_get_key_count_reply = 161;
+  optional DbInsertRequest db_insert_request = 170;
+  optional DbInsertReply db_insert_reply = 171;
+  optional DbEraseRequest db_erase_request = 180;
+  optional DbEraseReply db_erase_reply = 181;
+  optional DbFindRequest db_find_request = 190;
+  optional DbFindReply db_find_reply = 191;
+  optional CursorCreateRequest cursor_create_request = 200;
+  optional CursorCreateReply cursor_create_reply = 201;
+  optional CursorCloneRequest cursor_clone_request = 210;
+  optional CursorCloneReply cursor_clone_reply = 211;
+  optional CursorCloseRequest cursor_close_request = 220;
+  optional CursorCloseReply cursor_close_reply = 221;
+  optional CursorInsertRequest cursor_insert_request = 230;
+  optional CursorInsertReply cursor_insert_reply = 231;
+  optional CursorEraseRequest cursor_erase_request = 240;
+  optional CursorEraseReply cursor_erase_reply = 241;
+  optional CursorFindRequest cursor_find_request = 250;
+  optional CursorFindReply cursor_find_reply = 251;
+  optional CursorGetDuplicateCountRequest
+        cursor_get_duplicate_count_request = 260;
+  optional CursorGetDuplicateCountReply
+        cursor_get_duplicate_count_reply = 261;
+  optional CursorOverwriteRequest cursor_overwrite_request = 270;
+  optional CursorOverwriteReply cursor_overwrite_reply = 271;
+  optional CursorMoveRequest cursor_move_request = 280;
+  optional CursorMoveReply cursor_move_reply = 281;
 }
 
 message ConnectRequest {
-    required string path = 1;
+  required string path = 1;
 }
 
 message ConnectReply {
-    required sint32 status = 1;
-    required uint32 env_flags = 2;
+  required sint32 status = 1;
+  optional uint32 env_flags = 2;
+  optional uint64 env_handle = 3;
+}
+
+message DisconnectRequest {
+  required uint64 env_handle = 1;
+}
+
+message DisconnectReply {
+  required sint32 status = 1;
 }
 
 message EnvGetParametersRequest {
-    repeated uint32 names = 1;
+  required uint64 env_handle = 1;
+  repeated uint32 names = 2;
 }
 
 message EnvGetParametersReply {
-    required sint32 status = 1;
-    optional uint32 cachesize = 2;
-    optional uint32 pagesize = 3;
-    optional uint32 max_env_databases = 4;
-    optional uint32 flags = 5;
-    optional uint32 filemode = 6;
-    optional string filename = 7;
+  required sint32 status = 1;
+  optional uint32 cachesize = 2;
+  optional uint32 pagesize = 3;
+  optional uint32 max_env_databases = 4;
+  optional uint32 flags = 5;
+  optional uint32 filemode = 6;
+  optional string filename = 7;
 };
 
 message EnvGetDatabaseNamesRequest {
+  required uint64 env_handle = 1;
 }
 
 message EnvGetDatabaseNamesReply {
-    required sint32 status = 1;
-    repeated uint32 names = 2;
+  required sint32 status = 1;
+  repeated uint32 names = 2;
 }
 
 message EnvRenameRequest {
-    required uint32 oldname = 1;
-    required uint32 newname = 2;
-    required uint32 flags = 3;
+  required uint64 env_handle = 1;
+  required uint32 oldname = 2;
+  required uint32 newname = 3;
+  required uint32 flags = 4;
 }
 
 message EnvRenameReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message EnvFlushRequest {
-    required uint32 flags = 1;
+  required uint64 env_handle = 1;
+  required uint32 flags = 2;
 }
 
 message EnvFlushReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message EnvCreateDbRequest {
-    required uint32 dbname = 1;
-    required uint32 flags = 2;
-    repeated uint32 param_names = 3;
-    repeated uint64 param_values = 4;
+  required uint64 env_handle = 1;
+  required uint32 dbname = 2;
+  required uint32 flags = 3;
+  repeated uint32 param_names = 4;
+  repeated uint64 param_values = 5;
 }
 
 message EnvCreateDbReply {
-    required sint32 status = 1;
-    optional uint64 db_handle = 2;
-    optional uint32 db_flags = 3;
+  required sint32 status = 1;
+  optional uint64 db_handle = 2;
+  optional uint32 db_flags = 3;
 };
 
 message EnvOpenDbRequest {
-    required uint32 dbname = 1;
-    required uint32 flags = 2;
-    repeated uint32 param_names = 3;
-    repeated uint64 param_values = 4;
+  required uint64 env_handle = 1;
+  required uint32 dbname = 2;
+  required uint32 flags = 3;
+  repeated uint32 param_names = 4;
+  repeated uint64 param_values = 5;
 }
 
 message EnvOpenDbReply {
-    required sint32 status = 1;
-    optional uint64 db_handle = 2;
-    optional uint32 db_flags = 3;
+  required sint32 status = 1;
+  optional uint64 db_handle = 2;
+  optional uint32 db_flags = 3;
 };
 
 message EnvEraseDbRequest {
-    required uint32 name = 1;
-    required uint32 flags = 2;
+  required uint64 env_handle = 1;
+  required uint32 name = 2;
+  required uint32 flags = 3;
 }
 
 message EnvEraseDbReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message DbCloseRequest {
-    required uint64 db_handle = 1;
-    required uint32 flags = 2;
+  required uint64 db_handle = 1;
+  required uint32 flags = 2;
 }
 
 message DbCloseReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message DbGetParametersRequest {
-    required uint64 db_handle = 1;
-    repeated uint32 names = 2;
+  required uint64 db_handle = 1;
+  repeated uint32 names = 2;
 }
 
 message DbGetParametersReply {
-    required sint32 status = 1;
-    optional uint32 max_env_databases = 2;
-    optional uint32 flags = 3;
-    optional uint32 keysize = 4;
-    optional uint32 dbname = 5;
-    optional uint32 keys_per_page = 6;
+  required sint32 status = 1;
+  optional uint32 max_env_databases = 2;
+  optional uint32 flags = 3;
+  optional uint32 keysize = 4;
+  optional uint32 dbname = 5;
+  optional uint32 keys_per_page = 6;
 };
 
 message TxnBeginRequest {
-    required uint32 flags = 1;
-    optional string name = 2;
+  required uint64 env_handle = 1;
+  required uint32 flags = 2;
+  optional string name = 3;
 }
 
 message TxnBeginReply {
-    required sint32 status = 1;
-    required uint64 txn_handle = 2;
+  required sint32 status = 1;
+  required uint64 txn_handle = 2;
 };
 
 message TxnCommitRequest {
-    required uint64 txn_handle = 1;
-    required uint32 flags = 2;
+  required uint64 txn_handle = 1;
+  required uint32 flags = 2;
 }
 
 message TxnCommitReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message TxnAbortRequest {
-    required uint64 txn_handle = 1;
-    required uint32 flags = 2;
+  required uint64 txn_handle = 1;
+  required uint32 flags = 2;
 }
 
 message TxnAbortReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message DbCheckIntegrityRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
 }
 
 message DbCheckIntegrityReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message DbGetKeyCountRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
-    required uint32 flags = 3;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  required uint32 flags = 3;
 };
 
 message DbGetKeyCountReply {
-    required sint32 status = 1;
-    required uint64 keycount = 2;
+  required sint32 status = 1;
+  required uint64 keycount = 2;
 };
 
 message Key {
-    required bytes data = 1;
-    required uint32 flags = 2;
-    required uint32 intflags = 3;
+  optional bytes data = 1;
+  required uint32 flags = 2;
+  required uint32 intflags = 3;
 }
 
 message Record {
-    required bytes data = 1;
-    required uint32 flags = 2;
-    required uint32 partial_offset = 3;
-    required uint32 partial_size = 4;
+  optional bytes data = 1;
+  required uint32 flags = 2;
+  required uint32 partial_offset = 3;
+  required uint32 partial_size = 4;
 }
 
 message DbInsertRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
-    optional Key key = 3;
-    optional Record record = 4;
-    required uint32 flags = 5;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  optional Key key = 3;
+  optional Record record = 4;
+  required uint32 flags = 5;
 };
 
 message DbInsertReply {
-    required sint32 status = 1;
-    optional Key key = 2;
+  required sint32 status = 1;
+  optional Key key = 2;
 };
 
 message DbEraseRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
-    required Key key = 3;
-    required uint32 flags = 4;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  required Key key = 3;
+  required uint32 flags = 4;
 };
 
 message DbEraseReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message DbFindRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
-    required Key key = 3;
-    optional Record record = 4;
-    required uint32 flags = 5;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  required Key key = 3;
+  optional Record record = 4;
+  required uint32 flags = 5;
 };
 
 message DbFindReply {
-    required sint32 status = 1;
-    required Record record = 2;
-    optional Key key = 3;
+  required sint32 status = 1;
+  required Record record = 2;
+  optional Key key = 3;
 };
 
 message CursorCreateRequest {
-    required uint64 db_handle = 1;
-    required uint64 txn_handle = 2;
-    required uint32 flags = 3;
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  required uint32 flags = 3;
 };
 
 message CursorCreateReply {
-    required sint32 status = 1;
-    required uint64 cursor_handle = 2;
+  required sint32 status = 1;
+  required uint64 cursor_handle = 2;
 };
 
 message CursorCloneRequest {
-    required uint64 cursor_handle = 1;
+  required uint64 cursor_handle = 1;
 };
 
 message CursorCloneReply {
-    required sint32 status = 1;
-    required uint64 cursor_handle = 2;
+  required sint32 status = 1;
+  required uint64 cursor_handle = 2;
 };
 
 message CursorCloseRequest {
-    required uint64 cursor_handle = 1;
+  required uint64 cursor_handle = 1;
 };
 
 message CursorCloseReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message CursorInsertRequest {
-    required uint64 cursor_handle = 1;
-    optional Key key = 2;
-    optional Record record = 3;
-    required uint32 flags = 4;
+  required uint64 cursor_handle = 1;
+  optional Key key = 2;
+  optional Record record = 3;
+  required uint32 flags = 4;
 };
 
 message CursorInsertReply {
-    required sint32 status = 1;
-    optional Key key = 2;
+  required sint32 status = 1;
+  optional Key key = 2;
 };
 
 message CursorEraseRequest {
-    required uint64 cursor_handle = 1;
-    required uint32 flags = 2;
+  required uint64 cursor_handle = 1;
+  required uint32 flags = 2;
 };
 
 message CursorEraseReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message CursorFindRequest {
-    required uint64 cursor_handle = 1;
-    required Key key = 2;
-    optional Record record = 3;
-    required uint32 flags = 4;
+  required uint64 cursor_handle = 1;
+  required Key key = 2;
+  optional Record record = 3;
+  required uint32 flags = 4;
 };
 
 message CursorFindReply {
-    required sint32 status = 1;
-    optional Key key = 2;
-    optional Record record = 3;
+  required sint32 status = 1;
+  optional Key key = 2;
+  optional Record record = 3;
 };
 
 message CursorGetDuplicateCountRequest {
-    required uint64 cursor_handle = 1;
-    required uint32 flags = 2;
+  required uint64 cursor_handle = 1;
+  required uint32 flags = 2;
 };
 
 message CursorGetDuplicateCountReply {
-    required sint32 status = 1;
-    required uint32 count = 2;
+  required sint32 status = 1;
+  required uint32 count = 2;
 };
 
 message CursorOverwriteRequest {
-    required uint64 cursor_handle = 1;
-    required Record record = 2;
-    required uint32 flags = 3;
+  required uint64 cursor_handle = 1;
+  required Record record = 2;
+  required uint32 flags = 3;
 };
 
 message CursorOverwriteReply {
-    required sint32 status = 1;
+  required sint32 status = 1;
 };
 
 message CursorMoveRequest {
-    required uint64 cursor_handle = 1;
-    optional Key key = 2;
-    optional Record record = 3;
-    required uint32 flags = 4;
+  required uint64 cursor_handle = 1;
+  optional Key key = 2;
+  optional Record record = 3;
+  required uint32 flags = 4;
 };
 
 message CursorMoveReply {
-    required sint32 status = 1;
-    optional Key key = 2;
-    optional Record record = 3;
+  required sint32 status = 1;
+  optional Key key = 2;
+  optional Record record = 3;
 };

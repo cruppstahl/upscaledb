@@ -1,8 +1,8 @@
 
 SUBDIRS = 
 
-if ENABLE_SERVER
-SUBDIRS += json mongoose 
+if ENABLE_REMOTE
+SUBDIRS += json
 endif
 
-DIST_SUBDIRS = json mongoose
+DIST_SUBDIRS = json
