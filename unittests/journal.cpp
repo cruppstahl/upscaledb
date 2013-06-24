@@ -1057,11 +1057,6 @@ TEST_CASE("Journal/appendPartialInsert", "")
   JournalFixture f;
   f.appendPartialInsertTest();
 }
-=======
-// since BFC macro will b0rk on ham::JournalTest
-// TODO i removed this, otherwise MSVC 2008 fails
-// typedef hamsterdb::JournalTest JournalTest;
->>>>>>> Fixed build if remote is disabled
 
 TEST_CASE("Journal/appendErase", "")
 {

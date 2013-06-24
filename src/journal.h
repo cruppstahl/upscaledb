@@ -174,7 +174,7 @@ class Journal
     }
 
   private:
-    friend class JournalTest;
+    friend struct JournalFixture;
 
     /** switches the log file if necessary; sets the new log descriptor in the
      * transaction */
