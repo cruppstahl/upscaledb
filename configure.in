@@ -172,11 +172,30 @@ then
 fi
 
 # -------------------------------------------------------------------------
+# Disable AES encryption?
+# -------------------------------------------------------------------------
+AC_ARG_ENABLE(encryption,
+    AS_HELP_STRING([--disable-encryption],
+                   [Disable AES encryption]))
+if test "$enable_encryption" = "no"; then
+    settings="$settings (no encryption)"
+else
+    settings="$settings (encryption)"
+fi
+AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" != "xno")
+if test "x$enable_encryption" != "xno"; then
+    if test "x$ac_cv_lib_crypto_EVP_EncryptInit_ex" = "xno"; then
+        settings="$settings (crypto missing - encryption disabled)"
+        enable_encryption="no"
+    fi
+fi
+
+# -------------------------------------------------------------------------
 # Disable server
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(server,
     AS_HELP_STRING([--disable-server],
-                   [Disable build of the server (hamsvr)]))
+                   [Disable build of the server (hamserver)]))
 if test "$enable_server" = "no"; then
     settings="$settings (no server)"
 fi
@@ -341,6 +360,11 @@ if test "x$enable_java" = "xno"; then
 printf "#\n"
 printf "# The Java API is not built because you specified\n"
 printf "# --disable-java or because \$JDK is not set\n"
+fi
+if test "x$enable_encryption" = "xno"; then
+printf "#\n"
+printf "# The AES encryption is disabled because you specified\n"
+printf "# --disable-encryption or because of missing dependencies!\n"
 fi
 if test "x$ac_cv_lib_tcmalloc_minimal_tc_malloc" != "xyes"; then
 printf "# Recommendation: install google's performance tools to maximize performance\n"

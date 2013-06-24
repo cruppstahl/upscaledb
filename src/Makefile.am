@@ -13,6 +13,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 EXTRA_DIST = os_win32.cc
 
 libhamsterdb_la_SOURCES = \
+	aes.h \
 	blob_manager.h \
 	blob_manager_inmem.h \
 	blob_manager_inmem.cc \
@@ -69,7 +70,6 @@ libhamsterdb_la_SOURCES = \
 	log.h \
 	mem.cc \
 	mem.h \
-	mutex.h \
 	os.h \
 	os_posix.cc \
 	packstart.h \
@@ -90,6 +90,10 @@ libhamsterdb_la_SOURCES = \
 	version.h
 
 libhamsterdb_la_LDFLAGS = -version-info 4:0:0 
+
+if ENABLE_ENCRYPTION
+AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
+endif
 
 if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl

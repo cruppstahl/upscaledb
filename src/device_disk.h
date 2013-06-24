@@ -17,6 +17,9 @@
 #include "mem.h"
 #include "db.h"
 #include "device.h"
+#ifdef HAM_ENABLE_ENCRYPTION
+#  include "aes.h"
+#endif
 
 namespace hamsterdb {
 
@@ -117,7 +120,14 @@ class DiskDevice : public Device {
     // reads from the device; this function does NOT use mmap
     virtual ham_status_t read(ham_u64_t offset, void *buffer,
                 ham_u64_t size) {
-      return (os_pread(m_fd, offset, buffer, size));
+      ham_status_t st = os_pread(m_fd, offset, buffer, size);
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.decrypt((ham_u8_t *)buffer, (ham_u8_t *)buffer, size);
+      }
+#endif
+      return (st);
     }
 
     // writes to the device; this function does not use mmap,
@@ -125,6 +135,19 @@ class DiskDevice : public Device {
     // filters
     virtual ham_status_t write(ham_u64_t offset, void *buffer,
                 ham_u64_t size) {
+#ifdef HAM_ENABLE_ENCRYPTION
+      if (m_env->is_encryption_enabled()) {
+        // encryption disables direct I/O -> only full pages are allowed
+        ham_assert(size == m_pagesize);
+        ham_assert(offset % m_pagesize == 0);
+
+        m_encryption_buffer.resize(size);
+        AesCipher aes(m_env->get_encryption_key(), offset);
+        aes.encrypt((ham_u8_t *)buffer,
+                        (ham_u8_t *)m_encryption_buffer.get_ptr(), size);
+        buffer = m_encryption_buffer.get_ptr();
+      }
+#endif
       return (os_pwrite(m_fd, offset, buffer, size));
     }
 
@@ -145,6 +168,7 @@ class DiskDevice : public Device {
       if (page->get_self() < m_mapped_size && m_mmapptr != 0) {
         // ok, this page is mapped. If the Page object has a memory buffer:
         // free it
+        ham_assert(m_env->is_encryption_enabled() == false);
         Memory::release(page->get_pers());
         page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
         page->set_pers((PageData *)&m_mmapptr[page->get_self()]);
@@ -161,9 +185,17 @@ class DiskDevice : public Device {
       }
 
       ham_status_t st = os_pread(m_fd, page->get_self(), page->get_pers(),
-              m_pagesize);
-      if (st == 0)
+                      m_pagesize);
+      if (st == 0) {
+#ifdef HAM_ENABLE_ENCRYPTION
+        if (m_env->is_encryption_enabled()) {
+          AesCipher aes(m_env->get_encryption_key(), page->get_self());
+          aes.decrypt((ham_u8_t *)page->get_pers(),
+                          (ham_u8_t *)page->get_pers(), m_pagesize);
+        }
+#endif
         return (0);
+      }
 
       Memory::release(page->get_pers());
       page->set_pers((PageData *)0);
@@ -223,6 +255,9 @@ class DiskDevice : public Device {
 
     // the size of m_mmapptr as used in os_mmap
     ham_u64_t m_mapped_size;
+
+    // dynamic byte array providing temporary space for encryption
+    ByteArray m_encryption_buffer;
 };
 
 } // namespace hamsterdb

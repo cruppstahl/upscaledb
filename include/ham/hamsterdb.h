@@ -13,7 +13,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.1
+ * @version 2.1.0
  *
  * @mainpage
  *
@@ -456,6 +456,13 @@ ham_get_license(const char **licensee, const char **product);
  * Databases in an Environment can be created with @ref ham_env_create_db
  * or opened with @ref ham_env_open_db.
  *
+ * Starting with version 2.1.2, hamsterdb can transparently encrypt the
+ * generated file using 128bit AES in CBC mode. The write-ahead log used
+ * for recovery is also encrypted (with exception of some metadata), but the 
+ * transactional journal is not. Encryption can be enabled by specifying
+ * @ref HAM_PARAM_ENCRYPTION_KEY (see below). The identical key has to be
+ * provided in @ref ham_env_open as well.
+ *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
@@ -512,6 +519,9 @@ ham_get_license(const char **licensee, const char **product);
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file
+ *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
+ *      key; enables AES encryption for the Environment file. Not allowed
+ *      for In-Memory Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -605,6 +615,8 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file
+ *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
+ *      key; enables AES encryption for the Environment file
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -1541,6 +1553,10 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the path of the log files */
 #define HAM_PARAM_LOG_DIRECTORY         0x00000105
+
+/** Parameter name for @ref ham_env_open, @ref ham_env_create;
+ * sets the AES encryption key */
+#define HAM_PARAM_ENCRYPTION_KEY        0x00000106
 
 /**
  * Retrieve the Database/Environment flags as were specified at the time of

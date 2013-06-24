@@ -93,7 +93,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 class PBtreeDescriptor;
 class PageManager;
-struct PFreelistPayload;
+class PFreelistPayload;
 
 /**
  * the Environment structure
@@ -407,6 +407,22 @@ class Environment
       m_log_directory = dir;
     }
 
+    /** enables AES encryption */
+    void enable_encryption(const ham_u8_t *key) {
+      m_encryption_enabled = true;
+      ::memcpy(m_encryption_key, key, sizeof(m_encryption_key));
+    }
+
+    // returns true if encryption is enabled
+    bool is_encryption_enabled() const {
+      return (m_encryption_enabled);
+    }
+
+    // returns the encryption key
+    const ham_u8_t *get_encryption_key() const {
+      return (m_encryption_key);
+    }
+
     /** get the logfile directory */
     const std::string &get_log_directory() {
       return (m_log_directory);
@@ -536,6 +552,12 @@ class Environment
     /** the DuplicateManager */
     // TODO move to LocalEnvironment
     DuplicateManager m_duplicate_manager;
+
+    // true if AES encryption is enabled
+    bool m_encryption_enabled;
+
+    // the AES encryption key
+    ham_u8_t m_encryption_key[16];
 };
 
 /**

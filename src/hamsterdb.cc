@@ -312,6 +312,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_u64_t cachesize = 0;
   ham_u16_t maxdbs = 0;
   std::string logdir;
+  ham_u8_t *encryption_key = 0;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -395,6 +396,21 @@ ham_env_create(ham_env_t **henv, const char *filename,
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
         break;
+      case HAM_PARAM_ENCRYPTION_KEY:
+#ifdef HAM_ENABLE_ENCRYPTION
+        /* in-memory? encryption is not possible */
+        if (flags & HAM_IN_MEMORY) {
+          ham_trace(("aes encrpytion not allowed in combination with "
+                  "HAM_IN_MEMORY"));
+          return (HAM_INV_PARAMETER);
+        }
+        encryption_key = (ham_u8_t *)param->value;
+        flags |= HAM_DISABLE_MMAP;
+#else
+        ham_trace(("aes encrpytion was disabled at compile time"));
+        return (HAM_NOT_IMPLEMENTED);
+#endif
+        break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
         return (HAM_INV_PARAMETER);
@@ -464,6 +480,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
 
   if (logdir.size())
     env->set_log_directory(logdir);
+  if (encryption_key)
+    env->enable_encryption(encryption_key);
 
   /* and finish the initialization of the Environment */
   ham_status_t st = env->create(filename, flags, mode, pagesize, cachesize,
@@ -588,6 +606,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 {
   ham_u64_t cachesize = 0;
   std::string logdir;
+  ham_u8_t *encryption_key = 0;
 
   if (!henv) {
     ham_trace(("parameter 'env' must not be NULL"));
@@ -636,14 +655,18 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
       switch (param->name) {
       case HAM_PARAM_CACHESIZE:
         cachesize = param->value;
-        if (flags & HAM_IN_MEMORY && cachesize != 0) {
-          ham_trace(("combination of HAM_IN_MEMORY and cachesize != 0 "
-                "not allowed"));
-          return (HAM_INV_PARAMETER);
-        }
         break;
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
+        break;
+      case HAM_PARAM_ENCRYPTION_KEY:
+#ifdef HAM_ENABLE_ENCRYPTION
+        encryption_key = (ham_u8_t *)param->value;
+        flags |= HAM_DISABLE_MMAP;
+#else
+        ham_trace(("aes encrpytion was disabled at compile time"));
+        return (HAM_NOT_IMPLEMENTED);
+#endif
         break;
       default:
         ham_trace(("unknown parameter %d", (int)param->name));
@@ -682,6 +705,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 
   if (logdir.size())
     env->set_log_directory(logdir);
+
+  if (encryption_key)
+    env->enable_encryption(encryption_key);
 
   /* and finish the initialization of the Environment */
   ham_status_t st = env->open(filename, flags, cachesize);

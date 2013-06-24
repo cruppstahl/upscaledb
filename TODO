@@ -21,17 +21,40 @@ x boost: configure script should make sure that only boost v 1.46 (or newer)
     -> also test with older versions, but 1.33 definitely does not work
     issue #17: https://github.com/cruppstahl/hamsterdb/issues/17
 
-o run a performance test clang++ vs g++
-
 o AES encryption
-    AES encryption with libcrypto (for 2.1.2):
-    http://saju.net.in/code/misc/openssl_aes.c.txt
+    x create a test program which encrypts/decrypts data (cbc)
+        http://saju.net.in/code/misc/openssl_aes.c.txt
+    x ./configure: enable aes by default if -lcrypto is available
+    x ./configure: add new option "--disable-encryption"
+    x move prototype to .cc file
+    x create header file documentation; HAM_PARAM_ENCRYPTION_KEY is a
+        16byte array with the key
+    x ham_env_create: new option HAM_PARAM_ENCRYPTION_KEY enables encryption
+        x do not allow if in-memory 
+            x unittest
+        x disable mmap if encryption is enabled
+            x unittest
+    x ham_env_open: new option HAM_PARAM_ENCRYPTION_KEY
+        x add unittests for create/open, test good and bad keys
+        x disable mmap if encryption is enabled
+            x unittest
+    x disable direct I/O
+    x encrypt/decrypt pages
+        x cbc-encrypted with page-id as salt
+        x need tests w/ reopen, inserts (growing size, 1 - 512 bytes)
+    x encrypt/decrypt the log (everything is already padded)
+        x do not use salt
+        x need tests w/ recovery
+        x also test in recovery.pl
+    x add to monster tests
 
-    Windows compilation:
-    http://www.ski-epic.com/2007_notes_on_openssl/index.html
-    http://developer.covenanteyes.com/building-openssl-for-visual-studio/
-    http://wiki.openuru.org/index.php?title=Build_OpenSSL_with_MS_Visual_C%2B%2B
-    http://eran.geek.co.il/wp/archives/3897
+    o extend the Windows build
+        http://www.ski-epic.com/2007_notes_on_openssl/index.html
+        http://developer.covenanteyes.com/building-openssl-for-visual-studio/
+        http://wiki.openuru.org/index.php?title=Build_OpenSSL_with_MS_Visual_C%2B%2B
+        http://eran.geek.co.il/wp/archives/3897
+
+o run a performance test clang++ vs g++
 
 o metrics: memory allocations currently ignore operator new/delete
 
@@ -40,9 +63,13 @@ o metrics: add extkey_cache:hits, :misses
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
-    o use libevent2 on server side, get rid of mongoose
-    o use boost sockets on client side, get rid of libcurl
-    o use Pickle module, get rid of protocol buffers
+    o configure.in: remove --diable-server, always use --diable-remote
+    o create/define a benchmark (i.e. based on client1.c/server1.c sample)
+    o use libuv on server side, get rid of mongoose
+        http://nikhilm.github.io/uvbook/networking.html
+    o use libuv on client side, get rid of libcurl
+    o test build with --disable-remote, add this to the release process
+    . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
 o clean up Environment class
     o split into multiple files
@@ -63,15 +90,29 @@ o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     o define a few benchmarks
 
 . reduce the file size if freelist adds page at end of file
-    (maybe cache the filesize in the device, to avoid frequent calls
-    to os_get_filesize(); but compare both if HAM_DEBUG == 1)
     o only do this in ham_env_close and ham_env_flush
+    o can be disabled with an (undocumented) flag
     o attention: if a file is truncated then recovery can re-create pages
         that are "outside" of the file boundaries! (we could do this only
         when the log is empty?!)
 
-. pre-allocate index
+. pre-allocate index; 2.0.0 had this as an experimental feature
     o see roadmap document for more information
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o needs freelist hints to retrieve the next possible
+        free page *adjacent to* the previous index page
+    o run a performance test if this is worth the effort
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages
+
+o release-v2.sh
+    o test build with disabled AES, add this to the release process
+
+. BtreeCursor: use memory arena for uncoupling the key
+    -> postpone till we got rid of extended keys?
 
 ------------------- release 2.1.1 -----------------------------------------
 

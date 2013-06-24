@@ -7,8 +7,11 @@ Jul 19, 2013 - chris ---------------------------------------------------
 o issue #24: Fixed compilation problem on MacOS (Thanks, Johnathan Conley)
 
 Jun 27, 2013 - chris ---------------------------------------------------
+
 o issue #17: configure.in checks now for (hopefully) correct boost version
->>>>>>> Issue 17: configure now checks for boost version
+
+Jun 25, 2013 - chris ---------------------------------------------------
+o added support for AES encryption
 
 Jun 23, 2013 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.1

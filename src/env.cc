@@ -51,7 +51,8 @@ Environment::Environment()
   : m_blob_manager(0), m_page_manager(0), m_device(0), m_file_mode(0644),
     m_txn_id(0), m_context(0), m_hdrpage(0), m_oldest_txn(0), m_newest_txn(0),
     m_log(0), m_journal(0), m_flags(0), m_changeset(this), m_pagesize(0),
-    m_max_databases_cached(0), m_duplicate_manager(this)
+    m_max_databases_cached(0), m_duplicate_manager(this),
+    m_encryption_enabled(false)
 {
 }
 
@@ -448,12 +449,12 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
    * read the database header
    *
    * !!!
-   * now this is an ugly problem - the database header is one page, but
+   * now this is an ugly problem - the database header spans one page, but
    * what's the size of this page? chances are good that it's the default
    * page-size, but we really can't be sure.
    *
    * read 512 byte and extract the "real" page size, then read
-   * the real page. (but i really don't like this)
+   * the real page.
    */
   {
     Page *page = 0;
@@ -471,13 +472,6 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
     /*
      * now fetch the header data we need to get an estimate of what
      * the database is made of really.
-     *
-     * Because we 'faked' a headerpage setup right here, we can now use
-     * the regular hamster macros to obtain data from the file
-     * header -- pre v1.1.0 code used specially modified copies of
-     * those macros here, but with the advent of dual-version database
-     * format support here this was getting hairier and hairier.
-     * So we now fake it all the way instead.
      */
     st = m_device->read(0, hdrbuf, sizeof(hdrbuf));
     if (st)
@@ -518,6 +512,8 @@ fail_with_fake_cleansing:
 
     /* exit when an error was signaled */
     if (st) {
+      if (m_device->is_open())
+        m_device->close();
       delete m_device;
       m_device = 0;
       return (st);

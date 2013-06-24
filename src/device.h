@@ -22,6 +22,8 @@
 
 #include <ham/hamsterdb.h>
 
+#include <string.h>
+
 namespace hamsterdb {
 
 class Page;

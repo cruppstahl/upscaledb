@@ -59,15 +59,15 @@ To see a list of all changes, look in the file ChangeLog.
 - Can run as an in-memory database
 - Supports multiple databases in one file
 - Supports record number databases ("auto-increment")
-- Supports duplicate keys (with sorting)
+- Supports duplicate keys
 - Support for logging and recovery
 - Support for unlimited number of parallel Transactions
 - Support for partial reading/writing of records
 - Support for network access (remote databases)
+- Support for transparent AES encryption (using libcrypto)
 - Very fast database cursors
 - Configurable page size, cache size and index key size
-- Runs on Linux, Unices, Microsoft Windows, Windows CE and on many
-  architectures (also embedded and SPARC)
+- Runs on Linux, Unices, Microsoft Windows and other architectures
 - Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
@@ -76,7 +76,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Supports rudimentary live-reorganization by automatically
   merging freelist entries
 - Open source and released under the GPL 2.0 or later
-- Wrappers for C++, Python, Java, .NET, Erlang, Ada
+- Wrappers for C++, Java, .NET, Erlang, Ada and others
 
 5. Known Issues/Bugs
 
