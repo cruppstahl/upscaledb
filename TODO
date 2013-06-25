@@ -16,7 +16,7 @@ to scale with the number of cores.
 
 x win32: get rid of boost_thread
 
-o boost: configure script should make sure that only boost v 1.46 (or newer)
+x boost: configure script should make sure that only boost v 1.46 (or newer)
     is accepted
     -> also test with older versions, but 1.33 definitely does not work
     issue #17: https://github.com/cruppstahl/hamsterdb/issues/17
