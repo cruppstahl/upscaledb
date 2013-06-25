@@ -14,161 +14,14 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-x protobuf is required even if remote code is disabled:
-    see richardheath's mail on hamsterdb-user
-    -> also seems to be the case in windows
+x win32: get rid of boost_thread
 
-x should database names still be reserved? - yes, i think so. even if they're
-    not required right now, they will be required in the future.
-
-x merge Johnathan Conley's patches (3 mails)
-
-x refactoring: get rid of ham_bool_t, replace with bool whenever possible
-
-x version.h: support file version (see topic/freelist)
-
-x all packed structures that are directly mapped to the file
-    (BlobPageHeader, BlobHeader and others) should be named
-    "PXXX" (for "Persistent" or "Packed")
-
-x Partial read: record->size returns the partial size that was retrieved.
-    I think record->size should return the original size, and
-    record->partial_size should return the size that was read.
-    -- really?? yes, this is much cleaner
-    x document this in the header file
-
-x benchmark/prototype new freelist based on discarded one
-    x a flat array (std::vector), not sorted
-    x reserve 20 entries
-    x free_area: append at end, if full then overwrite smallest
-    x free_page: traverse all entries, remove if necessary
-    x alloc: traverse lineary, pick best fit
-    x check_integrity: not sure yet how, but need to implement it
-    x run benchmarks
-
-x new option to disable the freelist
-    x clean up statistics.h
-    x clean up PFreelistPageStatistics
-    x clean up runtime_statistics_pagedata_t
-    x clean up PFreelistSlotsizeStats
-    x clean up freelist_stats_fail, _update, _edit etc
-    x clean up freelist_hints_t
-        x remove fields that are not required
-        x create class FreelistStatistics::Hints, file freelist_stats.h/cc
-    x same for freelist_global_hints_t
-    x freelist_stats.h has global functions; move into FreelistStatistics
-        namespace
-    x run performance tests, just to make sure that we did not break anything
-    x re-introduce page_manager (has ownership of Freelist, Cache, Pages etc)
-    x clean up PageManager::alloc_blob
-
-    x "old" hamsterdb.cc has different method to deal with freelist in header
-        page - leave as is
-    x split BlobManager into subclasses (in-memory, disk)
-        x use ByteArray for "zeroes" when filling partial gaps
-    x review unittest Freelist::overflow4 - remove
-
-    x merge freelist and freelist_statistics
-    x also rename unittests!
-    x new Freelist is called "SimpleFreelist", owned by PageManager
-    x rename SimpleFreelist to ReducedFreelist (and rename the files, too)
-
-    x both derive from the same interface
-
-    x EnvironmentStatistics::m_perf_data: move to Freelist
-
-    x new option HAM_PARAM_FREELIST_POLICY
-            - 0: FULL
-            - 1: REDUCED
-        x requires documentation - when to choose which?
-        x for ham_env_create_db
-        x extend ham_env_get_parameters
-        x option is persistent!
-            x unittest
-        x page_manager dispatches to new freelist if flag is set
-        x only create BitmapFreelist if it's really required
-        x merge unittests from ~/tmp/hamsterdb
-        x alignment is property of freelist:
-            FullFreelist::get_blob_alignment() -> DB_CHUNKSIZE;
-            ReducedFreelist::get_blob_alignment() -> 1;
-            x see 2 x TODO in freelist.cpp unittests
-        x extend (and run) the monster tests
-        x extend (and run) the performance tests
-        x check benchmarks; it feels that the percentages are not
-            calculated properly
-        x run benchmarks - does it make sense to have this new option??
-        x also for Java
-        x also for .NET
-
-x BlobManager interface: get rid of Transaction pointer, not required
-
-x get rid of memory allocator, use the new (static) one
-    x Memory::release should check for null - clean up usage code
-    x use HAVE_TCMALLOC!
-    x get rid of the lookaside list
-    x need to link in tcmalloc! (monster tests fail with linker errors)
-        x clean up other libraries of monster test - don't link against
-            libcurl, libprotobuf etc - not necessary; can use libtool
-    x run performance tests
-    x configure: print warning if tcmalloc is missing
-
-x full_freelist: clean up the code
-    x inline the statistics-functions because they require lots of performance
-    x then check ./test --duplicate --no-berkeleydb ../../testfiles/4/215.tst
-
-x cache improvements
-    x when flushing, sort pages by ID/offset and use writev to flush them
-    x use a dynamic hash table (std::vector); if vector becomes too full then
-        resize and rehash
-        o this needs a test
-    --> performance degraded; try to avoid std::vector, use local array 
-            on stack instead
-    --> still no good; revert
-
-x gcc has some nice attributes
-    x __attribute__ ((noreturn))
-        for ham_assert/ham_verify
-    x __attribute__ ((hot))
-        for the compare function
-
-x run clang static analyzer
-
-x really leave reduced freelist? the performance gains are not worth the
-    additional complexity and we would introduce lots of technical debt
-    -> remove it...
-
-x refactor unittests, use same framework as hamsterdb-cluster
-
-x we need more metrics in the monster tests:
-    x create new module Metrics, with structure and API in hamsterdb_int.h
-    x retrieve the following metrics
-        x Memory::Metrics
-        x track page fetch (page_manager)
-        x track page flush (page_manager)
-        x number of index pages (page_manager)
-        x number of blob pages (page_manager)
-        x number of freelist pages (page_manager)
-        x number of freelist hits (freelist)
-        x number of freelist misses (freelist)
-        x track cache hits (cache)
-        x track cache misses (cache)
-        x track number of blobs written (blob)
-        x track direct I/O blob reads (blob)
-        x track direct I/O blob writes (blob)
-    x use in monster test
-    x compare in performance test (show 3 columns: old, new, diff %)
-
-o win32: get rid of boost_thread
-
-. run a performance test clang++ vs g++
-
-. boost: configure script should make sure that only boost v 1.46 (or newer)
+o boost: configure script should make sure that only boost v 1.46 (or newer)
     is accepted
     -> also test with older versions, but 1.33 definitely does not work
     issue #17: https://github.com/cruppstahl/hamsterdb/issues/17
 
-
-
+o run a performance test clang++ vs g++
 
 o AES encryption
     AES encryption with libcrypto (for 2.1.2):
@@ -180,12 +33,34 @@ o AES encryption
     http://wiki.openuru.org/index.php?title=Build_OpenSSL_with_MS_Visual_C%2B%2B
     http://eran.geek.co.il/wp/archives/3897
 
+o metrics: memory allocations currently ignore operator new/delete
+
+o BtreeCursor: use memory arena for uncoupling the key
+
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
     o use libevent2 on server side, get rid of mongoose
     o use boost sockets on client side, get rid of libcurl
     o use Pickle module, get rid of protocol buffers
+
+o clean up Environment class
+    o split into multiple files
+    o remove the TODOs
+
+o clean up Database class
+    o split into multiple files
+    o remove the TODOs
+
+o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
+    then flush all of them together. This way we can "merge" multiple changes
+    for the same page.
+    Also review the whole flush process - when not to log etc.
+    - only 1 page affected: no need to log it because it is idempotent
+    - freelist pages are always idempotent
+    - more than 1 index page? not idempotent (most likely)
+    - more than 1 blob page? not idempotent (maybe)
+    o define a few benchmarks
 
 . reduce the file size if freelist adds page at end of file
     (maybe cache the filesize in the device, to avoid frequent calls
@@ -194,13 +69,9 @@ o improve client/server performance
     o attention: if a file is truncated then recovery can re-create pages
         that are "outside" of the file boundaries! (we could do this only
         when the log is empty?!)
-    o for reduced freelist we might have to make sure that we store free blobs
-        if they are at the end of the file
 
 . pre-allocate index
     o see roadmap document for more information
-
-. can we perform better with O_DIRECT? run some benchmarks
 
 ------------------- release 2.1.1 -----------------------------------------
 
@@ -220,8 +91,6 @@ o collect file format incompatibilities
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
-
-o BtreeCursor: use memory arena for uncoupling the key
 
 . also remove locking from C# and Java APIs
 
