@@ -21,7 +21,7 @@
 #include <ham/hamsterdb_srv.h>
 
 #include "../src/env.h"
-#include "../src/db.h"
+#include "../src/db_remote.h"
 
 using namespace hamsterdb;
 

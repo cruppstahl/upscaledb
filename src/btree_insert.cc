@@ -21,6 +21,7 @@
 #include "internal_fwd_decl.h"
 #include "blob_manager.h"
 #include "btree.h"
+#include "page_manager.h"
 #include "btree_cursor.h"
 #include "extkeys.h"
 #include "cursor.h"
@@ -117,7 +118,8 @@ class BtreeInsertAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      st = db->fetch_page(&page, m_hints.leaf_page_addr, true);
+      st = db->get_env()->get_page_manager()->fetch_page(&page,
+                      db, m_hints.leaf_page_addr, true);
       if (st)
         return st;
       if (!page)
@@ -195,7 +197,8 @@ class BtreeInsertAction
       LocalDatabase *db = m_btree->get_db();
 
       /* get the root-page...  */
-      st = db->fetch_page(&root, m_btree->get_rootpage());
+      st = db->get_env()->get_page_manager()->fetch_page(&root,
+                      db, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -216,7 +219,8 @@ class BtreeInsertAction
       /* allocate a new root page */
       Page *newroot;
       LocalDatabase *db = m_btree->get_db();
-      ham_status_t st = db->alloc_page(&newroot, Page::TYPE_B_ROOT, 0);
+      ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newroot,
+                                db, Page::TYPE_B_ROOT, 0);
       if (st)
         return (st);
       ham_assert(newroot->get_db());
@@ -357,7 +361,8 @@ class BtreeInsertAction
       bool pivot_at_end = false;
 
       /* allocate a new page */
-      ham_status_t st = db->alloc_page(&newpage, Page::TYPE_B_INDEX, 0);
+      ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newpage,
+                                db, Page::TYPE_B_INDEX, 0);
       if (st)
         return st;
 
@@ -480,7 +485,8 @@ class BtreeInsertAction
 
       /* fix the double-linked list of pages, and mark the pages as dirty */
       if (obtp->get_right()) {
-        st = db->fetch_page(&oldsib, obtp->get_right());
+        st = db->get_env()->get_page_manager()->fetch_page(&oldsib,
+                        db, obtp->get_right());
         if (st)
           goto fail_dramatically;
       }

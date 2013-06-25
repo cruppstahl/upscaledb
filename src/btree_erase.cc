@@ -91,7 +91,8 @@ class BtreeEraseAction
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }
-      ham_status_t st = db->fetch_page(&root, rootaddr);
+      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&root,
+                      db, rootaddr);
       if (st)
         return (st);
 
@@ -311,7 +312,8 @@ free_all:
           if (!left)
             next_left = 0;
           else {
-            st = db->fetch_page(&tempp, left);
+            st = db->get_env()->get_page_manager()->fetch_page(&tempp,
+                      db, left);
             if (st)
               return (st);
             PBtreeNode *n = PBtreeNode::from_page(tempp);
@@ -334,7 +336,8 @@ free_all:
           if (!right)
             next_right = 0;
           else {
-            st = db->fetch_page(&tempp, right);
+            st = db->get_env()->get_page_manager()->fetch_page(&tempp,
+                      db, right);
             if (st)
               return (st);
             PBtreeNode *n = PBtreeNode::from_page(tempp);
@@ -404,6 +407,7 @@ free_all:
       Page *rightpage = 0;
       PBtreeNode *leftnode = 0;
       PBtreeNode *rightnode = 0;
+      LocalDatabase *db = page->get_db();
       bool fewleft = false;
       bool fewright = false;
       ham_size_t minkeys = m_btree->get_minkeys();
@@ -416,7 +420,8 @@ free_all:
 
       /* get the left and the right sibling of this page */
       if (left) {
-        st = page->get_db()->fetch_page(&leftpage, node->get_left());
+        st = db->get_env()->get_page_manager()->fetch_page(&leftpage,
+                      db, node->get_left());
         if (st)
           return (st);
         if (leftpage) {
@@ -425,7 +430,8 @@ free_all:
         }
       }
       if (right) {
-        st = page->get_db()->fetch_page(&rightpage, node->get_right());
+        st = db->get_env()->get_page_manager()->fetch_page(&rightpage,
+                      db, node->get_right());
         if (st)
           return (st);
         if (rightpage) {
@@ -439,7 +445,8 @@ free_all:
         if (node->is_leaf())
           return (0);
         else
-          return (page->get_db()->fetch_page(newpage_ref, node->get_ptr_left()));
+          return (page->get_db()->get_env()->get_page_manager()->fetch_page(newpage_ref,
+                      db, node->get_ptr_left()));
       }
 
       /*
@@ -506,7 +513,8 @@ free_all:
       PBtreeNode *sibnode = PBtreeNode::from_page(sibpage);
       ham_size_t keysize = m_btree->get_keysize();
       bool intern  = !node->is_leaf();
-      ham_status_t st = db->fetch_page(&ancpage, anchor);
+      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&ancpage,
+                      db, anchor);
       if (st)
         return (st);
       PBtreeNode *ancnode = PBtreeNode::from_page(ancpage);
@@ -818,7 +826,8 @@ cleanup:
       *newpage_ref = 0;
 
       if (anchor) {
-        st = page->get_db()->fetch_page(&ancpage, anchor);
+        st = page->get_db()->get_env()->get_page_manager()->fetch_page(&ancpage,
+                      page->get_db(), anchor);
         if (st)
           return (st);
         ancnode = PBtreeNode::from_page(ancpage);
@@ -876,8 +885,8 @@ cleanup:
       if (node->get_left() == sibpage->get_self()) {
         if (sibnode->get_left()) {
           Page *p;
-
-          st = page->get_db()->fetch_page(&p, sibnode->get_left());
+          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
+                      page->get_db(), sibnode->get_left());
           if (st)
             return (st);
           PBtreeNode *n = PBtreeNode::from_page(p);
@@ -891,8 +900,8 @@ cleanup:
       else if (node->get_right() == sibpage->get_self()) {
         if (sibnode->get_right()) {
           Page *p;
-
-          st = page->get_db()->fetch_page(&p, sibnode->get_right());
+          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
+                      page->get_db(), sibnode->get_right());
           if (st)
             return (st);
           PBtreeNode *n = PBtreeNode::from_page(p);

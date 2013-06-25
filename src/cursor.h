@@ -83,7 +83,7 @@
 #include "btree_cursor.h"
 #include "blob_manager.h"
 #include "env.h"
-#include "db.h"
+#include "db_local.h"
 
 /**
  * a helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
@@ -254,7 +254,7 @@ class Cursor
   public:
     /** Constructor; retrieves pointer to db and txn, initializes all
      * fields */
-    Cursor(Database *db, Transaction *txn = 0, ham_u32_t flags = 0);
+    Cursor(LocalDatabase *db, Transaction *txn = 0, ham_u32_t flags = 0);
 
     /** Copy constructor; used for cloning a Cursor */
     Cursor(Cursor &other);
@@ -402,7 +402,7 @@ class Cursor
     }
 
     /** Get the Database */
-    Database *get_db() {
+    LocalDatabase *get_db() {
       return (m_db);
     }
 
@@ -570,7 +570,7 @@ class Cursor
     ham_status_t move_previous_key_singlestep();
 
     /** Pointer to the Database object */
-    Database *m_db;
+    LocalDatabase *m_db;
 
     /** Pointer to the Transaction */
     Transaction *m_txn;

@@ -1008,7 +1008,7 @@ bail:
   return (st);
 }
 
-Cursor::Cursor(Database *db, Transaction *txn, ham_u32_t flags)
+Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
   m_remote_handle(0), m_next(0), m_previous(0), m_next_in_page(0),
   m_previous_in_page(0), m_dupecache_index(0), m_lastop(0), m_lastcmp(0),
@@ -1170,7 +1170,7 @@ Cursor::overwrite(Transaction *txn, ham_record_t *record, ham_u32_t flags)
     if (get_txn_cursor()->is_nil() && !(is_nil(0))) {
       st = get_btree_cursor()->uncouple();
       if (st == 0)
-        st = ((LocalDatabase *)m_db)->insert_txn(txn,
+        st = m_db->insert_txn(txn,
                     get_btree_cursor()->get_uncoupled_key(),
                     record, flags | HAM_OVERWRITE, get_txn_cursor());
     }

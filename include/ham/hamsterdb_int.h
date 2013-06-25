@@ -64,6 +64,18 @@ extern "C" {
 @}
 */
 
+/** get the (non-persisted) flags of a key */
+#define ham_key_get_intflags(key)       (key)->_flags
+
+/**
+ * set the flags of a key
+ *
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must
+ * be defined such that those can peacefully co-exist with these; that's
+ * why those public flags start at the value 0x1000 (4096).
+ */
+#define ham_key_set_intflags(key, f)    (key)->_flags=(f)
+
 /**
  * Verifies the integrity of the Database
  *

@@ -21,6 +21,7 @@
 
 #include "../src/db.h"
 #include "../src/blob_manager.h"
+#include "../src/page_manager.h"
 #include "../src/btree.h"
 #include "../src/endianswap.h"
 #include "../src/cursor.h"
@@ -531,9 +532,9 @@ struct DuplicateFixture {
     insertData("222", "bbbbbbbbbb");
     insertData("333", "cccccccccc");
 
-    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
-    REQUIRE(0 == ((Database *)m_db)->fetch_page(&page,
-                be->get_rootpage()));
+    BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
+    REQUIRE(0 == ((Environment *)m_env)->get_page_manager()->fetch_page(&page,
+                (LocalDatabase *)m_db, be->get_rootpage()));
     REQUIRE(page);
 
     REQUIRE(0 == page->uncouple_all_cursors());
@@ -731,7 +732,7 @@ struct DuplicateFixture {
       REQUIRE(0 ==
           ham_env_open_db(m_env, &m_db, 1, 0, 0));
     }
-    REQUIRE((((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
+    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
 
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
@@ -1585,7 +1586,7 @@ struct DuplicateFixture {
       REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
               m_flags, 0));
       REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
-      REQUIRE((((Database *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
+      REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
 
       REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 

@@ -23,6 +23,7 @@
 #include "../src/btree.h"
 #include "../src/env.h"
 #include "../src/cursor.h"
+#include "../src/page_manager.h"
 
 using namespace hamsterdb;
 
@@ -94,10 +95,11 @@ struct BtreeCursorFixture {
     REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 
-    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
+    BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     Page *page;
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));
+    PageManager *pm = ((Environment *)m_env)->get_page_manager();
+    REQUIRE(0 == pm->fetch_page(&page, (LocalDatabase *)m_db,
+                            be->get_rootpage()));
     REQUIRE(page != 0);
     REQUIRE(0 == page->uncouple_all_cursors());
 
@@ -197,16 +199,16 @@ struct BtreeCursorFixture {
   void linkedListTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
-      REQUIRE((Cursor *)cursor[i] == ((Database *)m_db)->get_cursors());
+      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->get_cursors());
     }
 
     REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 ==
@@ -214,30 +216,30 @@ struct BtreeCursorFixture {
     }
     REQUIRE(0 == ham_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
   }
 
   void linkedListReverseCloseTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE(cursor[i] != 0);
-      REQUIRE((Cursor *)cursor[i] == ((Database *)m_db)->get_cursors());
+      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->get_cursors());
     }
 
     REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursors());
 
     for (int i = 4; i >= 0; i--) {
       REQUIRE(0 == ham_cursor_close(cursor[i]));
     }
     REQUIRE(0 == ham_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((Database *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
   }
 
   void cursorGetErasedItemTest() {

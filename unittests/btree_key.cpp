@@ -28,7 +28,7 @@ namespace hamsterdb {
 
 struct BtreeKeyFixture {
   ham_db_t *m_db;
-  Database *m_dbp;
+  LocalDatabase *m_dbp;
   ham_env_t *m_env;
 
   BtreeKeyFixture() {
@@ -37,7 +37,7 @@ struct BtreeKeyFixture {
     REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    m_dbp = (Database *)m_db;
+    m_dbp = (LocalDatabase *)m_db;
   }
 
   ~BtreeKeyFixture() {
@@ -170,7 +170,7 @@ struct BtreeKeyFixture {
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree_index()->read_record(0,
             &rec2, &rec2._rid, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -212,7 +212,7 @@ struct BtreeKeyFixture {
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree_index()->read_record(0,
             &rec2, &rec2._rid, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -250,7 +250,7 @@ struct BtreeKeyFixture {
     if (!(flags & HAM_DUPLICATE)) {
       rec2._intflags = key->get_flags();
       rec2._rid = key->get_ptr();
-      REQUIRE(0 == m_dbp->get_btree()->read_record(0,
+      REQUIRE(0 == m_dbp->get_btree_index()->read_record(0,
           &rec2, &rec2._rid, 0));
       REQUIRE(rec.size == rec2.size);
       REQUIRE(0 == memcmp(rec.data, rec2.data, rec.size));
@@ -346,7 +346,7 @@ struct BtreeKeyFixture {
 
     rec._intflags = dupe_entry_get_flags(&entry);
     rec._rid = dupe_entry_get_rid(&entry);
-    REQUIRE(0 == m_dbp->get_btree()->read_record(0, &rec, &rec._rid, 0));
+    REQUIRE(0 == m_dbp->get_btree_index()->read_record(0, &rec, &rec._rid, 0));
     REQUIRE(rec.size == size);
     if (size)
       REQUIRE(0 == memcmp(rec.data, data, rec.size));

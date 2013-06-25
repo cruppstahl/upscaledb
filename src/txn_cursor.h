@@ -99,7 +99,7 @@ class TransactionCursor
     ham_status_t erase();
 
     /** get the database pointer */
-    Database *get_db();
+    LocalDatabase *get_db();
 
     /** get the parent cursor */
     Cursor *get_parent() {

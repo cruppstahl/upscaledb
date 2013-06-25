@@ -43,7 +43,7 @@ compare(void *vlhs, void *vrhs)
 {
   TransactionNode *lhs = (TransactionNode *)vlhs;
   TransactionNode *rhs = (TransactionNode *)vrhs;
-  Database *db = lhs->get_db();
+  LocalDatabase *db = lhs->get_db();
 
   if (lhs == rhs)
     return (0);
@@ -195,8 +195,9 @@ txn_tree_enumerate(TransactionIndex *tree, txn_tree_enumerate_cb cb, void *data)
   }
 }
 
-TransactionNode::TransactionNode(Database *db, ham_key_t *key, bool dont_insert)
-  : m_db(db), m_tree(db->get_optree()), m_oldest_op(0), m_newest_op(0),
+TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key,
+                bool dont_insert)
+  : m_db(db), m_tree(db->get_txn_index()), m_oldest_op(0), m_newest_op(0),
   m_dont_insert(dont_insert)
 {
   /* make sure that a node with this key does not yet exist */
@@ -348,7 +349,7 @@ Transaction::free_ops()
   set_newest_op(0);
 }
 
-TransactionIndex::TransactionIndex(Database *db)
+TransactionIndex::TransactionIndex(LocalDatabase *db)
   : m_db(db)
 {
   rbt_new(this);

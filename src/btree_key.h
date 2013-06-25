@@ -17,9 +17,12 @@
 #ifndef HAM_BTREE_KEY_H__
 #define HAM_BTREE_KEY_H__
 
-#include "internal_fwd_decl.h"
+#include <ham/hamsterdb_int.h>
+#include "endianswap.h"
 
 namespace hamsterdb {
+
+class LocalDatabase;
 
 #include "packstart.h"
 
@@ -146,10 +149,10 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
   }
 
   /** get the record address of an extended key overflow area */
-  ham_u64_t get_extended_rid(Database *db);
+  ham_u64_t get_extended_rid(LocalDatabase *db);
 
   /** set the record address of an extended key overflow area */
-  void set_extended_rid(Database *db, ham_u64_t rid);
+  void set_extended_rid(LocalDatabase *db, ham_u64_t rid);
 
   /**
    * inserts and sets a record
@@ -164,14 +167,15 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
    *
    * a previously existing blob will be deleted if necessary
    */
-  ham_status_t set_record(Database *db, Transaction *txn, ham_record_t *record,
-                ham_size_t position, ham_u32_t flags, ham_size_t *new_position);
+  ham_status_t set_record(LocalDatabase *db, Transaction *txn,
+                  ham_record_t *record, ham_size_t position, ham_u32_t flags,
+                  ham_size_t *new_position);
 
   /*
    * deletes a record
    */
-  ham_status_t erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
-                bool erase_all_duplicates);
+  ham_status_t erase_record(LocalDatabase *db, Transaction *txn,
+                  ham_size_t dupe_id, bool erase_all_duplicates);
 
   /** the size of this structure without the single byte for the _key */
   static size_t ms_sizeof_overhead;

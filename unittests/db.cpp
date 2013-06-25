@@ -28,11 +28,11 @@
 #include "../src/log.h"
 #include "../src/btree_node.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct DbFixture {
   ham_db_t *m_db;
-  Database *m_dbp;
+  LocalDatabase *m_dbp;
   ham_env_t *m_env;
   bool m_inmemory;
 
@@ -44,7 +44,7 @@ struct DbFixture {
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13,
             HAM_ENABLE_DUPLICATES, 0));
-    m_dbp=(Database *)m_db;
+    m_dbp = (LocalDatabase *)m_db;
   }
 
   ~DbFixture() {
@@ -67,25 +67,20 @@ struct DbFixture {
   }
 
   void structureTest() {
-    REQUIRE(((Environment *)m_env)->get_header_page()!=0);
+    REQUIRE(((Environment *)m_env)->get_header_page() != 0);
 
     REQUIRE(0 == m_dbp->get_error());
     m_dbp->set_error(HAM_IO_ERROR);
     REQUIRE(HAM_IO_ERROR == m_dbp->get_error());
 
-    REQUIRE(m_dbp->get_btree());// already initialized
-    BtreeIndex *oldbe = m_dbp->get_btree();
-    m_dbp->set_btree((BtreeIndex *)15);
-    REQUIRE((BtreeIndex *)15 == m_dbp->get_btree());
-    m_dbp->set_btree(oldbe);
+    REQUIRE(m_dbp->get_btree_index()); // already initialized
 
     REQUIRE(((Environment *)m_env)->get_page_manager()->test_get_cache());
 
-    REQUIRE(0 != m_dbp->get_prefix_compare_func());
-    ham_prefix_compare_func_t oldfoo = m_dbp->get_prefix_compare_func();
+    REQUIRE(0 != m_dbp->m_prefix_func);
+    ham_prefix_compare_func_t oldfoo = m_dbp->m_prefix_func;
     m_dbp->set_prefix_compare_func((ham_prefix_compare_func_t)18);
-    REQUIRE((ham_prefix_compare_func_t)18 ==
-        m_dbp->get_prefix_compare_func());
+    REQUIRE((ham_prefix_compare_func_t)18 == m_dbp->m_prefix_func);
     m_dbp->set_prefix_compare_func(oldfoo);
 
     ham_compare_func_t oldfoo2 = m_dbp->get_compare_func();
@@ -119,81 +114,59 @@ struct DbFixture {
   }
 
   void defaultCompareTest() {
-    REQUIRE( 0 == Database::default_compare(0,
+    REQUIRE( 0 == LocalDatabase::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"abc", 3));
-    REQUIRE(-1 == Database::default_compare(0,
+    REQUIRE(-1 == LocalDatabase::default_compare(0,
             (ham_u8_t *)"ab",  2, (ham_u8_t *)"abc", 3));
-    REQUIRE(-1 == Database::default_compare(0,
+    REQUIRE(-1 == LocalDatabase::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)"bcd", 3));
-    REQUIRE(+1 == Database::default_compare(0,
+    REQUIRE(+1 == LocalDatabase::default_compare(0,
             (ham_u8_t *)"abc", 3, (ham_u8_t *)0,   0));
-    REQUIRE(-1 == Database::default_compare(0,
+    REQUIRE(-1 == LocalDatabase::default_compare(0,
             (ham_u8_t *)0,   0, (ham_u8_t *)"abc", 3));
   }
 
   void defaultPrefixCompareTest() {
     REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"abc", 3, 3));
     // comparison code has become 'smarter' so can resolve this one 
     // without the need for further help
     REQUIRE(-1 ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 2,
             (ham_u8_t *)"abc", 3, 3));
     REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"ab",  2, 3,
             (ham_u8_t *)"abc", 3, 3));
     REQUIRE(-1 ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)"bcd", 3, 3));
     // comparison code has become 'smarter' so can resolve this 
     // one without the need for further help
     REQUIRE(+1 ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 0));
     REQUIRE(-1 ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 0,
             (ham_u8_t *)"abc", 3, 3));
     REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 3,
             (ham_u8_t *)0,   0, 3));
     REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)0,   0, 3,
             (ham_u8_t *)"abc", 3, 3));
     REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        Database::default_prefix_compare(0,
+        LocalDatabase::default_prefix_compare(0,
             (ham_u8_t *)"abc", 3, 80239,
             (ham_u8_t *)"abc", 3, 2));
-  }
-
-  void allocPageTest() {
-    Page *page;
-    REQUIRE(0 ==
-        m_dbp->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
-    REQUIRE(m_dbp == page->get_db());
-    page->free();
-    ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
-    delete page;
-  }
-
-  void fetchPageTest() {
-    Page *p1, *p2;
-    REQUIRE(0 ==
-        m_dbp->alloc_page(&p1, 0, PageManager::kIgnoreFreelist));
-    REQUIRE(m_dbp == p1->get_db());
-    REQUIRE(0 == m_dbp->fetch_page(&p2, p1->get_self()));
-    REQUIRE(p2->get_self() == p1->get_self());
-    p1->free();
-    ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(p1);
-    delete p1;
   }
 
   void flushPageTest() {
@@ -201,8 +174,9 @@ struct DbFixture {
     ham_u64_t address;
     ham_u8_t *p;
 
-    REQUIRE(0 ==
-            m_dbp->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
+    PageManager *pm = ((Environment *)m_env)->get_page_manager();
+
+    REQUIRE(0 == pm->alloc_page(&page, m_dbp, 0, PageManager::kIgnoreFreelist));
 
     REQUIRE(m_dbp == page->get_db());
     p = page->get_raw_payload();
@@ -212,15 +186,15 @@ struct DbFixture {
     address = page->get_self();
     REQUIRE(0 == page->flush());
     page->free();
-    ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
+    pm->test_get_cache()->remove_page(page);
     delete page;
 
-    REQUIRE(0 == m_dbp->fetch_page(&page, address));
+    REQUIRE(0 == pm->fetch_page(&page, m_dbp, address));
     REQUIRE(page != 0);
     REQUIRE(address == page->get_self());
     p = page->get_raw_payload();
     page->free();
-    ((Environment *)m_env)->get_page_manager()->test_get_cache()->remove_page(page);
+    pm->test_get_cache()->remove_page(page);
     delete page;
   }
 
@@ -264,7 +238,7 @@ struct DbFixture {
 
     page.set_self(1000);
     page.set_db(&db);
-    db.set_btree(&be);
+    db.m_btree_index = &be;
     be.set_keysize(666);
     REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
     // make sure the 'header page' is at least as large as your usual
@@ -323,18 +297,6 @@ TEST_CASE("Db/defaultPrefixCompareTest", "")
   f.defaultPrefixCompareTest();
 }
 
-TEST_CASE("Db/allocPageTest", "")
-{
-  DbFixture f;
-  f.allocPageTest();
-}
-
-TEST_CASE("Db/fetchPageTest", "")
-{
-  DbFixture f;
-  f.fetchPageTest();
-}
-
 TEST_CASE("Db/flushPageTest", "")
 {
   DbFixture f;
@@ -378,9 +340,4 @@ TEST_CASE("Db-inmem/defaultPrefixCompareTest", "")
   f.defaultPrefixCompareTest();
 }
 
-TEST_CASE("Db-inmem/allocPageTest", "")
-{
-  DbFixture f(true);
-  f.allocPageTest();
-}
-
+} // namespace hamsterdb

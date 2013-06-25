@@ -252,12 +252,12 @@ class BtreeIndex
 
     /** get the database pointer */
     LocalDatabase *get_db() {
-      return m_db;
+      return (m_db);
     }
 
     /** get the key size */
     ham_u16_t get_keysize() const {
-      return m_keysize;
+      return (m_keysize);
     }
 
     /** set the key size */
@@ -268,7 +268,7 @@ class BtreeIndex
 
     /** get the flags */
     ham_u32_t get_flags() const {
-      return m_flags;
+      return (m_flags);
     }
 
     /** set the flags */
@@ -287,7 +287,7 @@ class BtreeIndex
 
     /** get the address of the root node */
     ham_u64_t get_rootpage() const {
-      return m_rootpage;
+      return (m_rootpage);
     }
 
     /** set the address of the root node */
@@ -298,7 +298,7 @@ class BtreeIndex
 
     /** get maximum number of keys per (internal) node */
     ham_u16_t get_maxkeys() const {
-      return m_maxkeys;
+      return (m_maxkeys);
     }
 
     /** set maximum number of keys per (internal) node */

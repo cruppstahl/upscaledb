@@ -16,7 +16,7 @@
 
 #include "endianswap.h"
 #include "btree_key.h"
-#include "db.h"
+#include "db_local.h"
 
 #include "packstart.h"
 
@@ -85,7 +85,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
    * note that this function does not check the boundaries (i.e. whether
    * i <= get_count(), because some functions deliberately write to
    * elements "after" get_count() */
-  PBtreeKey *get_key(Database *db, int i) {
+  PBtreeKey *get_key(LocalDatabase *db, int i) {
     return ((PBtreeKey *)&((const char *)_entries)
               [(db->get_keysize() + PBtreeKey::ms_sizeof_overhead) * i]);
   }

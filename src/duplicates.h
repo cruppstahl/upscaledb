@@ -17,10 +17,12 @@
 #ifndef HAM_DUPLICATES_H__
 #define HAM_DUPLICATES_H__
 
-#include "internal_fwd_decl.h"
+#include <ham/hamsterdb_int.h>
 #include "endianswap.h"
 
 namespace hamsterdb {
+
+class LocalDatabase;
 
 #include "packstart.h"
 
@@ -140,7 +142,7 @@ class DuplicateManager
      * OR, if the table already exists (i.e. table_id != 0), insert the
      * entry depending on the flags (only one entry is allowed in this case)
      */
-    ham_status_t insert(Database *db, Transaction *txn, ham_u64_t table_id,
+    ham_status_t insert(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
                 ham_record_t *record, ham_size_t position, ham_u32_t flags,
                 PDupeEntry *entries, ham_size_t num_entries,
                 ham_u64_t *rid, ham_size_t *new_position);
@@ -154,7 +156,7 @@ class DuplicateManager
      *
      * sets new_table_id to 0 if the table is empty
      */
-    ham_status_t erase(Database *db, Transaction *txn, ham_u64_t table_id,
+    ham_status_t erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
                 ham_size_t position, bool erase_all_duplicates,
                 ham_u64_t *new_table_id);
 

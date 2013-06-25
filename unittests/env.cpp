@@ -19,7 +19,7 @@
 #include "../src/env.h"
 #include "../src/cache.h"
 #include "../src/page.h"
-#include "../src/db.h"
+#include "../src/db_local.h"
 #include "../src/env.h"
 
 using namespace hamsterdb;
@@ -270,7 +270,7 @@ struct EnvFixture {
 
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 333, 0, parameters2));
-    REQUIRE((ham_u16_t)64 == ((Database *)db)->get_keysize());
+    REQUIRE((ham_u16_t)64 == ((LocalDatabase *)db)->get_keysize());
     REQUIRE(0 == ham_db_close(db, 0));
     REQUIRE(0 == ham_env_close(env, 0));
   }

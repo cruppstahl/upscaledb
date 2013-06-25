@@ -16,7 +16,7 @@
 
 #include "blob_manager.h"
 #include "btree.h"
-#include "db.h"
+#include "db_local.h"
 #include "env.h"
 #include "error.h"
 #include "extkeys.h"
@@ -29,7 +29,7 @@ namespace hamsterdb {
 size_t PBtreeKey::ms_sizeof_overhead = OFFSETOF(PBtreeKey, _key);
 
 ham_u64_t
-PBtreeKey::get_extended_rid(Database *db)
+PBtreeKey::get_extended_rid(LocalDatabase *db)
 {
   ham_u64_t rid;
   memcpy(&rid, get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
@@ -38,7 +38,7 @@ PBtreeKey::get_extended_rid(Database *db)
 }
 
 void
-PBtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
+PBtreeKey::set_extended_rid(LocalDatabase *db, ham_u64_t rid)
 {
   rid = ham_h2db_offset(rid);
   memcpy(get_key() + (db->get_keysize() - sizeof(ham_u64_t)),
@@ -46,7 +46,7 @@ PBtreeKey::set_extended_rid(Database *db, ham_u64_t rid)
 }
 
 ham_status_t
-PBtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
+PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
             ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
   ham_status_t st;
@@ -210,7 +210,7 @@ PBtreeKey::set_record(Database *db, Transaction *txn, ham_record_t *record,
 }
 
 ham_status_t
-PBtreeKey::erase_record(Database *db, Transaction *txn, ham_size_t dupe_id,
+PBtreeKey::erase_record(LocalDatabase *db, Transaction *txn, ham_size_t dupe_id,
         bool erase_all_duplicates)
 {
   ham_status_t st;

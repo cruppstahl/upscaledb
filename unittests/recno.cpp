@@ -17,6 +17,7 @@
 #include "os.hpp"
 
 #include "../src/btree.h"
+#include "../src/page_manager.h"
 
 using namespace hamsterdb;
 
@@ -56,7 +57,7 @@ struct RecordNumberFixture {
 
   void createCloseOpenCloseTest() {
     reopen();
-    REQUIRE((((Database *)m_db)->get_rt_flags() & HAM_RECORD_NUMBER));
+    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_RECORD_NUMBER));
   }
 
   void createInsertCloseReopenTest() {
@@ -484,9 +485,11 @@ struct RecordNumberFixture {
       REQUIRE(recno == (ham_u64_t)i + 1);
     }
 
-    BtreeIndex *be = (BtreeIndex *)((Database *)m_db)->get_btree();
+    LocalDatabase *db = (LocalDatabase *)m_db;
+    BtreeIndex *be = db->get_btree_index();
     Page *page;
-    REQUIRE(0 == ((Database *)m_db)->fetch_page(&page, be->get_rootpage()));
+    PageManager *pm = db->get_env()->get_page_manager();
+    REQUIRE(0 == pm->fetch_page(&page, db, be->get_rootpage()));
     REQUIRE(page);
     REQUIRE(0 == page->uncouple_all_cursors());
 

@@ -79,7 +79,7 @@ struct DeviceFixture
 
   void allocFreeTest() {
     Page page((Environment *)m_env);
-    page.set_db((Database *)m_db);
+    page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
     REQUIRE(0 == m_dev->alloc_page(&page));
@@ -103,7 +103,7 @@ struct DeviceFixture
     REQUIRE(0 == m_dev->truncate(ps * 10));
     for (i = 0; i < 10; i++) {
       memset(&pages[i], 0, sizeof(Page));
-      pages[i].set_db((Database *)m_db);
+      pages[i].set_db((LocalDatabase *)m_db);
       pages[i].set_self(i * ps);
       REQUIRE(0 == m_dev->read_page(&pages[i]));
     }

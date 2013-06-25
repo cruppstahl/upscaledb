@@ -17,7 +17,7 @@
 
 #include "globals.h"
 
-#include "../src/db.h"
+#include "../src/db_local.h"
 #include "../src/page.h"
 #include "../src/util.h"
 #include "../src/btree.h"
@@ -39,8 +39,8 @@ struct MiscFixture {
     REQUIRE(0 ==
           ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    Database *db = (Database *)m_db;
-    m_btree = (BtreeIndex *)db->get_btree();
+    LocalDatabase *db = (LocalDatabase *)m_db;
+    m_btree = db->get_btree_index();
   }
 
   ~MiscFixture() {
@@ -56,7 +56,7 @@ struct MiscFixture {
     src.flags = 0;
     src._flags = 0;
 
-    REQUIRE(0 == ((Database *)m_db)->copy_key(&src, &dest));
+    REQUIRE(0 == ((LocalDatabase *)m_db)->copy_key(&src, &dest));
     REQUIRE(dest.size == src.size);
     REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -72,7 +72,7 @@ struct MiscFixture {
     src.flags = 0;
     src._flags = 0;
 
-    REQUIRE(0 == ((Database *)m_db)->copy_key(&src, &dest));
+    REQUIRE(0 == ((LocalDatabase *)m_db)->copy_key(&src, &dest));
     REQUIRE(dest.size == src.size);
     REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src.data));
 

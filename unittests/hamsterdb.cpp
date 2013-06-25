@@ -25,7 +25,7 @@
 #include "../src/cursor.h"
 #include "../src/cache.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 static int HAM_CALLCONV
 my_compare_func(ham_db_t *db,
@@ -1222,7 +1222,7 @@ struct HamsterdbFixture {
     ham_compare_func_t f = my_compare_func;
 
     REQUIRE(0 == ham_db_set_compare_func(m_db, f));
-    REQUIRE(f == ((Database *)m_db)->get_compare_func());
+    REQUIRE(f == ((LocalDatabase *)m_db)->get_compare_func());
   }
 
   void prefixCompareTest() {
@@ -1230,10 +1230,10 @@ struct HamsterdbFixture {
     ham_prefix_compare_func_t n = (ham_prefix_compare_func_t)0;
 
     REQUIRE(0 == ham_db_set_prefix_compare_func(m_db, f));
-    REQUIRE(f == ((Database *)m_db)->get_prefix_compare_func());
+    REQUIRE(f == ((LocalDatabase *)m_db)->m_prefix_func);
 
     REQUIRE(0 == ham_db_set_prefix_compare_func(m_db, 0));
-    REQUIRE(n == ((Database *)m_db)->get_prefix_compare_func());
+    REQUIRE(n == ((LocalDatabase *)m_db)->m_prefix_func);
   }
 
   void cursorCreateTest() {
@@ -2282,3 +2282,4 @@ TEST_CASE("Hamsterdb/overwriteLogDirectoryTest", "")
   f.overwriteLogDirectoryTest();
 }
 
+} // namespace hamsterdb

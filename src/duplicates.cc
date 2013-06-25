@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "blob_manager_disk.h"
-#include "db.h"
+#include "db_local.h"
 #include "device.h"
 #include "env.h"
 #include "error.h"
@@ -78,9 +78,9 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
 }
 
 ham_status_t
-DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
-                ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                PDupeEntry *entries, ham_size_t num_entries,
+DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
+                ham_u64_t table_id, ham_record_t *record, ham_size_t position,
+                ham_u32_t flags, PDupeEntry *entries, ham_size_t num_entries,
                 ham_u64_t *rid, ham_size_t *new_position)
 {
   ham_status_t st = 0;
@@ -147,12 +147,12 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
   }
 
   /* insert sorted, unsorted or overwrite the entry at the requested position */
-  if (flags&HAM_OVERWRITE) {
-    PDupeEntry *e=dupe_table_get_entry(table, position);
+  if (flags & HAM_OVERWRITE) {
+    PDupeEntry *e = dupe_table_get_entry(table, position);
 
-    if (!(dupe_entry_get_flags(e)&(PBtreeKey::KEY_BLOB_SIZE_SMALL
-                                |PBtreeKey::KEY_BLOB_SIZE_TINY
-                                |PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
+    if (!(dupe_entry_get_flags(e) & (PBtreeKey::KEY_BLOB_SIZE_SMALL
+                                | PBtreeKey::KEY_BLOB_SIZE_TINY
+                                | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
       (void)m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
     }
 
@@ -222,7 +222,7 @@ DuplicateManager::insert(Database *db, Transaction *txn, ham_u64_t table_id,
 }
 
 ham_status_t
-DuplicateManager::erase(Database *db, Transaction *txn, ham_u64_t table_id,
+DuplicateManager::erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
             ham_size_t position, bool erase_all_duplicates,
             ham_u64_t *new_table_id)
 {

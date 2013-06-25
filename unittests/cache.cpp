@@ -44,10 +44,14 @@ struct CacheFixture {
     if (m_env)
       REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
+
+  ham_status_t alloc_page(Page **p) {
+    return ((LocalEnvironment *)m_env)->get_page_manager()->alloc_page(p,
+           (LocalDatabase *)m_db, 0, 0);
+  }
 };
 
-TEST_CASE("CacheTest/newDelete",
-           "Tests the Cache")
+TEST_CASE("Cache/newDelete", "Tests the Cache")
 {
   CacheFixture f;
   Cache *cache = new Cache((Environment *)f.m_env, 15);
@@ -55,8 +59,7 @@ TEST_CASE("CacheTest/newDelete",
   delete cache;
 }
 
-TEST_CASE("CacheTest/putGet",
-           "Tests the Cache")
+TEST_CASE("Cache/putGet", "Tests the Cache")
 {
   CacheFixture f;
   Page *page;
@@ -74,8 +77,7 @@ TEST_CASE("CacheTest/putGet",
   delete page;
 }
 
-TEST_CASE("CacheTest/putGetRemoveGet",
-           "Tests the Cache")
+TEST_CASE("Cache/putGetRemoveGet", "Tests the Cache")
 {
   CacheFixture f;
   Page *page;
@@ -95,8 +97,7 @@ TEST_CASE("CacheTest/putGetRemoveGet",
   delete page;
 }
 
-TEST_CASE("CacheTest/putGetReplaceGet",
-           "Tests the Cache")
+TEST_CASE("Cache/putGetReplaceGet", "Tests the Cache")
 {
   CacheFixture f;
   Page *page1, *page2;
@@ -124,8 +125,7 @@ TEST_CASE("CacheTest/putGetReplaceGet",
   delete page2;
 }
 
-TEST_CASE("CacheTest/multiplePut",
-           "Tests the Cache")
+TEST_CASE("Cache/multiplePut", "Tests the Cache")
 {
   CacheFixture f;
   Page *page[20];
@@ -152,8 +152,7 @@ TEST_CASE("CacheTest/multiplePut",
   delete cache;
 }
 
-TEST_CASE("CacheTest/negativeGet",
-           "Tests the Cache")
+TEST_CASE("Cache/negativeGet", "Tests the Cache")
 {
   CacheFixture f;
   Cache *cache = new Cache((Environment *)f.m_env, 15);
@@ -162,8 +161,7 @@ TEST_CASE("CacheTest/negativeGet",
   delete cache;
 }
 
-TEST_CASE("CacheTest/overflowTest",
-           "Tests the Cache")
+TEST_CASE("Cache/overflowTest", "Tests the Cache")
 {
   CacheFixture f;
   Cache *cache = new Cache((Environment *)f.m_env, 15 * HAM_DEFAULT_PAGESIZE);
@@ -215,8 +213,7 @@ TEST_CASE("CacheTest/overflowTest",
   delete cache;
 }
 
-TEST_CASE("CacheTest/strict",
-           "Tests the Cache")
+TEST_CASE("Cache/strict", "Tests the Cache")
 {
   CacheFixture f;
   f.teardown();
@@ -241,16 +238,14 @@ TEST_CASE("CacheTest/strict",
   unsigned int max_pages = HAM_DEFAULT_CACHESIZE / (1024 * 128);
   unsigned int i;
   for (i = 0; i < max_pages; i++)
-    REQUIRE(0 == ((Database *)f.m_db)->alloc_page(&p[i], 0, 0));
+    REQUIRE(0 == f.alloc_page(&p[i]));
 
-  REQUIRE(HAM_CACHE_FULL ==
-      ((Database *)f.m_db)->alloc_page(&p[i], 0, 0));
+  REQUIRE(HAM_CACHE_FULL == f.alloc_page(&p[i]));
   REQUIRE(0 == ((Environment *)f.m_env)->get_page_manager()->purge_cache());
-  REQUIRE(0 == ((Database *)f.m_db)->alloc_page(&p[i], 0, 0));
+  REQUIRE(0 == f.alloc_page(&p[i]));
 }
 
-TEST_CASE("CacheTest/setSizeEnvCreate",
-           "Tests the Cache")
+TEST_CASE("Cache/setSizeEnvCreate", "Tests the Cache")
 {
   CacheFixture f;
   f.teardown();
@@ -272,8 +267,7 @@ TEST_CASE("CacheTest/setSizeEnvCreate",
   REQUIRE(102400ull == cache->get_capacity());
 }
 
-TEST_CASE("CacheTest/setSizeEnvOpen",
-           "Tests the Cache")
+TEST_CASE("Cache/setSizeEnvOpen", "Tests the Cache")
 {
   CacheFixture f;
   f.teardown();
@@ -291,8 +285,7 @@ TEST_CASE("CacheTest/setSizeEnvOpen",
   REQUIRE(102400ull == cache->get_capacity());
 }
 
-TEST_CASE("CacheTest/bigSize",
-           "Tests the Cache")
+TEST_CASE("Cache/bigSize", "Tests the Cache")
 {
   CacheFixture f;
   ham_u64_t size = 1024ull * 1024ull * 1024ull * 16ull;

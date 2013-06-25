@@ -154,8 +154,8 @@ BtreeIndex::create(ham_u16_t keysize)
 
   /* allocate a new root page */
   Page *root = 0;
-  ham_status_t st = m_db->alloc_page(&root, Page::TYPE_B_ROOT,
-          PageManager::kIgnoreFreelist);
+  ham_status_t st = m_db->get_env()->get_page_manager()->alloc_page(&root, m_db,
+                  Page::TYPE_B_ROOT, PageManager::kIgnoreFreelist);
   if (st)
     return (st);
 
@@ -288,12 +288,14 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **page_ref,
     *idxptr = slot;
 
   if (slot == -1)
-    return (m_db->fetch_page(page_ref, node->get_ptr_left()));
+    return (m_db->get_env()->get_page_manager()->fetch_page(page_ref,
+                            m_db, node->get_ptr_left()));
   else {
     PBtreeKey *bte = node->get_key(m_db, slot);
     ham_assert(bte->get_flags() == 0
                 || bte->get_flags() == PBtreeKey::KEY_IS_EXTENDED);
-    return (m_db->fetch_page(page_ref, bte->get_ptr()));
+    return (m_db->get_env()->get_page_manager()->fetch_page(page_ref,
+                            m_db, bte->get_ptr()));
   }
 }
 

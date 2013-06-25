@@ -18,7 +18,7 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/db.h"
+#include "../src/db_local.h"
 #include "../src/txn.h"
 #include "../src/page.h"
 #include "../src/error.h"
@@ -30,7 +30,7 @@ using namespace hamsterdb;
 struct TxnFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  Database *m_dbp;
+  LocalDatabase *m_dbp;
 
   TxnFixture() {
     REQUIRE(0 ==
@@ -38,7 +38,7 @@ struct TxnFixture {
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
-    m_dbp = (Database *)m_db;
+    m_dbp = (LocalDatabase *)m_db;
   }
 
   ~TxnFixture() {
@@ -148,7 +148,7 @@ struct TxnFixture {
     TransactionIndex *tree;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->get_optree();
+    tree = m_dbp->get_txn_index();
     REQUIRE(tree != (TransactionIndex *)0);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -159,9 +159,9 @@ struct TxnFixture {
     TransactionIndex *tree, *tree2;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->get_optree();
+    tree = m_dbp->get_txn_index();
     REQUIRE(tree);
-    tree2 = m_dbp->get_optree();
+    tree2 = m_dbp->get_txn_index();
     REQUIRE(tree == tree2);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -176,9 +176,9 @@ struct TxnFixture {
     REQUIRE(0 == ham_env_create_db(m_env, &db3, 15, 0, 0));
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    tree1 = m_dbp->get_optree();
-    tree2 = ((Database *)db2)->get_optree();
-    tree3 = ((Database *)db3)->get_optree();
+    tree1 = m_dbp->get_txn_index();
+    tree2 = ((LocalDatabase *)db2)->get_txn_index();
+    tree3 = ((LocalDatabase *)db3)->get_txn_index();
     REQUIRE(tree1 != 0);
     REQUIRE(tree2 != 0);
     REQUIRE(tree3 != 0);
@@ -204,9 +204,9 @@ struct TxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key1);
     REQUIRE(node);
-    node2 = m_dbp->get_optree()->get(&key1, 0);
+    node2 = m_dbp->get_txn_index()->get(&key1, 0);
     REQUIRE(node == node2);
-    node2 = m_dbp->get_optree()->get(&key2, 0);
+    node2 = m_dbp->get_txn_index()->get(&key2, 0);
     REQUIRE((TransactionNode *)NULL == node2);
     node2 = new TransactionNode(m_dbp, &key2);
     REQUIRE(node != node2);

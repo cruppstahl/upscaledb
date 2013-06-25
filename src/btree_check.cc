@@ -27,6 +27,7 @@
 #include "mem.h"
 #include "page.h"
 #include "btree_node.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -45,7 +46,8 @@ class BtreeCheckAction
       ham_assert(m_btree->get_rootpage() != 0);
 
       /* get the root page of the tree */
-      ham_status_t st = db->fetch_page(&page, m_btree->get_rootpage());
+      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
+                            db, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -62,7 +64,8 @@ class BtreeCheckAction
 
         /* follow the pointer to the smallest child */
         if (ptr_left) {
-          st = db->fetch_page(&page, ptr_left);
+          st = db->get_env()->get_page_manager()->fetch_page(&page,
+                            db, ptr_left);
           if (st)
             return (st);
         }
@@ -109,7 +112,8 @@ class BtreeCheckAction
         /* get the right sibling */
         PBtreeNode *node = PBtreeNode::from_page(page);
         if (node->get_right()) {
-          st = db->fetch_page(&child, node->get_right());
+          st = db->get_env()->get_page_manager()->fetch_page(&child,
+                            db, node->get_right());
           if (st)
             return (st);
         }

@@ -24,12 +24,13 @@
 #include "mem.h"
 #include "os.h"
 #include "page.h"
+#include "btree.h"
 
 namespace hamsterdb {
 
 int Page::sizeof_persistent_header = (OFFSETOF(PageData, _s._payload));
 
-Page::Page(Environment *env, Database *db)
+Page::Page(Environment *env, LocalDatabase *db)
   : m_self(0), m_db(db), m_device(0), m_flags(0), m_dirty(false),
     m_cursors(0), m_pers(0)
 {
@@ -120,9 +121,9 @@ Page::uncouple_all_cursors(ham_size_t start)
   Cursor *c = get_cursors();
 
   if (c) {
-    Database *db = c->get_db();
+    LocalDatabase *db = c->get_db();
     if (db) {
-      BtreeIndex *be = db->get_btree();
+      BtreeIndex *be = db->get_btree_index();
       if (be)
         return (be->uncouple_all_cursors(this, start));
     }

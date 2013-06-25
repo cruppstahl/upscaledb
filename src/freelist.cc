@@ -2777,7 +2777,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
 
       /* allocate a new page, fix the linked list */
       st = m_env->get_page_manager()->alloc_page(&page, 0, Page::TYPE_FREELIST,
-                    PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO);
+                    PageManager::kIgnoreFreelist | PageManager::kClearWithZero);
       if (!page) {
         ham_assert(st != 0);
         return (st);

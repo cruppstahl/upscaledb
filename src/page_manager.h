@@ -20,7 +20,7 @@
 #include "error.h"
 #include "freelist.h"
 #include "env.h"
-#include "db.h"
+#include "db_local.h"
 
 namespace hamsterdb {
 
@@ -60,7 +60,7 @@ class PageManager {
     // @param address The page's address
     // @param only_from_cache If false (and a cache miss) then the page
     //              is fetched from disk
-    ham_status_t fetch_page(Page **page, Database *db, ham_u64_t address,
+    ham_status_t fetch_page(Page **page, LocalDatabase *db, ham_u64_t address,
                     bool only_from_cache = false);
 
     // Allocates a new page
@@ -69,7 +69,7 @@ class PageManager {
     // @param db The Database which allocates this page
     // @param page_type One of Page::TYPE_* in page.h
     // @param flags Either kIgnoreFreelist or kClearWithZero
-    ham_status_t alloc_page(Page **page, Database *db, ham_u32_t page_type,
+    ham_status_t alloc_page(Page **page, LocalDatabase *db, ham_u32_t page_type,
                     ham_u32_t flags);
 
     // Flushes a Page to disk

@@ -27,6 +27,7 @@
 #include "mem.h"
 #include "page.h"
 #include "btree_node.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -42,11 +43,12 @@ class BtreeEnumAction
     ham_status_t run() {
       Page *page;
       ham_u32_t level = 0;
-      Database *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->get_db();
       ham_status_t cb_st = HAM_ENUM_CONTINUE;
 
       /* get the root page of the tree */
-      ham_status_t st = db->fetch_page(&page, m_btree->get_rootpage());
+      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
+                      db, m_btree->get_rootpage());
       if (st)
         return (st);
 
@@ -69,7 +71,8 @@ class BtreeEnumAction
 
         /* follow the pointer to the smallest child */
         if (ptr_left) {
-          st = db->fetch_page(&page, ptr_left);
+          st = db->get_env()->get_page_manager()->fetch_page(&page,
+                      db, ptr_left);
           if (st)
             return (st);
         }
@@ -100,7 +103,8 @@ class BtreeEnumAction
         /* get the right sibling */
         PBtreeNode *node = PBtreeNode::from_page(page);
         if (node->get_right()) {
-          st = m_btree->get_db()->fetch_page(&page, node->get_right());
+          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&page,
+                      page->get_db(), node->get_right());
           if (st)
             return (st);
         }
@@ -112,7 +116,7 @@ class BtreeEnumAction
 
     /** enumerate a single page */
     ham_status_t enumerate_page(Page *page, ham_u32_t level) {
-      Database *db = page->get_db();
+      LocalDatabase *db = page->get_db();
       PBtreeNode *node = PBtreeNode::from_page(page);
       ham_status_t cb_st;
       ham_status_t cb_st2;

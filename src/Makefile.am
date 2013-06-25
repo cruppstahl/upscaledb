@@ -43,6 +43,10 @@ libhamsterdb_la_SOURCES = \
 	cursor.h \
 	db.cc \
 	db.h \
+	db_local.cc \
+	db_local.h \
+	db_remote.cc \
+	db_remote.h \
 	device.h \
 	device_disk.h \
 	device_inmem.h \

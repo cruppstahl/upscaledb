@@ -29,6 +29,7 @@
 #include "btree_stats.h"
 #include "util.h"
 #include "btree_node.h"
+#include "page_manager.h"
 
 namespace hamsterdb {
 
@@ -61,7 +62,8 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        st = db->fetch_page(&page, hints.leaf_page_addr, true);
+        st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, hints.leaf_page_addr, true);
         if (st == 0 && page) {
           node = PBtreeNode::from_page(page);
           ham_assert(node->is_leaf());
@@ -90,7 +92,8 @@ class BtreeFindAction
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
-        st = db->fetch_page(&page, m_btree->get_rootpage());
+        st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, m_btree->get_rootpage());
         if (st)
           return (st);
 
@@ -158,7 +161,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->fetch_page(&page, node->get_left());
+              st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, node->get_left());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);
@@ -179,7 +183,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->fetch_page(&page, node->get_right());
+              st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, node->get_right());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);
@@ -231,7 +236,8 @@ class BtreeFindAction
                       return (HAM_KEY_NOT_FOUND);
                     }
 
-                    st = db->fetch_page(&page, node->get_right());
+                    st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, node->get_right());
                     if (st)
                       return (st);
                     node = PBtreeNode::from_page(page);
@@ -246,7 +252,8 @@ class BtreeFindAction
                 }
               }
               else {
-                st = db->fetch_page(&page, node->get_left());
+                st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, node->get_left());
                 if (st)
                   return (st);
                 node = PBtreeNode::from_page(page);
@@ -268,7 +275,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->fetch_page(&page, node->get_right());
+              st = db->get_env()->get_page_manager()->fetch_page(&page,
+                        db, node->get_right());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);

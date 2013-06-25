@@ -19,7 +19,6 @@
 
 #include <string>
 
-#include "internal_fwd_decl.h"
 #include "rb.h"
 #include "util.h"
 #include "error.h"
@@ -40,6 +39,9 @@ namespace hamsterdb {
 class Transaction;
 class TransactionNode;
 class TransactionIndex;
+class TransactionCursor;
+class LocalDatabase;
+class Environment;
 
 
 /**
@@ -225,7 +227,8 @@ class TransactionNode
 {
   public:
     /** Constructor; initializes the object */
-    TransactionNode(Database *db, ham_key_t *key, bool dont_insert = false);
+    TransactionNode(LocalDatabase *db, ham_key_t *key,
+                    bool dont_insert = false);
 
     /** Default constructor; only required for rb.h */
     TransactionNode();
@@ -234,7 +237,7 @@ class TransactionNode
     ~TransactionNode();
 
     /** get the database */
-    Database *get_db() {
+    LocalDatabase *get_db() {
       return (m_db);
     }
 
@@ -284,7 +287,7 @@ class TransactionNode
 
   private:
     /** the database - need this pointer for the compare function */
-    Database *m_db;
+    LocalDatabase *m_db;
 
     /** this is the key which is modified */
     ham_key_t m_key;
@@ -311,7 +314,7 @@ class TransactionIndex
 {
   public:
     /** constructor */
-    TransactionIndex(Database *db);
+    TransactionIndex(LocalDatabase *db);
 
     /**
      * get an opnode for an optree; if a node with this
@@ -338,7 +341,7 @@ class TransactionIndex
 
  // private:
     /* the Database for all operations in this tree */
-    Database *m_db;
+    LocalDatabase *m_db;
 
     /* stuff for rb.h */
     TransactionNode *rbt_root;

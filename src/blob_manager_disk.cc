@@ -26,7 +26,7 @@ using namespace hamsterdb;
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_u64_t) + sizeof(PBlobHeader) + 1)
 
 ham_status_t
-DiskBlobManager::write_chunks(Database *db, Page *page, ham_u64_t addr,
+DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
         bool allocated, bool freshly_created, ham_u8_t **chunk_data,
         ham_size_t *chunk_size, ham_size_t chunks)
 {
@@ -104,7 +104,7 @@ DiskBlobManager::write_chunks(Database *db, Page *page, ham_u64_t addr,
 
 ham_status_t
 DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
-        Database *db, ham_u8_t *data, ham_size_t size)
+        LocalDatabase *db, ham_u8_t *data, ham_size_t size)
 {
   ham_status_t st;
   ham_size_t page_size = m_env->get_pagesize();
@@ -167,8 +167,8 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
 }
 
 ham_status_t
-DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
-        ham_u64_t *blobid)
+DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
+                ham_u32_t flags, ham_u64_t *blobid)
 {
   m_blob_total_allocated++;
 
@@ -210,7 +210,8 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
     // if the blob is small AND if logging is disabled: load the page
     // through the cache
     if (blob_from_cache(alloc_size)) {
-      st = db->alloc_page(&page, Page::TYPE_BLOB, PAGE_IGNORE_FREELIST);
+      st = m_env->get_page_manager()->alloc_page(&page, db, Page::TYPE_BLOB,
+                      PageManager::kIgnoreFreelist);
       if (st)
           return (st);
       // blob pages don't have a page header
@@ -390,7 +391,7 @@ DiskBlobManager::allocate(Database *db, ham_record_t *record, ham_u32_t flags,
 }
 
 ham_status_t
-DiskBlobManager::read(Database *db, ham_u64_t blobid, ham_record_t *record,
+DiskBlobManager::read(LocalDatabase *db, ham_u64_t blobid, ham_record_t *record,
         ham_u32_t flags, ByteArray *arena)
 {
   m_blob_total_read++;
@@ -455,7 +456,8 @@ DiskBlobManager::read(Database *db, ham_u64_t blobid, ham_record_t *record,
 }
 
 ham_status_t
-DiskBlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
+DiskBlobManager::get_datasize(LocalDatabase *db, ham_u64_t blobid,
+                ham_u64_t *size)
 {
   *size = 0;
 
@@ -476,7 +478,7 @@ DiskBlobManager::get_datasize(Database *db, ham_u64_t blobid, ham_u64_t *size)
 }
 
 ham_status_t
-DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
+DiskBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                 ham_record_t *record, ham_u32_t flags, ham_u64_t *new_blobid)
 {
   ham_status_t st;
@@ -590,7 +592,7 @@ DiskBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
 }
 
 ham_status_t
-DiskBlobManager::free(Database *db, ham_u64_t blobid, Page *page,
+DiskBlobManager::free(LocalDatabase *db, ham_u64_t blobid, Page *page,
                 ham_u32_t flags)
 {
   ham_assert(blobid % Freelist::kBlobAlignment == 0);

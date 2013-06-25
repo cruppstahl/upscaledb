@@ -57,7 +57,7 @@ struct ApproxFixture {
     r.data = k.data;
     r.size = k.size;
 
-    BtreeIndex *be = ((Database *)m_db)->get_btree();
+    BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     return (be->insert((Transaction *)m_txn, &k, &r, 0));
   }
 

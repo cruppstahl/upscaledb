@@ -19,7 +19,7 @@ using namespace hamsterdb;
 
 
 ham_status_t
-InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
+InMemoryBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
         ham_u32_t flags, ham_u64_t *blobid)
 {
   m_blob_total_allocated++;
@@ -68,7 +68,7 @@ InMemoryBlobManager::allocate(Database *db, ham_record_t *record,
 }
 
 ham_status_t
-InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
+InMemoryBlobManager::read(LocalDatabase *db, ham_u64_t blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ByteArray *arena)
 {
@@ -129,7 +129,7 @@ InMemoryBlobManager::read(Database *db, ham_u64_t blobid,
 }
 
 ham_status_t
-InMemoryBlobManager::overwrite(Database *db, ham_u64_t old_blobid,
+InMemoryBlobManager::overwrite(LocalDatabase *db, ham_u64_t old_blobid,
                     ham_record_t *record, ham_u32_t flags,
                     ham_u64_t *new_blobid)
 {

@@ -15,7 +15,7 @@
 
 #include "globals.h"
 
-#include "../src/db.h"
+#include "../src/db_local.h"
 #include "../src/extkeys.h"
 #include "../src/env.h"
 
@@ -29,9 +29,9 @@ struct ExtendedKeyFixture {
     REQUIRE(0 == ham_env_create(&m_env, 0, HAM_IN_MEMORY, 0, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    ExtKeyCache *c = new ExtKeyCache((Database *)m_db);
+    ExtKeyCache *c = new ExtKeyCache((LocalDatabase *)m_db);
     REQUIRE(c);
-    ((Database *)m_db)->set_extkey_cache(c);
+    ((LocalDatabase *)m_db)->set_extkey_cache(c);
   }
 
   ~ExtendedKeyFixture() {
@@ -42,7 +42,7 @@ struct ExtendedKeyFixture {
 TEST_CASE("ExtKey/insertFetchRemove", "")
 {
   ExtendedKeyFixture f;
-  ExtKeyCache *c = ((Database *)f.m_db)->get_extkey_cache();
+  ExtKeyCache *c = ((LocalDatabase *)f.m_db)->get_extkey_cache();
   ham_u8_t *pbuffer = 0, buffer[12] = {0};
   ham_size_t size = 0;
 
@@ -58,7 +58,7 @@ TEST_CASE("ExtKey/insertFetchRemove", "")
 TEST_CASE("ExtKey/negativeFetch", "")
 {
   ExtendedKeyFixture f;
-  ExtKeyCache *c = ((Database *)f.m_db)->get_extkey_cache();
+  ExtKeyCache *c = ((LocalDatabase *)f.m_db)->get_extkey_cache();
   ham_u8_t *pbuffer = 0, buffer[12] = {0};
   ham_size_t size = 0;
 
@@ -76,7 +76,7 @@ TEST_CASE("ExtKey/negativeFetch", "")
 TEST_CASE("ExtKey/bigCache", "")
 {
   ExtendedKeyFixture f;
-  ExtKeyCache *c = ((Database *)f.m_db)->get_extkey_cache();
+  ExtKeyCache *c = ((LocalDatabase *)f.m_db)->get_extkey_cache();
   ham_u8_t *pbuffer = 0, buffer[12] = {0};
   ham_size_t size = 0;
 
@@ -98,7 +98,7 @@ TEST_CASE("ExtKey/bigCache", "")
 TEST_CASE("ExtKey/purge", "")
 {
   ExtendedKeyFixture f;
-  ExtKeyCache *c = ((Database *)f.m_db)->get_extkey_cache();
+  ExtKeyCache *c = ((LocalDatabase *)f.m_db)->get_extkey_cache();
   ham_u8_t *pbuffer, buffer[12] = {0};
   ham_size_t size;
 

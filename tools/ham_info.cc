@@ -105,7 +105,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
       max_key_size = 0, min_rec_size = 0xffffffff, max_rec_size = 0,
       total_key_size = 0, total_rec_size = 0;
 
-  be = ((hamsterdb::Database *)db)->get_btree();
+  be = ((hamsterdb::LocalDatabase *)db)->get_btree_index();
 
   memset(&key, 0, sizeof(key));
   memset(&rec, 0, sizeof(rec));
@@ -118,7 +118,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    address of root page:   %llu\n",
         (long long unsigned int)be->get_rootpage());
     printf("    flags:          0x%04x\n",
-        ((hamsterdb::Database *)db)->get_rt_flags());
+        ((hamsterdb::LocalDatabase *)db)->get_rt_flags());
   }
 
   if (!full)
@@ -150,7 +150,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     if (rec.size > max_rec_size)
       max_rec_size = rec.size;
 
-    if (key.size > ((hamsterdb::Database *)db)->get_keysize())
+    if (key.size > ((hamsterdb::LocalDatabase *)db)->get_keysize())
       ext_keys++;
 
     total_key_size += key.size;

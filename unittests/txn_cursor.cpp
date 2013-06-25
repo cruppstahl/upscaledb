@@ -64,7 +64,7 @@ struct TxnCursorFixture {
     key.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn,
             0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op != 0);
@@ -124,7 +124,7 @@ struct TxnCursorFixture {
     key.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn,
             0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op != 0);
@@ -155,7 +155,7 @@ struct TxnCursorFixture {
     k.flags = HAM_KEY_USER_ALLOC;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn,
             0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op != 0);
@@ -180,7 +180,7 @@ struct TxnCursorFixture {
     ham_record_t record = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn,
             0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op!=0);
@@ -207,7 +207,7 @@ struct TxnCursorFixture {
     key.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn, 0,
             TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op != 0);
@@ -231,7 +231,7 @@ struct TxnCursorFixture {
     record.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn, 0,
             TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op!=0);
@@ -262,7 +262,7 @@ struct TxnCursorFixture {
     r.flags = HAM_RECORD_USER_ALLOC;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn, 0,
             TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op!=0);
@@ -287,7 +287,7 @@ struct TxnCursorFixture {
     ham_record_t r = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn, 0,
             TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op!=0);
@@ -312,7 +312,7 @@ struct TxnCursorFixture {
     ham_record_t r = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((Database *)m_db, &key);
+    node = new TransactionNode((LocalDatabase *)m_db, &key);
     op = node->append((Transaction *)txn, 0,
             TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
     REQUIRE(op!=0);

@@ -148,14 +148,14 @@ ham_status_t
 TransactionCursor::move(ham_u32_t flags)
 {
   ham_status_t st;
-  Database *db = get_db();
+  LocalDatabase *db = get_db();
   TransactionNode *node;
 
   if (flags & HAM_CURSOR_FIRST) {
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db->get_optree()->get_first();
+    node = db->get_txn_index()->get_first();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
@@ -164,7 +164,7 @@ TransactionCursor::move(ham_u32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db->get_optree()->get_last();
+    node = db->get_txn_index()->get_last();
     if (!node)
       return (HAM_KEY_NOT_FOUND);
     return (move_top_in_node(node, 0, false, flags));
@@ -276,9 +276,9 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
   set_to_nil();
 
   /* then lookup the node */
-  Database *db = get_db();
-  if (db->get_optree())
-    node = db->get_optree()->get(key, flags);
+  LocalDatabase *db = get_db();
+  if (db->get_txn_index())
+    node = db->get_txn_index()->get(key, flags);
   if (!node)
     return (HAM_KEY_NOT_FOUND);
 
@@ -308,16 +308,16 @@ TransactionCursor::find(ham_key_t *key, ham_u32_t flags)
 ham_status_t
 TransactionCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
-  Database *db = get_db();
+  LocalDatabase *db = get_db();
   Transaction *txn = get_parent()->get_txn();
 
-  return (((LocalDatabase *)db)->insert_txn(txn, key, record, flags, this));
+  return (db->insert_txn(txn, key, record, flags, this));
 }
 
 ham_status_t
 TransactionCursor::get_key(ham_key_t *key)
 {
-  Database *db = get_db();
+  LocalDatabase *db = get_db();
   Transaction *txn = get_parent()->get_txn();
   ham_key_t *source = 0;
 
@@ -354,7 +354,7 @@ TransactionCursor::get_key(ham_key_t *key)
 ham_status_t
 TransactionCursor::get_record(ham_record_t *record)
 {
-  Database *db = get_db();
+  LocalDatabase *db = get_db();
   ham_record_t *source = 0;
   Transaction *txn = get_parent()->get_txn();
 
@@ -404,7 +404,7 @@ TransactionCursor::erase()
   ham_status_t st;
   TransactionOperation *op;
   TransactionNode *node;
-  Database *db = get_db();
+  LocalDatabase *db = get_db();
   Cursor *parent = get_parent();
   Transaction *txn = parent->get_txn();
 
@@ -433,8 +433,7 @@ TransactionCursor::erase()
       if (st)
         return (st);
     }
-    st = ((LocalDatabase *)db)->erase_txn(txn, btc->get_uncoupled_key(),
-              0, this);
+    st = db->erase_txn(txn, btc->get_uncoupled_key(), 0, this);
     if (st)
       return (st);
   }
@@ -442,8 +441,7 @@ TransactionCursor::erase()
   else {
     op = get_coupled_op();
     node = op->get_node();
-    st = ((LocalDatabase *)db)->erase_txn(txn, node->get_key(),
-        0, this);
+    st = db->erase_txn(txn, node->get_key(), 0, this);
     if (st)
       return (st);
   }
@@ -451,7 +449,7 @@ TransactionCursor::erase()
   return (0);
 }
 
-Database *
+LocalDatabase *
 TransactionCursor::get_db()
 {
   return (m_parent->get_db());

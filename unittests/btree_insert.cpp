@@ -22,6 +22,7 @@
 #include "../src/env.h"
 #include "../src/btree.h"
 #include "../src/btree_node.h"
+#include "../src/page_manager.h"
 
 using namespace hamsterdb;
 
@@ -54,6 +55,12 @@ struct BtreeInsertFixture {
 	  REQUIRE(0 == ham_env_close(m_env, 0));
   }
 
+  ham_status_t fetch_page(Page **page, ham_u64_t address) {
+    LocalDatabase *db = (LocalDatabase *)m_db;
+    PageManager *pm = db->get_env()->get_page_manager();
+    return (pm->fetch_page(page, db, address));
+  }
+
   void defaultPivotTest() {
     ham_key_t key = {};
     ham_record_t rec = {};
@@ -73,20 +80,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
     REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(7 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
     REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(5 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
     REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
@@ -111,20 +115,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
     REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(8 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
     REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(3 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
     REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
@@ -149,20 +150,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 1));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
     REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(8 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 2));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
     REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(3 == node->get_count());
 
-    REQUIRE(0 ==
-        ((Database *)m_db)->fetch_page(&page, m_environ->get_pagesize() * 3));
+    REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
     REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());

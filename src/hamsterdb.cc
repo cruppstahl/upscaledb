@@ -454,11 +454,11 @@ ham_env_create(ham_env_t **henv, const char *filename,
       return (HAM_INV_PARAMETER);
     }
     else if (maxdbs == 0) {
-      if (DB_MAX_INDICES > l)
+      if (Database::kMaxIndices > l)
         maxdbs = (ham_u16_t)l;  /* small page sizes (e.g. 1K) cannot carry 
-                                 * DB_MAX_INDICES databases! */
+                                 * Database::kMaxIndices databases! */
       else
-        maxdbs = DB_MAX_INDICES;
+        maxdbs = Database::kMaxIndices;
     }
   }
 
@@ -939,11 +939,16 @@ ham_db_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
     return (HAM_INV_PARAMETER);
   }
 
+  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
+  if (!ldb) {
+    ham_trace(("operation not possible for remote databases"));
+    return (HAM_INV_PARAMETER); 
+  }
+
   ScopedLock lock(db->get_env()->get_mutex());
 
-  db->set_error(0);
-  db->set_prefix_compare_func(foo);
-  return (db->set_error(0));
+  ldb->set_prefix_compare_func(foo);
+  return (ldb->set_error(HAM_SUCCESS));
 }
 
 ham_status_t HAM_CALLCONV
@@ -955,13 +960,19 @@ ham_db_set_compare_func(ham_db_t *hdb, ham_compare_func_t foo)
     return (HAM_INV_PARAMETER);
   }
 
+  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
+  if (!ldb) {
+    ham_trace(("operation not possible for remote databases"));
+    return (HAM_INV_PARAMETER); 
+  }
+
   ScopedLock lock;
-  if (db->get_env())
-    lock = ScopedLock(db->get_env()->get_mutex());
+  if (ldb->get_env())
+    lock = ScopedLock(ldb->get_env()->get_mutex());
 
   /* set the compare functions */
-  db->set_compare_func(foo);
-  return (db->set_error(HAM_SUCCESS));
+  ldb->set_compare_func(foo);
+  return (ldb->set_error(HAM_SUCCESS));
 }
 
 ham_status_t HAM_CALLCONV
@@ -1090,11 +1101,6 @@ ham_db_insert(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
   if (db->get_rt_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot insert in a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
-  }
-  if ((db->get_rt_flags() & HAM_DISABLE_VAR_KEYLEN) &&
-      (key->size > db->get_keysize())) {
-    ham_trace(("database does not support variable length keys"));
-    return (db->set_error(HAM_INV_KEYSIZE));
   }
   if ((flags & HAM_OVERWRITE) && (flags & HAM_DUPLICATE)) {
     ham_trace(("cannot combine HAM_OVERWRITE and HAM_DUPLICATE"));
@@ -1539,11 +1545,6 @@ ham_cursor_insert(ham_cursor_t *hcursor, ham_key_t *key, ham_record_t *record,
   if (db->get_rt_flags() & HAM_READ_ONLY) {
     ham_trace(("cannot insert to a read-only database"));
     return (db->set_error(HAM_WRITE_PROTECTED));
-  }
-  if ((db->get_rt_flags() & HAM_DISABLE_VAR_KEYLEN) &&
-      (key->size > db->get_keysize())) {
-    ham_trace(("database does not support variable length keys"));
-    return (db->set_error(HAM_INV_KEYSIZE));
   }
   if ((flags & HAM_DUPLICATE) && (flags & HAM_OVERWRITE)) {
     ham_trace(("cannot combine HAM_DUPLICATE and HAM_OVERWRITE"));

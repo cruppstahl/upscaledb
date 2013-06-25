@@ -66,11 +66,14 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o clean up Environment class
-    o split into multiple files
-    o remove the TODOs
-
 o clean up Database class
+    x split into multiple files
+    x remove the TODOs
+    x refactor, reformat if necessary
+    o use boost::intrusive_list for Database::m_cursors
+    o db_local.cc has many static functions; remove them
+
+o clean up Environment class
     o split into multiple files
     o remove the TODOs
 

@@ -19,13 +19,16 @@
 
 #include <string.h>
 
-#include "internal_fwd_decl.h"
-
 #include "endianswap.h"
 #include "error.h"
 #include "mem.h"
 
 namespace hamsterdb {
+
+class Device;
+class Cursor;
+class Environment;
+class LocalDatabase;
 
 #if defined(_MSC_VER)
 #  pragma push_macro("free")
@@ -143,7 +146,7 @@ class Page {
     };
 
     /** default constructor */
-    Page(Environment *env = 0, Database *db = 0);
+    Page(Environment *env = 0, LocalDatabase *db = 0);
 
     /** destructor - asserts that m_pers is NULL! */
     ~Page();
@@ -164,12 +167,12 @@ class Page {
     }
 
     /** the database object which 0wnz this page */
-    Database *get_db() {
+    LocalDatabase *get_db() {
       return (m_db);
     }
 
     /** set the database object which 0wnz this page */
-    void set_db(Database *db) {
+    void set_db(LocalDatabase *db) {
       m_db = db;
     }
 
@@ -341,7 +344,7 @@ class Page {
     ham_u64_t m_self;
 
     /** reference to the database object; can be NULL */
-    Database *m_db;
+    LocalDatabase *m_db;
 
     /** the device of this page */
     Device *m_device;

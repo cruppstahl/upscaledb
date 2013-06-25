@@ -43,7 +43,7 @@ namespace hamsterdb {
 
 typedef struct free_cb_context_t
 {
-  Database *db;
+  LocalDatabase *db;
   bool is_leaf;
 } free_cb_context_t;
 
@@ -223,7 +223,7 @@ Environment::flush_txn(Transaction *txn)
 
   while (op) {
     TransactionNode *node = op->get_node();
-    BtreeIndex *be = node->get_db()->get_btree();
+    BtreeIndex *be = node->get_db()->get_btree_index();
 
     if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
       goto next_op;
@@ -593,7 +593,7 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
 ham_status_t
 LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 {
-  Database *db;
+  LocalDatabase *db;
   ham_status_t st;
   free_cb_context_t context;
   BtreeIndex *be;
@@ -610,7 +610,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
     return (HAM_DATABASE_NOT_FOUND);
 
   /* temporarily load the database */
-  st = open_db(&db, name, 0, 0);
+  st = open_db((Database **)&db, name, 0, 0);
   if (st)
     return (st);
 
@@ -630,7 +630,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
    * cached, delete them from the cache
    */
   context.db = db;
-  be = db->get_btree();
+  be = db->get_btree_index();
 
   st = be->enumerate(__free_inmemory_blobs_cb, &context);
   if (st) {
@@ -647,7 +647,7 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
       st = get_changeset().flush(lsn);
   }
 
-  ham_u32_t descriptor = db->get_btree()->get_descriptor_index();
+  ham_u32_t descriptor = db->get_btree_index()->get_descriptor_index();
 
   /* clean up and return */
   (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
@@ -985,8 +985,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 }
 
 ham_status_t
-LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname, ham_u32_t flags,
-    const ham_parameter_t *param)
+LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
+                ham_u32_t flags, const ham_parameter_t *param)
 {
   ham_u16_t dbi;
 

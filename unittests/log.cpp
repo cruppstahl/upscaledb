@@ -371,6 +371,11 @@ struct LogHighLevelFixture {
       REQUIRE(0 == ham_env_close(m_henv, HAM_AUTO_CLEANUP));
   }
 
+  ham_status_t fetch_page(Page **page, LocalDatabase *db, ham_u64_t address) {
+    PageManager *pm = db->get_env()->get_page_manager();
+    return (pm->fetch_page(page, db, address));
+  }
+
   void createCloseTest() {
     REQUIRE(m_env->get_log());
   }
@@ -582,13 +587,13 @@ struct LogHighLevelFixture {
 
   void recoverAllocatePageTest() {
 #ifndef WIN32
-    Database *db = (Database *)m_db;
+    LocalDatabase *db = (LocalDatabase *)m_db;
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
     ham_size_t ps = m_env->get_pagesize();
     Page *page;
 
-    REQUIRE(0 ==
-        db->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
+    REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
+                0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     REQUIRE((ham_u64_t)(ps * 2) == page->get_self());
     for (int i = 0; i < 200; i++)
@@ -615,9 +620,9 @@ struct LogHighLevelFixture {
         ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    db = (Database *)m_db;
+    db = (LocalDatabase *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
-    REQUIRE(0 == db->fetch_page(&page, ps * 2));
+    REQUIRE(0 == fetch_page(&page, db, ps * 2));
     /* verify that the page contains the marker */
     for (int i = 0; i < 200; i++)
       REQUIRE((ham_u8_t)i == page->get_payload()[i]);
@@ -634,11 +639,11 @@ struct LogHighLevelFixture {
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
     ham_size_t ps = m_env->get_pagesize();
     Page *page[10];
-    Database *db = (Database *)m_db;
+    LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 ==
-          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
+      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+                0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_self() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -669,10 +674,10 @@ struct LogHighLevelFixture {
         ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    db = (Database *)m_db;
+    db = (LocalDatabase *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == db->fetch_page(&page[i], ps*(2+i)));
+      REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
       /* verify that the pages contain the markers */
       for (int j = 0; j < 200; j++)
         REQUIRE((ham_u8_t)(i + j) == page[i]->get_payload()[j]);
@@ -690,10 +695,10 @@ struct LogHighLevelFixture {
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
     ham_size_t ps = m_env->get_pagesize();
     Page *page;
-    Database *db = (Database *)m_db;
+    LocalDatabase *db = (LocalDatabase *)m_db;
 
-    REQUIRE(0 ==
-        db->alloc_page(&page, 0, PageManager::kIgnoreFreelist));
+    REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
+                0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     REQUIRE(page->get_self() == ps * 2);
     for (int i = 0; i < 200; i++)
@@ -720,9 +725,9 @@ struct LogHighLevelFixture {
         ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    db = (Database *)m_db;
+    db = (LocalDatabase *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
-    REQUIRE(0 == db->fetch_page(&page, ps * 2));
+    REQUIRE(0 == fetch_page(&page, db, ps * 2));
     /* verify that the page does not contain the "XXX..." */
     for (int i = 0; i < 20; i++)
       REQUIRE('X' != page->get_raw_payload()[i]);
@@ -739,11 +744,11 @@ struct LogHighLevelFixture {
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
     ham_size_t ps = m_env->get_pagesize();
     Page *page[10];
-    Database *db = (Database *)m_db;
+    LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 ==
-          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
+      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+                0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_self() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -777,11 +782,11 @@ struct LogHighLevelFixture {
         ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    db = (Database *)m_db;
+    db = (LocalDatabase *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages does not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == db->fetch_page(&page[i], ps * (2 + i)));
+      REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
       for (int j = 0; j < 20; j++)
         REQUIRE('X' != page[i]->get_raw_payload()[i]);
     }
@@ -798,11 +803,11 @@ struct LogHighLevelFixture {
     g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
     ham_size_t ps = m_env->get_pagesize();
     Page *page[10];
-    Database *db = (Database *)m_db;
+    LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 ==
-          db->alloc_page(&page[i], 0, PageManager::kIgnoreFreelist));
+      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+                0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_self() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
@@ -838,11 +843,11 @@ struct LogHighLevelFixture {
         ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
         ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    db = (Database *)m_db;
+    db = (LocalDatabase *)m_db;
     m_env = (Environment *)ham_db_get_env(m_db);
     /* verify that the pages do not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == db->fetch_page(&page[i], ps * (2 + i)));
+      REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
       for (int j = 0; j < 20; j++)
         REQUIRE('X' != page[i]->get_raw_payload()[i]);
     }

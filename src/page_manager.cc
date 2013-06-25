@@ -14,6 +14,7 @@
 #include "page.h"
 #include "cache.h"
 #include "device.h"
+#include "btree.h"
 
 #include "page_manager.h"
 
@@ -59,7 +60,7 @@ PageManager::get_metrics(ham_env_metrics_t *metrics) const
 }
 
 ham_status_t
-PageManager::fetch_page(Page **ppage, Database *db, ham_u64_t address,
+PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
                 bool only_from_cache)
 {
   ham_status_t st;
@@ -112,7 +113,7 @@ PageManager::fetch_page(Page **ppage, Database *db, ham_u64_t address,
 }
 
 ham_status_t
-PageManager::alloc_page(Page **ppage, Database *db, ham_u32_t page_type,
+PageManager::alloc_page(Page **ppage, LocalDatabase *db, ham_u32_t page_type,
                 ham_u32_t flags)
 {
   ham_status_t st;
@@ -291,7 +292,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
           (page->get_type() == Page::TYPE_B_ROOT ||
             page->get_type() == Page::TYPE_B_INDEX)) {
       ham_assert(page->get_db());
-      BtreeIndex *be = page->get_db()->get_btree();
+      BtreeIndex *be = page->get_db()->get_btree_index();
       if (be)
         (void)be->free_page_extkeys(page, flags);
     }
