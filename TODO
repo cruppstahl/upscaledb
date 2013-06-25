@@ -35,7 +35,7 @@ o AES encryption
 
 o metrics: memory allocations currently ignore operator new/delete
 
-o BtreeCursor: use memory arena for uncoupling the key
+o metrics: add extkey_cache:hits, :misses
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -93,6 +93,9 @@ o collect file format incompatibilities
     o what else?
 
 . also remove locking from C# and Java APIs
+
+. BtreeCursor: use memory arena for uncoupling the key
+    -> better wait till extended keys are gone
 
 o split Transaction into local and remote class (really?)
     hamsterdb.cc directly calls into Transaction class instead of Environment

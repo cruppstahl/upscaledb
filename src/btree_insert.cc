@@ -60,7 +60,7 @@ class BtreeInsertAction
       memset(&m_split_key, 0, sizeof(m_split_key));
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
-        ham_assert(m_btree->get_db() == m_cursor->get_db());
+        ham_assert(m_btree->get_db() == m_cursor->get_parent()->get_db());
       }
     }
 
