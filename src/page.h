@@ -26,7 +26,7 @@
 namespace hamsterdb {
 
 class Device;
-class Cursor;
+class BtreeCursor;
 class Environment;
 class LocalDatabase;
 
@@ -207,12 +207,12 @@ class Page {
     }
 
     /** get linked list of cursors */
-    Cursor *get_cursors() {
+    BtreeCursor *get_cursors() {
       return (m_cursors);
     }
 
     /** set linked list of cursors */
-    void set_cursors(Cursor *cursor) {
+    void set_cursors(BtreeCursor *cursor) {
       m_cursors = cursor;
     }
 
@@ -329,16 +329,6 @@ class Page {
       return (list_head);
     }
 
-    /** adds a cursor to this page */
-    void add_cursor(Cursor *cursor);
-
-    /** removes a cursor from this page */
-    void remove_cursor(Cursor *cursor);
-
-    /** uncouples all cursors from this page if the cursor is coupled
-     * to a key >= start */
-    ham_status_t uncouple_all_cursors(ham_size_t start = 0);
-
   private:
     /** address of this page */
     ham_u64_t m_self;
@@ -356,7 +346,7 @@ class Page {
     bool m_dirty;
 
     /** linked list of all cursors which point to that page */
-    Cursor *m_cursors;
+    BtreeCursor *m_cursors;
 
     /** linked lists of pages - see comments above */
     Page *m_prev[Page::MAX_LISTS];

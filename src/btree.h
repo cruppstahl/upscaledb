@@ -143,9 +143,6 @@ enum {
  * @ref Backend::enumerate callback/method.
  *
  * @param event one of the @ref ham_cb_event state codes
- *
- * @return one of the @ref ham_cb_status values or a @ref ham_status_codes
- *     error code when an error occurred.
  */
 typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
           void *param2, void *context);
@@ -220,14 +217,6 @@ class BtreeIndex
      */
     ham_status_t calc_keycount_per_page(ham_size_t *keycount,
                     ham_u16_t keysize);
-
-    /**
-     * uncouple all cursors from a page
-     *
-     * @remark this is called whenever the page is deleted or
-     * becoming invalid
-     */
-    ham_status_t uncouple_all_cursors(Page *page, ham_size_t start);
 
     /**
      * looks up a key, points cursor to this key
@@ -329,6 +318,7 @@ class BtreeIndex
     }
 
     // get index of PBtreeDescriptor
+    // TODO make this private
     ham_u32_t get_descriptor_index() const {
       return m_descriptor_index;
     }

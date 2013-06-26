@@ -230,7 +230,7 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
    * free the memory of the page, then remove from the cache
    */
   if (flags == 0) {
-    (void)page->uncouple_all_cursors();
+    (void)BtreeCursor::uncouple_all_cursors(page);
     (void)page->free();
     return (true);
   }
@@ -247,7 +247,7 @@ PageManager::flush_all_pages(bool nodelete)
 static ham_status_t
 purge_callback(Page *page)
 {
-  ham_status_t st = page->uncouple_all_cursors();
+  ham_status_t st = BtreeCursor::uncouple_all_cursors(page);
   if (st)
     return (st);
 
@@ -278,7 +278,6 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
 
   if (page->get_db() == db && page != env->get_header_page()) {
     (void)env->get_page_manager()->flush_page(page);
-    (void)page->uncouple_all_cursors();
 
     /*
      * if this page has a header, and it's either a B-Tree root page or
@@ -295,6 +294,7 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
       BtreeIndex *be = page->get_db()->get_btree_index();
       if (be)
         (void)be->free_page_extkeys(page, flags);
+      (void)BtreeCursor::uncouple_all_cursors(page);
     }
 
     /* free the page */

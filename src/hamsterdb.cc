@@ -1306,19 +1306,6 @@ ham_cursor_create(ham_cursor_t **hcursor, ham_db_t *hdb, ham_txn_t *htxn,
     lock = ScopedLock(env->get_mutex());
 
   *cursor = db->cursor_create(txn, flags);
-
-  /* fix the linked list of cursors */
-  // TODO move this to db->cursor_create()
-  (*cursor)->set_next(db->get_cursors());
-  if (db->get_cursors())
-    db->get_cursors()->set_previous(*cursor);
-  db->set_cursors(*cursor);
-
-  if (txn) {
-    txn->set_cursor_refcount(txn->get_cursor_refcount() + 1);
-    (*cursor)->set_txn(txn);
-  }
-
   return (0);
 }
 

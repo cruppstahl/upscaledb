@@ -49,9 +49,6 @@ class RemoteDatabase : public Database
     virtual ham_status_t find(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
 
-    // Creates a cursor (ham_cursor_create)
-    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
-
     // Inserts a key with a cursor (ham_cursor_insert)
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
@@ -91,6 +88,9 @@ class RemoteDatabase : public Database
     }
 
   protected:
+    // Creates a cursor; this is the actual implementation
+    virtual Cursor *cursor_create_impl(Transaction *txn, ham_u32_t flags);
+
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src);
 

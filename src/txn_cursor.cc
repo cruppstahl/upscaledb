@@ -409,7 +409,9 @@ TransactionCursor::erase()
   Transaction *txn = parent->get_txn();
 
   /* don't continue if cursor is nil */
-  if (parent->get_btree_cursor()->is_nil() && is_nil())
+  // TODO not nice to access the btree cursor here
+  if (parent->get_btree_cursor()->get_state() == BtreeCursor::kStateNil
+        && is_nil())
     return (HAM_CURSOR_IS_NIL);
 
   /*
@@ -426,10 +428,12 @@ TransactionCursor::erase()
    */
 
   /* case 1 described above */
+  // TODO uncoupling the btree cursor should be a private operation; i am not
+  // convinced that it is necessary here
   if (is_nil()) {
     BtreeCursor *btc = parent->get_btree_cursor();
-    if (btc->is_coupled()) {
-      st = btc->uncouple();
+    if (btc->get_state() == BtreeCursor::kStateCoupled) {
+      st = btc->uncouple_from_page();
       if (st)
         return (st);
     }

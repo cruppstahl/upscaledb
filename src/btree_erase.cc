@@ -51,10 +51,8 @@ class BtreeEraseAction
         ham_key_t *key, ham_u32_t dupe_id = 0, ham_u32_t flags = 0)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_dupe_id(dupe_id), m_flags(flags), m_mergepage(0) {
-      if (cursor && cursor->get_btree_cursor()->get_parent())
+      if (cursor)
         m_cursor = cursor->get_btree_cursor();
-      if (m_cursor && !key && m_cursor->is_uncoupled())
-        m_key = m_cursor->get_uncoupled_key();
     }
 
     ham_status_t run() {
@@ -64,25 +62,29 @@ class BtreeEraseAction
       /* coupled cursor: try to remove the key directly from the page.
        * if that's not possible (i.e. because of underflow): uncouple
        * the cursor and process the normal erase algorithm */
-      if (m_cursor && m_cursor->is_coupled()) {
-        Page *page = m_cursor->get_coupled_page();
-        PBtreeNode *node = PBtreeNode::from_page(page);
-        ham_assert(node->is_leaf());
-        if (m_cursor->get_coupled_index() > 0
-            && node->get_count() > m_btree->get_minkeys()) {
-          /* yes, we can remove the key */
-          return (remove_entry(m_cursor->get_coupled_page(),
-                m_cursor->get_coupled_index()));
+      if (m_cursor) {
+        if (m_cursor->get_state() == BtreeCursor::kStateCoupled) {
+          Page *coupled_page;
+          ham_u32_t coupled_index;
+          m_cursor->get_coupled_key(&coupled_page, &coupled_index);
+
+          PBtreeNode *node = PBtreeNode::from_page(coupled_page);
+          ham_assert(node->is_leaf());
+          if (coupled_index > 0
+              && node->get_count() > m_btree->get_minkeys()) {
+            /* yes, we can remove the key */
+            return (remove_entry(coupled_page, coupled_index));
+          }
+          else {
+            /* otherwise uncouple and fall through */
+            ham_status_t st = m_cursor->uncouple_from_page();
+            if (st)
+              return (st);
+          }
         }
-        else {
-          /* otherwise uncouple and call erase recursively */
-          ham_status_t st = m_cursor->uncouple();
-          if (st)
-            return (st);
-          BtreeEraseAction bea(m_btree, m_txn, m_cursor->get_parent(),
-                    m_cursor->get_uncoupled_key(), m_flags);
-          return (bea.run());
-        }
+
+        if (m_cursor->get_state() == BtreeCursor::kStateUncoupled)
+          m_key = m_cursor->get_uncoupled_key();
       }
 
       /* get the root-page...  */
@@ -105,7 +107,7 @@ class BtreeEraseAction
 
       if (p) {
         /* delete the old root page */
-        st = btree_uncouple_all_cursors(root, 0);
+        st = BtreeCursor::uncouple_all_cursors(root);
         if (st) {
           m_btree->get_statistics()->erase_failed();
           return (st);
@@ -135,7 +137,7 @@ class BtreeEraseAction
       PBtreeKey *bte = node->get_key(db, slot);
 
       /* uncouple all cursors */
-      if ((st = btree_uncouple_all_cursors(page, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
 
       ham_assert(slot >= 0);
@@ -148,14 +150,14 @@ class BtreeEraseAction
        * otherwise remove the full key with all duplicates
        */
       if (node->is_leaf()) {
-        Cursor *cursors = db->get_cursors();
+        Cursor *cursors = db->get_cursor_list();
         ham_u32_t dupe_id = 0;
 
         if (cursors)
           btc = cursors->get_btree_cursor();
 
         if (m_cursor)
-          dupe_id = m_cursor->get_dupe_id() + 1;
+          dupe_id = m_cursor->get_duplicate_index() + 1;
         else if (m_dupe_id) /* +1-based index */
           dupe_id = m_dupe_id;
 
@@ -173,7 +175,8 @@ class BtreeEraseAction
 
           /*
            * make sure that no cursor is pointing to this dupe, and shift
-           * all other cursors
+           * all other cursors if they point to a different duplicate of
+           * the same key
            */
           while (btc && m_cursor) {
             BtreeCursor *next = 0;
@@ -181,14 +184,16 @@ class BtreeEraseAction
               cursors = cursors->get_next();
               next = cursors->get_btree_cursor();
             }
+
             if (btc != m_cursor) {
-              if (btc->get_dupe_id() == m_cursor->get_dupe_id()) {
+              if (btc->get_duplicate_index()
+                              == m_cursor->get_duplicate_index()) {
                 if (btc->points_to(bte))
                   btc->set_to_nil();
               }
-              else if (btc->get_dupe_id() > m_cursor->get_dupe_id()) {
-                btc->set_dupe_id(btc->get_dupe_id()-1);
-                memset(btc->get_dupe_cache(), 0, sizeof(PDupeEntry));
+              else if (btc->get_duplicate_index()
+                              > m_cursor->get_duplicate_index()) {
+                btc->set_duplicate_index(btc->get_duplicate_index() - 1);
               }
             }
             btc = next;
@@ -522,12 +527,12 @@ free_all:
       ham_assert(node->get_count() != sibnode->get_count());
 
       /* uncouple all cursors */
-      if ((st = btree_uncouple_all_cursors(page, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
-      if ((st = btree_uncouple_all_cursors(sibpage, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
         return (st);
       if (ancpage)
-        if ((st = btree_uncouple_all_cursors(ancpage, 0)))
+        if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
           return (st);
 
       /* shift from sibling to this node */
@@ -834,12 +839,12 @@ cleanup:
       }
 
       /* uncouple all cursors */
-      if ((st = btree_uncouple_all_cursors(page, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
-      if ((st = btree_uncouple_all_cursors(sibpage, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
         return (st);
       if (ancpage)
-        if ((st = btree_uncouple_all_cursors(ancpage, 0)))
+        if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
           return (st);
 
       /*
@@ -988,7 +993,7 @@ cleanup:
       PBtreeNode *node = PBtreeNode::from_page(page);
 
       /* uncouple all cursors */
-      if ((st = btree_uncouple_all_cursors(page, 0)))
+      if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
 
       PBtreeKey *lhs = node->get_key(db, slot);

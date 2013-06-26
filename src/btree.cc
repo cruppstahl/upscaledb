@@ -224,12 +224,6 @@ BtreeIndex::flush_descriptor()
 }
 
 ham_status_t
-BtreeIndex::uncouple_all_cursors(Page *page, ham_size_t start)
-{
-  return (btree_uncouple_all_cursors(page, start));
-}
-
-ham_status_t
 BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
 {
   ham_assert(page->get_db() == m_db);

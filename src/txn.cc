@@ -184,17 +184,6 @@ TransactionNode::get_previous_sibling()
   return (rbt_prev(m_tree, this));
 }
 
-void
-txn_tree_enumerate(TransactionIndex *tree, txn_tree_enumerate_cb cb, void *data)
-{
-  TransactionNode *node = rbt_first(tree);
-
-  while (node) {
-    cb(node, data);
-    node = rbt_next(tree, node);
-  }
-}
-
 TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key,
                 bool dont_insert)
   : m_db(db), m_tree(db->get_txn_index()), m_oldest_op(0), m_newest_op(0),
@@ -424,6 +413,17 @@ TransactionNode *
 TransactionIndex::get_last()
 {
   return (rbt_last(this));
+}
+
+void
+txn_tree_enumerate(TransactionIndex *tree, TxnTreeVisitor *visitor)
+{
+  TransactionNode *node = rbt_first(tree);
+
+  while (node) {
+    visitor->visit(node);
+    node = rbt_next(tree, node);
+  }
 }
 
 } // namespace hamsterdb

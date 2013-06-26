@@ -101,7 +101,7 @@ struct BtreeCursorFixture {
     REQUIRE(0 == pm->fetch_page(&page, (LocalDatabase *)m_db,
                             be->get_rootpage()));
     REQUIRE(page != 0);
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
 
     REQUIRE(0 == ham_cursor_overwrite(cursor, &rec, 0));
 
@@ -199,16 +199,17 @@ struct BtreeCursorFixture {
   void linkedListTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursor_list());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
-      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->get_cursors());
+      REQUIRE((Cursor *)cursor[i]
+                      == ((LocalDatabase *)m_db)->get_cursor_list());
     }
 
     REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursor_list());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 ==
@@ -216,30 +217,30 @@ struct BtreeCursorFixture {
     }
     REQUIRE(0 == ham_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursor_list());
   }
 
   void linkedListReverseCloseTest() {
     ham_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursor_list());
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ham_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE(cursor[i] != 0);
-      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->get_cursors());
+      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->get_cursor_list());
     }
 
     REQUIRE(0 == ham_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->get_cursor_list());
 
     for (int i = 4; i >= 0; i--) {
       REQUIRE(0 == ham_cursor_close(cursor[i]));
     }
     REQUIRE(0 == ham_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursors());
+    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->get_cursor_list());
   }
 
   void cursorGetErasedItemTest() {
@@ -298,18 +299,18 @@ struct BtreeCursorFixture {
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
     btc = ((Cursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
-    REQUIRE(!btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* after insert: cursor is NIL */
     REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, 0));
-    REQUIRE(!btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* move to item: cursor is coupled */
     REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
-    REQUIRE(btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* clone the coupled cursor */
     REQUIRE(0 == ham_cursor_clone(c, &clone));
@@ -317,23 +318,23 @@ struct BtreeCursorFixture {
 
     /* insert item BEFORE the first item - cursor is uncoupled */
     REQUIRE(0 == ham_db_insert(m_db, 0, &key1, &rec, 0));
-    REQUIRE(!btc->is_coupled());
-    REQUIRE(btc->is_uncoupled());
+    REQUIRE(btc->get_state() != BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() == BtreeCursor::kStateUncoupled);
 
     /* move to item: cursor is coupled */
     REQUIRE(0 == ham_cursor_find(c, &key2, 0, 0));
-    REQUIRE(btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* insert duplicate - cursor stays coupled */
     REQUIRE(0 == ham_db_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
-    REQUIRE(btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     /* insert item AFTER the middle item - cursor stays coupled */
     REQUIRE(0 == ham_db_insert(m_db, 0, &key3, &rec, 0));
-    REQUIRE(btc->is_coupled());
-    REQUIRE(!btc->is_uncoupled());
+    REQUIRE(btc->get_state() == BtreeCursor::kStateCoupled);
+    REQUIRE(btc->get_state() != BtreeCursor::kStateUncoupled);
 
     REQUIRE(0 == ham_cursor_close(c));
   }

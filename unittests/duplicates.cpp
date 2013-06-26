@@ -537,22 +537,22 @@ struct DuplicateFixture {
                 (LocalDatabase *)m_db, be->get_rootpage()));
     REQUIRE(page);
 
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_NEXT,   0, "aaaaaaaaaa");
-    REQUIRE(0 == page->uncouple_all_cursors());
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_NEXT,   0, "1111111111");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_NEXT,   0, "2222222222");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-    REQUIRE(0 == page->uncouple_all_cursors());
+    REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
     checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
     ham_cursor_close(c);
@@ -590,10 +590,10 @@ struct DuplicateFixture {
     REQUIRE(2 == *(int *)rec.data);
 
     REQUIRE(0 ==
-        ((Cursor *)c2)->get_btree_cursor()->uncouple());
+        ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -658,8 +658,8 @@ struct DuplicateFixture {
     REQUIRE(3 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -807,8 +807,8 @@ struct DuplicateFixture {
     REQUIRE(1 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -863,12 +863,12 @@ struct DuplicateFixture {
     REQUIRE(1 == *(int *)rec.data);
 
     REQUIRE(0 ==
-        ((Cursor *)c1)->get_btree_cursor()->uncouple());
+        ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 ==
-        ((Cursor *)c2)->get_btree_cursor()->uncouple());
+        ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -920,8 +920,8 @@ struct DuplicateFixture {
     REQUIRE(2 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -973,12 +973,12 @@ struct DuplicateFixture {
     REQUIRE(2 == *(int *)rec.data);
 
     REQUIRE(0 ==
-        ((Cursor *)c1)->get_btree_cursor()->uncouple());
+        ((Cursor *)c1)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 ==
-        ((Cursor *)c2)->get_btree_cursor()->uncouple());
+        ((Cursor *)c2)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -1030,8 +1030,8 @@ struct DuplicateFixture {
     REQUIRE(2 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -1361,7 +1361,7 @@ struct DuplicateFixture {
       REQUIRE(strlen(values[i]) == strlen((char *)rec.data));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((ham_size_t)i ==
-          ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
+          ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
     }
 
     checkData(c, HAM_CURSOR_FIRST, 0, values[0]);
@@ -1396,7 +1396,7 @@ struct DuplicateFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((ham_size_t)0 ==
-          ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
+          ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
     }
 
     checkData(c, HAM_CURSOR_FIRST, 0, values[3]);
@@ -1431,7 +1431,7 @@ struct DuplicateFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((ham_size_t)(i >= 1 ? 1 : 0) ==
-            ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
+            ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
       REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
     }
@@ -1468,7 +1468,7 @@ struct DuplicateFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((ham_size_t)(i <= 1 ? 0 : i-1) ==
-            ((Cursor *)c)->get_btree_cursor()->get_dupe_id());
+            ((Cursor *)c)->get_btree_cursor()->get_duplicate_index());
       REQUIRE(0 ==
             ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
     }
@@ -1565,7 +1565,7 @@ struct DuplicateFixture {
     insertData(0, "3333333333");
     checkData(c, HAM_CURSOR_NEXT,   0, "3333333333");
     REQUIRE(0 ==
-        ((Cursor *)c)->get_btree_cursor()->uncouple());
+        ((Cursor *)c)->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 ==
         ham_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((ham_size_t)3 == count);
@@ -1684,8 +1684,8 @@ struct DuplicateFixture {
     REQUIRE(3 == *(int *)rec.data);
 
     REQUIRE(0 == ham_cursor_erase(c1, 0));
-    REQUIRE(((Cursor *)c1)->is_nil(Cursor::CURSOR_BTREE));
-    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::CURSOR_BTREE));
+    REQUIRE(((Cursor *)c1)->is_nil(Cursor::kBtree));
+    REQUIRE(!((Cursor *)c2)->is_nil(Cursor::kBtree));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));

@@ -23,6 +23,7 @@
 namespace hamsterdb {
 
 class LocalDatabase;
+class Transaction;
 
 #include "packstart.h"
 

@@ -163,88 +163,89 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
   return (HAM_ENUM_CONTINUE);
 }
 
-struct keycount_t
+struct KeyCounter : public TxnTreeVisitor
 {
-  ham_u64_t c;
+  KeyCounter(LocalDatabase *_db, Transaction *_txn, ham_u32_t _flags)
+    : counter(0), flags(_flags), txn(_txn), db(_db) {
+  }
+
+  void visit(TransactionNode *node) {
+    BtreeIndex *be = db->get_btree_index();
+    TransactionOperation *op;
+
+    /*
+     * look at each tree_node and walk through each operation
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then include it
+     * - is this op part of an txn which is still active? then include it
+     * - if a committed txn has erased the item then there's no need
+     *    to continue checking older, committed txns of the same key
+     *
+     * !!
+     * if keys are overwritten or a duplicate key is inserted, then
+     * we have to consolidate the btree keys with the txn-tree keys.
+     */
+    op = node->get_newest_op();
+    while (op) {
+      Transaction *optxn = op->get_txn();
+      if (optxn->is_aborted())
+        ; // nop
+      else if (optxn->is_committed() || txn == optxn) {
+        if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
+          ; // nop
+        // if key was erased then it doesn't exist
+        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
+          return;
+        else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
+          ; // nop
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
+          counter++;
+          return;
+        }
+        // key exists - include it
+        else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+            || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
+          // check if the key already exists in the btree - if yes,
+          // we do not count it (it will be counted later)
+          if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
+            counter++;
+          return;
+        }
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
+          // check if btree has other duplicates
+          if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
+            // yes, there's another one
+            if (flags & HAM_SKIP_DUPLICATES)
+              return;
+            else
+              counter++;
+          }
+          else {
+            // check if other key is in this node
+            counter++;
+            if (flags & HAM_SKIP_DUPLICATES)
+              return;
+          }
+        }
+        else {
+          ham_assert(!"shouldn't be here");
+          return;
+        }
+      }
+      else { // txn is still active
+        counter++;
+      }
+
+      op = op->get_previous_in_node();
+    }
+  }
+
+  ham_u64_t counter;
   ham_u32_t flags;
   Transaction *txn;
   LocalDatabase *db;
 };
-
-static void
-__get_key_count_txn(TransactionNode *node, void *data)
-{
-  struct keycount_t *kc = (struct keycount_t *)data;
-  BtreeIndex *be = kc->db->get_btree_index();
-  TransactionOperation *op;
-
-  /*
-   * look at each tree_node and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then include it
-   * - is this op part of an txn which is still active? then include it
-   * - if a committed txn has erased the item then there's no need
-   *    to continue checking older, committed txns of the same key
-   *
-   * !!
-   * if keys are overwritten or a duplicate key is inserted, then
-   * we have to consolidate the btree keys with the txn-tree keys.
-   */
-  op = node->get_newest_op();
-  while (op) {
-    Transaction *optxn = op->get_txn();
-    if (optxn->is_aborted())
-      ; // nop
-    else if (optxn->is_committed() || kc->txn==optxn) {
-      if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
-        ; // nop
-      // if key was erased then it doesn't exist
-      else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
-        return;
-      else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
-        ; // nop
-      else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
-        kc->c++;
-        return;
-      }
-      // key exists - include it
-      else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
-          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
-        // check if the key already exists in the btree - if yes,
-        // we do not count it (it will be counted later)
-        if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
-          kc->c++;
-        return;
-      }
-      else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
-        // check if btree has other duplicates
-        if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
-          // yes, there's another one
-          if (kc->flags & HAM_SKIP_DUPLICATES)
-            return;
-          else
-            kc->c++;
-        }
-        else {
-          // check if other key is in this node
-          kc->c++;
-          if (kc->flags & HAM_SKIP_DUPLICATES)
-            return;
-        }
-      }
-      else {
-        ham_assert(!"shouldn't be here");
-        return;
-      }
-    }
-    else { // txn is still active
-      kc->c++;
-    }
-
-    op = op->get_previous_in_node();
-  }
-}
 
 ham_status_t
 LocalDatabase::remove_extkey(ham_u64_t blobid)
@@ -591,42 +592,6 @@ LocalDatabase::check_erase_conflicts(Transaction *txn,
   return (m_btree_index->find(0, 0, key, 0, flags));
 }
 
-static void
-__increment_dupe_index(Database *db, TransactionNode *node,
-        Cursor *skip, ham_u32_t start)
-{
-  Cursor *c = db->get_cursors();
-
-  while (c) {
-    bool hit = false;
-
-    if (c == skip || c->is_nil(0))
-      goto next;
-
-    /* if cursor is coupled to an op in the same node: increment
-     * duplicate index (if required) */
-    if (c->is_coupled_to_txnop()) {
-      TransactionCursor *txnc = c->get_txn_cursor();
-      TransactionNode *n = txnc->get_coupled_op()->get_node();
-      if (n == node)
-        hit = true;
-    }
-    /* if cursor is coupled to the same key in the btree: increment
-     * duplicate index (if required) */
-    else if (c->get_btree_cursor()->points_to(node->get_key())) {
-      hit = true;
-    }
-
-    if (hit) {
-      if (c->get_dupecache_index() > start)
-        c->set_dupecache_index(c->get_dupecache_index() + 1);
-    }
-
-next:
-    c = c->get_next();
-  }
-}
-
 ham_status_t
 LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags,
@@ -647,7 +612,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   // check for conflicts of this key
   //
   // !!
-  // afterwards, clear the changeset; check_insert_conflicts() sometimes
+  // afterwards, clear the changeset; check_insert_conflicts()
   // checks if a key already exists, and this fills the changeset
   st = check_insert_conflicts(txn, node, key, flags);
   m_env->get_changeset().clear();
@@ -685,12 +650,12 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
     if (c->get_dupecache_index())
       op->set_referenced_dupe(c->get_dupecache_index());
 
-    c->set_to_nil(Cursor::CURSOR_TXN);
+    c->set_to_nil(Cursor::kTxn);
     cursor->couple(op);
 
     // all other cursors need to increment their dupe index, if their
     // index is > this cursor's index
-    __increment_dupe_index(this, node, c, c->get_dupecache_index());
+    increment_dupe_index(node, c, c->get_dupecache_index());
   }
 
   // append journal entry
@@ -705,193 +670,18 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   return (st);
 }
 
-static void
-__nil_all_cursors_in_node(Transaction *txn, Cursor *current,
-        TransactionNode *node)
-{
-  TransactionOperation *op = node->get_newest_op();
-  while (op) {
-    TransactionCursor *cursor = op->get_cursors();
-    while (cursor) {
-      Cursor *pc = cursor->get_parent();
-      // is the current cursor to a duplicate? then adjust the
-      // coupled duplicate index of all cursors which point to a duplicate
-      if (current) {
-        if (current->get_dupecache_index()) {
-          if (current->get_dupecache_index()
-              < pc->get_dupecache_index()) {
-            pc->set_dupecache_index(pc->get_dupecache_index() - 1);
-            cursor = cursor->get_coupled_next();
-            continue;
-          }
-          else if (current->get_dupecache_index()
-              > pc->get_dupecache_index()) {
-            cursor = cursor->get_coupled_next();
-            continue;
-          }
-          // else fall through
-        }
-      }
-      pc->couple_to_btree();
-      pc->set_to_nil(Cursor::CURSOR_TXN);
-      cursor = op->get_cursors();
-      // set a flag that the cursor just completed an Insert-or-find
-      // operation; this information is needed in ham_cursor_move
-      // (in this aspect, an erase is the same as insert/find)
-      pc->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
-    }
-
-    op = op->get_previous_in_node();
-  }
-}
-
-static void
-__nil_all_cursors_in_btree(Database *db, Cursor *current, ham_key_t *key)
-{
-  Cursor *c = db->get_cursors();
-
-  /* foreach cursor in this database:
-   *  if it's nil or coupled to the txn: skip it
-   *  if it's coupled to btree AND uncoupled: compare keys; set to nil
-   *    if keys are identical
-   *  if it's uncoupled to btree AND coupled: compare keys; set to nil
-   *    if keys are identical; (TODO - improve performance by nil'ling
-   *    all other cursors from the same btree page)
-   *
-   *  do NOT nil the current cursor - it's coupled to the key, and the
-   *  coupled key is still needed by the caller
-   */
-  while (c) {
-    if (c->is_nil(0) || c == current)
-      goto next;
-    if (c->is_coupled_to_txnop())
-      goto next;
-
-    if (c->get_btree_cursor()->points_to(key)) {
-      /* is the current cursor to a duplicate? then adjust the
-       * coupled duplicate index of all cursors which point to a
-       * duplicate */
-      if (current) {
-        if (current->get_dupecache_index()) {
-          if (current->get_dupecache_index()
-              < c->get_dupecache_index()) {
-            c->set_dupecache_index(c->get_dupecache_index() - 1);
-            goto next;
-          }
-          else if (current->get_dupecache_index()
-              > c->get_dupecache_index()) {
-            goto next;
-          }
-          /* else fall through */
-        }
-      }
-      c->set_to_nil(0);
-    }
-next:
-    c = c->get_next();
-  }
-}
-
 ham_status_t
-LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
-        TransactionCursor *cursor)
-{
-  ham_status_t st = 0;
-  TransactionOperation *op;
-  bool node_created = false;
-  ham_u64_t lsn = 0;
-  Cursor *pc = 0;
-  if (cursor)
-    pc = cursor->get_parent();
-
-  /* get (or create) the node for this key */
-  TransactionNode *node = get_txn_index()->get(key, 0);
-  if (!node) {
-    node = new TransactionNode(this, key);
-    node_created = true;
-  }
-
-  /* check for conflicts of this key - but only if we're not erasing a
-   * duplicate key. dupes are checked for conflicts in _local_cursor_move */
-  if (!pc || (!pc->get_dupecache_index())) {
-    st = check_erase_conflicts(txn, node, key, flags);
-    m_env->get_changeset().clear();
-    if (st) {
-      if (node_created)
-        delete node;
-      return (st);
-    }
-  }
-
-  /* get the next lsn */
-  st = m_env->get_incremented_lsn(&lsn);
-  if (st) {
-    if (node_created)
-      delete node;
-    return (st);
-  }
-
-  /* append a new operation to this node */
-  op = node->append(txn, flags, TransactionOperation::TXN_OP_ERASE, lsn, 0);
-  if (!op)
-    return (HAM_OUT_OF_MEMORY);
-
-  /* is this function called through ham_cursor_erase? then add the
-   * duplicate ID */
-  if (cursor) {
-    if (pc->get_dupecache_index())
-      op->set_referenced_dupe(pc->get_dupecache_index());
-  }
-
-  /* the current op has no cursors attached; but if there are any
-   * other ops in this node and in this transaction, then they have to
-   * be set to nil. This only nil's txn-cursors! */
-  __nil_all_cursors_in_node(txn, pc, node);
-
-  /* in addition we nil all btree cursors which are coupled to this key */
-  __nil_all_cursors_in_btree(this, pc, node->get_key());
-
-  /* append journal entry */
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
-      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    Journal *j = m_env->get_journal();
-    st = j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
-              op->get_lsn());
-  }
-
-  return (st);
-}
-
-static ham_status_t
-copy_record(Database *db, Transaction *txn, TransactionOperation *op,
-                ham_record_t *record)
-{
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &db->get_record_arena()
-            : &txn->get_record_arena();
-
-  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-    arena->resize(op->get_record()->size);
-    record->data = arena->get_ptr();
-  }
-  memcpy(record->data, op->get_record()->data,
-        op->get_record()->size);
-  record->size = op->get_record()->size;
-  return (0);
-}
-
-static ham_status_t
-db_find_txn(LocalDatabase *db, Transaction *txn,
-        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+LocalDatabase::find_txn(Transaction *txn, ham_key_t *key,
+                ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st = 0;
   TransactionOperation *op = 0;
-  BtreeIndex *be = db->get_btree_index();
+  BtreeIndex *be = get_btree_index();
   bool first_loop = true;
   bool exact_is_erased = false;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-            ? &db->get_key_arena()
+            ? &get_key_arena()
             : &txn->get_key_arena();
 
   ham_key_set_intflags(key,
@@ -899,7 +689,7 @@ db_find_txn(LocalDatabase *db, Transaction *txn,
 
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
-  TransactionNode *node = db->get_txn_index()->get(key, flags);
+  TransactionNode *node = get_txn_index()->get(key, flags);
 
   /*
    * pick the node of this key, and walk through each operation
@@ -960,7 +750,7 @@ retry:
         if (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE)
           break;
         // otherwise copy the record and return
-        return (copy_record(db, txn, op, record));
+        return (LocalDatabase::copy_record(this, txn, op, record));
       }
       else {
         ham_assert(!"shouldn't be here");
@@ -1007,7 +797,7 @@ retry:
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
 
-      return (copy_record(db, txn, op, record));
+      return (LocalDatabase::copy_record(this, txn, op, record));
     }
     else if (st)
       return (st);
@@ -1020,7 +810,7 @@ retry:
     // if there's an approx match in the btree: compare both keys and
     // use the one that is closer. if the btree is closer: make sure
     // that it was not erased or overwritten in a transaction
-    int cmp = db->compare_keys(key, &txnkey);
+    int cmp = compare_keys(key, &txnkey);
     bool use_btree = false;
     if (flags & HAM_FIND_GT_MATCH) {
       if (cmp < 0)
@@ -1038,7 +828,7 @@ retry:
       // lookup again, with the same flags and the btree key.
       // this will check if the key was erased or overwritten
       // in a transaction
-      st = db_find_txn(db, txn, key, record, flags | HAM_FIND_EXACT_MATCH);
+      st = find_txn(txn, key, record, flags | HAM_FIND_EXACT_MATCH);
       if (st == 0)
         ham_key_set_intflags(key,
           (ham_key_get_intflags(key) | PBtreeKey::KEY_IS_APPROXIMATE));
@@ -1056,7 +846,7 @@ retry:
       key->size = txnkey.size;
       key->_flags = txnkey._flags;
 
-      return (copy_record(db, txn, op, record));
+      return (LocalDatabase::copy_record(this, txn, op, record));
     }
   }
 
@@ -1068,6 +858,76 @@ retry:
    * lookup the key in the btree.
    */
   return (be->find(txn, 0, key, record, flags));
+}
+
+ham_status_t
+LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
+        TransactionCursor *cursor)
+{
+  ham_status_t st = 0;
+  TransactionOperation *op;
+  bool node_created = false;
+  ham_u64_t lsn = 0;
+  Cursor *pc = 0;
+  if (cursor)
+    pc = cursor->get_parent();
+
+  /* get (or create) the node for this key */
+  TransactionNode *node = get_txn_index()->get(key, 0);
+  if (!node) {
+    node = new TransactionNode(this, key);
+    node_created = true;
+  }
+
+  /* check for conflicts of this key - but only if we're not erasing a
+   * duplicate key. dupes are checked for conflicts in _local_cursor_move */
+  if (!pc || (!pc->get_dupecache_index())) {
+    st = check_erase_conflicts(txn, node, key, flags);
+    m_env->get_changeset().clear();
+    if (st) {
+      if (node_created)
+        delete node;
+      return (st);
+    }
+  }
+
+  /* get the next lsn */
+  st = m_env->get_incremented_lsn(&lsn);
+  if (st) {
+    if (node_created)
+      delete node;
+    return (st);
+  }
+
+  /* append a new operation to this node */
+  op = node->append(txn, flags, TransactionOperation::TXN_OP_ERASE, lsn, 0);
+  if (!op)
+    return (HAM_OUT_OF_MEMORY);
+
+  /* is this function called through ham_cursor_erase? then add the
+   * duplicate ID */
+  if (cursor) {
+    if (pc->get_dupecache_index())
+      op->set_referenced_dupe(pc->get_dupecache_index());
+  }
+
+  /* the current op has no cursors attached; but if there are any
+   * other ops in this node and in this transaction, then they have to
+   * be set to nil. This only nil's txn-cursors! */
+  nil_all_cursors_in_node(txn, pc, node);
+
+  /* in addition we nil all btree cursors which are coupled to this key */
+  nil_all_cursors_in_btree(pc, node->get_key());
+
+  /* append journal entry */
+  if (m_env->get_flags() & HAM_ENABLE_RECOVERY
+      && m_env->get_flags() & HAM_ENABLE_TRANSACTIONS) {
+    Journal *j = m_env->get_journal();
+    st = j->append_erase(this, txn, key, 0, flags | HAM_ERASE_ALL_DUPLICATES,
+              op->get_lsn());
+  }
+
+  return (st);
 }
 
 ham_status_t
@@ -1275,13 +1135,9 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
    * from the transaction tree
    */
   if ((get_rt_flags() & HAM_ENABLE_TRANSACTIONS) && (get_txn_index())) {
-    struct keycount_t k;
-    k.c = 0;
-    k.flags = flags;
-    k.txn = txn;
-    k.db = this;
-    txn_tree_enumerate(get_txn_index(), __get_key_count_txn, (void *)&k);
-    *keycount += k.c;
+    KeyCounter k(this, txn, flags);
+    txn_tree_enumerate(get_txn_index(), &k);
+    *keycount += k.counter;
   }
 
 bail:
@@ -1516,7 +1372,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
    * otherwise read immediately from disk
    */
   if (txn || local_txn)
-    st = db_find_txn(this, txn ? txn : local_txn, key, record, flags);
+    st = find_txn(txn ? txn : local_txn, key, record, flags);
   else
     st = m_btree_index->find(txn, 0, key, record, flags);
 
@@ -1544,7 +1400,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
 }
 
 Cursor *
-LocalDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
+LocalDatabase::cursor_create_impl(Transaction *txn, ham_u32_t flags)
 {
   return (new Cursor(this, txn, flags));
 }
@@ -1687,8 +1543,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
     return (st);
   }
 
-  /* no need to append the journal entry - it's appended in insert_txn(),
-   * which is called by insert_txn() */
+  /* no need to append the journal entry - it's appended in insert_txn() */
 
   /*
    * record numbers: return key in host endian! and store the incremented
@@ -1704,7 +1559,7 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
+  cursor->set_lastop(Cursor::kLookupOrInsert);
 
   if (local_txn) {
     m_env->get_changeset().clear();
@@ -1842,10 +1697,9 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
         else if (op->get_referenced_dupe() == 1) {
           // check if there are other dupes
           bool is_equal;
-          (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY,
-                  &is_equal);
+          (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
           if (!is_equal)
-            cursor->set_to_nil(Cursor::CURSOR_BTREE);
+            cursor->set_to_nil(Cursor::kBtree);
           if (!cursor->get_dupecache_count())
             st = HAM_KEY_NOT_FOUND;
           else
@@ -1857,9 +1711,9 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     }
     else {
       bool is_equal;
-      (void)cursor->sync(Cursor::CURSOR_SYNC_ONLY_EQUAL_KEY, &is_equal);
+      (void)cursor->sync(Cursor::kSyncOnlyEqualKeys, &is_equal);
       if (!is_equal)
-        cursor->set_to_nil(Cursor::CURSOR_BTREE);
+        cursor->set_to_nil(Cursor::kBtree);
     }
     cursor->couple_to_txnop();
     if (!cursor->get_dupecache_count()) {
@@ -1928,7 +1782,7 @@ bail:
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
+  cursor->set_lastop(Cursor::kLookupOrInsert);
 
   if (local_txn) {
     m_env->get_changeset().clear();
@@ -1984,7 +1838,7 @@ LocalDatabase::cursor_get_duplicate_count(Cursor *cursor,
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
+  cursor->set_lastop(Cursor::kLookupOrInsert);
 
   if (local_txn) {
     m_env->get_changeset().clear();
@@ -2040,7 +1894,7 @@ LocalDatabase::cursor_get_record_size(Cursor *cursor, ham_u64_t *size)
 
   /* set a flag that the cursor just completed an Insert-or-find
    * operation; this information is needed in ham_cursor_move */
-  cursor->set_lastop(Cursor::CURSOR_LOOKUP_INSERT);
+  cursor->set_lastop(Cursor::kLookupOrInsert);
 
   if (local_txn) {
     m_env->get_changeset().clear();
@@ -2226,15 +2080,13 @@ LocalDatabase::close_impl(ham_u32_t flags)
     set_extkey_cache(0);
   }
 
-  BtreeIndex *be = get_btree_index();
-
   /* in-memory-database: free all allocated blobs */
-  if (be && m_env->get_flags() & HAM_IN_MEMORY) {
+  if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY) {
     Transaction *txn;
     free_cb_context_t context = {0};
     context.db = this;
     txn = new Transaction(m_env, 0, HAM_TXN_TEMPORARY);
-    (void)be->enumerate(__free_inmemory_blobs_cb, &context);
+    (void)m_btree_index->enumerate(__free_inmemory_blobs_cb, &context);
     (void)txn->commit();
   }
 
@@ -2251,8 +2103,8 @@ LocalDatabase::close_impl(ham_u32_t flags)
   get_txn_index()->close();
 
   /* close the btree */
-  if (be) {
-    delete be;
+  if (m_btree_index) {
+    delete m_btree_index;
     m_btree_index = 0;
   }
 
@@ -2263,6 +2115,142 @@ ham_u16_t
 LocalDatabase::get_keysize()
 {
   return (get_btree_index()->get_keysize());
+}
+
+void 
+LocalDatabase::increment_dupe_index(TransactionNode *node,
+        Cursor *skip, ham_u32_t start)
+{
+  Cursor *c = m_cursor_list;
+
+  while (c) {
+    bool hit = false;
+
+    if (c == skip || c->is_nil(0))
+      goto next;
+
+    /* if cursor is coupled to an op in the same node: increment
+     * duplicate index (if required) */
+    if (c->is_coupled_to_txnop()) {
+      TransactionCursor *txnc = c->get_txn_cursor();
+      TransactionNode *n = txnc->get_coupled_op()->get_node();
+      if (n == node)
+        hit = true;
+    }
+    /* if cursor is coupled to the same key in the btree: increment
+     * duplicate index (if required) */
+    else if (c->get_btree_cursor()->points_to(node->get_key())) {
+      hit = true;
+    }
+
+    if (hit) {
+      if (c->get_dupecache_index() > start)
+        c->set_dupecache_index(c->get_dupecache_index() + 1);
+    }
+
+next:
+    c = c->get_next();
+  }
+}
+
+void
+LocalDatabase::nil_all_cursors_in_node(Transaction *txn, Cursor *current,
+                TransactionNode *node)
+{
+  TransactionOperation *op = node->get_newest_op();
+  while (op) {
+    TransactionCursor *cursor = op->get_cursors();
+    while (cursor) {
+      Cursor *pc = cursor->get_parent();
+      // is the current cursor to a duplicate? then adjust the
+      // coupled duplicate index of all cursors which point to a duplicate
+      if (current) {
+        if (current->get_dupecache_index()) {
+          if (current->get_dupecache_index() < pc->get_dupecache_index()) {
+            pc->set_dupecache_index(pc->get_dupecache_index() - 1);
+            cursor = cursor->get_coupled_next();
+            continue;
+          }
+          else if (current->get_dupecache_index() > pc->get_dupecache_index()) {
+            cursor = cursor->get_coupled_next();
+            continue;
+          }
+          // else fall through
+        }
+      }
+      pc->couple_to_btree();
+      pc->set_to_nil(Cursor::kTxn);
+      cursor = op->get_cursors();
+      // set a flag that the cursor just completed an Insert-or-find
+      // operation; this information is needed in ham_cursor_move
+      // (in this aspect, an erase is the same as insert/find)
+      pc->set_lastop(Cursor::kLookupOrInsert);
+    }
+
+    op = op->get_previous_in_node();
+  }
+}
+
+ham_status_t
+LocalDatabase::copy_record(LocalDatabase *db, Transaction *txn,
+                TransactionOperation *op, ham_record_t *record)
+{
+  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
+            ? &db->get_record_arena()
+            : &txn->get_record_arena();
+
+  if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+    arena->resize(op->get_record()->size);
+    record->data = arena->get_ptr();
+  }
+  memcpy(record->data, op->get_record()->data, op->get_record()->size);
+  record->size = op->get_record()->size;
+  return (0);
+}
+
+void
+LocalDatabase::nil_all_cursors_in_btree(Cursor *current, ham_key_t *key)
+{
+  Cursor *c = m_cursor_list;
+
+  /* foreach cursor in this database:
+   *  if it's nil or coupled to the txn: skip it
+   *  if it's coupled to btree AND uncoupled: compare keys; set to nil
+   *    if keys are identical
+   *  if it's uncoupled to btree AND coupled: compare keys; set to nil
+   *    if keys are identical; (TODO - improve performance by nil'ling
+   *    all other cursors from the same btree page)
+   *
+   *  do NOT nil the current cursor - it's coupled to the key, and the
+   *  coupled key is still needed by the caller
+   */
+  while (c) {
+    if (c->is_nil(0) || c == current)
+      goto next;
+    if (c->is_coupled_to_txnop())
+      goto next;
+
+    if (c->get_btree_cursor()->points_to(key)) {
+      /* is the current cursor to a duplicate? then adjust the
+       * coupled duplicate index of all cursors which point to a
+       * duplicate */
+      if (current) {
+        if (current->get_dupecache_index()) {
+          if (current->get_dupecache_index() < c->get_dupecache_index()) {
+            c->set_dupecache_index(c->get_dupecache_index() - 1);
+            goto next;
+          }
+          else if (current->get_dupecache_index() > c->get_dupecache_index()) {
+            goto next;
+          }
+          /* else fall through */
+        }
+      }
+      c->set_to_nil(0);
+    }
+next:
+    c = c->get_next();
+  }
 }
 
 } // namespace hamsterdb

@@ -69,9 +69,6 @@ class LocalDatabase : public Database {
     virtual ham_status_t find(Transaction *txn, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
 
-    // Creates a cursor (ham_cursor_create)
-    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
-
     // Inserts a key with a cursor (ham_cursor_insert)
     virtual ham_status_t cursor_insert(Cursor *cursor, ham_key_t *key,
                     ham_record_t *record, ham_u32_t flags);
@@ -257,7 +254,15 @@ class LocalDatabase : public Database {
       return (HAM_SUCCESS);
     }
 
+    // Copies the ham_record_t structure from |op| into |record|
+    // TODO make this private
+    static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
+                    TransactionOperation *op, ham_record_t *record);
+
   protected:
+    // Creates a cursor; this is the actual implementation
+    virtual Cursor *cursor_create_impl(Transaction *txn, ham_u32_t flags);
+
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src);
 
@@ -329,6 +334,24 @@ class LocalDatabase : public Database {
     // case if the same key is modified by another active txn.
     ham_status_t check_erase_conflicts(Transaction *txn,
                 TransactionNode *node, ham_key_t *key, ham_u32_t flags);
+
+    // Increments dupe index of all cursors with a dupe index > |start|;
+    // only cursor |skip| is ignored
+    void increment_dupe_index(TransactionNode *node, Cursor *skip,
+                    ham_u32_t start);
+
+    // Sets all cursors attached to a TransactionNode to nil
+    void nil_all_cursors_in_node(Transaction *txn, Cursor *current,
+                    TransactionNode *node);
+
+    // Sets all cursors to nil if they point to |key| in the btree index
+    void nil_all_cursors_in_btree(Cursor *current, ham_key_t *key);
+
+    // Lookup of a key/record pair in the Transaction index and in the btree,
+    // if transactions are disabled/not successful; copies the
+    // record into |record|. Also performs approx. matching.
+    ham_status_t find_txn(Transaction *txn, ham_key_t *key,
+                    ham_record_t *record, ham_u32_t flags);
 
     // the current record number
     ham_u64_t m_recno;

@@ -411,7 +411,7 @@ class BtreeInsertAction
       ham_assert(pivot > 0 && pivot <= count - 2);
 
       /* uncouple all cursors */
-      st = btree_uncouple_all_cursors(page, pivot);
+      st = BtreeCursor::uncouple_all_cursors(page, pivot);
       if (st)
         return (st);
 
@@ -585,7 +585,7 @@ fail_dramatically:
       if (!exists) {
         if (count > slot) {
           /* uncouple all cursors & shift any elements following [slot] */
-          st = btree_uncouple_all_cursors(page, slot);
+          st = BtreeCursor::uncouple_all_cursors(page, slot);
           if (st)
             return (st);
 
@@ -604,7 +604,7 @@ fail_dramatically:
       if (node->is_leaf()) {
         st = bte->set_record(db, m_txn, m_record,
                         m_cursor
-                            ? m_cursor->get_dupe_id()
+                            ? m_cursor->get_duplicate_index()
                             : 0,
                         m_hints.flags, &new_dupe_id);
         if (st)
@@ -625,14 +625,10 @@ fail_dramatically:
 
       /* if we have a cursor: couple it to the new key */
       if (m_cursor) {
-        m_cursor->get_parent()->set_to_nil(Cursor::CURSOR_BTREE);
+        m_cursor->get_parent()->set_to_nil(Cursor::kBtree);
 
-        ham_assert(!m_cursor->is_uncoupled());
-        ham_assert(!m_cursor->is_coupled());
-        m_cursor->couple_to(page, slot);
-        m_cursor->set_dupe_id(new_dupe_id);
-        memset(m_cursor->get_dupe_cache(), 0, sizeof(PDupeEntry));
-        page->add_cursor(m_cursor->get_parent());
+        ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
+        m_cursor->couple_to_page(page, slot, new_dupe_id);
       }
 
       /* if we've overwritten a key: no need to continue, we're done */

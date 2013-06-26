@@ -350,12 +350,14 @@ class TransactionIndex
 
 /**
  * traverses a tree; for each node, a callback function is executed
+ * TODO move into namespace TransactionIndex
  */
-typedef void(*txn_tree_enumerate_cb)(TransactionNode *node, void *data);
+struct TxnTreeVisitor {
+  virtual void visit(TransactionNode *node) = 0;
+};
 
 extern void
-txn_tree_enumerate(TransactionIndex *tree, txn_tree_enumerate_cb cb, void *data);
-
+txn_tree_enumerate(TransactionIndex *tree, TxnTreeVisitor *visitor);
 
 /**
  * a Transaction structure

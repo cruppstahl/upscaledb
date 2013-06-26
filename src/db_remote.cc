@@ -311,7 +311,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
 }
 
 Cursor *
-RemoteDatabase::cursor_create(Transaction *txn, ham_u32_t flags)
+RemoteDatabase::cursor_create_impl(Transaction *txn, ham_u32_t flags)
 {
   RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
   ham_status_t st;

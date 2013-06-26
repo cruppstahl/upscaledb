@@ -101,7 +101,7 @@ class Database
                     ham_record_t *record, ham_u32_t flags) = 0;
 
     // Creates a cursor (ham_cursor_create)
-    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags) = 0;
+    virtual Cursor *cursor_create(Transaction *txn, ham_u32_t flags);
 
     // Clones a cursor (ham_cursor_clone)
     virtual Cursor *cursor_clone(Cursor *src);
@@ -160,13 +160,8 @@ class Database
     }
 
     // Returns the head of the linked list with all cursors
-    Cursor *get_cursors() {
-      return (m_cursors);
-    }
-
-    // Sets the head of the linked list with all cursors
-    void set_cursors(Cursor *c) {
-      m_cursors = c;
+    Cursor *get_cursor_list() {
+      return (m_cursor_list);
     }
 
     // Returns the memory buffer for the key data
@@ -180,6 +175,9 @@ class Database
     }
 
   protected:
+    // Creates a cursor; this is the actual implementation
+    virtual Cursor *cursor_create_impl(Transaction *txn, ham_u32_t flags) = 0;
+
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src) = 0;
 
@@ -202,7 +200,7 @@ class Database
     void *m_context;
 
     // linked list of all cursors
-    Cursor *m_cursors;
+    Cursor *m_cursor_list;
 
     // The database flags - a combination of the persistent flags
     // and runtime flags

@@ -299,10 +299,8 @@ class BtreeFindAction
 
       /* set the cursor-position to this key */
       if (m_cursor) {
-        ham_assert(!m_cursor->is_uncoupled());
-        ham_assert(!m_cursor->is_coupled());
-        page->add_cursor(m_cursor->get_parent());
-        m_cursor->couple_to(page, idx);
+        ham_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
+        m_cursor->couple_to_page(page, idx, 0);
       }
 
       /*
@@ -317,7 +315,7 @@ class BtreeFindAction
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
       if (m_key && (ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
-          && !(m_flags & Cursor::CURSOR_SYNC_DONT_LOAD_KEY)) {
+          && !(m_flags & Cursor::kSyncDontLoadKey)) {
         st = m_btree->read_key(m_txn, entry, m_key);
         if (st)
           return (st);

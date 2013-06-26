@@ -51,9 +51,44 @@ x AES encryption
     x add to monster tests
     x extend the Windows build
 
-o run a performance test clang++ vs g++
+
+x clean up Database class
+    x split into multiple files
+    x remove the TODOs
+    x refactor, reformat if necessary
+    x db_local.cc has many static functions; remove them
+
+x clean up Cursors
+    x different definitions of Page::uncouple_cursor,
+        BtreeIndex::uncouple_cursor, btree_uncouple_cursors 
+        x reduce to one method
+        x instead of calling BtreeIndex::uncouple_cursor in PageManager
+            (and others), the function could be moved "up" in the call tree
+            into the relevant Btree modules
+        x same for BtreeIndex::free_page_extkeys
+    x clean up Cursor interface
+    x Page::add_cursor, Page::remove_cursor:
+        x move to BtreeCursor
+        x try to merge with couple(), uncouple(); the following functions
+            should exist:
+            x set_to_nil()
+            x get_state() -> nil | coupled | uncoupled
+            x uncouple_from_page()
+            x couple_to_page()
+            x get_coupled_key(&page, &slot, &dupe_id)
+            x get_uncoupled_key()
+
+x clean up BtreeCursor - there still are many TODOs
 
 o metrics: memory allocations currently ignore operator new/delete
+
+o Rewrite Cursor::is_nil: fix TODOs, do not allow what==0
+
+o Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
+
+o Environment::get_incremented_lsn should return void
+
+o run a performance test clang++ vs g++
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -66,12 +101,15 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o clean up Database class
-    x split into multiple files
-    x remove the TODOs
-    x refactor, reformat if necessary
-    o use boost::intrusive_list for Database::m_cursors
-    o db_local.cc has many static functions; remove them
+o Review Cursor stuff: when reimplementing duplicates, try to get rid of the
+    duplicate cache and all the tricky code in the consolidation
+    -> how?
+
+o LocalDatabase::cursor_insert (and others) should move the relevant functions
+    to Transaction and Cursor; do not directly access btree/txntree/txncursor
+
+o clean up Btree::enumerate interface, use C++ object instead of callback
+    function
 
 o clean up Environment class
     o split into multiple files

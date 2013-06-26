@@ -19,6 +19,7 @@
 #include "../src/cursor.h"
 #include "../src/btree.h"
 #include "../src/btree_cursor.h"
+#include "../src/btree.h"
 
 using namespace hamsterdb;
 
@@ -241,8 +242,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 ==
           ham_cursor_clone(m_cursor, &clone));
 
-    REQUIRE(false == cursor_is_nil((Cursor *)clone,
-            Cursor::CURSOR_BTREE));
+    REQUIRE(false == cursor_is_nil((Cursor *)clone, Cursor::kBtree));
     REQUIRE(0 == ham_cursor_close(clone));
   }
 
@@ -260,7 +260,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     REQUIRE(0 ==
           ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == c->get_btree_cursor()->uncouple());
+    REQUIRE(0 == c->get_btree_cursor()->uncouple_from_page());
     REQUIRE(0 ==
           ham_cursor_clone(m_cursor, &clone));
 
@@ -283,7 +283,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     REQUIRE(0 ==
           ham_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == c->get_btree_cursor()->uncouple());
+    REQUIRE(0 == c->get_btree_cursor()->uncouple_from_page());
 
     /* will close in teardown() */
   }
@@ -576,8 +576,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ham_cursor_erase(m_cursor, 0));
 
     /* key is now nil */
-    REQUIRE(true == cursor_is_nil((Cursor *)m_cursor,
-            Cursor::CURSOR_BTREE));
+    REQUIRE(true == cursor_is_nil((Cursor *)m_cursor, Cursor::kBtree));
 
     /* retrieve key - must fail */
     REQUIRE(HAM_KEY_NOT_FOUND ==
@@ -729,8 +728,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     Cursor *c = (Cursor *)m_cursor;
     Cursor *cl = (Cursor *)clone;
 
-    REQUIRE(false ==
-        (((Cursor *)clone)->get_btree_cursor()->is_nil()));
     REQUIRE(2u == ((Transaction *)m_txn)->get_cursor_refcount());
     REQUIRE(c->get_txn_cursor()->get_coupled_op() ==
         cl->get_txn_cursor()->get_coupled_op());
@@ -2055,7 +2052,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     ham_record_t r = {0};
     ham_status_t st;
 
-    st=ham_cursor_move(m_cursor, &k, &r, HAM_CURSOR_PREVIOUS);
+    st = ham_cursor_move(m_cursor, &k, &r, HAM_CURSOR_PREVIOUS);
     if (st)
       return (st);
     if (strcmp(key, (char *)k.data))

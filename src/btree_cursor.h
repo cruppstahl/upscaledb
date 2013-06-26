@@ -13,145 +13,126 @@
  * btree cursors
  *
  * A Btree-Cursor is an object which is used to traverse a Btree.
+ * It is a random access iterator.
  *
  * Btree-Cursors are used in Cursor structures as defined in cursor.h. But
- * some routines still use them directly. Over time these layers will be
- * cleaned up and the separation will be improved.
+ * some routines use them directly, mostly for performance reasons. Over
+ * time these layers will be cleaned up and the separation will be improved.
  *
  * The cursor implementation is very fast. Most of the operations (i.e.
  * move previous/next) will not cause any disk access but are O(1) and
  * in-memory only. That's because a cursor is directly "coupled" to a
  * btree page (Page) that resides in memory. If the page is removed
  * from memory (i.e. because the cache decides that it needs to purge the
- * cache, or if there's a page split) then the page is "uncoupled", and a
+ * cache, or if there's a page split) then the cursor is "uncoupled", and a
  * copy of the current key is stored in the cursor. On first access, the
  * cursor is "coupled" again and basically performs a normal lookup of the key.
+ *
+ * The three states of a BtreeCursor("nil", "coupled", "uncoupled") can be
+ * retrieved with the method get_state(), and can be modified with
+ * set_to_nil(), couple_to_page() and uncouple_from_page().
  */
 
 #ifndef HAM_BTREE_CURSORS_H__
 #define HAM_BTREE_CURSORS_H__
 
-#include "internal_fwd_decl.h"
 #include "blob_manager.h"
 #include "duplicates.h"
 #include "error.h"
 
 namespace hamsterdb {
 
+class Cursor;
+struct PBtreeKey;
+
 //
-// the Cursor structure for a b+tree cursor
+// The Cursor structure for a b+tree cursor
 //
 class BtreeCursor
 {
   public:
     enum {
-      // cursor does not point to any key
+      // Cursor does not point to any key
       kStateNil       = 0,
-      // cursor flag: the cursor is coupled
+      // Cursor flag: the cursor is coupled
       kStateCoupled   = 1,
-      // cursor flag: the cursor is uncoupled
+      // Cursor flag: the cursor is uncoupled
       kStateUncoupled = 2
     };
 
+    // Constructor
     BtreeCursor(Cursor *parent = 0)
-      : m_parent(parent), m_state(0), m_dupe_id(0), m_dupe_cache(),
-        m_coupled_page(0), m_coupled_index(0), m_uncoupled_key(0) {
+      : m_parent(parent), m_state(0), m_duplicate_index(0), m_dupe_cache(),
+        m_coupled_page(0), m_coupled_index(0), m_uncoupled_key(0),
+        m_next_in_page(0), m_previous_in_page(0) {
     }
 
-    // get the parent cursor
+    // Returns the parent cursor
     Cursor *get_parent() {
       return (m_parent);
     }
 
-    // clone another BtreeCursor
+    // Clones another BtreeCursor
     void clone(BtreeCursor *other);
 
-    // set the cursor to NIL
+    // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
+    ham_u32_t get_state() const {
+      return (m_state);
+    }
+
+    // Reset's the cursor's state and uninitializes it. After this call
+    // the cursor no longer points to any key.
     void set_to_nil();
 
-    // returns true if the cursor is nil, otherwise false
-    bool is_nil();
-
-    // set the key we're pointing to - if the cursor is coupled
-    void couple_to(Page *page, ham_size_t index) {
-      m_coupled_page = page;
-      m_coupled_index = index;
-      m_state = kStateCoupled;
+    // Returns the page, index in this page and the duplicate index that this
+    // cursor is coupled to. This is used by Btree functions to optimize
+    // certain algorithms, i.e. when erasing the current key.
+    // Asserts that the cursor is coupled.
+    void get_coupled_key(Page **page, ham_u32_t *index = 0,
+                    ham_u32_t *duplicate_index = 0) const {
+      ham_assert(m_state == kStateCoupled);
+      if (page)
+        *page = m_coupled_page;
+      if (index)
+        *index = m_coupled_index;
+      if (duplicate_index)
+        *duplicate_index = m_duplicate_index;
     }
 
-    // get the page we're pointing to - if the cursor is coupled
-    // TODO make this private?
-    Page *get_coupled_page() const {
-      return (m_coupled_page);
-    }
-
-    // get the key index we're pointing to - if the cursor is coupled
-    // TODO make this private?
-    ham_size_t get_coupled_index() const {
-      return (m_coupled_index);
-    }
-
-    // get the duplicate key we're pointing to - if the cursor is coupled
-    // TODO make this private?
-    ham_size_t get_dupe_id() const {
-      return (m_dupe_id);
-    }
-
-    // set the duplicate key we're pointing to - if the cursor is coupled
-    // TODO make this private?
-    void set_dupe_id(ham_size_t dupe_id) {
-      m_dupe_id = dupe_id;
-    }
-
-    // get the duplicate key's cache
-    // TODO make this private?
-    PDupeEntry *get_dupe_cache() {
-      return (&m_dupe_cache);
-    }
-
-    // get the key we're pointing to - if the cursor is uncoupled
-    // TODO make this private?
+    // Returns the uncoupled key of this cursor.
+    // Asserts that the cursor is uncoupled.
     ham_key_t *get_uncoupled_key() {
+      ham_assert(m_state == kStateUncoupled);
       return (m_uncoupled_key);
     }
 
-    // check if the cursor is coupled
-    // TODO make this private?
-    bool is_coupled() const {
-      return (m_state == BtreeCursor::kStateCoupled);
+    // Couples the cursor to a key directly in a page. Also sets the
+    // duplicate index.
+    void couple_to_page(Page *page, ham_size_t index,
+                    ham_size_t duplicate_index) {
+      couple_to_page(page, index);
+      m_duplicate_index = duplicate_index;
     }
 
-    // check if the cursor is uncoupled
-    // TODO make this private?
-    bool is_uncoupled() const {
-      return (m_state == BtreeCursor::kStateUncoupled);
+    // Returns the duplicate index that this cursor points to.
+    ham_u32_t get_duplicate_index() const {
+      return (m_duplicate_index);
     }
 
-    // Couple the cursor to the same item as another (coupled!) cursor
-    //
-    // will assert that the other cursor is coupled; will set the
-    // current cursor to nil
-    // TODO make this private?
-    void couple_to_other(const BtreeCursor *other) {
-      ham_assert(other->is_coupled());
-      set_to_nil();
-      couple_to(other->get_coupled_page(), other->get_coupled_index());
-      set_dupe_id(other->get_dupe_id());
+    // Sets the duplicate key we're pointing to
+    void set_duplicate_index(ham_size_t duplicate_index) {
+      m_duplicate_index = duplicate_index;
+      memset(&m_dupe_cache, 0, sizeof(m_dupe_cache));
     }
 
-    // Uncouple the cursor
+    // Uncouples the cursor
     // Asserts that the cursor is coupled
-    // TODO make this private?
-    ham_status_t uncouple(ham_u32_t flags = 0);
+    ham_status_t uncouple_from_page();
 
-    // returns true if a cursor points to this btree key, otherwise false
-    // TODO make this private
-    // TODO make this const
+    // Returns true if a cursor points to this btree key
     bool points_to(PBtreeKey *key);
 
-    // returns true if a cursor points to this external key, otherwise false
-    // TODO make this private
-    // TODO make this const
+    // Returns true if a cursor points to this external key
     bool points_to(ham_key_t *key);
 
     // Positions the cursor on a key and retrieves the record (if |record|
@@ -176,27 +157,26 @@ class BtreeCursor
     // retrieves the record size of the current record
     ham_status_t get_record_size(ham_u64_t *size);
 
-    // retrieves the duplicate table of the current key; memory in ptable has
-    // to be released by the caller.
-    //
-    // if key has no duplicates, *ptable is NULL.
-    //
-    // memory has to be freed by the caller IF needs_free is true!
-    // TODO make this private
-    ham_status_t get_duplicate_table(PDupeTable **ptable, bool *needs_free);
-
     // Closes the cursor
     void close() {
       set_to_nil();
     }
 
+    // Uncouples all cursors from a page
+    // This method is called whenever the page is deleted or becomes invalid
+    static ham_status_t uncouple_all_cursors(Page *page, ham_size_t start = 0);
+
   private:
-    // set the key we're pointing to - if the cursor is uncoupled
-    void set_uncoupled_key(ham_key_t *key) {
-      m_uncoupled_key = key;
-    }
+    // Sets the key we're pointing to - if the cursor is coupled. Also
+    // links the Cursor with |page| (and vice versa).
+    void couple_to_page(Page *page, ham_size_t index);
+
+    // Removes this cursor from a page
+    void remove_cursor_from_page(Page *page);
 
     // Couples the cursor to the current page/key
+    // Asserts that the cursor is uncoupled. After this call the cursor
+    // will be coupled.
     ham_status_t couple();
 
     // move cursor to the very first key
@@ -222,7 +202,7 @@ class BtreeCursor
     int m_state;
 
     // the id of the duplicate key to which this cursor is coupled
-    ham_size_t m_dupe_id;
+    ham_size_t m_duplicate_index;
 
     // cached flags and record ID of the current duplicate
     PDupeEntry m_dupe_cache;
@@ -235,13 +215,10 @@ class BtreeCursor
 
     // for uncoupled cursors: a copy of the key at which we're pointing
     ham_key_t *m_uncoupled_key;
-};
 
-// Uncouples all cursors from a page
-// This is called whenever the page is deleted or becoming invalid
-// TODO move this to Cursor
-extern ham_status_t
-btree_uncouple_all_cursors(Page *page, ham_size_t start);
+    // Linked list of cursors which point to the same page
+    BtreeCursor *m_next_in_page, *m_previous_in_page;
+};
 
 } // namespace hamsterdb
 

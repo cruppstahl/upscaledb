@@ -18,9 +18,26 @@
 namespace hamsterdb {
 
 Database::Database(Environment *env, ham_u16_t name, ham_u32_t flags)
-  : m_env(env), m_name(name), m_error(0), m_context(0), m_cursors(0),
+  : m_env(env), m_name(name), m_error(0), m_context(0), m_cursor_list(0),
     m_rt_flags(flags)
 {
+}
+
+Cursor *
+Database::cursor_create(Transaction *txn, ham_u32_t flags)
+{
+  Cursor *cursor = cursor_create_impl(txn, flags);
+
+  /* fix the linked list of cursors */
+  cursor->set_next(m_cursor_list);
+  if (m_cursor_list)
+    m_cursor_list->set_previous(cursor);
+  m_cursor_list = cursor;
+
+  if (txn)
+    txn->set_cursor_refcount(txn->get_cursor_refcount() + 1);
+
+  return (cursor);
 }
 
 Cursor *
@@ -30,14 +47,12 @@ Database::cursor_clone(Cursor *src)
 
   // fix the linked list of cursors
   dest->set_previous(0);
-  dest->set_next(get_cursors());
-  ham_assert(get_cursors() != 0);
-  get_cursors()->set_previous(dest);
-  set_cursors(dest);
+  dest->set_next(m_cursor_list);
+  ham_assert(m_cursor_list != 0);
+  m_cursor_list->set_previous(dest);
+  m_cursor_list = dest;
 
   // initialize the remaining fields
-  dest->set_txn(src->get_txn());
-
   if (src->get_txn())
     src->get_txn()->set_cursor_refcount(
             src->get_txn()->get_cursor_refcount() + 1);
@@ -68,7 +83,7 @@ Database::cursor_close(Cursor *cursor)
   if (p)
     p->set_next(n);
   else
-    set_cursors(n);
+    m_cursor_list = n;
 
   if (n)
     n->set_previous(p);
@@ -85,10 +100,10 @@ Database::close(ham_u32_t flags)
   // auto-cleanup cursors?
   if (flags & HAM_AUTO_CLEANUP) {
     Cursor *cursor;
-    while ((cursor = get_cursors()))
+    while ((cursor = m_cursor_list))
       cursor_close(cursor);
   }
-  else if (get_cursors()) {
+  else if (m_cursor_list) {
     ham_trace(("cannot close Database if Cursors are still open"));
     return (set_error(HAM_CURSOR_STILL_OPEN));
   }
