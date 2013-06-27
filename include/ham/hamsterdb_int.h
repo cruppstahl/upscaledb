@@ -126,8 +126,11 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * that applications can use to verify that the structure layout is compatible.
  *
  * These metrics are NOT persisted to disk.
+ *
+ * Metrics marked "global" are stored globally and shared between multiple
+ * Environments.
  */
-#define HAM_METRICS_VERSION         1
+#define HAM_METRICS_VERSION         2
 
 typedef struct ham_env_metrics_t {
   // the version indicator - must be HAM_METRICS_VERSION
@@ -191,6 +194,12 @@ typedef struct ham_env_metrics_t {
 
   // number of direct I/O bytes allocated (disk only)
   ham_u64_t blob_direct_allocated;
+
+  // (global) number of successful extended-key cache hits
+  ham_u64_t extkey_cache_hits;
+
+  // (global) number of extended-key cache misses
+  ham_u64_t extkey_cache_misses;
 
 } ham_env_metrics_t;
 

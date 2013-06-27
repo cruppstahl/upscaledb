@@ -17,6 +17,7 @@
 #include "hash-table.h"
 #include "mem.h"
 #include "env.h"
+#include "db.h"
 
 namespace hamsterdb {
 
@@ -96,7 +97,7 @@ class ExtKeyCache {
     // the default constructor
     ExtKeyCache(Database *db)
       : m_db(db), m_usedsize(0),
-      m_extkeyhelper(new ExtKeyHelper(db->get_env())),
+        m_extkeyhelper(new ExtKeyHelper(db->get_env())),
       m_hash(*m_extkeyhelper) {
     }
 
@@ -144,10 +145,12 @@ class ExtKeyCache {
         *data = e->data;
         // TODO do not use txn id but lsn for age
         e->age = m_db->get_env()->get_txn_id();
+        ms_count_hits++;
         return (0);
       }
-      else
-        return (HAM_KEY_NOT_FOUND);
+
+      ms_count_misses++;
+      return (HAM_KEY_NOT_FOUND);
     }
 
     // removes all OLD keys from the cache
@@ -162,12 +165,24 @@ class ExtKeyCache {
       m_hash.remove_if();
     }
 
+    // Returns the usage metrics
+    static void get_metrics(ham_env_metrics_t *metrics) {
+      metrics->extkey_cache_hits = ms_count_hits;
+      metrics->extkey_cache_misses = ms_count_misses;
+    }
+
   private:
     // the owner of the cache
     Database *m_db;
 
     // the used size, in byte
     ham_size_t m_usedsize;
+
+    // usage metrics - number of cache hits
+    static ham_u64_t ms_count_hits;
+
+    // usage metrics - number of cache misses
+    static ham_u64_t ms_count_misses;
 
     // ExtKeyHelper instance for the hash table
     ExtKeyHelper *m_extkeyhelper;

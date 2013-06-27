@@ -460,6 +460,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\extkeys.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\freelist.cc"
 			>
 		</File>

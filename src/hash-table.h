@@ -88,7 +88,7 @@ class hash_table {
      */
     void remove_if() {
       bucket_iterator it;
-      for (size_t i = 0; i < m_buckets.size(); i++) {
+      for (std::size_t i = 0; i < m_buckets.size(); i++) {
         T *previous = 0, *next = 0, *p = m_buckets[i];
         while (p) {
           next = m_helper.next(p);

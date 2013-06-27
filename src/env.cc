@@ -210,6 +210,8 @@ Environment::get_metrics(ham_env_metrics_t *metrics) const
   m_page_manager->get_metrics(metrics);
   // the BlobManagers
   m_blob_manager->get_metrics(metrics);
+  // accumulate for the extended key-caches
+  ExtKeyCache::get_metrics(metrics);
 }
 
 ham_status_t

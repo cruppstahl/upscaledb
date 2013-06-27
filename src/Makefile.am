@@ -56,6 +56,7 @@ libhamsterdb_la_SOURCES = \
 	error.h \
 	errorinducer.h \
 	extkeys.h \
+	extkeys.cc \
 	freelist.cc \
 	freelist.h \
 	freelist_stats.cc \

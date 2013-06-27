@@ -22,6 +22,8 @@
 #  include <google/tcmalloc.h>
 #endif
 
+#include "ham/hamsterdb.h"
+
 struct ham_env_metrics_t;
 
 namespace hamsterdb {
