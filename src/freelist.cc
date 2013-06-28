@@ -2713,7 +2713,7 @@ Freelist::resize(ham_size_t new_count)
 
   ham_assert(new_count > m_entries.size());
 
-  for (ham_size_t i = m_entries.size(); i < new_count; i++) {
+  for (std::size_t i = m_entries.size(); i < new_count; i++) {
     FreelistEntry entry = {0};
 
     FreelistEntry *prev = &m_entries[m_entries.size() - 1];

@@ -23,7 +23,7 @@ x boost: configure script should make sure that only boost v 1.46 (or newer)
 
 x metrics: add extkey_cache:hits, :misses
 
-o AES encryption
+x AES encryption
     x create a test program which encrypts/decrypts data (cbc)
         http://saju.net.in/code/misc/openssl_aes.c.txt
     x ./configure: enable aes by default if -lcrypto is available
@@ -49,12 +49,7 @@ o AES encryption
         x need tests w/ recovery
         x also test in recovery.pl
     x add to monster tests
-
-    o extend the Windows build
-        http://www.ski-epic.com/2007_notes_on_openssl/index.html
-        http://developer.covenanteyes.com/building-openssl-for-visual-studio/
-        http://wiki.openuru.org/index.php?title=Build_OpenSSL_with_MS_Visual_C%2B%2B
-        http://eran.geek.co.il/wp/archives/3897
+    x extend the Windows build
 
 o run a performance test clang++ vs g++
 

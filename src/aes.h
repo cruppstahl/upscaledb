@@ -23,7 +23,7 @@
 #include <openssl/evp.h>
 
 #include "error.h"
-#include "endian.h"
+#include "endianswap.h"
 
 class AesCipher {
   enum {
