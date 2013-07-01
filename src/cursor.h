@@ -28,7 +28,7 @@
  * A Cursor can have several states. It can be
  * 1. NIL (not in list) - this is the default state, meaning that the Cursor
  *      does not point to any key. If the Cursor was initialized, then it's
- *      "NIL". If the Cursor was erased (@ref ham_cursor_erase) then it's
+ *      "NIL". If the Cursor was erased (i.e. with ham_cursor_erase) then it's
  *      also "NIL".
  *
  *      relevant functions:
@@ -54,10 +54,10 @@
  *          Cursor::couple_to_btree
  *
  * The dupecache is used when information from the btree and the txn-tree
- * is merged. The btree cursor has its private dupecache. Both will be merged
- * sooner or later.
+ * is merged. The btree cursor has its private dupecache. The dupecache
+ * increases performance (and complexity).
  *
- * The cursor interface is used in db.c. Many of the functions in db.c use
+ * The cursor interface is used in db_local.cc. Many of the functions use
  * a high-level cursor interface (i.e. @ref cursor_create, @ref cursor_clone)
  * while some directly use the low-level interfaces of btree_cursor.h and
  * txn_cursor.h. Over time i will clean this up, trying to maintain a clear
@@ -74,8 +74,6 @@
 
 #include <vector>
 
-#include "internal_fwd_decl.h"
-
 #include "error.h"
 #include "txn_cursor.h"
 #include "btree_cursor.h"
@@ -83,7 +81,7 @@
 #include "env.h"
 #include "db_local.h"
 
-// a helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
+// A helper structure; ham_cursor_t is declared in ham/hamsterdb.h as an
 // opaque C structure, but internally we use a C++ class. The ham_cursor_t
 // struct satisfies the C compiler, and internally we just cast the pointers.
 struct ham_cursor_t
@@ -216,27 +214,27 @@ class DupeCache {
 class Cursor
 {
   public:
-    // the flags have ranges:
+    // The flags have ranges:
     //  0 - 0x1000000-1:      btree_cursor
     //    > 0x1000000:        cursor
     enum {
-      // flags for set_to_nil, is_nil
+      // Flags for set_to_nil, is_nil
+      kBoth  = 0,
       kBtree = 1,
       kTxn   = 2,
-      kBoth  = (kBtree | kTxn),
 
-      // flag for sync(): do not use approx matching if the key
+      // Flag for sync(): do not use approx matching if the key
       // is not available
       kSyncOnlyEqualKeys = 0x200000,
 
-      // flag for sync(): do not load the key if there's an approx.
+      // Flag for sync(): do not load the key if there's an approx.
       // match. Only positions the cursor.
       kSyncDontLoadKey   = 0x100000,
 
       // Cursor flag: cursor is coupled to the txn-cursor
       kCoupledToTxn      = 0x1000000,
 
-      // flag for set_lastop()
+      // Flag for set_lastop()
       kLookupOrInsert    = 0x10000
     };
 

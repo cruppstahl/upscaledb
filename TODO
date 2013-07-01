@@ -82,11 +82,14 @@ x clean up BtreeCursor - there still are many TODOs
 
 x Environment::get_incremented_lsn should return void
 
+x Rewrite Cursor::is_nil: fix TODOs, do not allow what==0
+
+x Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
+
 o metrics: memory allocations currently ignore operator new/delete
 
-o Rewrite Cursor::is_nil: fix TODOs, do not allow what==0
-
-o Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
+o LocalDatabase::cursor_insert (and others) should move the relevant functions
+    to Transaction and Cursor; do not directly access btree/txntree/txncursor
 
 o run a performance test clang++ vs g++
 
@@ -100,13 +103,6 @@ o improve client/server performance
     o use libuv on client side, get rid of libcurl
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
-
-o Review Cursor stuff: when reimplementing duplicates, try to get rid of the
-    duplicate cache and all the tricky code in the consolidation
-    -> how?
-
-o LocalDatabase::cursor_insert (and others) should move the relevant functions
-    to Transaction and Cursor; do not directly access btree/txntree/txncursor
 
 o clean up Btree::enumerate interface, use C++ object instead of callback
     function
@@ -146,9 +142,6 @@ o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
 
 o release-v2.sh
     o test build with disabled AES, add this to the release process
-
-. BtreeCursor: use memory arena for uncoupling the key
-    -> postpone till we got rid of extended keys?
 
 ------------------- release 2.1.1 -----------------------------------------
 

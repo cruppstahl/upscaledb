@@ -25,13 +25,6 @@
 using namespace hamsterdb;
 
 
-static bool
-__btree_cursor_is_nil(BtreeCursor *btc)
-{
-  return (btc->get_state() != BtreeCursor::kStateCoupled
-              && btc->get_state() != BtreeCursor::kStateUncoupled);
-}
-
 ham_status_t
 Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
 {
@@ -1043,16 +1036,13 @@ Cursor::is_nil(int what)
 {
   switch (what) {
     case kBtree:
-      return (__btree_cursor_is_nil(get_btree_cursor()));
+      return (get_btree_cursor()->get_state() == BtreeCursor::kStateNil);
     case kTxn:
       return (get_txn_cursor()->is_nil());
     default:
       ham_assert(what == 0);
-      /* TODO btree_cursor_is_nil is different from __btree_cursor_is_nil
-       * - refactor and clean up! */
-      return __btree_cursor_is_nil(get_btree_cursor())
-              && get_txn_cursor()->is_nil();
-      //return (get_btree_cursor()->is_nil());
+      return (get_btree_cursor()->get_state() == BtreeCursor::kStateNil
+                      && get_txn_cursor()->is_nil());
   }
 }
 

@@ -10,9 +10,9 @@
  */
 
 /**
- * @brief A cursor which can iterate over transaction nodes and operations
+ * A cursor which can iterate over transaction nodes and operations
  *
- * A Transaction Cursor can walk over Transaction trees (txn_tree_t).
+ * A Transaction Cursor can walk over Transaction trees (TransactionIndex).
  *
  * Transaction Cursors are only used as part of the Cursor structure as defined
  * in cursor.h. Like all Transaction operations it is in-memory only,
