@@ -600,7 +600,6 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
   ham_status_t st = 0;
   TransactionOperation *op;
   bool node_created = false;
-  ham_u64_t lsn = 0;
 
   /* get (or create) the node for this key */
   TransactionNode *node = get_txn_index()->get(key, 0);
@@ -622,14 +621,6 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
     return (st);
   }
 
-  // get the next lsn
-  st = m_env->get_incremented_lsn(&lsn);
-  if (st) {
-    if (node_created)
-      delete node;
-    return (st);
-  }
-
   // append a new operation to this node
   op = node->append(txn, flags,
           (flags & HAM_PARTIAL) |
@@ -638,7 +629,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
             : (flags & HAM_OVERWRITE)
               ? TransactionOperation::TXN_OP_INSERT_OW
               : TransactionOperation::TXN_OP_INSERT),
-          lsn, record);
+          m_env->get_incremented_lsn(), record);
   if (!op)
     return (HAM_OUT_OF_MEMORY);
 
@@ -867,7 +858,6 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
   ham_status_t st = 0;
   TransactionOperation *op;
   bool node_created = false;
-  ham_u64_t lsn = 0;
   Cursor *pc = 0;
   if (cursor)
     pc = cursor->get_parent();
@@ -891,16 +881,9 @@ LocalDatabase::erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
     }
   }
 
-  /* get the next lsn */
-  st = m_env->get_incremented_lsn(&lsn);
-  if (st) {
-    if (node_created)
-      delete node;
-    return (st);
-  }
-
   /* append a new operation to this node */
-  op = node->append(txn, flags, TransactionOperation::TXN_OP_ERASE, lsn, 0);
+  op = node->append(txn, flags, TransactionOperation::TXN_OP_ERASE,
+                  m_env->get_incremented_lsn(), 0);
   if (!op)
     return (HAM_OUT_OF_MEMORY);
 

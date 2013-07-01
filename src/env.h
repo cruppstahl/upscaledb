@@ -460,13 +460,12 @@ class Environment
     void remove_txn(Transaction *txn);
 
     /*
-     * increments the lsn and returns the incremended value; if the lsn
-     * overflows, HAM_LIMITS_REACHED is returned
+     * increments the lsn and returns the incremented value
      *
      * only works if a journal is created! Otherwise assert(0)
      */
     // TODO move to LocalEnvironment
-    ham_status_t get_incremented_lsn(ham_u64_t *lsn);
+    ham_u64_t get_incremented_lsn();
 
     /** Retrieve the PageManager instance */
     PageManager *get_page_manager() {

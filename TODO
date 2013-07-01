@@ -80,13 +80,13 @@ x clean up Cursors
 
 x clean up BtreeCursor - there still are many TODOs
 
+x Environment::get_incremented_lsn should return void
+
 o metrics: memory allocations currently ignore operator new/delete
 
 o Rewrite Cursor::is_nil: fix TODOs, do not allow what==0
 
 o Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
-
-o Environment::get_incremented_lsn should return void
 
 o run a performance test clang++ vs g++
 

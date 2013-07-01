@@ -185,22 +185,11 @@ Environment::flush_committed_txns()
   return (0);
 }
 
-ham_status_t
-Environment::get_incremented_lsn(ham_u64_t *lsn)
+ham_u64_t
+Environment::get_incremented_lsn()
 {
   Journal *j = get_journal();
-  if (j) {
-    *lsn = j->get_incremented_lsn();
-    if (*lsn == 0) {
-      ham_log(("journal limits reached (lsn overflow) - please reorg"));
-      return (HAM_LIMITS_REACHED);
-    }
-    return (0);
-  }
-
-  // otherwise return a dummy value
-  *lsn = 1;
-  return (0);
+  return (j ? j->get_incremented_lsn() : 1);
 }
 
 void
@@ -640,11 +629,8 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 
   /* if logging is enabled: flush the changeset and the header page */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    ham_u64_t lsn;
     get_changeset().add_page(get_header_page());
-    st = get_incremented_lsn(&lsn);
-    if (st == 0)
-      st = get_changeset().flush(lsn);
+    st = get_changeset().flush(get_incremented_lsn());
   }
 
   ham_u32_t descriptor = db->get_btree_index()->get_descriptor_index();
@@ -962,11 +948,8 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
 
   /* if logging is enabled: flush the changeset and the header page */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    ham_u64_t lsn;
     get_changeset().add_page(get_header_page());
-    st = get_incremented_lsn(&lsn);
-    if (st == 0)
-      st = get_changeset().flush(lsn);
+    st = get_changeset().flush(get_incremented_lsn());
     if (st) {
       delete db;
       return (st);
@@ -1060,10 +1043,8 @@ LocalEnvironment::txn_begin(Transaction **txn, const char *name,
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    ham_u64_t lsn;
-    st = get_incremented_lsn(&lsn);
-    if (st == 0)
-      st = get_journal()->append_txn_begin(*txn, this, name, lsn);
+    st = get_journal()->append_txn_begin(*txn, this, name,
+                    get_incremented_lsn());
   }
 
   return (st);
@@ -1084,11 +1065,7 @@ LocalEnvironment::txn_commit(Transaction *txn, ham_u32_t flags)
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    ham_u64_t lsn;
-    st = get_incremented_lsn(&lsn);
-    if (st)
-      return (st);
-    st = get_journal()->append_txn_commit(txn, lsn);
+    st = get_journal()->append_txn_commit(txn, get_incremented_lsn());
     if (st)
       return (st);
   }
@@ -1111,11 +1088,7 @@ LocalEnvironment::txn_abort(Transaction *txn, ham_u32_t flags)
   /* append journal entry */
   if (get_flags() & HAM_ENABLE_RECOVERY
       && get_flags() & HAM_ENABLE_TRANSACTIONS) {
-    ham_u64_t lsn;
-    st = get_incremented_lsn(&lsn);
-    if (st)
-      return (st);
-    st = get_journal()->append_txn_abort(txn, lsn);
+    st = get_journal()->append_txn_abort(txn, get_incremented_lsn());
     if (st)
       return (st);
   }

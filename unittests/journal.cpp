@@ -205,8 +205,7 @@ struct JournalFixture {
     REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
     REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
 
-    ham_u64_t lsn;
-    REQUIRE(0 == m_environ->get_incremented_lsn(&lsn));
+    ham_u64_t lsn = m_environ->get_incremented_lsn();
     REQUIRE(0 == j->append_txn_abort((Transaction *)txn, lsn));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->get_lsn());
@@ -231,8 +230,7 @@ struct JournalFixture {
     REQUIRE((ham_size_t)0 == j->m_open_txn[1]);
     REQUIRE((ham_size_t)0 == j->m_closed_txn[1]);
 
-    ham_u64_t lsn;
-    REQUIRE(0 == m_environ->get_incremented_lsn(&lsn));
+    ham_u64_t lsn = m_environ->get_incremented_lsn();
     REQUIRE(0 == j->append_txn_commit((Transaction *)txn, lsn));
     REQUIRE(false == j->is_empty());
     REQUIRE((ham_u64_t)3 == j->get_lsn());
@@ -255,8 +253,7 @@ struct JournalFixture {
     rec.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn;
-    REQUIRE(0 == m_environ->get_incremented_lsn(&lsn));
+    ham_u64_t lsn = m_environ->get_incremented_lsn();
     REQUIRE(0 ==
           j->append_insert((Database *)m_db, (Transaction *)txn,
               &key, &rec, HAM_OVERWRITE, lsn));
@@ -302,8 +299,7 @@ struct JournalFixture {
     rec.partial_offset = 10;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn;
-    REQUIRE(0 == m_environ->get_incremented_lsn(&lsn));
+    ham_u64_t lsn = m_environ->get_incremented_lsn();
     REQUIRE(0 ==
           j->append_insert((Database *)m_db, (Transaction *)txn,
               &key, &rec, HAM_PARTIAL, lsn));
@@ -344,8 +340,7 @@ struct JournalFixture {
     key.size = 5;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
-    ham_u64_t lsn;
-    REQUIRE(0 == m_environ->get_incremented_lsn(&lsn));
+    ham_u64_t lsn = m_environ->get_incremented_lsn();
     REQUIRE(0 == j->append_erase((Database *)m_db,
           (Transaction *)txn, &key, 1, 0, lsn));
     REQUIRE((ham_u64_t)3 == j->get_lsn());
@@ -987,21 +982,6 @@ struct JournalFixture {
     REQUIRE(0 == ham_db_get_key_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
-
-  void lsnOverflowTest(void)
-  {
-    Journal *j = m_environ->get_journal();
-    j->m_lsn = 0xffffffffffffffffull;
-    ham_txn_t *txn;
-
-    /* this one must work */
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    /* this one must fail */
-    REQUIRE(HAM_LIMITS_REACHED == ham_txn_commit(txn, 0));
-
-    /* and now it has to work again */
-    j->m_lsn = 3;
-  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1134,12 +1114,6 @@ TEST_CASE("Journal/recoverEraseTest", "")
 {
   JournalFixture f;
   f.recoverEraseTest();
-}
-
-TEST_CASE("Journal/lsnOverflowTest", "")
-{
-  JournalFixture f;
-  f.lsnOverflowTest();
 }
 
 } // namespace hamsterdb
