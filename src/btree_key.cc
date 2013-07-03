@@ -26,7 +26,7 @@
 
 namespace hamsterdb {
 
-size_t PBtreeKey::ms_sizeof_overhead = OFFSETOF(PBtreeKey, _key);
+ham_size_t PBtreeKey::kSizeofOverhead = OFFSETOF(PBtreeKey, m_key);
 
 ham_u64_t
 PBtreeKey::get_extended_rid(LocalDatabase *db)
@@ -55,26 +55,26 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
   ham_u64_t ptr = get_ptr();
   ham_u8_t oldflags = get_flags();
 
-  set_flags(oldflags & ~(KEY_BLOB_SIZE_SMALL
-                    | KEY_BLOB_SIZE_TINY
-                    | KEY_BLOB_SIZE_EMPTY));
+  set_flags(oldflags & ~(kBlobSizeSmall
+                    | kBlobSizeTiny
+                    | kBlobSizeEmpty));
 
   /* no existing key, just create a new key (but not a duplicate)? */
-  if (!ptr && !(oldflags & (KEY_BLOB_SIZE_SMALL
-                    | KEY_BLOB_SIZE_TINY
-                    | KEY_BLOB_SIZE_EMPTY))) {
+  if (!ptr && !(oldflags & (kBlobSizeSmall
+                    | kBlobSizeTiny
+                    | kBlobSizeEmpty))) {
     if (record->size <= sizeof(ham_u64_t)) {
       if (record->data)
         memcpy(&rid, record->data, record->size);
       if (record->size == 0)
-        set_flags(get_flags() | KEY_BLOB_SIZE_EMPTY);
+        set_flags(get_flags() | kBlobSizeEmpty);
       else if (record->size < sizeof(ham_u64_t)) {
         char *p = (char *)&rid;
         p[sizeof(ham_u64_t) - 1] = (char)record->size;
-        set_flags(get_flags() | KEY_BLOB_SIZE_TINY);
+        set_flags(get_flags() | kBlobSizeTiny);
       }
       else
-        set_flags(get_flags() | KEY_BLOB_SIZE_SMALL);
+        set_flags(get_flags() | kBlobSizeSmall);
       set_ptr(rid);
     }
     else {
@@ -84,7 +84,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
       set_ptr(rid);
     }
   }
-  else if (!(oldflags & KEY_HAS_DUPLICATES)
+  else if (!(oldflags & kDuplicates)
       && record->size > sizeof(ham_u64_t)
       && !(flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
@@ -95,9 +95,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
      * SMALL (size = 8, but content = 00000000 --> !ptr) are caught here
      * and in the next branch, as they should.
      */
-    if (oldflags & (KEY_BLOB_SIZE_SMALL
-                | KEY_BLOB_SIZE_TINY
-                | KEY_BLOB_SIZE_EMPTY)) {
+    if (oldflags & (kBlobSizeSmall | kBlobSizeTiny | kBlobSizeEmpty)) {
       rid = 0;
       st = db->get_env()->get_blob_manager()->allocate(db, record, flags, &rid);
       if (st)
@@ -112,7 +110,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
       set_ptr(rid);
     }
   }
-  else if (!(oldflags & KEY_HAS_DUPLICATES)
+  else if (!(oldflags & kDuplicates)
           && record->size <= sizeof(ham_u64_t)
           && !(flags & (HAM_DUPLICATE
                   | HAM_DUPLICATE_INSERT_BEFORE
@@ -120,9 +118,9 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
                   | HAM_DUPLICATE_INSERT_FIRST
                   | HAM_DUPLICATE_INSERT_LAST))) {
     /* an existing key which is overwritten with a small record */
-    if (!(oldflags & (KEY_BLOB_SIZE_SMALL
-                    | KEY_BLOB_SIZE_TINY
-                    | KEY_BLOB_SIZE_EMPTY))) {
+    if (!(oldflags & (kBlobSizeSmall
+                    | kBlobSizeTiny
+                    | kBlobSizeEmpty))) {
       st = env->get_blob_manager()->free(db, ptr, 0);
       if (st)
         return (st);
@@ -130,14 +128,14 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
     if (record->data)
       memcpy(&rid, record->data, record->size);
     if (record->size == 0)
-      set_flags(get_flags() | KEY_BLOB_SIZE_EMPTY);
+      set_flags(get_flags() | kBlobSizeEmpty);
     else if (record->size < sizeof(ham_u64_t)) {
       char *p = (char *)&rid;
       p[sizeof(ham_u64_t) - 1] = (char)record->size;
-      set_flags(get_flags() | KEY_BLOB_SIZE_TINY);
+      set_flags(get_flags() | kBlobSizeTiny);
     }
     else
-      set_flags(get_flags() | KEY_BLOB_SIZE_SMALL);
+      set_flags(get_flags() | kBlobSizeSmall);
     set_ptr(rid);
   }
   else {
@@ -155,13 +153,13 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
                     | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
                     | HAM_DUPLICATE_INSERT_LAST | HAM_OVERWRITE)));
     memset(entries, 0, sizeof(entries));
-    if (!(oldflags & KEY_HAS_DUPLICATES)) {
+    if (!(oldflags & kDuplicates)) {
       ham_assert((flags & (HAM_DUPLICATE | HAM_DUPLICATE_INSERT_BEFORE
                       | HAM_DUPLICATE_INSERT_AFTER | HAM_DUPLICATE_INSERT_FIRST
                       | HAM_DUPLICATE_INSERT_LAST)));
       dupe_entry_set_flags(&entries[i],
-                oldflags & (KEY_BLOB_SIZE_SMALL
-                    | KEY_BLOB_SIZE_TINY | KEY_BLOB_SIZE_EMPTY));
+                oldflags & (kBlobSizeSmall
+                    | kBlobSizeTiny | kBlobSizeEmpty));
       dupe_entry_set_rid(&entries[i], ptr);
       i++;
     }
@@ -169,14 +167,14 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
       if (record->data)
         memcpy(&rid, record->data, record->size);
       if (record->size == 0)
-        dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_EMPTY);
+        dupe_entry_set_flags(&entries[i], kBlobSizeEmpty);
       else if (record->size < sizeof(ham_u64_t)) {
         char *p = (char *)&rid;
         p[sizeof(ham_u64_t) - 1] = (char)record->size;
-        dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_TINY);
+        dupe_entry_set_flags(&entries[i], kBlobSizeTiny);
       }
       else
-        dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
+        dupe_entry_set_flags(&entries[i], kBlobSizeSmall);
       dupe_entry_set_rid(&entries[i], rid);
     }
     else {
@@ -201,7 +199,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
       return st;
     }
 
-    set_flags(get_flags() | KEY_HAS_DUPLICATES);
+    set_flags(get_flags() | kDuplicates);
     if (rid)
       set_ptr(rid);
   }
@@ -217,16 +215,15 @@ PBtreeKey::erase_record(LocalDatabase *db, Transaction *txn, ham_size_t dupe_id,
   ham_u64_t rid;
 
   /* if the record is > 8 bytes then it needs to be freed explicitly */
-  if (!(get_flags() & (KEY_BLOB_SIZE_SMALL | KEY_BLOB_SIZE_TINY
-                  | KEY_BLOB_SIZE_EMPTY))) {
-    if (get_flags() & KEY_HAS_DUPLICATES) {
+  if (!(get_flags() & (kBlobSizeSmall | kBlobSizeTiny | kBlobSizeEmpty))) {
+    if (get_flags() & kDuplicates) {
       /* delete one (or all) duplicates */
       st = db->get_env()->get_duplicate_manager()->erase(db, txn,
                         get_ptr(), dupe_id, erase_all_duplicates, &rid);
       if (st)
         return (st);
       if (erase_all_duplicates) {
-        set_flags(get_flags() & ~KEY_HAS_DUPLICATES);
+        set_flags(get_flags() & ~kDuplicates);
         set_ptr(0);
       }
       else {
@@ -246,8 +243,8 @@ PBtreeKey::erase_record(LocalDatabase *db, Transaction *txn, ham_size_t dupe_id,
   /* otherwise just reset the blob flags of the key and set the record
    * pointer to 0 */
   else {
-    set_flags(get_flags() & ~(KEY_BLOB_SIZE_SMALL | KEY_BLOB_SIZE_TINY
-                    | KEY_BLOB_SIZE_EMPTY | KEY_HAS_DUPLICATES));
+    set_flags(get_flags() & ~(kBlobSizeSmall | kBlobSizeTiny
+                    | kBlobSizeEmpty | kDuplicates));
     set_ptr(0);
   }
 

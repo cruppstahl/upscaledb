@@ -150,9 +150,9 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
   if (flags & HAM_OVERWRITE) {
     PDupeEntry *e = dupe_table_get_entry(table, position);
 
-    if (!(dupe_entry_get_flags(e) & (PBtreeKey::KEY_BLOB_SIZE_SMALL
-                                | PBtreeKey::KEY_BLOB_SIZE_TINY
-                                | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
+    if (!(dupe_entry_get_flags(e) & (PBtreeKey::kBlobSizeSmall
+                                | PBtreeKey::kBlobSizeTiny
+                                | PBtreeKey::kBlobSizeEmpty))) {
       (void)m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
     }
 
@@ -251,9 +251,9 @@ DuplicateManager::erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
           || (position == 0 && dupe_table_get_count(table) == 1)) {
     for (ham_size_t i = 0; i < dupe_table_get_count(table); i++) {
       PDupeEntry *e = dupe_table_get_entry(table, i);
-      if (!(dupe_entry_get_flags(e) & (PBtreeKey::KEY_BLOB_SIZE_SMALL
-                                    | PBtreeKey::KEY_BLOB_SIZE_TINY
-                                    | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
+      if (!(dupe_entry_get_flags(e) & (PBtreeKey::kBlobSizeSmall
+                                    | PBtreeKey::kBlobSizeTiny
+                                    | PBtreeKey::kBlobSizeEmpty))) {
         st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
         if (st) {
           Memory::release(table);
@@ -274,9 +274,9 @@ DuplicateManager::erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
   else {
     ham_record_t rec = {0};
     PDupeEntry *e = dupe_table_get_entry(table, position);
-    if (!(dupe_entry_get_flags(e) & (PBtreeKey::KEY_BLOB_SIZE_SMALL
-                                  | PBtreeKey::KEY_BLOB_SIZE_TINY
-                                  | PBtreeKey::KEY_BLOB_SIZE_EMPTY))) {
+    if (!(dupe_entry_get_flags(e) & (PBtreeKey::kBlobSizeSmall
+                                  | PBtreeKey::kBlobSizeTiny
+                                  | PBtreeKey::kBlobSizeEmpty))) {
       st = m_env->get_blob_manager()->free(db, dupe_entry_get_rid(e), 0);
       if (st) {
         Memory::release(table);

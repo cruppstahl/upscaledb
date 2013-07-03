@@ -78,7 +78,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
           c->total_count += count;
           return (HAM_ENUM_DO_NOT_DESCEND);
         }
-        if (key->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES) {
+        if (key->get_flags() & PBtreeKey::kDuplicates) {
           st = c->db->get_env()->get_duplicate_manager()->get_count(
                 key->get_ptr(), &dupcount, 0);
           if (st)
@@ -134,7 +134,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
   case HAM_ENUM_EVENT_ITEM:
     key = (PBtreeKey *)param1;
 
-    if (key->get_flags() & PBtreeKey::KEY_IS_EXTENDED) {
+    if (key->get_flags() & PBtreeKey::kExtended) {
       ham_u64_t blobid = key->get_extended_rid(c->db);
       /* delete the extended key */
       st = c->db->remove_extkey(blobid);
@@ -142,9 +142,9 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         return (st);
     }
 
-    if (key->get_flags() & (PBtreeKey::KEY_BLOB_SIZE_TINY
-              | PBtreeKey::KEY_BLOB_SIZE_SMALL
-              | PBtreeKey::KEY_BLOB_SIZE_EMPTY))
+    if (key->get_flags() & (PBtreeKey::kBlobSizeTiny
+              | PBtreeKey::kBlobSizeSmall
+              | PBtreeKey::kBlobSizeEmpty))
       break;
 
     /* if we're in the leaf page, delete the blob */
@@ -380,7 +380,7 @@ LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
   ham_record_t record;
   ham_u8_t *ptr;
 
-  ham_assert(key_flags & PBtreeKey::KEY_IS_EXTENDED);
+  ham_assert(key_flags & PBtreeKey::kExtended);
 
   /*
    * make sure that we have an extended key-cache
@@ -675,7 +675,7 @@ LocalDatabase::find_txn(Transaction *txn, ham_key_t *key,
             : &txn->get_key_arena();
 
   ham_key_set_intflags(key,
-        (ham_key_get_intflags(key) & (~PBtreeKey::KEY_IS_APPROXIMATE)));
+        (ham_key_get_intflags(key) & (~PBtreeKey::kApproximate)));
 
   /* get the node for this key (but don't create a new one if it does
    * not yet exist) */
@@ -710,19 +710,19 @@ retry:
        */
       else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
         if (first_loop
-            && !(ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE))
+            && !(ham_key_get_intflags(key) & PBtreeKey::kApproximate))
           exact_is_erased = true;
         first_loop = false;
         if (flags & HAM_FIND_LT_MATCH) {
           node = node->get_previous_sibling();
           ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | PBtreeKey::KEY_IS_APPROXIMATE));
+              (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
           goto retry;
         }
         else if (flags & HAM_FIND_GT_MATCH) {
           node = node->get_next_sibling();
           ham_key_set_intflags(key,
-              (ham_key_get_intflags(key) | PBtreeKey::KEY_IS_APPROXIMATE));
+              (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
           goto retry;
         }
         return (HAM_KEY_NOT_FOUND);
@@ -737,7 +737,7 @@ retry:
           || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
         // approx match? leave the loop and continue
         // with the btree
-        if (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE)
+        if (ham_key_get_intflags(key) & PBtreeKey::kApproximate)
           break;
         // otherwise copy the record and return
         return (LocalDatabase::copy_record(this, txn, op, record));
@@ -759,11 +759,11 @@ retry:
    * if there was an approximate match: check if the btree provides
    * a better match
    */
-  if (op && ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE) {
+  if (op && ham_key_get_intflags(key) & PBtreeKey::kApproximate) {
     ham_key_t txnkey = {0};
     ham_key_t *k = op->get_node()->get_key();
     txnkey.size = k->size;
-    txnkey._flags = PBtreeKey::KEY_IS_APPROXIMATE;
+    txnkey._flags = PBtreeKey::kApproximate;
     txnkey.data = Memory::allocate<ham_u8_t>(txnkey.size);
     memcpy(txnkey.data, k->data, txnkey.size);
 
@@ -792,7 +792,7 @@ retry:
     else if (st)
       return (st);
     // the btree key is a direct match? then return it
-    if ((!(ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE))
+    if ((!(ham_key_get_intflags(key) & PBtreeKey::kApproximate))
         && (flags & HAM_FIND_EXACT_MATCH)) {
       Memory::release(txnkey.data);
       return (0);
@@ -821,7 +821,7 @@ retry:
       st = find_txn(txn, key, record, flags | HAM_FIND_EXACT_MATCH);
       if (st == 0)
         ham_key_set_intflags(key,
-          (ham_key_get_intflags(key) | PBtreeKey::KEY_IS_APPROXIMATE));
+          (ham_key_get_intflags(key) | PBtreeKey::kApproximate));
       return (st);
     }
     else { // use txn
@@ -1039,16 +1039,10 @@ LocalDatabase::get_parameters(ham_parameter_t *param)
         p->value = (ham_u64_t)get_name();
         break;
       case HAM_PARAM_MAX_KEYS_PER_PAGE:
-        if (get_btree_index()) {
-          ham_size_t count = 0, size = get_keysize();
-          BtreeIndex *be = get_btree_index();
-          ham_status_t st;
-
-          st = be->calc_keycount_per_page(&count, size);
-          if (st)
-            return (st);
-          p->value = count;
-        }
+        if (get_btree_index())
+          p->value = get_btree_index()->get_maxkeys();
+        else
+          p->value = 0;
         break;
       default:
         ham_trace(("unknown parameter %d", (int)p->name));
@@ -1201,7 +1195,7 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
   if (txn || local_txn)
     st = insert_txn(txn ? txn : local_txn, key, record, flags, 0);
   else
-    st = m_btree_index->insert(txn, key, record, flags);
+    st = m_btree_index->insert(txn, 0, key, record, flags);
 
   if (st) {
     if (local_txn)
@@ -1274,7 +1268,7 @@ LocalDatabase::erase(Transaction *txn, ham_key_t *key, ham_u32_t flags)
   if (txn || local_txn)
     st = erase_txn(txn ? txn : local_txn, key, flags, 0);
   else
-    st = m_btree_index->erase(txn, key, flags);
+    st = m_btree_index->erase(txn, 0, key, 0, flags);
 
   if (st) {
     if (local_txn)
@@ -1332,6 +1326,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
       return (st);
     st = ham_cursor_find((ham_cursor_t *)c, key, record, flags | HAM_DONT_LOCK);
     cursor_close(c);
+    m_env->get_changeset().clear();
     return (st);
   }
 

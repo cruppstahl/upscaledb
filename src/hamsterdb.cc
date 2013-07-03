@@ -1049,8 +1049,8 @@ ham_db_find(ham_db_t *hdb, ham_txn_t *htxn, ham_key_t *key,
 int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
-  if (key && (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_APPROXIMATE)) {
-    int rv = (ham_key_get_intflags(key) & PBtreeKey::KEY_IS_LT) ? -1 : +1;
+  if (key && (ham_key_get_intflags(key) & PBtreeKey::kApproximate)) {
+    int rv = (ham_key_get_intflags(key) & PBtreeKey::kLower) ? -1 : +1;
     return (rv);
   }
 

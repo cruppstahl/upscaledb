@@ -116,7 +116,7 @@ print_database(ham_db_t *db, ham_u16_t dbname, int full) {
     printf("    max key size:       %u\n", be->get_keysize());
     printf("    max keys per page:    %u\n", be->get_maxkeys());
     printf("    address of root page:   %llu\n",
-        (long long unsigned int)be->get_rootpage());
+        (long long unsigned int)be->get_root_address());
     printf("    flags:          0x%04x\n",
         ((hamsterdb::LocalDatabase *)db)->get_rt_flags());
   }

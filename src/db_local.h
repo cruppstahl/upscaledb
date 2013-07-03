@@ -159,8 +159,8 @@ class LocalDatabase : public Database {
 
       // need prefix compare? if no key is extended we can just call the
       // normal compare function
-      if (!(lhs->_flags & PBtreeKey::KEY_IS_EXTENDED)
-              && !(rhs->_flags & PBtreeKey::KEY_IS_EXTENDED)) {
+      if (!(lhs->_flags & PBtreeKey::kExtended)
+              && !(rhs->_flags & PBtreeKey::kExtended)) {
         return (m_cmp_func((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
                           (ham_u8_t *)rhs->data, rhs->size));
       }
@@ -168,11 +168,11 @@ class LocalDatabase : public Database {
       // yes! - run prefix comparison
       if (m_prefix_func) {
         ham_size_t lhsprefixlen, rhsprefixlen;
-        if (lhs->_flags & PBtreeKey::KEY_IS_EXTENDED)
+        if (lhs->_flags & PBtreeKey::kExtended)
           lhsprefixlen = get_keysize() - sizeof(ham_u64_t);
         else
           lhsprefixlen = lhs->size;
-        if (rhs->_flags & PBtreeKey::KEY_IS_EXTENDED)
+        if (rhs->_flags & PBtreeKey::kExtended)
           rhsprefixlen = get_keysize() - sizeof(ham_u64_t);
         else
           rhsprefixlen = rhs->size;
@@ -186,21 +186,21 @@ class LocalDatabase : public Database {
 
       if (cmp == HAM_PREFIX_REQUEST_FULLKEY) {
         // 1. load the first key, if required
-        if (lhs->_flags & PBtreeKey::KEY_IS_EXTENDED) {
+        if (lhs->_flags & PBtreeKey::kExtended) {
           ham_status_t st = get_extended_key((ham_u8_t *)lhs->data,
                     lhs->size, lhs->_flags, lhs);
           if (st)
             return st;
-          lhs->_flags &= ~PBtreeKey::KEY_IS_EXTENDED;
+          lhs->_flags &= ~PBtreeKey::kExtended;
         }
 
         // 2. load the second key, if required
-        if (rhs->_flags & PBtreeKey::KEY_IS_EXTENDED) {
+        if (rhs->_flags & PBtreeKey::kExtended) {
           ham_status_t st = get_extended_key((ham_u8_t *)rhs->data,
                     rhs->size, rhs->_flags, rhs);
           if (st)
             return st;
-          rhs->_flags &= ~PBtreeKey::KEY_IS_EXTENDED;
+          rhs->_flags &= ~PBtreeKey::kExtended;
         }
 
         // 3. run the comparison function on the full keys
@@ -218,7 +218,7 @@ class LocalDatabase : public Database {
     // allocated.
     ham_status_t copy_key(const ham_key_t *source, ham_key_t *dest) {
       // extended key: copy the whole key
-      if (source->_flags & PBtreeKey::KEY_IS_EXTENDED) {
+      if (source->_flags & PBtreeKey::kExtended) {
         ham_status_t st = get_extended_key((ham_u8_t *)source->data,
                     source->size, source->_flags, dest);
         if (st)
@@ -227,7 +227,7 @@ class LocalDatabase : public Database {
         // dest->size is set by db->get_extended_key()
         ham_assert(dest->size == source->size);
         // the extended flag is set later, when this key is inserted
-        dest->_flags = source->_flags & (~PBtreeKey::KEY_IS_EXTENDED);
+        dest->_flags = source->_flags & (~PBtreeKey::kExtended);
       }
       else if (source->size) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {

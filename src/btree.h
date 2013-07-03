@@ -9,15 +9,8 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief the btree-btree
- *
- */
-
 #ifndef HAM_BTREE_H__
 #define HAM_BTREE_H__
-
-#include "internal_fwd_decl.h"
 
 #include "endianswap.h"
 
@@ -31,9 +24,10 @@ namespace hamsterdb {
 
 #include "packstart.h"
 
-/**
- * the persistent btree index descriptor
- */
+//
+// The persistent btree index descriptor. This structure manages the
+// persistent btree metadata.
+//
 HAM_PACK_0 class HAM_PACK_1 PBtreeDescriptor
 {
   public:
@@ -41,69 +35,79 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeDescriptor
       memset(this, 0, sizeof(*this));
     }
 
-    ham_u16_t get_dbname() {
-      return ham_db2h16(m_dbname);
+    // Returns the database name
+    ham_u16_t get_dbname() const {
+      return (ham_db2h16(m_dbname));
     }
 
+    // Sets the database name
     void set_dbname(ham_u16_t n) {
       m_dbname = ham_h2db16(n);
     }
 
-    ham_u16_t get_max_keys() {
-      return ham_db2h16(m_maxkeys);
+    // Returns the max. number of keys in a page
+    ham_u16_t get_maxkeys() const {
+      return (ham_db2h16(m_maxkeys));
     }
 
-    void set_max_keys(ham_u16_t n) {
-      m_maxkeys = ham_h2db16(n);
+    // Returns the max. number of keys in a page
+    void set_maxkeys(ham_u16_t maxkeys) {
+      m_maxkeys = ham_h2db16(maxkeys);
     }
 
-    ham_u16_t get_keysize() {
-      return ham_db2h16(m_keysize);
+    // Returns the btree's max. keysize
+    ham_u16_t get_keysize() const {
+      return (ham_db2h16(m_keysize));
     }
 
+    // Sets the btree's max. keysize
     void set_keysize(ham_u16_t n) {
       m_keysize = ham_h2db16(n);
     }
 
-    ham_u64_t get_self() {
-      return ham_db2h_offset(m_self);
+    // Returns the address of the btree's root page.
+    ham_u64_t get_root_address() const {
+      return (ham_db2h_offset(m_self));
     }
 
-    void set_self(ham_u64_t n) {
+    // Sets the address of the btree's root page.
+    void set_root_address(ham_u64_t n) {
       m_self = ham_h2db_offset(n);
     }
 
-    ham_u32_t get_flags() {
-      return ham_db2h32(m_flags);
+    // Returns the btree's flags
+    ham_u32_t get_flags() const {
+      return (ham_db2h32(m_flags));
     }
 
+    // Sets the btree's flags
     void set_flags(ham_u32_t n) {
       m_flags = ham_h2db32(n);
     }
 
   private:
-    /** name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
+    // The name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1
     ham_u16_t m_dbname;
 
-    /** maximum keys in an internal page */
+    // maximum keys in an internal page
     ham_u16_t m_maxkeys;
 
-    /** key size in this page */
+    // key size used in the pages
     ham_u16_t m_keysize;
 
-    /* reserved */
+    // reserved
     ham_u16_t m_reserved1;
 
-    /** address of the root-page */
+    // address of the root-page
     ham_u64_t m_self;
 
-    /** flags for this database */
+    // flags for this database
     ham_u32_t m_flags;
 
-    /* reserved */
+    // reserved
     ham_u64_t m_reserved2;
 
-    /* reserved */
+    // reserved
     ham_u32_t m_reserved3;
 } HAM_PACK_2;
 
@@ -149,314 +153,210 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
 
 class LocalDatabase;
 
+//
+// The Btree.
+//
 class BtreeIndex
 {
   public:
-    /** constructor; creates and initializes a new Backend */
+    // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags = 0);
 
-    /** destructor; flushes the PBtreeDescriptor */
-    ~BtreeIndex();
-
-    /**
-     * create and initialize a btree
-     *
-     * @remark this function is called after the ham_db_t structure
-     * was allocated and the file was opened
-     */
+    // Creates and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
     ham_status_t create(ham_u16_t keysize);
 
-    /**
-     * open and initialize a btree
-     *
-     * @remark this function is called after the ham_db_t structure
-     * was allocated and the file was opened
-     */
+    // Opens and initializes the btree
+    //
+    // This function is called after the ham_db_t structure was allocated
+    // and the file was opened
     ham_status_t open();
 
-    /**
-     * close the btree
-     *
-     * @remark this function is called before the file is closed
-     */
-    void close(ham_u32_t flags = 0) { /* nop */ }
-
-    /**
-     * find a key in the index
-     */
-    ham_status_t find(Transaction *txn, Cursor *cursor,
-            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * insert (or update) a key in the index
-     *
-     * the btree is responsible for inserting or updating the
-     * record. (see blob_manager.h for blob management functions)
-     */
-    ham_status_t insert(Transaction *txn, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * erase a key in the index
-     */
-    ham_status_t erase(Transaction *txn, ham_key_t *key,
-            ham_u32_t flags);
-
-    /**
-     * iterate the whole tree and enumerate every item
-     */
-    ham_status_t enumerate(ham_enumerate_cb_t cb, void *context);
-
-    /**
-     * verify the whole tree
-     */
-    ham_status_t check_integrity();
-
-    /**
-     * estimate the number of keys per page, given the keysize
-     */
-    ham_status_t calc_keycount_per_page(ham_size_t *keycount,
-                    ham_u16_t keysize);
-
-    /**
-     * looks up a key, points cursor to this key
-     * TODO merge with find()
-     */
-    ham_status_t find_cursor(Transaction *txn, Cursor *cursor,
-            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * inserts a key, points cursor to the new key
-     * TODO merge with insert()
-     */
-    ham_status_t insert_cursor(Transaction *txn, ham_key_t *key,
-            ham_record_t *record, Cursor *cursor, ham_u32_t flags);
-
-    /**
-     * erases the key that the cursor points to
-     * TODO merge with erase()
-     */
-    ham_status_t erase_cursor(Transaction *txn, ham_key_t *key,
-            Cursor *cursor, ham_u32_t flags);
-
-    /** get the database pointer */
+    // Returns the database pointer
     LocalDatabase *get_db() {
       return (m_db);
     }
 
-    /** get the key size */
+    // Returns the internal key size
     ham_u16_t get_keysize() const {
       return (m_keysize);
     }
 
-    /** set the key size */
-    void set_keysize(ham_u16_t keysize) {
-      m_keysize = keysize;
-      flush_descriptor();
+    // Returns the address of the root page
+    ham_u64_t get_root_address() const {
+      return (m_root_address);
     }
 
-    /** get the flags */
+    // Returns the btree flags
     ham_u32_t get_flags() const {
       return (m_flags);
     }
 
-    /** set the flags */
-    void set_flags(ham_u32_t flags) {
-      m_flags = flags;
-      flush_descriptor();
-    }
-
-    /** same as above, but only erases a single duplicate */
-    // TODO make this private or merge with erase()
-    ham_status_t erase_duplicate(Transaction *txn, ham_key_t *key,
-              ham_u32_t dupe_id, ham_u32_t flags);
-
-    // TODO make this private
-    ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
-
-    /** get the address of the root node */
-    ham_u64_t get_rootpage() const {
-      return (m_rootpage);
-    }
-
-    /** set the address of the root node */
-    void set_rootpage(ham_u64_t rp) {
-      m_rootpage = rp;
-      flush_descriptor();
-    }
-
-    /** get maximum number of keys per (internal) node */
+    // Returns maximum number of keys per (internal) node
     ham_u16_t get_maxkeys() const {
       return (m_maxkeys);
     }
 
-    /** set maximum number of keys per (internal) node */
-    void set_maxkeys(ham_u16_t maxkeys) {
-      m_maxkeys = maxkeys;
-      flush_descriptor();
-    }
-
-    /** get minimum number of keys per node - less keys require merge or shift*/
+    // Returns the minimum number of keys per node - less keys require a
+    // SMO (merge or shift)
     ham_u16_t get_minkeys() const {
-      return m_maxkeys / 2;
+      return (m_maxkeys / 2);
     }
 
-    /** getter for keydata1 */
+    // Lookup a key in the index (ham_db_find)
+    ham_status_t find(Transaction *txn, Cursor *cursor,
+            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    // Inserts (or updates) a key/record in the index (ham_db_insert)
+    ham_status_t insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags);
+
+    // Erases a key/record from the index (ham_db_erase).
+    // If |duplicate| is 0 then all duplicates are erased, otherwise only
+    // the specified duplicate is erased.
+    ham_status_t erase(Transaction *txn, Cursor *cursor, ham_key_t *key,
+            ham_u32_t duplicate, ham_u32_t flags);
+
+    // Iterates over the whole index and enumerate every item
+    ham_status_t enumerate(ham_enumerate_cb_t cb, void *context);
+
+    // Checks the integrity of the btree (ham_db_check_integrity)
+    ham_status_t check_integrity();
+
+    // Erases all extended keys from a page
+    static ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
+
+    // Returns the ByteArray for keydata1
     ByteArray *get_keyarena1() {
-      return &m_keydata1;
+      return (&m_keydata1);
     }
 
-    /** getter for keydata2 */
+    // Returns the ByteArray for keydata2
     ByteArray *get_keyarena2() {
-      return &m_keydata2;
-    }
-
-    /** get hinter */
-    // TODO make this private
-    BtreeStatistics *get_statistics() {
-      return &m_statistics;
-    }
-
-    // get index of PBtreeDescriptor
-    // TODO make this private
-    ham_u32_t get_descriptor_index() const {
-      return m_descriptor_index;
+      return (&m_keydata2);
     }
 
   private:
     friend class BtreeCheckAction;
-    friend class BtreeFindAction;
+    friend class BtreeEnumAction;
     friend class BtreeEraseAction;
+    friend class BtreeFindAction;
     friend class BtreeInsertAction;
     friend class BtreeCursor;
     friend struct MiscFixture;
     friend struct BtreeKeyFixture;
+    friend struct BtreeCursorFixture;
+    friend struct DbFixture;
+    friend struct DuplicateFixture;
+    friend struct RecordNumberFixture;
 
-    /** calculate the "maxkeys" values - the limit of keys per page */
+    // Sets the address of the root page
+    void set_root_address(ham_u64_t address) {
+      m_root_address = address;
+      flush_descriptor();
+    }
+
+    // Calculates the "maxkeys" values - the limit of keys per page
     ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
-    /** flushes the PBtreeDescriptor to the Environment's header page */
+    // Flushes the PBtreeDescriptor to the Environment's header page
     void flush_descriptor();
 
-    /**
-     * find the child page for a key
-     *
-     * @return returns the child page in @a page_ref
-     * @remark if @a idxptr is a valid pointer, it will store the anchor index
-     *    of the loaded page
-     */
-    ham_status_t find_internal(Page *page, ham_key_t *key, Page **page_ref,
+    // Returns the btree usage statistics
+    BtreeStatistics *get_statistics() {
+      return (&m_statistics);
+    }
+
+    // Searches |parent| page for key |key| and returns the child
+    // page in |child|.
+    //
+    // if |idxptr| is a valid pointer then it will return the anchor index
+    // of the loaded page.
+    ham_status_t find_internal(Page *parent, ham_key_t *key, Page **child,
                     ham_s32_t *idxptr = 0);
 
-    /**
-     * search a leaf node for a key
-     *
-     * !!!
-     * only works with leaf nodes!!
-     *
-     * @return returns the index of the key, or -1 if the key was not found, or
-     *     another negative @ref ham_status_codes value when an
-     *     unexpected error occurred.
-     */
+    // Searches a leaf node for a key.
+    //
+    // !!!
+    // only works with leaf nodes!!
+    //
+    // Returns the index of the key, or -1 if the key was not found, or
+    // another negative status code value when an unexpected error occurred.
     ham_s32_t find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
 
-    /**
-     * perform a binary search for the smallest element which is >= the
-     * key. also returns the comparison value in cmp; if *cmp == 0 then 
-     * the keys are equal
-     */
+    // Performs a binary search for the smallest element which is >= the
+    // key. also returns the comparison value in cmp; if *cmp == 0 then 
+    // the keys are equal
     ham_status_t get_slot(Page *page, ham_key_t *key, ham_s32_t *slot,
                     int *cmp = 0);
 
-    /**
-     * compare a public key (ham_key_t, LHS) to an internal key indexed in a
-     * page
-     *
-     * @return -1, 0, +1: lhs < rhs, lhs = rhs, lhs > rhs
-     * @return values less than -1 is a ham_status_t error
-     *
-     */
+    // Copares a public key (ham_key_t, LHS) to an internal key indexed in a
+    // page
+    //
+    // Returns -1, 0, +1: lhs < rhs, lhs = rhs, lhs > rhs
+    // A return values less than -1 is a ham_status_t error
     int compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs);
 
-    /**
-     * create a preliminary copy of an @ref PBtreeKey key to a @ref ham_key_t
-     * in such a way that @ref db->compare_keys can use the data and optionally
-     * call @ref db->get_extended_key on this key to obtain all key data, when
-     * this is an extended key.
-     *
-     * @param which specifies whether keydata1 (which = 0) or keydata2 is used
-     * to store the pointer in the btree. The pointers are kept to avoid
-     * permanent re-allocations (improves performance)
-     */
+    // Creates a preliminary copy of an PBtreeKey |src| to a ham_key_t |dest|
+    // in such a way that LocalDatabase::compare_keys can use the data and
+    // optionally call LocalDatabase::get_extended_key on this key to obtain
+    // all key data, when this is an extended key.
+    //
+    // |which| specifies whether keydata1 (which = 0) or keydata2 is used
+    // to store the pointer in the btree. The pointers are kept to avoid
+    // permanent re-allocations (improves performance)
     ham_status_t prepare_key_for_compare(int which, PBtreeKey *src,
                     ham_key_t *dest);
 
-    /**
-     * copies an internal key;
-     * allocates memory unless HAM_KEY_USER_ALLOC is set
-     */
+    // Copies an internal key;
+    // Allocates memory unless HAM_KEY_USER_ALLOC is set
     ham_status_t copy_key(const PBtreeKey *source, ham_key_t *dest);
 
-    /**
-     * read a key
-     *
-     * @a dest must have been initialized before calling this function; the
-     * dest->data space will be reused when the specified size is large enough;
-     * otherwise the old dest->data will be ham_mem_free()d and a new
-     * space allocated.
-     *
-     * This can save superfluous heap free+allocation actions in there.
-     *
-     * @note
-     * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+    // Reads a key and stores a copy in |dest|
+    //
+    // The memory backing dest->data can either be provided by the user
+    // (HAM_KEY_USER_ALLOC) or is allocated using the ByteArray in the
+    // Transaction or in the Database.
     // TODO use arena; get rid of txn parameter
-     */
     ham_status_t read_key(Transaction *txn, PBtreeKey *source,
                     ham_key_t *dest);
 
-    /**
-     * read a record
-     *
-     * @param rid same as record->_rid, if key is not TINY/SMALL. Otherwise,
-     * and if HAM_DIRECT_ACCESS is set, we use the rid-pointer to the
-     * original record ID
-     *
-     * flags: either 0 or HAM_DIRECT_ACCESS
+    // Reads a record and stores it in |dest|. The record is identified
+    // by |ridptr|. TINY and SMALL records are also respected.
+    // If HAM_DIRECT_ACCESS is set then the rid-pointer is casted to the
+    // original record data.
     // TODO use arena; get rid of txn parameter
-     */
-    ham_status_t read_record(Transaction *txn, ham_record_t *record,
-                    ham_u64_t *ridptr, ham_u32_t flags);
+    ham_status_t read_record(Transaction *txn, ham_u64_t *ridptr,
+                    ham_record_t *record, ham_u32_t flags);
 
-
-    /** pointer to the database object */
+    // pointer to the database object
     LocalDatabase *m_db;
 
-    /** the keysize of this btree index */
+    // the keysize of this btree index
     ham_u16_t m_keysize;
 
-    /** the index of the PBtreeDescriptor */
+    // the index of the PBtreeDescriptor in the Environment's header page
     ham_u32_t m_descriptor_index;
 
-    /** the persistent flags of this btree index */
+    // the persistent flags of this btree index
     ham_u32_t m_flags;
 
-    /** address of the root-page */
-    ham_u64_t m_rootpage;
+    // address of the root-page
+    ham_u64_t m_root_address;
 
-    /** maximum keys in an internal page */
+    // maximum keys in an internal page
     ham_u16_t m_maxkeys;
 
-    /**
-     * two pointers for managing key data; these pointers are used to
-     * avoid frequent mallocs in key_compare_pub_to_int() etc
-     */
+    // two pointers for managing key data; these pointers are used to
+    // avoid frequent mallocs in key_compare_pub_to_int() etc
     ByteArray m_keydata1;
     ByteArray m_keydata2;
 
-    /** the hinter */
+    // the btree statistics
     BtreeStatistics m_statistics;
 };
-
 
 } // namespace hamsterdb
 

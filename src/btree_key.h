@@ -9,188 +9,183 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief key handling
- *
- */
-
 #ifndef HAM_BTREE_KEY_H__
 #define HAM_BTREE_KEY_H__
 
 #include <ham/hamsterdb_int.h>
+
 #include "endianswap.h"
 
 namespace hamsterdb {
 
 class LocalDatabase;
+class Transaction;
 
 #include "packstart.h"
 
-/**
+/*
  * the internal representation of a serialized key
  */
 HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
 {
-  /**
-   * persisted PBtreeKey flags; also used in combination with ham_key_t._flags
-   *
-   * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
-   *  0x000000FF
-   */
-  enum {
-    /* size < 8; len encoded at byte[7] of key->ptr */
-    KEY_BLOB_SIZE_TINY         = 0x01,
-    /* size == 8; encoded in key->ptr */
-    KEY_BLOB_SIZE_SMALL        = 0x02,
-    /* size == 0; key->ptr == 0 */
-    KEY_BLOB_SIZE_EMPTY        = 0x04,
-    /* extended key with overflow area */
-    KEY_IS_EXTENDED            = 0x08,
-    /* key has duplicates */
-    KEY_HAS_DUPLICATES         = 0x10,
-    /* memory allocated in hamsterdb, not by caller */
-    KEY_IS_ALLOCATED           = 0x20
-  };
+  public:
+    // persisted PBtreeKey flags; also used in combination with ham_key_t._flags
+    //
+    // NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask:
+    // 0x000000FF
+    enum {
+      // record size < 8; length is encoded at byte[7] of key->ptr
+      kBlobSizeTiny         = 0x01,
 
-  /*
-   * flags used with the ham_key_t INTERNAL USE field _flags.
-   *
-   * Note: these flags should NOT overlap with the persisted flags for PBtreeKey
-   *
-   * As these flags NEVER will be persisted, they should be located outside
-   * the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
-   */
-  enum {
-    /* actual key is lower than the requested key */
-    KEY_IS_LT                    = 0x00010000,
-    /* actual key is greater than the requested key */
-    KEY_IS_GT                    = 0x00020000,
-    /* actual key is an "approximate match" */
-    KEY_IS_APPROXIMATE           = (KEY_IS_LT | KEY_IS_GT)
-  };
+      // record size == 8; record is stored in key->ptr
+      kBlobSizeSmall        = 0x02,
 
-  /**
-   * get the pointer of an btree-entry
-   *
-   * !!!
-   * if TINY or SMALL is set, the key is actually a char*-pointer;
-   * in this case, we must not use endian-conversion!
-   */
-  ham_u64_t get_ptr() {
-    return (((_flags8 & KEY_BLOB_SIZE_TINY)
-                || (_flags8 & KEY_BLOB_SIZE_SMALL))
-            ? _ptr
-            : ham_db2h_offset(_ptr));
-  }
+      // record size == 0; key->ptr == 0
+      kBlobSizeEmpty        = 0x04,
 
-  /** same as above, but without endian conversion */
-  ham_u64_t *get_rawptr() {
-    return (&_ptr);
-  }
+      // key is extended with overflow area
+      kExtended             = 0x08,
 
-  /** same as above, but without endian conversion */
-  const ham_u64_t *get_rawptr() const {
-    return (&_ptr);
-  }
+      // key has duplicates
+      kDuplicates           = 0x10,
 
-  /**
-   * set the pointer of an btree-entry
-   *
-   * !!! same problems as with get_ptr():
-   * if TINY or SMALL is set, the key is actually a char*-pointer;
-   * in this case, we must not use endian-conversion
-   */
-  void set_ptr(ham_u64_t ptr) {
-    _ptr = (((_flags8 & KEY_BLOB_SIZE_TINY) ||
-              (_flags8 & KEY_BLOB_SIZE_SMALL))
-            ? ptr
-            : ham_h2db_offset(ptr));
-  }
+      // memory for a key was allocated in hamsterdb, not by caller
+      kAllocated           = 0x20
+    };
 
-  /** get the size of an btree-entry */
-  ham_u16_t get_size() const {
-    return (ham_db2h16(_keysize));
-  }
+    // flags used with the ham_key_t::_flags (note the underscore - this
+    // field is for INTERNAL USE!)
+    //
+    // Note: these flags should NOT overlap with the persisted flags for
+    // PBtreeKey
+    //
+    // As these flags NEVER will be persisted, they should be located outside
+    // the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
+    enum {
+      // Actual key is lower than the requested key
+      kLower               = 0x00010000,
 
-  /** set the size of an btree-entry */
-  void set_size(ham_u16_t size) {
-    _keysize = ham_h2db16(size);
-  }
+      // Actual key is greater than the requested key
+      kGreater             = 0x00020000,
 
-  /** get the (persisted) flags of a key */
-  ham_u8_t get_flags() const {
-    return (_flags8);
-  }
+      // Actual key is an "approximate match"
+      kApproximate         = (kLower | kGreater)
+    };
 
-  /**
-   * set the flags of a key
-   *
-   * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
-   * defined such that those can peacefully co-exist with these; that's why
-   * those public flags start at the value 0x1000 (4096).
-   */
-  void set_flags(ham_u8_t flags) {
-    _flags8 = flags;
-  }
+    // Returns the pointer of an btree-entry
+    //
+    // !!!
+    // if TINY or SMALL is set, the key is actually a char*-pointer;
+    // in this case, we must not use endian-conversion!
+    ham_u64_t get_ptr() {
+      return (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
+              ? m_ptr
+              : ham_db2h_offset(m_ptr));
+    }
 
-  /** get a pointer to the key data */
-  ham_u8_t *get_key() {
-    return (_key);
-  }
+    // Same as above, but without endian conversion
+    ham_u64_t *get_rawptr() {
+      return (&m_ptr);
+    }
 
-  /** get a pointer to the key data */
-  const ham_u8_t *get_key() const {
-    return (_key);
-  }
+    // Same as above, but without endian conversion
+    const ham_u64_t *get_rawptr() const {
+      return (&m_ptr);
+    }
 
-  /** set the key data */
-  void set_key(const void *ptr, ham_size_t len) {
-    memcpy(_key, ptr, len);
-  }
+    // Sets the pointer of an btree-entry
+    //
+    // !!! same problems as with get_ptr():
+    // if TINY or SMALL is set, the key is actually a char*-pointer;
+    // in this case, we must not use endian-conversion
+    void set_ptr(ham_u64_t ptr) {
+      m_ptr = (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
+              ? ptr
+              : ham_h2db_offset(ptr));
+    }
 
-  /** get the record address of an extended key overflow area */
-  ham_u64_t get_extended_rid(LocalDatabase *db);
+    // Returns the size of an btree-entry
+    ham_u16_t get_size() const {
+      return (ham_db2h16(m_keysize));
+    }
 
-  /** set the record address of an extended key overflow area */
-  void set_extended_rid(LocalDatabase *db, ham_u64_t rid);
+    // Sets the size of an btree-entry
+    void set_size(ham_u16_t size) {
+      m_keysize = ham_h2db16(size);
+    }
 
-  /**
-   * inserts and sets a record
-   *
-   * flags can be
-   * - HAM_OVERWRITE
-   * - HAM_DUPLICATE_INSERT_BEFORE
-   * - HAM_DUPLICATE_INSERT_AFTER
-   * - HAM_DUPLICATE_INSERT_FIRST
-   * - HAM_DUPLICATE_INSERT_LAST
-   * - HAM_DUPLICATE
-   *
-   * a previously existing blob will be deleted if necessary
-   */
-  ham_status_t set_record(LocalDatabase *db, Transaction *txn,
-                  ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                  ham_size_t *new_position);
+    // Returns the (persisted) flags of a key
+    ham_u8_t get_flags() const {
+      return (m_flags8);
+    }
 
-  /*
-   * deletes a record
-   */
-  ham_status_t erase_record(LocalDatabase *db, Transaction *txn,
-                  ham_size_t dupe_id, bool erase_all_duplicates);
+    // Sets the flags of a key
+    //
+    // Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be
+    // defined such that those can peacefully co-exist with these; that's why
+    // those public flags start at the value 0x1000 (4096).
+    void set_flags(ham_u8_t flags) {
+      m_flags8 = flags;
+    }
 
-  /** the size of this structure without the single byte for the _key */
-  static size_t ms_sizeof_overhead;
+    // Returns a pointer to the key data
+    ham_u8_t *get_key() {
+      return (m_key);
+    }
 
-  /** the pointer/record ID of this entry */
-  ham_u64_t _ptr;
+    // Returns a pointer to the key data
+    const ham_u8_t *get_key() const {
+      return (m_key);
+    }
 
-  /** the size of this entry */
-  ham_u16_t _keysize;
+    // Overwrites the key data
+    void set_key(const void *ptr, ham_size_t len) {
+      memcpy(m_key, ptr, len);
+    }
+  
+    // Returns the record address of an extended key overflow area
+    ham_u64_t get_extended_rid(LocalDatabase *db);
 
-  /** key flags (see below) */
-  ham_u8_t _flags8;
+    // Sets the record address of an extended key overflow area
+    void set_extended_rid(LocalDatabase *db, ham_u64_t rid);
 
-  /** the key itself */
-  ham_u8_t _key[1];
+    // Inserts and sets a record
+    //
+    // flags can be
+    // - HAM_OVERWRITE
+    // - HAM_DUPLICATE_INSERT_BEFORE
+    // - HAM_DUPLICATE_INSERT_AFTER
+    // - HAM_DUPLICATE_INSERT_FIRST
+    // - HAM_DUPLICATE_INSERT_LAST
+    // - HAM_DUPLICATE
+    //
+    // a previously existing blob will be deleted if necessary
+    ham_status_t set_record(LocalDatabase *db, Transaction *txn,
+                    ham_record_t *record, ham_size_t position, ham_u32_t flags,
+                    ham_size_t *new_position);
+
+    // Deletes a record from this key
+    ham_status_t erase_record(LocalDatabase *db, Transaction *txn,
+                    ham_size_t dupe_id, bool erase_all_duplicates);
+
+    // The size of this structure without the single byte for the m_key
+    static ham_size_t kSizeofOverhead;
+
+  private:
+    friend struct MiscFixture;
+
+    // the pointer/record ID of this entry
+    ham_u64_t m_ptr;
+
+    // the size of this entry
+    ham_u16_t m_keysize;
+
+    // key flags (see above)
+    ham_u8_t m_flags8;
+
+    // the key data
+    ham_u8_t m_key[1];
+
 } HAM_PACK_2;
 
 #include "packstop.h"

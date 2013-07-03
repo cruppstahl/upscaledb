@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -7,9 +7,6 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * btree searching
  *
  */
 
@@ -33,6 +30,9 @@
 
 namespace hamsterdb {
 
+/*
+ * btree searching
+ */
 class BtreeFindAction
 {
   public:
@@ -88,12 +88,12 @@ class BtreeFindAction
 
       if (idx == -1) {
         /* get the address of the root page */
-        if (!m_btree->get_rootpage())
+        if (!m_btree->get_root_address())
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
         st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, m_btree->get_rootpage());
+                        db, m_btree->get_root_address());
         if (st)
           return (st);
 
@@ -146,10 +146,10 @@ class BtreeFindAction
        * shift by one.
        */
       if (idx >= 0) {
-        if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
+        if ((ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
             && (hints.original_flags & (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH))
                 != (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH)) {
-          if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_GT)
+          if ((ham_key_get_intflags(m_key) & PBtreeKey::kGreater)
               && (hints.original_flags & HAM_FIND_LT_MATCH)) {
             /* if the index-1 is still in the page, just decrement the index */
             if (idx > 0)
@@ -169,9 +169,9 @@ class BtreeFindAction
               idx = node->get_count() - 1;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
+                        & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
           }
-          else if ((ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_LT)
+          else if ((ham_key_get_intflags(m_key) & PBtreeKey::kLower)
               && (hints.original_flags & HAM_FIND_GT_MATCH)) {
             /* if the index+1 is still in the page, just increment the index */
             if (idx + 1 < node->get_count())
@@ -191,10 +191,10 @@ class BtreeFindAction
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                        & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_GT);
+                        & ~PBtreeKey::kApproximate) | PBtreeKey::kGreater);
           }
         }
-        else if (!(ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
+        else if (!(ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
             && !(hints.original_flags & HAM_FIND_EXACT_MATCH)
             && (hints.original_flags != 0)) {
           /*
@@ -211,14 +211,14 @@ class BtreeFindAction
            * ensures that we can restrict our work to a simple adjustment
            * right here; everything else has already been taken of by the
            * LEQ/GEQ logic in the section above when the key has been
-           * flagged with the KEY_IS_APPROXIMATE flag.
+           * flagged with the kApproximate flag.
            */
           if (hints.original_flags & HAM_FIND_LT_MATCH) {
             /* if the index-1 is still in the page, just decrement the index */
             if (idx > 0) {
               idx--;
               ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                          & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
+                          & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
             }
             else {
               /* otherwise load the left sibling page */
@@ -244,7 +244,7 @@ class BtreeFindAction
                     idx = 0;
                   }
                   ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key) &
-                                      ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_GT);
+                                      ~PBtreeKey::kApproximate) | PBtreeKey::kGreater);
                 }
                 else {
                   stats->find_failed();
@@ -260,7 +260,7 @@ class BtreeFindAction
                 idx = node->get_count() - 1;
 
                 ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                  & ~PBtreeKey::KEY_IS_APPROXIMATE) | PBtreeKey::KEY_IS_LT);
+                                  & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
               }
             }
           }
@@ -283,8 +283,8 @@ class BtreeFindAction
               idx = 0;
             }
             ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                & ~PBtreeKey::KEY_IS_APPROXIMATE)
-                                | PBtreeKey::KEY_IS_GT);
+                                & ~PBtreeKey::kApproximate)
+                                | PBtreeKey::kGreater);
           }
         }
       }
@@ -314,7 +314,7 @@ class BtreeFindAction
 
       /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
        * is set: */
-      if (m_key && (ham_key_get_intflags(m_key) & PBtreeKey::KEY_IS_APPROXIMATE)
+      if (m_key && (ham_key_get_intflags(m_key) & PBtreeKey::kApproximate)
           && !(m_flags & Cursor::kSyncDontLoadKey)) {
         st = m_btree->read_key(m_txn, entry, m_key);
         if (st)
@@ -324,8 +324,8 @@ class BtreeFindAction
       if (m_record) {
         m_record->_intflags = entry->get_flags();
         m_record->_rid = entry->get_ptr();
-        st = m_btree->read_record(m_txn, m_record,
-                        entry->get_rawptr(), m_flags);
+        st = m_btree->read_record(m_txn, entry->get_rawptr(),
+                        m_record, m_flags);
         if (st)
           return (st);
       }
@@ -334,22 +334,22 @@ class BtreeFindAction
     }
 
   private:
-    /** the current btree */
+    // the current btree
     BtreeIndex *m_btree;
 
-    /** the current transaction */
+    // the current transaction
     Transaction *m_txn;
 
-    /** the current cursor */
+    // the current cursor
     BtreeCursor *m_cursor;
 
-    /** the key that is retrieved */
+    // the key that is retrieved
     ham_key_t *m_key;
 
-    /** the key that is retrieved */
+    // the record that is retrieved
     ham_record_t *m_record;
 
-    /* flags of ham_db_find() */
+    // flags of ham_db_find()
     ham_u32_t m_flags;
 };
 

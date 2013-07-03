@@ -19,7 +19,7 @@
 #include "../src/btree.h"
 #include "../src/page_manager.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct RecordNumberFixture {
   ham_u32_t m_flags;
@@ -489,7 +489,7 @@ struct RecordNumberFixture {
     BtreeIndex *be = db->get_btree_index();
     Page *page;
     PageManager *pm = db->get_env()->get_page_manager();
-    REQUIRE(0 == pm->fetch_page(&page, db, be->get_rootpage()));
+    REQUIRE(0 == pm->fetch_page(&page, db, be->get_root_address()));
     REQUIRE(page);
     REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
 
@@ -669,3 +669,4 @@ TEST_CASE("RecordNumber-inmem/uncoupleTest", "")
   f.uncoupleTest();
 }
 
+} // namespace RecordNumberFixture

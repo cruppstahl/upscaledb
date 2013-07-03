@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2005-2013 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -8,9 +8,6 @@
  *
  * See files COPYING.* for License information.
  *
- *
- * btree inserting
- *
  */
 
 #include "config.h"
@@ -18,7 +15,6 @@
 #include <string.h>
 #include <algorithm>
 
-#include "internal_fwd_decl.h"
 #include "blob_manager.h"
 #include "btree.h"
 #include "page_manager.h"
@@ -46,11 +42,14 @@ namespace hamsterdb {
 /* a unittest hook triggered when a page is split */
 void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
 
+/*
+ * btree inserting
+ */
 class BtreeInsertAction
 {
   enum {
-    /** page split required */
-    SPLIT = 1
+    // page split required
+    kSplitRequired = 1
   };
 
   public:
@@ -102,8 +101,8 @@ class BtreeInsertAction
     }
 
   private:
-    /** append a key at the "end" of the btree, or prepend it at the
-     * "beginning" */
+    // Appends a key at the "end" of the btree, or prepends it at the
+    // "beginning"
     ham_status_t append_or_prepend_key() {
       ham_status_t st = 0;
       Page *page;
@@ -198,7 +197,7 @@ class BtreeInsertAction
 
       /* get the root-page...  */
       st = db->get_env()->get_page_manager()->fetch_page(&root,
-                      db, m_btree->get_rootpage());
+                      db, m_btree->get_root_address());
       if (st)
         return (st);
 
@@ -206,7 +205,7 @@ class BtreeInsertAction
       st = insert_recursive(root, m_key, 0);
 
       /* create a new root page if it needs to be split */
-      if (st == SPLIT) {
+      if (st == kSplitRequired) {
         st = split_root(root);
         if (st)
           return (st);
@@ -232,7 +231,7 @@ class BtreeInsertAction
 
       /* insert the pivot element and the ptr_left */
       PBtreeNode *node = PBtreeNode::from_page(newroot);
-      node->set_ptr_left(m_btree->get_rootpage());
+      node->set_ptr_left(m_btree->get_root_address());
       st = insert_in_leaf(newroot, &m_split_key, m_split_rid);
       ham_assert(!(m_split_key.flags & HAM_KEY_USER_ALLOC));
       /* don't overwrite cursor if insert_in_leaf is called again */
@@ -244,23 +243,18 @@ class BtreeInsertAction
        * set the new root page
        *
        * !!
-       * do NOT delete the old root page - it's still in use! also add the
-       * root page to the changeset to make sure that the changes are logged
+       * do NOT delete the old root page - it's still in use!
        */
-      m_btree->set_rootpage(newroot->get_self());
-      if (db->get_env()->get_flags() & HAM_ENABLE_RECOVERY)
-        db->get_env()->get_changeset().add_page(db->get_env()->get_header_page());
+      m_btree->set_root_address(newroot->get_self());
       root->set_type(Page::TYPE_B_INDEX);
       root->set_dirty(true);
       newroot->set_dirty(true);
       return (0);
     }
 
-    /**
-     * this is the function which does most of the work - traversing to a
-     * leaf, inserting the key using insert_in_page()
-     * and performing necessary SMOs. it works recursive.
-     */
+    // This is the function which does most of the work - traversing to a
+    // leaf, inserting the key using insert_in_page()
+    // and performing necessary SMOs. It works recursive.
     ham_status_t insert_recursive(Page *page, ham_key_t *key,
                     ham_u64_t rid) {
       Page *child;
@@ -285,7 +279,7 @@ class BtreeInsertAction
         case HAM_DUPLICATE_KEY:
           break;
         /* the child was split, and we have to insert a new key/rid-pair.  */
-        case SPLIT:
+        case kSplitRequired:
           m_hints.flags |= HAM_OVERWRITE;
           m_cursor = 0;
           st = insert_in_page(page, &m_split_key, m_split_rid);
@@ -301,9 +295,7 @@ class BtreeInsertAction
       return (st);
     }
 
-    /**
-     * this function inserts a key in a page; if necessary, the page is split
-     */
+    // Inserts a key in a page; if necessary, the page is split
     ham_status_t insert_in_page(Page *page, ham_key_t *key, ham_u64_t rid) {
       ham_status_t st;
       ham_size_t maxkeys = m_btree->get_maxkeys();
@@ -348,9 +340,7 @@ class BtreeInsertAction
       return (insert_split(page, key, rid));
     }
 
-    /**
-     * split a page and insert the new element
-     */
+    // Splits a page and inserts the new element
     ham_status_t insert_split(Page *page, ham_key_t *key, ham_u64_t rid) {
       int cmp;
       Page *newpage, *oldsib;
@@ -422,14 +412,14 @@ class BtreeInsertAction
        */
       if (obtp->is_leaf()) {
         memcpy((char *)nbte,
-               ((char *)obte) + (PBtreeKey::ms_sizeof_overhead+keysize) * pivot,
-               (PBtreeKey::ms_sizeof_overhead+keysize) * (count - pivot));
+               ((char *)obte) + (PBtreeKey::kSizeofOverhead+keysize) * pivot,
+               (PBtreeKey::kSizeofOverhead+keysize) * (count - pivot));
       }
       else {
         memcpy((char *)nbte,
-               ((char *)obte) + (PBtreeKey::ms_sizeof_overhead+keysize)
+               ((char *)obte) + (PBtreeKey::kSizeofOverhead+keysize)
                     * (pivot + 1),
-               (PBtreeKey::ms_sizeof_overhead + keysize) * (count - pivot - 1));
+               (PBtreeKey::kSizeofOverhead + keysize) * (count - pivot - 1));
       }
 
       /*
@@ -513,7 +503,7 @@ class BtreeInsertAction
 
       if (g_BTREE_INSERT_SPLIT_HOOK)
         g_BTREE_INSERT_SPLIT_HOOK();
-      return (SPLIT);
+      return (kSplitRequired);
 
 fail_dramatically:
       if (pivotkey.data)
@@ -589,12 +579,12 @@ fail_dramatically:
           if (st)
             return (st);
 
-          memmove(((char *)bte) + PBtreeKey::ms_sizeof_overhead + keysize, bte,
-                    (PBtreeKey::ms_sizeof_overhead + keysize) * (count - slot));
+          memmove(((char *)bte) + PBtreeKey::kSizeofOverhead + keysize, bte,
+                    (PBtreeKey::kSizeofOverhead + keysize) * (count - slot));
         }
 
         /* if a new key is created or inserted: initialize it with zeroes */
-        memset(bte, 0, PBtreeKey::ms_sizeof_overhead + keysize);
+        memset(bte, 0, PBtreeKey::kSizeofOverhead + keysize);
       }
 
       /*
@@ -621,7 +611,7 @@ fail_dramatically:
 
       /* set a flag if the key is extended, and does not fit into the btree */
       if (key->size > keysize)
-        bte->set_flags(bte->get_flags() | PBtreeKey::KEY_IS_EXTENDED);
+        bte->set_flags(bte->get_flags() | PBtreeKey::kExtended);
 
       /* if we have a cursor: couple it to the new key */
       if (m_cursor) {
@@ -670,46 +660,37 @@ fail_dramatically:
       return (0);
     }
 
-
-    /** the current btree */
+    // the current btree
     BtreeIndex *m_btree;
 
-    /** the current transaction */
+    // the current transaction
     Transaction *m_txn;
 
-    /** the current cursor */
+    // the current cursor
     BtreeCursor *m_cursor;
 
-    /** the key that is inserted */
+    // the key that is inserted
     ham_key_t *m_key;
 
-    /** the key that is inserted */
+    // the record that is inserted
     ham_record_t *m_record;
 
-    /** the pivot key for SMOs and splits */
+    // the pivot key for SMOs and splits
     ham_key_t m_split_key;
 
-    /** the pivot record ID for SMOs and splits */
+    // the pivot record ID for SMOs and splits
     ham_u64_t m_split_rid;
 
-    /* flags of ham_db_find() */
+    // flags of ham_db_insert()
     ham_u32_t m_flags;
 
-    /** statistical hints for this operation */
+    // statistical hints for this operation
     BtreeStatistics::InsertHints m_hints;
 };
 
 ham_status_t
-BtreeIndex::insert(Transaction *txn, ham_key_t *key,
+BtreeIndex::insert(Transaction *txn, Cursor *cursor, ham_key_t *key,
                 ham_record_t *record, ham_u32_t flags)
-{
-  BtreeInsertAction bia(this, txn, 0, key, record, flags);
-  return (bia.run());
-}
-
-ham_status_t
-BtreeIndex::insert_cursor(Transaction *txn, ham_key_t *key,
-                ham_record_t *record, Cursor *cursor, ham_u32_t flags)
 {
   BtreeInsertAction bia(this, txn, cursor, key, record, flags);
   return (bia.run());

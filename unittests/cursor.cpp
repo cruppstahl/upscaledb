@@ -496,7 +496,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this looks up a key in an empty Transaction but with the btree */
     REQUIRE(0 ==
@@ -517,7 +517,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* overwrite it in the Transaction */
     REQUIRE(0 ==
@@ -565,7 +565,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* couple the cursor to this key */
     REQUIRE(0 ==
@@ -673,7 +673,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this looks up a key in an empty Transaction but with the btree */
     REQUIRE(0 ==
@@ -762,7 +762,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -782,7 +782,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -840,7 +840,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert the same key into the Transaction */
     REQUIRE(0 ==
@@ -867,7 +867,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)"11111";
@@ -894,7 +894,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)ext1;
@@ -919,7 +919,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
@@ -946,7 +946,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)ext2;
@@ -971,7 +971,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
@@ -997,7 +997,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)ext1;
@@ -1028,7 +1028,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     REQUIRE(0 ==
@@ -1058,7 +1058,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
@@ -1092,7 +1092,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -1112,7 +1112,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -1170,7 +1170,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* insert a key into the btree */
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert the same key into the Transaction */
     REQUIRE(0 ==
@@ -1196,7 +1196,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)"11111";
@@ -1223,7 +1223,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a smaller key into the Transaction */
     key.data = (void *)ext1;
@@ -1248,7 +1248,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
@@ -1275,7 +1275,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)ext2;
@@ -1300,7 +1300,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
@@ -1326,7 +1326,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)ext1;
@@ -1341,7 +1341,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
 
     /* we have to manually clear the changeset, otherwise ham_db_close will
-     * fail. The changeset was filled in be->insert(but this is an
+     * fail. The changeset was filled in 0, be->insert(but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
     ((Environment *)m_env)->get_changeset().clear();
@@ -1357,7 +1357,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* erase it */
     key.data = (void *)"11111";
@@ -1388,7 +1388,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* insert a greater key into the Transaction */
     key.data = (void *)"22222";
@@ -1420,13 +1420,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1497,7 +1497,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1522,7 +1522,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -1565,13 +1565,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1612,13 +1612,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -1672,13 +1672,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -1708,13 +1708,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1759,16 +1759,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1821,13 +1821,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1877,16 +1877,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* overwrite all keys but the last */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -1936,13 +1936,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 ==
@@ -1996,7 +1996,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     r.size = rec ? strlen(rec) + 1 : 0;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert(0, &k, &r, flags));
+    return (be->insert(0, 0, &k, &r, flags));
   }
 
   ham_status_t insertTxn(const char *key, const char *rec,
@@ -2192,13 +2192,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2269,7 +2269,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2294,7 +2294,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2337,13 +2337,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2384,13 +2384,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -2444,13 +2444,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2480,13 +2480,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2531,16 +2531,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2593,13 +2593,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2649,16 +2649,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     /* skip the last key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
@@ -2708,13 +2708,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(0, &key, &rec, 0));
+    REQUIRE(0 == be->insert(0, 0, &key, &rec, 0));
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 ==
@@ -4403,7 +4403,7 @@ struct DupeCursorFixture {
     r.size = rec ? strlen(rec) + 1 : 0;
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    return (be->insert(0, &k, &r, flags));
+    return (be->insert(0, 0, &k, &r, flags));
   }
 
   ham_status_t eraseTxn(const char *key) {

@@ -223,7 +223,7 @@ struct DbFixture {
     REQUIRE(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
     REQUIRE(compare_sizes(freel_get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
-    REQUIRE(compare_sizes(PBtreeKey::ms_sizeof_overhead, 11));
+    REQUIRE(compare_sizes(PBtreeKey::kSizeofOverhead, 11));
     REQUIRE(compare_sizes(sizeof(Log::PHeader), 16));
     REQUIRE(compare_sizes(sizeof(Log::PEntry), 32));
     REQUIRE(compare_sizes(sizeof(PageData), 13));
@@ -231,7 +231,7 @@ struct DbFixture {
     REQUIRE(compare_sizes(sizeof(p._s), 13));
     REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
 
-    REQUIRE(compare_sizes(OFFSETOF(PBtreeNode, _entries), 28));
+    REQUIRE(compare_sizes(PBtreeNode::get_entry_offset(), 28));
     Page page;
     LocalDatabase db((Environment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
@@ -239,7 +239,7 @@ struct DbFixture {
     page.set_self(1000);
     page.set_db(&db);
     db.m_btree_index = &be;
-    be.set_keysize(666);
+    be.m_keysize = 666;
     REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...

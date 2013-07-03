@@ -28,7 +28,7 @@
 #include "../src/env.h"
 #include "../src/btree_cursor.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct DuplicateFixture {
   ham_u32_t m_flags;
@@ -534,7 +534,7 @@ struct DuplicateFixture {
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     REQUIRE(0 == ((Environment *)m_env)->get_page_manager()->fetch_page(&page,
-                (LocalDatabase *)m_db, be->get_rootpage()));
+                (LocalDatabase *)m_db, be->get_root_address()));
     REQUIRE(page);
 
     REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
@@ -2311,3 +2311,4 @@ TEST_CASE("DuplicateFixture-inmem/cloneTest", "")
   f.cloneTest();
 }
 
+} // namespace hamsterdb

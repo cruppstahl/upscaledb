@@ -25,7 +25,7 @@
 #include "../src/cursor.h"
 #include "../src/page_manager.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct BtreeCursorFixture {
   ham_db_t *m_db;
@@ -99,7 +99,7 @@ struct BtreeCursorFixture {
     Page *page;
     PageManager *pm = ((Environment *)m_env)->get_page_manager();
     REQUIRE(0 == pm->fetch_page(&page, (LocalDatabase *)m_db,
-                            be->get_rootpage()));
+                            be->get_root_address()));
     REQUIRE(page != 0);
     REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));
 
@@ -559,3 +559,5 @@ TEST_CASE("BtreeCursor-64k-inmem/couplingTest", "")
   BtreeCursorFixture f(true, 1024 * 64);
   f.couplingTest();
 }
+
+} // namespace hamsterdb

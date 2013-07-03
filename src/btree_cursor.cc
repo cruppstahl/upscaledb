@@ -201,7 +201,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 
   if (record) {
     ham_u64_t *ridptr = 0;
-    if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES
+    if (entry->get_flags() & PBtreeKey::kDuplicates
         && m_duplicate_index) {
       PDupeEntry *e = &m_dupe_cache;
       if (!dupe_entry_get_rid(e)) {
@@ -219,7 +219,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       record->_rid = entry->get_ptr();
       ridptr = entry->get_rawptr();
     }
-    st = be->read_record(txn, record, ridptr, flags);
+    st = be->read_record(txn, ridptr, record, flags);
     if (st)
       return (st);
   }
@@ -257,7 +257,7 @@ BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
   ham_assert(record);
 
   // call the btree insert function
-  return (be->insert_cursor(txn, key, record, get_parent(), flags));
+  return (be->insert(txn, get_parent(), key, record, flags));
 }
 
 ham_status_t
@@ -269,7 +269,7 @@ BtreeCursor::erase(ham_u32_t flags)
   if (m_state != kStateUncoupled && m_state != kStateCoupled)
     return (HAM_CURSOR_IS_NIL);
 
-  return (be->erase_cursor(txn, 0, get_parent(), flags));
+  return (be->erase(txn, get_parent(), 0, 0, flags));
 }
 
 bool
@@ -352,7 +352,7 @@ BtreeCursor::get_duplicate_count(ham_size_t *count, ham_u32_t flags)
   PBtreeNode *node = PBtreeNode::from_page(m_coupled_page);
   PBtreeKey *entry = node->get_key(db, m_coupled_index);
 
-  if (!(entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES)) {
+  if (!(entry->get_flags() & PBtreeKey::kDuplicates)) {
     *count = 1;
   }
   else {
@@ -386,7 +386,7 @@ BtreeCursor::get_record_size(ham_u64_t *size)
   PBtreeNode *node = PBtreeNode::from_page(m_coupled_page);
   PBtreeKey *entry = node->get_key(db, m_coupled_index);
 
-  if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES) {
+  if (entry->get_flags() & PBtreeKey::kDuplicates) {
     st = db->get_env()->get_duplicate_manager()->get(entry->get_ptr(),
                     m_duplicate_index, &dupeentry);
     if (st)
@@ -401,16 +401,16 @@ BtreeCursor::get_record_size(ham_u64_t *size)
     rid = entry->get_ptr();
   }
 
-  if (keyflags & PBtreeKey::KEY_BLOB_SIZE_TINY) {
+  if (keyflags & PBtreeKey::kBlobSizeTiny) {
     // the highest byte of the record id is the size of the blob
     char *p = (char *)ridptr;
     *size = p[sizeof(ham_u64_t) - 1];
   }
-  else if (keyflags & PBtreeKey::KEY_BLOB_SIZE_SMALL) {
+  else if (keyflags & PBtreeKey::kBlobSizeSmall) {
     // record size is sizeof(ham_u64_t)
     *size = sizeof(ham_u64_t);
   }
-  else if (keyflags & PBtreeKey::KEY_BLOB_SIZE_EMPTY) {
+  else if (keyflags & PBtreeKey::kBlobSizeEmpty) {
     // record size is 0
     *size = 0;
   }
@@ -465,10 +465,10 @@ BtreeCursor::move_first(ham_u32_t flags)
   set_to_nil();
 
   // get the root page
-  if (!be->get_rootpage())
+  if (!be->get_root_address())
     return (HAM_KEY_NOT_FOUND);
   st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  be->get_rootpage());
+                  be->get_root_address());
   if (st)
     return (st);
 
@@ -518,7 +518,7 @@ BtreeCursor::move_next(ham_u32_t flags)
    * if this key has duplicates: get the next duplicate; otherwise
    * (and if there's no duplicate): fall through
    */
-  if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES
+  if (entry->get_flags() & PBtreeKey::kDuplicates
       && (!(flags & HAM_SKIP_DUPLICATES))) {
     m_duplicate_index++;
     st = env->get_duplicate_manager()->get(entry->get_ptr(),
@@ -581,7 +581,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
 
   // if this key has duplicates: get the previous duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES
+  if (entry->get_flags() & PBtreeKey::kDuplicates
       && (!(flags & HAM_SKIP_DUPLICATES))
       && m_duplicate_index > 0) {
     m_duplicate_index--;
@@ -626,7 +626,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
   m_duplicate_index = 0;
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES
+  if (entry->get_flags() & PBtreeKey::kDuplicates
       && !(flags & HAM_SKIP_DUPLICATES)) {
     ham_size_t count;
     st = env->get_duplicate_manager()->get_count(entry->get_ptr(),
@@ -652,10 +652,10 @@ BtreeCursor::move_last(ham_u32_t flags)
   set_to_nil();
 
   // get the root page
-  if (!be->get_rootpage())
+  if (!be->get_root_address())
     return (HAM_KEY_NOT_FOUND);
   ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  be->get_rootpage());
+                  be->get_root_address());
   if (st)
     return (st);
   // hack: prior to 2.0, the type of btree root pages was not set
@@ -685,7 +685,7 @@ BtreeCursor::move_last(ham_u32_t flags)
   PBtreeKey *entry = node->get_key(db, m_coupled_index);
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (entry->get_flags() & PBtreeKey::KEY_HAS_DUPLICATES
+  if (entry->get_flags() & PBtreeKey::kDuplicates
       && !(flags & HAM_SKIP_DUPLICATES)) {
     ham_size_t count;
     st = env->get_duplicate_manager()->get_count(entry->get_ptr(),

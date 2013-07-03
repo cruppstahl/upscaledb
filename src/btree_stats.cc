@@ -22,9 +22,8 @@
 
 namespace hamsterdb {
 
-
-BtreeStatistics::BtreeStatistics(Database *db)
-  : m_db(db), m_append_count(0), m_prepend_count(0)
+BtreeStatistics::BtreeStatistics()
+  : m_append_count(0), m_prepend_count(0)
 {
   memset(&m_last_leaf_pages[0], 0, sizeof(m_last_leaf_pages));
   memset(&m_last_leaf_count[0], 0, sizeof(m_last_leaf_count));

@@ -36,7 +36,7 @@ class BtreeEnumAction
   public:
     BtreeEnumAction(BtreeIndex *btree, ham_enumerate_cb_t cb, void *context)
       : m_btree(btree), m_cb(cb), m_context(context) {
-      ham_assert(m_btree->get_rootpage() != 0);
+      ham_assert(m_btree->get_root_address() != 0);
       ham_assert(m_cb != 0);
     }
 
@@ -48,7 +48,7 @@ class BtreeEnumAction
 
       /* get the root page of the tree */
       ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
-                      db, m_btree->get_rootpage());
+                      db, m_btree->get_root_address());
       if (st)
         return (st);
 

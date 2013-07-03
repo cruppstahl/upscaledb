@@ -9,11 +9,6 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief btree verification
- *
- */
-
 #include "config.h"
 
 #include <string.h>
@@ -31,38 +26,43 @@
 
 namespace hamsterdb {
 
+/*
+ * btree verification
+ */
 class BtreeCheckAction
 {
   public:
+    // Constructor
     BtreeCheckAction(BtreeIndex *btree)
       : m_btree(btree) {
     }
 
+    // This is the main method; it starts the verification.
     ham_status_t run() {
       Page *page, *parent = 0;
       ham_u32_t level = 0;
       LocalDatabase *db = m_btree->get_db();
 
-      ham_assert(m_btree->get_rootpage() != 0);
+      ham_assert(m_btree->get_root_address() != 0);
 
-      /* get the root page of the tree */
+      // get the root page of the tree
       ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
-                            db, m_btree->get_rootpage());
+                            db, m_btree->get_root_address());
       if (st)
         return (st);
 
-      /* for each level... */
+      // for each level...
       while (page) {
         PBtreeNode *node = PBtreeNode::from_page(page);
         ham_u64_t ptr_left = node->get_ptr_left();
 
-        /* verify the page and all its siblings */
+        // verify the page and all its siblings
         st = verify_level(parent, page, level);
         if (st)
           break;
         parent = page;
 
-        /* follow the pointer to the smallest child */
+        // follow the pointer to the smallest child
         if (ptr_left) {
           st = db->get_env()->get_page_manager()->fetch_page(&page,
                             db, ptr_left);
@@ -79,19 +79,15 @@ class BtreeCheckAction
   }
 
   private:
-    /**
-     * verify a whole level in the tree - start with "page" and traverse
-     * the linked list of all the siblings
-     */
+    // Verifies a whole level in the tree - start with "page" and traverse
+    // the linked list of all the siblings
     ham_status_t verify_level(Page *parent, Page *page, ham_u32_t level) {
       Page *child, *leftsib = 0;
       LocalDatabase *db = m_btree->get_db();
       PBtreeNode *node = PBtreeNode::from_page(page);
 
-      /*
-       * assert that the parent page's smallest item (item 0) is bigger
-       * than the largest item in this page
-       */
+      // assert that the parent page's smallest item (item 0) is bigger
+      // than the largest item in this page
       if (parent && node->get_left()) {
         int cmp = compare_keys(db, page, 0, (ham_u16_t)(node->get_count() - 1));
         if (cmp < -1)
@@ -104,12 +100,12 @@ class BtreeCheckAction
       }
 
       while (page) {
-        /* verify the page */
+        // verify the page
         ham_status_t st = verify_page(parent, leftsib, page, level);
         if (st)
           break;
 
-        /* get the right sibling */
+        // follow the right sibling
         PBtreeNode *node = PBtreeNode::from_page(page);
         if (node->get_right()) {
           st = db->get_env()->get_page_manager()->fetch_page(&child,
@@ -127,7 +123,7 @@ class BtreeCheckAction
       return (0);
     }
 
-    /** verify a single page */
+    // Verifies a single page
     ham_status_t verify_page(Page *parent, Page *leftsib, Page *page,
                 ham_u32_t level) {
       int cmp;
@@ -135,8 +131,8 @@ class BtreeCheckAction
       PBtreeNode *node = PBtreeNode::from_page(page);
 
       if (node->get_count() == 0) {
-        /* a rootpage can be empty! check if this page is the rootpage */
-        if (page->get_self() == m_btree->get_rootpage())
+        // a rootpage can be empty! check if this page is the rootpage
+        if (page->get_self() == m_btree->get_root_address())
           return (0);
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
@@ -144,17 +140,15 @@ class BtreeCheckAction
         return (HAM_INTEGRITY_VIOLATED);
       }
 
-      /*
-       * check if the largest item of the left sibling is smaller than
-       * the smallest item of this page
-       */
+      // check if the largest item of the left sibling is smaller than
+      // the smallest item of this page
       if (leftsib) {
         PBtreeNode *sibnode = PBtreeNode::from_page(leftsib);
         PBtreeKey *sibentry = sibnode->get_key(db, sibnode->get_count() - 1);
         PBtreeKey *bte = node->get_key(db, 0);
 
         if ((bte->get_flags() != 0
-            && bte->get_flags() != PBtreeKey::KEY_IS_EXTENDED)
+            && bte->get_flags() != PBtreeKey::kExtended)
             && !node->is_leaf()) {
           ham_log(("integrity check failed in page 0x%llx: item #0 "
                   "has flags, but it's not a leaf page", page->get_self()));
@@ -166,7 +160,6 @@ class BtreeCheckAction
         ham_key_t rhs;
 
         // TODO rewrite using BtreeIndex::compare_keys
-
         st = m_btree->prepare_key_for_compare(0, sibentry, &lhs);
         if (st)
           return (st);
@@ -175,8 +168,6 @@ class BtreeCheckAction
           return (st);
 
         cmp = db->compare_keys(&lhs, &rhs);
-
-        /* error is detected, but ensure keys are always released */
         if (cmp < -1)
           return ((ham_status_t)cmp);
 
@@ -192,9 +183,9 @@ class BtreeCheckAction
         return (0);
 
       for (ham_u16_t i = 0; i < node->get_count() - 1; i++) {
-        /* if this is an extended key: check for a blob-id */
+        // if this is an extended key: check for a blob-id
         PBtreeKey *bte = node->get_key(db, i);
-        if (bte->get_flags() & PBtreeKey::KEY_IS_EXTENDED) {
+        if (bte->get_flags() & PBtreeKey::kExtended) {
           ham_u64_t blobid = bte->get_extended_rid(db);
           if (!blobid) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
@@ -226,7 +217,6 @@ class BtreeCheckAction
       PBtreeKey *r = node->get_key(page->get_db(), rhs_int);
 
       // TODO rewrite using BtreeIndex::compare_keys
-
       ham_status_t st = m_btree->prepare_key_for_compare(0, l, &lhs);
       if (st)
         return (st);

@@ -283,17 +283,12 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
      * if this page has a header, and it's either a B-Tree root page or
      * a B-Tree index page: remove all extended keys from the cache,
      * and/or free their blobs
-     *
-     * TODO move to btree
      */
     if (page->get_pers() &&
         (!(page->get_flags() & Page::NPERS_NO_HEADER)) &&
           (page->get_type() == Page::TYPE_B_ROOT ||
             page->get_type() == Page::TYPE_B_INDEX)) {
-      ham_assert(page->get_db());
-      BtreeIndex *be = page->get_db()->get_btree_index();
-      if (be)
-        (void)be->free_page_extkeys(page, flags);
+      (void)BtreeIndex::free_page_extkeys(page, flags);
       (void)BtreeCursor::uncouple_all_cursors(page);
     }
 

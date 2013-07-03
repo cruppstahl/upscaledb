@@ -89,10 +89,31 @@ x Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
 x Refactor TxnCursor - similar to BtreeCuror
     x in destructor: assert that cursor is nil (do the same in ~BtreeCursor)
 
-. metrics: memory allocations currently ignore operator new/delete
+o clean up btree.h
+    x clean up src/btree_check.cc
+    x clean up src/btree_erase.cc
+    x clean up src/btree_find.cc
+    x clean up src/btree_insert.cc
+    x clean up btree.h, remove TODOs
+        x descriptor: consolidate setters into a single function 
+    x clean up src/btree_node.h
+    x clean up src/btree_key.h
+    x clean up src/btree_key.cc
+    x clean up src/btree_stats.h
+    x clean up src/btree_stats.cc
+    o clean up src/btree_enum.cc
+        o move enumerate API to separate header file
+            o use C++ object instead of generic callback function; users can
+                derive from this object
+    o Database::get_btree_index should be protected!
 
-. clean up Btree::enumerate interface, use C++ object instead of callback
-    function
+o Fix refactoring TODOs in TransactionCursor::erase()
+
+o metrics: memory allocations currently ignore operator new/delete
+    inline void *operator new     (size_t size) { return myAlloc(size); }
+    inline void *operator new[]   (size_t size) { return myAlloc(size); }
+    inline void  operator delete  (void* ptr) { myFree(ptr); }
+    inline void  operator delete[](void* ptr) { myFree(ptr); }
 
 o run a performance test clang++ vs g++
 
@@ -129,9 +150,6 @@ o pre-allocate index; 2.0.0 had this as an experimental feature
 . clean up Environment class
     o split into multiple files
     o remove the TODOs
-
-. LocalDatabase::cursor_insert (and others) should move the relevant functions
-    to Transaction and Cursor; do not directly access btree/txntree/txncursor
 
 . when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     then flush all of them together. This way we can "merge" multiple changes

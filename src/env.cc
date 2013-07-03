@@ -239,7 +239,7 @@ Environment::flush_txn(Transaction *txn)
           ? HAM_DUPLICATE
           : HAM_OVERWRITE;
       if (!op->get_cursors()) {
-        st = be->insert(txn, node->get_key(), op->get_record(),
+        st = be->insert(txn, 0, node->get_key(), op->get_record(),
                     op->get_orig_flags() | additional_flag);
       }
       else {
@@ -268,13 +268,8 @@ Environment::flush_txn(Transaction *txn)
       }
     }
     else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
-      if (op->get_referenced_dupe()) {
-        st = be->erase_duplicate(txn, node->get_key(),
+      st = be->erase(txn, 0, node->get_key(),
                     op->get_referenced_dupe(), op->get_flags());
-      }
-      else {
-        st = be->erase(txn, node->get_key(), op->get_flags());
-      }
       if (st == HAM_KEY_NOT_FOUND)
         st = 0;
     }
@@ -537,16 +532,13 @@ ham_status_t
 LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
     ham_u32_t flags)
 {
-  ham_u16_t dbi;
-  ham_u16_t slot;
-
   /*
    * check if a database with the new name already exists; also search
    * for the database with the old name
    */
-  slot = get_max_databases();
+  ham_u16_t slot = get_max_databases();
   ham_assert(get_max_databases() > 0);
-  for (dbi = 0; dbi<get_max_databases(); dbi++) {
+  for (ham_u16_t dbi = 0; dbi < get_max_databases(); dbi++) {
     ham_u16_t name = get_descriptor(dbi)->get_dbname();
     if (name == newname)
       return (HAM_DATABASE_ALREADY_EXISTS);
@@ -580,10 +572,7 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
 ham_status_t
 LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 {
-  LocalDatabase *db;
-  ham_status_t st;
   free_cb_context_t context;
-  BtreeIndex *be;
 
   /* check if this database is still open */
   if (get_database_map().find(name) != get_database_map().end())
@@ -597,7 +586,8 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
     return (HAM_DATABASE_NOT_FOUND);
 
   /* temporarily load the database */
-  st = open_db((Database **)&db, name, 0, 0);
+  LocalDatabase *db;
+  ham_status_t st = open_db((Database **)&db, name, 0, 0);
   if (st)
     return (st);
 
@@ -615,9 +605,12 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
    *
    * also delete all pages and move them to the freelist; if they're
    * cached, delete them from the cache
+   *
+   * TODO TODO TODO
+   * move this to Database::erase; do not directly access the BtreeDescriptor!
    */
   context.db = db;
-  be = db->get_btree_index();
+  BtreeIndex *be = db->get_btree_index();
 
   st = be->enumerate(__free_inmemory_blobs_cb, &context);
   if (st) {
@@ -627,17 +620,22 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 
   /* if logging is enabled: flush the changeset and the header page */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    get_changeset().add_page(get_header_page());
+    get_changeset().add_page(get_header_page()); // TODO not reqd
     st = get_changeset().flush(get_incremented_lsn());
   }
-
-  ham_u32_t descriptor = db->get_btree_index()->get_descriptor_index();
 
   /* clean up and return */
   (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
   /* now set database name to 0 and set the header page to dirty */
-  get_descriptor(descriptor)->set_dbname(0);
+  for (ham_u16_t dbi = 0; dbi < get_max_databases(); dbi++) {
+    PBtreeDescriptor *desc = get_descriptor(dbi);
+    if (name == desc->get_dbname()) {
+      desc->set_dbname(0);
+      break;
+    }
+  }
+
   get_header_page()->set_dirty(true);
 
   return (st);
@@ -852,7 +850,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   if (flags & HAM_RECORD_NUMBER)
     keysize = sizeof(ham_u64_t);
   else
-    keysize = (ham_u16_t)(32 - (PBtreeKey::ms_sizeof_overhead));
+    keysize = (ham_u16_t)(32 - (PBtreeKey::kSizeofOverhead));
 
   if (param) {
     for (; param->name; param++) {

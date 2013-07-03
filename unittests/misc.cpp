@@ -103,7 +103,7 @@ struct MiscFixture {
     src.set_ptr(0x12345);
     src.set_size(1);
     src.set_flags(0);
-    src._key[0] = 'a';
+    src.m_key[0] = 'a';
 
     REQUIRE(0 == m_btree->copy_key(&src, &dest));
     REQUIRE(1 == dest.size);
@@ -120,11 +120,11 @@ struct MiscFixture {
     src->set_ptr(0x12345);
     src->set_size(8);
     src->set_flags(0);
-    ::memcpy((char *)src->_key, "1234567\0", 8);
+    ::memcpy((char *)src->m_key, "1234567\0", 8);
 
     REQUIRE(0 == m_btree->copy_key(src, &dest));
     REQUIRE(dest.size == src->get_size());
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->_key));
+    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->m_key));
     Memory::release(dest.data);
   }
 
@@ -137,11 +137,11 @@ struct MiscFixture {
     src->set_ptr(0x12345);
     src->set_size(16);
     src->set_flags(0);
-    ::strcpy((char *)&buffer[11] /*src->_key*/, "123456781234567\0");
+    ::strcpy((char *)&buffer[11] /*src->m_key*/, "123456781234567\0");
 
     REQUIRE(0 == m_btree->copy_key(src, &dest));
     REQUIRE(dest.size == src->get_size());
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->_key));
+    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->m_key));
 
     Memory::release(dest.data);
   }
