@@ -24,7 +24,7 @@
 #include "../src/env.h"
 #include "../src/os.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct TxnCursorFixture {
   ham_cursor_t *m_cursor;
@@ -54,65 +54,6 @@ struct TxnCursorFixture {
     REQUIRE(true == cursor.is_nil());
   }
 
-  void txnOpLinkedListTest() {
-    ham_txn_t *txn;
-    TransactionNode *node;
-    TransactionOperation *op;
-    ham_key_t key = {0};
-    ham_record_t record = {0};
-    key.data = (void *)"hello";
-    key.size = 5;
-
-    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
-    op = node->append((Transaction *)txn,
-            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
-    REQUIRE(op != 0);
-
-    TransactionCursor c1((Cursor *)0);
-    c1.set_coupled_op(op);
-    TransactionCursor c2(c1);
-    TransactionCursor c3(c1);
-
-    REQUIRE((TransactionCursor *)0 == op->get_cursors());
-
-    op->add_cursor(&c1);
-    REQUIRE(&c1 == op->get_cursors());
-    REQUIRE((TransactionCursor *)0 == c1.get_coupled_previous());
-    REQUIRE((TransactionCursor *)0 == c1.get_coupled_next());
-
-    op->add_cursor(&c2);
-    REQUIRE(&c2 == op->get_cursors());
-    REQUIRE(&c2 == c1.get_coupled_previous());
-    REQUIRE(&c1 == c2.get_coupled_next());
-    REQUIRE((TransactionCursor *)0 == c2.get_coupled_previous());
-
-    op->add_cursor(&c3);
-    REQUIRE(&c3 == op->get_cursors());
-    REQUIRE(&c3 == c2.get_coupled_previous());
-    REQUIRE(&c2 == c3.get_coupled_next());
-    REQUIRE((TransactionCursor *)0 == c3.get_coupled_previous());
-
-    op->remove_cursor(&c2);
-    REQUIRE(&c3 == op->get_cursors());
-    REQUIRE(&c3 == c1.get_coupled_previous());
-    REQUIRE(&c1 == c3.get_coupled_next());
-    REQUIRE((TransactionCursor *)0 == c1.get_coupled_next());
-
-    op->remove_cursor(&c3);
-    REQUIRE(&c1 == op->get_cursors());
-    REQUIRE((TransactionCursor *)0 == c1.get_coupled_previous());
-    REQUIRE((TransactionCursor *)0 == c1.get_coupled_next());
-
-    op->remove_cursor(&c1);
-    REQUIRE((TransactionCursor *)0 == op->get_cursors());
-
-    c1.set_to_nil();
-    c2.set_to_nil();
-    c3.set_to_nil();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
-  }
-
   void getKeyFromCoupledCursorTest() {
     ham_txn_t *txn;
     TransactionNode *node;
@@ -130,9 +71,9 @@ struct TxnCursorFixture {
     REQUIRE(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_key(&k));
+    REQUIRE(0 == c.copy_coupled_key(&k));
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
@@ -161,14 +102,15 @@ struct TxnCursorFixture {
     REQUIRE(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_key(&k));
+    REQUIRE(0 == c.copy_coupled_key(&k));
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getKeyFromCoupledCursorEmptyKeyTest() {
@@ -186,14 +128,15 @@ struct TxnCursorFixture {
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_key(&k));
+    REQUIRE(0 == c.copy_coupled_key(&k));
     REQUIRE(k.size == key.size);
     REQUIRE((void *)0 == k.data);
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getKeyFromNilCursorTest() {
@@ -214,10 +157,11 @@ struct TxnCursorFixture {
 
     TransactionCursor c((Cursor *)m_cursor);
 
-    REQUIRE(HAM_CURSOR_IS_NIL == c.get_key(&k));
+    REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_key(&k));
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getRecordFromCoupledCursorTest() {
@@ -237,14 +181,15 @@ struct TxnCursorFixture {
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_record(&r));
+    REQUIRE(0 == c.copy_coupled_record(&r));
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getRecordFromCoupledCursorUserAllocTest() {
@@ -268,14 +213,15 @@ struct TxnCursorFixture {
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_record(&r));
+    REQUIRE(0 == c.copy_coupled_record(&r));
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getRecordFromCoupledCursorEmptyRecordTest() {
@@ -293,14 +239,15 @@ struct TxnCursorFixture {
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
-    c.set_coupled_op(op);
+    c.m_coupled_op = op;
 
-    REQUIRE(0 == c.get_record(&r));
+    REQUIRE(0 == c.copy_coupled_record(&r));
     REQUIRE(r.size == record.size);
     REQUIRE((void *)0 == r.data);
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   void getRecordFromNilCursorTest() {
@@ -319,10 +266,11 @@ struct TxnCursorFixture {
 
     TransactionCursor c((Cursor *)m_cursor);
 
-    REQUIRE(HAM_CURSOR_IS_NIL == c.get_record(&r));
+    REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_record(&r));
 
     ((Transaction *)txn)->free_ops();
     REQUIRE(0 == ham_txn_commit(txn, 0));
+    c.set_to_nil();
   }
 
   ham_status_t insert(ham_txn_t *txn, const char *key, const char *record = 0,
@@ -352,7 +300,7 @@ struct TxnCursorFixture {
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (cursor->insert(&k, &r, flags));
+    return (cursor->test_insert(&k, &r, flags));
   }
 
   ham_status_t overwriteCursor(TransactionCursor *cursor, const char *record) {
@@ -385,7 +333,7 @@ struct TxnCursorFixture {
       return (st);
     if (record) {
       ham_record_t r = {0};
-      REQUIRE(0 == cursor->get_record(&r));
+      REQUIRE(0 == cursor->copy_coupled_record(&r));
       REQUIRE(r.size == strlen(record) + 1);
       REQUIRE(0 == memcmp(r.data, record, r.size));
     }
@@ -398,7 +346,7 @@ struct TxnCursorFixture {
     ham_status_t st = cursor->move(flags);
     if (st)
       return (st);
-    st = cursor->get_key(&k);
+    st = cursor->copy_coupled_key(&k);
     if (st)
       return (st);
     if (key) {
@@ -1218,12 +1166,6 @@ TEST_CASE("TxnCursor/cursorIsNilTest", "")
   f.cursorIsNilTest();
 }
 
-TEST_CASE("TxnCursor/txnOpLinkedListTest", "")
-{
-  TxnCursorFixture f;
-  f.txnOpLinkedListTest();
-}
-
 TEST_CASE("TxnCursor/getKeyFromCoupledCursorTest", "")
 {
   TxnCursorFixture f;
@@ -1433,3 +1375,5 @@ TEST_CASE("TxnCursor/overwriteRecordsNilCursorTest", "")
   TxnCursorFixture f;
   f.overwriteRecordsNilCursorTest();
 }
+
+} // namespace hamsterdb

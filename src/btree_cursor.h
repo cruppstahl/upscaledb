@@ -67,6 +67,11 @@ class BtreeCursor
         m_next_in_page(0), m_previous_in_page(0) {
     }
 
+    // Destructor; asserts that the cursor is nil
+    ~BtreeCursor() {
+      ham_assert(m_state == kStateNil);
+    }
+
     // Returns the parent cursor
     Cursor *get_parent() {
       return (m_parent);

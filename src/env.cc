@@ -253,14 +253,12 @@ Environment::flush_txn(Transaction *txn)
                     op->get_orig_flags() | additional_flag);
         if (!st) {
           /* uncouple the cursor from the txn-op, and remove it */
-          op->remove_cursor(tc1);
           c1->couple_to_btree(); // TODO merge these two calls
           c1->set_to_nil(Cursor::kTxn);
 
           /* all other (btree) cursors need to be coupled to the same
            * item as the first one. */
           while ((tc2 = op->get_cursors())) {
-            op->remove_cursor(tc2);
             c2 = tc2->get_parent();
             c2->get_btree_cursor()->clone(c1->get_btree_cursor());
             c2->couple_to_btree(); // TODO merge these two calls

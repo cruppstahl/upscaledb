@@ -245,6 +245,11 @@ class Cursor
     // Copy constructor; used for cloning a Cursor
     Cursor(Cursor &other);
 
+    // Destructor; sets cursor to nil
+    ~Cursor() {
+      set_to_nil();
+    }
+
     // Returns the Database
     LocalDatabase *get_db() {
       return (m_db);

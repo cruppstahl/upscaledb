@@ -86,10 +86,13 @@ x Rewrite Cursor::is_nil: fix TODOs, do not allow what==0
 
 x Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
 
-o metrics: memory allocations currently ignore operator new/delete
+x Refactor TxnCursor - similar to BtreeCuror
+    x in destructor: assert that cursor is nil (do the same in ~BtreeCursor)
 
-o LocalDatabase::cursor_insert (and others) should move the relevant functions
-    to Transaction and Cursor; do not directly access btree/txntree/txncursor
+. metrics: memory allocations currently ignore operator new/delete
+
+. clean up Btree::enumerate interface, use C++ object instead of callback
+    function
 
 o run a performance test clang++ vs g++
 
@@ -104,14 +107,33 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o clean up Btree::enumerate interface, use C++ object instead of callback
-    function
+o reduce the file size if freelist adds page at end of file
+    o only do this in ham_env_close and ham_env_flush
+    o can be disabled with an (undocumented) flag
+    o attention: if a file is truncated then recovery can re-create pages
+        that are "outside" of the file boundaries! (we could do this only
+        when the log is empty?!)
 
-o clean up Environment class
+o pre-allocate index; 2.0.0 had this as an experimental feature
+    o see roadmap document for more information
+    o run a performance test/prototype if this is worth the effort
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o needs freelist hints to retrieve the next possible
+        free page *adjacent to* the previous index page
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages
+
+. clean up Environment class
     o split into multiple files
     o remove the TODOs
 
-o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
+. LocalDatabase::cursor_insert (and others) should move the relevant functions
+    to Transaction and Cursor; do not directly access btree/txntree/txncursor
+
+. when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     then flush all of them together. This way we can "merge" multiple changes
     for the same page.
     Also review the whole flush process - when not to log etc.
@@ -121,29 +143,10 @@ o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     - more than 1 blob page? not idempotent (maybe)
     o define a few benchmarks
 
-. reduce the file size if freelist adds page at end of file
-    o only do this in ham_env_close and ham_env_flush
-    o can be disabled with an (undocumented) flag
-    o attention: if a file is truncated then recovery can re-create pages
-        that are "outside" of the file boundaries! (we could do this only
-        when the log is empty?!)
-
-. pre-allocate index; 2.0.0 had this as an experimental feature
-    o see roadmap document for more information
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o needs freelist hints to retrieve the next possible
-        free page *adjacent to* the previous index page
-    o run a performance test if this is worth the effort
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages
-
 o release-v2.sh
     o test build with disabled AES, add this to the release process
 
-------------------- release 2.1.1 -----------------------------------------
+------------------- release 2.1.2 -----------------------------------------
 
 
 
@@ -161,11 +164,6 @@ o collect file format incompatibilities
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
-
-. also remove locking from C# and Java APIs
-
-. BtreeCursor: use memory arena for uncoupling the key
-    -> better wait till extended keys are gone
 
 o split Transaction into local and remote class (really?)
     hamsterdb.cc directly calls into Transaction class instead of Environment
@@ -190,6 +188,42 @@ o split Transaction into local and remote class (really?)
 
 o split Cursor into local and remote class (really?)
     o hamsterdb: directly call into Cursor class (instead of Database)
+
+o start with the Btree rewrite; btree nodes are accepting template parameters
+    and policies. The default parameter uses the callback function provided
+    by the user. There are many notes on paper flying around - collect
+    and consolidate them first.
+    o support existing callbacks - everything should work as advertised
+    o support binary search and linear search through a node
+    o support POD types: int8, uint8, int16, uint16, int32, uint32, int64,
+        uint64, float, double, fixed length blobs, fixed length strings (?)
+        (w/o duplicates - duplicates always enforce the default type)
+    o support variable length types, use linear search (with a skiplist)
+    ------- release -------
+    o replace extended keys; store them in the leaf unless they're TOO big
+        (then either use an overflow area or refuse to store them i.e. if
+        they are > 20% of the page)
+    ------- release -------
+    o replace duplicate keys; this will be difficult because it requires
+        rewriting the Cursor consolidation flow
+    ------- release -------
+    o optionally store fixed length record in leaf
+    ------- release -------
+
+
+
+
+
+
+
+
+
+
+
+. also remove locking from C# and Java APIs
+
+. BtreeCursor: use memory arena for uncoupling the key
+    -> better wait till extended keys are gone
 
 o is the recovery working if there's a crash during ham_db_close
     or ham_env_close?

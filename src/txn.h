@@ -70,12 +70,6 @@ class TransactionOperation
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
             ham_record_t *record);
 
-    /** couple a cursor to this TransactionOperation */
-    void add_cursor(TransactionCursor *cursor);
-
-    /** remove a cursor from this TransactionOperation */
-    void remove_cursor(TransactionCursor *cursor);
-
     /** get flags */
     ham_u32_t get_flags() const {
       return (m_flags);

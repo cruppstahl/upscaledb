@@ -9,7 +9,7 @@
  * See files COPYING.* for License information.
  */
 
-/**
+/*
  * A cursor which can iterate over transaction nodes and operations
  *
  * A Transaction Cursor can walk over Transaction trees (TransactionIndex).
@@ -32,148 +32,124 @@
 
 namespace hamsterdb {
 
-/*
- * An cursor which can iterate over Transaction nodes
- */
+//
+// An cursor which can iterate over Transaction nodes
+//
 class TransactionCursor
 {
   public:
-    /** Constructor; initializes the object */
-    TransactionCursor(Cursor *parent);
-
-    /** Copy constructor: for cloning a cursor */
-    TransactionCursor(Cursor *parent, const TransactionCursor *other);
-
-    /** Destructor; sets cursor to nil */
-    ~TransactionCursor() {
-      set_to_nil();
+    // Constructor
+    TransactionCursor(Cursor *parent)
+      : m_parent(parent) {
+      m_coupled_op = 0;
+      m_coupled_next = 0;
+      m_coupled_previous = 0;
     }
 
-    /** Sets a cursor to nil */
-    void set_to_nil();
+    // Destructor; asserts that the cursor is nil
+    ~TransactionCursor() {
+      ham_assert(is_nil());
+    }
 
-    /** Couples a txn cursor to a TransactionOperation structure */
-    void couple(TransactionOperation *op);
+    // Clones another TransactionCursor
+    void clone(const TransactionCursor *other);
 
-    /** Moves the cursor to first, last, previous or next */
-    ham_status_t move(ham_u32_t flags);
-
-    /** Overwrites the record of a cursor */
-    ham_status_t overwrite(ham_record_t *record);
-
-    /** Returns true if the cursor points to a key that is erased */
-    bool is_erased();
-
-    /** Returns true if the cursor points to a duplicate key that is erased */
-    bool is_erased_duplicate();
-
-    /** Looks up an item, places the cursor */
-    ham_status_t find(ham_key_t *key, ham_u32_t flags);
-
-    /** Inserts an item, places the cursor on the new item
-     * This function is only used in the unittests */
-    ham_status_t insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags);
-
-    /**
-     * Retrieves the key from the current item
-     *
-     * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this
-     * means that the item was already flushed to the btree, and the caller has
-     * to use the btree lookup function to retrieve the key.
-     */
-    ham_status_t get_key(ham_key_t *key);
-
-    /**
-     * Retrieves the record from the current item
-     *
-     * If the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this
-     * means that the item was already flushed to the btree, and the caller has
-     * to use the btree lookup function to retrieve the record.
-     */
-    ham_status_t get_record(ham_record_t *record);
-
-    /** Retrieves the record size of the current item */
-    ham_status_t get_record_size(ham_u64_t *psize);
-
-    /** Erases the current item, then 'nil's the cursor */
-    ham_status_t erase();
-
-    /** get the database pointer */
-    LocalDatabase *get_db();
-
-    /** get the parent cursor */
+    // Returns the parent cursor
     Cursor *get_parent() {
       return (m_parent);
     }
 
-    /** get the pointer to the coupled txn_op */
+    // Couples this cursor to a TransactionOperation structure
+    void couple_to_op(TransactionOperation *op);
+
+    // Returns the pointer to the coupled TransactionOperation
     TransactionOperation *get_coupled_op() const {
-      return (_coupled._op);
+      return (m_coupled_op);
     }
 
-    /** set the pointer to the coupled txn_op */
-    void set_coupled_op(TransactionOperation *op) {
-      _coupled._op = op;
-    }
+    // Sets the cursor to nil
+    void set_to_nil();
 
-    /** get the pointer to the next cursor in the linked list of coupled
-     * cursors */
-    TransactionCursor *get_coupled_next() {
-      return (_coupled._next);
-    }
-
-    /** set the pointer to the next cursor in the linked list of coupled
-     * cursors */
-    void set_coupled_next(TransactionCursor *next) {
-      _coupled._next = next;
-    }
-
-    /** get the pointer to the previous cursor in the linked list of coupled
-     * cursors */
-    TransactionCursor *get_coupled_previous() {
-      return (_coupled._previous);
-    }
-
-    /** set the pointer to the previous cursor in the linked list of coupled
-     * cursors */
-    void set_coupled_previous(TransactionCursor *prev) {
-      _coupled._previous = prev;
-    }
-
-    /** returns true if the cursor is nil (does not point to any item) */
+    // Returns true if the cursor is nil (does not point to any item)
     bool is_nil() const {
-      return (_coupled._op == 0);
+      return (m_coupled_op == 0);
+    }
+
+    // Retrieves the key from the current item; creates a deep copy.
+    //
+    // If the cursor is uncoupled, HAM_CURSOR_IS_NIL is returned. this
+    // means that the item was already flushed to the btree, and the caller has
+    // to use the btree lookup function to retrieve the key.
+    ham_status_t copy_coupled_key(ham_key_t *key);
+
+    // Retrieves the record from the current item; creates a deep copy.
+    //
+    // If the cursor is uncoupled, HAM_CURSOR_IS_NIL will be returned. this
+    // means that the item was already flushed to the btree, and the caller has
+    // to use the btree lookup function to retrieve the record.
+    ham_status_t copy_coupled_record(ham_record_t *record);
+
+    // Moves the cursor to first, last, previous or next
+    ham_status_t move(ham_u32_t flags);
+
+    // Overwrites the record of a cursor
+    ham_status_t overwrite(ham_record_t *record);
+
+    // Looks up an item, places the cursor
+    ham_status_t find(ham_key_t *key, ham_u32_t flags);
+
+    // Retrieves the record size of the current item
+    ham_status_t get_record_size(ham_u64_t *psize);
+
+    // Erases the current item, then 'nil's the cursor
+    ham_status_t erase();
+
+    // Returns the pointer to the next cursor in the linked list of coupled
+    // cursors
+    TransactionCursor *get_coupled_next() {
+      return (m_coupled_next);
+    }
+
+    // Closes the cursor
+    void close() {
+      set_to_nil();
     }
 
   private:
-    /** checks if this cursor conflicts with another transaction */
-    bool conflicts();
+    friend struct TxnCursorFixture;
 
-    /** moves the cursor to the first valid Operation in a Node */
+    // Removes this cursor from this TransactionOperation
+    void remove_cursor_from_op(TransactionOperation *op);
+
+    // Inserts an item, places the cursor on the new item.
+    // This function is only used in the unittests.
+    ham_status_t test_insert(ham_key_t *key, ham_record_t *record,
+                    ham_u32_t flags);
+
+    // Returns the database pointer
+    LocalDatabase *get_db();
+
+    // Checks if this cursor conflicts with another transaction
+    bool has_conflict() const;
+
+    // Moves the cursor to the first valid Operation in a Node
     ham_status_t move_top_in_node(TransactionNode *node,
             TransactionOperation *op, bool ignore_conflicts,
             ham_u32_t flags);
 
-    /** the parent cursor */
+    // The parent cursor
     Cursor *m_parent;
 
-    /**
-     * a Cursor can either be coupled or nil ("not in list"). If it's
-     * coupled, it directly points to a TransactionOperation structure.
-     * If it's nil then it basically is uninitialized.
-     */
-    struct txn_cursor_coupled_t {
-      /* the txn operation to which we're pointing */
-      TransactionOperation *_op;
+    // A Cursor can either be coupled or nil ("not in list"). If it's
+    // coupled, it directly points to a TransactionOperation structure.
+    // If it's nil then |m_coupled_op| is null.
+    //
+    // the txn operation to which we're pointing
+    TransactionOperation *m_coupled_op;
 
-      /** a double linked list with other cursors that are coupled
-       * to the same txn_op */
-      TransactionCursor *_next;
-
-      /** a double linked list with other cursors that are coupled
-       * to the same txn_op */
-      TransactionCursor *_previous;
-    } _coupled;
+    // a double linked list with other cursors that are coupled
+    // to the same Operation
+    TransactionCursor *m_coupled_next, *m_coupled_previous;
 };
 
 } // namespace hamsterdb

@@ -641,8 +641,7 @@ LocalDatabase::insert_txn(Transaction *txn, ham_key_t *key,
     if (c->get_dupecache_index())
       op->set_referenced_dupe(c->get_dupecache_index());
 
-    c->set_to_nil(Cursor::kTxn);
-    cursor->couple(op);
+    cursor->couple_to_op(op);
 
     // all other cursors need to increment their dupe index, if their
     // index is > this cursor's index
@@ -1701,7 +1700,7 @@ LocalDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
     cursor->couple_to_txnop();
     if (!cursor->get_dupecache_count()) {
       if (record)
-        st = txnc->get_record(record);
+        st = txnc->copy_coupled_record(record);
       goto bail;
     }
     if (st == 0)
@@ -1737,14 +1736,14 @@ check_dupes:
       * it's possible that we read the record twice. I'm not sure if
       * this can be avoided, though. */
       if (cursor->is_coupled_to_txnop())
-        st = cursor->get_txn_cursor()->get_record(record);
+        st = cursor->get_txn_cursor()->copy_coupled_record(record);
       else
         st = cursor->get_btree_cursor()->move(0, record, 0);
     }
   }
   else {
     if (cursor->is_coupled_to_txnop() && record)
-      st = cursor->get_txn_cursor()->get_record(record);
+      st = cursor->get_txn_cursor()->copy_coupled_record(record);
   }
 
 bail:
@@ -2144,30 +2143,31 @@ LocalDatabase::nil_all_cursors_in_node(Transaction *txn, Cursor *current,
   while (op) {
     TransactionCursor *cursor = op->get_cursors();
     while (cursor) {
-      Cursor *pc = cursor->get_parent();
+      Cursor *parent = cursor->get_parent();
       // is the current cursor to a duplicate? then adjust the
       // coupled duplicate index of all cursors which point to a duplicate
       if (current) {
         if (current->get_dupecache_index()) {
-          if (current->get_dupecache_index() < pc->get_dupecache_index()) {
-            pc->set_dupecache_index(pc->get_dupecache_index() - 1);
+          if (current->get_dupecache_index() < parent->get_dupecache_index()) {
+            parent->set_dupecache_index(parent->get_dupecache_index() - 1);
             cursor = cursor->get_coupled_next();
             continue;
           }
-          else if (current->get_dupecache_index() > pc->get_dupecache_index()) {
+          else if (current->get_dupecache_index() > parent->get_dupecache_index()) {
             cursor = cursor->get_coupled_next();
             continue;
           }
           // else fall through
         }
       }
-      pc->couple_to_btree();
-      pc->set_to_nil(Cursor::kTxn);
-      cursor = op->get_cursors();
+      parent->couple_to_btree(); // TODO merge these two lines
+      parent->set_to_nil(Cursor::kTxn);
       // set a flag that the cursor just completed an Insert-or-find
       // operation; this information is needed in ham_cursor_move
       // (in this aspect, an erase is the same as insert/find)
-      pc->set_lastop(Cursor::kLookupOrInsert);
+      parent->set_lastop(Cursor::kLookupOrInsert);
+
+      cursor = op->get_cursors();
     }
 
     op = op->get_previous_in_node();

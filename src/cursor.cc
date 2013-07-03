@@ -174,7 +174,7 @@ Cursor::couple_to_dupe(ham_u32_t dupe_id)
   }
   else {
     ham_assert(e->get_txn_op() != 0);
-    txnc->couple(e->get_txn_op());
+    txnc->couple_to_op(e->get_txn_op());
     couple_to_txnop();
   }
   set_dupecache_index(dupe_id);
@@ -985,12 +985,12 @@ retrieve_key_and_record:
       ham_assert(!(op->get_flags() & TransactionOperation::TXN_OP_ERASE));
 #endif
       if (key) {
-        st = txnc->get_key(key);
+        st = txnc->copy_coupled_key(key);
         if (st)
           goto bail;
       }
       if (record) {
-        st = txnc->get_record(record);
+        st = txnc->copy_coupled_record(record);
         if (st)
           goto bail;
       }
@@ -1012,7 +1012,7 @@ Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
 }
 
 Cursor::Cursor(Cursor &other)
-  : m_txn_cursor(this, other.get_txn_cursor()), m_btree_cursor(this)
+  : m_txn_cursor(this), m_btree_cursor(this)
 {
   m_db = other.m_db;
   m_txn = other.m_txn;
@@ -1026,6 +1026,7 @@ Cursor::Cursor(Cursor &other)
   m_is_first_use = other.m_is_first_use;
 
   m_btree_cursor.clone(other.get_btree_cursor());
+  m_txn_cursor.clone(other.get_txn_cursor());
 
   if (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATES)
     other.get_dupecache()->clone(get_dupecache());

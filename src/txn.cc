@@ -134,44 +134,6 @@ TransactionOperation::TransactionOperation(Transaction *txn,
     memset(&m_record, 0, sizeof(m_record));
 }
 
-void
-TransactionOperation::add_cursor(TransactionCursor *cursor)
-{
-  ham_assert(!cursor->is_nil());
-
-  cursor->set_coupled_next(get_cursors());
-  cursor->set_coupled_previous(0);
-
-  if (get_cursors()) {
-    TransactionCursor *old = get_cursors();
-    old->set_coupled_previous(cursor);
-  }
-
-  set_cursors(cursor);
-}
-
-void
-TransactionOperation::remove_cursor(TransactionCursor *cursor)
-{
-  ham_assert(!cursor->is_nil());
-
-  if (get_cursors() == cursor) {
-    set_cursors(cursor->get_coupled_next());
-    if (cursor->get_coupled_next())
-      cursor->get_coupled_next()->set_coupled_previous(0);
-  }
-  else {
-    if (cursor->get_coupled_next())
-      cursor->get_coupled_next()->set_coupled_previous(
-              cursor->get_coupled_previous());
-    if (cursor->get_coupled_previous())
-      cursor->get_coupled_previous()->set_coupled_next(
-              cursor->get_coupled_next());
-  }
-  cursor->set_coupled_next(0);
-  cursor->set_coupled_previous(0);
-}
-
 TransactionNode *
 TransactionNode::get_next_sibling()
 {
