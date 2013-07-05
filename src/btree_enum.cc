@@ -27,6 +27,7 @@
 #include "mem.h"
 #include "page.h"
 #include "btree_node.h"
+#include "btree_enum.h"
 #include "page_manager.h"
 
 namespace hamsterdb {
@@ -34,42 +35,50 @@ namespace hamsterdb {
 class BtreeEnumAction
 {
   public:
-    BtreeEnumAction(BtreeIndex *btree, ham_enumerate_cb_t cb, void *context)
-      : m_btree(btree), m_cb(cb), m_context(context) {
+    BtreeEnumAction(BtreeIndex *btree, BtreeVisitor *visitor)
+      : m_btree(btree), m_visitor(visitor) {
       ham_assert(m_btree->get_root_address() != 0);
-      ham_assert(m_cb != 0);
+      ham_assert(m_visitor != 0);
     }
 
     ham_status_t run() {
       Page *page;
-      ham_u32_t level = 0;
       LocalDatabase *db = m_btree->get_db();
-      ham_status_t cb_st = HAM_ENUM_CONTINUE;
+      ham_status_t st;
 
-      /* get the root page of the tree */
-      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
+      // get the root page of the tree
+      st = db->get_env()->get_page_manager()->fetch_page(&page,
                       db, m_btree->get_root_address());
       if (st)
         return (st);
 
-      /* while we found a page... */
+      // go down to the leaf
       while (page) {
         PBtreeNode *node = PBtreeNode::from_page(page);
         ham_u64_t ptr_left = node->get_ptr_left();
-        ham_size_t count = node->get_count();
 
-        st = m_cb(HAM_ENUM_EVENT_DESCEND, (void *)&level,
-                (void *)&count, m_context);
-        if (st != HAM_ENUM_CONTINUE)
-          return (st);
+        // visit internal nodes as well?
+        if (ptr_left != 0 && m_visitor->visit_internal_nodes()) {
+          while (page) {
+            node = PBtreeNode::from_page(page);
+            st = visit_node(node);
+            if (st)
+              return (st);
 
-        /* enumerate the page and all its siblings */
-        cb_st = enumerate_level(page, level,
-                        (cb_st == HAM_ENUM_DO_NOT_DESCEND));
-        if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)
-          break;
+            // load the right sibling
+            ham_u64_t right = node->get_right();
+            if (right) {
+              st = db->get_env()->get_page_manager()->fetch_page(&page,
+                              db, right);
+              if (st)
+                return (st);
+            }
+            else
+              page = 0;
+          }
+        }
 
-        /* follow the pointer to the smallest child */
+        // follow the pointer to the smallest child
         if (ptr_left) {
           st = db->get_env()->get_page_manager()->fetch_page(&page,
                       db, ptr_left);
@@ -77,89 +86,61 @@ class BtreeEnumAction
             return (st);
         }
         else
-          page = 0;
-
-        ++level;
+          break;
       }
 
-      return (cb_st < 0 ? cb_st : HAM_SUCCESS);
-    }
+      ham_assert(page != 0);
 
-  private:
-    /**
-     * enumerate a whole level in the tree - start with "page" and traverse
-     * the linked list of all the siblings
-     */
-    ham_status_t enumerate_level(Page *page, ham_u32_t level, bool recursive) {
-      ham_status_t st;
-      ham_status_t cb_st = HAM_ENUM_CONTINUE;
-
+      // now enumerate all leaf nodes
       while (page) {
-        /* enumerate the page */
-        cb_st = enumerate_page(page, level);
-        if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)
-          break;
-
-        /* get the right sibling */
         PBtreeNode *node = PBtreeNode::from_page(page);
-        if (node->get_right()) {
-          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&page,
-                      page->get_db(), node->get_right());
+        ham_u64_t right = node->get_right();
+
+        st = visit_node(node);
+        if (st)
+          return (st);
+
+        /* follow the pointer to the right sibling */
+        if (right) {
+          st = db->get_env()->get_page_manager()->fetch_page(&page, db, right);
           if (st)
             return (st);
         }
         else
           break;
       }
-      return (cb_st);
+
+      return (st);
     }
 
-    /** enumerate a single page */
-    ham_status_t enumerate_page(Page *page, ham_u32_t level) {
-      LocalDatabase *db = page->get_db();
-      PBtreeNode *node = PBtreeNode::from_page(page);
-      ham_status_t cb_st;
-      ham_status_t cb_st2;
+  private:
+    ham_status_t visit_node(PBtreeNode *node) {
+      LocalDatabase *db = m_btree->get_db();
+      ham_status_t st;
 
-      bool is_leaf;
-      if (node->get_ptr_left())
-        is_leaf = false;
-      else
-        is_leaf = true;
-
-      ham_size_t count = node->get_count();
-
-      cb_st = m_cb(HAM_ENUM_EVENT_PAGE_START, (void *)page, &is_leaf, m_context);
-      if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)
-        return (cb_st);
-
-      for (ham_size_t i = 0; (i < count) && (cb_st != HAM_ENUM_DO_NOT_DESCEND);
-          i++) {
+      // 'visit' each key
+      for (ham_size_t i = 0; i < node->get_count(); i++) {
         PBtreeKey *bte = node->get_key(db, i);
-        cb_st = m_cb(HAM_ENUM_EVENT_ITEM, (void *)bte, (void *)&count, m_context);
-        if (cb_st == HAM_ENUM_STOP || cb_st < 0 /* error */)
+        st = m_visitor->item(node, bte);
+        if (st == BtreeVisitor::kSkipPage) {
+          st = 0;
           break;
+        }
+        else if (st)
+          return (st);
       }
 
-      cb_st2 = m_cb(HAM_ENUM_EVENT_PAGE_STOP, (void *)page, &is_leaf, m_context);
-
-      if (cb_st < 0 /* error */)
-        return (cb_st);
-      else if (cb_st == HAM_ENUM_STOP)
-        return (HAM_ENUM_STOP);
-      else
-        return (cb_st2);
+      return (0);
     }
 
     BtreeIndex *m_btree;
-    ham_enumerate_cb_t m_cb;
-    void *m_context;
+    BtreeVisitor *m_visitor;
 };
 
 ham_status_t
-BtreeIndex::enumerate(ham_enumerate_cb_t cb, void *context)
+BtreeIndex::enumerate(BtreeVisitor *visitor)
 {
-  BtreeEnumAction bea(this, cb, context);
+  BtreeEnumAction bea(this, visitor);
   return (bea.run());
 }
 

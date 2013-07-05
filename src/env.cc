@@ -303,7 +303,7 @@ next_op:
     while ((cursor = op->get_cursors())) {
       Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
-      pc->couple_to_btree();
+      pc->couple_to_btree(); // TODO merge both calls?
       pc->set_to_nil(Cursor::kTxn);
     }
 
@@ -313,15 +313,6 @@ next_op:
 
   return (0);
 }
-
-/*
- * callback function for freeing blobs of an in-memory-database, implemented
- * in db.cc
- * TODO why is this external?
- */
-extern ham_status_t
-__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
-
 
 ham_status_t
 LocalEnvironment::create(const char *filename, ham_u32_t flags,
@@ -572,8 +563,6 @@ LocalEnvironment::rename_db(ham_u16_t oldname, ham_u16_t newname,
 ham_status_t
 LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 {
-  free_cb_context_t context;
-
   /* check if this database is still open */
   if (get_database_map().find(name) != get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
@@ -609,19 +598,11 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
    * TODO TODO TODO
    * move this to Database::erase; do not directly access the BtreeDescriptor!
    */
-  context.db = db;
   BtreeIndex *be = db->get_btree_index();
-
-  st = be->enumerate(__free_inmemory_blobs_cb, &context);
+  st = be->free_all_blobs();
   if (st) {
     (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
     return (st);
-  }
-
-  /* if logging is enabled: flush the changeset and the header page */
-  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY) {
-    get_changeset().add_page(get_header_page()); // TODO not reqd
-    st = get_changeset().flush(get_incremented_lsn());
   }
 
   /* clean up and return */
@@ -637,6 +618,10 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
   }
 
   get_header_page()->set_dirty(true);
+
+  /* if logging is enabled: flush the changeset and the header page */
+  if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
+    st = get_changeset().flush(get_incremented_lsn());
 
   return (st);
 }

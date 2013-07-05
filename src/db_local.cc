@@ -34,219 +34,6 @@ namespace hamsterdb {
 
 #define DUMMY_LSN                 1
 
-typedef struct
-{
-  Database *db;         /* [in] */
-  ham_u32_t flags;      /* [in] */
-  ham_u64_t total_count;   /* [out] */
-  bool is_leaf;     /* [scratch] */
-}  calckeys_context_t;
-
-/*
- * callback function for estimating / counting the number of keys stored
- * in the database
- * TODO rewrite using a proper c++ callback object
- */
-static ham_status_t
-__calc_keys_cb(int event, void *param1, void *param2, void *context)
-{
-  PBtreeKey *key;
-  calckeys_context_t *c = (calckeys_context_t *)context;
-  ham_size_t count = 0;
-  ham_status_t st = 0;
-
-  switch (event) {
-    case HAM_ENUM_EVENT_DESCEND:
-      break;
-
-    case HAM_ENUM_EVENT_PAGE_START:
-      c->is_leaf = *(bool *)param2;
-      break;
-
-    case HAM_ENUM_EVENT_PAGE_STOP:
-      break;
-
-    case HAM_ENUM_EVENT_ITEM:
-      key = (PBtreeKey *)param1;
-      count = *(ham_size_t *)param2;
-
-      if (c->is_leaf) {
-        ham_size_t dupcount = 1;
-
-        if (c->flags & HAM_SKIP_DUPLICATES
-            || (c->db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
-          c->total_count += count;
-          return (HAM_ENUM_DO_NOT_DESCEND);
-        }
-        if (key->get_flags() & PBtreeKey::kDuplicates) {
-          st = c->db->get_env()->get_duplicate_manager()->get_count(
-                key->get_ptr(), &dupcount, 0);
-          if (st)
-            return (st);
-          c->total_count += dupcount;
-        }
-        else {
-          c->total_count++;
-        }
-      }
-      break;
-
-    default:
-      ham_assert(!"unknown callback event");
-      break;
-  }
-
-  return (HAM_ENUM_CONTINUE);
-}
-
-typedef struct free_cb_context_t
-{
-  LocalDatabase *db;
-  bool is_leaf;
-
-} free_cb_context_t;
-
-/*
- * callback function for freeing blobs of an in-memory-database
- * TODO rewrite using a proper c++ callback object
- */
-ham_status_t
-__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
-{
-  ham_status_t st;
-  PBtreeKey *key;
-  free_cb_context_t *c;
-
-  c = (free_cb_context_t *)context;
-
-  switch (event) {
-  case HAM_ENUM_EVENT_DESCEND:
-    break;
-
-  case HAM_ENUM_EVENT_PAGE_START:
-    c->is_leaf = *(bool *)param2;
-    break;
-
-  case HAM_ENUM_EVENT_PAGE_STOP:
-    /* nop */
-    break;
-
-  case HAM_ENUM_EVENT_ITEM:
-    key = (PBtreeKey *)param1;
-
-    if (key->get_flags() & PBtreeKey::kExtended) {
-      ham_u64_t blobid = key->get_extended_rid(c->db);
-      /* delete the extended key */
-      st = c->db->remove_extkey(blobid);
-      if (st)
-        return (st);
-    }
-
-    if (key->get_flags() & (PBtreeKey::kBlobSizeTiny
-              | PBtreeKey::kBlobSizeSmall
-              | PBtreeKey::kBlobSizeEmpty))
-      break;
-
-    /* if we're in the leaf page, delete the blob */
-    if (c->is_leaf) {
-      st = key->erase_record(c->db, 0, 0, true);
-      if (st)
-        return (st);
-    }
-    break;
-
-  default:
-    ham_assert(!"unknown callback event");
-    return (HAM_ENUM_STOP);
-  }
-
-  return (HAM_ENUM_CONTINUE);
-}
-
-struct KeyCounter : public TxnTreeVisitor
-{
-  KeyCounter(LocalDatabase *_db, Transaction *_txn, ham_u32_t _flags)
-    : counter(0), flags(_flags), txn(_txn), db(_db) {
-  }
-
-  void visit(TransactionNode *node) {
-    BtreeIndex *be = db->get_btree_index();
-    TransactionOperation *op;
-
-    /*
-     * look at each tree_node and walk through each operation
-     * in reverse chronological order (from newest to oldest):
-     * - is this op part of an aborted txn? then skip it
-     * - is this op part of a committed txn? then include it
-     * - is this op part of an txn which is still active? then include it
-     * - if a committed txn has erased the item then there's no need
-     *    to continue checking older, committed txns of the same key
-     *
-     * !!
-     * if keys are overwritten or a duplicate key is inserted, then
-     * we have to consolidate the btree keys with the txn-tree keys.
-     */
-    op = node->get_newest_op();
-    while (op) {
-      Transaction *optxn = op->get_txn();
-      if (optxn->is_aborted())
-        ; // nop
-      else if (optxn->is_committed() || txn == optxn) {
-        if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
-          ; // nop
-        // if key was erased then it doesn't exist
-        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
-          return;
-        else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
-          ; // nop
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
-          counter++;
-          return;
-        }
-        // key exists - include it
-        else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
-            || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
-          // check if the key already exists in the btree - if yes,
-          // we do not count it (it will be counted later)
-          if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
-            counter++;
-          return;
-        }
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
-          // check if btree has other duplicates
-          if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
-            // yes, there's another one
-            if (flags & HAM_SKIP_DUPLICATES)
-              return;
-            else
-              counter++;
-          }
-          else {
-            // check if other key is in this node
-            counter++;
-            if (flags & HAM_SKIP_DUPLICATES)
-              return;
-          }
-        }
-        else {
-          ham_assert(!"shouldn't be here");
-          return;
-        }
-      }
-      else { // txn is still active
-        counter++;
-      }
-
-      op = op->get_previous_in_node();
-    }
-  }
-
-  ham_u64_t counter;
-  ham_u32_t flags;
-  Transaction *txn;
-  LocalDatabase *db;
-};
-
 ham_status_t
 LocalDatabase::remove_extkey(ham_u64_t blobid)
 {
@@ -1080,11 +867,9 @@ LocalDatabase::check_integrity(Transaction *txn)
 
 ham_status_t
 LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
-        ham_u64_t *keycount)
+                ham_u64_t *pkeycount)
 {
   ham_status_t st;
-
-  calckeys_context_t ctx = { this, flags, 0, false };
 
   if (flags & ~(HAM_SKIP_DUPLICATES)) {
     ham_trace(("parameter 'flag' contains unsupported flag bits: %08x",
@@ -1101,19 +886,20 @@ LocalDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
    * call the btree function - this will retrieve the number of keys
    * in the btree
    */
-  st = m_btree_index->enumerate(__calc_keys_cb, &ctx);
+  st = m_btree_index->get_key_count(flags, pkeycount);
   if (st)
     goto bail;
-  *keycount = ctx.total_count;
 
   /*
    * if transactions are enabled, then also sum up the number of keys
    * from the transaction tree
    */
-  if ((get_rt_flags() & HAM_ENABLE_TRANSACTIONS) && (get_txn_index())) {
-    KeyCounter k(this, txn, flags);
-    txn_tree_enumerate(get_txn_index(), &k);
-    *keycount += k.counter;
+  if (get_rt_flags() & HAM_ENABLE_TRANSACTIONS) {
+    ham_u64_t count;
+    st = m_txn_index.get_key_count(txn, flags, &count);
+    if (st)
+      goto bail;
+    *pkeycount += count;
   }
 
 bail:
@@ -2059,11 +1845,8 @@ LocalDatabase::close_impl(ham_u32_t flags)
 
   /* in-memory-database: free all allocated blobs */
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY) {
-    Transaction *txn;
-    free_cb_context_t context = {0};
-    context.db = this;
-    txn = new Transaction(m_env, 0, HAM_TXN_TEMPORARY);
-    (void)m_btree_index->enumerate(__free_inmemory_blobs_cb, &context);
+    Transaction *txn = new Transaction(m_env, 0, HAM_TXN_TEMPORARY);
+    (void)m_btree_index->free_all_blobs();
     (void)txn->commit();
   }
 

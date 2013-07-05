@@ -101,10 +101,10 @@ o clean up btree.h
     x clean up src/btree_key.cc
     x clean up src/btree_stats.h
     x clean up src/btree_stats.cc
-    o clean up src/btree_enum.cc
-        o move enumerate API to separate header file
-            o use C++ object instead of generic callback function; users can
-                derive from this object
+    x clean up src/btree_enum.cc
+        x use C++ object instead of generic callback function; users can
+            derive from this object
+        x move enumerate API to separate header file
     o Database::get_btree_index should be protected!
 
 o Fix refactoring TODOs in TransactionCursor::erase()
@@ -163,6 +163,7 @@ o pre-allocate index; 2.0.0 had this as an experimental feature
 
 o release-v2.sh
     o test build with disabled AES, add this to the release process
+    o test build with disabled remote, add this to the release process
 
 ------------------- release 2.1.2 -----------------------------------------
 

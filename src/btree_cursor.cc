@@ -117,7 +117,7 @@ BtreeCursor::overwrite(ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
-  Transaction *txn = get_parent()->get_txn();
+  Transaction *txn = m_parent->get_txn();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled) {
@@ -153,7 +153,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
   ham_status_t st = 0;
   LocalDatabase *db = m_parent->get_db();
   Environment *env = db->get_env();
-  Transaction *txn = get_parent()->get_txn();
+  Transaction *txn = m_parent->get_txn();
   BtreeIndex *be = (BtreeIndex *)db->get_btree_index();
 
   // delete the cache of the current duplicate
@@ -232,13 +232,13 @@ BtreeCursor::find(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
   BtreeIndex *be = m_parent->get_db()->get_btree_index();
-  Transaction *txn = get_parent()->get_txn();
+  Transaction *txn = m_parent->get_txn();
 
   ham_assert(key);
 
   set_to_nil();
 
-  st = be->find(txn, get_parent(), key, record, flags);
+  st = be->find(txn, m_parent, key, record, flags);
   if (st) {
     // cursor is now NIL
     return (st);
@@ -251,25 +251,25 @@ ham_status_t
 BtreeCursor::insert(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
   BtreeIndex *be = m_parent->get_db()->get_btree_index();
-  Transaction *txn = get_parent()->get_txn();
+  Transaction *txn = m_parent->get_txn();
 
   ham_assert(key);
   ham_assert(record);
 
   // call the btree insert function
-  return (be->insert(txn, get_parent(), key, record, flags));
+  return (be->insert(txn, m_parent, key, record, flags));
 }
 
 ham_status_t
 BtreeCursor::erase(ham_u32_t flags)
 {
   BtreeIndex *be = m_parent->get_db()->get_btree_index();
-  Transaction *txn = get_parent()->get_txn();
+  Transaction *txn = m_parent->get_txn();
 
   if (m_state != kStateUncoupled && m_state != kStateCoupled)
     return (HAM_CURSOR_IS_NIL);
 
-  return (be->erase(txn, get_parent(), 0, 0, flags));
+  return (be->erase(txn, m_parent, 0, 0, flags));
 }
 
 bool
@@ -297,7 +297,7 @@ BtreeCursor::points_to(PBtreeKey *key)
 bool
 BtreeCursor::points_to(ham_key_t *key)
 {
-  Cursor *parent = get_parent();
+  Cursor *parent = m_parent;
   LocalDatabase *db = parent->get_db();
   bool ret = false;
 
@@ -760,7 +760,7 @@ BtreeCursor::uncouple_all_cursors(Page *page, ham_size_t start)
     if (btc->m_state == kStateCoupled) {
       // skip this cursor if its position is < start
       if (btc->m_coupled_index < start) {
-        cursors = next ? next->get_parent() : 0;
+        cursors = next ? next->m_parent : 0;
         skipped = true;
         continue;
       }
@@ -771,7 +771,7 @@ BtreeCursor::uncouple_all_cursors(Page *page, ham_size_t start)
         return (st);
     }
 
-    cursors = next ? next->get_parent() : 0;
+    cursors = next ? next->m_parent : 0;
   }
 
   if (!skipped)

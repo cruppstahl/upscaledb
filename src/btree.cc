@@ -783,4 +783,108 @@ BtreeIndex::calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
   return (max & 1 ? max - 1 : max);
 }
 
+//
+// visitor object for estimating / counting the number of keys
+///
+class CalcKeysVisitor : public BtreeVisitor {
+  public:
+    CalcKeysVisitor(LocalDatabase *db, ham_u32_t flags)
+      : m_db(db), m_flags(flags), m_count(0) {
+    }
+
+    virtual ham_status_t item(PBtreeNode *node, PBtreeKey *key) {
+      ham_size_t dupcount = 1;
+
+      if (m_flags & HAM_SKIP_DUPLICATES
+          || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
+        m_count += node->get_count();
+        return (BtreeVisitor::kSkipPage);
+      }
+
+      if (key->get_flags() & PBtreeKey::kDuplicates) {
+        ham_status_t st = m_db->get_env()->get_duplicate_manager()->get_count(
+                          key->get_ptr(), &dupcount, 0);
+        if (st)
+          return (st);
+        m_count += dupcount;
+      }
+      else {
+        m_count++;
+      }
+      return (0);
+    }
+
+    ham_u64_t get_key_count() const {
+      return (m_count);
+    }
+
+  private:
+    LocalDatabase *m_db;
+    ham_u32_t m_flags;
+    ham_u64_t m_count;
+};
+
+ham_status_t
+BtreeIndex::get_key_count(ham_u32_t flags, ham_u64_t *pkeycount)
+{
+  *pkeycount = 0;
+
+  CalcKeysVisitor visitor(m_db, flags);
+  ham_status_t st = enumerate(&visitor);
+  if (st)
+    return (st);
+
+  *pkeycount = visitor.get_key_count();
+
+  return (0);
+}
+
+//
+// visitor object to free all allocated blobs
+///
+class FreeBlobsVisitor : public BtreeVisitor {
+  public:
+    FreeBlobsVisitor(LocalDatabase *db)
+      : m_db(db) {
+    }
+
+    // also look at internal nodes, not just the leafs
+    virtual bool visit_internal_nodes() const {
+      return (true);
+    }
+
+    virtual ham_status_t item(PBtreeNode *node, PBtreeKey *key) {
+      ham_status_t st;
+
+      if (key->get_flags() & PBtreeKey::kExtended) {
+        ham_u64_t blobid = key->get_extended_rid(m_db);
+        /* delete the extended key */
+        st = m_db->remove_extkey(blobid);
+        if (st)
+          return (st);
+      }
+
+      if (key->get_flags() & (PBtreeKey::kBlobSizeTiny
+                | PBtreeKey::kBlobSizeSmall
+                | PBtreeKey::kBlobSizeEmpty))
+        return (0);
+
+      /* if we're in the leaf page, delete the blob */
+      if (node->is_leaf())
+        st = key->erase_record(m_db, 0, 0, true);
+
+      return (st);
+    }
+
+  private:
+    LocalDatabase *m_db;
+};
+
+ham_status_t
+BtreeIndex::free_all_blobs()
+{
+  FreeBlobsVisitor visitor(m_db);
+  return (enumerate(&visitor));
+}
+
 } // namespace hamsterdb

@@ -55,6 +55,7 @@ class TransactionCursor
     void clone(const TransactionCursor *other);
 
     // Returns the parent cursor
+    // TODO this should be private
     Cursor *get_parent() {
       return (m_parent);
     }

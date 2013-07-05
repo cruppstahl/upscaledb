@@ -18,6 +18,7 @@
 #include "btree_key.h"
 #include "db.h"
 #include "util.h"
+#include "btree_enum.h"
 #include "btree_stats.h"
 
 namespace hamsterdb {
@@ -113,44 +114,6 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeDescriptor
 
 #include "packstop.h"
 
-
-/** hamsterdb Backend Node/Page Enumerator Status Codes */
-enum {
-  /** continue with the traversal */
-  HAM_ENUM_CONTINUE                 = 0,
-
-  /** do not not descend another level (or from page to key traversal) */
-  HAM_ENUM_DO_NOT_DESCEND           = 1,
-
-  /** stop the traversal entirely */
-  HAM_ENUM_STOP                     = 2
-};
-
-/** Backend Node/Page Enumerator State Codes */
-enum {
-  /** descend one level; param1 is an integer value with the new level */
-  HAM_ENUM_EVENT_DESCEND            = 1,
-
-  /** start of a new page; param1 points to the page */
-  HAM_ENUM_EVENT_PAGE_START         = 2,
-
-  /** end of a new page; param1 points to the page */
-  HAM_ENUM_EVENT_PAGE_STOP          = 3,
-
-  /** an item in the page; param1 points to the key; param2 is the index
-   * of the key in the page */
-  HAM_ENUM_EVENT_ITEM               = 4
-};
-
-/**
- * a callback function for enumerating the index nodes/pages using the
- * @ref Backend::enumerate callback/method.
- *
- * @param event one of the @ref ham_cb_event state codes
- */
-typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1,
-          void *param2, void *context);
-
 class LocalDatabase;
 
 //
@@ -220,10 +183,17 @@ class BtreeIndex
             ham_u32_t duplicate, ham_u32_t flags);
 
     // Iterates over the whole index and enumerate every item
-    ham_status_t enumerate(ham_enumerate_cb_t cb, void *context);
+    ham_status_t enumerate(BtreeVisitor *visitor);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
     ham_status_t check_integrity();
+
+    // Counts the keys in the btree (ham_db_get_key_count)
+    ham_status_t get_key_count(ham_u32_t flags, ham_u64_t *pkeycount);
+
+    // Erases all blobs from the index; used for cleaning up in-memory
+    // blobs to avoid memory leaks
+    ham_status_t free_all_blobs();
 
     // Erases all extended keys from a page
     static ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);

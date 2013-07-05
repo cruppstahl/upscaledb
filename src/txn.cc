@@ -25,6 +25,7 @@
 #include "txn.h"
 #include "txn_cursor.h"
 #include "cursor.h"
+#include "btree.h"
 
 namespace hamsterdb {
 
@@ -386,6 +387,101 @@ txn_tree_enumerate(TransactionIndex *tree, TxnTreeVisitor *visitor)
     visitor->visit(node);
     node = rbt_next(tree, node);
   }
+}
+
+struct KeyCounter : public TxnTreeVisitor
+{
+  KeyCounter(LocalDatabase *_db, Transaction *_txn, ham_u32_t _flags)
+    : counter(0), flags(_flags), txn(_txn), db(_db) {
+  }
+
+  void visit(TransactionNode *node) {
+    BtreeIndex *be = db->get_btree_index();
+    TransactionOperation *op;
+
+    /*
+     * look at each tree_node and walk through each operation
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then include it
+     * - is this op part of an txn which is still active? then include it
+     * - if a committed txn has erased the item then there's no need
+     *    to continue checking older, committed txns of the same key
+     *
+     * !!
+     * if keys are overwritten or a duplicate key is inserted, then
+     * we have to consolidate the btree keys with the txn-tree keys.
+     */
+    op = node->get_newest_op();
+    while (op) {
+      Transaction *optxn = op->get_txn();
+      if (optxn->is_aborted())
+        ; // nop
+      else if (optxn->is_committed() || txn == optxn) {
+        if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
+          ; // nop
+        // if key was erased then it doesn't exist
+        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
+          return;
+        else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
+          ; // nop
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
+          counter++;
+          return;
+        }
+        // key exists - include it
+        else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+            || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
+          // check if the key already exists in the btree - if yes,
+          // we do not count it (it will be counted later)
+          if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
+            counter++;
+          return;
+        }
+        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
+          // check if btree has other duplicates
+          if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
+            // yes, there's another one
+            if (flags & HAM_SKIP_DUPLICATES)
+              return;
+            else
+              counter++;
+          }
+          else {
+            // check if other key is in this node
+            counter++;
+            if (flags & HAM_SKIP_DUPLICATES)
+              return;
+          }
+        }
+        else {
+          ham_assert(!"shouldn't be here");
+          return;
+        }
+      }
+      else { // txn is still active
+        counter++;
+      }
+
+      op = op->get_previous_in_node();
+    }
+  }
+
+  ham_u64_t counter;
+  ham_u32_t flags;
+  Transaction *txn;
+  LocalDatabase *db;
+};
+
+ham_status_t
+TransactionIndex::get_key_count(Transaction *txn, ham_u32_t flags,
+                ham_u64_t *pkeycount)
+{
+  *pkeycount = 0;
+  KeyCounter k(m_db, txn, flags);
+  txn_tree_enumerate(this, &k);
+  *pkeycount = k.counter;
+  return (0);
 }
 
 } // namespace hamsterdb

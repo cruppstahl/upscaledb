@@ -333,6 +333,10 @@ class TransactionIndex
      /** frees all nodes in the tree */
      void close();
 
+    // Returns the key count of this index
+    ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
+                    ham_u64_t *pkeycount);
+
  // private:
     /* the Database for all operations in this tree */
     LocalDatabase *m_db;
