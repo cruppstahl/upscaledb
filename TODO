@@ -106,11 +106,22 @@ x clean up btree.h
         x move enumerate API to separate header file
     x review usage of Database::get_btree_index - should be protected?
 
-o metrics: memory allocations currently ignore operator new/delete
-    inline void *operator new     (size_t size) { return myAlloc(size); }
-    inline void *operator new[]   (size_t size) { return myAlloc(size); }
-    inline void  operator delete  (void* ptr) { myFree(ptr); }
-    inline void  operator delete[](void* ptr) { myFree(ptr); }
+x metrics: memory allocations currently ignore operator new/delete
+
+o reduce the file size if freelist adds page at end of file
+    o attention: if a file is truncated then recovery can re-create pages
+        that are "outside" of the file boundaries! therefore only
+        do this if the log is empty!
+    o requires bool Freelist::is_free(ham_u64_t address, ham_size_t size);
+        o tests
+    o decrease used bits with freel_set_max_bits() (not sure if this is
+        sufficient, though)
+        o tests
+    o only do this in ham_env_close
+    o can be disabled with an (undocumented) flag
+    o do general refactoring of freelist.h, freelist.cc - remove macros etc
+
+o refactoring of page.h, page.cc
 
 o run a performance test clang++ vs g++
 
@@ -124,13 +135,6 @@ o improve client/server performance
     o use libuv on client side, get rid of libcurl
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
-
-o reduce the file size if freelist adds page at end of file
-    o only do this in ham_env_close and ham_env_flush
-    o can be disabled with an (undocumented) flag
-    o attention: if a file is truncated then recovery can re-create pages
-        that are "outside" of the file boundaries! (we could do this only
-        when the log is empty?!)
 
 o pre-allocate index; 2.0.0 had this as an experimental feature
     o see roadmap document for more information

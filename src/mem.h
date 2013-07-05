@@ -12,8 +12,10 @@
 #ifndef HAM_MEM_H__
 #define HAM_MEM_H__
 
+
 #include "config.h"
 
+#include <new>
 #include <stdlib.h>
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
@@ -125,5 +127,45 @@ class Memory {
 };
 
 } // namespace hamsterdb
+
+inline void *operator new(size_t size) throw(std::bad_alloc)
+{
+  return (hamsterdb::Memory::allocate<void>(size));
+}
+
+inline void *operator new[](size_t size) throw(std::bad_alloc)
+{
+  return (hamsterdb::Memory::allocate<void>(size));
+}
+
+inline void operator delete(void *ptr)
+{
+  return (hamsterdb::Memory::release(ptr));
+}
+
+inline void operator delete[](void *ptr)
+{
+  return (hamsterdb::Memory::release(ptr));
+}
+
+inline void *operator new(size_t size, const std::nothrow_t &) throw()
+{
+  return (hamsterdb::Memory::allocate<void>(size));
+}
+
+inline void *operator new[](size_t size, const std::nothrow_t &) throw()
+{
+  return (hamsterdb::Memory::allocate<void>(size));
+}
+
+inline void operator delete(void *ptr, const std::nothrow_t &) throw()
+{
+  return (hamsterdb::Memory::release(ptr));
+}
+
+inline void operator delete[](void *ptr, const std::nothrow_t &) throw()
+{
+  return (hamsterdb::Memory::release(ptr));
+}
 
 #endif /* HAM_MEM_H__ */

@@ -19,8 +19,8 @@
 
 #include <vector>
 
-#include "internal_fwd_decl.h"
-#include "freelist.h"
+#include "ham/hamsterdb_int.h"
+
 #include "freelist_stats.h"
 
 namespace hamsterdb {
