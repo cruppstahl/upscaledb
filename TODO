@@ -51,7 +51,6 @@ x AES encryption
     x add to monster tests
     x extend the Windows build
 
-
 x clean up Database class
     x split into multiple files
     x remove the TODOs
@@ -89,7 +88,7 @@ x Review Cursor documentation in cursor.h, btree_cursor.h, txn_cursor.h
 x Refactor TxnCursor - similar to BtreeCuror
     x in destructor: assert that cursor is nil (do the same in ~BtreeCursor)
 
-o clean up btree.h
+x clean up btree.h
     x clean up src/btree_check.cc
     x clean up src/btree_erase.cc
     x clean up src/btree_find.cc
@@ -105,9 +104,7 @@ o clean up btree.h
         x use C++ object instead of generic callback function; users can
             derive from this object
         x move enumerate API to separate header file
-    o Database::get_btree_index should be protected!
-
-o Fix refactoring TODOs in TransactionCursor::erase()
+    x review usage of Database::get_btree_index - should be protected?
 
 o metrics: memory allocations currently ignore operator new/delete
     inline void *operator new     (size_t size) { return myAlloc(size); }

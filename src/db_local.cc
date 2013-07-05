@@ -2014,4 +2014,70 @@ next:
   }
 }
 
+ham_status_t
+LocalDatabase::flush_txn_operation(Transaction *txn, TransactionOperation *op)
+{
+  ham_status_t st = 0;
+  TransactionNode *node = op->get_node();
+
+  /*
+   * depending on the type of the operation: actually perform the
+   * operation on the btree
+   *
+   * if the txn-op has a cursor attached, then all (txn)cursors
+   * which are coupled to this op have to be uncoupled, and their
+   * parent (btree) cursor must be coupled to the btree item instead.
+   */
+  if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
+      || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
+      || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
+    ham_u32_t additional_flag = 
+      (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)
+          ? HAM_DUPLICATE
+          : HAM_OVERWRITE;
+    if (!op->get_cursors()) {
+      st = m_btree_index->insert(txn, 0, node->get_key(), op->get_record(),
+                  op->get_orig_flags() | additional_flag);
+    }
+    else {
+      TransactionCursor *tc2, *tc1 = op->get_cursors();
+      Cursor *c2, *c1 = tc1->get_parent();
+      /* pick the first cursor, get the parent/btree cursor and
+       * insert the key/record pair in the btree. The btree cursor
+       * then will be coupled to this item. */
+      st = c1->get_btree_cursor()->insert(
+                  node->get_key(), op->get_record(),
+                  op->get_orig_flags() | additional_flag);
+      if (!st) {
+        /* uncouple the cursor from the txn-op, and remove it */
+        c1->couple_to_btree(); // TODO merge these two calls
+        c1->set_to_nil(Cursor::kTxn);
+
+        /* all other (btree) cursors need to be coupled to the same
+         * item as the first one. */
+        while ((tc2 = op->get_cursors())) {
+          c2 = tc2->get_parent();
+          c2->get_btree_cursor()->clone(c1->get_btree_cursor());
+          c2->couple_to_btree(); // TODO merge these two calls
+          c2->set_to_nil(Cursor::kTxn);
+        }
+      }
+    }
+  }
+  else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
+    st = m_btree_index->erase(txn, 0, node->get_key(),
+                  op->get_referenced_dupe(), op->get_flags());
+    if (st == HAM_KEY_NOT_FOUND)
+      st = 0;
+  }
+
+  return (st);
+}
+
+ham_status_t
+LocalDatabase::erase_me()
+{
+  return (m_btree_index->free_all_blobs());
+}
+
 } // namespace hamsterdb

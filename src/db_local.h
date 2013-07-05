@@ -47,6 +47,9 @@ class LocalDatabase : public Database {
     // Creates a new Database
     virtual ham_status_t create(ham_u16_t descriptor, ham_u16_t keysize);
 
+    // Erases this Database
+    ham_status_t erase_me();
+
     // Returns Database parameters (ham_db_get_parameters)
     virtual ham_status_t get_parameters(ham_parameter_t *param);
 
@@ -258,6 +261,10 @@ class LocalDatabase : public Database {
     // TODO make this private
     static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
                     TransactionOperation *op, ham_record_t *record);
+
+    // Flushes a TransactionOperation to the btree
+    ham_status_t flush_txn_operation(Transaction *txn,
+                    TransactionOperation *op);
 
   protected:
     // Creates a cursor; this is the actual implementation

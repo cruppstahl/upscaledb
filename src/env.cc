@@ -212,7 +212,6 @@ Environment::flush_txn(Transaction *txn)
 
   while (op) {
     TransactionNode *node = op->get_node();
-    BtreeIndex *be = node->get_db()->get_btree_index();
 
     if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
       goto next_op;
@@ -223,57 +222,7 @@ Environment::flush_txn(Transaction *txn)
       ham_assert(get_changeset().is_empty());
 #endif
 
-    /*
-     * depending on the type of the operation: actually perform the
-     * operation on the btree
-     *
-     * if the txn-op has a cursor attached, then all (txn)cursors
-     * which are coupled to this op have to be uncoupled, and their
-     * parent (btree) cursor must be coupled to the btree item instead.
-     */
-    if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
-        || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)
-        || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)) {
-      ham_u32_t additional_flag = 
-        (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)
-          ? HAM_DUPLICATE
-          : HAM_OVERWRITE;
-      if (!op->get_cursors()) {
-        st = be->insert(txn, 0, node->get_key(), op->get_record(),
-                    op->get_orig_flags() | additional_flag);
-      }
-      else {
-        TransactionCursor *tc2, *tc1 = op->get_cursors();
-        Cursor *c2, *c1 = tc1->get_parent();
-        /* pick the first cursor, get the parent/btree cursor and
-         * insert the key/record pair in the btree. The btree cursor
-         * then will be coupled to this item. */
-        st = c1->get_btree_cursor()->insert(
-                    node->get_key(), op->get_record(),
-                    op->get_orig_flags() | additional_flag);
-        if (!st) {
-          /* uncouple the cursor from the txn-op, and remove it */
-          c1->couple_to_btree(); // TODO merge these two calls
-          c1->set_to_nil(Cursor::kTxn);
-
-          /* all other (btree) cursors need to be coupled to the same
-           * item as the first one. */
-          while ((tc2 = op->get_cursors())) {
-            c2 = tc2->get_parent();
-            c2->get_btree_cursor()->clone(c1->get_btree_cursor());
-            c2->couple_to_btree(); // TODO merge these two calls
-            c2->set_to_nil(Cursor::kTxn);
-          }
-        }
-      }
-    }
-    else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
-      st = be->erase(txn, 0, node->get_key(),
-                    op->get_referenced_dupe(), op->get_flags());
-      if (st == HAM_KEY_NOT_FOUND)
-        st = 0;
-    }
-
+    st = node->get_db()->flush_txn_operation(txn, op);
     if (st) {
       ham_trace(("failed to flush op: %d (%s)", (int)st, ham_strerror(st)));
       get_changeset().clear();
@@ -594,19 +543,12 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
    *
    * also delete all pages and move them to the freelist; if they're
    * cached, delete them from the cache
-   *
-   * TODO TODO TODO
-   * move this to Database::erase; do not directly access the BtreeDescriptor!
    */
-  BtreeIndex *be = db->get_btree_index();
-  st = be->free_all_blobs();
+  st = db->erase_me();
   if (st) {
     (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
     return (st);
   }
-
-  /* clean up and return */
-  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
 
   /* now set database name to 0 and set the header page to dirty */
   for (ham_u16_t dbi = 0; dbi < get_max_databases(); dbi++) {
@@ -619,7 +561,10 @@ LocalEnvironment::erase_db(ham_u16_t name, ham_u32_t flags)
 
   get_header_page()->set_dirty(true);
 
-  /* if logging is enabled: flush the changeset and the header page */
+  (void)ham_db_close((ham_db_t *)db, HAM_DONT_LOCK);
+
+  /* if logging is enabled: flush the changeset because the header page
+   * was modified */
   if (st == 0 && get_flags() & HAM_ENABLE_RECOVERY)
     st = get_changeset().flush(get_incremented_lsn());
 
