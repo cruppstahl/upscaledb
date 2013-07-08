@@ -71,7 +71,7 @@ PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
   Page *page = m_cache->get_page(address, Cache::NOREMOVE);
   if (page) {
     *ppage = page;
-    ham_assert(page->get_pers());
+    ham_assert(page->get_data());
     /* store the page in the changeset if recovery is enabled */
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
       m_env->get_changeset().add_page(page);
@@ -96,7 +96,7 @@ PageManager::fetch_page(Page **ppage, LocalDatabase *db, ham_u64_t address,
     return (st);
   }
 
-  ham_assert(page->get_pers());
+  ham_assert(page->get_data());
 
   /* store the page in the cache */
   m_cache->put_page(page);
@@ -173,7 +173,7 @@ done:
 
   /* clear the page with zeroes?  */
   if (flags & PageManager::kClearWithZero)
-    memset(page->get_pers(), 0, m_env->get_pagesize());
+    memset(page->get_data(), 0, m_env->get_pagesize());
 
   /* an allocated page is always flushed if recovery is enabled */
   if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
@@ -183,14 +183,14 @@ done:
   m_cache->put_page(page);
 
   switch (page_type) {
-    case Page::TYPE_B_ROOT:
-    case Page::TYPE_B_INDEX:
+    case Page::kTypeBroot:
+    case Page::kTypeBindex:
       m_page_count_index++;
       break;
-    case Page::TYPE_FREELIST:
+    case Page::kTypeFreelist:
       m_page_count_freelist++;
       break;
-    case Page::TYPE_BLOB:
+    case Page::kTypeBlob:
       m_page_count_blob++;
       break;
     default:
@@ -223,7 +223,7 @@ PageManager::alloc_blob(Database *db, ham_size_t size, ham_u64_t *address,
 static bool
 flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
 {
-  page->get_device()->get_env()->get_page_manager()->flush_page(page);
+  page->get_env()->get_page_manager()->flush_page(page);
 
   /*
    * if the page is deleted, uncouple all cursors, then
@@ -231,7 +231,6 @@ flush_all_pages_callback(Page *page, Database *db, ham_u32_t flags)
    */
   if (flags == 0) {
     (void)BtreeCursor::uncouple_all_cursors(page);
-    (void)page->free();
     return (true);
   }
 
@@ -251,11 +250,10 @@ purge_callback(Page *page)
   if (st)
     return (st);
 
-  st = page->get_device()->get_env()->get_page_manager()->flush_page(page);
+  st = page->get_env()->get_page_manager()->flush_page(page);
   if (st)
     return (st);
 
-  page->free();
   delete page;
   return (0);
 }
@@ -274,7 +272,7 @@ PageManager::purge_cache()
 static bool
 db_close_callback(Page *page, Database *db, ham_u32_t flags)
 {
-  Environment *env = page->get_device()->get_env();
+  Environment *env = page->get_env();
 
   if (page->get_db() == db && page != env->get_header_page()) {
     (void)env->get_page_manager()->flush_page(page);
@@ -284,16 +282,13 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
      * a B-Tree index page: remove all extended keys from the cache,
      * and/or free their blobs
      */
-    if (page->get_pers() &&
-        (!(page->get_flags() & Page::NPERS_NO_HEADER)) &&
-          (page->get_type() == Page::TYPE_B_ROOT ||
-            page->get_type() == Page::TYPE_B_INDEX)) {
+    if (page->get_data() &&
+        (!(page->get_flags() & Page::kNpersNoHeader)) &&
+          (page->get_type() == Page::kTypeBroot ||
+            page->get_type() == Page::kTypeBindex)) {
       (void)BtreeIndex::free_page_extkeys(page, flags);
       (void)BtreeCursor::uncouple_all_cursors(page);
     }
-
-    /* free the page */
-    (void)page->free();
 
     return (true);
   }

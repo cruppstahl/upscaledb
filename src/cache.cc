@@ -50,7 +50,7 @@ Cache::check_integrity()
   head = m_totallist;
   while (head) {
     elements++;
-    head = head->get_next(Page::LIST_CACHED);
+    head = head->get_next(Page::kListCache);
   }
 
   /* did we count the correct numbers? */
@@ -64,12 +64,12 @@ Cache::check_integrity()
    * and that the TAIL is the chronologically oldest page */
   head = m_totallist;
   while (head) {
-    if (tail && !head->get_next(Page::LIST_CACHED))
+    if (tail && !head->get_next(Page::kListCache))
       ham_assert(head == tail);
-    head = head->get_next(Page::LIST_CACHED);
+    head = head->get_next(Page::kListCache);
   }
   if (tail)
-    ham_assert(tail->get_next(Page::LIST_CACHED) == 0);
+    ham_assert(tail->get_next(Page::kListCache) == 0);
 
   return (0);
 }

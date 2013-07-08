@@ -67,7 +67,7 @@ Environment::~Environment()
   /* close the header page */
   if (get_device() && get_header_page()) {
     Page *page = get_header_page();
-    if (page->get_pers())
+    if (page->get_data())
       get_device()->free_page(page);
     delete page;
     set_header_page(0);
@@ -295,15 +295,13 @@ LocalEnvironment::create(const char *filename, ham_u32_t flags,
   /* allocate the header page */
   {
     Page *page = new Page(this);
-    /* manually set the device pointer */
-    page->set_device(m_device);
     st = page->allocate();
     if (st) {
       delete page;
       return (st);
     }
-    memset(page->get_pers(), 0, get_pagesize());
-    page->set_type(Page::TYPE_HEADER);
+    memset(page->get_data(), 0, get_pagesize());
+    page->set_type(Page::kTypeHeader);
     set_header_page(page);
 
     /* initialize the header */
@@ -390,7 +388,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
      * duration of this call; BE VERY CAREFUL: we MUST clean up
      * at the end of this section or we'll be in BIG trouble!
      */
-    fakepage.set_pers((PageData *)hdrbuf);
+    fakepage.set_data((PPageData *)hdrbuf);
     set_header_page(&fakepage);
 
     /*
@@ -431,7 +429,7 @@ LocalEnvironment::open(const char *filename, ham_u32_t flags,
 fail_with_fake_cleansing:
 
     /* undo the headerpage fake first! */
-    fakepage.set_pers(0);
+    fakepage.set_data(0);
     set_header_page(0);
 
     /* exit when an error was signaled */
@@ -445,7 +443,6 @@ fail_with_fake_cleansing:
 
     /* now read the "real" header page and store it in the Environment */
     page = new Page(this);
-    page->set_device(m_device);
     st = page->fetch(0);
     if (st) {
       delete page;
@@ -640,7 +637,7 @@ LocalEnvironment::close(ham_u32_t flags)
   if (get_header_page()) {
     Page *page = get_header_page();
     ham_assert(device);
-    if (page->get_pers())
+    if (page->get_data())
       device->free_page(page);
     delete page;
     set_header_page(0);

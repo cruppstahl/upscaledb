@@ -34,17 +34,14 @@ void (*g_CHANGESET_POST_LOG_HOOK)(void);
 void
 Changeset::add_page(Page *page)
 {
-  if (page->is_in_list(m_head, Page::LIST_CHANGESET))
+  if (page->is_in_list(m_head, Page::kListChangeset))
     return;
 
-  ham_assert(0 == page->get_next(Page::LIST_CHANGESET));
-  ham_assert(0 == page->get_previous(Page::LIST_CHANGESET));
+  ham_assert(0 == page->get_next(Page::kListChangeset));
+  ham_assert(0 == page->get_previous(Page::kListChangeset));
   ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
-  page->set_next(Page::LIST_CHANGESET, m_head);
-  if (m_head)
-    m_head->set_previous(Page::LIST_CHANGESET, page);
-  m_head = page;
+  m_head = page->list_insert(m_head, Page::kListChangeset);
 }
 
 Page *
@@ -55,9 +52,9 @@ Changeset::get_page(ham_u64_t pageid)
   while (page) {
     ham_assert(m_env->get_flags() & HAM_ENABLE_RECOVERY);
 
-    if (page->get_self() == pageid)
+    if (page->get_address() == pageid)
       return (page);
-    page = page->get_next(Page::LIST_CHANGESET);
+    page = page->get_next(Page::kListChangeset);
   }
 
   return (0);
@@ -66,14 +63,8 @@ Changeset::get_page(ham_u64_t pageid)
 void
 Changeset::clear()
 {
-  Page *n, *p = m_head;
-  while (p) {
-    n = p->get_next(Page::LIST_CHANGESET);
-    p->set_next(Page::LIST_CHANGESET, 0);
-    p->set_previous(Page::LIST_CHANGESET, 0);
-    p = n;
-  }
-  m_head = 0;
+  while (m_head)
+    m_head = m_head->list_remove(m_head, Page::kListChangeset);
 }
 
 ham_status_t
@@ -123,7 +114,7 @@ Changeset::flush(ham_u64_t lsn)
   // first step: remove all pages that are not dirty and sort all others
   // into the buckets
   while (p) {
-    n = p->get_next(Page::LIST_CHANGESET);
+    n = p->get_next(Page::kListChangeset);
     if (!p->is_dirty()) {
       p = n;
       continue;
@@ -132,20 +123,20 @@ Changeset::flush(ham_u64_t lsn)
     if (p->is_header()) {
       append(m_indices, m_indices_size, m_indices_capacity, p);
     }
-    else if (p->get_flags() & Page::NPERS_NO_HEADER) {
+    else if (p->get_flags() & Page::kNpersNoHeader) {
       append(m_blobs, m_blobs_size, m_blobs_capacity, p);
     }
     else {
       switch (p->get_type()) {
-        case Page::TYPE_BLOB:
+        case Page::kTypeBlob:
           append(m_blobs, m_blobs_size, m_blobs_capacity, p);
           break;
-        case Page::TYPE_B_ROOT:
-        case Page::TYPE_B_INDEX:
-        case Page::TYPE_HEADER:
+        case Page::kTypeBroot:
+        case Page::kTypeBindex:
+        case Page::kTypeHeader:
           append(m_indices, m_indices_size, m_indices_capacity, p);
           break;
-        case Page::TYPE_FREELIST:
+        case Page::kTypeFreelist:
           append(m_freelists, m_freelists_size, m_freelists_capacity, p);
           break;
         default:
@@ -215,7 +206,7 @@ Changeset::flush(ham_u64_t lsn)
     st = pm->flush_page(p);
     if (st)
       return (st);
-    p = p->get_next(Page::LIST_CHANGESET);
+    p = p->get_next(Page::kListChangeset);
 
     INDUCE(ErrorInducer::kChangesetFlush);
   }

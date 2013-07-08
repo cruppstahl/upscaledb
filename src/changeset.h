@@ -83,7 +83,7 @@ class Changeset
 
     /** check if the page is already part of the changeset */
     bool contains(Page *page) {
-      return (page->is_in_list(m_head, Page::LIST_CHANGESET));
+      return (page->is_in_list(m_head, Page::kListChangeset));
     }
 
   private:

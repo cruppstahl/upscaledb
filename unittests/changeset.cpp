@@ -46,22 +46,22 @@ TEST_CASE("Changeset/addPages",
   Page *page[3];
   for (int i = 0; i < 3; i++) {
     page[i] = new Page((Environment *)f.m_env);
-    page[i]->set_self(1024 * i);
+    page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
     ch.add_page(page[i]);
   REQUIRE(page[1] ==
-      page[2]->get_next(Page::LIST_CHANGESET));
+      page[2]->get_next(Page::kListChangeset));
   REQUIRE(page[0] ==
-        page[1]->get_next(Page::LIST_CHANGESET));
+        page[1]->get_next(Page::kListChangeset));
   REQUIRE((Page *)NULL ==
-        page[0]->get_next(Page::LIST_CHANGESET));
+        page[0]->get_next(Page::kListChangeset));
   REQUIRE(page[1] ==
-        page[0]->get_previous(Page::LIST_CHANGESET));
+        page[0]->get_previous(Page::kListChangeset));
   REQUIRE(page[2] ==
-        page[1]->get_previous(Page::LIST_CHANGESET));
+        page[1]->get_previous(Page::kListChangeset));
   REQUIRE((Page *)NULL ==
-        page[2]->get_previous(Page::LIST_CHANGESET));
+        page[2]->get_previous(Page::kListChangeset));
   for (int i = 0; i < 3; i++)
     delete page[i];
 }
@@ -74,13 +74,13 @@ TEST_CASE("Changeset/getPages",
   Page *page[3];
   for (int i = 0; i < 3; i++) {
     page[i] = new Page((Environment *)f.m_env);
-    page[i]->set_self(1024 * i);
+    page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
     ch.add_page(page[i]);
 
   for (int i = 0; i < 3; i++)
-    REQUIRE(page[i] == ch.get_page(page[i]->get_self()));
+    REQUIRE(page[i] == ch.get_page(page[i]->get_address()));
   REQUIRE((Page *)NULL == ch.get_page(999));
 
   for (int i = 0; i < 3; i++)
@@ -95,7 +95,7 @@ TEST_CASE("Changeset/clear",
   Page *page[3];
   for (int i = 0; i < 3; i++) {
     page[i] = new Page((Environment *)f.m_env);
-    page[i]->set_self(1024*i);
+    page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
     ch.add_page(page[i]);
@@ -105,7 +105,7 @@ TEST_CASE("Changeset/clear",
   REQUIRE(true == ch.is_empty());
 
   for (int i = 0; i < 3; i++)
-    REQUIRE((Page *)NULL == ch.get_page(page[i]->get_self()));
+    REQUIRE((Page *)NULL == ch.get_page(page[i]->get_address()));
 
   for (int i = 0; i < 3; i++)
     delete page[i];

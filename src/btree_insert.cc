@@ -219,7 +219,7 @@ class BtreeInsertAction
       Page *newroot;
       LocalDatabase *db = m_btree->get_db();
       ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newroot,
-                                db, Page::TYPE_B_ROOT, 0);
+                                db, Page::kTypeBroot, 0);
       if (st)
         return (st);
       ham_assert(newroot->get_db());
@@ -245,8 +245,8 @@ class BtreeInsertAction
        * !!
        * do NOT delete the old root page - it's still in use!
        */
-      m_btree->set_root_address(newroot->get_self());
-      root->set_type(Page::TYPE_B_INDEX);
+      m_btree->set_root_address(newroot->get_address());
+      root->set_type(Page::kTypeBindex);
       root->set_dirty(true);
       newroot->set_dirty(true);
       return (0);
@@ -352,7 +352,7 @@ class BtreeInsertAction
 
       /* allocate a new page */
       ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newpage,
-                                db, Page::TYPE_B_INDEX, 0);
+                                db, Page::kTypeBindex, 0);
       if (st)
         return st;
 
@@ -436,7 +436,7 @@ class BtreeInsertAction
       st = db->copy_key(&oldkey, &pivotkey);
       if (st)
         goto fail_dramatically;
-      pivotrid = newpage->get_self();
+      pivotrid = newpage->get_address();
 
       /* adjust the page count */
       if (obtp->is_leaf()) {
@@ -483,12 +483,12 @@ class BtreeInsertAction
       else
         oldsib = 0;
 
-      nbtp->set_left(page->get_self());
+      nbtp->set_left(page->get_address());
       nbtp->set_right(obtp->get_right());
-      obtp->set_right(newpage->get_self());
+      obtp->set_right(newpage->get_address());
       if (oldsib) {
         PBtreeNode *sbtp = PBtreeNode::from_page(oldsib);
-        sbtp->set_left(newpage->get_self());
+        sbtp->set_left(newpage->get_address());
         oldsib->set_dirty(true);
       }
       newpage->set_dirty(true);

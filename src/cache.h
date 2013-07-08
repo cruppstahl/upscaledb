@@ -52,9 +52,9 @@ class Cache
       ham_u64_t hash = calc_hash(address);
       Page *page = m_buckets[hash];
       while (page) {
-        if (page->get_self() == address)
+        if (page->get_address() == address)
           break;
-        page = page->get_next(Page::LIST_BUCKET);
+        page = page->get_next(Page::kListBucket);
       }
 
       /* not found? then return */
@@ -82,9 +82,9 @@ class Cache
 
     /** store a page in the cache */
     void put_page(Page *page) {
-      ham_u64_t hash = calc_hash(page->get_self());
+      ham_u64_t hash = calc_hash(page->get_address());
 
-      ham_assert(page->get_pers());
+      ham_assert(page->get_data());
 
       /* first remove the page from the cache, if it's already cached
        *
@@ -92,16 +92,16 @@ class Cache
        * cache->_totallist_tail pointer is updated and that the page
        * is inserted at the HEAD of the list
        */
-      if (page->is_in_list(m_totallist, Page::LIST_CACHED))
+      if (page->is_in_list(m_totallist, Page::kListCache))
         remove_page(page);
 
       /* now (re-)insert into the list of all cached pages, and increment
        * the counter */
-      ham_assert(!page->is_in_list(m_totallist, Page::LIST_CACHED));
-      m_totallist = page->list_insert(m_totallist, Page::LIST_CACHED);
+      ham_assert(!page->is_in_list(m_totallist, Page::kListCache));
+      m_totallist = page->list_insert(m_totallist, Page::kListCache);
 
       m_cur_elements++;
-      if (page->get_flags() & Page::NPERS_MALLOC)
+      if (page->get_flags() & Page::kNpersMalloc)
         m_alloc_elements++;
 
       /*
@@ -110,10 +110,10 @@ class Cache
        * to avoid inserting the page twice, we first remove it from the
        * bucket
        */
-      if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET))
-        m_buckets[hash] = page->list_remove(m_buckets[hash], Page::LIST_BUCKET);
-      ham_assert(!page->is_in_list(m_buckets[hash], Page::LIST_BUCKET));
-      m_buckets[hash] = page->list_insert(m_buckets[hash], Page::LIST_BUCKET);
+      if (page->is_in_list(m_buckets[hash], Page::kListBucket))
+        m_buckets[hash] = page->list_remove(m_buckets[hash], Page::kListBucket);
+      ham_assert(!page->is_in_list(m_buckets[hash], Page::kListBucket));
+      m_buckets[hash] = page->list_insert(m_buckets[hash], Page::kListBucket);
 
       /* is this the chronologically oldest page? then set the pointer */
       if (!m_totallist_tail)
@@ -129,26 +129,26 @@ class Cache
       /* are we removing the chronologically oldest page? then
        * update the pointer with the next oldest page */
       if (m_totallist_tail == page)
-        m_totallist_tail = page->get_previous(Page::LIST_CACHED);
+        m_totallist_tail = page->get_previous(Page::kListCache);
 
       /* remove the page from the cache buckets */
-      if (page->get_self()) {
-        ham_u64_t hash = calc_hash(page->get_self());
-        if (page->is_in_list(m_buckets[hash], Page::LIST_BUCKET)) {
+      if (page->get_address()) {
+        ham_u64_t hash = calc_hash(page->get_address());
+        if (page->is_in_list(m_buckets[hash], Page::kListBucket)) {
           m_buckets[hash] = page->list_remove(m_buckets[hash],
-                        Page::LIST_BUCKET);
+                        Page::kListBucket);
         }
       }
 
       /* remove it from the list of all cached pages */
-      if (page->is_in_list(m_totallist, Page::LIST_CACHED)) {
-        m_totallist = page->list_remove(m_totallist, Page::LIST_CACHED);
+      if (page->is_in_list(m_totallist, Page::kListCache)) {
+        m_totallist = page->list_remove(m_totallist, Page::kListCache);
         removed = true;
       }
       /* decrease the number of cached elements */
       if (removed) {
         m_cur_elements--;
-        if (page->get_flags() & Page::NPERS_MALLOC)
+        if (page->get_flags() & Page::kNpersMalloc)
           m_alloc_elements--;
       }
 
@@ -191,10 +191,10 @@ class Cache
       Page *page = oldest;
       do {
         /* pick the first unused page (not in a changeset) that is NOT mapped */
-        if (page->get_flags() & Page::NPERS_MALLOC
+        if (page->get_flags() & Page::kNpersMalloc
             && !m_env->get_changeset().contains(page)) {
           remove_page(page);
-          Page *prev = page->get_previous(Page::LIST_CACHED);
+          Page *prev = page->get_previous(Page::kListCache);
           ham_status_t st = cb(page);
           if (st)
             return (st);
@@ -202,7 +202,7 @@ class Cache
           page = prev;
         }
         else
-          page = page->get_previous(Page::LIST_CACHED);
+          page = page->get_previous(Page::kListCache);
         ham_assert(page != oldest);
       } while (i < max_pages && page && page != oldest);
 
@@ -221,7 +221,7 @@ class Cache
     ham_status_t visit(VisitCallback cb, Database *db, ham_u32_t flags) {
       Page *head = m_totallist;
       while (head) {
-        Page *next = head->get_next(Page::LIST_CACHED);
+        Page *next = head->get_next(Page::kListCache);
 
         if (cb(head, db, flags)) {
           remove_page(head);

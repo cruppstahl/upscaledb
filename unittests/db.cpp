@@ -183,17 +183,15 @@ struct DbFixture {
     for (int i = 0; i < 16; i++)
       p[i] = (ham_u8_t)i;
     page->set_dirty(true);
-    address = page->get_self();
+    address = page->get_address();
     REQUIRE(0 == page->flush());
-    page->free();
     pm->test_get_cache()->remove_page(page);
     delete page;
 
     REQUIRE(0 == pm->fetch_page(&page, m_dbp, address));
     REQUIRE(page != 0);
-    REQUIRE(address == page->get_self());
+    REQUIRE(address == page->get_address());
     p = page->get_raw_payload();
-    page->free();
     pm->test_get_cache()->remove_page(page);
     delete page;
   }
@@ -226,8 +224,8 @@ struct DbFixture {
     REQUIRE(compare_sizes(PBtreeKey::kSizeofOverhead, 11));
     REQUIRE(compare_sizes(sizeof(Log::PHeader), 16));
     REQUIRE(compare_sizes(sizeof(Log::PEntry), 32));
-    REQUIRE(compare_sizes(sizeof(PageData), 13));
-    PageData p;
+    REQUIRE(compare_sizes(sizeof(PPageData), 13));
+    PPageData p;
     REQUIRE(compare_sizes(sizeof(p._s), 13));
     REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
 
@@ -236,7 +234,7 @@ struct DbFixture {
     LocalDatabase db((Environment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
 
-    page.set_self(1000);
+    page.set_address(1000);
     page.set_db(&db);
     db.m_btree_index = &be;
     be.m_keysize = 666;
@@ -244,19 +242,19 @@ struct DbFixture {
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
     struct {
-      PageData drit;
+      PPageData drit;
       PEnvHeader drat;
     } hdrpage_pers = {{{0}}};
     Page hdrpage;
-    hdrpage.set_pers((PageData *)&hdrpage_pers);
+    hdrpage.set_data((PPageData *)&hdrpage_pers);
     Page *hp = &hdrpage;
     ham_u8_t *pl1 = hp->get_payload();
     REQUIRE(pl1);
-    REQUIRE(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_pers(), 12));
+    REQUIRE(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_data(), 12));
     PEnvHeader *hdrptr = (PEnvHeader *)(hdrpage.get_payload());
     REQUIRE(compare_sizes(((ham_u8_t *)hdrptr)
-        - (ham_u8_t *)hdrpage.get_pers(), 12));
-    hdrpage.set_pers(0);
+        - (ham_u8_t *)hdrpage.get_data(), 12));
+    hdrpage.set_data(0);
   }
 
 };

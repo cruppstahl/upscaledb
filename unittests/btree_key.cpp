@@ -63,7 +63,6 @@ struct BtreeKeyFixture {
     key->set_flags((ham_u8_t)0x13);
     REQUIRE((ham_u8_t)0x13 == key->get_flags());
 
-    page->free();
     delete page;
   }
 
@@ -82,7 +81,6 @@ struct BtreeKeyFixture {
     blobid = key->get_extended_rid(m_dbp);
     REQUIRE((ham_u64_t)0xbaadbeef == blobid);
 
-    page->free();
     delete page;
   }
 

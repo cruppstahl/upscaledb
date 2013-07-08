@@ -281,7 +281,7 @@ free_all:
 
       /* mark the nodes which may need rebalancing */
       bool isfew;
-      if (m_btree->get_root_address() == page->get_self())
+      if (m_btree->get_root_address() == page->get_address())
         isfew = (node->get_count() <= 1);
       else
         isfew = (node->get_count() < m_btree->get_minkeys());
@@ -332,7 +332,7 @@ free_all:
             PBtreeKey *bte = node->get_key(db, slot - 1);
             next_left = bte->get_ptr();
           }
-          next_lanchor = page->get_self();
+          next_lanchor = page->get_address();
         }
 
         if (slot == node->get_count() - 1) {
@@ -352,7 +352,7 @@ free_all:
         else {
           PBtreeKey *bte = node->get_key(db, slot + 1);
           next_right = bte->get_ptr();
-          next_ranchor = page->get_self();
+          next_ranchor = page->get_address();
         }
 
         st = erase_recursive(&newme, child, next_left, next_right,
@@ -457,7 +457,7 @@ free_all:
        * too empty, we have to merge them
        */
       if ((!leftpage || fewleft) && (!rightpage || fewright)) {
-        if (parent && lanchor != parent->get_self()) {
+        if (parent && lanchor != parent->get_address()) {
           return (merge_pages(newpage_ref, page, rightpage, ranchor));
         }
         else {
@@ -467,8 +467,8 @@ free_all:
 
       /* otherwise choose the better of a merge or a shift */
       if (leftpage && fewleft && rightpage && !fewright) {
-        if (parent && (!(ranchor == parent->get_self()) &&
-            (page->get_self() == m_mergepage->get_self()))) {
+        if (parent && (!(ranchor == parent->get_address()) &&
+            (page->get_address() == m_mergepage->get_address()))) {
           return (merge_pages(newpage_ref, leftpage, page, lanchor));
         }
         else {
@@ -478,8 +478,8 @@ free_all:
 
       /* ... still choose the better of a merge or a shift... */
       if (leftpage && !fewleft && rightpage && fewright) {
-        if (parent && (!(lanchor == parent->get_self()) &&
-                (page->get_self() == m_mergepage->get_self())))
+        if (parent && (!(lanchor == parent->get_address()) &&
+                (page->get_address() == m_mergepage->get_address())))
           return (merge_pages(newpage_ref, page, rightpage, ranchor));
         else
           return (shift_pages(leftpage, page, lanchor));
@@ -495,7 +495,7 @@ free_all:
       }
 
       /* choose the shift with more local effect */
-      if (parent && lanchor == parent->get_self())
+      if (parent && lanchor == parent->get_address())
         return (shift_pages(leftpage, page, lanchor));
       else
         return (shift_pages(page, rightpage, ranchor));
@@ -885,7 +885,7 @@ cleanup:
       sibnode->set_count(0);
 
       /* update the linked list of pages */
-      if (node->get_left() == sibpage->get_self()) {
+      if (node->get_left() == sibpage->get_address()) {
         if (sibnode->get_left()) {
           Page *p;
           st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
@@ -900,7 +900,7 @@ cleanup:
         else
           node->set_left(0);
       }
-      else if (node->get_right() == sibpage->get_self()) {
+      else if (node->get_right() == sibpage->get_address()) {
         if (sibnode->get_right()) {
           Page *p;
           st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
@@ -918,8 +918,8 @@ cleanup:
 
       /* return this page for deletion */
       if (m_mergepage &&
-          (m_mergepage->get_self() == page->get_self()
-            || m_mergepage->get_self() == sibpage->get_self()))
+          (m_mergepage->get_address() == page->get_address()
+            || m_mergepage->get_address() == sibpage->get_address()))
         m_mergepage = 0;
 
       m_btree->get_statistics()->reset_page(sibpage);
@@ -936,10 +936,10 @@ cleanup:
 
       env->get_page_manager()->add_to_freelist(oldroot);
 
-      m_btree->set_root_address(newroot->get_self());
+      m_btree->set_root_address(newroot->get_address());
       ham_assert(newroot->get_db());
 
-      newroot->set_type(Page::TYPE_B_ROOT);
+      newroot->set_type(Page::kTypeBroot);
       return (0);
     }
 

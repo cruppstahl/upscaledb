@@ -33,7 +33,7 @@ void
 BtreeStatistics::find_succeeded(Page *page)
 {
   ham_u64_t old = m_last_leaf_pages[kOperationFind];
-  if (old != page->get_self()) {
+  if (old != page->get_address()) {
     m_last_leaf_pages[kOperationFind] = 0;
     m_last_leaf_count[kOperationFind] = 0;
   }
@@ -52,8 +52,8 @@ void
 BtreeStatistics::insert_succeeded(Page *page, ham_u16_t slot)
 {
   ham_u64_t old = m_last_leaf_pages[kOperationInsert];
-  if (old != page->get_self()) {
-    m_last_leaf_pages[kOperationInsert] = page->get_self();
+  if (old != page->get_address()) {
+    m_last_leaf_pages[kOperationInsert] = page->get_address();
     m_last_leaf_count[kOperationInsert] = 0;
   }
   else
@@ -86,8 +86,8 @@ void
 BtreeStatistics::erase_succeeded(Page *page)
 {
   ham_u64_t old = m_last_leaf_pages[kOperationErase];
-  if (old != page->get_self()) {
-    m_last_leaf_pages[kOperationErase] = page->get_self();
+  if (old != page->get_address()) {
+    m_last_leaf_pages[kOperationErase] = page->get_address();
     m_last_leaf_count[kOperationErase] = 0;
   }
   else

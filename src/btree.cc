@@ -128,12 +128,12 @@ BtreeIndex::create(ham_u16_t keysize)
   /* allocate a new root page */
   Page *root = 0;
   ham_status_t st = m_db->get_env()->get_page_manager()->alloc_page(&root, m_db,
-                  Page::TYPE_B_ROOT, PageManager::kIgnoreFreelist);
+                  Page::kTypeBroot, PageManager::kIgnoreFreelist);
   if (st)
     return (st);
 
-  memset(root->get_raw_payload(), 0, sizeof(PBtreeNode) + sizeof(PageData));
-  root->set_type(Page::TYPE_B_ROOT);
+  memset(root->get_raw_payload(), 0, sizeof(PBtreeNode) + sizeof(PPageData));
+  root->set_type(Page::kTypeBroot);
   root->set_dirty(true);
 
   /*
@@ -142,7 +142,7 @@ BtreeIndex::create(ham_u16_t keysize)
    */
   m_maxkeys = (ham_u16_t)maxkeys;
   m_keysize = keysize;
-  m_root_address = root->get_self();
+  m_root_address = root->get_address();
 
   flush_descriptor();
 
@@ -209,10 +209,10 @@ BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
    * a B-Tree index page: remove all extended keys from the cache,
    * and/or free their blobs
    */
-  if (page->get_pers()
-      && (!(page->get_flags() & Page::NPERS_NO_HEADER))
-      && (page->get_type() == Page::TYPE_B_ROOT
-        || page->get_type() == Page::TYPE_B_INDEX)) {
+  if (page->get_data()
+      && (!(page->get_flags() & Page::kNpersNoHeader))
+      && (page->get_type() == Page::kTypeBroot
+        || page->get_type() == Page::kTypeBindex)) {
     ExtKeyCache *c = db->get_extkey_cache();
     PBtreeNode *node = PBtreeNode::from_page(page);
 

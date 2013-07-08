@@ -175,7 +175,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
 
   if (st == 0)
     st = append_write(lsn, page_count == 0 ? CHANGESET_IS_COMPLETE : 0,
-            page->get_self(), p, size);
+            page->get_address(), p, size);
 
   if (p != page->get_raw_payload())
     Memory::release(p);
@@ -257,18 +257,17 @@ Log::recover()
         goto bail;
     }
 
-    ham_assert(page->get_self() == entry.offset);
+    ham_assert(page->get_address() == entry.offset);
     ham_assert(m_env->get_pagesize() == entry.data_size);
 
     /* overwrite the page data */
-    memcpy(page->get_pers(), data, entry.data_size);
+    memcpy(page->get_data(), data, entry.data_size);
 
     /* flush the modified page to disk */
     page->set_dirty(true);
     st = m_env->get_page_manager()->flush_page(page);
     if (st)
       goto bail;
-    page->free();
     delete page;
 
     /* store the lsn in the log - will be needed later when recovering

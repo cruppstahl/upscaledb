@@ -52,12 +52,12 @@ DuplicateManager::get_table(PDupeTable **table_ref, Page **page,
    * if the whole table is in a page (and not split between several
    * pages), just return a pointer directly in the page
    */
-  if (hdrpage->get_self() + m_env->get_usable_pagesize()
+  if (hdrpage->get_address() + m_env->get_usable_pagesize()
         >= table_id + hdr.get_size()) {
     ham_u8_t *p = hdrpage->get_raw_payload();
     /* yes, table is in the page */
     *page = hdrpage;
-    *table_ref = (PDupeTable *)&p[table_id - hdrpage->get_self()
+    *table_ref = (PDupeTable *)&p[table_id - hdrpage->get_address()
                     + sizeof(hdr)];
     return (0);
   }

@@ -124,25 +124,25 @@ class InMemoryDevice : public Device {
 
     // allocate storage for a page from this device 
     virtual ham_status_t alloc_page(Page *page) {
-      ham_assert(page->get_pers() == 0);
+      ham_assert(page->get_data() == 0);
 
       ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
       if (!p)
         return (HAM_OUT_OF_MEMORY);
-      page->set_pers((PageData *)p);
-      page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
-      page->set_self((ham_u64_t)PTR_TO_U64(p));
+      page->set_data((PPageData *)p);
+      page->set_flags(page->get_flags() | Page::kNpersMalloc);
+      page->set_address((ham_u64_t)PTR_TO_U64(p));
       return (HAM_SUCCESS);
     }
 
     // frees a page on the device; plays counterpoint to @ref alloc_page 
     virtual void free_page(Page *page) {
-      ham_assert(page->get_pers() != 0);
-      ham_assert(page->get_flags() | Page::NPERS_MALLOC);
+      ham_assert(page->get_data() != 0);
+      ham_assert(page->get_flags() | Page::kNpersMalloc);
 
-      page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-      Memory::release(page->get_pers());
-      page->set_pers(0);
+      page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
+      Memory::release(page->get_data());
+      page->set_data(0);
     }
 
   private:

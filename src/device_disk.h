@@ -165,46 +165,46 @@ class DiskDevice : public Device {
     virtual ham_status_t read_page(Page *page) {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
-      if (page->get_self() < m_mapped_size && m_mmapptr != 0) {
+      if (page->get_address() < m_mapped_size && m_mmapptr != 0) {
         // ok, this page is mapped. If the Page object has a memory buffer:
         // free it
         ham_assert(m_env->is_encryption_enabled() == false);
-        Memory::release(page->get_pers());
-        page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
-        page->set_pers((PageData *)&m_mmapptr[page->get_self()]);
+        Memory::release(page->get_data());
+        page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
+        page->set_data((PPageData *)&m_mmapptr[page->get_address()]);
         return (0);
       }
 
       // this page is not in the mapped area; allocate a buffer
-      if (page->get_pers() == 0) {
+      if (page->get_data() == 0) {
         ham_u8_t *p = Memory::allocate<ham_u8_t>(m_pagesize);
         if (!p)
           return (HAM_OUT_OF_MEMORY);
-        page->set_pers((PageData *)p);
-        page->set_flags(page->get_flags() | Page::NPERS_MALLOC);
+        page->set_data((PPageData *)p);
+        page->set_flags(page->get_flags() | Page::kNpersMalloc);
       }
 
-      ham_status_t st = os_pread(m_fd, page->get_self(), page->get_pers(),
+      ham_status_t st = os_pread(m_fd, page->get_address(), page->get_data(),
                       m_pagesize);
       if (st == 0) {
 #ifdef HAM_ENABLE_ENCRYPTION
         if (m_env->is_encryption_enabled()) {
-          AesCipher aes(m_env->get_encryption_key(), page->get_self());
-          aes.decrypt((ham_u8_t *)page->get_pers(),
-                          (ham_u8_t *)page->get_pers(), m_pagesize);
+          AesCipher aes(m_env->get_encryption_key(), page->get_address());
+          aes.decrypt((ham_u8_t *)page->get_data(),
+                          (ham_u8_t *)page->get_data(), m_pagesize);
         }
 #endif
         return (0);
       }
 
-      Memory::release(page->get_pers());
-      page->set_pers((PageData *)0);
+      Memory::release(page->get_data());
+      page->set_data((PPageData *)0);
       return (st);
     }
 
     // writes a page to the device
     virtual ham_status_t write_page(Page *page) {
-      return (write(page->get_self(), page->get_pers(), m_pagesize));
+      return (write(page->get_address(), page->get_data(), m_pagesize));
     }
 
     // allocate storage from this device; this function
@@ -216,7 +216,7 @@ class DiskDevice : public Device {
       return (os_truncate(m_fd, (*address) + size));
     }
 
-    // allocate storage for a page from this device; this function
+    // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual ham_status_t alloc_page(Page *page) {
       ham_u64_t pos;
@@ -230,17 +230,17 @@ class DiskDevice : public Device {
       if (st)
         return (st);
 
-      page->set_self(pos);
+      page->set_address(pos);
       return (read_page(page));
     }
 
-    // frees a page on the device; plays counterpoint to @ref alloc_page
+    // Frees a page on the device; plays counterpoint to |ref alloc_page|
     virtual void free_page(Page *page) {
-      if (page->get_pers() && page->get_flags() & Page::NPERS_MALLOC) {
-        Memory::release(page->get_pers());
-        page->set_flags(page->get_flags() & ~Page::NPERS_MALLOC);
+      if (page->get_data() && page->get_flags() & Page::kNpersMalloc) {
+        Memory::release(page->get_data());
+        page->set_flags(page->get_flags() & ~Page::kNpersMalloc);
       }
-      page->set_pers(0);
+      page->set_data(0);
     }
 
   private:

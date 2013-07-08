@@ -81,17 +81,17 @@ struct BtreeInsertFixture {
     Page *page;
     PBtreeNode *node;
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
-    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
+    REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(7 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
-    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
+    REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(5 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
-    REQUIRE((Page::TYPE_B_INDEX & page->get_type()));
+    REQUIRE((Page::kTypeBindex & page->get_type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
   }
@@ -116,17 +116,17 @@ struct BtreeInsertFixture {
     Page *page;
     PBtreeNode *node;
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
-    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(8 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
-    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(3 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
-    REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBroot == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
   }
@@ -151,17 +151,17 @@ struct BtreeInsertFixture {
     Page *page;
     PBtreeNode *node;
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 1));
-    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(8 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 2));
-    REQUIRE((unsigned)Page::TYPE_B_INDEX == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBindex == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(3 == node->get_count());
 
     REQUIRE(0 == fetch_page(&page, m_environ->get_pagesize() * 3));
-    REQUIRE((unsigned)Page::TYPE_B_ROOT == page->get_type());
+    REQUIRE((unsigned)Page::kTypeBroot == page->get_type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->get_count());
   }

@@ -60,11 +60,11 @@ struct PageManagerFixture {
 
     page = 0;
     REQUIRE(0 == pm->fetch_page(&page, 0, 16 * 1024ull, false));
-    REQUIRE(page->get_self() == 16 * 1024ull);
+    REQUIRE(page->get_address() == 16 * 1024ull);
 
     page = 0;
     REQUIRE(0 == pm->fetch_page(&page, 0, 16 * 1024ull, true));
-    REQUIRE(page->get_self() == 16 * 1024ull);
+    REQUIRE(page->get_address() == 16 * 1024ull);
     REQUIRE(page);
   }
 
@@ -74,10 +74,10 @@ struct PageManagerFixture {
 
     page = 0;
     REQUIRE(0 ==
-            pm->alloc_page(&page, 0, Page::TYPE_FREELIST,
+            pm->alloc_page(&page, 0, Page::kTypeFreelist,
                 PageManager::kClearWithZero));
     if (m_inmemory == false)
-      REQUIRE(page->get_self() == 2 * 16 * 1024ull);
+      REQUIRE(page->get_address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
     REQUIRE(!page->get_db());
   }

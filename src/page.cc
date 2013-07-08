@@ -28,35 +28,35 @@
 
 namespace hamsterdb {
 
-int Page::sizeof_persistent_header = (OFFSETOF(PageData, _s._payload));
+int Page::sizeof_persistent_header = (OFFSETOF(PPageData, _s._payload));
 
 Page::Page(Environment *env, LocalDatabase *db)
-  : m_self(0), m_db(db), m_device(0), m_flags(0), m_dirty(false),
-    m_cursors(0), m_pers(0)
+  : m_env(env), m_db(db), m_address(0), m_flags(0), m_dirty(false),
+    m_cursor_list(0), m_data(0)
 {
-  if (env)
-    m_device = env->get_device();
   memset(&m_prev[0], 0, sizeof(m_prev));
   memset(&m_next[0], 0, sizeof(m_next));
 }
 
 Page::~Page()
 {
-  ham_assert(get_pers() == 0);
-  ham_assert(get_cursors() == 0);
+  if (m_env && m_env->get_device() && m_data != 0)
+    m_env->get_device()->free_page(this);
+  ham_assert(m_data == 0);
+  ham_assert(m_cursor_list == 0);
 }
 
 ham_status_t
 Page::allocate()
 {
-  return (get_device()->alloc_page(this));
+  return (m_env->get_device()->alloc_page(this));
 }
 
 ham_status_t
 Page::fetch(ham_u64_t address)
 {
-  set_self(address);
-  return (get_device()->read_page(this));
+  set_address(address);
+  return (m_env->get_device()->read_page(this));
 }
 
 ham_status_t
@@ -65,19 +65,12 @@ Page::flush()
   if (!is_dirty())
     return (HAM_SUCCESS);
 
-  ham_status_t st = get_device()->write_page(this);
+  ham_status_t st = m_env->get_device()->write_page(this);
   if (st)
     return (st);
 
   set_dirty(false);
   return (HAM_SUCCESS);
-}
-
-void
-Page::free()
-{
-  ham_assert(get_cursors() == 0);
-  get_device()->free_page(this);
 }
 
 } // namespace hamsterdb

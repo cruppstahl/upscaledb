@@ -108,20 +108,26 @@ x clean up btree.h
 
 x metrics: memory allocations currently ignore operator new/delete
 
+x refactoring of page.h, page.cc
+
 o reduce the file size if freelist adds page at end of file
+    o bool Freelist::is_free(ham_u64_t address, ham_size_t size);
+        o tests
+    o loop through each page from end to beginning; if page is free: cut off
+        the file
+        o decrease used bits with freel_set_max_bits() (not sure if this is
+            sufficient, though)
+            o tests
+        o then truncate the file
+    o only do this in ham_env_close
     o attention: if a file is truncated then recovery can re-create pages
         that are "outside" of the file boundaries! therefore only
         do this if the log is empty!
-    o requires bool Freelist::is_free(ham_u64_t address, ham_size_t size);
-        o tests
-    o decrease used bits with freel_set_max_bits() (not sure if this is
-        sufficient, though)
-        o tests
-    o only do this in ham_env_close
     o can be disabled with an (undocumented) flag
     o do general refactoring of freelist.h, freelist.cc - remove macros etc
 
-o refactoring of page.h, page.cc
+o if a btree page is deleted in ::erase() then the page is not moved to the
+    freelist - correct? if yes, fix it
 
 o run a performance test clang++ vs g++
 
@@ -136,18 +142,6 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o pre-allocate index; 2.0.0 had this as an experimental feature
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o needs freelist hints to retrieve the next possible
-        free page *adjacent to* the previous index page
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages
-
 . clean up Environment class
     o split into multiple files
     o remove the TODOs
@@ -161,6 +155,18 @@ o pre-allocate index; 2.0.0 had this as an experimental feature
     - more than 1 index page? not idempotent (most likely)
     - more than 1 blob page? not idempotent (maybe)
     o define a few benchmarks
+
+. pre-allocate index; 2.0.0 had this as an experimental feature
+    o see roadmap document for more information
+    o run a performance test/prototype if this is worth the effort
+    o this feature is *per database*
+    o calculate number of reqd pages based on estimated keys from the user
+    o needs freelist hints to retrieve the next possible
+        free page *adjacent to* the previous index page
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages
 
 o release-v2.sh
     o test build with disabled AES, add this to the release process

@@ -441,7 +441,7 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 ham_status_t
 Freelist::free_page(Page *page)
 {
-  return (free_area(page->get_self(), m_env->get_pagesize()));
+  return (free_area(page->get_address(), m_env->get_pagesize()));
 }
 
 ham_status_t
@@ -2649,7 +2649,7 @@ Freelist::initialize()
     FreelistEntry *pentry = &m_entries[m_entries.size() - 1];
     ham_assert(pentry->start_address == freel_get_start_address(fp));
     pentry->allocated_bits = freel_get_allocated_bits(fp);
-    pentry->page_id = page->get_self();
+    pentry->page_id = page->get_address();
   }
 
   return (0);
@@ -2776,7 +2776,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       }
 
       /* allocate a new page, fix the linked list */
-      st = m_env->get_page_manager()->alloc_page(&page, 0, Page::TYPE_FREELIST,
+      st = m_env->get_page_manager()->alloc_page(&page, 0, Page::kTypeFreelist,
                     PageManager::kIgnoreFreelist | PageManager::kClearWithZero);
       if (!page) {
         ham_assert(st != 0);
@@ -2784,7 +2784,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       }
       ham_assert(st == 0);
 
-      freel_set_overflow(fp, page->get_self());
+      freel_set_overflow(fp, page->get_address());
       /* done editing /previous/ freelist page */
 
       fp = page_get_freelist(page);
@@ -2793,7 +2793,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       // mark page as dirty
       mark_dirty(page);
       ham_assert(entries[i].max_bits == freel_get_max_bits(fp));
-      m_entries[i].page_id = page->get_self();
+      m_entries[i].page_id = page->get_address();
     }
 
     if (&entries[i] == entry) {

@@ -60,7 +60,6 @@ struct PageFixture {
     Page *page;
     page = new Page((Environment *)m_env);
     REQUIRE(0 == page->allocate());
-    page->free();
     delete page;
   }
 
@@ -75,8 +74,7 @@ struct PageFixture {
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
       if (!m_inmemory)
-        REQUIRE(page->get_self() == (i + 2) * ps);
-      page->free();
+        REQUIRE(page->get_address() == (i + 2) * ps);
       delete page;
     }
   }
@@ -88,20 +86,16 @@ struct PageFixture {
     page = new Page((Environment *)m_env);
     temp = new Page((Environment *)m_env);
     REQUIRE(0 == page->allocate());
-    REQUIRE(page->get_self() == ps * 2);
-    page->free();
+    REQUIRE(page->get_address() == ps * 2);
 
-    REQUIRE(0 == page->fetch(page->get_self()));
-    memset(page->get_pers(), 0x13, ps);
+    REQUIRE(0 == page->fetch(page->get_address()));
+    memset(page->get_data(), 0x13, ps);
     page->set_dirty(true);
     REQUIRE(0 == page->flush());
 
     REQUIRE(false == page->is_dirty());
     REQUIRE(0 == temp->fetch(ps * 2));
-    REQUIRE(0 == memcmp(page->get_pers(), temp->get_pers(), ps));
-
-    page->free();
-    temp->free();
+    REQUIRE(0 == memcmp(page->get_data(), temp->get_data(), ps));
 
     delete temp;
     delete page;

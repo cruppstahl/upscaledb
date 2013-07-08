@@ -42,7 +42,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
       ham_u64_t pageid = addr - (addr % page_size);
 
       // is this the current page? if yes then continue working with this page
-      if (page && page->get_self() != pageid)
+      if (page && page->get_address() != pageid)
         page = 0;
 
       if (!page) {
@@ -63,7 +63,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
                             pageid, cache_only);
         /* blob pages don't have a page header */
         if (page)
-          page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
+          page->set_flags(page->get_flags() | Page::kNpersNoHeader);
         else if (st)
           return (st);
       }
@@ -71,7 +71,7 @@ DiskBlobManager::write_chunks(LocalDatabase *db, Page *page, ham_u64_t addr,
       // if we have a page pointer: use it; otherwise write directly
       // to the device
       if (page) {
-        ham_size_t writestart = (ham_size_t)(addr - page->get_self());
+        ham_size_t writestart = (ham_size_t)(addr - page->get_address());
         ham_size_t writesize = (ham_size_t)(page_size - writestart);
         if (writesize > chunk_size[i])
           writesize = chunk_size[i];
@@ -113,7 +113,7 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
     // get the page-id from this chunk
     ham_u64_t pageid = addr - (addr % page_size);
 
-    if (page && page->get_self() != pageid)
+    if (page && page->get_address() != pageid)
       page = 0;
 
     // is it the current page? if not, try to fetch the page from
@@ -126,13 +126,13 @@ DiskBlobManager::read_chunk(Page *page, Page **fpage, ham_u64_t addr,
         return st;
       // blob pages don't have a page header
       if (page)
-        page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
+        page->set_flags(page->get_flags() | Page::kNpersNoHeader);
     }
 
     // if we have a page pointer: use it; otherwise read directly
     // from the device
     if (page) {
-      ham_size_t readstart = (ham_size_t)(addr - page->get_self());
+      ham_size_t readstart = (ham_size_t)(addr - page->get_address());
       ham_size_t readsize = (ham_size_t)(page_size - readstart);
       if (readsize > size)
         readsize = size;
@@ -210,13 +210,13 @@ DiskBlobManager::allocate(LocalDatabase *db, ham_record_t *record,
     // if the blob is small AND if logging is disabled: load the page
     // through the cache
     if (blob_from_cache(alloc_size)) {
-      st = m_env->get_page_manager()->alloc_page(&page, db, Page::TYPE_BLOB,
+      st = m_env->get_page_manager()->alloc_page(&page, db, Page::kTypeBlob,
                       PageManager::kIgnoreFreelist);
       if (st)
           return (st);
       // blob pages don't have a page header
-      page->set_flags(page->get_flags() | Page::NPERS_NO_HEADER);
-      addr = page->get_self();
+      page->set_flags(page->get_flags() | Page::kNpersNoHeader);
+      addr = page->get_address();
       // move the remaining space to the freelist
       m_env->get_page_manager()->add_to_freelist(db, addr + alloc_size,
                     m_env->get_pagesize() - alloc_size);

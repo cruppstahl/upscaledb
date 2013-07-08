@@ -223,7 +223,6 @@ struct LogFixture {
       page = new Page(m_env);
       REQUIRE(0 == page->allocate());
       REQUIRE(0 == log->append_page(page, 1+i, 5-i));
-      page->free();
       delete page;
     }
 
@@ -595,7 +594,7 @@ struct LogHighLevelFixture {
     REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
                 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
-    REQUIRE((ham_u64_t)(ps * 2) == page->get_self());
+    REQUIRE((ham_u64_t)(ps * 2) == page->get_address());
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
     REQUIRE(0 == m_env->get_changeset().flush(1));
@@ -645,7 +644,7 @@ struct LogHighLevelFixture {
       REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
-      REQUIRE(page[i]->get_self() == ps * (2 + i));
+      REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i+j);
     }
@@ -700,7 +699,7 @@ struct LogHighLevelFixture {
     REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
                 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
-    REQUIRE(page->get_self() == ps * 2);
+    REQUIRE(page->get_address() == ps * 2);
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
     REQUIRE(0 == m_env->get_changeset().flush(2));
@@ -750,7 +749,7 @@ struct LogHighLevelFixture {
       REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
-      REQUIRE(page[i]->get_self() == ps * (2 + i));
+      REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i + j);
     }
@@ -809,7 +808,7 @@ struct LogHighLevelFixture {
       REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
-      REQUIRE(page[i]->get_self() == ps * (2 + i));
+      REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i + j);
     }

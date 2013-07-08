@@ -42,7 +42,7 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
     }
 
     static PBlobHeader *from_page(Page *page, ham_u64_t address) {
-      ham_size_t readstart = (ham_size_t)(address - page->get_self());
+      ham_size_t readstart = (ham_size_t)(address - page->get_address());
       return (PBlobHeader *)&page->get_raw_payload()[readstart];
     }
 

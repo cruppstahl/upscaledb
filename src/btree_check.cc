@@ -94,7 +94,7 @@ class BtreeCheckAction
           return ((ham_status_t)cmp);
         if (cmp < 0) {
           ham_log(("integrity check failed in page 0x%llx: parent item "
-                  "#0 < item #%d\n", page->get_self(), node->get_count() - 1));
+                  "#0 < item #%d\n", page->get_address(), node->get_count() - 1));
           return (HAM_INTEGRITY_VIOLATED);
         }
       }
@@ -132,11 +132,11 @@ class BtreeCheckAction
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
-        if (page->get_self() == m_btree->get_root_address())
+        if (page->get_address() == m_btree->get_root_address())
           return (0);
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
-                page->get_self()));
+                page->get_address()));
         return (HAM_INTEGRITY_VIOLATED);
       }
 
@@ -151,7 +151,7 @@ class BtreeCheckAction
             && bte->get_flags() != PBtreeKey::kExtended)
             && !node->is_leaf()) {
           ham_log(("integrity check failed in page 0x%llx: item #0 "
-                  "has flags, but it's not a leaf page", page->get_self()));
+                  "has flags, but it's not a leaf page", page->get_address()));
           return (HAM_INTEGRITY_VIOLATED);
         }
 
@@ -173,7 +173,7 @@ class BtreeCheckAction
 
         if (cmp >= 0) {
           ham_log(("integrity check failed in page 0x%llx: item #0 "
-                  "< left sibling item #%d\n", page->get_self(),
+                  "< left sibling item #%d\n", page->get_address(),
                   sibnode->get_count() - 1));
           return (HAM_INTEGRITY_VIOLATED);
         }
@@ -189,7 +189,7 @@ class BtreeCheckAction
           ham_u64_t blobid = bte->get_extended_rid(db);
           if (!blobid) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
-                    "is extended, but has no blob", page->get_self(), i));
+                    "is extended, but has no blob", page->get_address(), i));
             return (HAM_INTEGRITY_VIOLATED);
           }
         }
@@ -199,7 +199,7 @@ class BtreeCheckAction
           return (ham_status_t)cmp;
         if (cmp >= 0) {
           ham_log(("integrity check failed in page 0x%llx: item #%d "
-                  "< item #%d", page->get_self(), i, i + 1));
+                  "< item #%d", page->get_address(), i, i + 1));
           return (HAM_INTEGRITY_VIOLATED);
         }
       }

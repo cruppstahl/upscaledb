@@ -83,7 +83,7 @@ struct DeviceFixture
 
     REQUIRE(true == m_dev->is_open());
     REQUIRE(0 == m_dev->alloc_page(&page));
-    REQUIRE(page.get_pers());
+    REQUIRE(page.get_data());
     m_dev->free_page(&page);
   }
 
@@ -104,11 +104,11 @@ struct DeviceFixture
     for (i = 0; i < 10; i++) {
       memset(&pages[i], 0, sizeof(Page));
       pages[i].set_db((LocalDatabase *)m_db);
-      pages[i].set_self(i * ps);
+      pages[i].set_address(i * ps);
       REQUIRE(0 == m_dev->read_page(&pages[i]));
     }
     for (i = 0; i < 10; i++)
-      memset(pages[i].get_pers(), i, ps);
+      memset(pages[i].get_data(), i, ps);
     for (i = 0; i < 10; i++)
       REQUIRE(0 == m_dev->write_page(&pages[i]));
     for (i = 0; i < 10; i++) {
@@ -117,7 +117,7 @@ struct DeviceFixture
       m_dev->free_page(&pages[i]);
 
       REQUIRE(0 == m_dev->read_page(&pages[i]));
-      buffer = (ham_u8_t *)pages[i].get_pers();
+      buffer = (ham_u8_t *)pages[i].get_data();
       REQUIRE(0 == memcmp(buffer, temp, ps));
     }
     for (i = 0; i < 10; i++)
@@ -163,14 +163,13 @@ struct DeviceFixture
     REQUIRE(0 == m_dev->truncate(ps * 2));
     for (i = 0; i < 2; i++) {
       REQUIRE((pages[i] = new Page((Environment *)m_env)));
-      pages[i]->set_self(ps * i);
+      pages[i]->set_address(ps * i);
       REQUIRE(0 == m_dev->read_page(pages[i]));
     }
     for (i = 0; i < 2; i++) {
-      REQUIRE((pages[i]->get_flags() & Page::NPERS_MALLOC) != 0);
-      memset(pages[i]->get_pers(), i + 1, ps);
+      REQUIRE((pages[i]->get_flags() & Page::kNpersMalloc) != 0);
+      memset(pages[i]->get_data(), i + 1, ps);
       REQUIRE(0 == m_dev->write_page(pages[i]));
-      pages[i]->free();
       delete pages[i];
     }
 
@@ -178,10 +177,9 @@ struct DeviceFixture
       char temp[1024];
       memset(temp, i + 1, sizeof(temp));
       REQUIRE((pages[i] = new Page((Environment *)m_env)));
-      pages[i]->set_self(ps * i);
+      pages[i]->set_address(ps * i);
       REQUIRE(0 == m_dev->read_page(pages[i]));
-      REQUIRE(0 == memcmp(pages[i]->get_pers(), temp, sizeof(temp)));
-      pages[i]->free();
+      REQUIRE(0 == memcmp(pages[i]->get_data(), temp, sizeof(temp)));
       delete pages[i];
     }
   }

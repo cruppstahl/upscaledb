@@ -660,7 +660,7 @@ BtreeCursor::move_last(ham_u32_t flags)
     return (st);
   // hack: prior to 2.0, the type of btree root pages was not set
   // correctly
-  page->set_type(Page::TYPE_B_ROOT);
+  page->set_type(Page::kTypeBroot);
 
   // while we've not reached the leaf: pick the largest element
   // and traverse down
@@ -709,12 +709,12 @@ BtreeCursor::couple_to_page(Page *page, ham_size_t index)
   m_coupled_page = page;
 
   // add the cursor to the page
-  if (page->get_cursors()) {
-    m_next_in_page = page->get_cursors();
+  if (page->get_cursor_list()) {
+    m_next_in_page = page->get_cursor_list();
     m_previous_in_page = 0;
-    page->get_cursors()->m_previous_in_page = this;
+    page->get_cursor_list()->m_previous_in_page = this;
   }
-  page->set_cursors(this);
+  page->set_cursor_list(this);
 }
 
 void
@@ -722,11 +722,11 @@ BtreeCursor::remove_cursor_from_page(Page *page)
 {
   BtreeCursor *n, *p;
 
-  if (this == page->get_cursors()) {
+  if (this == page->get_cursor_list()) {
     n = m_next_in_page;
     if (n)
       n->m_previous_in_page = 0;
-    page->set_cursors(n);
+    page->set_cursor_list(n);
   }
   else {
     n = m_next_in_page;
@@ -747,8 +747,8 @@ BtreeCursor::uncouple_all_cursors(Page *page, ham_size_t start)
 {
   ham_status_t st;
   bool skipped = false;
-  Cursor *cursors = page->get_cursors()
-          ? page->get_cursors()->get_parent()
+  Cursor *cursors = page->get_cursor_list()
+          ? page->get_cursor_list()->get_parent()
           : 0;
 
   while (cursors) {
@@ -775,7 +775,7 @@ BtreeCursor::uncouple_all_cursors(Page *page, ham_size_t start)
   }
 
   if (!skipped)
-    page->set_cursors(0);
+    page->set_cursor_list(0);
 
   return (0);
 }
