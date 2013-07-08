@@ -23,7 +23,7 @@
 #include "../src/os.h"
 #include "../src/page_manager.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct CacheFixture {
   ham_db_t *m_db;
@@ -295,3 +295,4 @@ TEST_CASE("Cache/bigSize", "Tests the Cache")
   delete cache;
 }
 
+} // namespace hamsterdb

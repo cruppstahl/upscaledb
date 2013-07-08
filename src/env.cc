@@ -618,7 +618,7 @@ LocalEnvironment::close(ham_u32_t flags)
   if (st)
     return (st);
 
-  /* flush all pages and the freelist */
+  /* flush all pages and the freelist, reduce the file size */
   if (get_page_manager()) {
     delete get_page_manager();
     m_page_manager = 0;

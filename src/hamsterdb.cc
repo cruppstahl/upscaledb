@@ -360,7 +360,8 @@ ham_env_create(ham_env_t **henv, const char *filename,
             | HAM_CACHE_UNLIMITED
             | HAM_ENABLE_RECOVERY
             | HAM_AUTO_RECOVERY
-            | HAM_ENABLE_TRANSACTIONS;
+            | HAM_ENABLE_TRANSACTIONS
+            | DB_DISABLE_RECLAIM;
   if (flags & ~mask) {
     ham_trace(("ham_env_create() called with invalid flag 0x%x (%d)", 
                 (int)(flags & ~mask), (int)(flags & ~mask)));
@@ -400,14 +401,14 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #ifdef HAM_ENABLE_ENCRYPTION
         /* in-memory? encryption is not possible */
         if (flags & HAM_IN_MEMORY) {
-          ham_trace(("aes encrpytion not allowed in combination with "
+          ham_trace(("aes encryption not allowed in combination with "
                   "HAM_IN_MEMORY"));
           return (HAM_INV_PARAMETER);
         }
         encryption_key = (ham_u8_t *)param->value;
         flags |= HAM_DISABLE_MMAP;
 #else
-        ham_trace(("aes encrpytion was disabled at compile time"));
+        ham_trace(("aes encryption was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
 #endif
         break;
@@ -444,7 +445,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
    */
   {
     ham_size_t l = pagesize - sizeof(PEnvHeader)
-        - freel_get_bitmap_offset() - 128;
+        - PFreelistPayload::get_bitmap_offset() - 128;
 
     l /= sizeof(PBtreeDescriptor);
     if (maxdbs > l) {
@@ -664,7 +665,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         encryption_key = (ham_u8_t *)param->value;
         flags |= HAM_DISABLE_MMAP;
 #else
-        ham_trace(("aes encrpytion was disabled at compile time"));
+        ham_trace(("aes encryption was disabled at compile time"));
         return (HAM_NOT_IMPLEMENTED);
 #endif
         break;

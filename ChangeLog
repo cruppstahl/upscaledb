@@ -6,12 +6,20 @@ o issue #23, #25: Fixed linking problems regarding tcmalloc_minimal.so
 Jul 19, 2013 - chris ---------------------------------------------------
 o issue #24: Fixed compilation problem on MacOS (Thanks, Johnathan Conley)
 
+Jul 15, 2013 - chris ---------------------------------------------------
+o ham_env_close now truncates the file size and removes unused pages at the
+	end of the file
+
 Jun 27, 2013 - chris ---------------------------------------------------
 
 o issue #17: configure.in checks now for (hopefully) correct boost version
 
+Jun 26, 2013 - chris ---------------------------------------------------
+o Added tracking of internal metrics, exported via ham_env_get_metrics
+	(declared in ham/hamsterdb_int.h)
+
 Jun 25, 2013 - chris ---------------------------------------------------
-o added support for AES encryption
+o Added support for AES encryption
 
 Jun 23, 2013 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.1

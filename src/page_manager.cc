@@ -30,12 +30,27 @@ PageManager::PageManager(Environment *env, ham_size_t cachesize)
 
 PageManager::~PageManager()
 {
+  flush_all_pages();
+
+  /* reclaim unused disk space
+   * if logging is enabled: also flush the changeset to write back the
+   * modified freelist pages
+   *
+   * TODO
+   * this ignores the return values! better move to ham_env_close() */
+  if (!(m_env->get_flags() & DB_DISABLE_RECLAIM)) {
+    reclaim_space();
+
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+      m_env->get_changeset().flush(m_env->get_incremented_lsn());
+    else
+      flush_all_pages();
+  }
+
   if (m_freelist) {
     delete m_freelist;
     m_freelist = 0;
   }
-
-  flush_all_pages();
 
   if (m_cache) {
     delete m_cache;
@@ -267,6 +282,35 @@ PageManager::purge_cache()
 
   return (m_cache->purge(purge_callback,
               (m_env->get_flags() & HAM_CACHE_STRICT) != 0));
+}
+
+ham_status_t
+PageManager::reclaim_space()
+{
+  if (!m_freelist)
+    return (0);
+
+  ham_assert(!(m_env->get_flags() & DB_DISABLE_RECLAIM));
+
+  ham_size_t pagesize = m_env->get_pagesize();
+  ham_u64_t filesize;
+  ham_status_t st = m_env->get_device()->get_filesize(&filesize);
+  if (st)
+    return (st);
+
+  ham_u64_t new_size = filesize;
+  while (true) {
+    if (!m_freelist->is_page_free(new_size - pagesize))
+      break;
+    new_size -= pagesize;
+    st = m_freelist->truncate_page(new_size);
+    if (st)
+      return (st);
+  }
+
+  if (new_size == filesize)
+    return (0);
+  return (m_env->get_device()->truncate(new_size));
 }
 
 static bool

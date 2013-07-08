@@ -110,24 +110,36 @@ x metrics: memory allocations currently ignore operator new/delete
 
 x refactoring of page.h, page.cc
 
-o reduce the file size if freelist adds page at end of file
-    o bool Freelist::is_free(ham_u64_t address, ham_size_t size);
-        o tests
-    o loop through each page from end to beginning; if page is free: cut off
+x reduce the file size if freelist adds page at end of file
+    x bool Freelist::is_free(ham_u64_t address, ham_size_t size);
+        x tests
+    x loop through each page from end to beginning; if page is free: cut off
         the file
-        o decrease used bits with freel_set_max_bits() (not sure if this is
-            sufficient, though)
-            o tests
-        o then truncate the file
-    o only do this in ham_env_close
-    o attention: if a file is truncated then recovery can re-create pages
+        x then truncate the file ("reclaim space")
+    x only do this in ham_env_close
+    x attention: if a file is truncated then recovery can re-create pages
         that are "outside" of the file boundaries! therefore only
         do this if the log is empty!
-    o can be disabled with an (undocumented) flag
-    o do general refactoring of freelist.h, freelist.cc - remove macros etc
+    x can be disabled with an (undocumented) flag (HAM_DISABLE_RECLAIM)
+    x tests, esp. with reopen, is_free(), freelist allocs at end of file
+    x no need to have code checking READ_ONLY - this can never happen
+    x check the TODOs - there is at least one that needs fixing
+    x verify correctness regarding logging/recovery - the modified freelist
+        pages have to be logged before they're flushed (or just flush
+        them directly after the modification?)
+        x add them to the changeset
+        x and flush the changeset when done
+        x or flush immediately to disk if logging is disabled
+    x split is_free_page to reclaim_page, is_page_free
+    x do general refactoring of freelist.h, freelist.cc - remove macros etc
+    x rename allocated_bits to free_bits
+    x add to changelog
 
-o if a btree page is deleted in ::erase() then the page is not moved to the
+x if a btree page is deleted in btree_erase then the page is not moved to the
     freelist - correct? if yes, fix it
+    -> no, everything's good
+
+o page_size and pagesize are used inconsistently; use only one!
 
 o run a performance test clang++ vs g++
 
@@ -146,6 +158,10 @@ o improve client/server performance
     o split into multiple files
     o remove the TODOs
 
+o release-v2.sh
+    o test build with disabled AES, add this to the release process
+    o test build with disabled remote, add this to the release process
+
 . when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     then flush all of them together. This way we can "merge" multiple changes
     for the same page.
@@ -160,6 +176,10 @@ o improve client/server performance
     o see roadmap document for more information
     o run a performance test/prototype if this is worth the effort
     o this feature is *per database*
+    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
+        is currently not used. For allocations in a reserved area it could
+        be set to the lower bound of this area. For other allocations it
+        could be set to the upper bound (thus exceeding this area).
     o calculate number of reqd pages based on estimated keys from the user
     o needs freelist hints to retrieve the next possible
         free page *adjacent to* the previous index page
@@ -167,10 +187,6 @@ o improve client/server performance
         (above) is enabled
     o try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages
-
-o release-v2.sh
-    o test build with disabled AES, add this to the release process
-    o test build with disabled remote, add this to the release process
 
 ------------------- release 2.1.2 -----------------------------------------
 
@@ -187,6 +203,8 @@ o release-v2.sh
 o collect file format incompatibilities
     o for the new Btree code
     o persistent freelist statistics
+    o persistent freelist payload
+    o page header
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
@@ -298,6 +316,10 @@ o update documentation
 
 
 ------------------- idea soup ---------------------------------------------
+
+o A new transactional mode: read-only transactions can run "in the past" - only
+    on committed transactions. therefore they avoid conflicts and will always
+    succeed.
 
 o changeset: instead of simply adding pages to the changeset, the caller
     could already specify whether this page needs logging or not;

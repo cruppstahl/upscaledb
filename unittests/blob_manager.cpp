@@ -23,7 +23,7 @@
 #include "../src/btree_key.h"
 #include "../src/page_manager.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct BlobManagerFixture {
   ham_db_t *m_db;
@@ -227,7 +227,7 @@ struct BlobManagerFixture {
     /* make sure that at least 64bit are in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      Freelist *f = ((Environment *)m_env)->get_page_manager()->get_freelist(0);
+      Freelist *f = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
       REQUIRE(0 == f->alloc_area(64, &addr));
       REQUIRE(addr != 0ull);
     }
@@ -237,7 +237,7 @@ struct BlobManagerFixture {
     /* and now another 64bit should be in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      Freelist *f = ((Environment *)m_env)->get_page_manager()->get_freelist(0);
+      Freelist *f = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
       REQUIRE(0 == f->alloc_area(64, &addr));
       REQUIRE(addr != 0ull);
     }
@@ -843,3 +843,4 @@ TEST_CASE("BlobManager-inmem-64k/smallBlobTest", "")
   f.smallBlobTest();
 }
 
+} // namespace hamsterdb

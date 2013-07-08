@@ -219,7 +219,7 @@ struct DbFixture {
             * HAM_FREELIST_SLOT_SPREAD));
     REQUIRE(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
     REQUIRE(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
-    REQUIRE(compare_sizes(freel_get_bitmap_offset(),
+    REQUIRE(compare_sizes(PFreelistPayload::get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
     REQUIRE(compare_sizes(PBtreeKey::kSizeofOverhead, 11));
     REQUIRE(compare_sizes(sizeof(Log::PHeader), 16));

@@ -46,7 +46,7 @@ namespace hamsterdb {
  * space-saving/classic mode; use the other 'start of free space at end
  * of the page' marker as the starting point for (uber-)fast searches.
  *
- * 'utilization': keep track of the number of free chunks and allocated
+ * 'utilization': keep track of the number of free chunks and free
  * chunks in the middle zone ~ the zone between FIRST and LST marker:
  * the ratio is a measure of the chance we expect to have when searching
  * this zone for a free spot - by not coding/designing to cover a
@@ -256,7 +256,7 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
        * still _may_ have in this preceding zone, which is a WIN when
        * we're into saving disc space.
        */
-      ham_u32_t offset = entry->allocated_bits;
+      ham_u32_t offset = entry->free_bits;
       if (offset > hints->size_bits)
         offset = hints->size_bits;
       if (position > offset - 1)
@@ -348,12 +348,12 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
     if (entrystats->persisted_bits < position) {
       /* overflow? reset this marker! */
       ham_assert(entrystats->persisted_bits == 0);
-      if (hints->size_bits > entry->allocated_bits)
+      if (hints->size_bits > entry->free_bits)
         entrystats->persisted_bits = position;
       else
         /* extra HACKY safety margin */
         entrystats->persisted_bits = position
-              - hints->size_bits + entry->allocated_bits;
+              - hints->size_bits + entry->free_bits;
     }
   }
 }
@@ -485,14 +485,14 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
 
         ham_assert(entrystats->persisted_bits == 0);
         entrystats->persisted_bits = position +
-            size_bits + entry->allocated_bits;
+            size_bits + entry->free_bits;
       }
 
       /*
        * maxsize within given bucket must still fit in the page, or
        * it's useless checking this page again.
        */
-      if (ham_bucket_index2bitcount(bucket) > entry->allocated_bits) {
+      if (ham_bucket_index2bitcount(bucket) > entry->free_bits) {
         ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
         ham_assert(entry_index >= 0);
@@ -682,15 +682,15 @@ FreelistStatistics::get_global_hints(Freelist *fl,
    * utilization is such that our chance at finding a match is still
    * rather low.
    */
-  switch (dst->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-              | HAM_DAM_RANDOM_WRITE))
+  switch (dst->mgt_mode & (Freelist::kDamSequentialInsert
+                          | Freelist::kDamRandomWrite))
   {
     /* SEQ+RANDOM_ACCESS: impossible mode; nasty trick for testing
      * to help Overflow4 unittest pass: disables global hinting,
      * but does do reverse scan for a bit of speed */
-  case HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT:
+  case Freelist::kDamRandomWrite | Freelist::kDamSequentialInsert:
     dst->max_rounds = fl->get_count();
-    dst->mgt_mode &= ~HAM_DAM_RANDOM_WRITE;
+    dst->mgt_mode &= ~Freelist::kDamRandomWrite;
     if (0)
     {
   default:
@@ -714,8 +714,8 @@ FreelistStatistics::get_global_hints(Freelist *fl,
      *
      * for 'UBER/FAST' modes: a limit of 3 freelist pages tops.
      */
-  case HAM_DAM_SEQUENTIAL_INSERT:
-  case HAM_DAM_RANDOM_WRITE:
+  case Freelist::kDamSequentialInsert:
+  case Freelist::kDamRandomWrite:
       dst->max_rounds = 8;
     }
     if (dst->max_rounds >= fl->get_count()) {
@@ -939,7 +939,7 @@ FreelistStatistics::get_entry_hints(Freelist *fl,
   offset = entrystats->persisted_bits;
   if (offset == 0) {
     /*
-     * we need to init this one; take the allocated_bits size as a
+     * we need to init this one; take the free_bits size as a
      * heuristically sound (ahem) probe_step value and backtrack
      * from the end of the freelist page towards occupied country,
      * praying we find a free slot.

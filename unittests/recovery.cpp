@@ -332,6 +332,11 @@ verify(int argc, char **argv) {
     printf("ham_env_open_db failed: %d\n", (int)st);
     exit(-1);
   }
+  st = ham_db_check_integrity(db, 0);
+  if (st) {
+    printf("ham_db_check_integrity failed: %d\n", (int)st);
+    exit(-1);
+  }
 
   for (int j = 0; j < NUM_STEPS; j++) {
     // modify key at end of buffer to make sure that extended keys

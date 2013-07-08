@@ -21,7 +21,7 @@
 #include "../src/txn.h"
 #include "../src/page_manager.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct PageManagerFixture {
   ham_db_t *m_db;
@@ -51,7 +51,7 @@ struct PageManagerFixture {
 
     REQUIRE(pm->test_get_cache());
     if (m_inmemory)
-      REQUIRE(!pm->get_freelist(0));
+      REQUIRE(!pm->test_get_freelist());
   }
 
   void fetchPageTest() {
@@ -131,3 +131,4 @@ TEST_CASE("PageManager-inmem/allocPage", "")
   f.allocPageTest();
 }
 
+} // namespace hamsterdb

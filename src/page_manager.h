@@ -42,8 +42,7 @@ class PageManager {
 
     // Default constructor
     //
-    // @param env The Environment
-    // @param cachesize The cache size, in bytes
+    // The cache size is specified in bytes!
     PageManager(Environment *env, ham_size_t cachesize);
 
     // Destructor
@@ -99,10 +98,51 @@ class PageManager {
     // Purges the cache if the cache limits are exceeded
     ham_status_t purge_cache();
 
-    // retrieves the freelist
-    // this is public because it's required for testing */
-    // TODO rename to test_
-    Freelist *get_freelist(Database *db) {
+    // Reclaim file space
+    ham_status_t reclaim_space();
+
+    // Flushes all pages of a database (but not the header page,
+    // it's still required and will be flushed below)
+    void close_database(Database *db);
+
+    // Checks the integrity of the freelist and the cache
+    ham_status_t check_integrity();
+
+    // Returns the cache's capacity
+    ham_u64_t get_cache_capacity() const;
+
+    // Adds a page to the freelist
+    ham_status_t add_to_freelist(Page *page) {
+      Freelist *f = get_freelist();
+      return (f ? f->free_page(page) : 0);
+    }
+
+    // Adds an area to the freelist; used for blobs, but make sure to add
+    // sizeof(PBlobHeader) to the blob's payload size!
+    ham_status_t add_to_freelist(Database *db, ham_u64_t address,
+                    ham_size_t size) {
+      Freelist *f = get_freelist();
+      return (f ? f->free_area(address, size) : 0);
+    }
+
+    // Returns the Cache pointer; only for testing!
+    Cache *test_get_cache() {
+      return (m_cache);
+    }
+
+  private:
+    friend struct BlobManagerFixture;
+    friend struct CacheFixture;
+    friend struct FreelistFixture;
+    friend struct PageManagerFixture;
+
+    // Returns the freelist; only for testing!
+    Freelist *test_get_freelist() {
+      return (get_freelist());
+    }
+
+    // Returns the (initialized) freelist pointer
+    Freelist *get_freelist() {
       if (!m_freelist
           && !(m_env->get_flags() & HAM_IN_MEMORY)
           && !(m_env->get_flags() & HAM_READ_ONLY))
@@ -110,40 +150,6 @@ class PageManager {
       return (m_freelist);
     }
 
-    // flush all pages of a database (but not the header page,
-    // it's still required and will be flushed below)
-    void close_database(Database *db);
-
-    // returns the Cache pointer; only for testing!
-    Cache *test_get_cache() {
-      return (m_cache);
-    }
-
-    // checks the integrity of the freelist and the cache
-    ham_status_t check_integrity();
-
-    // returns the cache's capacity
-    ham_u64_t get_cache_capacity() const;
-
-    // Adds a page to the freelist
-    ham_status_t add_to_freelist(Page *page) {
-      Freelist *f = get_freelist(page->get_db());
-      if (f)
-        return (f->free_page(page));
-      return (0);
-    }
-
-    // Adds an area to the freelist; used for blobs, but make sure to add
-    // sizeof(PBlobHeader) to the blob's payload size!
-    ham_status_t add_to_freelist(Database *db, ham_u64_t address,
-                    ham_size_t size) {
-      Freelist *f = get_freelist(db);
-      if (f)
-        return (f->free_area(address, size));
-      return (0);
-    }
-
-  private:
     // The current Environment handle
     Environment *m_env;
 

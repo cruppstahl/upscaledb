@@ -933,7 +933,6 @@ cleanup:
     /* collapse the root node */
     ham_status_t collapse_root(Page *oldroot, Page *newroot) {
       Environment *env = newroot->get_db()->get_env();
-
       env->get_page_manager()->add_to_freelist(oldroot);
 
       m_btree->set_root_address(newroot->get_address());

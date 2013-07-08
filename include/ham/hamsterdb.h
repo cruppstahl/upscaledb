@@ -1091,7 +1091,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /* reserved: DB_IS_REMOTE   (not persistent)        0x00200000 */
 
-/* reserved: DB_REDUCED_FREELIST (persistent)       0x00400000 */
+/* reserved: DB_DISABLE_RECLAIM (not persistent)    0x00400000 */
 
 /**
  * Returns the last error code

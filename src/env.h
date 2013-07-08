@@ -50,8 +50,11 @@ struct ham_env_t {
 
 namespace hamsterdb {
 
-/** An internal database flag - env handle is remote */
+/* An internal database flag - env handle is remote */
 #define DB_IS_REMOTE                        0x00200000
+
+/* An internal database flag - do not reclaim disk space */
+#define DB_DISABLE_RECLAIM                  0x00400000
 
 #include "packstart.h"
 

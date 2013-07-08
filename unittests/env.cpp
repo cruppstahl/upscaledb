@@ -1070,7 +1070,8 @@ struct EnvFixture {
     char buffer[512];
 
     REQUIRE(0 ==
-      ham_env_create(&env, Globals::opath(".test"), m_flags, 0664, 0));
+      ham_env_create(&env, Globals::opath(".test"),
+              m_flags | DB_DISABLE_RECLAIM, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 ==
