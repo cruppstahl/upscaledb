@@ -141,7 +141,12 @@ x if a btree page is deleted in btree_erase then the page is not moved to the
 
 x page_size and pagesize are used inconsistently; use only one!
 
-o run a performance test clang++ vs g++
+x introduce PageManager::close(), split PageManager-destructor,
+    otherwise we can't catch the return values
+
+o clean up Environment class
+    o split into multiple files
+    o remove the TODOs
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -154,13 +159,11 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-. clean up Environment class
-    o split into multiple files
-    o remove the TODOs
-
 o release-v2.sh
     o test build with disabled AES, add this to the release process
     o test build with disabled remote, add this to the release process
+
+. run a performance test clang++ vs g++
 
 . when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     then flush all of them together. This way we can "merge" multiple changes

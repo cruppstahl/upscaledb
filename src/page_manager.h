@@ -130,6 +130,9 @@ class PageManager {
       return (m_cache);
     }
 
+    // Closes the PageManager; flushes all dirty pages
+    ham_status_t close();
+
   private:
     friend struct BlobManagerFixture;
     friend struct CacheFixture;

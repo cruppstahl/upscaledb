@@ -59,8 +59,8 @@ Environment::Environment()
 Environment::~Environment()
 {
   /* close the page manager (includes cache and freelist) */
-  if (get_page_manager()) {
-    delete get_page_manager();
+  if (m_page_manager) {
+    delete m_page_manager;
     m_page_manager = 0;
   }
 
@@ -619,9 +619,10 @@ LocalEnvironment::close(ham_u32_t flags)
     return (st);
 
   /* flush all pages and the freelist, reduce the file size */
-  if (get_page_manager()) {
-    delete get_page_manager();
-    m_page_manager = 0;
+  if (m_page_manager) {
+    st = m_page_manager->close();
+    if (st)
+      return (st);
   }
 
   /* if we're not in read-only mode, and not an in-memory-database,

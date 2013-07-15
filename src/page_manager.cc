@@ -30,23 +30,6 @@ PageManager::PageManager(Environment *env, ham_size_t cachesize)
 
 PageManager::~PageManager()
 {
-  flush_all_pages();
-
-  /* reclaim unused disk space
-   * if logging is enabled: also flush the changeset to write back the
-   * modified freelist pages
-   *
-   * TODO
-   * this ignores the return values! better move to ham_env_close() */
-  if (!(m_env->get_flags() & DB_DISABLE_RECLAIM)) {
-    reclaim_space();
-
-    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-      m_env->get_changeset().flush(m_env->get_incremented_lsn());
-    else
-      flush_all_pages();
-  }
-
   if (m_freelist) {
     delete m_freelist;
     m_freelist = 0;
@@ -359,6 +342,30 @@ PageManager::close_database(Database *db)
 {
   if (m_cache)
     (void)m_cache->visit(db_close_callback, db, 0);
+}
+
+ham_status_t
+PageManager::close()
+{
+  ham_status_t st = flush_all_pages();
+  if (st)
+    return (st);
+
+  // reclaim unused disk space
+  // if logging is enabled: also flush the changeset to write back the
+  // modified freelist pages
+  if (!(m_env->get_flags() & DB_DISABLE_RECLAIM)) {
+    st = reclaim_space();
+    if (st)
+      return (st);
+
+    if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
+      st = m_env->get_changeset().flush(m_env->get_incremented_lsn());
+    else
+      st = flush_all_pages();
+  }
+
+  return (st);
 }
 
 } // namespace hamsterdb
