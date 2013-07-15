@@ -40,7 +40,7 @@ struct FreelistEntry {
   ham_size_t free_bits;
 
   // the page ID
-  ham_u64_t page_id;
+  ham_u64_t pageid;
 
   // freelist specific run-time data and usage statistics
   PFreelistPageStatistics perf_data;

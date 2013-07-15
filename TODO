@@ -139,7 +139,7 @@ x if a btree page is deleted in btree_erase then the page is not moved to the
     freelist - correct? if yes, fix it
     -> no, everything's good
 
-o page_size and pagesize are used inconsistently; use only one!
+x page_size and pagesize are used inconsistently; use only one!
 
 o run a performance test clang++ vs g++
 

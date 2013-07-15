@@ -468,7 +468,7 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
     FreelistEntry *entry = get_entry_for_address(address);
 
     /* allocate a new page if necessary */
-    if (!entry->page_id) {
+    if (!entry->pageid) {
       if (entry->start_address == m_env->get_pagesize()) {
         fp = m_env->get_freelist_payload();
         ham_assert(fp->get_start_address() != 0);
@@ -483,7 +483,7 @@ Freelist::free_area(ham_u64_t address, ham_size_t size)
     }
     /* otherwise just fetch the page from the cache or the disk */
     else {
-      st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
+      st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
       if (st)
         return (st);
       fp = PFreelistPayload::from_page(page);
@@ -696,7 +696,7 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
             fp = m_env->get_freelist_payload();
           }
           else {
-            st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
+            st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
             if (st)
               return (st);
             fp = PFreelistPayload::from_page(page);
@@ -748,7 +748,7 @@ Freelist::alloc_area_impl(ham_size_t size, ham_u64_t *paddr, bool aligned,
         page = 0;
       }
       else {
-        st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
+        st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
         if (st)
           return (st);
         fp = PFreelistPayload::from_page(page);
@@ -811,7 +811,7 @@ Freelist::is_page_free(ham_u64_t address)
   PFreelistPayload *fp = 0;
 
   /* if page does not exist then the space is not free */
-  if (!entry->page_id) {
+  if (!entry->pageid) {
     if (entry->start_address == m_env->get_pagesize()) {
       fp = m_env->get_freelist_payload();
       ham_assert(fp->get_start_address() != 0);
@@ -821,7 +821,7 @@ Freelist::is_page_free(ham_u64_t address)
   }
   /* otherwise just fetch the page from the cache or the disk */
   else {
-    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
+    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
     if (st)
       return (st);
     fp = PFreelistPayload::from_page(page);
@@ -856,7 +856,7 @@ Freelist::truncate_page(ham_u64_t address)
   PFreelistPayload *fp = 0;
 
   /* page is the Environment's header page? */
-  if (!entry->page_id) {
+  if (!entry->pageid) {
     if (entry->start_address == m_env->get_pagesize()) {
       fp = m_env->get_freelist_payload();
       ham_assert(fp->get_start_address() != 0);
@@ -864,7 +864,7 @@ Freelist::truncate_page(ham_u64_t address)
   }
   /* otherwise just fetch the page from the cache or the disk */
   else {
-    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->page_id);
+    st = m_env->get_page_manager()->fetch_page(&page, 0, entry->pageid);
     if (st)
       return (st);
     fp = PFreelistPayload::from_page(page);
@@ -2753,7 +2753,7 @@ Freelist::initialize()
     FreelistEntry *pentry = &m_entries[m_entries.size() - 1];
     ham_assert(pentry->start_address == fp->get_start_address());
     pentry->free_bits = fp->get_free_bits();
-    pentry->page_id = page->get_address();
+    pentry->pageid = page->get_address();
   }
 
   return (0);
@@ -2856,7 +2856,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
   for (ham_size_t i = 1; ; i++) {
     ham_assert(i < m_entries.size());
 
-    if (!entries[i].page_id) {
+    if (!entries[i].pageid) {
       ham_status_t st;
       Page *prev_page = 0;
 
@@ -2870,7 +2870,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       }
       else {
         st = m_env->get_page_manager()->fetch_page(&prev_page, 0,
-                entries[i - 1].page_id);
+                entries[i - 1].pageid);
         if (st)
           return (st);
         // mark previous page as dirty
@@ -2898,7 +2898,7 @@ Freelist::alloc_freelist_page(Page **ppage, FreelistEntry *entry)
       // mark page as dirty
       mark_dirty(page);
       ham_assert(entries[i].max_bits == fp->get_max_bits());
-      m_entries[i].page_id = page->get_address();
+      m_entries[i].pageid = page->get_address();
     }
 
     if (&entries[i] == entry) {
