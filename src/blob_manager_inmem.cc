@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include "mem.h"
+#include "env_local.h"
 
 #include "blob_manager_inmem.h"
 

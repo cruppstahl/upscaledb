@@ -21,6 +21,7 @@
 #include "../src/cache.h"
 #include "../src/page.h"
 #include "../src/env.h"
+#include "../src/env_header.h"
 #include "../src/btree.h"
 #include "../src/blob_manager.h"
 #include "../src/page_manager.h"
@@ -52,22 +53,23 @@ struct DbFixture {
   }
 
   void headerTest() {
-    ((Environment *)m_env)->set_magic('1', '2', '3', '4');
+    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    lenv->get_header()->set_magic('1', '2', '3', '4');
     REQUIRE(true ==
-        ((Environment *)m_env)->verify_magic('1', '2', '3', '4'));
+        lenv->get_header()->verify_magic('1', '2', '3', '4'));
 
-    ((Environment *)m_env)->set_version(1, 2, 3, 4);
-    REQUIRE((ham_u8_t)1 == ((Environment *)m_env)->get_version(0));
-    REQUIRE((ham_u8_t)2 == ((Environment *)m_env)->get_version(1));
-    REQUIRE((ham_u8_t)3 == ((Environment *)m_env)->get_version(2));
-    REQUIRE((ham_u8_t)4 == ((Environment *)m_env)->get_version(3));
+    lenv->get_header()->set_version(1, 2, 3, 4);
+    REQUIRE((ham_u8_t)1 == lenv->get_header()->get_version(0));
+    REQUIRE((ham_u8_t)2 == lenv->get_header()->get_version(1));
+    REQUIRE((ham_u8_t)3 == lenv->get_header()->get_version(2));
+    REQUIRE((ham_u8_t)4 == lenv->get_header()->get_version(3));
 
-    ((Environment *)m_env)->set_serialno(0x1234);
-    REQUIRE(0x1234u == ((Environment *)m_env)->get_serialno());
+    lenv->get_header()->set_serialno(0x1234);
+    REQUIRE(0x1234u == lenv->get_header()->get_serialno());
   }
 
   void structureTest() {
-    REQUIRE(((Environment *)m_env)->get_header_page() != 0);
+    REQUIRE(((LocalEnvironment *)m_env)->get_header()->get_header_page() != 0);
 
     REQUIRE(0 == m_dbp->get_error());
     m_dbp->set_error(HAM_IO_ERROR);
@@ -75,7 +77,7 @@ struct DbFixture {
 
     REQUIRE(m_dbp->get_btree_index()); // already initialized
 
-    REQUIRE(((Environment *)m_env)->get_page_manager()->test_get_cache());
+    REQUIRE(((LocalEnvironment *)m_env)->get_page_manager()->test_get_cache());
 
     REQUIRE(0 != m_dbp->m_prefix_func);
     ham_prefix_compare_func_t oldfoo = m_dbp->m_prefix_func;
@@ -89,28 +91,14 @@ struct DbFixture {
     REQUIRE((ham_compare_func_t)19 == m_dbp->get_compare_func());
     m_dbp->set_compare_func(oldfoo2);
 
-    ((Environment *)m_env)->get_header_page()->set_dirty(false);
-    REQUIRE(!((Environment *)m_env)->is_dirty());
-    ((Environment *)m_env)->set_dirty(true);
-    REQUIRE(((Environment *)m_env)->is_dirty());
+    ((LocalEnvironment *)m_env)->get_header()->get_header_page()->set_dirty(false);
+    REQUIRE(!((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
+    ((LocalEnvironment *)m_env)->mark_header_page_dirty();
+    REQUIRE(((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
 
     REQUIRE(0!=m_dbp->get_rt_flags());
 
     REQUIRE(m_dbp->get_env() != 0);
-  }
-
-  void envStructureTest() {
-    Environment *env = new LocalEnvironment;
-
-    env->set_txn_id(0x12345ull);
-    env->set_file_mode(0666);
-    env->set_flags(0x18);
-
-    /* TODO test other stuff! */
-    env->set_flags(0);
-    env->set_header_page(0);
-
-    delete env;
   }
 
   void defaultCompareTest() {
@@ -174,7 +162,7 @@ struct DbFixture {
     ham_u64_t address;
     ham_u8_t *p;
 
-    PageManager *pm = ((Environment *)m_env)->get_page_manager();
+    PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
 
     REQUIRE(0 == pm->alloc_page(&page, m_dbp, 0, PageManager::kIgnoreFreelist));
 
@@ -210,8 +198,8 @@ struct DbFixture {
         8 + sizeof(PDupeEntry)));
     REQUIRE(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
     REQUIRE(compare_sizes(sizeof(PBtreeKey), 12));
-    REQUIRE(compare_sizes(sizeof(PEnvHeader), 20));
-    REQUIRE(compare_sizes(sizeof(PBtreeDescriptor), 32));
+    REQUIRE(compare_sizes(sizeof(PEnvironmentHeader), 20));
+    REQUIRE(compare_sizes(sizeof(PBtreeHeader), 32));
     REQUIRE(compare_sizes(sizeof(PFreelistPayload),
         16 + 13 + sizeof(PFreelistPageStatistics)));
     REQUIRE(compare_sizes(sizeof(PFreelistPageStatistics),
@@ -222,7 +210,7 @@ struct DbFixture {
     REQUIRE(compare_sizes(PFreelistPayload::get_bitmap_offset(),
         16 + 12 + sizeof(PFreelistPageStatistics)));
     REQUIRE(compare_sizes(PBtreeKey::kSizeofOverhead, 11));
-    REQUIRE(compare_sizes(sizeof(Log::PHeader), 16));
+    REQUIRE(compare_sizes(sizeof(Log::PEnvironmentHeader), 16));
     REQUIRE(compare_sizes(sizeof(Log::PEntry), 32));
     REQUIRE(compare_sizes(sizeof(PPageData), 13));
     PPageData p;
@@ -231,7 +219,7 @@ struct DbFixture {
 
     REQUIRE(compare_sizes(PBtreeNode::get_entry_offset(), 28));
     Page page;
-    LocalDatabase db((Environment *)m_env, 1, 0);
+    LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
 
     page.set_address(1000);
@@ -243,7 +231,7 @@ struct DbFixture {
     // header page, then hack it...
     struct {
       PPageData drit;
-      PEnvHeader drat;
+      PEnvironmentHeader drat;
     } hdrpage_pers = {{{0}}};
     Page hdrpage;
     hdrpage.set_data((PPageData *)&hdrpage_pers);
@@ -251,7 +239,7 @@ struct DbFixture {
     ham_u8_t *pl1 = hp->get_payload();
     REQUIRE(pl1);
     REQUIRE(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_data(), 12));
-    PEnvHeader *hdrptr = (PEnvHeader *)(hdrpage.get_payload());
+    PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
     REQUIRE(compare_sizes(((ham_u8_t *)hdrptr)
         - (ham_u8_t *)hdrpage.get_data(), 12));
     hdrpage.set_data(0);
@@ -275,12 +263,6 @@ TEST_CASE("Db/structureTest", "")
 {
   DbFixture f;
   f.structureTest();
-}
-
-TEST_CASE("Db/envStructureTest", "")
-{
-  DbFixture f;
-  f.envStructureTest();
 }
 
 TEST_CASE("Db/defaultCompareTest", "")
@@ -318,12 +300,6 @@ TEST_CASE("Db-inmem/structureTest", "")
 {
   DbFixture f(true);
   f.structureTest();
-}
-
-TEST_CASE("Db-inmem/envStructureTest", "")
-{
-  DbFixture f(true);
-  f.envStructureTest();
 }
 
 TEST_CASE("Db-inmem/defaultCompareTest", "")

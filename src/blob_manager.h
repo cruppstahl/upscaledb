@@ -25,6 +25,7 @@ namespace hamsterdb {
 
 class ByteArray;
 class LocalDatabase;
+class LocalEnvironment;
 
 #include "packstart.h"
 
@@ -114,7 +115,7 @@ HAM_PACK_0 class HAM_PACK_1 PBlobHeader
 class BlobManager
 {
   public:
-    BlobManager(Environment *env)
+    BlobManager(LocalEnvironment *env)
       : m_env(env), m_blob_total_allocated(0), m_blob_total_read(0),
         m_blob_direct_read(0), m_blob_direct_written(0),
         m_blob_direct_allocated(0) {
@@ -171,7 +172,7 @@ class BlobManager
 
   protected:
     /** the Environment which created this BlobManager */
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     // usage tracking - number of blobs allocated
     ham_u64_t m_blob_total_allocated;

@@ -17,7 +17,7 @@
 #include "os.hpp"
 
 #include "../src/device.h"
-#include "../src/env.h"
+#include "../src/env_local.h"
 
 using namespace hamsterdb;
 
@@ -35,7 +35,7 @@ struct DeviceFixture
             inmemory ? HAM_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_dev = ((Environment *)m_env)->get_device();
+    m_dev = ((LocalEnvironment *)m_env)->get_device();
   }
 
   ~DeviceFixture() {
@@ -73,12 +73,12 @@ struct DeviceFixture
     for (i = 0; i < 10; i++) {
       REQUIRE(0 == m_dev->alloc(1024, &address));
       REQUIRE(address ==
-                  (((Environment *)m_env)->get_pagesize() * 2) + 1024 * i);
+                  (((LocalEnvironment *)m_env)->get_pagesize() * 2) + 1024 * i);
     }
   }
 
   void allocFreeTest() {
-    Page page((Environment *)m_env);
+    Page page((LocalEnvironment *)m_env);
     page.set_db((LocalDatabase *)m_db);
 
     REQUIRE(true == m_dev->is_open());
@@ -162,7 +162,7 @@ struct DeviceFixture
     REQUIRE(1 == m_dev->is_open());
     REQUIRE(0 == m_dev->truncate(ps * 2));
     for (i = 0; i < 2; i++) {
-      REQUIRE((pages[i] = new Page((Environment *)m_env)));
+      REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);
       REQUIRE(0 == m_dev->read_page(pages[i]));
     }
@@ -176,7 +176,7 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       char temp[1024];
       memset(temp, i + 1, sizeof(temp));
-      REQUIRE((pages[i] = new Page((Environment *)m_env)));
+      REQUIRE((pages[i] = new Page((LocalEnvironment *)m_env)));
       pages[i]->set_address(ps * i);
       REQUIRE(0 == m_dev->read_page(pages[i]));
       REQUIRE(0 == memcmp(pages[i]->get_data(), temp, sizeof(temp)));

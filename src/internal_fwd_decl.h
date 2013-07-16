@@ -37,8 +37,6 @@
 
 namespace hamsterdb {
 
-#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
-
 class Cursor;
 
 class Database;

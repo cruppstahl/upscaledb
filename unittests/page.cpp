@@ -19,7 +19,7 @@
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/device.h"
-#include "../src/env.h"
+#include "../src/env_local.h"
 #include "../src/txn.h"
 
 using namespace hamsterdb;
@@ -51,14 +51,14 @@ struct PageFixture {
 
   void newDeleteTest() {
     Page *page;
-    page = new Page((Environment *)m_env);
+    page = new Page((LocalEnvironment *)m_env);
     REQUIRE(page);
     delete page;
   }
 
   void allocFreeTest() {
     Page *page;
-    page = new Page((Environment *)m_env);
+    page = new Page((LocalEnvironment *)m_env);
     REQUIRE(0 == page->allocate());
     delete page;
   }
@@ -66,10 +66,10 @@ struct PageFixture {
   void multipleAllocFreeTest() {
     int i;
     Page *page;
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
 
     for (i = 0; i < 10; i++) {
-      page = new Page((Environment *)m_env);
+      page = new Page((LocalEnvironment *)m_env);
       REQUIRE(0 == page->allocate());
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
@@ -81,10 +81,10 @@ struct PageFixture {
 
   void fetchFlushTest() {
     Page *page, *temp;
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
 
-    page = new Page((Environment *)m_env);
-    temp = new Page((Environment *)m_env);
+    page = new Page((LocalEnvironment *)m_env);
+    temp = new Page((LocalEnvironment *)m_env);
     REQUIRE(0 == page->allocate());
     REQUIRE(page->get_address() == ps * 2);
 

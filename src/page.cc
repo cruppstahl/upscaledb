@@ -30,7 +30,7 @@ namespace hamsterdb {
 
 int Page::sizeof_persistent_header = (OFFSETOF(PPageData, _s._payload));
 
-Page::Page(Environment *env, LocalDatabase *db)
+Page::Page(LocalEnvironment *env, LocalDatabase *db)
   : m_env(env), m_db(db), m_address(0), m_flags(0), m_dirty(false),
     m_cursor_list(0), m_data(0)
 {

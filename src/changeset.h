@@ -30,13 +30,15 @@
 
 namespace hamsterdb {
 
+class LocalEnvironment;
+
 /**
  * The changeset class
  */
 class Changeset
 {
   public:
-    Changeset(Environment *env)
+    Changeset(LocalEnvironment *env)
     : m_env(env), m_head(0), m_blobs(0), m_blobs_size(0), m_blobs_capacity(0),
       m_freelists(0), m_freelists_size(0), m_freelists_capacity(0),
       m_indices(0), m_indices_size(0), m_indices_capacity(0),
@@ -88,7 +90,7 @@ class Changeset
 
   private:
     /** The Environment which created this Changeset */
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     /** write all pages in a bucket to the log file */
     ham_status_t log_bucket(Page **bucket, ham_size_t bucket_size,

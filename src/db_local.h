@@ -19,6 +19,8 @@
 namespace hamsterdb {
 
 class BtreeIndex;
+class ExtKeyCache;
+class LocalEnvironment;
 
 //
 // The database implementation for local file access
@@ -39,6 +41,11 @@ class LocalDatabase : public Database {
     // Returns the transactional index
     TransactionIndex *get_txn_index() {
       return (&m_txn_index);
+    }
+
+    // Returns the LocalEnvironment instance
+    LocalEnvironment *get_local_env() {
+      return ((LocalEnvironment *)m_env);
     }
 
     // Opens an existing Database

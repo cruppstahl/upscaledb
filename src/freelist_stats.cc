@@ -19,7 +19,7 @@
 #include "db.h"
 #include "device.h"
 #include "endianswap.h"
-#include "env.h"
+#include "env_local.h"
 #include "error.h"
 #include "mem.h"
 #include "util.h"

@@ -31,6 +31,7 @@ struct FreelistFixture {
   ham_env_t *m_env;
   ham_db_t *m_db;
   Freelist *m_freelist;
+  LocalEnvironment *m_lenv;
 
   FreelistFixture()
     : m_env(0), m_db(0), m_freelist(0) {
@@ -52,7 +53,8 @@ struct FreelistFixture {
     st = ham_env_open_db(m_env, &m_db, 1, 0, 0);
     if (st)
       return (st);
-    m_freelist = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
+    m_lenv = (LocalEnvironment *)m_env;
+    m_freelist = m_lenv->get_page_manager()->test_get_freelist();
     return (0);
   }
 
@@ -67,13 +69,15 @@ struct FreelistFixture {
                 HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_freelist = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
+
+    m_lenv = (LocalEnvironment *)m_env;
+    m_freelist = m_lenv->get_page_manager()->test_get_freelist();
   }
 
   void teardown() {
     /* need to clear the changeset, otherwise ham_db_close() will complain */
     if (m_env) {
-      ((Environment *)m_env)->get_changeset().clear();
+      m_lenv->get_changeset().clear();
       REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
     }
   }
@@ -81,9 +85,9 @@ struct FreelistFixture {
   void structureTest() {
     PFreelistPayload *f;
 
-    open(DB_DISABLE_RECLAIM);
+    open(HAM_DISABLE_RECLAIM_INTERNAL);
 
-    f = (((Environment *)m_env)->get_freelist_payload());
+    f = (((LocalEnvironment *)m_env)->get_freelist_payload());
 
     REQUIRE(0ull == f->get_overflow());
     f->set_overflow(0x12345678ull);
@@ -93,17 +97,17 @@ struct FreelistFixture {
     REQUIRE(0x12345678ull == f->get_overflow());
 
     // reopen the database, check if the values were stored correctly
-    ((Environment *)m_env)->set_dirty(true);
+    m_lenv->mark_header_page_dirty();
 
     REQUIRE(0 == open(0));
-    f = (((Environment *)m_env)->get_freelist_payload());
+    f = (((LocalEnvironment *)m_env)->get_freelist_payload());
 
     REQUIRE(0x7878787878787878ull == f->get_start_address());
     REQUIRE(0x12345678ull == f->get_overflow());
   }
 
   void markAllocPageTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -114,21 +118,19 @@ struct FreelistFixture {
 
     for (int i = 0; i < 10; i++) {
       ham_u64_t o;
-      REQUIRE(0 ==
-          m_freelist->alloc_area(CHUNKSIZE, &o));
+      REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
       REQUIRE((ham_u64_t)(ps + i * CHUNKSIZE) == o);
     }
 
     ham_u64_t o;
-    REQUIRE(0 ==
-        m_freelist->alloc_area(CHUNKSIZE, &o));
+    REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
     REQUIRE((ham_u64_t)0 == o);
-    REQUIRE(((Environment *)m_env)->is_dirty());
+    REQUIRE(m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void freePageTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -151,7 +153,7 @@ struct FreelistFixture {
   }
 
   void isFreeTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -175,8 +177,8 @@ struct FreelistFixture {
   }
 
   void simpleReclaimTest() {
-    PageManager *pm = ((Environment *)m_env)->get_page_manager();
-    ham_size_t pagesize = ((Environment *)m_env)->get_pagesize();
+    PageManager *pm = m_lenv->get_page_manager();
+    ham_size_t pagesize = m_lenv->get_pagesize();
     Page *page = {0};
 
     REQUIRE(0 == pm->alloc_page(&page, 0, Page::kTypeFreelist,
@@ -192,15 +194,15 @@ struct FreelistFixture {
 
     // verify file size
     ham_u64_t filesize;
-    REQUIRE(0 == ((Environment *)m_env)->get_device()->get_filesize(&filesize));
+    REQUIRE(0 == m_lenv->get_device()->get_filesize(&filesize));
     REQUIRE((ham_u64_t)(pagesize * 3) == filesize);
 
     // reopen the file
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     open();
 
     // should have 1 page less
-    REQUIRE(0 == ((Environment *)m_env)->get_device()->get_filesize(&filesize));
+    REQUIRE(0 == m_lenv->get_device()->get_filesize(&filesize));
     REQUIRE((ham_u64_t)(pagesize * 2) == filesize);
 
     // allocate a blob from the freelist - must fail
@@ -209,8 +211,8 @@ struct FreelistFixture {
   }
 
   void reclaimTest() {
-    PageManager *pm = ((Environment *)m_env)->get_page_manager();
-    ham_size_t pagesize = ((Environment *)m_env)->get_pagesize();
+    PageManager *pm = m_lenv->get_page_manager();
+    ham_size_t pagesize = m_lenv->get_pagesize();
     Page *page[5] = {0};
 
     // allocate 5 pages
@@ -231,15 +233,15 @@ struct FreelistFixture {
     }
 
     // reopen the file
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     open();
 
     for (int i = 0; i < 2; i++)
-      REQUIRE(false == m_freelist->is_page_free(page[i]->get_address()));
+      REQUIRE(false == m_freelist->is_page_free((2 + i) * pagesize));
 
     // verify file size
     ham_u64_t filesize;
-    REQUIRE(0 == ((Environment *)m_env)->get_device()->get_filesize(&filesize));
+    REQUIRE(0 == m_lenv->get_device()->get_filesize(&filesize));
     REQUIRE((ham_u64_t)(pagesize * 4) == filesize);
 
     // allocate a new page from the freelist - must fail
@@ -249,17 +251,17 @@ struct FreelistFixture {
 
     // allocate a new page from disk - must succeed
     Page *p;
-    pm = ((Environment *)m_env)->get_page_manager();
+    pm = m_lenv->get_page_manager();
     REQUIRE(0 == pm->alloc_page(&p, 0, Page::kTypeFreelist,
                   PageManager::kClearWithZero));
     REQUIRE(p->get_address() == 4 * pagesize);
 
     // check file size once more
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     open();
 
     // and check file size - must have grown by 1 page
-    REQUIRE(0 == ((Environment *)m_env)->get_device()->get_filesize(&filesize));
+    REQUIRE(0 == m_lenv->get_device()->get_filesize(&filesize));
     REQUIRE((ham_u64_t)(5 * pagesize) == filesize);
   }
 
@@ -325,7 +327,7 @@ struct FreelistFixture {
   }
 
   void markAllocAlignedTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -338,7 +340,7 @@ struct FreelistFixture {
   }
 
   void markAllocHighOffsetTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -357,12 +359,12 @@ struct FreelistFixture {
     REQUIRE(0 ==
           m_freelist->alloc_area(CHUNKSIZE, &o));
     REQUIRE((ham_u64_t)0 == o);
-    REQUIRE(true == ((Environment *)m_env)->is_dirty());
+    REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void markAllocRangeTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_u64_t offset = ps;
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
@@ -375,20 +377,19 @@ struct FreelistFixture {
     offset = ps;
     for (int i = 60; i < 70; i++) {
       ham_u64_t o;
-      REQUIRE(0 ==
-          m_freelist->alloc_area((i + 1) * CHUNKSIZE, &o));
+      REQUIRE(0 == m_freelist->alloc_area((i + 1) * CHUNKSIZE, &o));
       REQUIRE((ham_u64_t)offset == o);
       offset += (i + 1) * CHUNKSIZE;
     }
 
     ham_u64_t o;
     REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &o));
-    REQUIRE(true == ((Environment *)m_env)->is_dirty());
+    REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void markAllocOverflowTest() {
-    ham_u64_t o = ((Environment *)m_env)->get_usable_pagesize() * 8 * CHUNKSIZE;
+    ham_u64_t o = m_lenv->get_usable_pagesize() * 8 * CHUNKSIZE;
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -396,7 +397,7 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_commit(txn, 0));
 
     /* need to clear the changeset, otherwise ham_db_close() will complain */
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -410,7 +411,7 @@ struct FreelistFixture {
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     /* need to clear the changeset, otherwise ham_db_close() will complain */
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -422,7 +423,7 @@ struct FreelistFixture {
   }
 
   void markAllocOverflow2Test() {
-    ham_u64_t o = ((Environment *)m_env)->get_usable_pagesize() * 8 * CHUNKSIZE;
+    ham_u64_t o = m_lenv->get_usable_pagesize() * 8 * CHUNKSIZE;
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -430,11 +431,11 @@ struct FreelistFixture {
     ham_u64_t addr;
     REQUIRE(0 == m_freelist->alloc_area(CHUNKSIZE, &addr));
     REQUIRE(addr == 3 * o);
-    REQUIRE(true == ((Environment *)m_env)->is_dirty());
+    REQUIRE(true == m_lenv->get_header()->get_header_page()->is_dirty());
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     /* need to clear the changeset, otherwise ham_db_close() will complain */
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -447,7 +448,7 @@ struct FreelistFixture {
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
     /* need to clear the changeset, otherwise ham_db_close() will complain */
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS));
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -461,13 +462,13 @@ struct FreelistFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     // this code snippet crashed in an acceptance test
     REQUIRE(0 == m_freelist->free_area(2036736,
-          ((Environment *)m_env)->get_pagesize() - 1024));
+          m_lenv->get_pagesize() - 1024));
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void markAllocAlignTest() {
     ham_u64_t addr;
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -482,7 +483,7 @@ struct FreelistFixture {
 
   void markAllocAlignMultipleTest() {
     ham_u64_t addr;
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -509,7 +510,7 @@ struct FreelistFixture {
   }
 
   void markAllocTwiceTest() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -523,14 +524,14 @@ struct FreelistFixture {
   }
 
   void simpleReopenTest() {
-    REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS | DB_DISABLE_RECLAIM));
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS | HAM_DISABLE_RECLAIM_INTERNAL));
+    ham_size_t ps = m_lenv->get_pagesize();
     ham_txn_t *txn;
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == m_freelist->free_area(ps, ps));
     REQUIRE(0 == ham_txn_commit(txn, 0));
     REQUIRE(0 == ham_db_close(m_db, 0));
-    REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS | DB_DISABLE_RECLAIM));
+    REQUIRE(0 == open(HAM_ENABLE_TRANSACTIONS | HAM_DISABLE_RECLAIM_INTERNAL));
     ham_u64_t o;
     REQUIRE(0 == m_freelist->alloc_page(&o));
     REQUIRE((ham_u64_t)ps == o);

@@ -16,7 +16,7 @@
 
 #include "cursor.h"
 #include "db.h"
-#include "env.h"
+#include "env_local.h"
 #include "error.h"
 #include "mem.h"
 #include "btree_cursor.h"
@@ -35,7 +35,7 @@ Cursor::append_btree_duplicates(BtreeCursor *btc, DupeCache *dc)
   for (ham_size_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 
-  get_db()->get_env()->get_changeset().clear();
+  m_db->get_local_env()->get_changeset().clear();
   return (0);
 }
 
@@ -258,7 +258,7 @@ Cursor::sync(ham_u32_t flags, bool *equal_keys)
     get_db()->cursor_close(clone);
   }
 
-  get_db()->get_env()->get_changeset().clear();
+  m_db->get_local_env()->get_changeset().clear();
 
 bail:
   return (st);
@@ -1006,8 +1006,8 @@ bail:
 
 Cursor::Cursor(LocalDatabase *db, Transaction *txn, ham_u32_t flags)
   : m_db(db), m_txn(txn), m_txn_cursor(this), m_btree_cursor(this),
-  m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
-  m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
+    m_remote_handle(0), m_next(0), m_previous(0), m_dupecache_index(0),
+    m_lastop(0), m_last_cmp(0), m_flags(flags), m_is_first_use(true)
 {
 }
 

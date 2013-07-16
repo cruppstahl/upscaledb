@@ -18,12 +18,12 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/db_local.h"
 #include "../src/txn.h"
 #include "../src/page.h"
 #include "../src/error.h"
-#include "../src/env.h"
 #include "../src/os.h"
+#include "../src/db_local.h"
+#include "../src/env_local.h"
 
 using namespace hamsterdb;
 
@@ -46,7 +46,7 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE(((Environment *)m_env)->get_log() != (Log *)0);
+    REQUIRE(((LocalEnvironment *)m_env)->get_log() != (Log *)0);
     REQUIRE((m_dbp->get_rt_flags() & HAM_ENABLE_RECOVERY) != 0);
   }
 

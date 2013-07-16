@@ -19,7 +19,7 @@
 
 #include "error.h"
 #include "freelist.h"
-#include "env.h"
+#include "env_local.h"
 #include "db_local.h"
 
 namespace hamsterdb {
@@ -43,7 +43,7 @@ class PageManager {
     // Default constructor
     //
     // The cache size is specified in bytes!
-    PageManager(Environment *env, ham_size_t cachesize);
+    PageManager(LocalEnvironment *env, ham_size_t cachesize);
 
     // Destructor
     ~PageManager();
@@ -154,7 +154,7 @@ class PageManager {
     }
 
     // The current Environment handle
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     // the Cache caches the database pages
     Cache *m_cache;

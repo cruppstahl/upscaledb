@@ -25,6 +25,8 @@ struct ham_db_t {
 
 namespace hamsterdb {
 
+class Cursor;
+
 // a macro to cast pointers to u64 and vice versa to avoid compiler
 // warnings if the sizes of ptr and u64 are not equal
 #if defined(HAM_32BIT) && (!defined(_MSC_VER))

@@ -15,7 +15,7 @@
 
 #include "globals.h"
 
-#include "../src/env.h"
+#include "../src/env_local.h"
 #include "../src/cursor.h"
 #include "../src/btree.h"
 #include "../src/btree_cursor.h"
@@ -1015,7 +1015,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
      * fail. The changeset was filled in be->insert(0, but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
-    ((Environment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset().clear();
   }
 
   void moveFirstErasedInsertedInTxnTest() {
@@ -1344,7 +1344,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
      * fail. The changeset was filled in 0, be->insert(but this is an
      * internal function which will not clear it. All other functions fail
      * and therefore do not touch the changeset. */
-    ((Environment *)m_env)->get_changeset().clear();
+    ((LocalEnvironment *)m_env)->get_changeset().clear();
   }
 
   void moveLastErasedInsertedInTxnTest() {

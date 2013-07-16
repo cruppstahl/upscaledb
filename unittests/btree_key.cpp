@@ -21,7 +21,7 @@
 #include "../src/btree_key.h"
 #include "../src/util.h"
 #include "../src/page.h"
-#include "../src/env.h"
+#include "../src/env_local.h"
 #include "../src/btree_node.h"
 
 namespace hamsterdb {
@@ -46,11 +46,11 @@ struct BtreeKeyFixture {
   }
 
   void structureTest() {
-    Page *page = new Page((Environment *)m_env);
+    Page *page = new Page((LocalEnvironment *)m_env);
     REQUIRE(page != 0);
     REQUIRE(0 == page->allocate());
     PBtreeNode *node = PBtreeNode::from_page(page);
-    ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
+    ::memset(node, 0, ((LocalEnvironment *)m_env)->get_usable_pagesize());
 
     PBtreeKey *key = node->get_key(m_dbp, 0);
     REQUIRE((ham_u64_t)0 == key->get_ptr());
@@ -67,11 +67,11 @@ struct BtreeKeyFixture {
   }
 
   void extendedRidTest() {
-    Page *page = new Page((Environment *)m_env);
+    Page *page = new Page((LocalEnvironment *)m_env);
     REQUIRE(page != 0);
     REQUIRE(0 == page->allocate());
     PBtreeNode *node = PBtreeNode::from_page(page);
-    ::memset(node, 0, ((Environment *)m_env)->get_usable_pagesize());
+    ::memset(node, 0, ((LocalEnvironment *)m_env)->get_usable_pagesize());
 
     PBtreeKey *key = node->get_key(m_dbp, 0);
     ham_u64_t blobid = key->get_extended_rid(m_dbp);
@@ -336,7 +336,7 @@ struct BtreeKeyFixture {
     REQUIRE((ham_u8_t)PBtreeKey::kDuplicates == key->get_flags());
 
     PDupeEntry entry;
-    DuplicateManager *dm = ((Environment *)m_env)->get_duplicate_manager();
+    DuplicateManager *dm = ((LocalEnvironment *)m_env)->get_duplicate_manager();
     REQUIRE(0 == dm->get(key->get_ptr(), (ham_size_t)position, &entry));
 
     ham_record_t rec;

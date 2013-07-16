@@ -152,7 +152,7 @@ BtreeCursor::move(ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st = 0;
   LocalDatabase *db = m_parent->get_db();
-  Environment *env = db->get_env();
+  LocalEnvironment *env = db->get_local_env();
   Transaction *txn = m_parent->get_txn();
   BtreeIndex *be = (BtreeIndex *)db->get_btree_index();
 
@@ -338,7 +338,7 @@ BtreeCursor::get_duplicate_count(ham_size_t *count, ham_u32_t flags)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
-  Environment *env = db->get_env();
+  LocalEnvironment *env = db->get_local_env();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled) {
@@ -369,6 +369,7 @@ BtreeCursor::get_record_size(ham_u64_t *size)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
+  LocalEnvironment *env = db->get_local_env();
   ham_u32_t keyflags = 0;
   ham_u64_t *ridptr = 0;
   ham_u64_t rid = 0;
@@ -387,7 +388,7 @@ BtreeCursor::get_record_size(ham_u64_t *size)
   PBtreeKey *entry = node->get_key(db, m_coupled_index);
 
   if (entry->get_flags() & PBtreeKey::kDuplicates) {
-    st = db->get_env()->get_duplicate_manager()->get(entry->get_ptr(),
+    st = env->get_duplicate_manager()->get(entry->get_ptr(),
                     m_duplicate_index, &dupeentry);
     if (st)
       return (st);
@@ -415,7 +416,7 @@ BtreeCursor::get_record_size(ham_u64_t *size)
     *size = 0;
   }
   else {
-    st = db->get_env()->get_blob_manager()->get_datasize(db, rid, size);
+    st = env->get_blob_manager()->get_datasize(db, rid, size);
     if (st)
       return (st);
   }
@@ -458,6 +459,7 @@ BtreeCursor::move_first(ham_u32_t flags)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
+  LocalEnvironment *env = db->get_local_env();
   Page *page;
   BtreeIndex *be = db->get_btree_index();
 
@@ -467,7 +469,7 @@ BtreeCursor::move_first(ham_u32_t flags)
   // get the root page
   if (!be->get_root_address())
     return (HAM_KEY_NOT_FOUND);
-  st = db->get_env()->get_page_manager()->fetch_page(&page, db,
+  st = env->get_page_manager()->fetch_page(&page, db,
                   be->get_root_address());
   if (st)
     return (st);
@@ -483,7 +485,7 @@ BtreeCursor::move_first(ham_u32_t flags)
     if (node->is_leaf())
       break;
 
-    st = db->get_env()->get_page_manager()->fetch_page(&page, db,
+    st = env->get_page_manager()->fetch_page(&page, db,
                   node->get_ptr_left());
     if (st)
       return (st);
@@ -500,7 +502,7 @@ BtreeCursor::move_next(ham_u32_t flags)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
-  Environment *env = db->get_env();
+  LocalEnvironment *env = db->get_local_env();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled) {
@@ -549,8 +551,7 @@ BtreeCursor::move_next(ham_u32_t flags)
   remove_cursor_from_page(m_coupled_page);
 
   Page *page;
-  st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  node->get_right());
+  st = env->get_page_manager()->fetch_page(&page, db, node->get_right());
   if (st)
     return (st);
 
@@ -565,7 +566,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
 {
   ham_status_t st;
   LocalDatabase *db = m_parent->get_db();
-  Environment *env = db->get_env();
+  LocalEnvironment *env = db->get_local_env();
 
   // uncoupled cursor: couple it
   if (m_state == kStateUncoupled) {
@@ -613,8 +614,7 @@ BtreeCursor::move_previous(ham_u32_t flags)
     remove_cursor_from_page(m_coupled_page);
 
     Page *page;
-    st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  node->get_left());
+    st = env->get_page_manager()->fetch_page(&page, db, node->get_left());
     if (st)
       return (st);
     node = PBtreeNode::from_page(page);
@@ -642,10 +642,10 @@ BtreeCursor::move_previous(ham_u32_t flags)
 ham_status_t
 BtreeCursor::move_last(ham_u32_t flags)
 {
-  Page *page;
   LocalDatabase *db = m_parent->get_db();
+  LocalEnvironment *env = db->get_local_env();
+  Page *page;
   PBtreeNode *node;
-  Environment *env = db->get_env();
   BtreeIndex *be = db->get_btree_index();
 
   // get a NIL cursor
@@ -654,8 +654,8 @@ BtreeCursor::move_last(ham_u32_t flags)
   // get the root page
   if (!be->get_root_address())
     return (HAM_KEY_NOT_FOUND);
-  ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  be->get_root_address());
+  ham_status_t st = env->get_page_manager()->fetch_page(&page, db,
+                        be->get_root_address());
   if (st)
     return (st);
   // hack: prior to 2.0, the type of btree root pages was not set
@@ -674,8 +674,7 @@ BtreeCursor::move_last(ham_u32_t flags)
       break;
 
     PBtreeKey *key = node->get_key(db, node->get_count() - 1);
-    st = db->get_env()->get_page_manager()->fetch_page(&page, db,
-                  key->get_ptr());
+    st = env->get_page_manager()->fetch_page(&page, db, key->get_ptr());
     if (st)
       return (st);
   }

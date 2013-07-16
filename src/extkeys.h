@@ -17,7 +17,7 @@
 #include "hash-table.h"
 #include "mem.h"
 #include "env.h"
-#include "db.h"
+#include "db_local.h"
 
 namespace hamsterdb {
 
@@ -53,8 +53,8 @@ class ExtKeyCache {
 
     class ExtKeyHelper {
       public:
-        ExtKeyHelper(Environment *env)
-          : m_env(env) {
+        ExtKeyHelper(ExtKeyCache *parent)
+          : m_parent(parent) {
         }
 
         unsigned hash(const ExtKey *extkey) const {
@@ -78,7 +78,7 @@ class ExtKeyCache {
         }
 
         bool remove_if(ExtKey *node) {
-          if (m_removeall || (m_env->get_txn_id() - node->age > kMaxAge)) {
+          if (m_removeall || (m_parent->m_opcounter - node->age > kMaxAge)) {
             Memory::release(node);
             return (true);
           }
@@ -90,15 +90,14 @@ class ExtKeyCache {
         bool m_removeall;
 
       private:
-        Environment *m_env;
+        ExtKeyCache *m_parent;
     };
 
   public:
     // the default constructor
-    ExtKeyCache(Database *db)
-      : m_db(db), m_usedsize(0),
-        m_extkeyhelper(new ExtKeyHelper(db->get_env())),
-      m_hash(*m_extkeyhelper) {
+    ExtKeyCache(LocalDatabase *db)
+      : m_db(db), m_usedsize(0), m_opcounter(0),
+        m_extkeyhelper(new ExtKeyHelper(this)), m_hash(*m_extkeyhelper) {
     }
 
     // the destructor
@@ -110,16 +109,12 @@ class ExtKeyCache {
     // insert a new extended key in the cache
     // will assert that there's no duplicate key!
     void insert(ham_u64_t blobid, ham_size_t size, const ham_u8_t *data) {
-      ExtKey *e;
-      Environment *env=m_db->get_env();
-
       // DEBUG build: make sure that the item is not inserted twice!
       ham_assert(m_hash.get(blobid) == 0);
 
-      e = (ExtKey *)Memory::allocate<ExtKey>(kSizeofExtkey + size);
+      ExtKey *e = (ExtKey *)Memory::allocate<ExtKey>(kSizeofExtkey + size);
       e->blobid = blobid;
-      // TODO do not use txn id but lsn for age
-      e->age = env->get_txn_id();
+      e->age = m_opcounter++;
       e->size = size;
       memcpy(e->data, data, size);
 
@@ -143,8 +138,7 @@ class ExtKeyCache {
       if (e) {
         *size = e->size;
         *data = e->data;
-        // TODO do not use txn id but lsn for age
-        e->age = m_db->get_env()->get_txn_id();
+        e->age = m_opcounter;
         ms_count_hits++;
         return (0);
       }
@@ -171,12 +165,20 @@ class ExtKeyCache {
       metrics->extkey_cache_misses = ms_count_misses;
     }
 
+    // Sets the opcounter; only for testing!
+    void test_set_opcounter(ham_u64_t counter) {
+      m_opcounter = counter;
+    }
+
   private:
     // the owner of the cache
-    Database *m_db;
+    LocalDatabase *m_db;
 
     // the used size, in byte
     ham_size_t m_usedsize;
+
+    // counts the operations; used to calculate the "age" of an entry
+    ham_u64_t m_opcounter;
 
     // usage metrics - number of cache hits
     static ham_u64_t ms_count_hits;

@@ -97,7 +97,7 @@ struct BtreeCursorFixture {
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
     Page *page;
-    PageManager *pm = ((Environment *)m_env)->get_page_manager();
+    PageManager *pm = ((LocalEnvironment *)m_env)->get_page_manager();
     REQUIRE(0 == pm->fetch_page(&page, (LocalDatabase *)m_db,
                             be->get_root_address()));
     REQUIRE(page != 0);

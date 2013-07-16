@@ -27,7 +27,7 @@
 namespace hamsterdb {
 
 class Page;
-class Environment;
+class LocalEnvironment;
 
 class Device {
   public:
@@ -36,7 +36,7 @@ class Device {
     // initialize the pagesize with a default value - this will be
     // overwritten i.e. by ham_env_open, ham_env_create when the pagesize
     // of the file is known
-    Device(Environment *env, ham_u32_t flags)
+    Device(LocalEnvironment *env, ham_u32_t flags)
       : m_env(env), m_flags(flags), m_pagesize(HAM_DEFAULT_PAGESIZE) {
     }
 
@@ -107,7 +107,7 @@ class Device {
     // get the Environment
     //
     // TODO get rid of this function. It's only used in the PageManager.
-    Environment *get_env() {
+    LocalEnvironment *get_env() {
       return (m_env);
     }
 
@@ -123,7 +123,7 @@ class Device {
 
   protected:
     // the environment which employs this device 
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     // the device flags 
     ham_u32_t m_flags;

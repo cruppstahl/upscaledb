@@ -22,8 +22,8 @@ namespace hamsterdb {
 
 class Device;
 class BtreeCursor;
-class Environment;
 class LocalDatabase;
+class LocalEnvironment;
 
 #if defined(_MSC_VER)
 #  pragma push_macro("free")
@@ -143,7 +143,7 @@ class Page {
     };
 
     // Default constructor
-    Page(Environment *env = 0, LocalDatabase *db = 0);
+    Page(LocalEnvironment *env = 0, LocalDatabase *db = 0);
 
     // Destructor - releases allocated memory and resources, but neither
     // flushes dirty pages to disk nor moves them to the freelist!
@@ -151,7 +151,7 @@ class Page {
     ~Page();
 
     // Returns the Environment
-    Environment *get_env() {
+    LocalEnvironment *get_env() {
       return (m_env);
     }
 
@@ -166,7 +166,7 @@ class Page {
       m_db = db;
     }
 
-    // Returns true if this is the header page
+    // Returns true if this is the header page of the Environment
     bool is_header() const {
       return (m_address == 0);
     }
@@ -331,7 +331,7 @@ class Page {
     }
 
     // the Environment handle
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     // the Database handle (can be NULL)
     LocalDatabase *m_db;

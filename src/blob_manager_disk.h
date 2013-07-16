@@ -13,7 +13,7 @@
 #define HAM_BLOB_MANAGER_DISK_H__
 
 #include "blob_manager.h"
-#include "env.h"
+#include "env_local.h"
 
 namespace hamsterdb {
 
@@ -23,7 +23,7 @@ namespace hamsterdb {
 class DiskBlobManager : public BlobManager
 {
   public:
-    DiskBlobManager(Environment *env)
+    DiskBlobManager(LocalEnvironment *env)
       : BlobManager(env) {
     }
 

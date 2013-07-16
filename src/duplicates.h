@@ -131,7 +131,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PDupeTable
 class DuplicateManager
 {
   public:
-    DuplicateManager(Environment *env)
+    DuplicateManager(LocalEnvironment *env)
       : m_env(env) {
     }
 
@@ -187,8 +187,8 @@ class DuplicateManager
     ham_status_t get_table(PDupeTable **table_ref, Page **page,
                 ham_u64_t table_id);
 
-    /** the Environment which created this BlobManager */
-    Environment *m_env;
+    /** the Environment which created this DuplicateManager */
+    LocalEnvironment *m_env;
 };
 
 } // namespace hamsterdb

@@ -376,8 +376,8 @@ class Transaction
      */
     Transaction(Environment *env, const char *name, ham_u32_t flags);
 
-    /** destructor; frees all TransactionOperation structures associated with this
-     * Transaction */
+    /** destructor; frees all TransactionOperation structures associated
+     * with this Transaction */
     ~Transaction();
 
     /** commits the Transaction */

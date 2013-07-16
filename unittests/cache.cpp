@@ -54,7 +54,7 @@ struct CacheFixture {
 TEST_CASE("Cache/newDelete", "Tests the Cache")
 {
   CacheFixture f;
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
   REQUIRE(cache != 0);
   delete cache;
 }
@@ -65,8 +65,8 @@ TEST_CASE("Cache/putGet", "Tests the Cache")
   Page *page;
   PPageData pers;
   memset(&pers, 0, sizeof(pers));
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
-  page = new Page((Environment *)f.m_env);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
+  page = new Page((LocalEnvironment *)f.m_env);
   page->set_address(0x123ull);
   page->set_data(&pers);
   page->set_flags(Page::kNpersNoHeader);
@@ -83,8 +83,8 @@ TEST_CASE("Cache/putGetRemoveGet", "Tests the Cache")
   Page *page;
   PPageData pers;
   memset(&pers, 0, sizeof(pers));
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
-  page = new Page((Environment *)f.m_env);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
+  page = new Page((LocalEnvironment *)f.m_env);
   page->set_flags(Page::kNpersNoHeader);
   page->set_address(0x123ull);
   page->set_data(&pers);
@@ -104,12 +104,12 @@ TEST_CASE("Cache/putGetReplaceGet", "Tests the Cache")
   PPageData pers1, pers2;
   memset(&pers1, 0, sizeof(pers1));
   memset(&pers2, 0, sizeof(pers2));
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
-  page1 = new Page((Environment *)f.m_env);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
+  page1 = new Page((LocalEnvironment *)f.m_env);
   page1->set_flags(Page::kNpersNoHeader);
   page1->set_address(0x123ull);
   page1->set_data(&pers1);
-  page2 = new Page((Environment *)f.m_env);
+  page2 = new Page((LocalEnvironment *)f.m_env);
   page2->set_flags(Page::kNpersNoHeader);
   page2->set_address(0x456ull);
   page2->set_data(&pers2);
@@ -130,10 +130,10 @@ TEST_CASE("Cache/multiplePut", "Tests the Cache")
   CacheFixture f;
   Page *page[20];
   PPageData pers[20];
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
 
   for (int i = 0; i < 20; i++) {
-    page[i] = new Page((Environment *)f.m_env);
+    page[i] = new Page((LocalEnvironment *)f.m_env);
     memset(&pers[i], 0, sizeof(pers[i]));
     page[i]->set_flags(Page::kNpersNoHeader);
     page[i]->set_address((i + 1) * 1024);
@@ -155,7 +155,7 @@ TEST_CASE("Cache/multiplePut", "Tests the Cache")
 TEST_CASE("Cache/negativeGet", "Tests the Cache")
 {
   CacheFixture f;
-  Cache *cache = new Cache((Environment *)f.m_env, 15);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, 15);
   for (int i = 0; i < 20; i++)
     REQUIRE((Page *)0 == cache->get_page(i * 1024 * 13));
   delete cache;
@@ -164,13 +164,14 @@ TEST_CASE("Cache/negativeGet", "Tests the Cache")
 TEST_CASE("Cache/overflowTest", "Tests the Cache")
 {
   CacheFixture f;
-  Cache *cache = new Cache((Environment *)f.m_env, 15 * HAM_DEFAULT_PAGESIZE);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env,
+                  15 * HAM_DEFAULT_PAGESIZE);
   PPageData pers;
   memset(&pers, 0, sizeof(pers));
   std::vector<Page *> v;
 
   for (unsigned int i = 0; i < 15; i++) {
-    Page *p = new Page((Environment *)f.m_env);
+    Page *p = new Page((LocalEnvironment *)f.m_env);
     p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
     p->set_address((i + 1) * 1024);
     p->set_data(&pers);
@@ -180,7 +181,7 @@ TEST_CASE("Cache/overflowTest", "Tests the Cache")
   }
 
   for (unsigned int i = 0; i < 5; i++) {
-    Page *p = new Page((Environment *)f.m_env);
+    Page *p = new Page((LocalEnvironment *)f.m_env);
     p->set_flags(Page::kNpersNoHeader | Page::kNpersMalloc);
     p->set_address((i + 1) * 1024);
     p->set_data(&pers);
@@ -231,7 +232,7 @@ TEST_CASE("Cache/strict", "Tests the Cache")
   REQUIRE(0 ==
       ham_env_create_db(f.m_env, &f.m_db, 13, 0, 0));
 
-  Cache *cache = ((Environment *)f.m_env)->get_page_manager()->test_get_cache();
+  Cache *cache = ((LocalEnvironment *)f.m_env)->get_page_manager()->test_get_cache();
 
   REQUIRE(cache->get_capacity() == 1024 * 1024 * 2u);
 
@@ -241,7 +242,7 @@ TEST_CASE("Cache/strict", "Tests the Cache")
     REQUIRE(0 == f.alloc_page(&p[i]));
 
   REQUIRE(HAM_CACHE_FULL == f.alloc_page(&p[i]));
-  REQUIRE(0 == ((Environment *)f.m_env)->get_page_manager()->purge_cache());
+  REQUIRE(0 == ((LocalEnvironment *)f.m_env)->get_page_manager()->purge_cache());
   REQUIRE(0 == f.alloc_page(&p[i]));
 }
 
@@ -262,7 +263,7 @@ TEST_CASE("Cache/setSizeEnvCreate", "Tests the Cache")
   REQUIRE(0 ==
       ham_env_create_db(f.m_env, &f.m_db, 13, 0, 0));
 
-  Cache *cache = ((Environment *)f.m_env)->get_page_manager()->test_get_cache();
+  Cache *cache = ((LocalEnvironment *)f.m_env)->get_page_manager()->test_get_cache();
 
   REQUIRE(102400ull == cache->get_capacity());
 }
@@ -280,7 +281,7 @@ TEST_CASE("Cache/setSizeEnvOpen", "Tests the Cache")
   REQUIRE(0 ==
       ham_env_open(&f.m_env, Globals::opath(".test"), 0, &param[0]));
 
-  Cache *cache = ((Environment *)f.m_env)->get_page_manager()->test_get_cache();
+  Cache *cache = ((LocalEnvironment *)f.m_env)->get_page_manager()->test_get_cache();
 
   REQUIRE(102400ull == cache->get_capacity());
 }
@@ -289,7 +290,7 @@ TEST_CASE("Cache/bigSize", "Tests the Cache")
 {
   CacheFixture f;
   ham_u64_t size = 1024ull * 1024ull * 1024ull * 16ull;
-  Cache *cache = new Cache((Environment *)f.m_env, size);
+  Cache *cache = new Cache((LocalEnvironment *)f.m_env, size);
   REQUIRE(cache != 0);
   REQUIRE(size == cache->get_capacity());
   delete cache;

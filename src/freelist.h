@@ -22,6 +22,8 @@
 
 namespace hamsterdb {
 
+class LocalEnvironment;
+
 /*
  * An entry in the Freelist cache
  *
@@ -65,7 +67,7 @@ class Freelist
     };
 
     // Constructor
-    Freelist(Environment *env)
+    Freelist(LocalEnvironment *env)
       : m_env(env), m_count_hits(0), m_count_misses(0) {
     }
 
@@ -105,7 +107,7 @@ class Freelist
     friend class FreelistStatistics;
 
     // Returns a pointer to the environment (reqd for freelist_stats)
-    Environment *get_env() {
+    LocalEnvironment *get_env() {
       return (m_env);
     }
 
@@ -185,7 +187,7 @@ class Freelist
     void mark_dirty(Page *page);
 
     // Environment which owns this Freelist
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     // the cached freelist entries
     std::vector<FreelistEntry> m_entries;

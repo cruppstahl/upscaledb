@@ -49,6 +49,7 @@ class BtreeFindAction
       Page *page = 0;
       ham_s32_t idx = -1;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       PBtreeNode *node;
       BtreeStatistics *stats = m_btree->get_statistics();
       BtreeStatistics::FindHints hints = stats->get_find_hints(m_flags);
@@ -62,8 +63,8 @@ class BtreeFindAction
          * page should still sit in the cache, or we're using old info, which
          * should be discarded.
          */
-        st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, hints.leaf_page_addr, true);
+        st = env->get_page_manager()->fetch_page(&page, db,
+                        hints.leaf_page_addr, true);
         if (st == 0 && page) {
           node = PBtreeNode::from_page(page);
           ham_assert(node->is_leaf());
@@ -92,8 +93,8 @@ class BtreeFindAction
           return (HAM_KEY_NOT_FOUND);
 
         /* load the root page */
-        st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, m_btree->get_root_address());
+        st = env->get_page_manager()->fetch_page(&page, db,
+                        m_btree->get_root_address());
         if (st)
           return (st);
 
@@ -161,8 +162,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, node->get_left());
+              st = env->get_page_manager()->fetch_page(&page, db,
+                              node->get_left());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);
@@ -183,8 +184,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, node->get_right());
+              st = env->get_page_manager()->fetch_page(&page, db,
+                              node->get_right());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);
@@ -236,8 +237,8 @@ class BtreeFindAction
                       return (HAM_KEY_NOT_FOUND);
                     }
 
-                    st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, node->get_right());
+                    st = env->get_page_manager()->fetch_page(&page, db,
+                                    node->get_right());
                     if (st)
                       return (st);
                     node = PBtreeNode::from_page(page);
@@ -252,15 +253,15 @@ class BtreeFindAction
                 }
               }
               else {
-                st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, node->get_left());
+                st = env->get_page_manager()->fetch_page(&page, db,
+                                node->get_left());
                 if (st)
                   return (st);
                 node = PBtreeNode::from_page(page);
                 idx = node->get_count() - 1;
 
                 ham_key_set_intflags(m_key, (ham_key_get_intflags(m_key)
-                                  & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
+                              & ~PBtreeKey::kApproximate) | PBtreeKey::kLower);
               }
             }
           }
@@ -275,8 +276,8 @@ class BtreeFindAction
                 return (HAM_KEY_NOT_FOUND);
               }
 
-              st = db->get_env()->get_page_manager()->fetch_page(&page,
-                        db, node->get_right());
+              st = env->get_page_manager()->fetch_page(&page, db,
+                              node->get_right());
               if (st)
                 return (st);
               node = PBtreeNode::from_page(page);

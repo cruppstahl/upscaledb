@@ -21,6 +21,7 @@
 #include "../src/page.h"
 #include "../src/db_local.h"
 #include "../src/env.h"
+#include "../src/env_header.h"
 
 using namespace hamsterdb;
 
@@ -1071,7 +1072,7 @@ struct EnvFixture {
 
     REQUIRE(0 ==
       ham_env_create(&env, Globals::opath(".test"),
-              m_flags | DB_DISABLE_RECLAIM, 0664, 0));
+              m_flags | HAM_DISABLE_RECLAIM_INTERNAL, 0664, 0));
 
     for (i = 0; i < MAX_DB; i++) {
       REQUIRE(0 ==
@@ -1237,7 +1238,7 @@ struct EnvFixture {
       REQUIRE(0 ==
           ham_env_open_db(env, &db, 333, 0, 0));
     }
-    REQUIRE(50 == ((Environment *)env)->get_max_databases());
+    REQUIRE(50 == ((LocalEnvironment *)env)->get_header()->get_max_databases());
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 

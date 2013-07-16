@@ -144,9 +144,22 @@ x page_size and pagesize are used inconsistently; use only one!
 x introduce PageManager::close(), split PageManager-destructor,
     otherwise we can't catch the return values
 
-o clean up Environment class
-    o split into multiple files
-    o remove the TODOs
+x clean up Environment class
+    x move the EnvironmentHeader into a separate module, encapsulating access
+        -> class EnvironmentHeader
+        -> struct PBtreeDescriptor -> PDatabaseHeader
+        x header page access
+        x encapsulate configuration access
+        x a proxy for retrieving and/or caching the configuration values
+    x merge changeset->add and env->set_dirty into a single call
+        x Environment::mark_header_page_dirty(Page *, bool) -> void
+    x remove the TODOs
+    x make sure encryption is not allowed w/ remote a environment
+        (or document that it's ignored - same about set_log_dir)
+    x make EnvironmentHeader::get_max_databases() private
+    x split into multiple files
+
+o get rid of internal_fwd_decl.h
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -163,6 +176,17 @@ o release-v2.sh
     o test build with disabled AES, add this to the release process
     o test build with disabled remote, add this to the release process
 
+o prepare btree rewrite
+    o analyze node; move all node operations to the node itself
+        o find(key) -> position || -1
+        o get(position) -> key, value
+        o erase(key)
+        o insert(key, RecordIdProxy) -> Proxy creates RecordId if insert is
+                successful
+        o shift
+        o merge
+        o what else?
+
 . run a performance test clang++ vs g++
 
 . when flushing the Changeset: batch ALL changes for the WHOLE transaction,
@@ -174,8 +198,11 @@ o release-v2.sh
     - more than 1 index page? not idempotent (most likely)
     - more than 1 blob page? not idempotent (maybe)
     o define a few benchmarks
+    o be careful: if N operations are modifying the same changelog, and
+        then #N+1 aborts then the aborting operation must NOT clear the
+        changelog!
 
-. pre-allocate index; 2.0.0 had this as an experimental feature
+. pre-allocate index; 1.10.x had this as an experimental feature
     o see roadmap document for more information
     o run a performance test/prototype if this is worth the effort
     o this feature is *per database*
@@ -212,9 +239,8 @@ o collect file format incompatibilities
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
 
-o split Transaction into local and remote class (really?)
-    hamsterdb.cc directly calls into Transaction class instead of Environment
-    o create PoolAllocator based on ByteArray
+o review/rewrite/refactor Transaction class
+    o split into multiple files
     o keep in mind that sooner or later the BtreeNode will expect
         template arguments; can we do something similar with the
         TransactionNode?
@@ -222,19 +248,15 @@ o split Transaction into local and remote class (really?)
         reorg TransactionIndex similar to BtreeIndex
     o try to get the methods/design analoguous to the Btree
     o TransactionIndex:
-        o TransactionIndex: use std::set<OperationNode> instead of rb.h?? Not
-            sure if this is worth the troubles
-        x check how/if std::multimap can replace rb.h - yes, seems to work
-        o replaces the TransactionTree
-        o one TransactionIndex per Database (always created)
-        o txn_opnode_t -> TransactionOperation
+        x one TransactionIndex per Database (always created)
+        x txn_opnode_t -> TransactionOperation
         o try to move code from db.cc into TransactionIndex, i.e. to check
             conflicts etc
-    o try to replace some of the linked lists with boost::intrusive_list
+    . each Transaction should have its own PoolAllocator (based on ByteArray);
+        when deleting the whole structure, only the PoolAllocator is freed
+        o problem: a realloc() will not always work because it might move
+            the allocated memory, and all existing pointers would be invalid 
     o document the tree structure in the header file
-
-o split Cursor into local and remote class (really?)
-    o hamsterdb: directly call into Cursor class (instead of Database)
 
 o start with the Btree rewrite; btree nodes are accepting template parameters
     and policies. The default parameter uses the callback function provided
@@ -244,9 +266,11 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
     o support binary search and linear search through a node
     o support POD types: int8, uint8, int16, uint16, int32, uint32, int64,
         uint64, float, double, fixed length blobs, fixed length strings (?)
-        (w/o duplicates - duplicates always enforce the default type)
-    o support variable length types, use linear search (with a skiplist)
+        (w/o duplicates and extended keys - they always enforce the
+        default type based on the callback)
     ------- release -------
+    o support variable length types, use linear search (with a skiplist)
+        for strings (strcmp), blobs (memcmp)
     o replace extended keys; store them in the leaf unless they're TOO big
         (then either use an overflow area or refuse to store them i.e. if
         they are > 20% of the page)
@@ -278,9 +302,6 @@ o is the recovery working if there's a crash during ham_db_close
 o allow transactions w/o journal
 
 o allow transactions w/o recovery
-
-o move the whole configuration (key sizes, parameters, page size, etc) into a
-    separate class which is instantiated by the env
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created

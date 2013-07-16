@@ -56,6 +56,7 @@ class BtreeEraseAction
     ham_status_t run() {
       Page *root, *p;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
 
       /* coupled cursor: try to remove the key directly from the page.
        * if that's not possible (i.e. because of underflow): uncouple
@@ -91,8 +92,8 @@ class BtreeEraseAction
         m_btree->get_statistics()->erase_failed();
         return (HAM_KEY_NOT_FOUND);
       }
-      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&root,
-                      db, rootaddr);
+      ham_status_t st = env->get_page_manager()->fetch_page(&root,
+                                db, rootaddr);
       if (st)
         return (st);
 
@@ -271,6 +272,7 @@ free_all:
       Page *child;
       Page *tempp = 0;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       PBtreeNode *node = PBtreeNode::from_page(page);
 
       *page_ref = 0;
@@ -315,8 +317,7 @@ free_all:
           if (!left)
             next_left = 0;
           else {
-            st = db->get_env()->get_page_manager()->fetch_page(&tempp,
-                      db, left);
+            st = env->get_page_manager()->fetch_page(&tempp, db, left);
             if (st)
               return (st);
             PBtreeNode *n = PBtreeNode::from_page(tempp);
@@ -339,8 +340,7 @@ free_all:
           if (!right)
             next_right = 0;
           else {
-            st = db->get_env()->get_page_manager()->fetch_page(&tempp,
-                      db, right);
+            st = env->get_page_manager()->fetch_page(&tempp, db, right);
             if (st)
               return (st);
             PBtreeNode *n = PBtreeNode::from_page(tempp);
@@ -411,6 +411,7 @@ free_all:
       PBtreeNode *leftnode = 0;
       PBtreeNode *rightnode = 0;
       LocalDatabase *db = page->get_db();
+      LocalEnvironment *env = db->get_local_env();
       bool fewleft = false;
       bool fewright = false;
       ham_size_t minkeys = m_btree->get_minkeys();
@@ -423,7 +424,7 @@ free_all:
 
       /* get the left and the right sibling of this page */
       if (left) {
-        st = db->get_env()->get_page_manager()->fetch_page(&leftpage,
+        st = env->get_page_manager()->fetch_page(&leftpage,
                       db, node->get_left());
         if (st)
           return (st);
@@ -433,7 +434,7 @@ free_all:
         }
       }
       if (right) {
-        st = db->get_env()->get_page_manager()->fetch_page(&rightpage,
+        st = env->get_page_manager()->fetch_page(&rightpage,
                       db, node->get_right());
         if (st)
           return (st);
@@ -448,7 +449,7 @@ free_all:
         if (node->is_leaf())
           return (0);
         else
-          return (page->get_db()->get_env()->get_page_manager()->fetch_page(newpage_ref,
+          return (env->get_page_manager()->fetch_page(newpage_ref,
                       db, node->get_ptr_left()));
       }
 
@@ -509,6 +510,7 @@ free_all:
       ham_s32_t slot = 0;
       ham_size_t s;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       Page *ancpage;
       PBtreeKey *bte_lhs, *bte_rhs;
 
@@ -516,8 +518,8 @@ free_all:
       PBtreeNode *sibnode = PBtreeNode::from_page(sibpage);
       ham_size_t keysize = m_btree->get_keysize();
       bool intern  = !node->is_leaf();
-      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&ancpage,
-                      db, anchor);
+      ham_status_t st = env->get_page_manager()->fetch_page(&ancpage,
+                                db, anchor);
       if (st)
         return (st);
       PBtreeNode *ancnode = PBtreeNode::from_page(ancpage);
@@ -819,6 +821,7 @@ cleanup:
                         ham_u64_t anchor) {
       ham_status_t st;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       Page *ancpage = 0;
       PBtreeNode *ancnode = 0;
       PBtreeKey *bte_lhs, *bte_rhs;
@@ -829,8 +832,8 @@ cleanup:
       *newpage_ref = 0;
 
       if (anchor) {
-        st = page->get_db()->get_env()->get_page_manager()->fetch_page(&ancpage,
-                      page->get_db(), anchor);
+        st = env->get_page_manager()->fetch_page(&ancpage,
+                        page->get_db(), anchor);
         if (st)
           return (st);
         ancnode = PBtreeNode::from_page(ancpage);
@@ -888,8 +891,8 @@ cleanup:
       if (node->get_left() == sibpage->get_address()) {
         if (sibnode->get_left()) {
           Page *p;
-          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
-                      page->get_db(), sibnode->get_left());
+          st = env->get_page_manager()->fetch_page(&p,
+                            page->get_db(), sibnode->get_left());
           if (st)
             return (st);
           PBtreeNode *n = PBtreeNode::from_page(p);
@@ -903,7 +906,7 @@ cleanup:
       else if (node->get_right() == sibpage->get_address()) {
         if (sibnode->get_right()) {
           Page *p;
-          st = page->get_db()->get_env()->get_page_manager()->fetch_page(&p,
+          st = env->get_page_manager()->fetch_page(&p,
                       page->get_db(), sibnode->get_right());
           if (st)
             return (st);
@@ -924,15 +927,13 @@ cleanup:
 
       m_btree->get_statistics()->reset_page(sibpage);
 
-      /* delete the page TODO */
-
       *newpage_ref = sibpage;
       return (HAM_SUCCESS);
     }
 
     /* collapse the root node */
     ham_status_t collapse_root(Page *oldroot, Page *newroot) {
-      Environment *env = newroot->get_db()->get_env();
+      LocalEnvironment *env = oldroot->get_db()->get_local_env();
       env->get_page_manager()->add_to_freelist(oldroot);
 
       m_btree->set_root_address(newroot->get_address());
@@ -945,8 +946,11 @@ cleanup:
     /*
      * copy a key; extended keys will be cloned, otherwise two keys would
      * have the same blob id
+     * TODO parameter |db| really required? should be m_btree->get_db()
      */
     ham_status_t copy_key(LocalDatabase *db, PBtreeKey *lhs, PBtreeKey *rhs) {
+      LocalEnvironment *env = db->get_local_env();
+
       memcpy(lhs, rhs, PBtreeKey::kSizeofOverhead + m_btree->get_keysize());
 
       if (rhs->get_flags() & PBtreeKey::kExtended) {
@@ -957,14 +961,13 @@ cleanup:
                             : &m_txn->get_record_arena();
 
         ham_u64_t rhsblobid = rhs->get_extended_rid(db);
-        ham_status_t st = db->get_env()->get_blob_manager()->read(db,
-                                rhsblobid, &record, 0, arena);
+        ham_status_t st = env->get_blob_manager()->read(db, rhsblobid,
+                                                &record, 0, arena);
         if (st)
           return (st);
 
         ham_u64_t lhsblobid;
-        st = db->get_env()->get_blob_manager()->allocate(db, &record,
-                                0, &lhsblobid);
+        st = env->get_blob_manager()->allocate(db, &record, 0, &lhsblobid);
         if (st)
           return (st);
         lhs->set_extended_rid(db, lhsblobid);
@@ -980,6 +983,7 @@ cleanup:
                     ham_u32_t flags) {
       ham_status_t st;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       PBtreeNode *node = PBtreeNode::from_page(page);
 
       /* uncouple all cursors */
@@ -1026,14 +1030,13 @@ cleanup:
                             : &m_txn->get_record_arena();
 
         ham_u64_t rhsblobid = rhs->get_extended_rid(db);
-        ham_status_t st = db->get_env()->get_blob_manager()->read(db,
-                                rhsblobid, &record, 0, arena);
+        ham_status_t st = env->get_blob_manager()->read(db, rhsblobid,
+                                        &record, 0, arena);
         if (st)
           return (st);
 
         ham_u64_t lhsblobid;
-        st = db->get_env()->get_blob_manager()->allocate(db, &record, 0,
-                                &lhsblobid);
+        st = env->get_blob_manager()->allocate(db, &record, 0, &lhsblobid);
         if (st)
           return (st);
         lhs->set_extended_rid(db, lhsblobid);

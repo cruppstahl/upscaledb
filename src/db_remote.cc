@@ -15,8 +15,8 @@
 #include <string.h>
 
 #include "db_remote.h"
+#include "env_remote.h"
 #include "txn.h"
-#include "env.h"
 #include "mem.h"
 #include "cursor.h"
 
@@ -34,7 +34,7 @@ ham_status_t
 RemoteDatabase::get_parameters(ham_parameter_t *param)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
   ham_parameter_t *p;
 
@@ -96,7 +96,7 @@ ham_status_t
 RemoteDatabase::check_integrity(Transaction *txn)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_CHECK_INTEGRITY_REQUEST);
@@ -126,7 +126,7 @@ RemoteDatabase::get_key_count(Transaction *txn, ham_u32_t flags,
               ham_u64_t *keycount)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_GET_KEY_COUNT_REQUEST);
@@ -158,7 +158,7 @@ RemoteDatabase::insert(Transaction *txn, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
@@ -217,7 +217,7 @@ ham_status_t
 RemoteDatabase::erase(Transaction *txn, ham_key_t *key,
             ham_u32_t flags)
 {
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_ERASE_REQUEST);
@@ -249,7 +249,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_FIND_REQUEST);
@@ -313,7 +313,7 @@ RemoteDatabase::find(Transaction *txn, ham_key_t *key,
 Cursor *
 RemoteDatabase::cursor_create_impl(Transaction *txn, ham_u32_t flags)
 {
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   ham_status_t st;
   Protocol *reply = 0;
 
@@ -350,7 +350,7 @@ Cursor *
 RemoteDatabase::cursor_clone_impl(Cursor *src)
 {
   RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>
-                                    (src->get_db()->get_env());
+                                (src->get_db()->get_env());
   ham_status_t st;
   Protocol *reply = 0;
 
@@ -384,7 +384,7 @@ RemoteDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
   bool send_key = true;
   Transaction *txn = cursor->get_txn();
@@ -444,7 +444,7 @@ ham_status_t
 RemoteDatabase::cursor_erase(Cursor *cursor, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_ERASE_REQUEST);
@@ -471,7 +471,7 @@ RemoteDatabase::cursor_find(Cursor *cursor, ham_key_t *key,
               ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_FIND_REQUEST);
@@ -525,7 +525,7 @@ RemoteDatabase::cursor_get_duplicate_count(Cursor *cursor,
                 ham_size_t *count, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_GET_DUPLICATE_COUNT_REQUEST);
@@ -565,7 +565,7 @@ RemoteDatabase::cursor_overwrite(Cursor *cursor,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::CURSOR_OVERWRITE_REQUEST);
@@ -594,7 +594,7 @@ RemoteDatabase::cursor_move(Cursor *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Transaction *txn = cursor->get_txn();
@@ -684,7 +684,7 @@ ham_status_t
 RemoteDatabase::close_impl(ham_u32_t flags)
 {
   ham_status_t st;
-  RemoteEnvironment *env = dynamic_cast<RemoteEnvironment *>(get_env());
+  RemoteEnvironment *env = get_remote_env();
   Protocol *reply = 0;
 
   Protocol request(Protocol::DB_CLOSE_REQUEST);

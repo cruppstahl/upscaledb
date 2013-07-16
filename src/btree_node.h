@@ -15,6 +15,7 @@
 #include "endianswap.h"
 #include "btree_key.h"
 #include "db_local.h"
+#include "page.h"
 
 #include "packstart.h"
 

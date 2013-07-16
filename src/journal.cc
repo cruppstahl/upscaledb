@@ -19,7 +19,7 @@
 
 #include "db.h"
 #include "device.h"
-#include "env.h"
+#include "env_local.h"
 #include "error.h"
 #include "mem.h"
 #include "log.h"
@@ -42,7 +42,7 @@ ham_status_t
 Journal::create()
 {
   int i;
-  PHeader header;
+  PEnvironmentHeader header;
   ham_status_t st;
 
   /* initialize the magic */
@@ -72,7 +72,7 @@ ham_status_t
 Journal::open()
 {
   int i;
-  PHeader header;
+  PEnvironmentHeader header;
   PJournalEntry entry;
   ham_u64_t lsn[2];
   ham_status_t st, st1, st2;
@@ -182,7 +182,7 @@ Journal::switch_files_maybe(Transaction *txn)
 }
 
 ham_status_t
-Journal::append_txn_begin(Transaction *txn, Environment *env, 
+Journal::append_txn_begin(Transaction *txn, LocalEnvironment *env, 
                 const char *name, ham_u64_t lsn)
 {
   ham_status_t st;
@@ -342,7 +342,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, void **aux)
                   m_current_fd == 0
                       ? 1
                       : 0;
-    iter->offset = sizeof(PHeader);
+    iter->offset = sizeof(PEnvironmentHeader);
   }
 
   /* get the size of the journal file */
@@ -354,7 +354,7 @@ Journal::get_entry(Iterator *iter, PJournalEntry *entry, void **aux)
   if (filesize == iter->offset) {
     if (iter->fdstart == iter->fdidx) {
       iter->fdidx = iter->fdidx == 1 ? 0 : 1;
-      iter->offset = sizeof(PHeader);
+      iter->offset = sizeof(PEnvironmentHeader);
       st = os_get_filesize(m_fd[iter->fdidx], &filesize);
       if (st)
         return (st);
@@ -404,7 +404,7 @@ Journal::close(bool noclear)
   ham_status_t st = 0;
 
   if (!noclear) {
-    PHeader header;
+    PEnvironmentHeader header;
 
     (void)clear();
 
@@ -670,14 +670,14 @@ Journal::clear_file(int idx)
 {
   ham_status_t st;
 
-  st = os_truncate(m_fd[idx], sizeof(PHeader));
+  st = os_truncate(m_fd[idx], sizeof(PEnvironmentHeader));
   if (st)
       return (st);
 
   /* after truncate, the file pointer is far beyond the new end of file;
    * reset the file pointer, or the next write will resize the file to
    * the original size */
-  st = os_seek(m_fd[idx], sizeof(PHeader), HAM_OS_SEEK_SET);
+  st = os_seek(m_fd[idx], sizeof(PEnvironmentHeader), HAM_OS_SEEK_SET);
   if (st)
     return (st);
 

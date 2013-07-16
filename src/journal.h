@@ -23,7 +23,7 @@
 
 #include "internal_fwd_decl.h"
 #include "mem.h"
-#include "env.h"
+#include "env_local.h"
 #include "os.h"
 #include "journal_entries.h"
 
@@ -57,8 +57,8 @@ class Journal
     /**
      * the header structure of a journal file
      */
-    HAM_PACK_0 struct HAM_PACK_1 PHeader {
-      PHeader() : magic(0), _reserved(0), lsn(0) { }
+    HAM_PACK_0 struct HAM_PACK_1 PEnvironmentHeader {
+      PEnvironmentHeader() : magic(0), _reserved(0), lsn(0) { }
 
       /** the magic */
       ham_u32_t magic;
@@ -87,7 +87,7 @@ class Journal
     };
 
     /** constructor */
-    Journal(Environment *env)
+    Journal(LocalEnvironment *env)
       : m_env(env), m_current_fd(0), m_lsn(1), m_last_cp_lsn(0),
         m_threshold(JOURNAL_DEFAULT_THRESHOLD) {
       m_fd[0] = HAM_INVALID_FD;
@@ -115,7 +115,7 @@ class Journal
         ham_status_t st = os_get_filesize(m_fd[i], &size);
         if (st)
           return (false); /* TODO throw exception */
-        if (size && size != sizeof(PHeader))
+        if (size && size != sizeof(PEnvironmentHeader))
           return (false);
       }
 
@@ -123,7 +123,7 @@ class Journal
     }
 
     /* appends a journal entry for ham_txn_begin/ENTRY_TYPE_TXN_BEGIN */
-    ham_status_t append_txn_begin(Transaction *txn, Environment *env,
+    ham_status_t append_txn_begin(Transaction *txn, LocalEnvironment *env,
                 const char *name, ham_u64_t lsn);
 
     /** appends a journal entry for
@@ -214,7 +214,7 @@ class Journal
     ham_status_t clear_file(int idx);
 
     /** references the Environment this journal file is for */
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     /** the index of the file descriptor we are currently writing to */
     ham_size_t m_current_fd;

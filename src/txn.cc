@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "db.h"
-#include "env.h"
+#include "env_local.h"
 #include "error.h"
 #include "log.h"
 #include "mem.h"
@@ -226,16 +226,15 @@ TransactionIndex::close()
   rbt_new(this);
 }
 
-Transaction::Transaction(Environment *env, const char *name, ham_u32_t flags)
+Transaction::Transaction(Environment *env, const char *name,
+                ham_u32_t flags)
   : m_id(0), m_env(env), m_flags(flags), m_cursor_refcount(0), m_log_desc(0),
     m_remote_handle(0), m_newer(0), m_older(0), m_oldest_op(0), m_newest_op(0) {
-  m_id = env->get_txn_id() + 1;
-  env->set_txn_id(m_id);
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
+  if (lenv)
+    m_id = lenv->get_incremented_txn_id();
   if (name)
     m_name = name;
-
-  /* link this txn with the Environment */
-  env->append_txn(this);
 }
 
 Transaction::~Transaction()
@@ -258,8 +257,12 @@ Transaction::commit(ham_u32_t flags)
   /* this transaction is now committed!  */
   set_flags(get_flags() | TXN_STATE_COMMITTED);
 
-  /* now flush all committed Transactions to disk */
-  return (get_env()->flush_committed_txns());
+  // TODO ugly - better move flush_committed_txns() in the caller
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
+  if (lenv)
+    return (lenv->flush_committed_txns());
+  else
+    return (0);
 }
 
 ham_status_t
@@ -280,7 +283,9 @@ Transaction::abort(ham_u32_t flags)
   free_ops();
 
   /* clean up the changeset */
-  get_env()->get_changeset().clear();
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
+  if (lenv)
+    lenv->get_changeset().clear();
 
   return (0);
 }

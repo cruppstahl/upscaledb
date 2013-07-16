@@ -12,13 +12,11 @@
 
 #include "config.h"
 
-#include <string.h>
-
-#include "db_remote.h"
 #include "txn.h"
-#include "env.h"
 #include "mem.h"
 #include "cursor.h"
+#include "db_remote.h"
+#include "env_remote.h"
 
 #ifdef HAM_ENABLE_REMOTE
 
@@ -183,7 +181,7 @@ RemoteEnvironment::create(const char *filename, ham_u32_t flags,
 
   set_flags(flags);
   if (filename)
-    set_filename(filename);
+    m_filename = filename;
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -217,7 +215,7 @@ RemoteEnvironment::open(const char *filename, ham_u32_t flags,
 
   set_flags(flags);
   if (filename)
-    set_filename(filename);
+    m_filename = filename;
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -588,6 +586,7 @@ RemoteEnvironment::txn_begin(Transaction **txn, const char *name,
 
   *txn = new Transaction(this, name, flags);
   (*txn)->set_remote_handle(reply->txn_begin_reply().txn_handle());
+    append_txn(*txn);
 
   delete reply;
   return (0);

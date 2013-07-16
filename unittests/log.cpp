@@ -43,31 +43,31 @@ namespace hamsterdb {
 
 struct LogFixture {
   ham_db_t *m_db;
-  ham_env_t *m_henv;
-  Environment *m_env;
+  ham_env_t *m_env;
+  LocalEnvironment *m_lenv;
 
   LogFixture() {
     (void)os::unlink(Globals::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_henv, Globals::opath(".test"),
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
   }
 
   ~LogFixture() {
-    REQUIRE(0 == ham_env_close(m_henv, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   Log *disconnect_log_and_create_new_log() {
-    Log *log = new Log(m_env);
+    Log *log = new Log(m_lenv);
     REQUIRE(HAM_WOULD_BLOCK == log->create());
     delete log;
 
-    log = m_env->get_log();
+    log = m_lenv->get_log();
     REQUIRE(0 == log->close());
     REQUIRE(0 == log->create());
     REQUIRE(log);
@@ -96,21 +96,19 @@ struct LogFixture {
   }
 
   void negativeCreateTest() {
-    Environment *env = (Environment *)m_env;
-    Log *log = new Log(env);
-    std::string oldfilename = env->get_filename();
-    env->set_filename("/::asdf");
+    Log *log = new Log(m_lenv);
+    std::string oldfilename = m_lenv->get_filename();
+    m_lenv->test_set_filename("/::asdf");
     REQUIRE(HAM_IO_ERROR == log->create());
-    env->set_filename(oldfilename);
+    m_lenv->test_set_filename(oldfilename);
     delete log;
   }
 
   void negativeOpenTest() {
-    Environment *env = (Environment *)m_env;
-    Log *log = new Log(env);
+    Log *log = new Log(m_lenv);
     ham_fd_t fd;
-    std::string oldfilename = env->get_filename();
-    env->set_filename("xxx$$test");
+    std::string oldfilename = m_lenv->get_filename();
+    m_lenv->test_set_filename("xxx$$test");
     REQUIRE(HAM_FILE_NOT_FOUND == log->open());
 
     /* if log->open() fails, it will call log->close() internally and
@@ -120,17 +118,17 @@ struct LogFixture {
     REQUIRE(0 == os_pwrite(fd, 0, (void *)"x", 1));
     REQUIRE(0 == os_close(fd));
 
-    env->set_filename("data/log-broken-magic");
+    m_lenv->test_set_filename("data/log-broken-magic");
     REQUIRE(HAM_LOG_INV_FILE_HEADER == log->open());
 
-    env->set_filename(oldfilename);
+    m_lenv->test_set_filename(oldfilename);
     delete log;
   }
 
   void appendWriteTest() {
     Log *log = disconnect_log_and_create_new_log();
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     ham_u8_t data[100];
     for (int i = 0; i < 100; i++)
@@ -148,7 +146,7 @@ struct LogFixture {
     REQUIRE(true == log->is_empty());
 
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_lenv, 0, 0, 0));
     REQUIRE(0 == log->append_write(1, 0, 0, data, sizeof(data)));
     REQUIRE(false == log->is_empty());
 
@@ -176,7 +174,7 @@ struct LogFixture {
   void iterateOverLogOneEntryTest() {
     ham_txn_t *txn;
     Log *log = disconnect_log_and_create_new_log();
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
+    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_lenv, 0, 0, 0));
     ham_u8_t buffer[1024] = {0};
     REQUIRE(0 == log->append_write(1, 0, 0, buffer, sizeof(buffer)));
     REQUIRE(0 == log->close(true));
@@ -216,29 +214,29 @@ struct LogFixture {
   }
 
   void iterateOverLogMultipleEntryTest() {
-    Log *log = m_env->get_log();
+    Log *log = m_lenv->get_log();
 
     for (int i = 0; i < 5; i++) {
       Page *page;
-      page = new Page(m_env);
+      page = new Page(m_lenv);
       REQUIRE(0 == page->allocate());
       REQUIRE(0 == log->append_page(page, 1+i, 5-i));
       delete page;
     }
 
     REQUIRE(0 ==
-        ham_env_close(m_henv,
+        ham_env_close(m_env,
             HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), 0, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)m_henv;
-    REQUIRE((Log *)0 == m_env->get_log());
-    log = new Log(m_env);
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    m_lenv = (LocalEnvironment *)m_env;
+    REQUIRE((Log *)0 == m_lenv->get_log());
+    log = new Log(m_lenv);
     REQUIRE(0 == log->open());
-    m_env->set_log(log);
+    m_lenv->test_set_log(log);
     REQUIRE(log != 0);
 
     Log::Iterator iter = 0;
@@ -248,23 +246,23 @@ struct LogFixture {
 
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     checkLogEntry(log, &entry, 5, data);
-    REQUIRE(m_env->get_pagesize() ==
+    REQUIRE(m_lenv->get_pagesize() ==
             (ham_size_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     checkLogEntry(log, &entry, 4, data);
-    REQUIRE(m_env->get_pagesize() ==
+    REQUIRE(m_lenv->get_pagesize() ==
             (ham_size_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     checkLogEntry(log, &entry, 3, data);
-    REQUIRE(m_env->get_pagesize() ==
+    REQUIRE(m_lenv->get_pagesize() ==
             (ham_size_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     checkLogEntry(log, &entry, 2, data);
-    REQUIRE(m_env->get_pagesize() ==
+    REQUIRE(m_lenv->get_pagesize() ==
             (ham_size_t)entry.data_size);
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     checkLogEntry(log, &entry, 1, data);
-    REQUIRE(m_env->get_pagesize() ==
+    REQUIRE(m_lenv->get_pagesize() ==
             (ham_size_t)entry.data_size);
   }
 };
@@ -336,20 +334,20 @@ struct LogEntry {
 
 struct LogHighLevelFixture {
   ham_db_t *m_db;
-  ham_env_t *m_henv;
-  Environment *m_env;
+  ham_env_t *m_env;
+  LocalEnvironment *m_lenv;
 
   LogHighLevelFixture() {
     (void)os::unlink(Globals::opath(".test"));
 
     REQUIRE(0 ==
-        ham_env_create(&m_henv, Globals::opath(".test"),
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_henv, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
 
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
   }
 
   ~LogHighLevelFixture() {
@@ -359,98 +357,98 @@ struct LogHighLevelFixture {
   void open() {
     // open without recovery and transactions (they imply recovery)!
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), 0, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)ham_db_get_env(m_db);
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
   }
 
   void teardown() {
-    if (m_henv)
-      REQUIRE(0 == ham_env_close(m_henv, HAM_AUTO_CLEANUP));
+    if (m_env)
+      REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   ham_status_t fetch_page(Page **page, LocalDatabase *db, ham_u64_t address) {
-    PageManager *pm = db->get_env()->get_page_manager();
+    PageManager *pm = m_lenv->get_page_manager();
     return (pm->fetch_page(page, db, address));
   }
 
   void createCloseTest() {
-    REQUIRE(m_env->get_log());
+    REQUIRE(m_lenv->get_log());
   }
 
   void createCloseEnvTest() {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_create(&m_henv, Globals::opath(".test"),
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0664, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
-    REQUIRE(0 == ham_env_create_db(m_henv, &m_db, 333, 0, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
+    REQUIRE(m_lenv->get_log() != 0);
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 333, 0, 0));
+    REQUIRE(m_lenv->get_log() != 0);
     REQUIRE(0 == ham_db_close(m_db, 0));
   }
 
   void createCloseOpenCloseTest() {
     teardown();
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)m_henv;
-    REQUIRE(m_env->get_log() != 0);
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    m_lenv = (LocalEnvironment *)m_env;
+    REQUIRE(m_lenv->get_log() != 0);
   }
 
   void createCloseOpenFullLogRecoverTest() {
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-    ham_u8_t *buffer = (ham_u8_t *)malloc(m_env->get_pagesize());
-    memset(buffer, 0, m_env->get_pagesize());
-    ham_size_t ps = m_env->get_pagesize();
+    REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
+    ham_u8_t *buffer = (ham_u8_t *)malloc(m_lenv->get_pagesize());
+    memset(buffer, 0, m_lenv->get_pagesize());
+    ham_size_t ps = m_lenv->get_pagesize();
 
     REQUIRE(0 ==
-          m_env->get_log()->append_write(2, 0, ps, buffer, ps));
+          m_lenv->get_log()->append_write(2, 0, ps, buffer, ps));
     REQUIRE(0 == ham_txn_abort(txn, 0));
     REQUIRE(0 ==
-        ham_env_close(m_henv,
+        ham_env_close(m_env,
             HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     REQUIRE(HAM_NEED_RECOVERY ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
-    m_env = (Environment *)ham_db_get_env(m_db);
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
 
     /* make sure that the log file was deleted and that the lsn is 1 */
-    Log *log = m_env->get_log();
+    Log *log = m_lenv->get_log();
     REQUIRE(log != 0);
     ham_u64_t filesize;
     REQUIRE(0 == os_get_filesize(log->get_fd(), &filesize));
-    REQUIRE((ham_u64_t)sizeof(Log::PHeader) == filesize);
+    REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
   }
 
   void createCloseOpenFullLogTest() {
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-    ham_u8_t *buffer = (ham_u8_t *)malloc(m_env->get_pagesize());
-    memset(buffer, 0, m_env->get_pagesize());
+    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_lenv, 0, 0, 0));
+    ham_u8_t *buffer = (ham_u8_t *)malloc(m_lenv->get_pagesize());
+    memset(buffer, 0, m_lenv->get_pagesize());
 
     REQUIRE(0 ==
-          m_env->get_log()->append_write(1, 0,
-                0, buffer, m_env->get_pagesize()));
+          m_lenv->get_log()->append_write(1, 0,
+                0, buffer, m_lenv->get_pagesize()));
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE(0 == ham_env_close(m_henv,
+    REQUIRE(0 == ham_env_close(m_env,
             HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     REQUIRE(HAM_NEED_RECOVERY ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0));
 
     free(buffer);
@@ -460,40 +458,40 @@ struct LogHighLevelFixture {
     teardown();
 
     REQUIRE(0 ==
-        ham_env_create(&m_henv, Globals::opath(".test"),
+        ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_henv, &m_db, 1, 0, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
+        ham_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(((LocalEnvironment *)m_env)->get_log() != 0);
     REQUIRE(0 == ham_db_close(m_db, 0));
-    REQUIRE(0 == ham_env_create_db(m_henv, &m_db, 333, 0, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 333, 0, 0));
+    REQUIRE(((LocalEnvironment *)m_env)->get_log() != 0);
     REQUIRE(0 == ham_db_close(m_db, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
+    REQUIRE(((LocalEnvironment *)m_env)->get_log() != 0);
 
-    REQUIRE(0 == ham_env_close(m_henv, HAM_AUTO_CLEANUP));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0));
-    REQUIRE(((Environment *)m_henv)->get_log() != 0);
+    REQUIRE(((LocalEnvironment *)m_env)->get_log() != 0);
   }
 
   void createCloseOpenFullLogEnvTest() {
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-    ham_u8_t *buffer = (ham_u8_t *)malloc(m_env->get_pagesize());
-    memset(buffer, 0, m_env->get_pagesize());
+    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_lenv, 0, 0, 0));
+    ham_u8_t *buffer = (ham_u8_t *)malloc(m_lenv->get_pagesize());
+    memset(buffer, 0, m_lenv->get_pagesize());
 
     REQUIRE(0 ==
-          m_env->get_log()->append_write(1, 0,
-                0, buffer, m_env->get_pagesize()));
+          m_lenv->get_log()->append_write(1, 0,
+                0, buffer, m_lenv->get_pagesize()));
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE(0 == ham_env_close(m_henv,
+    REQUIRE(0 == ham_env_close(m_env,
             HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     REQUIRE(HAM_NEED_RECOVERY ==
-        ham_env_open(&m_henv, Globals::opath(".test"),
+        ham_env_open(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0));
 
     free(buffer);
@@ -501,25 +499,25 @@ struct LogHighLevelFixture {
 
   void createCloseOpenFullLogEnvRecoverTest() {
     ham_txn_t *txn;
-    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_env, 0, 0, 0));
-    ham_u8_t *buffer = (ham_u8_t *)malloc(m_env->get_pagesize());
-    memset(buffer, 0, m_env->get_pagesize());
+    REQUIRE(0 == ham_txn_begin(&txn, (ham_env_t *)m_lenv, 0, 0, 0));
+    ham_u8_t *buffer = (ham_u8_t *)malloc(m_lenv->get_pagesize());
+    memset(buffer, 0, m_lenv->get_pagesize());
 
-    REQUIRE(0 == m_env->get_log()->append_write(1, 0,
-                0, buffer, m_env->get_pagesize()));
+    REQUIRE(0 == m_lenv->get_log()->append_write(1, 0,
+                0, buffer, m_lenv->get_pagesize()));
     REQUIRE(0 == ham_txn_abort(txn, 0));
-    REQUIRE(0 == ham_env_close(m_henv,
+    REQUIRE(0 == ham_env_close(m_env,
             HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
 
     /* make sure that the log files are deleted and that the lsn is 1 */
-    Log *log = ((Environment *)m_henv)->get_log();
+    Log *log = ((LocalEnvironment *)m_env)->get_log();
     REQUIRE(log != 0);
     ham_u64_t filesize;
     REQUIRE(0 == os_get_filesize(log->get_fd(), &filesize));
-    REQUIRE((ham_u64_t)sizeof(Log::PHeader) == filesize);
+    REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
   }
@@ -551,9 +549,9 @@ struct LogHighLevelFixture {
     ham_env_t *env;
     /* for traversing the logfile we need a temp. Env handle */
     REQUIRE(0 == ham_env_create(&env, filename, 0, 0664, 0));
-    log=((Environment *)env)->get_log();
+    log = ((LocalEnvironment *)env)->get_log();
     REQUIRE((Log *)0 == log);
-    log = new Log((Environment *)env);
+    log = new Log((LocalEnvironment *)env);
     REQUIRE(0 == log->open());
 
     while (1) {
@@ -588,17 +586,17 @@ struct LogHighLevelFixture {
 #ifndef WIN32
     LocalDatabase *db = (LocalDatabase *)m_db;
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_env->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     Page *page;
 
-    REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
+    REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page, db,
                 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     REQUIRE((ham_u64_t)(ps * 2) == page->get_address());
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
-    REQUIRE(0 == m_env->get_changeset().flush(1));
-    m_env->get_changeset().clear();
+    REQUIRE(0 == m_lenv->get_changeset().flush(1));
+    m_lenv->get_changeset().clear();
     teardown();
 
     /* restore the backupped logfiles */
@@ -616,40 +614,40 @@ struct LogHighLevelFixture {
 
     /* recover and make sure that the page exists */
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
     db = (LocalDatabase *)m_db;
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     REQUIRE(0 == fetch_page(&page, db, ps * 2));
     /* verify that the page contains the marker */
     for (int i = 0; i < 200; i++)
       REQUIRE((ham_u8_t)i == page->get_payload()[i]);
 
     /* verify the lsn */
-    REQUIRE(1ull == m_env->get_log()->get_lsn());
+    REQUIRE(1ull == m_lenv->get_log()->get_lsn());
 
-    m_env->get_changeset().clear();
+    m_lenv->get_changeset().clear();
 #endif
   }
 
   void recoverAllocateMultiplePageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_env->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+      REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i+j);
     }
-    REQUIRE(0 == m_env->get_changeset().flush(33));
-    m_env->get_changeset().clear();
+    REQUIRE(0 == m_lenv->get_changeset().flush(33));
+    m_lenv->get_changeset().clear();
     teardown();
 
     /* restore the backupped logfiles */
@@ -670,11 +668,11 @@ struct LogHighLevelFixture {
 
     /* recover and make sure that the pages exists */
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
     db = (LocalDatabase *)m_db;
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     for (int i = 0; i < 10; i++) {
       REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
       /* verify that the pages contain the markers */
@@ -683,27 +681,27 @@ struct LogHighLevelFixture {
     }
 
     /* verify the lsn */
-    REQUIRE(33ull == m_env->get_log()->get_lsn());
+    REQUIRE(33ull == m_lenv->get_log()->get_lsn());
 
-    m_env->get_changeset().clear();
+    m_lenv->get_changeset().clear();
 #endif
   }
 
   void recoverModifiedPageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_env->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     Page *page;
     LocalDatabase *db = (LocalDatabase *)m_db;
 
-    REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page, db,
+    REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page, db,
                 0, PageManager::kIgnoreFreelist));
     page->set_dirty(true);
     REQUIRE(page->get_address() == ps * 2);
     for (int i = 0; i < 200; i++)
       page->get_payload()[i] = (ham_u8_t)i;
-    REQUIRE(0 == m_env->get_changeset().flush(2));
-    m_env->get_changeset().clear();
+    REQUIRE(0 == m_lenv->get_changeset().flush(2));
+    m_lenv->get_changeset().clear();
     teardown();
 
     /* restore the backupped logfiles */
@@ -721,40 +719,40 @@ struct LogHighLevelFixture {
 
     /* recover and make sure that the page is ok */
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
     db = (LocalDatabase *)m_db;
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     REQUIRE(0 == fetch_page(&page, db, ps * 2));
     /* verify that the page does not contain the "XXX..." */
     for (int i = 0; i < 20; i++)
       REQUIRE('X' != page->get_raw_payload()[i]);
 
     /* verify the lsn */
-    REQUIRE(2ull == m_env->get_log()->get_lsn());
+    REQUIRE(2ull == m_lenv->get_log()->get_lsn());
 
-    m_env->get_changeset().clear();
+    m_lenv->get_changeset().clear();
 #endif
   }
 
   void recoverModifiedMultiplePageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK = (hook_func_t)copyLog;
-    ham_size_t ps = m_env->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+      REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i + j);
     }
-    REQUIRE(0 == m_env->get_changeset().flush(5));
-    m_env->get_changeset().clear();
+    REQUIRE(0 == m_lenv->get_changeset().flush(5));
+    m_lenv->get_changeset().clear();
     teardown();
 
     /* restore the backupped logfiles */
@@ -778,11 +776,11 @@ struct LogHighLevelFixture {
 
     /* recover and make sure that the page is ok */
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
     db = (LocalDatabase *)m_db;
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     /* verify that the pages does not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
       REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
@@ -791,29 +789,29 @@ struct LogHighLevelFixture {
     }
 
     /* verify the lsn */
-    REQUIRE(5ull == m_env->get_log()->get_lsn());
+    REQUIRE(5ull == m_lenv->get_log()->get_lsn());
 
-    m_env->get_changeset().clear();
+    m_lenv->get_changeset().clear();
 #endif
   }
 
   void recoverMixedAllocatedModifiedPageTest() {
 #ifndef WIN32
     g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
-    ham_size_t ps = m_env->get_pagesize();
+    ham_size_t ps = m_lenv->get_pagesize();
     Page *page[10];
     LocalDatabase *db = (LocalDatabase *)m_db;
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE(0 == m_env->get_page_manager()->alloc_page(&page[i], db,
+      REQUIRE(0 == m_lenv->get_page_manager()->alloc_page(&page[i], db,
                 0, PageManager::kIgnoreFreelist));
       page[i]->set_dirty(true);
       REQUIRE(page[i]->get_address() == ps * (2 + i));
       for (int j = 0; j < 200; j++)
         page[i]->get_payload()[j] = (ham_u8_t)(i + j);
     }
-    REQUIRE(0 == m_env->get_changeset().flush(6));
-    m_env->get_changeset().clear();
+    REQUIRE(0 == m_lenv->get_changeset().flush(6));
+    m_lenv->get_changeset().clear();
     teardown();
 
     /* restore the backupped logfiles */
@@ -839,11 +837,11 @@ struct LogHighLevelFixture {
 
     /* recover and make sure that the pages are ok */
     REQUIRE(0 ==
-        ham_env_open(&m_henv, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
+        ham_env_open(&m_env, Globals::opath(".test"), HAM_AUTO_RECOVERY, 0));
     REQUIRE(0 ==
-        ham_env_open_db(m_henv, &m_db, 1, 0, 0));
+        ham_env_open_db(m_env, &m_db, 1, 0, 0));
     db = (LocalDatabase *)m_db;
-    m_env = (Environment *)ham_db_get_env(m_db);
+    m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
     /* verify that the pages do not contain the "XXX..." */
     for (int i = 0; i < 10; i++) {
       REQUIRE(0 == fetch_page(&page[i], db, ps * (2 + i)));
@@ -852,9 +850,9 @@ struct LogHighLevelFixture {
     }
 
     /* verify the lsn */
-    REQUIRE(6ull == m_env->get_log()->get_lsn());
+    REQUIRE(6ull == m_lenv->get_log()->get_lsn());
 
-    m_env->get_changeset().clear();
+    m_lenv->get_changeset().clear();
 #endif
   }
 
@@ -862,14 +860,14 @@ struct LogHighLevelFixture {
     /* close m_db, otherwise ham_env_create fails on win32 */
     teardown();
 
-    REQUIRE(0 == ham_env_create(&m_henv, Globals::opath(".test"),
+    REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_RECOVERY, 0664, 0));
 
-    REQUIRE(0 == ham_env_create_db(m_henv, &m_db, 333, 0, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 333, 0, 0));
     REQUIRE(0 == ham_db_close(m_db, 0));
-    REQUIRE(0 == ham_env_rename_db(m_henv, 333, 444, 0));
+    REQUIRE(0 == ham_env_rename_db(m_env, 333, 444, 0));
 
-    REQUIRE(0 == ham_env_erase_db(m_henv, 444, 0));
+    REQUIRE(0 == ham_env_erase_db(m_env, 444, 0));
   }
 };
 

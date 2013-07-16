@@ -11,11 +11,15 @@
 
 #ifndef HAM_DB_REMOTE_H__
 #define HAM_DB_REMOTE_H__
+
 #  ifdef HAM_ENABLE_REMOTE
 
 #include "db.h"
 
 namespace hamsterdb {
+
+class Environment;
+class RemoteEnvironment;
 
 /*
  * The database implementation for remote file access
@@ -25,6 +29,11 @@ class RemoteDatabase : public Database
   public:
     RemoteDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_remote_handle(0) {
+    }
+
+    // Returns the RemoteEnvironment instance
+    RemoteEnvironment *get_remote_env() {
+      return ((RemoteEnvironment *)m_env);
     }
 
     // Returns Database parameters (ham_db_get_parameters)

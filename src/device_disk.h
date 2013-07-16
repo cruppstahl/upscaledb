@@ -17,6 +17,7 @@
 #include "mem.h"
 #include "db.h"
 #include "device.h"
+#include "env_local.h"
 #ifdef HAM_ENABLE_ENCRYPTION
 #  include "aes.h"
 #endif
@@ -28,7 +29,7 @@ namespace hamsterdb {
  */
 class DiskDevice : public Device {
   public:
-    DiskDevice(Environment *env, ham_u32_t flags)
+    DiskDevice(LocalEnvironment *env, ham_u32_t flags)
       : Device(env, flags), m_fd(HAM_INVALID_FD), m_win32mmap(HAM_INVALID_FD),
         m_mmapptr(0), m_mapped_size(0) {
     }

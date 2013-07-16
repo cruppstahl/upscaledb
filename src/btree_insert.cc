@@ -107,6 +107,7 @@ class BtreeInsertAction
       ham_status_t st = 0;
       Page *page;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       bool force_append = false;
       bool force_prepend = false;
 
@@ -117,8 +118,8 @@ class BtreeInsertAction
        * should still sit in the cache, or we're using old info, which should
        * be discarded.
        */
-      st = db->get_env()->get_page_manager()->fetch_page(&page,
-                      db, m_hints.leaf_page_addr, true);
+      st = env->get_page_manager()->fetch_page(&page, db,
+                      m_hints.leaf_page_addr, true);
       if (st)
         return st;
       if (!page)
@@ -194,10 +195,11 @@ class BtreeInsertAction
       ham_status_t st;
       Page *root;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
 
       /* get the root-page...  */
-      st = db->get_env()->get_page_manager()->fetch_page(&root,
-                      db, m_btree->get_root_address());
+      st = env->get_page_manager()->fetch_page(&root, db,
+                      m_btree->get_root_address());
       if (st)
         return (st);
 
@@ -218,8 +220,9 @@ class BtreeInsertAction
       /* allocate a new root page */
       Page *newroot;
       LocalDatabase *db = m_btree->get_db();
-      ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newroot,
-                                db, Page::kTypeBroot, 0);
+      LocalEnvironment *env = db->get_local_env();
+      ham_status_t st = env->get_page_manager()->alloc_page(&newroot, db,
+                      Page::kTypeBroot, 0);
       if (st)
         return (st);
       ham_assert(newroot->get_db());
@@ -346,13 +349,14 @@ class BtreeInsertAction
       Page *newpage, *oldsib;
       ham_size_t keysize = m_btree->get_keysize();
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       ham_u16_t pivot;
       ham_u64_t pivotrid;
       bool pivot_at_end = false;
 
       /* allocate a new page */
-      ham_status_t st = db->get_env()->get_page_manager()->alloc_page(&newpage,
-                                db, Page::kTypeBindex, 0);
+      ham_status_t st = env->get_page_manager()->alloc_page(&newpage, db,
+                      Page::kTypeBindex, 0);
       if (st)
         return st;
 
@@ -475,8 +479,8 @@ class BtreeInsertAction
 
       /* fix the double-linked list of pages, and mark the pages as dirty */
       if (obtp->get_right()) {
-        st = db->get_env()->get_page_manager()->fetch_page(&oldsib,
-                        db, obtp->get_right());
+        st = env->get_page_manager()->fetch_page(&oldsib, db,
+                        obtp->get_right());
         if (st)
           goto fail_dramatically;
       }
@@ -517,6 +521,7 @@ fail_dramatically:
       ham_status_t st;
       ham_size_t new_dupe_id = 0;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
       bool exists = false;
       ham_s32_t slot;
 
@@ -642,8 +647,7 @@ fail_dramatically:
         rec.data = data_ptr  + (keysize - sizeof(ham_u64_t));
         rec.size = key->size - (keysize - sizeof(ham_u64_t));
 
-        if ((st = db->get_env()->get_blob_manager()->allocate(db, &rec, 0,
-                                        &blobid)))
+        if ((st = env->get_blob_manager()->allocate(db, &rec, 0, &blobid)))
           return (st);
 
         if (db->get_extkey_cache())

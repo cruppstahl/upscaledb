@@ -533,8 +533,9 @@ struct DuplicateFixture {
     insertData("333", "cccccccccc");
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->get_btree_index();
-    REQUIRE(0 == ((Environment *)m_env)->get_page_manager()->fetch_page(&page,
-                (LocalDatabase *)m_db, be->get_root_address()));
+    REQUIRE(0 == ((LocalEnvironment *)m_env)->get_page_manager()->fetch_page(
+                            &page, (LocalDatabase *)m_db,
+                            be->get_root_address()));
     REQUIRE(page);
 
     REQUIRE(0 == BtreeCursor::uncouple_all_cursors(page));

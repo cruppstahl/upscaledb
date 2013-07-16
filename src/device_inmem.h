@@ -25,7 +25,7 @@ namespace hamsterdb {
 class InMemoryDevice : public Device {
   public:
     // constructor
-    InMemoryDevice(Environment *env, ham_u32_t flags)
+    InMemoryDevice(LocalEnvironment *env, ham_u32_t flags)
       : Device(env, flags), m_is_open(false) {
     }
 

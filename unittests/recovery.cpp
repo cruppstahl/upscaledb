@@ -18,7 +18,8 @@
 
 #include "../src/internal_fwd_decl.h"
 #include "../src/log.h"
-#include "../src/env.h"
+#include "../src/env_local.h"
+#include "../src/errorinducer.h"
 #include "os.hpp"
 
 /* this function pointer is defined in changeset.c */
@@ -127,7 +128,7 @@ insert(int argc, char **argv) {
   }
 
   ErrorInducer *ei = new ErrorInducer();
-  ((Environment *)env)->get_changeset().m_inducer=ei;
+  ((LocalEnvironment *)env)->get_changeset().m_inducer = ei;
   ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {
@@ -209,7 +210,7 @@ erase(int argc, char **argv) {
   }
 
   ErrorInducer *ei = new ErrorInducer();
-  ((Environment *)env)->get_changeset().m_inducer = ei;
+  ((LocalEnvironment *)env)->get_changeset().m_inducer = ei;
   ei->add(ErrorInducer::kChangesetFlush, inducer);
 
   for (int j = 0; j < NUM_STEPS; j++) {

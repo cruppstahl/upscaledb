@@ -12,9 +12,11 @@
 #ifndef HAM_BTREE_STATS_H__
 #define HAM_BTREE_STATS_H__
 
-#include "ham/hamsterdb_int.h"
+#include <ham/hamsterdb_int.h>
 
 namespace hamsterdb {
+
+class Page;
 
 /**
  * btree find/insert/erase statistical structures, functions and macros

@@ -29,10 +29,10 @@ namespace hamsterdb {
 // The persistent btree index descriptor. This structure manages the
 // persistent btree metadata.
 //
-HAM_PACK_0 class HAM_PACK_1 PBtreeDescriptor
+HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 {
   public:
-    PBtreeDescriptor() {
+    PBtreeHeader() {
       memset(this, 0, sizeof(*this));
     }
 
@@ -231,7 +231,7 @@ class BtreeIndex
     // Calculates the "maxkeys" values - the limit of keys per page
     ham_size_t calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
-    // Flushes the PBtreeDescriptor to the Environment's header page
+    // Flushes the PBtreeHeader to the Environment's header page
     void flush_descriptor();
 
     // Returns the btree usage statistics
@@ -307,7 +307,7 @@ class BtreeIndex
     // the keysize of this btree index
     ham_u16_t m_keysize;
 
-    // the index of the PBtreeDescriptor in the Environment's header page
+    // the index of the PBtreeHeader in the Environment's header page
     ham_u32_t m_descriptor_index;
 
     // the persistent flags of this btree index

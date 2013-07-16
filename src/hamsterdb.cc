@@ -34,6 +34,7 @@
 #include "db.h"
 #include "device.h"
 #include "env.h"
+#include "env_remote.h"
 #include "error.h"
 #include "extkeys.h"
 #include "log.h"
@@ -361,7 +362,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
             | HAM_ENABLE_RECOVERY
             | HAM_AUTO_RECOVERY
             | HAM_ENABLE_TRANSACTIONS
-            | DB_DISABLE_RECLAIM;
+            | HAM_DISABLE_RECLAIM_INTERNAL;
   if (flags & ~mask) {
     ham_trace(("ham_env_create() called with invalid flag 0x%x (%d)", 
                 (int)(flags & ~mask), (int)(flags & ~mask)));
@@ -444,10 +445,10 @@ ham_env_create(ham_env_t **henv, const char *filename,
    * leave at least 128 bytes for the freelist and the other header data
    */
   {
-    ham_size_t l = pagesize - sizeof(PEnvHeader)
+    ham_size_t l = pagesize - sizeof(PEnvironmentHeader)
         - PFreelistPayload::get_bitmap_offset() - 128;
 
-    l /= sizeof(PBtreeDescriptor);
+    l /= sizeof(PBtreeHeader);
     if (maxdbs > l) {
       ham_trace(("parameter HAM_PARAM_MAX_DATABASES too high for "
             "this pagesize; the maximum allowed is %u",
@@ -464,8 +465,14 @@ ham_env_create(ham_env_t **henv, const char *filename,
   }
 
   Environment *env;
-  if (__filename_is_local(filename))
-    env = new LocalEnvironment();
+  if (__filename_is_local(filename)) {
+    LocalEnvironment *lenv = new LocalEnvironment();
+    if (logdir.size())
+      lenv->set_log_directory(logdir);
+    if (encryption_key)
+      lenv->enable_encryption(encryption_key);
+    env = lenv;
+  }
   else {
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
@@ -478,11 +485,6 @@ ham_env_create(ham_env_t **henv, const char *filename,
   atexit(curl_global_cleanup);
   atexit(Protocol::shutdown);
 #endif
-
-  if (logdir.size())
-    env->set_log_directory(logdir);
-  if (encryption_key)
-    env->enable_encryption(encryption_key);
 
   /* and finish the initialization of the Environment */
   ham_status_t st = env->create(filename, flags, mode, pagesize, cachesize,
@@ -689,8 +691,14 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
     cachesize = HAM_DEFAULT_CACHESIZE;
 
   Environment *env;
-  if (__filename_is_local(filename))
-    env = new LocalEnvironment();
+  if (__filename_is_local(filename)) {
+    LocalEnvironment *lenv = new LocalEnvironment();
+    if (logdir.size())
+      lenv->set_log_directory(logdir);
+    if (encryption_key)
+      lenv->enable_encryption(encryption_key);
+    env = lenv;
+  }
   else {
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
@@ -703,12 +711,6 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
   atexit(curl_global_cleanup);
   atexit(Protocol::shutdown);
 #endif
-
-  if (logdir.size())
-    env->set_log_directory(logdir);
-
-  if (encryption_key)
-    env->enable_encryption(encryption_key);
 
   /* and finish the initialization of the Environment */
   ham_status_t st = env->open(filename, flags, cachesize);
@@ -855,8 +857,13 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
 
   ScopedLock lock = ScopedLock(env->get_mutex());
 
+#ifdef HAM_DEBUG
   /* make sure that the changeset is empty */
-  ham_assert(env->get_changeset().is_empty());
+  LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(env);
+  if (lenv) {
+    ham_assert(lenv->get_changeset().is_empty());
+  }
+#endif
 
   /* auto-abort (or commit) all pending transactions */
   if (env && env->get_newest_txn()) {
@@ -878,11 +885,6 @@ ham_env_close(ham_env_t *henv, ham_u32_t flags)
       t = n;
     }
   }
-
-  /* flush all committed transactions */
-  st = env->flush_committed_txns();
-  if (st)
-    return (st);
 
   /* close the environment */
   st = env->close(flags);
@@ -1379,7 +1381,6 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
 {
   Database *db;
   Environment *env;
-  ham_status_t st;
 
   if (!hcursor) {
     ham_trace(("parameter 'cursor' must not be NULL"));
@@ -1423,12 +1424,7 @@ ham_cursor_move(ham_cursor_t *hcursor, ham_key_t *key,
   if (record && !__prepare_record(record))
     return (db->set_error(HAM_INV_PARAMETER));
 
-  st = db->cursor_move(cursor, key, record, flags);
-
-  /* make sure that the changeset is empty */
-  ham_assert(env->get_changeset().is_empty());
-
-  return (db->set_error(st));
+  return (db->set_error(db->cursor_move(cursor, key, record, flags)));
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV

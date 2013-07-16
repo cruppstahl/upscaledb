@@ -22,7 +22,7 @@ namespace hamsterdb {
  */
 class InMemoryBlobManager : public BlobManager {
   public:
-    InMemoryBlobManager(Environment *env)
+    InMemoryBlobManager(LocalEnvironment *env)
       : BlobManager(env) {
     }
 

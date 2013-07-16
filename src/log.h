@@ -30,10 +30,11 @@
 
 #include "internal_fwd_decl.h"
 
-
 #include "os.h"
 
 namespace hamsterdb {
+
+class LocalEnvironment;
 
 /**
  * a Log object
@@ -50,9 +51,9 @@ class Log
     /**
      * the header structure of a log file
      */
-    HAM_PACK_0 struct HAM_PACK_1 PHeader
+    HAM_PACK_0 struct HAM_PACK_1 PEnvironmentHeader
     {
-      PHeader() : magic(0), _reserved(0), lsn(0) { }
+      PEnvironmentHeader() : magic(0), _reserved(0), lsn(0) { }
 
       /* the magic */
       ham_u32_t magic;
@@ -96,7 +97,7 @@ class Log
     typedef ham_u64_t Iterator;
 
     /** constructor */
-    Log(Environment *env, ham_u32_t flags = 0)
+    Log(LocalEnvironment *env, ham_u32_t flags = 0)
       : m_env(env), m_flags(flags), m_lsn(0), m_fd(HAM_INVALID_FD) {
     }
 
@@ -116,7 +117,7 @@ class Log
       ham_status_t st = os_get_filesize(m_fd, &size);
       if (st)
         return (st ? false : true); /* TODO throw */
-      if (size && size != sizeof(Log::PHeader))
+      if (size && size != sizeof(Log::PEnvironmentHeader))
         return (false);
 
       return (true);
@@ -142,14 +143,14 @@ class Log
      * txn_commit or txn_abort)
      */
     ham_status_t clear() {
-      ham_status_t st = os_truncate(m_fd, sizeof(Log::PHeader));
+      ham_status_t st = os_truncate(m_fd, sizeof(Log::PEnvironmentHeader));
       if (st)
         return (st);
 
       /* after truncate, the file pointer is far beyond the new end of file;
        * reset the file pointer, or the next write will resize the file to
        * the original size */
-      return (os_seek(m_fd, sizeof(Log::PHeader), HAM_OS_SEEK_SET));
+      return (os_seek(m_fd, sizeof(Log::PEnvironmentHeader), HAM_OS_SEEK_SET));
     }
 
     /** flush the logfile to disk */
@@ -203,7 +204,7 @@ class Log
     ham_status_t append_entry(Log::PEntry *entry, ham_size_t size);
 
     /** references the Environment this log file is for */
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     /** the log flags - unused so far */
     ham_u32_t m_flags;

@@ -27,7 +27,7 @@
 
 namespace hamsterdb {
 
-Cache::Cache(Environment *env, ham_u64_t capacity_bytes)
+Cache::Cache(LocalEnvironment *env, ham_u64_t capacity_bytes)
   : m_env(env), m_capacity(capacity_bytes), m_cur_elements(0),
     m_alloc_elements(0), m_totallist(0), m_totallist_tail(0),
     m_cache_hits(0), m_cache_misses(0)

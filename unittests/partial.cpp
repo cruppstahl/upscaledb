@@ -18,7 +18,7 @@
 
 #include "../src/db.h"
 #include "../src/blob_manager.h"
-#include "../src/env.h"
+#include "../src/env_local.h"
 #include "../src/page.h"
 #include "../src/btree_key.h"
 
@@ -214,17 +214,17 @@ struct PartialWriteFixture {
   }
 
   void insertGapsTestPagesize() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps, ps, ps * 2);
   }
 
   void insertGapsTestPagesize2() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps * 2, ps * 2, ps * 4);
   }
 
   void insertGapsTestPagesize4() {
-    ham_size_t ps = ((Environment *)m_env)->get_pagesize();
+    ham_size_t ps = ((LocalEnvironment *)m_env)->get_pagesize();
     insertGaps(ps * 4, ps * 4, ps * 8);
   }
 };

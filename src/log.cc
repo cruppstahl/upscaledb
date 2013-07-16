@@ -33,7 +33,7 @@ namespace hamsterdb {
 ham_status_t
 Log::create()
 {
-  Log::PHeader header;
+  Log::PEnvironmentHeader header;
   ham_status_t st;
   std::string path = get_path();
 
@@ -57,7 +57,7 @@ Log::create()
 ham_status_t
 Log::open()
 {
-  Log::PHeader header;
+  Log::PEnvironmentHeader header;
   std::string path = get_path();
   ham_status_t st;
 
@@ -102,7 +102,7 @@ Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ham_u8_t **data)
   }
 
   /* if the current file is empty: no need to continue */
-  if (*iter <= sizeof(Log::PHeader)) {
+  if (*iter <= sizeof(Log::PEnvironmentHeader)) {
     entry->lsn = 0;
     return (0);
   }
@@ -143,7 +143,7 @@ ham_status_t
 Log::close(bool noclear)
 {
   ham_status_t st = 0;
-  Log::PHeader header;
+  Log::PEnvironmentHeader header;
 
   if (m_fd == HAM_INVALID_FD)
     return (0);

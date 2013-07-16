@@ -2714,17 +2714,14 @@ ham_status_t
 Freelist::initialize()
 {
   FreelistEntry entry = {0};
-  PFreelistPayload *fp = m_env->get_freelist_payload();
 
   ham_assert(!(m_env->get_flags() & HAM_READ_ONLY));
   ham_assert(m_entries.empty());
 
   /* add the header page to the freelist */
   entry.start_address = m_env->get_pagesize();
-  ham_size_t size = m_env->get_usable_pagesize();
-  size -= m_env->sizeof_full_header();
-  size -= PFreelistPayload::get_bitmap_offset();
-  size -= size % sizeof(ham_u64_t);
+  ham_size_t size;
+  PFreelistPayload *fp = m_env->get_freelist_payload(&size);
 
   ham_assert((size % sizeof(ham_u64_t)) == 0);
   entry.max_bits = (ham_u32_t)(size * 8);
@@ -3063,11 +3060,9 @@ void
 Freelist::mark_dirty(Page *page)
 {
   if (!page)
-    page = m_env->get_header_page();
-
-  page->set_dirty(true);
-  if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
-    m_env->get_changeset().add_page(page);
+    m_env->mark_header_page_dirty();
+  else
+    page->set_dirty(true);
 }
 
 void

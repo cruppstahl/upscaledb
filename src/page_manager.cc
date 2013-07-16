@@ -20,7 +20,7 @@
 
 namespace hamsterdb {
 
-PageManager::PageManager(Environment *env, ham_size_t cachesize)
+PageManager::PageManager(LocalEnvironment *env, ham_size_t cachesize)
   : m_env(env), m_cache(0), m_freelist(0), m_page_count_fetched(0),
     m_page_count_flushed(0), m_page_count_index(0), m_page_count_blob(0),
     m_page_count_freelist(0)
@@ -299,9 +299,9 @@ PageManager::reclaim_space()
 static bool
 db_close_callback(Page *page, Database *db, ham_u32_t flags)
 {
-  Environment *env = page->get_env();
+  LocalEnvironment *env = page->get_env();
 
-  if (page->get_db() == db && page != env->get_header_page()) {
+  if (page->get_db() == db && page->get_address() != 0) {
     (void)env->get_page_manager()->flush_page(page);
 
     /*
@@ -354,7 +354,7 @@ PageManager::close()
   // reclaim unused disk space
   // if logging is enabled: also flush the changeset to write back the
   // modified freelist pages
-  if (!(m_env->get_flags() & DB_DISABLE_RECLAIM)) {
+  if (!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL)) {
     st = reclaim_space();
     if (st)
       return (st);

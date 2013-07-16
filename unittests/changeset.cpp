@@ -42,10 +42,10 @@ TEST_CASE("Changeset/addPages",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((Environment *)f.m_env);
+  Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((Environment *)f.m_env);
+    page[i] = new Page((LocalEnvironment *)f.m_env);
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
@@ -70,10 +70,10 @@ TEST_CASE("Changeset/getPages",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((Environment *)f.m_env);
+  Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((Environment *)f.m_env);
+    page[i] = new Page((LocalEnvironment *)f.m_env);
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)
@@ -91,10 +91,10 @@ TEST_CASE("Changeset/clear",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((Environment *)f.m_env);
+  Changeset ch((LocalEnvironment *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page((Environment *)f.m_env);
+    page[i] = new Page((LocalEnvironment *)f.m_env);
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)

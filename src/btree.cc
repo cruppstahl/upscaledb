@@ -37,8 +37,9 @@ namespace hamsterdb {
 #define MAX_KEYS_PER_NODE         0xFFFFU /* max(ham_u16_t) */
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
-  : m_db(db), m_keysize(0), m_descriptor_index(descriptor), m_flags(flags),
-    m_root_address(0), m_maxkeys(0), m_keydata1(), m_keydata2(), m_statistics()
+  : m_db(db), m_keysize(0), m_descriptor_index(descriptor),
+    m_flags(flags), m_root_address(0), m_maxkeys(0), m_keydata1(),
+    m_keydata2(), m_statistics()
 {
 }
 
@@ -115,7 +116,8 @@ BtreeIndex::create(ham_u16_t keysize)
   ham_assert(keysize != 0);
 
   /* prevent overflow - maxkeys only has 16 bit! */
-  ham_size_t maxkeys = calc_maxkeys(m_db->get_env()->get_pagesize(), keysize);
+  ham_size_t maxkeys = calc_maxkeys(m_db->get_local_env()->get_pagesize(),
+                  keysize);
   if (maxkeys > MAX_KEYS_PER_NODE) {
     ham_trace(("keysize/pagesize ratio too high"));
     return (HAM_INV_KEYSIZE);
@@ -127,8 +129,8 @@ BtreeIndex::create(ham_u16_t keysize)
 
   /* allocate a new root page */
   Page *root = 0;
-  ham_status_t st = m_db->get_env()->get_page_manager()->alloc_page(&root, m_db,
-                  Page::kTypeBroot, PageManager::kIgnoreFreelist);
+  ham_status_t st = m_db->get_local_env()->get_page_manager()->alloc_page(&root,
+                        m_db, Page::kTypeBroot, PageManager::kIgnoreFreelist);
   if (st)
     return (st);
 
@@ -156,7 +158,7 @@ BtreeIndex::open()
   ham_u16_t maxkeys;
   ham_u16_t keysize;
   ham_u32_t flags;
-  PBtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
+  PBtreeHeader *desc = m_db->get_local_env()->get_btree_descriptor(m_descriptor_index);
 
   /*
    * load root address and maxkeys (first two bytes are the
@@ -185,7 +187,9 @@ BtreeIndex::flush_descriptor()
   if (m_db->get_rt_flags() & HAM_READ_ONLY)
     return;
 
-  PBtreeDescriptor *desc = m_db->get_env()->get_descriptor(m_descriptor_index);
+  LocalEnvironment *env = m_db->get_local_env();
+
+  PBtreeHeader *desc = env->get_btree_descriptor(m_descriptor_index);
 
   desc->set_dbname(m_db->get_name());
   desc->set_maxkeys(m_maxkeys);
@@ -193,16 +197,14 @@ BtreeIndex::flush_descriptor()
   desc->set_root_address(get_root_address());
   desc->set_flags(get_flags());
 
-  Environment *env = m_db->get_env();
-  env->set_dirty(true);
-  if (env->get_flags() & HAM_ENABLE_RECOVERY)
-    env->get_changeset().add_page(env->get_header_page());
+  env->mark_header_page_dirty();
 }
 
 ham_status_t
 BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
 {
   LocalDatabase *db = page->get_db();
+  LocalEnvironment *env = db->get_local_env();
 
   /*
    * if this page has a header, and it's either a B-Tree root page or
@@ -220,7 +222,7 @@ BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
       PBtreeKey *bte = node->get_key(db, i);
       if (bte->get_flags() & PBtreeKey::kExtended) {
         ham_u64_t blobid = bte->get_extended_rid(db);
-        if (db->get_env()->get_flags() & HAM_IN_MEMORY) {
+        if (env->get_flags() & HAM_IN_MEMORY) {
           /* delete the blobid to prevent that it's freed twice */
           *(ham_u64_t *)(bte->get_key() +
                 (db->get_keysize() - sizeof(ham_u64_t))) = 0;
@@ -258,13 +260,13 @@ BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **page_ref,
     *idxptr = slot;
 
   if (slot == -1)
-    return (m_db->get_env()->get_page_manager()->fetch_page(page_ref,
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(page_ref,
                             m_db, node->get_ptr_left()));
   else {
     PBtreeKey *bte = node->get_key(m_db, slot);
     ham_assert(bte->get_flags() == 0
                 || bte->get_flags() == PBtreeKey::kExtended);
-    return (m_db->get_env()->get_page_manager()->fetch_page(page_ref,
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(page_ref,
                             m_db, bte->get_ptr()));
   }
 }
@@ -657,8 +659,8 @@ BtreeIndex::read_record(Transaction *txn, ham_u64_t *ridptr,
   /* if this key has duplicates: fetch the duplicate entry */
   if (record->_intflags & PBtreeKey::kDuplicates) {
     PDupeEntry entry;
-    ham_status_t st = m_db->get_env()->get_duplicate_manager()->get(
-                    record->_rid, 0, &entry);
+    ham_status_t st = m_db->get_local_env()->get_duplicate_manager()->get(
+                                record->_rid, 0, &entry);
     if (st)
       return st;
     record->_intflags = dupe_entry_get_flags(&entry);
@@ -722,8 +724,8 @@ BtreeIndex::read_record(Transaction *txn, ham_u64_t *ridptr,
                             ? &m_db->get_record_arena()
                             : &txn->get_record_arena();
 
-    return (m_db->get_env()->get_blob_manager()->read(m_db,
-                record->_rid, record, flags, arena));
+    return (m_db->get_local_env()->get_blob_manager()->read(m_db,
+                            record->_rid, record, flags, arena));
   }
 
   return (HAM_SUCCESS);
@@ -794,6 +796,7 @@ class CalcKeysVisitor : public BtreeVisitor {
 
     virtual ham_status_t item(PBtreeNode *node, PBtreeKey *key) {
       ham_size_t dupcount = 1;
+      ham_status_t st;
 
       if (m_flags & HAM_SKIP_DUPLICATES
           || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
@@ -802,8 +805,8 @@ class CalcKeysVisitor : public BtreeVisitor {
       }
 
       if (key->get_flags() & PBtreeKey::kDuplicates) {
-        ham_status_t st = m_db->get_env()->get_duplicate_manager()->get_count(
-                          key->get_ptr(), &dupcount, 0);
+        st = m_db->get_local_env()->get_duplicate_manager()->get_count(
+                                key->get_ptr(), &dupcount, 0);
         if (st)
           return (st);
         m_count += dupcount;

@@ -60,4 +60,6 @@
 #  endif
 #endif
 
+#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
+
 #endif /* HAM_CONFIG_H__ */

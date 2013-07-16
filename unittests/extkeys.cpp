@@ -105,10 +105,7 @@ TEST_CASE("ExtKey/purge", "")
   for (int i = 0; i < 20; i++)
     c->insert((ham_u64_t)i, sizeof(buffer), buffer);
 
-  ham_env_t *env = ham_db_get_env(f.m_db);
-  Environment *e = (Environment *)env;
-  e->set_txn_id(e->get_txn_id() + 2000);
-
+  c->test_set_opcounter(2000);
   c->purge();
 
   for (int i = 0; i < 20; i++)

@@ -58,13 +58,13 @@ struct BlobManagerFixture {
             0644, &params[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_blob_manager = ((Environment *)m_env)->get_blob_manager();
+    m_blob_manager = ((LocalEnvironment *)m_env)->get_blob_manager();
   }
 
   ~BlobManagerFixture() {
     /* clear the changeset, otherwise ham_db_close will complain */
     if (!m_inmemory && m_env)
-      ((Environment *)m_env)->get_changeset().clear();
+      ((LocalEnvironment *)m_env)->get_changeset().clear();
     if (m_env)
         REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
@@ -227,7 +227,7 @@ struct BlobManagerFixture {
     /* make sure that at least 64bit are in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      Freelist *f = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
+      Freelist *f = ((LocalEnvironment *)m_env)->get_page_manager()->test_get_freelist();
       REQUIRE(0 == f->alloc_area(64, &addr));
       REQUIRE(addr != 0ull);
     }
@@ -237,7 +237,7 @@ struct BlobManagerFixture {
     /* and now another 64bit should be in the freelist */
     if (!m_inmemory) {
       ham_u64_t addr;
-      Freelist *f = ((Environment *)m_env)->get_page_manager()->test_get_freelist();
+      Freelist *f = ((LocalEnvironment *)m_env)->get_page_manager()->test_get_freelist();
       REQUIRE(0 == f->alloc_area(64, &addr));
       REQUIRE(addr != 0ull);
     }
@@ -245,7 +245,7 @@ struct BlobManagerFixture {
 
   void replaceBiggerAndBiggerTest() {
     const int BLOCKS = 32;
-    unsigned ps = ((Environment *)m_env)->get_pagesize();
+    unsigned ps = ((LocalEnvironment *)m_env)->get_pagesize();
     ham_u8_t *buffer = (ham_u8_t *)malloc(ps * BLOCKS * 2);
     ham_u64_t blobid, blobid2;
     ham_record_t record;

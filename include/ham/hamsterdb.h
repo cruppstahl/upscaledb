@@ -461,7 +461,7 @@ ham_get_license(const char **licensee, const char **product);
  * for recovery is also encrypted (with exception of some metadata), but the 
  * transactional journal is not. Encryption can be enabled by specifying
  * @ref HAM_PARAM_ENCRYPTION_KEY (see below). The identical key has to be
- * provided in @ref ham_env_open as well.
+ * provided in @ref ham_env_open as well. Ignored for remote Environments.
  *
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
@@ -518,10 +518,10 @@ ham_get_license(const char **licensee, const char **product);
  *      Databases in this Environment; default value: 16.
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
- *      file
+ *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
  *      key; enables AES encryption for the Environment file. Not allowed
- *      for In-Memory Environments.
+ *      for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -614,9 +614,10 @@ ham_env_create(ham_env_t **env, const char *filename,
  *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
- *      file
+ *      file. Ignored for remote Environments.
  *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
- *      key; enables AES encryption for the Environment file
+ *      key; enables AES encryption for the Environment file. Ignored for
+ *      remote Environmens.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -656,7 +657,7 @@ ham_env_open(ham_env_t **env, const char *filename,
  *        of this parameter is a const char * pointer casted to a
  *        ham_u64_t variable)
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
- *        and the journal files
+ *        and the journal files. Ignored for remote Environments.
  *    </ul>
  *
  * @param env A valid Environment handle
@@ -1089,9 +1090,11 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * This flag is persisted in the Database. */
 #define HAM_ENABLE_EXTENDED_KEYS                    0x00080000
 
-/* reserved: DB_IS_REMOTE   (not persistent)        0x00200000 */
+/* internal use only! (not persistent) */
+#define HAM_IS_REMOTE_INTERNAL                      0x00200000
 
-/* reserved: DB_DISABLE_RECLAIM (not persistent)    0x00400000 */
+/* internal use only! (not persistent) */
+#define HAM_DISABLE_RECLAIM_INTERNAL                0x00400000
 
 /**
  * Returns the last error code

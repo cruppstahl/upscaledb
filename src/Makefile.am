@@ -54,8 +54,12 @@ libhamsterdb_la_SOURCES = \
 	duplicates.cc \
 	duplicates.h \
 	endianswap.h \
-	env.cc \
 	env.h \
+	env.cc \
+	env_local.h \
+	env_local.cc \
+	env_remote.h \
+	env_remote.cc \
 	error.cc \
 	error.h \
 	errorinducer.h \
@@ -84,7 +88,6 @@ libhamsterdb_la_SOURCES = \
 	page_manager.cc \
 	page_manager.h \
 	rb.h \
-	remote.cc \
 	serial.h \
 	txn.cc \
 	txn_cursor.cc \

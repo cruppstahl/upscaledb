@@ -19,10 +19,11 @@
 
 #include <vector>
 
-#include "internal_fwd_decl.h"
-#include "env.h"
+#include "env_local.h"
 
 namespace hamsterdb {
+
+class LocalEnvironment;
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in
  * a MODULO hash scheme */
@@ -40,7 +41,8 @@ class Cache
     /** the default constructor
      * @remark max_size is in bytes!
      */
-    Cache(Environment *env, ham_u64_t capacity_bytes = HAM_DEFAULT_CACHESIZE);
+    Cache(LocalEnvironment *env,
+            ham_u64_t capacity_bytes = HAM_DEFAULT_CACHESIZE);
 
     /**
      * get a page from the cache
@@ -268,7 +270,7 @@ class Cache
     }
 
     /** the current Environment */
-    Environment *m_env;
+    LocalEnvironment *m_env;
 
     /** the capacity (in bytes) */
     ham_u64_t m_capacity;

@@ -17,7 +17,7 @@
 #include "blob_manager.h"
 #include "btree.h"
 #include "db_local.h"
-#include "env.h"
+#include "env_local.h"
 #include "error.h"
 #include "extkeys.h"
 #include "btree_key.h"
@@ -50,7 +50,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
             ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
   ham_status_t st;
-  Environment *env = db->get_env();
+  LocalEnvironment *env = db->get_local_env();
   ham_u64_t rid = 0;
   ham_u64_t ptr = get_ptr();
   ham_u8_t oldflags = get_flags();
@@ -78,7 +78,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
       set_ptr(rid);
     }
     else {
-      st = db->get_env()->get_blob_manager()->allocate(db, record, flags, &rid);
+      st = env->get_blob_manager()->allocate(db, record, flags, &rid);
       if (st)
         return (st);
       set_ptr(rid);
@@ -97,7 +97,7 @@ PBtreeKey::set_record(LocalDatabase *db, Transaction *txn, ham_record_t *record,
      */
     if (oldflags & (kBlobSizeSmall | kBlobSizeTiny | kBlobSizeEmpty)) {
       rid = 0;
-      st = db->get_env()->get_blob_manager()->allocate(db, record, flags, &rid);
+      st = env->get_blob_manager()->allocate(db, record, flags, &rid);
       if (st)
         return (st);
       if (rid)
@@ -218,7 +218,7 @@ PBtreeKey::erase_record(LocalDatabase *db, Transaction *txn, ham_size_t dupe_id,
   if (!(get_flags() & (kBlobSizeSmall | kBlobSizeTiny | kBlobSizeEmpty))) {
     if (get_flags() & kDuplicates) {
       /* delete one (or all) duplicates */
-      st = db->get_env()->get_duplicate_manager()->erase(db, txn,
+      st = db->get_local_env()->get_duplicate_manager()->erase(db, txn,
                         get_ptr(), dupe_id, erase_all_duplicates, &rid);
       if (st)
         return (st);
@@ -234,7 +234,7 @@ PBtreeKey::erase_record(LocalDatabase *db, Transaction *txn, ham_size_t dupe_id,
     }
     else {
       /* delete the blob */
-      st = db->get_env()->get_blob_manager()->free(db, get_ptr(), 0);
+      st = db->get_local_env()->get_blob_manager()->free(db, get_ptr(), 0);
       if (st)
         return (st);
       set_ptr(0);

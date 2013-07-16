@@ -44,11 +44,11 @@ class BtreeEnumAction
     ham_status_t run() {
       Page *page;
       LocalDatabase *db = m_btree->get_db();
-      ham_status_t st;
+      LocalEnvironment *env = db->get_local_env();
 
       // get the root page of the tree
-      st = db->get_env()->get_page_manager()->fetch_page(&page,
-                      db, m_btree->get_root_address());
+      ham_status_t st = env->get_page_manager()->fetch_page(&page,
+                                db, m_btree->get_root_address());
       if (st)
         return (st);
 
@@ -68,8 +68,7 @@ class BtreeEnumAction
             // load the right sibling
             ham_u64_t right = node->get_right();
             if (right) {
-              st = db->get_env()->get_page_manager()->fetch_page(&page,
-                              db, right);
+              st = env->get_page_manager()->fetch_page(&page, db, right);
               if (st)
                 return (st);
             }
@@ -80,8 +79,7 @@ class BtreeEnumAction
 
         // follow the pointer to the smallest child
         if (ptr_left) {
-          st = db->get_env()->get_page_manager()->fetch_page(&page,
-                      db, ptr_left);
+          st = env->get_page_manager()->fetch_page(&page, db, ptr_left);
           if (st)
             return (st);
         }
@@ -102,7 +100,7 @@ class BtreeEnumAction
 
         /* follow the pointer to the right sibling */
         if (right) {
-          st = db->get_env()->get_page_manager()->fetch_page(&page, db, right);
+          st = env->get_page_manager()->fetch_page(&page, db, right);
           if (st)
             return (st);
         }
@@ -126,7 +124,7 @@ class BtreeEnumAction
           st = 0;
           break;
         }
-        else if (st)
+        if (st)
           return (st);
       }
 

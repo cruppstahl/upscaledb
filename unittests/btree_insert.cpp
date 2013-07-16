@@ -29,7 +29,7 @@ using namespace hamsterdb;
 struct BtreeInsertFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
-  Environment *m_environ;
+  LocalEnvironment *m_environ;
 
   BtreeInsertFixture()
     : m_db(0), m_env(0), m_environ(0) {
@@ -47,7 +47,7 @@ struct BtreeInsertFixture {
         ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, &p1[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
-    m_environ = (Environment *)m_env;
+    m_environ = (LocalEnvironment *)m_env;
   }
 
   ~BtreeInsertFixture() {
@@ -57,7 +57,7 @@ struct BtreeInsertFixture {
 
   ham_status_t fetch_page(Page **page, ham_u64_t address) {
     LocalDatabase *db = (LocalDatabase *)m_db;
-    PageManager *pm = db->get_env()->get_page_manager();
+    PageManager *pm = db->get_local_env()->get_page_manager();
     return (pm->fetch_page(page, db, address));
   }
 

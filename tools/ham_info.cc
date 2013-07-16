@@ -16,9 +16,9 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/db_local.h"
-#include "../src/env.h"
 #include "../src/btree.h"
+#include "../src/db_local.h"
+#include "../src/env_local.h"
 
 #include "getopts.h"
 
@@ -74,19 +74,19 @@ print_environment(ham_env_t *env) {
   if (st)
     error("ham_env_open_db", st);
 
+  hamsterdb::LocalEnvironment *lenv = (hamsterdb::LocalEnvironment *)env;
   if (!quiet) {
     printf("environment\n");
-    printf("  pagesize:           %u\n",
-            ((hamsterdb::Environment *)env)->get_pagesize());
+    printf("  pagesize:           %u\n", lenv->get_pagesize());
     printf("  version:          %u.%u.%u.%u\n",
-            ((hamsterdb::Environment *)env)->get_version(0),
-            ((hamsterdb::Environment *)env)->get_version(1),
-            ((hamsterdb::Environment *)env)->get_version(2),
-            ((hamsterdb::Environment *)env)->get_version(3));
+            lenv->get_header()->get_version(0),
+            lenv->get_header()->get_version(1),
+            lenv->get_header()->get_version(2),
+            lenv->get_header()->get_version(3));
     printf("  serialno:           %u\n",
-            ((hamsterdb::Environment *)env)->get_serialno());
+            lenv->get_header()->get_serialno());
     printf("  max databases:        %u\n",
-            ((hamsterdb::Environment *)env)->get_max_databases());
+            lenv->get_header()->get_max_databases());
   }
 
   st = ham_db_close(db, 0);

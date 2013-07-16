@@ -42,12 +42,13 @@ class BtreeCheckAction
       Page *page, *parent = 0;
       ham_u32_t level = 0;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
 
       ham_assert(m_btree->get_root_address() != 0);
 
       // get the root page of the tree
-      ham_status_t st = db->get_env()->get_page_manager()->fetch_page(&page,
-                            db, m_btree->get_root_address());
+      ham_status_t st = env->get_page_manager()->fetch_page(&page, db,
+                                    m_btree->get_root_address());
       if (st)
         return (st);
 
@@ -64,8 +65,7 @@ class BtreeCheckAction
 
         // follow the pointer to the smallest child
         if (ptr_left) {
-          st = db->get_env()->get_page_manager()->fetch_page(&page,
-                            db, ptr_left);
+          st = env->get_page_manager()->fetch_page(&page, db, ptr_left);
           if (st)
             return (st);
         }
@@ -82,8 +82,9 @@ class BtreeCheckAction
     // Verifies a whole level in the tree - start with "page" and traverse
     // the linked list of all the siblings
     ham_status_t verify_level(Page *parent, Page *page, ham_u32_t level) {
-      Page *child, *leftsib = 0;
       LocalDatabase *db = m_btree->get_db();
+      LocalEnvironment *env = db->get_local_env();
+      Page *child, *leftsib = 0;
       PBtreeNode *node = PBtreeNode::from_page(page);
 
       // assert that the parent page's smallest item (item 0) is bigger
@@ -94,7 +95,8 @@ class BtreeCheckAction
           return ((ham_status_t)cmp);
         if (cmp < 0) {
           ham_log(("integrity check failed in page 0x%llx: parent item "
-                  "#0 < item #%d\n", page->get_address(), node->get_count() - 1));
+                  "#0 < item #%d\n", page->get_address(),
+                  node->get_count() - 1));
           return (HAM_INTEGRITY_VIOLATED);
         }
       }
@@ -108,7 +110,7 @@ class BtreeCheckAction
         // follow the right sibling
         PBtreeNode *node = PBtreeNode::from_page(page);
         if (node->get_right()) {
-          st = db->get_env()->get_page_manager()->fetch_page(&child,
+          st = env->get_page_manager()->fetch_page(&child,
                             db, node->get_right());
           if (st)
             return (st);
