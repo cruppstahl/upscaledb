@@ -21,7 +21,6 @@
 #ifndef HAM_JOURNAL_H__
 #define HAM_JOURNAL_H__
 
-#include "internal_fwd_decl.h"
 #include "mem.h"
 #include "env_local.h"
 #include "os.h"

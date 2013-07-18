@@ -28,12 +28,11 @@
 #ifndef HAM_LOG_H__
 #define HAM_LOG_H__
 
-#include "internal_fwd_decl.h"
-
 #include "os.h"
 
 namespace hamsterdb {
 
+class Page;
 class LocalEnvironment;
 
 /**

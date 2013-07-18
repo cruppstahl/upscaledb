@@ -448,6 +448,26 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\env_header.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\env_local.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\env_local.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\env_remote.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\env_remote.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\error.cc"
 			>
 		</File>
@@ -497,10 +517,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\hash-table.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\internal_fwd_decl.h"
 			>
 		</File>
 		<File
@@ -569,10 +585,6 @@
 		</File>
 		<File
 			RelativePath="..\..\src\rb.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\remote.cc"
 			>
 		</File>
 		<File

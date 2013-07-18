@@ -56,6 +56,7 @@ libhamsterdb_la_SOURCES = \
 	endianswap.h \
 	env.h \
 	env.cc \
+	env_header.h \
 	env_local.h \
 	env_local.cc \
 	env_remote.h \
@@ -71,7 +72,6 @@ libhamsterdb_la_SOURCES = \
 	freelist_stats.h \
 	hamsterdb.cc \
 	hash-table.h \
-	internal_fwd_decl.h \
 	journal.cc \
 	journal_entries.h \
 	journal.h \

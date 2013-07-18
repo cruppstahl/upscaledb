@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include "config.h"
 #include "env_local.h"
 
 namespace hamsterdb {

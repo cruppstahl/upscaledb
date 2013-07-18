@@ -17,8 +17,6 @@
 #ifndef HAM_AES_H__
 #define HAM_AES_H__
 
-#include "internal_fwd_decl.h"
-
 #include <algorithm>
 #include <openssl/evp.h>
 

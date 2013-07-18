@@ -27,10 +27,11 @@
 #ifndef HAM_TXN_CURSOR_H__
 #define HAM_TXN_CURSOR_H__
 
-#include "internal_fwd_decl.h"
 #include "txn.h"
 
 namespace hamsterdb {
+
+class Cursor;
 
 //
 // An cursor which can iterate over Transaction nodes

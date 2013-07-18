@@ -16,7 +16,6 @@
 #include <vector>
 #include <sstream>
 
-#include "../src/internal_fwd_decl.h"
 #include "../src/log.h"
 #include "../src/env_local.h"
 #include "../src/errorinducer.h"

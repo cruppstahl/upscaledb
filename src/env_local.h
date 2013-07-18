@@ -21,6 +21,8 @@
 
 namespace hamsterdb {
 
+class Log;
+class Journal;
 class PageManager;
 class BlobManager;
 

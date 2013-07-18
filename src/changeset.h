@@ -24,9 +24,8 @@
 #  include <stdlib.h>
 #endif
 
-#include "internal_fwd_decl.h"
-#include "errorinducer.h"
 #include "page.h"
+#include "errorinducer.h"
 
 namespace hamsterdb {
 

@@ -19,7 +19,6 @@
 #include <vector>
 #include <sstream>
 
-#include "../src/internal_fwd_decl.h"
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/os.h"

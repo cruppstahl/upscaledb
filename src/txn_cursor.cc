@@ -9,7 +9,6 @@
  * See files COPYING.* for License information.
  */
 
-#include "internal_fwd_decl.h"
 #include "txn_cursor.h"
 #include "txn.h"
 #include "db.h"

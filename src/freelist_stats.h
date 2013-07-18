@@ -17,9 +17,10 @@
 #ifndef HAM_FREELIST_STATISTICS_H__
 #define HAM_FREELIST_STATISTICS_H__
 
-#include "internal_fwd_decl.h"
-
 namespace hamsterdb {
+
+class Freelist;
+struct PFreelistPayload;
 
 #include "packstart.h"
 

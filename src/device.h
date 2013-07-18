@@ -16,13 +16,12 @@
  *
  */
  
-
 #ifndef HAM_DEVICE_H__
 #define HAM_DEVICE_H__
 
 #include <ham/hamsterdb.h>
 
-#include <string.h>
+#include "config.h"
 
 namespace hamsterdb {
 

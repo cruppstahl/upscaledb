@@ -200,6 +200,12 @@
     <ClInclude Include="..\..\src\duplicates.h" />
     <ClInclude Include="..\..\src\endianswap.h" />
     <ClInclude Include="..\..\src\env.h" />
+    <ClInclude Include="..\..\src\env.cc" />
+    <ClInclude Include="..\..\src\env_header.h" />
+    <ClInclude Include="..\..\src\env_local.cc" />
+    <ClInclude Include="..\..\src\env_local.h" />
+    <ClInclude Include="..\..\src\env_remote.cc" />
+    <ClInclude Include="..\..\src\env_remote.h" />
     <ClInclude Include="..\..\src\error.h" />
     <ClInclude Include="..\..\src\errorinducer.h" />
     <ClInclude Include="..\..\src\extkeys.h" />
@@ -207,7 +213,6 @@
     <ClInclude Include="..\..\src\freelist.h" />
     <ClInclude Include="..\..\src\freelist_stats.h" />
     <ClInclude Include="..\..\src\hash-table.h" />
-    <ClInclude Include="..\..\src\internal_fwd_decl.h" />
     <ClInclude Include="..\..\src\journal.h" />
     <ClInclude Include="..\..\src\journal_entries.h" />
     <ClInclude Include="..\..\src\log.h" />
@@ -243,7 +248,6 @@
     <ClCompile Include="..\..\src\cursor.cc" />
     <ClCompile Include="..\..\src\db.cc" />
     <ClCompile Include="..\..\src\duplicates.cc" />
-    <ClCompile Include="..\..\src\env.cc" />
     <ClCompile Include="..\..\src\error.cc" />
     <ClCompile Include="..\..\src\freelist.cc" />
     <ClCompile Include="..\..\src\freelist_stats.cc" />
@@ -254,7 +258,6 @@
     <ClCompile Include="..\..\src\os_win32.cc" />
     <ClCompile Include="..\..\src\page.cc" />
     <ClCompile Include="..\..\src\page_manager.cc" />
-    <ClCompile Include="..\..\src\remote.cc" />
     <ClCompile Include="..\..\src\txn.cc" />
     <ClCompile Include="..\..\src\txn_cursor.cc" />
     <ClCompile Include="..\..\src\util.cc" />
