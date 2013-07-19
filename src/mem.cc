@@ -56,10 +56,12 @@ Memory::release_to_system()
 {
 #ifdef HAVE_GOOGLE_TCMALLOC_H
   MallocExtension::instance()->ReleaseFreeMemory();
-#else
-#  ifndef WIN32
+#  elif WIN32
+  // TODO
+#  elif __APPLE__
+  // TODO
+#  elif __GNUC__
   ::malloc_trim(os_get_granularity());
-#  endif
 #endif
 }
 

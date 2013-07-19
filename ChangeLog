@@ -1,3 +1,6 @@
+Jul 19, 2013 - chris ---------------------------------------------------
+o issue #24: Fixed compilation problem on MacOS (Thanks, Johnathan Conley)
+
 Jun 23, 2013 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.1
 
