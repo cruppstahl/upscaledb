@@ -82,6 +82,7 @@ class BtreeCheckAction
     // Verifies a whole level in the tree - start with "page" and traverse
     // the linked list of all the siblings
     ham_status_t verify_level(Page *parent, Page *page, ham_u32_t level) {
+      ham_status_t st = 0;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
       Page *child, *leftsib = 0;
@@ -103,7 +104,7 @@ class BtreeCheckAction
 
       while (page) {
         // verify the page
-        ham_status_t st = verify_page(parent, leftsib, page, level);
+        st = verify_page(parent, leftsib, page, level);
         if (st)
           break;
 
@@ -122,7 +123,7 @@ class BtreeCheckAction
         page = child;
       }
 
-      return (0);
+      return (st);
     }
 
     // Verifies a single page
