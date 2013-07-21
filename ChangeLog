@@ -1,3 +1,7 @@
+Jul 21, 2013 - chris ---------------------------------------------------
+o issue #23, #25: Fixed linking problems regarding tcmalloc_minimal.so
+	(Thanks, Johnathan Conley and brancaleone)
+
 Jul 19, 2013 - chris ---------------------------------------------------
 o issue #24: Fixed compilation problem on MacOS (Thanks, Johnathan Conley)
 

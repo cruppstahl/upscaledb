@@ -53,4 +53,11 @@
 // the default page size is 16 kb
 #define HAM_DEFAULT_PAGESIZE     (16 * 1024)
 
+// use tcmalloc?
+#if HAVE_GOOGLE_TCMALLOC_H == 1
+#  if HAVE_LIBTCMALLOC_MINIMAL == 1
+#    define HAM_USE_TCMALLOC 1
+#  endif
+#endif
+
 #endif /* HAM_CONFIG_H__ */

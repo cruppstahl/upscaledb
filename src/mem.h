@@ -12,11 +12,13 @@
 #ifndef HAM_MEM_H__
 #define HAM_MEM_H__
 
+#include "config.h"
+
 #include <stdlib.h>
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
 #endif
-#ifdef HAVE_GOOGLE_TCMALLOC_H
+#ifdef HAM_USE_TCMALLOC
 #  include <google/tcmalloc.h>
 #endif
 
@@ -47,7 +49,7 @@ class Memory {
       ms_total_allocations++;
       ms_current_allocations++;
 
-#ifdef HAVE_GOOGLE_TCMALLOC_H
+#ifdef HAM_USE_TCMALLOC
       return ((T *)::tc_malloc(size));
 #else
       return ((T *)::malloc(size));
@@ -65,7 +67,7 @@ class Memory {
       ms_total_allocations++;
       ms_current_allocations++;
 
-#ifdef HAVE_GOOGLE_TCMALLOC_H
+#ifdef HAM_USE_TCMALLOC
       return ((T *)::tc_calloc(1, size));
 #else
       return ((T *)::calloc(1, size));
@@ -84,7 +86,7 @@ class Memory {
         ms_total_allocations++;
         ms_current_allocations++;
       }
-#ifdef HAVE_GOOGLE_TCMALLOC_H
+#ifdef HAM_USE_TCMALLOC
       return ((T *)::tc_realloc(ptr, size));
 #else
       return ((T *)::realloc(ptr, size));
@@ -95,7 +97,7 @@ class Memory {
     static void release(void *ptr) {
       if (ptr) {
         ms_current_allocations--;
-#ifdef HAVE_GOOGLE_TCMALLOC_H
+#ifdef HAM_USE_TCMALLOC
         ::tc_free(ptr);
 #else
         ::free(ptr);
