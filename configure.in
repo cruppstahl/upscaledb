@@ -30,7 +30,6 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 AC_CHECK_FUNCS(mmap munmap getpagesize fdatasync fsync writev pread pwrite)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h google/tcmalloc.h)
-AC_CHECK_LIB(tcmalloc_minimal, tc_malloc)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
 BOOST_REQUIRE()
@@ -76,6 +75,23 @@ AC_ARG_ENABLE(gcc-hardening,
             CFLAGS="$CFLAGS -fwrapv -fPIE -Wstack-protector"
             CFLAGS="$CFLAGS --param ssp-buffer-size=1"
          fi])
+
+# -------------------------------------------------------------------------
+# Use tcmalloc?
+# -------------------------------------------------------------------------
+AC_ARG_WITH(tcmalloc,
+    AS_HELP_STRING(--without-tcmalloc, [disable tcmalloc for memory
+                                        allocations])],
+                                       [],
+                                      with_tcmalloc=yes)
+if test "x$with_tcmalloc" != "xyes"
+then
+  ac_cv_lib_tcmalloc_minimal_tc_malloc=no
+  AC_DEFINE(HAVE_GOOGLE_TCMALLOC_H, 0,
+            [Define to 1 if you have the <google/tcmalloc.h> header file.])
+else
+  AC_CHECK_LIB(tcmalloc_minimal, tc_malloc)
+fi
 
 # -------------------------------------------------------------------------
 # Overwrite JDK path; if $JDK is empty then fallback to $JAVA_HOME
