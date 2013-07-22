@@ -880,6 +880,8 @@ Freelist::truncate_page(ham_u64_t address)
   entry->free_bits -= size_bits;
   fp->set_free_bits(entry->free_bits);
 
+  /* actually mark the bits as "not free", which is the default for
+   * unallocated space */
   set_bits(entry, fp,
         (ham_size_t)(address - fp->get_start_address()) / kBlobAlignment,
         pagesize / kBlobAlignment, false, 0);
@@ -3014,7 +3016,7 @@ Freelist::check_bits(FreelistEntry *entry, PFreelistPayload *fp,
 
   qw_end = (start_bit + size_bits) >> 6;  /* one past the last full QWORD */
 
-  /* check the bits */
+  /* check the bits - all of them must be set */
   if (qw_end <= qw_start) {
     for (i = 0; i < size_bits; i++, start_bit++) {
       if (!(p[start_bit >> 3] & (1 << (start_bit & (8 - 1)))))

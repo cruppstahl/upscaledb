@@ -266,8 +266,8 @@ struct FreelistFixture {
   }
 
   void truncateTest() {
-    PageManager *pm = ((Environment *)m_env)->get_page_manager();
-    ham_size_t pagesize = ((Environment *)m_env)->get_pagesize();
+    PageManager *pm = m_lenv->get_page_manager();
+    ham_size_t pagesize = m_lenv->get_pagesize();
     Page *page[5] = {0};
 
     // allocate 5 pages
@@ -295,9 +295,9 @@ struct FreelistFixture {
     }
 
     // reopen and check again
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
     open();
-    pm = ((Environment *)m_env)->get_page_manager();
+    pm = m_lenv->get_page_manager();
 
     for (int i = 2; i < 5; i++) {
       REQUIRE(false == m_freelist->is_page_free(page[i]->get_address()));
@@ -310,7 +310,7 @@ struct FreelistFixture {
 
     // allocate the page; this must increase the file size
     ham_u64_t filesize;
-    REQUIRE(0 == ((Environment *)m_env)->get_device()->get_filesize(&filesize));
+    REQUIRE(0 == m_lenv->get_device()->get_filesize(&filesize));
     Page *p;
     REQUIRE(0 == pm->alloc_page(&p, 0, Page::kTypeFreelist,
                 PageManager::kClearWithZero));
@@ -323,7 +323,7 @@ struct FreelistFixture {
     pm->add_to_freelist((LocalDatabase *)m_db, p->get_address() + 960, 64);
     REQUIRE(false == m_freelist->is_page_free(p->get_address()));
 
-    ((Environment *)m_env)->get_changeset().clear();
+    m_lenv->get_changeset().clear();
   }
 
   void markAllocAlignedTest() {

@@ -89,8 +89,8 @@ class RemoteEnvironment : public Environment
     void *m_curl;
 };
 
-#endif // HAM_ENABLE_REMOTE
-
 } // namespace hamsterdb
+
+#endif // HAM_ENABLE_REMOTE
 
 #endif /* HAM_ENV_REMOTE_H__ */

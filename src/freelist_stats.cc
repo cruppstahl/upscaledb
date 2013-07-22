@@ -376,7 +376,7 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
    * freelist scans with a non-zero lower bound address are SPECIAL searches,
    * which should NOT corrupt our statistics in any way.
    * In short: we are not (yet) capable of processing these runs into the
-   * overall staistics gathering.
+   * overall statistics gathering.
   */
   if (hints->lower_bound_address == 0) {
     GlobalStatistics *globalstats = fl->get_global_statistics();

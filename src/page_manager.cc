@@ -273,7 +273,7 @@ PageManager::reclaim_space()
   if (!m_freelist)
     return (0);
 
-  ham_assert(!(m_env->get_flags() & DB_DISABLE_RECLAIM));
+  ham_assert(!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL));
 
   ham_size_t pagesize = m_env->get_pagesize();
   ham_u64_t filesize;

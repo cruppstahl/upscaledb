@@ -125,8 +125,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_u64_t size)
 #if HAVE_MUNMAP
   r = munmap(buffer, size);
   if (r) {
-    ham_log(("munmap failed with status %d (%s)", errno,
-          strerror(errno)));
+    ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
     return (HAM_IO_ERROR);
   }
   return (HAM_SUCCESS);
@@ -145,15 +144,21 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_u64_t bufferlen)
   ham_size_t total = 0;
 
   while (total < bufferlen) {
-    r = read(fd, &buffer[total], bufferlen-total);
-    if (r < 0)
+    r = read(fd, &buffer[total], bufferlen - total);
+    if (r < 0) {
+      ham_log(("os_read failed with status %u (%s)", errno, strerror(errno)));
       return (HAM_IO_ERROR);
+    }
     if (r == 0)
       break;
     total += r;
   }
 
-  return (total == bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
+  if (total != bufferlen) {
+    ham_log(("os_read() failed with short read (%s)", strerror(errno)));
+    return (HAM_IO_ERROR);
+  }
+  return (HAM_SUCCESS);
 }
 #endif
 
@@ -170,8 +175,7 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
   while (total < bufferlen) {
     r = pread(fd, (ham_u8_t *)buffer + total, bufferlen - total, addr + total);
     if (r < 0) {
-      ham_log(("os_pread failed with status %u (%s)",
-          errno, strerror(errno)));
+      ham_log(("os_pread failed with status %u (%s)", errno, strerror(errno)));
       return (HAM_IO_ERROR);
     }
     if (r == 0)
@@ -179,7 +183,11 @@ os_pread(ham_fd_t fd, ham_u64_t addr, void *buffer,
     total += r;
   }
 
-  return (total == bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
+  if (total != bufferlen) {
+    ham_log(("os_pread() failed with short read (%s)", strerror(errno)));
+    return (HAM_IO_ERROR);
+  }
+  return (HAM_SUCCESS);
 #else
   ham_status_t st;
 
@@ -202,14 +210,20 @@ os_write(ham_fd_t fd, const void *buffer, ham_u64_t bufferlen)
 
   while (total < bufferlen) {
     w = write(fd, p + total, bufferlen - total);
-    if (w < 0)
+    if (w < 0) {
+      ham_log(("os_write failed with status %u (%s)", errno, strerror(errno)));
       return (HAM_IO_ERROR);
+    }
     if (w == 0)
       break;
     total += w;
   }
 
-  return (total == bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
+  if (total != bufferlen) {
+    ham_log(("os_write() failed with short read (%s)", strerror(errno)));
+    return (HAM_IO_ERROR);
+  }
+  return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -225,8 +239,7 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
   while (total < bufferlen) {
     s = pwrite(fd, buffer, bufferlen, addr + total);
     if (s < 0) {
-      ham_log(("pwrite() failed with status %u (%s)",
-          errno, strerror(errno)));
+      ham_log(("pwrite() failed with status %u (%s)", errno, strerror(errno)));
       return (HAM_IO_ERROR);
     }
     if (s == 0)
@@ -234,8 +247,10 @@ os_pwrite(ham_fd_t fd, ham_u64_t addr, const void *buffer,
     total += s;
   }
 
-  if (total != bufferlen)
+  if (total != bufferlen) {
+    ham_log(("pwrite() failed with short read (%s)", strerror(errno)));
     return (HAM_IO_ERROR);
+  }
   return (os_seek(fd, addr + total, HAM_OS_SEEK_SET));
 #else
   ham_status_t st;
