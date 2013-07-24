@@ -22,7 +22,7 @@
 #include "../src/page.h"
 #include "../src/env.h"
 #include "../src/env_header.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/blob_manager.h"
 #include "../src/page_manager.h"
 #include "../src/txn.h"

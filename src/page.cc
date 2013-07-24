@@ -24,7 +24,7 @@
 #include "mem.h"
 #include "os.h"
 #include "page.h"
-#include "btree.h"
+#include "btree_index.h"
 
 namespace hamsterdb {
 

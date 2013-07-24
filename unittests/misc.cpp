@@ -20,7 +20,7 @@
 #include "../src/db_local.h"
 #include "../src/page.h"
 #include "../src/util.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/env.h"
 #include "../src/btree_key.h"
 

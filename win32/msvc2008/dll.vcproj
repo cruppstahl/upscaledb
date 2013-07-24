@@ -368,11 +368,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree.cc"
+			RelativePath="..\..\src\btree_index.cc"
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree.h"
+			RelativePath="..\..\src\btree_index.h"
 			>
 		</File>
 		<File

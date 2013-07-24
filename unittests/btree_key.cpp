@@ -17,7 +17,7 @@
 #include "os.hpp"
 
 #include "../src/db.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/btree_key.h"
 #include "../src/util.h"
 #include "../src/page.h"

@@ -20,14 +20,14 @@ libhamsterdb_la_SOURCES = \
 	blob_manager_disk.h \
 	blob_manager_disk.cc \
 	blob_manager_factory.h \
-	btree.cc \
+	btree_index.cc \
 	btree_check.cc \
 	btree_cursor.cc \
 	btree_cursor.h \
 	btree_enum.cc \
 	btree_erase.cc \
 	btree_find.cc \
-	btree.h \
+	btree_index.h \
 	btree_insert.cc \
 	btree_key.cc \
 	btree_key.h \

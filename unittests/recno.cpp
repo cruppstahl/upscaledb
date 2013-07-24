@@ -16,7 +16,7 @@
 #include "globals.h"
 #include "os.hpp"
 
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/page_manager.h"
 
 namespace hamsterdb {

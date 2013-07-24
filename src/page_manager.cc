@@ -14,7 +14,7 @@
 #include "page.h"
 #include "cache.h"
 #include "device.h"
-#include "btree.h"
+#include "btree_index.h"
 
 #include "page_manager.h"
 

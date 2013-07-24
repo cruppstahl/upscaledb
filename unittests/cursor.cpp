@@ -17,9 +17,8 @@
 
 #include "../src/env_local.h"
 #include "../src/cursor.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/btree_cursor.h"
-#include "../src/btree.h"
 
 using namespace hamsterdb;
 

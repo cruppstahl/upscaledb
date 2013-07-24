@@ -9,8 +9,8 @@
  * See files COPYING.* for License information.
  */
 
-#ifndef HAM_BTREE_H__
-#define HAM_BTREE_H__
+#ifndef HAM_BTREE_INDEX_H__
+#define HAM_BTREE_INDEX_H__
 
 #include "endianswap.h"
 
@@ -244,7 +244,7 @@ class BtreeIndex
     //
     // if |idxptr| is a valid pointer then it will return the anchor index
     // of the loaded page.
-    ham_status_t find_internal(Page *parent, ham_key_t *key, Page **child,
+    ham_status_t find_internal(Page *parent, ham_key_t *key, Page **pchild,
                     ham_s32_t *idxptr = 0);
 
     // Searches a leaf node for a key.
@@ -257,7 +257,7 @@ class BtreeIndex
     ham_s32_t find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
 
     // Performs a binary search for the smallest element which is >= the
-    // key. also returns the comparison value in cmp; if *cmp == 0 then 
+    // key. also returns the comparison value in cmp; if *cmp == 0 then
     // the keys are equal
     ham_status_t get_slot(Page *page, ham_key_t *key, ham_s32_t *slot,
                     int *cmp = 0);
@@ -330,4 +330,4 @@ class BtreeIndex
 
 } // namespace hamsterdb
 
-#endif /* HAM_BTREE_H__ */
+#endif /* HAM_BTREE_INDEX_H__ */

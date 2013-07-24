@@ -14,7 +14,7 @@
 
 #include <string.h>
 
-#include "btree.h"
+#include "btree_index.h"
 #include "cursor.h"
 #include "btree_cursor.h"
 #include "db.h"
@@ -265,7 +265,7 @@ class BtreeFindAction
               }
             }
           }
-          else if (hints.original_flags&HAM_FIND_GT_MATCH) {
+          else if (hints.original_flags & HAM_FIND_GT_MATCH) {
             /* if the index+1 is still in the page, just increment the it */
             if (idx + 1 < node->get_count())
               idx++;

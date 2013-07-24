@@ -18,7 +18,7 @@
 
 #include <string.h>
 
-#include "btree.h"
+#include "btree_index.h"
 #include "db.h"
 #include "env.h"
 #include "error.h"
@@ -237,36 +237,34 @@ BtreeIndex::free_page_extkeys(Page *page, ham_u32_t flags)
 }
 
 ham_status_t
-BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **page_ref,
+BtreeIndex::find_internal(Page *page, ham_key_t *key, Page **pchild,
                 ham_s32_t *idxptr)
 {
+  *pchild = 0;
+
   PBtreeNode *node = PBtreeNode::from_page(page);
 
-  /*
-   * make sure that we're not in a leaf page, and that the
-   * page is not empty
-   */
+  // make sure that we're not in a leaf page, and that the
+  // page is not empty
   ham_assert(node->get_count() > 0);
   ham_assert(node->get_ptr_left() != 0);
 
   ham_s32_t slot;
   ham_status_t st = get_slot(page, key, &slot);
-  if (st) {
-    *page_ref = 0;
+  if (st)
     return (st);
-  }
 
   if (idxptr)
     *idxptr = slot;
 
   if (slot == -1)
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(page_ref,
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
                             m_db, node->get_ptr_left()));
   else {
     PBtreeKey *bte = node->get_key(m_db, slot);
     ham_assert(bte->get_flags() == 0
                 || bte->get_flags() == PBtreeKey::kExtended);
-    return (m_db->get_local_env()->get_page_manager()->fetch_page(page_ref,
+    return (m_db->get_local_env()->get_page_manager()->fetch_page(pchild,
                             m_db, bte->get_ptr()));
   }
 }

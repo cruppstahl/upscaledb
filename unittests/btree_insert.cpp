@@ -20,7 +20,7 @@
 #include "../src/version.h"
 #include "../src/page.h"
 #include "../src/env.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/btree_node.h"
 #include "../src/page_manager.h"
 

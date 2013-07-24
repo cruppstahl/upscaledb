@@ -13,7 +13,7 @@
 #include "config.h"
 
 #include "blob_manager.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "btree_cursor.h"
 #include "btree_stats.h"
 #include "cache.h"

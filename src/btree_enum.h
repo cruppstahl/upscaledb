@@ -12,7 +12,7 @@
 #ifndef HAM_BTREE_ENUM_H__
 #define HAM_BTREE_ENUM_H__
 
-#include "btree.h"
+#include "btree_index.h"
 
 namespace hamsterdb {
 

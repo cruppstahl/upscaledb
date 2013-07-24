@@ -171,6 +171,8 @@ x journal.cc: use ByteArray during recovery/iterating
 
 x log.cc: use ByteArray during recovery/iterating
 
+x rename btree.h/.cc to btree_index.h/.cc
+
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
@@ -182,20 +184,51 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o rename btree.h/.cc to btree_index.h/.cc
-
 o fix tcmalloc build on MacOS
 
-o prepare btree rewrite
+o prepare btree rewrite; the goal is to move all node-specific operations
+    into the node itself, and ultimately to get rid of BtreeIndex::compare
     o analyze node; move all node operations to the node itself
-        o find(key) -> position || -1
-        o get(position) -> key, value
-        o erase(key)
+        o PBtreeNode::get_key()
+        o find(key) -> position || kNotFound (== -1)
+            -> BtreeIndex::get_slot
+               (rename to get_position_in_page; returns position or kNotFound)
         o insert(key, RecordIdProxy) -> Proxy creates RecordId if insert is
                 successful
-        o shift
-        o merge
+            -> needs_split() -> bool
+            -> split(Page *newpage, int pivot, bool internal)
+            -> insert(key, record_proxy, flags = HINT_PREPEND, HINT_APPEND,
+                        OVERWRITE, DUPLICATE) -> {slot, duplicate_id}
+            -> append_no_split(key, record_proxy) -> {slot, duplicate_id}
+            -> prepend_no_split(key, record_proxy) -> {slot, duplicate_id}
+        o erase
+            o remove_entry(Page, slot) -> erase_from_page(Page, slot)
+            o copy_key(SrcPage, SrcSlot, DestPage, DestSlot)
+            o replace_key(SrcPage, SrcSlot, DestPage, DestSlot)
+            o shift
+            o merge
         o what else?
+            o Node::initialize() - called when a new page is allocated
+            o need an "iterator" concept where it is possible to get the
+              previous or the next key (for approx. matching and cursors)
+            o need to change the PBtreeKey class - it might not have a size!
+    o suggest new code flow
+        o Abstract baseclass BtreeNodeProxy, which is then derived and
+            implemented with template parameters. The generated pointer is
+            stored in the Page object (make sure it's deleted when the page
+            is moved to the freelist!). The BtreeNodeProxy will have all the
+            additional logic for the PBtreeNode (which will not be modified).
+        o Need a factory for BtreeNodeProxy objects
+        o start by rewriting BtreeCheckIntegrityAction; use a template function
+            to compare keys (which uses the pointer function internally)
+            o add UINT32 keys (HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32) and
+                implement a new Comparator
+            o implement the BtreeNodeProxy class
+                o needs get_position, get_key
+            o implement the BtreeKeyProxy class
+                o for variable size (existing) keys
+                o for fixed size keys (uint32, uint64...)
+        o then rewrite BtreeEnumAction
 
 o release-v2.sh
     o test build with disabled AES, add this to the release process
@@ -266,12 +299,13 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
         for strings (strcmp), blobs (memcmp)
     o replace extended keys; store them in the leaf unless they're TOO big
         (then either use an overflow area or refuse to store them i.e. if
-        they are > 20% of the page)
+        they are > 20% of the page - better refuse, then we can also get
+        rid of the error code that can be returned by the compare function)
     ------- release -------
     o replace duplicate keys; this will be difficult because it requires
         rewriting the Cursor consolidation flow
     ------- release -------
-    o optionally store fixed length record in leaf
+    o optionally store fixed length record in leaf (not in internal pages!)
     ------- release -------
 
 

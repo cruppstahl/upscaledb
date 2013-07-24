@@ -13,7 +13,7 @@
 #include "config.h"
 
 #include "db.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "btree_stats.h"
 #include "device_factory.h"
 #include "blob_manager_factory.h"

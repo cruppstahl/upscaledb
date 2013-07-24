@@ -19,7 +19,7 @@
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/serial.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/env.h"
 #include "../src/page.h"
 #include "../src/cursor.h"

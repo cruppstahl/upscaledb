@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "blob_manager.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "db_local.h"
 #include "env_local.h"
 #include "error.h"

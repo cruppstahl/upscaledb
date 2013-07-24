@@ -17,7 +17,7 @@
 #include "mem.h"
 #include "page.h"
 #include "cursor.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "btree_key.h"
 #include "btree_node.h"
 #include "btree_cursor.h"

@@ -16,7 +16,7 @@
 
 #include <ham/hamsterdb.h>
 
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/db_local.h"
 #include "../src/env_local.h"
 

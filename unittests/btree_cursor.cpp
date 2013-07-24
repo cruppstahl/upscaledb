@@ -20,7 +20,7 @@
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/error.h"
-#include "../src/btree.h"
+#include "../src/btree_index.h"
 #include "../src/env.h"
 #include "../src/cursor.h"
 #include "../src/page_manager.h"

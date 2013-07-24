@@ -27,7 +27,7 @@
 #endif
 
 #include "blob_manager.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "btree_cursor.h"
 #include "cache.h"
 #include "cursor.h"

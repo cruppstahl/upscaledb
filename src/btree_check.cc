@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "btree.h"
+#include "btree_index.h"
 #include "db.h"
 #include "env.h"
 #include "error.h"

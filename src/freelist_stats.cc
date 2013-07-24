@@ -14,7 +14,7 @@
 
 #include <string.h>
 
-#include "btree.h"
+#include "btree_index.h"
 #include "btree_cursor.h"
 #include "db.h"
 #include "device.h"

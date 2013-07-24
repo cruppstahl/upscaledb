@@ -16,7 +16,7 @@
 #include <algorithm>
 
 #include "blob_manager.h"
-#include "btree.h"
+#include "btree_index.h"
 #include "page_manager.h"
 #include "btree_cursor.h"
 #include "extkeys.h"
@@ -320,6 +320,8 @@ class BtreeInsertAction
       /*
        * otherwise, we have to split the page.
        * but BEFORE we split, we check if the key already exists!
+       * TODO get rid of this check; rather split even if it's not
+       * required
        */
       if (node->is_leaf()) {
         ham_s32_t idx = m_btree->find_leaf(page, key, HAM_FIND_EXACT_MATCH);
