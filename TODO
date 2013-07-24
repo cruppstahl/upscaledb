@@ -159,7 +159,17 @@ x clean up Environment class
     x make EnvironmentHeader::get_max_databases() private
     x split into multiple files
 
-o get rid of internal_fwd_decl.h
+x get rid of internal_fwd_decl.h
+
+x is the recovery working if there's a crash while the journal is applied?
+    -> no, it seems not, because it's disabled. There's actually no reason
+        to disable the log, only the journal should be disabled!
+    x disable journal while recovery is proceeding
+    x run recovery tests
+
+x journal.cc: use ByteArray during recovery/iterating
+
+x log.cc: use ByteArray during recovery/iterating
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -172,9 +182,9 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o release-v2.sh
-    o test build with disabled AES, add this to the release process
-    o test build with disabled remote, add this to the release process
+o rename btree.h/.cc to btree_index.h/.cc
+
+o fix tcmalloc build on MacOS
 
 o prepare btree rewrite
     o analyze node; move all node operations to the node itself
@@ -187,36 +197,20 @@ o prepare btree rewrite
         o merge
         o what else?
 
+o release-v2.sh
+    o test build with disabled AES, add this to the release process
+    o test build with disabled remote, add this to the release process
+    o test build with disabled tcmalloc, add this to the release process
+    o move "diff" to the end, just warn if the files are different
+    o improve release process automization; the result of release-v2.sh
+        are the following files:
+        o tar-ball
+        o the README
+        o the documentation
+        o the Changelog
+        o the release notes (a template)
+
 . run a performance test clang++ vs g++
-
-. when flushing the Changeset: batch ALL changes for the WHOLE transaction,
-    then flush all of them together. This way we can "merge" multiple changes
-    for the same page.
-    Also review the whole flush process - when not to log etc.
-    - only 1 page affected: no need to log it because it is idempotent
-    - freelist pages are always idempotent
-    - more than 1 index page? not idempotent (most likely)
-    - more than 1 blob page? not idempotent (maybe)
-    o define a few benchmarks
-    o be careful: if N operations are modifying the same changelog, and
-        then #N+1 aborts then the aborting operation must NOT clear the
-        changelog!
-
-. pre-allocate index; 1.10.x had this as an experimental feature
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-    o this feature is *per database*
-    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
-        is currently not used. For allocations in a reserved area it could
-        be set to the lower bound of this area. For other allocations it
-        could be set to the upper bound (thus exceeding this area).
-    o calculate number of reqd pages based on estimated keys from the user
-    o needs freelist hints to retrieve the next possible
-        free page *adjacent to* the previous index page
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages
 
 ------------------- release 2.1.2 -----------------------------------------
 
@@ -240,23 +234,22 @@ o collect file format incompatibilities
     o what else?
 
 o review/rewrite/refactor Transaction class
+    keep in mind that sooner or later the BtreeNode will expect template
+    arguments; can we do something similar with the TransactionNode?
     o split into multiple files
-    o keep in mind that sooner or later the BtreeNode will expect
-        template arguments; can we do something similar with the
-        TransactionNode?
+    o try to get the methods/design analoguous to the Btree
     o try to cleanup the flow; move more code from db.cc to txn.cc,
         reorg TransactionIndex similar to BtreeIndex
-    o try to get the methods/design analoguous to the Btree
     o TransactionIndex:
         x one TransactionIndex per Database (always created)
         x txn_opnode_t -> TransactionOperation
         o try to move code from db.cc into TransactionIndex, i.e. to check
             conflicts etc
+    o document the tree structure in the header file
     . each Transaction should have its own PoolAllocator (based on ByteArray);
         when deleting the whole structure, only the PoolAllocator is freed
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
-    o document the tree structure in the header file
 
 o start with the Btree rewrite; btree nodes are accepting template parameters
     and policies. The default parameter uses the callback function provided
@@ -299,6 +292,12 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
 o is the recovery working if there's a crash during ham_db_close
     or ham_env_close?
 
+
+
+
+
+------------------- idea soup ---------------------------------------------
+
 o allow transactions w/o journal
 
 o allow transactions w/o recovery
@@ -307,39 +306,34 @@ o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created
     o needs a function to enumerate them
 
-o fully (!) automize the whole release process for unix; the result (on
-    success) are the following files:
-    o tar-ball
-    o the README
-    o the documentation
-    o the Changelog
-    o the release notes (a template)
-    o move monster test to ec2?
-    o the output of the monster tests and the performance test
-    o windows-packages
+o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
+    then flush all of them together. This way we can "merge" multiple changes
+    for the same page.
+    Also review the whole flush process - when not to log etc.
+    - only 1 page affected: no need to log it because it is idempotent
+    - freelist pages are always idempotent
+    - more than 1 index page? not idempotent (most likely)
+    - more than 1 blob page? not idempotent (maybe)
+    o define a few benchmarks
+    o be careful: if N operations are modifying the same changelog, and
+        then #N+1 aborts then the aborting operation must NOT clear the
+        changelog!
 
-o update documentation
-    x in header file
-    o in the wiki
-        o don't forget to list all functions that are currently disabled
-            w/ txn's -> sorting dupes, approx. matching, ...
-        o transactional behavior/conflicts of duplicate keys
-    o in the wiki: start with internal documentation
-        o transactions
-        o architecture
-        o btree
-        o journal/log
-        o cache
-        o I/O
-        o unittests
-        o cursor(s)
-        o monstertests - how to use them?
-
-
-
-
-
-------------------- idea soup ---------------------------------------------
+o pre-allocate index; 1.10.x had this as an experimental feature
+    o see roadmap document for more information
+    o run a performance test/prototype if this is worth the effort
+    o this feature is *per database*
+    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
+        is currently not used. For allocations in a reserved area it could
+        be set to the lower bound of this area. For other allocations it
+        could be set to the upper bound (thus exceeding this area).
+    o calculate number of reqd pages based on estimated keys from the user
+    o needs freelist hints to retrieve the next possible
+        free page *adjacent to* the previous index page
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages
 
 o A new transactional mode: read-only transactions can run "in the past" - only
     on committed transactions. therefore they avoid conflicts and will always

@@ -9,7 +9,7 @@
  * See files COPYING.* for License information.
  */
 
-/**
+/*
  * @brief journal entries for insert, erase, begin, commit, abort...
  *
  */
@@ -21,35 +21,34 @@ namespace hamsterdb {
 
 #include "packstart.h"
 
-/**
+/*
  * A journal entry for all txn related operations (begin, commit, abort)
  *
  * This structure can be followed by one of the structures below
- * (journal_entry_insert_t or journal_entry_erase_t); the field 'followup_size'
+ * (PJournalEntryInsert or PJournalEntryERASE); the field |followup_size|
  * is the structure size of this follow-up structure.
  */
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntry
-{
-  /** constructor - sets all fields to 0 */
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntry {
+  // Constructor - sets all fields to 0
   PJournalEntry() : lsn(0), followup_size(0), txn_id(0), type(0),
         dbname(0), _reserved(0) { }
 
-  /** the lsn of this entry */
+  // the lsn of this entry
   ham_u64_t lsn;
 
-  /** the size of the follow-up entry in bytes (may be padded) */
+  // the size of the follow-up entry in bytes (may be padded)
   ham_u64_t followup_size;
 
-  /** the transaction id */
+  // the transaction id
   ham_u64_t txn_id;
 
-  /** the type of this entry */
+  // the type of this entry
   ham_u32_t type;
 
-  /** the name of the database which is modified by this entry */
+  // the name of the database which is modified by this entry
   ham_u16_t dbname;
 
-  /** a reserved value */
+  // a reserved value - reqd for padding
   ham_u16_t _reserved;
 } HAM_PACK_2;
 
@@ -58,41 +57,40 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntry
 
 #include "packstart.h"
 
-/**
- * a journal entry for insert
- */
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert
-{
-  /** constructor - sets all fields to 0 */
+//
+// a Journal entry for an 'insert' operation
+//
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert {
+  // Constructor - sets all fields to 0
   PJournalEntryInsert() : key_size(0), record_size(0), record_partial_size(0),
     record_partial_offset(0), insert_flags(0) { data[0]=0; }
 
-  /** key size */
+  // key size
   ham_u16_t key_size;
 
-  /** record size */
+  // record size
   ham_u32_t record_size;
 
-  /** record partial size */
+  // record partial size
   ham_u32_t record_partial_size;
 
-  /** record partial offset */
+  // record partial offset
   ham_u32_t record_partial_offset;
 
-  /** flags of ham_insert(), ham_cursor_insert() */
+  // flags of ham_insert(), ham_cursor_insert()
   ham_u32_t insert_flags;
 
-  /** data follows here - first 'key_size' bytes for the key, then
-   * 'record_size' bytes for the record (and maybe some padding) */
+  // data follows here - first |key_size| bytes for the key, then
+  // |record_size| bytes for the record (and maybe some padding)
   ham_u8_t data[1];
 
-  /** get a pointer to the key data */
-  ham_u8_t *get_key_data(void) {
+  // Returns a pointer to the key data
+  ham_u8_t *get_key_data() {
     return (&data[0]);
   }
 
-  /** get a pointer to the record data */
-  ham_u8_t *get_record_data(void) {
+  // Returns a pointer to the record data
+  ham_u8_t *get_record_data() {
     return (&data[key_size]);
   }
 } HAM_PACK_2;
@@ -102,29 +100,30 @@ HAM_PACK_0 struct HAM_PACK_1 PJournalEntryInsert
 
 #include "packstart.h"
 
-/**
- * a journal entry for erase
- */
-HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase
-{
-  /** constructor - sets all fields to 0 */
-  PJournalEntryErase() : key_size(0), erase_flags(0), duplicate(0)
-    { data[0]=0; }
+//
+// a Journal entry for 'erase' operations
+//
+HAM_PACK_0 struct HAM_PACK_1 PJournalEntryErase {
+  // Constructor - sets all fields to 0
+  PJournalEntryErase()
+    : key_size(0), erase_flags(0), duplicate(0) {
+    data[0] = 0;
+  }
 
-  /** key size */
+  // key size
   ham_u16_t key_size;
 
-  /** flags of ham_erase(), ham_cursor_erase() */
+  // flags of ham_erase(), ham_cursor_erase()
   ham_u32_t erase_flags;
 
-  /** which duplicate to erase */
+  // which duplicate to erase
   ham_u32_t duplicate;
 
-  /** the key data */
+  // the key data
   ham_u8_t data[1];
 
-  /** get a pointer to the key data */
-  ham_u8_t *get_key_data(void) {
+  // Returns a pointer to the key data
+  ham_u8_t *get_key_data() {
     return (&data[0]);
   }
 } HAM_PACK_2;

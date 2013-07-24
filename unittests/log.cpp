@@ -162,10 +162,10 @@ struct LogFixture {
     Log::Iterator iter = 0;
 
     Log::PEntry entry;
-    ham_u8_t *data;
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
+    ByteArray buffer;
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
     REQUIRE((ham_u64_t)0 == entry.lsn);
-    REQUIRE((ham_u8_t *)0 == data);
+    REQUIRE(0 == buffer.get_size());
 
     REQUIRE(0 == log->close());
   }
@@ -184,15 +184,13 @@ struct LogFixture {
     Log::Iterator iter = 0;
 
     Log::PEntry entry;
-    ham_u8_t *data;
+    ByteArray data;
     REQUIRE(0 == log->get_entry(&iter, &entry, &data));
     REQUIRE((ham_u64_t)1 == entry.lsn);
     REQUIRE((ham_u64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((ham_u32_t)1024 == entry.data_size);
-    REQUIRE(data);
+    REQUIRE(data.get_size() > 0);
     REQUIRE((ham_u32_t)0 == entry.flags);
-
-    Memory::release(data);
 
     REQUIRE((ham_u64_t)1 == log->get_lsn());
 
@@ -200,15 +198,13 @@ struct LogFixture {
     REQUIRE(0 == log->close());
   }
 
-  void checkLogEntry(Log *log, Log::PEntry *entry, ham_u64_t lsn,
-        ham_u8_t *data) {
+  void checkLogEntry(Log *log, Log::PEntry *entry, ham_u64_t lsn, void *data) {
     REQUIRE(lsn == entry->lsn);
     if (entry->data_size == 0) {
       REQUIRE(!data);
     }
     else {
       REQUIRE(data);
-      Memory::release(data);
     }
   }
 
@@ -223,14 +219,10 @@ struct LogFixture {
       delete page;
     }
 
-    REQUIRE(0 ==
-        ham_env_close(m_env,
-            HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP | HAM_DONT_CLEAR_LOG));
 
-    REQUIRE(0 ==
-        ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
-    REQUIRE(0 ==
-        ham_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"), 0, 0));
+    REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
     m_lenv = (LocalEnvironment *)m_env;
     REQUIRE((Log *)0 == m_lenv->get_log());
     log = new Log(m_lenv);
@@ -241,28 +233,23 @@ struct LogFixture {
     Log::Iterator iter = 0;
 
     Log::PEntry entry;
-    ham_u8_t *data;
+    ByteArray buffer;
 
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
-    checkLogEntry(log, &entry, 5, data);
-    REQUIRE(m_lenv->get_pagesize() ==
-            (ham_size_t)entry.data_size);
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
-    checkLogEntry(log, &entry, 4, data);
-    REQUIRE(m_lenv->get_pagesize() ==
-            (ham_size_t)entry.data_size);
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
-    checkLogEntry(log, &entry, 3, data);
-    REQUIRE(m_lenv->get_pagesize() ==
-            (ham_size_t)entry.data_size);
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
-    checkLogEntry(log, &entry, 2, data);
-    REQUIRE(m_lenv->get_pagesize() ==
-            (ham_size_t)entry.data_size);
-    REQUIRE(0 == log->get_entry(&iter, &entry, &data));
-    checkLogEntry(log, &entry, 1, data);
-    REQUIRE(m_lenv->get_pagesize() ==
-            (ham_size_t)entry.data_size);
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
+    checkLogEntry(log, &entry, 5, buffer.get_ptr());
+    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
+    checkLogEntry(log, &entry, 4, buffer.get_ptr());
+    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
+    checkLogEntry(log, &entry, 3, buffer.get_ptr());
+    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
+    checkLogEntry(log, &entry, 2, buffer.get_ptr());
+    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
+    REQUIRE(0 == log->get_entry(&iter, &entry, &buffer));
+    checkLogEntry(log, &entry, 1, buffer.get_ptr());
+    REQUIRE(m_lenv->get_pagesize() == (ham_size_t)entry.data_size);
   }
 };
 
@@ -427,7 +414,7 @@ struct LogHighLevelFixture {
     Log *log = m_lenv->get_log();
     REQUIRE(log != 0);
     ham_u64_t filesize;
-    REQUIRE(0 == os_get_filesize(log->get_fd(), &filesize));
+    REQUIRE(0 == os_get_filesize(log->test_get_fd(), &filesize));
     REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
@@ -515,7 +502,7 @@ struct LogHighLevelFixture {
     Log *log = ((LocalEnvironment *)m_env)->get_log();
     REQUIRE(log != 0);
     ham_u64_t filesize;
-    REQUIRE(0 == os_get_filesize(log->get_fd(), &filesize));
+    REQUIRE(0 == os_get_filesize(log->test_get_fd(), &filesize));
     REQUIRE((ham_u64_t)sizeof(Log::PEnvironmentHeader) == filesize);
 
     free(buffer);
@@ -540,7 +527,7 @@ struct LogHighLevelFixture {
   void compareLog(const char *filename, std::vector<LogEntry> &vec) {
     Log::PEntry entry;
     Log::Iterator iter = 0;
-    ham_u8_t *data;
+    ByteArray data;
     size_t size = 0;
     Log *log;
     std::vector<LogEntry>::iterator vit = vec.begin();
@@ -568,12 +555,9 @@ struct LogHighLevelFixture {
       REQUIRE((*vit).offset == entry.offset);
       REQUIRE((*vit).data_size == entry.data_size);
 
-      Memory::release(data);
-
       vit++;
     }
 
-    Memory::release(data);
     REQUIRE(vec.size() == size);
 
     REQUIRE(0 == log->close(true));

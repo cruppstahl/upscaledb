@@ -37,8 +37,8 @@ Log::create()
   ham_status_t st;
   std::string path = get_path();
 
-  /* create the files */
-  st=os_create(path.c_str(), 0, 0644, &m_fd);
+  // create the files
+  st = os_create(path.c_str(), 0, 0644, &m_fd);
   if (st)
     return (st);
 
@@ -61,14 +61,14 @@ Log::open()
   std::string path = get_path();
   ham_status_t st;
 
-  /* open the file */
+  // open the file
   st = os_open(path.c_str(), 0, &m_fd);
   if (st) {
     close();
     return (st);
   }
 
-  /* check the file header with the magic */
+  // check the file header with the magic
   st = os_pread(m_fd, 0, &header, sizeof(header));
   if (st) {
     close();
@@ -80,61 +80,57 @@ Log::open()
     return (HAM_LOG_INV_FILE_HEADER);
   }
 
-  /* store the lsn */
+  // store the lsn
   m_lsn = header.lsn;
 
   return (0);
 }
 
 ham_status_t
-Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ham_u8_t **data)
+Log::get_entry(Log::Iterator *iter, Log::PEntry *entry, ByteArray *buffer)
 {
   ham_status_t st;
 
-  *data = 0;
+  buffer->clear();
 
-  /* if the iterator is initialized and was never used before: read
-   * the file size */
+  // if the iterator is initialized and was never used before: read
+  // the file size
   if (!*iter) {
     st = os_get_filesize(m_fd, iter);
     if (st)
       return (st);
   }
 
-  /* if the current file is empty: no need to continue */
+  // if the current file is empty: no need to continue
   if (*iter <= sizeof(Log::PEnvironmentHeader)) {
     entry->lsn = 0;
     return (0);
   }
 
-  /* otherwise read the Log::PEntry header (without extended data)
-   * from the file */
+  // otherwise read the Log::PEntry header (without extended data)
+  // from the file
   *iter -= sizeof(Log::PEntry);
 
   st = os_pread(m_fd, *iter, entry, sizeof(*entry));
   if (st)
     return (st);
 
-  /* now read the extended data, if it's available */
+  // now read the extended data, if it's available
   if (entry->data_size) {
     ham_u64_t pos = (*iter) - entry->data_size;
     pos -= (pos % 8);
 
-    *data = Memory::allocate<ham_u8_t>((ham_size_t)entry->data_size);
-    if (!*data)
+    if (!buffer->resize((ham_size_t)entry->data_size))
       return (HAM_OUT_OF_MEMORY);
 
-    st = os_pread(m_fd, pos, *data, (ham_size_t)entry->data_size);
+    st = os_pread(m_fd, pos, buffer->get_ptr(), (ham_size_t)entry->data_size);
     if (st) {
-      Memory::release(*data);
-      *data = 0;
+      buffer->clear();
       return (st);
     }
 
     *iter = pos;
   }
-  else
-    *data = 0;
 
   return (0);
 }
@@ -148,7 +144,7 @@ Log::close(bool noclear)
   if (m_fd == HAM_INVALID_FD)
     return (0);
 
-  /* write the file header with the magic and the last used lsn */
+  // write the file header with the magic and the last used lsn
   header.magic = HEADER_MAGIC;
   header.lsn = m_lsn;
 
@@ -174,7 +170,7 @@ Log::append_page(Page *page, ham_u64_t lsn, ham_size_t page_count)
   ham_size_t size = m_env->get_pagesize();
 
   if (st == 0)
-    st = append_write(lsn, page_count == 0 ? CHANGESET_IS_COMPLETE : 0,
+    st = append_write(lsn, page_count == 0 ? kChangesetIsComplete : 0,
             page->get_address(), p, size);
 
   if (p != page->get_raw_payload())
@@ -191,43 +187,40 @@ Log::recover()
   Device *device = m_env->get_device();
   Log::PEntry entry;
   Iterator it = 0;
-  ham_u8_t *data = 0;
+  ByteArray buffer;
   ham_u64_t filesize;
   bool first_loop = true;
 
-  /* get the file size of the database; otherwise we do not know if we
-   * modify an existing page or if one of the pages has to be allocated */
+  // get the file size of the database; otherwise we do not know if we
+  // modify an existing page or if one of the pages has to be allocated
   st = device->get_filesize(&filesize);
   if (st)
     return (st);
 
-  /* temporarily disable logging */
+  // temporarily disable logging
   m_env->set_flags(m_env->get_flags() & ~HAM_ENABLE_RECOVERY);
 
-  /* now start the loop once more and apply the log */
+  // now start the loop once more and apply the log
   while (1) {
-    /* clean up memory of the previous loop */
-    if (data) {
-      Memory::release(data);
-      data = 0;
-    }
+    // clean up memory of the previous loop
+    buffer.clear();
 
-    /* get the next entry in the logfile */
-    st = get_entry(&it, &entry, &data);
+    // get the next entry in the logfile
+    st = get_entry(&it, &entry, &buffer);
     if (st)
       goto bail;
 
-    /* first make sure that the log is complete; if not then it will not
-     * be applied  */
+    // first make sure that the log is complete; if not then it will not
+    // be applied
     if (first_loop) {
-      if (entry.flags != CHANGESET_IS_COMPLETE) {
+      if (entry.flags != kChangesetIsComplete) {
         ham_log(("log is incomplete and will be ignored"));
         goto clear;
       }
       first_loop = false;
     }
 
-    /* reached end of the log file? */
+    // reached end of the log file?
     if (entry.lsn == 0)
       break;
 
@@ -235,13 +228,11 @@ Log::recover()
      * Was the page appended or overwritten?
      *
      * Either way we have to bypass the cache and all upper layers. We
-     * cannot call Database::alloc_page() or Database::fetch_page() since there 
-     * is no Database handle. env->alloc_page()/env->fetch_page() would work,
-     * but then the page ownership is not set correctly (the
-     * ownership is verified later, and this would fail).
+     * cannot call PageManager::alloc_page() or PageManager::fetch_page()
+     * since they are not yet properly set up.
      */
     if (entry.offset == filesize) {
-      /* appended... */
+      // appended...
       filesize += entry.data_size;
 
       page = new Page(m_env);
@@ -250,7 +241,7 @@ Log::recover()
         goto bail;
     }
     else {
-      /* overwritten... */
+      // overwritten...
       page = new Page(m_env);
       st = page->fetch(entry.offset);
       if (st)
@@ -260,23 +251,23 @@ Log::recover()
     ham_assert(page->get_address() == entry.offset);
     ham_assert(m_env->get_pagesize() == entry.data_size);
 
-    /* overwrite the page data */
-    memcpy(page->get_data(), data, entry.data_size);
+    // overwrite the page data
+    memcpy(page->get_data(), buffer.get_ptr(), entry.data_size);
 
-    /* flush the modified page to disk */
+    // flush the modified page to disk
     page->set_dirty(true);
     st = m_env->get_page_manager()->flush_page(page);
     if (st)
       goto bail;
     delete page;
 
-    /* store the lsn in the log - will be needed later when recovering
-     * the journal */
+    // store the lsn in the log - will be needed later when recovering
+    // the journal
     m_lsn = entry.lsn;
   }
 
 clear:
-  /* and finally clear the log */
+  // and finally clear the log
   st = clear();
   if (st) {
     ham_log(("unable to clear logfiles; please manually delete the "
@@ -285,12 +276,8 @@ clear:
   }
 
 bail:
-  /* re-enable the logging */
+  // re-enable the logging
   m_env->set_flags(m_env->get_flags() | HAM_ENABLE_RECOVERY);
-
-  /* clean up memory */
-  Memory::release(data);
-  data = 0;
 
   return (st);
 }
@@ -301,7 +288,7 @@ Log::append_write(ham_u64_t lsn, ham_u32_t flags, ham_u64_t offset,
 {
   Log::PEntry entry;
 
-  /* store the lsn - it will be needed later when the log file is closed */
+  // store the lsn - it will be needed later when the log file is closed
   if (lsn)
     m_lsn = lsn;
 

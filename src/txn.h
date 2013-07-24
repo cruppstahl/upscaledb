@@ -402,6 +402,7 @@ class Transaction
     }
 
     /** sets the id */
+    // TODO should be in constructor?
     void set_id(ham_u64_t id) {
       m_id = id;
     }
@@ -417,6 +418,7 @@ class Transaction
     }
 
     /** set the txn name */
+    // TODO required?
     void set_name(const char *name) {
       m_name = name;
     }
@@ -427,6 +429,7 @@ class Transaction
     }
 
     /** set the flags */
+    // TODO required?
     void set_flags(ham_u32_t flags) {
       m_flags = flags;
     }
@@ -437,6 +440,7 @@ class Transaction
     }
 
     /** set the cursor refcount */
+    // TODO required?
     void set_cursor_refcount(ham_size_t count) {
       m_cursor_refcount = count;
     }
