@@ -27,8 +27,8 @@
  */
 #define HAM_VERSION_MAJ     2
 #define HAM_VERSION_MIN     1
-#define HAM_VERSION_REV     1
+#define HAM_VERSION_REV     2
 #define HAM_FILE_VERSION    0
-#define HAM_VERSION_STR     "2.1.1"
+#define HAM_VERSION_STR     "2.1.2"
 
 #endif /* HAM_VERSION_H__ */

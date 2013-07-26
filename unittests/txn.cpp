@@ -25,7 +25,7 @@
 #include "../src/db_local.h"
 #include "../src/env_local.h"
 
-using namespace hamsterdb;
+namespace hamsterdb {
 
 struct TxnFixture {
   ham_db_t *m_db;
@@ -1507,3 +1507,4 @@ TEST_CASE("Txn-inmem/cursorOverwriteTest", "")
   f.cursorOverwriteTest();
 }
 
+} // namespace hamsterdb

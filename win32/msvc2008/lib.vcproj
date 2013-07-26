@@ -68,7 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x86_debug.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.1.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -136,7 +136,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x64_debug.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.1.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 				AdditionalLibraryDirectories=""
 			/>
 			<Tool
@@ -201,7 +201,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x86.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.1.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 				AdditionalLibraryDirectories=""
 				SuppressStartupBanner="true"
 			/>
@@ -268,7 +268,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\..\hamsterdb-alien\libcurl\msvc2008/libcurl_x64.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-2.1.1.lib"
+				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 				AdditionalLibraryDirectories="..\..\hamsterdb-alien\boost\x64"
 			/>
 			<Tool

@@ -30,14 +30,16 @@ class AesCipher {
 
   public:
     AesCipher(const ham_u8_t key[kAesBlockSize], ham_u64_t salt = 0) {
-      ham_u8_t iv[kAesBlockSize];
+      ham_u64_t iv[2];
       memset(iv, 0, sizeof(iv));
-      *(ham_u64_t *)iv = ham_h2db64(salt);
+      iv[0] = ham_h2db64(salt);
   
       EVP_CIPHER_CTX_init(&m_encrypt_ctx);
-      EVP_EncryptInit_ex(&m_encrypt_ctx, EVP_aes_128_cbc(), NULL, key, iv);
+      EVP_EncryptInit_ex(&m_encrypt_ctx, EVP_aes_128_cbc(), NULL, key,
+              (ham_u8_t *)&iv[0]);
       EVP_CIPHER_CTX_init(&m_decrypt_ctx);
-      EVP_DecryptInit_ex(&m_decrypt_ctx, EVP_aes_128_cbc(), NULL, key, iv);
+      EVP_DecryptInit_ex(&m_decrypt_ctx, EVP_aes_128_cbc(), NULL, key,
+              (ham_u8_t *)&iv[0]);
       EVP_CIPHER_CTX_set_padding(&m_encrypt_ctx, 0);
       EVP_CIPHER_CTX_set_padding(&m_decrypt_ctx, 0);
     }

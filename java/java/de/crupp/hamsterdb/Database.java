@@ -157,7 +157,7 @@ public class Database {
    * which is based on memcmp(3). See <code>setPrefixComparator</code> for
    * details.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42e161d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.2d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>

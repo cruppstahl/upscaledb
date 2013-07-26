@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 2.1.1               Wed Jun 19 22:25:28 CEST 2013
+hamsterdb Embedded Storage 2.1.2               Fri Jul 26 21:53:52 CEST 2013
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -11,41 +11,30 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 mature and easy to use.
 
-This release had ambitious plans. The cache flush algorithm was supposed to be
-removed, and the freelist was about to be rewritten. Both changes were supposed
-to improve performance, but ultimately turned out not to have any gains at all.
-Therefore this release has a few bug fixes (mostly improving the build process)
-and internal functions to collect performance metrics. Some of these metrics
-were already collected, i.e. memory consumption and wall clock profiling,
-others were added (Cache hits, misses etc). The regression tests will keep
-track of them and scream out if any metric degrades with the new release.
+This release re-implemented AES encryption based on OpenSSL and libcrypto. A
+few bugs in the build process were fixed (thanks for all the patches!). A new
+build option --without-tcmalloc was added.
 
-These metrics will hopefully give better information in the future whether
-performance optimizations are worth the effort. 
+A new internal function ham_env_get_metrics returns metrics and usage
+statistics that are useful for profiling. When closing the database file,
+unused space at the end of the file is truncated and the file will shrink.
 
-Also, this release features some performance improvements, mainly regarding
-memory management and the integration of tcmalloc. Building against tcmalloc is
-definitely recommended.
+The client- and server-side implementation of the remote network access has been
+rewritten. The server now uses libuv (which is part of Node.js), which resulted
+in a performance improvement.
 
 2. Changes
 
 New Features
-* none
+* An internal function ham_env_get_metrics was added
+* Added support for transparent AES encryption
 
 Bugfixes
-* Fixed JDK include paths on MacOS (Thanks, Mark Sutheran)
-* Merged various MacOS related fixes (thanks, Johnathan Conley)
-* Fixed build if remote functionality is disabled (i.e. because protobuffer
-	or libcurl is missing)
+* Several bugs in the build process were fixed
 
 Other Changes
-* Removed internal (but exported) functions ham_env_get_device,
-	ham_env_set_device
-* Improved integration of tcmalloc, removed ham_env_set_allocator
-* A small semantic change: when retrieving partial records with
-	ham_db_find or ham_cursor_find, the partial size is now stored in
-	record.partial_size and the original size is stored in record.size.
-	Previously, the partial size was stored in record.size.
+* Client- and server-side implementation of the remote network access has
+    been rewritten.
 
 To see a list of all changes, look in the file ChangeLog.
 

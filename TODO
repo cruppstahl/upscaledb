@@ -250,7 +250,7 @@ o release-v2.sh
     o test build with disabled AES, add this to the release process
     o test build with disabled remote, add this to the release process
     o test build with disabled tcmalloc, add this to the release process
-    o move "diff" to the end, just warn if the files are different
+    x move "diff" to the end, just warn if the files are different
     o improve release process automization; the result of release-v2.sh
         are the following files:
         o tar-ball

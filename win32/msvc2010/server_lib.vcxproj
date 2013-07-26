@@ -68,10 +68,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\server_lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\server_lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\server_lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamserver-2.1.1</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamserver-2.1.1</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamserver-2.1.1</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamserver-2.1.1</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamserver-2.1.2</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamserver-2.1.2</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamserver-2.1.2</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamserver-2.1.2</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -91,7 +91,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <OutputFile>$(OutDir)libhamserver-2.1.1.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
@@ -118,7 +118,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.1.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -138,7 +138,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.1.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -161,7 +161,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamserver-2.1.1.lib</OutputFile>
+      <OutputFile>$(OutDir)libhamserver-2.1.2.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>

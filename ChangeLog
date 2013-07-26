@@ -1,3 +1,6 @@
+Aug 01, 2013 - chris ---------------------------------------------------
+                      release of hamsterdb-2.1.2
+
 Jul 21, 2013 - chris ---------------------------------------------------
 o Added new configure option --without-tcmalloc
 o issue #23, #25: Fixed linking problems regarding tcmalloc_minimal.so
@@ -11,7 +14,6 @@ o ham_env_close now truncates the file size and removes unused pages at the
 	end of the file
 
 Jun 27, 2013 - chris ---------------------------------------------------
-
 o issue #17: configure.in checks now for (hopefully) correct boost version
 
 Jun 26, 2013 - chris ---------------------------------------------------

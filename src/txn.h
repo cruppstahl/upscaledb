@@ -467,6 +467,11 @@ class Transaction
       return (m_remote_handle);
     }
 
+    // Sets the remote database handle
+    void set_remote_handle(ham_u64_t handle) {
+      m_remote_handle = handle;
+    }
+
     // Returns the memory buffer for the key data.
     // Used to allocate array in ham_find, ham_cursor_move etc. which is
     // then returned to the user.
@@ -531,6 +536,7 @@ class Transaction
 
   private:
     friend class Journal;
+    friend struct TxnFixture;
     friend struct TxnCursorFixture;
 
     // Frees the internal structures; releases all the memory. This is
