@@ -117,9 +117,6 @@ struct TxnFixture {
     REQUIRE(m_env == (ham_env_t *)txn->get_env());
     REQUIRE((ham_u64_t)1 == txn->get_id());
 
-    txn->set_flags(0x99);
-    REQUIRE((ham_u32_t)0x99 == txn->get_flags());
-
     txn->set_log_desc(4);
     REQUIRE(4 == txn->get_log_desc());
     txn->set_log_desc(0);
@@ -203,12 +200,13 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key1);
-    REQUIRE(node);
+    m_dbp->get_txn_index()->store(node);
     node2 = m_dbp->get_txn_index()->get(&key1, 0);
     REQUIRE(node == node2);
     node2 = m_dbp->get_txn_index()->get(&key2, 0);
     REQUIRE((TransactionNode *)NULL == node2);
     node2 = new TransactionNode(m_dbp, &key2);
+    m_dbp->get_txn_index()->store(node2);
     REQUIRE(node != node2);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
@@ -226,13 +224,13 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TransactionNode(m_dbp, &key);
-    REQUIRE(node1);
+    m_dbp->get_txn_index()->store(node1);
     key.data = (void *)"2222";
     node2 = new TransactionNode(m_dbp, &key);
-    REQUIRE(node2);
+    m_dbp->get_txn_index()->store(node2);
     key.data = (void *)"3333";
     node3 = new TransactionNode(m_dbp, &key);
-    REQUIRE(node3 != 0);
+    m_dbp->get_txn_index()->store(node3);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));
   }
@@ -252,14 +250,15 @@ struct TxnFixture {
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TransactionNode(m_dbp, &key);
+    m_dbp->get_txn_index()->store(node);
     op1 = node->append((Transaction *)txn, 
-        0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &rec);
+        0, TransactionOperation::kInsertDuplicate, 55, &rec);
     REQUIRE(op1);
     op2 = node->append((Transaction *)txn,
-        0, TransactionOperation::TXN_OP_ERASE, 55, &rec);
+        0, TransactionOperation::kErase, 55, &rec);
     REQUIRE(op2);
     op3 = node->append((Transaction *)txn,
-        0, TransactionOperation::TXN_OP_NOP, 55, &rec);
+        0, TransactionOperation::kNop, 55, &rec);
     REQUIRE(op3);
 
     REQUIRE(0 == ham_txn_commit(txn, 0));

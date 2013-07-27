@@ -26,10 +26,6 @@ class BtreeVisitor {
       kSkipPage     = 1
     };
 
-    // Virtual destructor - can be overwritten!
-    virtual ~BtreeVisitor() {
-    }
-
     // Return true if this visitor should also visit internal nodes, not
     // just the leafs
     virtual bool visit_internal_nodes() const {

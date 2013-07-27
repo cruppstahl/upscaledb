@@ -71,44 +71,39 @@ copy_key_data(ham_key_t *key)
   return (data);
 }
 
-static void
-txn_op_free(Environment *env, Transaction *txn, TransactionOperation *op)
+TransactionOperation::~TransactionOperation()
 {
-  ham_record_t *rec;
-  TransactionNode *node;
+  Memory::release(m_record.data);
+  m_record.data = 0;
 
-  // TODO move to destructor of TransactionOperation
-  rec = op->get_record();
-  Memory::release(rec->data);
-  rec->data = 0;
-
-  /* remove 'op' from the two linked lists */
-  TransactionOperation *next = op->get_next_in_node();
-  TransactionOperation *prev = op->get_previous_in_node();
+  /* remove this operation from the two linked lists */
+  TransactionOperation *next = get_next_in_node();
+  TransactionOperation *prev = get_previous_in_node();
   if (next)
     next->set_previous_in_node(prev);
   if (prev)
     prev->set_next_in_node(next);
 
-  next = op->get_next_in_txn();
-  prev = op->get_previous_in_txn();
+  next = get_next_in_txn();
+  prev = get_previous_in_txn();
   if (next)
     next->set_previous_in_txn(prev);
   if (prev)
     prev->set_next_in_txn(next);
 
   /* remove this op from the node */
-  node = op->get_node();
-  if (node->get_oldest_op()==op)
-    node->set_oldest_op(op->get_next_in_node());
+  // TODO should this be done in here??
+  TransactionNode *node = get_node();
+  if (node->get_oldest_op() == this)
+    node->set_oldest_op(get_next_in_node());
 
   /* if the node is empty: remove the node from the tree */
-  if (node->get_oldest_op() == 0)
+  // TODO should this be done in here??
+  if (node->get_oldest_op() == 0) {
+    node->get_txn_index()->remove(node);
     delete node;
-
-  delete op;
+  }
 }
-
 
 rb_wrap(static, rbt_, TransactionIndex, TransactionNode, node, compare)
 
@@ -116,7 +111,7 @@ TransactionOperation::TransactionOperation(Transaction *txn,
     TransactionNode *node, ham_u32_t flags, ham_u32_t orig_flags,
     ham_u64_t lsn, ham_record_t *record)
   : m_txn(txn), m_node(node), m_flags(flags), m_orig_flags(orig_flags),
-  m_referenced_dupe(0), m_lsn(lsn), m_cursors(0), m_node_next(0),
+  m_referenced_dupe(0), m_lsn(lsn), m_cursor_list(0), m_node_next(0),
   m_node_prev(0), m_txn_next(0), m_txn_prev(0)
 {
   /* create a copy of the record structure */
@@ -138,44 +133,34 @@ TransactionOperation::TransactionOperation(Transaction *txn,
 TransactionNode *
 TransactionNode::get_next_sibling()
 {
-  return (rbt_next(m_tree, this));
+  return (rbt_next(m_txn_index, this));
 }
 
 TransactionNode *
 TransactionNode::get_previous_sibling()
 {
-  return (rbt_prev(m_tree, this));
+  return (rbt_prev(m_txn_index, this));
 }
 
-TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key,
-                bool dont_insert)
-  : m_db(db), m_tree(db->get_txn_index()), m_oldest_op(0), m_newest_op(0),
-  m_dont_insert(dont_insert)
+TransactionNode::TransactionNode(LocalDatabase *db, ham_key_t *key)
+  : m_db(db), m_txn_index(db ? db->get_txn_index() : 0),
+    m_oldest_op(0), m_newest_op(0)
 {
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
   // TransactionIndex::get() creates a new TransactionNode
   // ham_assert(TransactionIndex::get(key, 0) == 0);
 
-  m_key = *key;
-  m_key.data = copy_key_data(key);
-
-  /* store the node in the tree */
-  if (dont_insert == false)
-    rbt_insert(m_tree, this);
-}
-
-TransactionNode::TransactionNode()
-  : m_db(0), m_tree(0), m_oldest_op(0), m_newest_op(0), m_dont_insert(true)
-{
-  memset(&m_key, 0, sizeof(m_key));
+  if (key) {
+    m_key = *key;
+    m_key.data = copy_key_data(key);
+  }
+  else
+    memset(&m_key, 0, sizeof(m_key));
 }
 
 TransactionNode::~TransactionNode()
 {
-  if (m_dont_insert == false && m_tree)
-    rbt_remove(m_tree, this);
-
   Memory::release(m_key.data);
 }
 
@@ -216,14 +201,15 @@ TransactionNode::append(Transaction *txn, ham_u32_t orig_flags,
 }
 
 void
-TransactionIndex::close()
+TransactionIndex::store(TransactionNode *node)
 {
-  TransactionNode *node;
+  rbt_insert(this, node);
+}
 
-  while ((node = rbt_last(this)))
-    delete node;
-
-  rbt_new(this);
+void
+TransactionIndex::remove(TransactionNode *node)
+{
+  rbt_remove(this, node);
 }
 
 Transaction::Transaction(Environment *env, const char *name,
@@ -239,7 +225,7 @@ Transaction::Transaction(Environment *env, const char *name,
 
 Transaction::~Transaction()
 {
-  free_ops();
+  free_operations();
 
   /* fix double linked transaction list */
   if (get_older())
@@ -255,7 +241,7 @@ Transaction::commit(ham_u32_t flags)
   ham_assert(get_cursor_refcount() == 0);
 
   /* this transaction is now committed!  */
-  set_flags(get_flags() | TXN_STATE_COMMITTED);
+  m_flags |= kStateCommitted;
 
   // TODO ugly - better move flush_committed_txns() in the caller
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
@@ -277,10 +263,10 @@ Transaction::abort(ham_u32_t flags)
   }
 
   /* this transaction is now aborted!  */
-  set_flags(get_flags() | TXN_STATE_ABORTED);
+  m_flags |= kStateAborted;
 
   /* immediately release memory of the cached operations */
-  free_ops();
+  free_operations();
 
   /* clean up the changeset */
   LocalEnvironment *lenv = dynamic_cast<LocalEnvironment *>(m_env);
@@ -291,14 +277,13 @@ Transaction::abort(ham_u32_t flags)
 }
 
 void
-Transaction::free_ops()
+Transaction::free_operations()
 {
-  Environment *env = get_env();
   TransactionOperation *n, *op = get_oldest_op();
 
   while (op) {
     n = op->get_next_in_txn();
-    txn_op_free(env, this, op);
+    delete op;
     op = n;
   }
 
@@ -317,6 +302,19 @@ TransactionIndex::TransactionIndex(LocalDatabase *db)
   }
 }
 
+TransactionIndex::~TransactionIndex()
+{
+  TransactionNode *node;
+
+  while ((node = rbt_last(this))) {
+    remove(node);
+    delete node;
+  }
+
+  // re-initialize the tree
+  rbt_new(this);
+}
+
 TransactionNode *
 TransactionIndex::get(ham_key_t *key, ham_u32_t flags)
 {
@@ -324,7 +322,7 @@ TransactionIndex::get(ham_key_t *key, ham_u32_t flags)
   int match = 0;
 
   /* create a temporary node that we can search for */
-  TransactionNode tmp(m_db, key, true);
+  TransactionNode tmp(m_db, key);
 
   /* search if node already exists - if yes, return it */
   if ((flags & HAM_FIND_GEQ_MATCH) == HAM_FIND_GEQ_MATCH) {
@@ -384,17 +382,17 @@ TransactionIndex::get_last()
 }
 
 void
-txn_tree_enumerate(TransactionIndex *tree, TxnTreeVisitor *visitor)
+TransactionIndex::enumerate(TransactionIndex::Visitor *visitor)
 {
-  TransactionNode *node = rbt_first(tree);
+  TransactionNode *node = rbt_first(this);
 
   while (node) {
     visitor->visit(node);
-    node = rbt_next(tree, node);
+    node = rbt_next(this, node);
   }
 }
 
-struct KeyCounter : public TxnTreeVisitor
+struct KeyCounter : public TransactionIndex::Visitor
 {
   KeyCounter(LocalDatabase *_db, Transaction *_txn, ham_u32_t _flags)
     : counter(0), flags(_flags), txn(_txn), db(_db) {
@@ -423,27 +421,27 @@ struct KeyCounter : public TxnTreeVisitor
       if (optxn->is_aborted())
         ; // nop
       else if (optxn->is_committed() || txn == optxn) {
-        if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
+        if (op->get_flags() & TransactionOperation::kIsFlushed)
           ; // nop
         // if key was erased then it doesn't exist
-        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE)
+        else if (op->get_flags() & TransactionOperation::kErase)
           return;
-        else if (op->get_flags() & TransactionOperation::TXN_OP_NOP)
+        else if (op->get_flags() & TransactionOperation::kNop)
           ; // nop
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
+        else if (op->get_flags() & TransactionOperation::kInsert) {
           counter++;
           return;
         }
         // key exists - include it
-        else if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
-            || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
+        else if ((op->get_flags() & TransactionOperation::kInsert)
+            || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
           // check if the key already exists in the btree - if yes,
           // we do not count it (it will be counted later)
           if (HAM_KEY_NOT_FOUND == be->find(0, 0, node->get_key(), 0, 0))
             counter++;
           return;
         }
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
+        else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
           // check if btree has other duplicates
           if (0 == be->find(0, 0, node->get_key(), 0, 0)) {
             // yes, there's another one
@@ -484,7 +482,7 @@ TransactionIndex::get_key_count(Transaction *txn, ham_u32_t flags,
 {
   *pkeycount = 0;
   KeyCounter k(m_db, txn, flags);
-  txn_tree_enumerate(this, &k);
+  enumerate(&k);
   *pkeycount = k.counter;
   return (0);
 }

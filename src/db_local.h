@@ -12,13 +12,16 @@
 #ifndef HAM_DB_LOCAL_H__
 #define HAM_DB_LOCAL_H__
 
-#include "txn.h"
 #include "btree_key.h"
 #include "db.h"
 
 namespace hamsterdb {
 
 class BtreeIndex;
+class TransactionNode;
+class TransactionIndex;
+class TransactionCursor;
+class TransactionOperation;
 class ExtKeyCache;
 class LocalEnvironment;
 
@@ -30,7 +33,7 @@ class LocalDatabase : public Database {
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_prefix_func(0), m_cmp_func(0), m_extkey_cache(0), m_txn_index(this) {
+        m_txn_index(0) , m_prefix_func(0), m_cmp_func(0), m_extkey_cache(0) {
     }
 
     // Returns the btree index
@@ -40,7 +43,7 @@ class LocalDatabase : public Database {
 
     // Returns the transactional index
     TransactionIndex *get_txn_index() {
-      return (&m_txn_index);
+      return (m_txn_index);
     }
 
     // Returns the LocalEnvironment instance
@@ -373,6 +376,9 @@ class LocalDatabase : public Database {
     // the btree index
     BtreeIndex *m_btree_index;
 
+    // the transaction index
+    TransactionIndex *m_txn_index;
+
     // the prefix-comparison function
     ham_prefix_compare_func_t m_prefix_func;
 
@@ -381,9 +387,6 @@ class LocalDatabase : public Database {
 
     // the cache for extended keys
     ExtKeyCache *m_extkey_cache;
-
-    // the transaction index
-    TransactionIndex m_txn_index;
 };
 
 } // namespace hamsterdb

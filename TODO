@@ -186,6 +186,22 @@ o improve client/server performance
 
 o fix tcmalloc build on MacOS
 
+o review/rewrite/refactor Transaction class
+    keep in mind that sooner or later the BtreeNode will expect template
+    arguments; can we do something similar with the TransactionNode?
+    x try to get the methods/design analoguous to the Btree - no, that
+        does not make too much sense
+    x document the tree structure in the header file
+    x refactor the code
+    o split into multiple files
+    o try to cleanup the flow; move more code from db.cc to txn.cc
+    . each Transaction should have its own PoolAllocator (based on ByteArray);
+        when deleting the whole structure, only the PoolAllocator is freed
+        o only do this if it releasing this memory turns out to cost
+            performance
+        o problem: a realloc() will not always work because it might move
+            the allocated memory, and all existing pointers would be invalid 
+
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
     o analyze node; move all node operations to the node itself
@@ -265,24 +281,6 @@ o collect file format incompatibilities
     o get rid of the statistics-structures
     o reduce the PBlobHeader (remove flags, alloc_size)
     o what else?
-
-o review/rewrite/refactor Transaction class
-    keep in mind that sooner or later the BtreeNode will expect template
-    arguments; can we do something similar with the TransactionNode?
-    o split into multiple files
-    o try to get the methods/design analoguous to the Btree
-    o try to cleanup the flow; move more code from db.cc to txn.cc,
-        reorg TransactionIndex similar to BtreeIndex
-    o TransactionIndex:
-        x one TransactionIndex per Database (always created)
-        x txn_opnode_t -> TransactionOperation
-        o try to move code from db.cc into TransactionIndex, i.e. to check
-            conflicts etc
-    o document the tree structure in the header file
-    . each Transaction should have its own PoolAllocator (based on ByteArray);
-        when deleting the whole structure, only the PoolAllocator is freed
-        o problem: a realloc() will not always work because it might move
-            the allocated memory, and all existing pointers would be invalid 
 
 o start with the Btree rewrite; btree nodes are accepting template parameters
     and policies. The default parameter uses the callback function provided

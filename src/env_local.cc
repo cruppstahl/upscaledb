@@ -1010,7 +1010,7 @@ LocalEnvironment::flush_txn(Transaction *txn)
   while (op) {
     TransactionNode *node = op->get_node();
 
-    if (op->get_flags() & TransactionOperation::TXN_OP_FLUSHED)
+    if (op->get_flags() & TransactionOperation::kIsFlushed)
       goto next_op;
 
     /* logging enabled? then the changeset and the log HAS to be empty */
@@ -1043,9 +1043,9 @@ LocalEnvironment::flush_txn(Transaction *txn)
      * have to be uncoupled, as their parent (btree) cursor was
      * already coupled to the btree item instead
      */
-    op->set_flags(TransactionOperation::TXN_OP_FLUSHED);
+    op->mark_flushed();
 next_op:
-    while ((cursor = op->get_cursors())) {
+    while ((cursor = op->get_cursor_list())) {
       Cursor *pc = cursor->get_parent();
       ham_assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?

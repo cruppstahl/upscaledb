@@ -91,12 +91,12 @@ Cursor::update_dupecache(ham_u32_t what)
         /* a normal (overwriting) insert will overwrite ALL dupes,
          * but an overwrite of a duplicate will only overwrite
          * an entry in the dupecache */
-        if (op->get_flags() & TransactionOperation::TXN_OP_INSERT) {
+        if (op->get_flags() & TransactionOperation::kInsert) {
           /* all existing dupes are overwritten */
           dc->clear();
           dc->append(DupeCacheLine(false, op));
         }
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW) {
+        else if (op->get_flags() & TransactionOperation::kInsertOverwrite) {
           ham_u32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
@@ -110,7 +110,7 @@ Cursor::update_dupecache(ham_u32_t what)
           }
         }
         /* insert a duplicate key */
-        else if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
+        else if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
           ham_u32_t of = op->get_orig_flags();
           ham_u32_t ref = op->get_referenced_dupe() - 1;
           DupeCacheLine dcl(false, op);
@@ -129,7 +129,7 @@ Cursor::update_dupecache(ham_u32_t what)
             dc->append(dcl);
         }
         /* a normal erase will erase ALL duplicate keys */
-        else if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
+        else if (op->get_flags() & TransactionOperation::kErase) {
           ham_u32_t ref = op->get_referenced_dupe();
           if (ref) {
             ham_assert(ref <= dc->get_count());
@@ -142,7 +142,7 @@ Cursor::update_dupecache(ham_u32_t what)
         }
         else {
           /* everything else is a bug! */
-          ham_assert(op->get_flags() == TransactionOperation::TXN_OP_NOP);
+          ham_assert(op->get_flags() == TransactionOperation::kNop);
         }
       }
 
@@ -201,7 +201,7 @@ Cursor::check_if_btree_key_is_erased_or_overwritten()
   }
 
   op = txnc->get_coupled_op();
-  if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP)
+  if (op->get_flags() & TransactionOperation::kInsertDuplicate)
     st = HAM_KEY_NOT_FOUND;
   get_db()->cursor_close(clone);
   return (st);
@@ -322,7 +322,7 @@ static bool
 __txn_cursor_is_erase(TransactionCursor *txnc)
 {
   TransactionOperation *op = txnc->get_coupled_op();
-  return (op ? (op->get_flags() & TransactionOperation::TXN_OP_ERASE) : false);
+  return (op ? (op->get_flags() & TransactionOperation::kErase) : false);
 }
 
 int
@@ -982,7 +982,7 @@ retrieve_key_and_record:
     if (is_coupled_to_txnop()) {
 #ifdef HAM_DEBUG
       TransactionOperation *op = txnc->get_coupled_op();
-      ham_assert(!(op->get_flags() & TransactionOperation::TXN_OP_ERASE));
+      ham_assert(!(op->get_flags() & TransactionOperation::kErase));
 #endif
       if (key) {
         st = txnc->copy_coupled_key(key);

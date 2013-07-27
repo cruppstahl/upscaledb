@@ -50,15 +50,15 @@ TransactionCursor::couple_to_op(TransactionOperation *op)
   set_to_nil();
   m_coupled_op = op;
 
-  m_coupled_next = op->get_cursors();
+  m_coupled_next = op->get_cursor_list();
   m_coupled_previous = 0;
 
-  if (op->get_cursors()) {
-    TransactionCursor *old = op->get_cursors();
+  if (op->get_cursor_list()) {
+    TransactionCursor *old = op->get_cursor_list();
     old->m_coupled_previous = this;
   }
 
-  op->set_cursors(this);
+  op->set_cursor_list(this);
 }
 
 ham_status_t
@@ -99,13 +99,13 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
      * committed transactions */
     if (optxn == m_parent->get_txn() || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
-      if ((op->get_flags() & TransactionOperation::TXN_OP_INSERT)
-          || (op->get_flags() & TransactionOperation::TXN_OP_INSERT_OW)) {
+      if ((op->get_flags() & TransactionOperation::kInsert)
+          || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
         couple_to_op(op);
         return (0);
       }
       /* retrieve a duplicate key */
-      if (op->get_flags() & TransactionOperation::TXN_OP_INSERT_DUP) {
+      if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
         couple_to_op(op);
@@ -114,12 +114,12 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
-      if (op->get_flags() & TransactionOperation::TXN_OP_ERASE) {
+      if (op->get_flags() & TransactionOperation::kErase) {
         couple_to_op(op);
         return (HAM_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
-      ham_assert(op->get_flags() == TransactionOperation::TXN_OP_NOP);
+      ham_assert(op->get_flags() == TransactionOperation::kNop);
     }
     else if (optxn->is_aborted())
       ; /* nop */
@@ -419,8 +419,8 @@ TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
 {
   ham_assert(!is_nil());
 
-  if (op->get_cursors() == this) {
-    op->set_cursors(m_coupled_next);
+  if (op->get_cursor_list() == this) {
+    op->set_cursor_list(m_coupled_next);
     if (m_coupled_next)
       m_coupled_next->m_coupled_previous = 0;
   }

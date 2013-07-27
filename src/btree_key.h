@@ -12,6 +12,8 @@
 #ifndef HAM_BTREE_KEY_H__
 #define HAM_BTREE_KEY_H__
 
+#include <string.h>
+
 #include <ham/hamsterdb_int.h>
 
 #include "endianswap.h"

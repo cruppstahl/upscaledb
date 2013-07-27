@@ -46,6 +46,13 @@ struct TxnCursorFixture {
     REQUIRE(0 == ham_env_close(m_env, 0));
   }
 
+  TransactionNode *create_transaction_node(ham_key_t *key) {
+    LocalDatabase *ldb = (LocalDatabase *)m_db;
+    TransactionNode *node = new TransactionNode(ldb, key);
+    ldb->get_txn_index()->store(node);
+    return (node);
+  }
+
   void cursorIsNilTest() {
     TransactionCursor cursor((Cursor *)0);
 
@@ -65,9 +72,9 @@ struct TxnCursorFixture {
     key.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn,
-            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -96,9 +103,9 @@ struct TxnCursorFixture {
     k.flags = HAM_KEY_USER_ALLOC;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn,
-            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -108,7 +115,7 @@ struct TxnCursorFixture {
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -122,9 +129,9 @@ struct TxnCursorFixture {
     ham_record_t record = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn,
-            0, TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            0, TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -134,7 +141,7 @@ struct TxnCursorFixture {
     REQUIRE(k.size == key.size);
     REQUIRE((void *)0 == k.data);
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -150,16 +157,16 @@ struct TxnCursorFixture {
     key.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn, 0,
-            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op != 0);
 
     TransactionCursor c((Cursor *)m_cursor);
 
     REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_key(&k));
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -175,9 +182,9 @@ struct TxnCursorFixture {
     record.size = 5;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn, 0,
-            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -187,7 +194,7 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -207,9 +214,9 @@ struct TxnCursorFixture {
     r.flags = HAM_RECORD_USER_ALLOC;
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn, 0,
-            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -219,7 +226,7 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -233,9 +240,9 @@ struct TxnCursorFixture {
     ham_record_t r = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn, 0,
-            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
@@ -245,7 +252,7 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE((void *)0 == r.data);
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }
@@ -259,16 +266,16 @@ struct TxnCursorFixture {
     ham_record_t r = {0};
 
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode((LocalDatabase *)m_db, &key);
+    node = create_transaction_node(&key);
     op = node->append((Transaction *)txn, 0,
-            TransactionOperation::TXN_OP_INSERT_DUP, 55, &record);
+            TransactionOperation::kInsertDuplicate, 55, &record);
     REQUIRE(op!=0);
 
     TransactionCursor c((Cursor *)m_cursor);
 
     REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_record(&r));
 
-    ((Transaction *)txn)->free_ops();
+    ((Transaction *)txn)->free_operations();
     REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
   }

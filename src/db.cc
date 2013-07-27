@@ -35,7 +35,7 @@ Database::cursor_create(Transaction *txn, ham_u32_t flags)
   m_cursor_list = cursor;
 
   if (txn)
-    txn->set_cursor_refcount(txn->get_cursor_refcount() + 1);
+    txn->increase_cursor_refcount();
 
   return (cursor);
 }
@@ -54,8 +54,7 @@ Database::cursor_clone(Cursor *src)
 
   // initialize the remaining fields
   if (src->get_txn())
-    src->get_txn()->set_cursor_refcount(
-            src->get_txn()->get_cursor_refcount() + 1);
+    src->get_txn()->increase_cursor_refcount();
 
   return (dest);
 }
@@ -67,11 +66,8 @@ Database::cursor_close(Cursor *cursor)
 
   // decrease the transaction refcount; the refcount specifies how many
   // cursors are attached to the transaction
-  if (cursor->get_txn()) {
-    ham_assert(cursor->get_txn()->get_cursor_refcount() > 0);
-    cursor->get_txn()->set_cursor_refcount(
-            cursor->get_txn()->get_cursor_refcount() - 1);
-  }
+  if (cursor->get_txn())
+    cursor->get_txn()->decrease_cursor_refcount();
 
   // now finally close the cursor
   cursor_close_impl(cursor);

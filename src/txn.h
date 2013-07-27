@@ -9,13 +9,35 @@
  * See files COPYING.* for License information.
  */
 
-/**
- * @brief transactions
- *
- */
-
 #ifndef HAM_TXN_H__
 #define HAM_TXN_H__
+
+/*
+ * The hamsterdb Transaction implementation
+ *
+ * hamsterdb stores Transactions in volatile RAM (with an append-only journal
+ * in case the RAM is lost). Each Transaction and each modification *in* a 
+ * Transaction is stored in a complex data structure.
+ *
+ * When a Database is created, it contains a BtreeIndex for persistent
+ * (committed and flushed) data, and a TransactionIndex for active Transactions
+ * and those Transactions which were committed but not yet flushed to disk.
+ * This TransactionTree is implemented as a binary search tree (see rb.h).
+ *
+ * Each node in the TransactionTree is implemented by TransactionNode. Each
+ * node is identified by its database key, and groups all modifications of this
+ * key (of all Transactions!).
+ *
+ * Each modification in the node is implemented by TransactionOperation. There
+ * is one such TransactionOperation for 'insert', 'erase' etc. The
+ * TransactionOperations form two linked lists - one stored in the Transaction
+ * ("all operations from this Transaction") and another one stored in the
+ * TransactionNode ("all operations on the same key").
+ *
+ * All Transactions in an Environment for a linked list, where the tail is
+ * the chronologically newest Transaction and the head is the oldest
+ * (see Transaction::get_newer and Transaction::get_older).
+ */
 
 #include <string>
 
@@ -23,16 +45,15 @@
 #include "util.h"
 #include "error.h"
 
-/**
- * A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
- * opaque C structure, but internally we use a C++ class. The ham_txn_t
- * struct satisfies the C compiler, and internally we just cast the pointers.
- */
+//
+// A helper structure; ham_txn_t is declared in ham/hamsterdb.h as an
+// opaque C structure, but internally we use a C++ class. The ham_txn_t
+// struct satisfies the C compiler, and internally we just cast the pointers.
+//
 struct ham_txn_t
 {
   int dummy;
 };
-
 
 namespace hamsterdb {
 
@@ -44,530 +65,531 @@ class LocalDatabase;
 class Environment;
 
 
-/**
- * a single operation in a transaction
- */
+//
+// The TransactionOperation class describes a single operation (i.e.
+// insert or erase) in a Transaction.
+//
 class TransactionOperation
 {
   public:
     enum {
-      /** a NOP operation (empty) */
-      TXN_OP_NOP        = 0x000000u,
-      /** txn operation is an insert */
-      TXN_OP_INSERT     = 0x010000u,
-      /** txn operation is an insert w/ overwrite */
-      TXN_OP_INSERT_OW  = 0x020000u,
-      /** txn operation is an insert w/ duplicate */
-      TXN_OP_INSERT_DUP = 0x040000u,
-      /** txn operation erases the key */
-      TXN_OP_ERASE      = 0x080000u,
-      /** txn operation was already flushed */
-      TXN_OP_FLUSHED    = 0x100000u
+      // a NOP operation (empty)
+      kNop              = 0x000000u,
+
+      // txn operation is an insert
+      kInsert           = 0x010000u,
+
+      // txn operation is an insert w/ overwrite
+      kInsertOverwrite  = 0x020000u,
+
+      // txn operation is an insert w/ duplicate
+      kInsertDuplicate  = 0x040000u,
+
+      // txn operation erases the key
+      kErase            = 0x080000u,
+
+      // txn operation was already flushed
+      kIsFlushed        = 0x100000u
     };
 
-    /** Constructor */
+    // Constructor; creates a deep copy of |record|
     TransactionOperation(Transaction *txn, TransactionNode *node,
             ham_u32_t flags, ham_u32_t orig_flags, ham_u64_t lsn,
             ham_record_t *record);
 
-    /** get flags */
+    // Destructor; releases the memory
+    ~TransactionOperation();
+
+    // Returns the flags
     ham_u32_t get_flags() const {
       return (m_flags);
     }
 
-    /** set flags */
-    void set_flags(ham_u32_t flags) {
-      m_flags = flags;
+    // This Operation was flushed to disk
+    void mark_flushed() {
+      m_flags |= kIsFlushed;
     }
 
-    /** get flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
+    // Returns the original flags of ham_insert/ham_cursor_insert/ham_erase...
     ham_u32_t get_orig_flags() const {
       return (m_orig_flags);
     }
 
-    /** set flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
-    void set_orig_flags(ham_u32_t flags) {
-      m_orig_flags = flags;
-    }
-
-    /** get the referenced duplicate id */
-    ham_u32_t get_referenced_dupe() {
+    // Returns the referenced duplicate id
+    ham_u32_t get_referenced_dupe() const {
       return (m_referenced_dupe);
     }
 
-    /** set the referenced duplicate id */
+    // Sets the referenced duplicate id
+    // TODO try to make this private
     void set_referenced_dupe(ham_u32_t id) {
       m_referenced_dupe = id;
     }
 
-    /** get the Transaction pointer */
+    // Returns the Transaction pointer
     Transaction *get_txn() {
       return (m_txn);
     }
 
-    /** get the parent node pointer */
+    // Returns the parent node pointer */
     TransactionNode *get_node() {
       return (m_node);
     }
 
-    /** get lsn */
+    // Returns the lsn of this operation
     ham_u64_t get_lsn() const {
       return (m_lsn);
     }
 
-    /** get record */
+    // Returns the record of this operation
     ham_record_t *get_record() {
       return (&m_record);
     }
 
-    /** get cursor list */
-    // TODO use boost::intrusive_list
-    TransactionCursor *get_cursors() {
-      return (m_cursors);
+    // Returns the list of Cursors coupled to this operation
+    TransactionCursor *get_cursor_list() {
+      return (m_cursor_list);
     }
 
-    /** set cursor list */
-    void set_cursors(TransactionCursor *cursor) {
-      m_cursors = cursor;
+    // Sets the list of Cursors coupled to this operation
+    void set_cursor_list(TransactionCursor *cursors) {
+      m_cursor_list = cursors;
     }
 
-    /** get next TransactionOperation structure */
+    // Returns the next TransactionOperation which modifies the
+    // same TransactionNode
     TransactionOperation *get_next_in_node() {
       return (m_node_next);
     }
 
-    /** set next TransactionOperation structure */
-    void set_next_in_node(TransactionOperation *next) {
-      m_node_next = next;
-    }
-
-    /** get previous TransactionOperation structure */
+    // Returns the previous TransactionOperation which modifies the
+    // same TransactionNode
     TransactionOperation *get_previous_in_node() {
       return (m_node_prev);
     }
 
-    /** set previous TransactionOperation structure */
-    void set_previous_in_node(TransactionOperation *prev) {
-      m_node_prev = prev;
-    }
-
-    /** get next TransactionOperation structure */
+    // Returns the next TransactionOperation in the same Transaction
     TransactionOperation *get_next_in_txn() {
       return (m_txn_next);
     }
 
-    /** set next TransactionOperation structure */
-    void set_next_in_txn(TransactionOperation *next) {
-      m_txn_next = next;
-    }
-
-    /** get previous TransactionOperation structure */
+    // Returns the previous TransactionOperation in the same Transaction
     TransactionOperation *get_previous_in_txn() {
       return (m_txn_prev);
     }
 
-    /** set next TransactionOperation structure */
+  private:
+    friend class TransactionNode;
+
+    // Sets the next TransactionOperation which modifies the
+    // same TransactionNode
+    void set_next_in_node(TransactionOperation *next) {
+      m_node_next = next;
+    }
+
+    // Sets the previous TransactionOperation which modifies the
+    // same TransactionNode
+    void set_previous_in_node(TransactionOperation *prev) {
+      m_node_prev = prev;
+    }
+
+    // Sets the next TransactionOperation in the same Transaction
+    void set_next_in_txn(TransactionOperation *next) {
+      m_txn_next = next;
+    }
+
+    // Sets the previous TransactionOperation in the same Transaction
     void set_previous_in_txn(TransactionOperation *prev) {
       m_txn_prev = prev;
     }
 
-  private:
-    /** the Transaction of this operation */
+    // the Transaction of this operation
     Transaction *m_txn;
 
-    /** the parent node */
+    // the parent node
     TransactionNode *m_node;
 
-    /** flags and type of this operation; defined in txn.h */
+    // flags and type of this operation; defined in this file
     ham_u32_t m_flags;
 
-    /** the original flags of this operation */
+    // the original flags of this operation, used when calling
+    // ham_cursor_insert, ham_insert, ham_erase etc
     ham_u32_t m_orig_flags;
 
-    /** the referenced duplicate id (if neccessary) - used if this is
-     * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
-     * with a DUPLICATE_AFTER/BEFORE flag
-     * this is 1-based (like dupecache-index, which is also 1-based) */
+    // the referenced duplicate id (if neccessary) - used if this is
+    // i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
+    // with a DUPLICATE_AFTER/BEFORE flag
+    // this is 1-based (like dupecache-index, which is also 1-based)
     ham_u32_t m_referenced_dupe;
 
-    /** the log serial number (lsn) of this operation */
+    // the log serial number (lsn) of this operation
     ham_u64_t m_lsn;
 
-    /** the record */
+    // the record which is inserted or overwritten
     ham_record_t m_record;
 
-    /** a linked list of cursors which are attached to this txn_op */
-    TransactionCursor *m_cursors;
+    // a linked list of cursors which are attached to this operation
+    TransactionCursor *m_cursor_list;
 
-    /** next in linked list (managed in TransactionNode) */
+    // next in linked list (managed in TransactionNode)
     TransactionOperation *m_node_next;
 
-    /** previous in linked list (managed in TransactionNode) */
+    // previous in linked list (managed in TransactionNode)
     TransactionOperation *m_node_prev;
 
-    /** next in linked list (managed in Transaction) */
+    // next in linked list (managed in Transaction)
     TransactionOperation *m_txn_next;
 
-    /** previous in linked list (managed in Transaction) */
+    // previous in linked list (managed in Transaction)
     TransactionOperation *m_txn_prev;
 };
 
 
-/*
- * a node in the red-black Transaction tree (implemented in rb.h);
- * a group of Transaction operations which modify the same key
- */
+//
+// A node in the Transaction Index, used as the node structure in rb.h.
+// Manages a group of TransactionOperation objects which all modify the
+// same key.
+//
 class TransactionNode
 {
   public:
-    /** Constructor; initializes the object */
-    TransactionNode(LocalDatabase *db, ham_key_t *key,
-                    bool dont_insert = false);
+    // Constructor; creates a deep copy of |key|. Inserts itself into the
+    // TransactionIndex of |db| (unless |dont_insert| is true).
+    // The default parameters are required for the compilation of rb.h.
+    TransactionNode(LocalDatabase *db = 0, ham_key_t *key = 0);
 
-    /** Default constructor; only required for rb.h */
-    TransactionNode();
-
-    /** Destructor; removes this node from the tree */
+    // Destructor; removes this node from the tree, unless |dont_insert|
+    // was set to true
     ~TransactionNode();
 
-    /** get the database */
+    // Returns the database
     LocalDatabase *get_db() {
       return (m_db);
     }
 
-    /** get pointer to the modified key */
+    // Returns the TransactionIndex
+    TransactionIndex *get_txn_index() {
+      return (m_txn_index);
+    }
+
+    // Returns the modified key
     ham_key_t *get_key() {
       return (&m_key);
     }
 
-    /** insert an actual operation into the txn_tree */
+    // Appends an actual operation to this node
     TransactionOperation *append(Transaction *txn, ham_u32_t orig_flags,
               ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
-    /**
-     * retrieves the next larger sibling of a given node, or NULL if there
-     * is no sibling
-     */
+    // Retrieves the next larger sibling of a given node, or NULL if there
+    // is no sibling
     TransactionNode *get_next_sibling();
 
-    /**
-     * retrieves the previous larger sibling of a given node, or NULL if there
-     * is no sibling
-     */
+    // Retrieves the previous larger sibling of a given node, or NULL if there
+    // is no sibling
     TransactionNode *get_previous_sibling();
 
-    /** get pointer to the first (oldest) node in list */
+    // Returns the first (oldest) TransactionOperation in this node
+    // TODO is this required?
     TransactionOperation *get_oldest_op() {
       return (m_oldest_op);
     };
 
-    /** set pointer to the first (oldest) node in list */
+    // Sets the first (oldest) TransactionOperation in this node
+    // TODO is this required?
     void set_oldest_op(TransactionOperation *oldest) {
       m_oldest_op = oldest;
     }
 
-    /** get pointer to the last (newest) node in list */
+    // Returns the last (newest) TransactionOperation in this node
+    // TODO is this required?
     TransactionOperation *get_newest_op() {
       return (m_newest_op);
     };
 
-    /** set pointer to the last (newest) node in list */
+    // Sets the last (newest) TransactionOperation in this node
+    // TODO is this required?
     void set_newest_op(TransactionOperation *newest) {
       m_newest_op = newest;
     }
 
-    /** red-black tree stub */
+    // red-black tree stub, required for rb.h
     rb_node(TransactionNode) node;
 
   private:
-    /** the database - need this pointer for the compare function */
+    // the database - need this pointer for the compare function
     LocalDatabase *m_db;
 
-    /** this is the key which is modified */
+    // this is the key which is modified in this node
     ham_key_t m_key;
 
-    /** the parent tree */
-    TransactionIndex *m_tree;
+    // the TransactionIndex which stores this node
+    TransactionIndex *m_txn_index;
 
-    /** the linked list of operations - head is oldest operation */
+    // the linked list of operations - head is oldest operation
     TransactionOperation *m_oldest_op;
 
-    /** the linked list of operations - tail is newest operation */
+    // the linked list of operations - tail is newest operation
     TransactionOperation *m_newest_op;
-
-    /** true if this node was NOT inserted in the tree */
-    bool m_dont_insert;
 };
 
 
-/*
- * Each Database has a binary tree which stores the current Transaction
- * operations
- */
+//
+// Each Database has a binary tree which stores the current Transaction
+// operations; this tree is implemented in TransactionIndex
+//
 class TransactionIndex
 {
   public:
-    /** constructor */
+    // Traverses a TransactionIndex; for each node, a callback is executed
+    struct Visitor {
+      virtual void visit(TransactionNode *node) = 0;
+    };
+
+    // Constructor
     TransactionIndex(LocalDatabase *db);
 
-    /**
-     * get an opnode for an optree; if a node with this
-     * key already exists then the existing node is returned, otherwise NULL
-     *
-     * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
-     */
+    // Destructor; frees all nodes and their operations
+    ~TransactionIndex();
+
+    // Stores a new TransactionNode in the index
+    void store(TransactionNode *node);
+
+    // Removes a TransactionNode from the index
+    void remove(TransactionNode *node);
+
+    // Visits every node in the TransactionTree
+    void enumerate(Visitor *visitor);
+
+    // Returns an opnode for an optree; if a node with this
+    // key already exists then the existing node is returned, otherwise NULL.
+    // |flags| can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH etc
     TransactionNode *get(ham_key_t *key, ham_u32_t flags);
 
-    /**
-     * retrieves the first (=smallest) node of the tree, or NULL if the
-     * tree is empty
-     */
+    // Returns the first (= "smallest") node of the tree, or NULL if the
+    // tree is empty
     TransactionNode *get_first();
 
-    /**
-     * retrieves the last (=largest) node of the tree, or NULL if the
-     * tree is empty
-     */
+    // Returns the last (= "largest") node of the tree, or NULL if the
+    // tree is empty
     TransactionNode *get_last();
-
-     /** frees all nodes in the tree */
-     void close();
 
     // Returns the key count of this index
     ham_status_t get_key_count(Transaction *txn, ham_u32_t flags,
                     ham_u64_t *pkeycount);
 
- // private:
-    /* the Database for all operations in this tree */
+ // private: //TODO re-enable this; currently disabled because rb.h needs it
+    // the Database for all operations in this tree
     LocalDatabase *m_db;
 
-    /* stuff for rb.h */
+    // stuff for rb.h
     TransactionNode *rbt_root;
     TransactionNode rbt_nil;
 };
 
-/**
- * traverses a tree; for each node, a callback function is executed
- * TODO move into namespace TransactionIndex
- */
-struct TxnTreeVisitor {
-  virtual void visit(TransactionNode *node) = 0;
-};
-
-extern void
-txn_tree_enumerate(TransactionIndex *tree, TxnTreeVisitor *visitor);
-
-/**
- * a Transaction structure
- */
+//
+// a Transaction structure
+//
 class Transaction
 {
   private:
     enum {
-      /** Transaction was aborted */
-      TXN_STATE_ABORTED   = 0x10000,
-      /** Transaction was committed */
-      TXN_STATE_COMMITTED = 0x20000
+      // Transaction was aborted
+      kStateAborted   = 0x10000,
+
+      // Transaction was committed
+      kStateCommitted = 0x20000
     };
 
   public:
-    /** constructor; "begins" the Transaction
-     * supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY, ...
-     */
+    // Constructor; "begins" the Transaction
+    // supported flags: HAM_TXN_READ_ONLY, HAM_TXN_TEMPORARY
     Transaction(Environment *env, const char *name, ham_u32_t flags);
 
-    /** destructor; frees all TransactionOperation structures associated
-     * with this Transaction */
+    // Destructor; frees all TransactionOperation structures associated
+    // with this Transaction
     ~Transaction();
 
-    /** commits the Transaction */
+    // Commits the Transaction
     ham_status_t commit(ham_u32_t flags = 0);
 
-    /** aborts the Transaction */
+    // Aborts the Transaction
     ham_status_t abort(ham_u32_t flags = 0);
 
-    /** returns true if the Transaction was aborted */
+    // Returns true if the Transaction was aborted
     bool is_aborted() const {
-      return (m_flags & TXN_STATE_ABORTED) != 0;
+      return (m_flags & kStateAborted) != 0;
     }
 
-    /** returns true if the Transaction was committed */
+    // Returns true if the Transaction was committed
     bool is_committed() const {
-      return (m_flags & TXN_STATE_COMMITTED) != 0;
+      return (m_flags & kStateCommitted) != 0;
     }
 
-    /** get the id */
+    // Returns the unique id of this Transaction
     ham_u64_t get_id() const {
       return (m_id);
     }
 
-    /** sets the id */
-    // TODO should be in constructor?
-    void set_id(ham_u64_t id) {
-      m_id = id;
-    }
-
-    /** get the environment pointer */
+    // Returns the environment pointer
     Environment *get_env() const {
       return (m_env);
     }
 
-    /** get the txn name */
+    // Returns the txn name
     const std::string &get_name() const {
       return (m_name);
     }
 
-    /** set the txn name */
-    // TODO required?
-    void set_name(const char *name) {
-      m_name = name;
-    }
-
-    /** get the flags */
+    // Returns the flags
     ham_u32_t get_flags() const {
       return (m_flags);
     }
 
-    /** set the flags */
-    // TODO required?
-    void set_flags(ham_u32_t flags) {
-      m_flags = flags;
-    }
-
-    /** get the cursor refcount */
-    ham_size_t get_cursor_refcount() const {
+    // Returns the cursor refcount (numbers of Cursors using this Transaction)
+    ham_u32_t get_cursor_refcount() const {
       return (m_cursor_refcount);
     }
 
-    /** set the cursor refcount */
-    // TODO required?
-    void set_cursor_refcount(ham_size_t count) {
-      m_cursor_refcount = count;
+    // Increases the cursor refcount (numbers of Cursors using this Transaction)
+    void increase_cursor_refcount() {
+      m_cursor_refcount++;
     }
 
-    /** get the index of the log file descriptor */
-    // TODO make this private
-    int get_log_desc() const {
-      return (m_log_desc);
+    // Decreases the cursor refcount (numbers of Cursors using this Transaction)
+    void decrease_cursor_refcount() {
+      ham_assert(m_cursor_refcount > 0);
+      m_cursor_refcount--;
     }
 
-    /** set the index of the log file descriptor */
-    // TODO make this private
-    void set_log_desc(int desc) {
-      m_log_desc = desc;
-    }
-
-    /** get the remote database handle */
+    // Returns the remote database handle
     ham_u64_t get_remote_handle() const {
       return (m_remote_handle);
     }
 
-    /** set the remote database handle */
-    void set_remote_handle(ham_u64_t h) {
-      m_remote_handle = h;
-    }
-
-    /** get the 'newer' pointer of the linked list */
-    Transaction *get_newer() const {
-      return (m_newer);
-    }
-
-    /** set the 'newer' pointer of the linked list */
-    void set_newer(Transaction *n) {
-      m_newer = n;
-    }
-
-    /** get the 'older' pointer of the linked list */
-    Transaction *get_older() const {
-      return (m_older);
-    }
-
-    /** set the 'older' pointer of the linked list */
-    void set_older(Transaction *o) {
-      m_older = o;
-    }
-
-    /** get the oldest transaction operation */
-    // TODO make this private
-    TransactionOperation *get_oldest_op() const {
-      return (m_oldest_op);
-    }
-
-    /** set the oldest transaction operation */
-    // TODO make this private
-    void set_oldest_op(TransactionOperation *op) {
-      m_oldest_op = op;
-    }
-
-    /** get the newest transaction operation */
-    // TODO make this private
-    TransactionOperation *get_newest_op() const {
-      return (m_newest_op);
-    }
-
-    /** set the newest transaction operation */
-    // TODO make this private
-    void set_newest_op(TransactionOperation *op) {
-      m_newest_op = op;
-    }
-
-    /** Get the memory buffer for the key data */
+    // Returns the memory buffer for the key data.
+    // Used to allocate array in ham_find, ham_cursor_move etc. which is
+    // then returned to the user.
     ByteArray &get_key_arena() {
       return (m_key_arena);
     }
 
-    /** Get the memory buffer for the record data */
+    // Returns the memory buffer for the record data.
+    // Used to allocate array in ham_find, ham_cursor_move etc. which is
+    // then returned to the user.
     ByteArray &get_record_arena() {
       return (m_record_arena);
     }
 
-    /** frees the internal txn trees, nodes and ops */
-    // TODO make this private
-    void free_ops();
+    // Returns the next (or 'newer') Transaction in the linked list */
+    // TODO required?
+    Transaction *get_newer() const {
+      return (m_newer);
+    }
+
+    // Sets the next (or 'newer') Transaction in the linked list */
+    // TODO required?
+    void set_newer(Transaction *n) {
+      m_newer = n;
+    }
+
+    // Returns the previous (or 'older') Transaction in the linked list */
+    // TODO required?
+    Transaction *get_older() const {
+      return (m_older);
+    }
+
+    // Sets the previous (or 'older') Transaction in the linked list */
+    // TODO required?
+    void set_older(Transaction *o) {
+      m_older = o;
+    }
+
+    // Returns the first (or 'oldest') TransactionOperation of this Transaction
+    // TODO required?
+    TransactionOperation *get_oldest_op() const {
+      return (m_oldest_op);
+    }
+
+    // Sets the first (or 'oldest') TransactionOperation of this Transaction
+    // TODO required?
+    void set_oldest_op(TransactionOperation *op) {
+      m_oldest_op = op;
+    }
+
+    // Returns the last (or 'newest') TransactionOperation of this Transaction
+    // TODO required?
+    TransactionOperation *get_newest_op() const {
+      return (m_newest_op);
+    }
+
+    // Sets the last (or 'newest') TransactionOperation of this Transaction
+    // TODO required?
+    void set_newest_op(TransactionOperation *op) {
+      m_newest_op = op;
+    }
 
   private:
-    /** the id of this txn */
+    friend class Journal;
+    friend struct TxnCursorFixture;
+
+    // Frees the internal structures; releases all the memory. This is
+    // called in the destructor, but also when aborting a Transaction
+    // (before it's deleted by the Environment).
+    void free_operations();
+
+    // Sets the unique id of this Transaction
+    void set_id(ham_u64_t id) {
+      m_id = id;
+    }
+
+    // Returns the index of the journal's log file descriptor
+    int get_log_desc() const {
+      return (m_log_desc);
+    }
+
+    // Sets the index of the journal's log file descriptor
+    void set_log_desc(int desc) {
+      m_log_desc = desc;
+    }
+
+    // the id of this Transaction
     ham_u64_t m_id;
 
-    /** owner of this transaction */
+    // the Environment pointer
     Environment *m_env;
 
-    /** flags for this transaction */
+    // flags for this Transaction
     ham_u32_t m_flags;
 
-    /** the Transaction name */
+    // the Transaction name
     std::string m_name;
 
-    /** reference counter for cursors (number of cursors attached to this txn)
-     */
+    // reference counter for cursors (number of cursors attached to this txn)
     ham_size_t m_cursor_refcount;
 
-    /** index of the log file descriptor for this transaction [0..1] */
+    // index of the log file descriptor for this transaction [0..1]
     int m_log_desc;
 
-    /** the remote database handle */
+    // the remote database handle
     ham_u64_t m_remote_handle;
 
-    /** linked list of all transactions */
+    // the linked list of all transactions
     Transaction *m_newer, *m_older;
 
-    /** the linked list of operations - head is oldest operation */
+    // the linked list of operations - head is oldest operation
     TransactionOperation *m_oldest_op;
 
-    /** the linked list of operations - tail is newest operation */
+    // the linked list of operations - tail is newest operation
     TransactionOperation *m_newest_op;
 
-    /** this is where key->data points to when returning a
-     * key to the user */
+    // this is where key->data points to when returning a key to the user
     ByteArray m_key_arena;
 
-    /** this is where record->data points to when returning a
-     * record to the user */
+    // this is where record->data points to when returning a record to the user
     ByteArray m_record_arena;
 };
 
-
 } // namespace hamsterdb
-
 
 #endif /* HAM_TXN_H__ */
