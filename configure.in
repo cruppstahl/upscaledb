@@ -181,13 +181,12 @@ if test "$enable_encryption" = "no"; then
     settings="$settings (no encryption)"
 else
     settings="$settings (encryption)"
+    AC_CHECK_LIB(crypto, EVP_EncryptInit_ex)
 fi
 AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" != "xno")
-if test "x$enable_encryption" != "xno"; then
-    if test "x$ac_cv_lib_crypto_EVP_EncryptInit_ex" = "xno"; then
-        settings="$settings (crypto missing - encryption disabled)"
-        enable_encryption="no"
-    fi
+if test "x$ac_cv_lib_crypto_EVP_EncryptInit_ex" = "xno"; then
+    settings="$settings (crypto missing - encryption disabled)"
+    enable_encryption="no"
 fi
 
 # -------------------------------------------------------------------------

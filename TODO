@@ -248,9 +248,15 @@ o prepare btree rewrite; the goal is to move all node-specific operations
 
 o release-v2.sh
     o test build with disabled AES, add this to the release process
+        o check with "ldd", there must not be a dependency to libcrypto!
     o test build with disabled remote, add this to the release process
+        o check with "ldd", there must not be a dependency to libuv!
     o test build with disabled tcmalloc, add this to the release process
+        x fix issue #26
+        o check with "ldd", there must not be a dependency to libtcmalloc_minimal!
     x move "diff" to the end, just warn if the files are different
+    o java-test fails on a slower machine (race cond. in finalize()?)
+    o tools-tests are failing
     o improve release process automization; the result of release-v2.sh
         are the following files:
         o tar-ball

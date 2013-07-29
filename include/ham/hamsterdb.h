@@ -1028,7 +1028,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
  * @{
  */
 
-/** Flag for @ref @ref ham_env_open, @ @ref ham_env_create.
+/** Flag for @ref ham_env_open, @ref ham_env_create.
  * This flag is non persistent. */
 #define HAM_ENABLE_FSYNC                            0x00000001
 
@@ -1569,7 +1569,7 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /**
  * Retrieve the filesystem file access mode as was specified at the time
- * of @ref @ref ham_env_create/@ref ham_env_open invocation.
+ * of @ref ham_env_create/@ref ham_env_open invocation.
  */
 #define HAM_PARAM_FILEMODE              0x00000201
 
