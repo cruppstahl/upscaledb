@@ -173,6 +173,24 @@ x log.cc: use ByteArray during recovery/iterating
 
 x rename btree.h/.cc to btree_index.h/.cc
 
+x release-v2.sh
+    x test build with disabled AES, add this to the release process
+        x check with "ldd", there must not be a dependency to libcrypto!
+    x test build with disabled remote, add this to the release process
+        x check with "ldd", there must not be a dependency to libuv!
+    x test build with disabled tcmalloc, add this to the release process
+        x fix issue #26
+        x check with "ldd", there must not be a dependency to libtcmalloc_minimal!
+    x move "diff" to the end, just warn if the files are different
+    x tools-tests are failing
+    x improve release process automization; the result of release-v2.sh
+        are the following files:
+        x tar-ball
+        x the README
+        x the documentation
+        x the Changelog
+        x the release notes (a template)
+
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
@@ -186,7 +204,7 @@ o improve client/server performance
 
 o fix tcmalloc build on MacOS
 
-o review/rewrite/refactor Transaction class
+. review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
     arguments; can we do something similar with the TransactionNode?
     x try to get the methods/design analoguous to the Btree - no, that
@@ -202,7 +220,7 @@ o review/rewrite/refactor Transaction class
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
 
-o prepare btree rewrite; the goal is to move all node-specific operations
+. prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
     o analyze node; move all node operations to the node itself
         o PBtreeNode::get_key()
@@ -246,24 +264,7 @@ o prepare btree rewrite; the goal is to move all node-specific operations
                 o for fixed size keys (uint32, uint64...)
         o then rewrite BtreeEnumAction
 
-o release-v2.sh
-    o test build with disabled AES, add this to the release process
-        o check with "ldd", there must not be a dependency to libcrypto!
-    o test build with disabled remote, add this to the release process
-        o check with "ldd", there must not be a dependency to libuv!
-    o test build with disabled tcmalloc, add this to the release process
-        x fix issue #26
-        o check with "ldd", there must not be a dependency to libtcmalloc_minimal!
-    x move "diff" to the end, just warn if the files are different
-    o java-test fails on a slower machine (race cond. in finalize()?)
-    o tools-tests are failing
-    o improve release process automization; the result of release-v2.sh
-        are the following files:
-        o tar-ball
-        o the README
-        o the documentation
-        o the Changelog
-        o the release notes (a template)
+. java-test fails on a slower machine (race cond. in finalize()?)
 
 . run a performance test clang++ vs g++
 

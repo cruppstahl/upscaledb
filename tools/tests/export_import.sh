@@ -37,7 +37,7 @@ if [ $? = 1 ]; then
 fi
 
 \rm dump*
-\rm final.db
+\rm -f final.db
 \rm *.bin
 
 echo "ham_export/ham_import: ok"

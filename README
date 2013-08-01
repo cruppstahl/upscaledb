@@ -9,7 +9,7 @@ Contents:
 1. About
 
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
-mature and easy to use.
+production-proven and easy to use.
 
 This release re-implemented AES encryption based on OpenSSL and libcrypto. A
 few bugs in the build process were fixed (thanks for all the patches!). A new

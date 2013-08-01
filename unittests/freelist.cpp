@@ -300,7 +300,7 @@ struct FreelistFixture {
     pm = m_lenv->get_page_manager();
 
     for (int i = 2; i < 5; i++) {
-      REQUIRE(false == m_freelist->is_page_free(page[i]->get_address()));
+      REQUIRE(false == m_freelist->is_page_free((2 + i) * pagesize));
     }
 
     // freelist is empty
