@@ -23,11 +23,16 @@ The client- and server-side implementation of the remote network access has been
 rewritten. The server now uses libuv (which is part of Node.js), which resulted
 in a performance improvement.
 
+Unused space at the end of the file is now truncated, and the file size shrinks
+when the Environment is closed. (This feature is disabled on Win32 if memory
+mapped I/O is used.)
+
 2. Changes
 
 New Features
 * An internal function ham_env_get_metrics was added
 * Added support for transparent AES encryption
+* Truncating file when closing the Environment
 
 Bugfixes
 * Several bugs in the build process were fixed

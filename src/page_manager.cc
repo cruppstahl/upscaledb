@@ -354,7 +354,17 @@ PageManager::close()
   // reclaim unused disk space
   // if logging is enabled: also flush the changeset to write back the
   // modified freelist pages
-  if (!(m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL)) {
+  bool try_reclaim = m_env->get_flags() & HAM_DISABLE_RECLAIM_INTERNAL
+                ? false
+                : true;
+#ifndef WIN32
+  // Win32: it's not possible to truncate the file while there's an active
+  // mapping, therefore only reclaim if memory mapped I/O is disabled
+  if (!(m_env->get_flags() & HAM_DISABLE_MMAP))
+    try_reclaim = false;
+#endif
+
+  if (try_reclaim) {
     st = reclaim_space();
     if (st)
       return (st);

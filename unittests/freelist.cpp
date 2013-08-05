@@ -66,7 +66,7 @@ struct FreelistFixture {
 
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
-                HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
+                HAM_DISABLE_MMAP | HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 1, 0, 0));
 

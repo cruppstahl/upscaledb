@@ -877,7 +877,8 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
  * Closes the Database Environment
  *
  * This function closes the Database Environment. It also frees the
- * memory resources allocated in the @a env handle.
+ * memory resources allocated in the @a env handle, and tries to truncate
+ * the file (see below).
  *
  * If the flag @ref HAM_AUTO_CLEANUP is specified, hamsterdb automatically
  * calls @ref ham_db_close with flag @ref HAM_AUTO_CLEANUP on all open
@@ -890,6 +891,10 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
  * This function also aborts all Transactions which were not yet committed,
  * and therefore renders all Transaction handles invalid. If the flag
  * @ref HAM_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
+ *
+ * This function also tries to truncate the file and "cut off" unused space
+ * at the end of the file to reduce the file size. This feature is disabled
+ * on Win32 if memory mapped I/O is used (see @ref HAM_DISABLE_MMAP).
  *
  * @param env A valid Environment handle
  * @param flags Optional flags for closing the handle. Possible flags are:
