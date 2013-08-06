@@ -132,9 +132,8 @@ If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
 
 DEBUG                   enable debugging output and diagnostic checks (slow!)
-HAM_LITTLE_ENDIAN       compile for little endian machines (i.e. x86)
-HAM_BIG_ENDIAN          compile for big endian machines (most other
-                        architectures)
+HAM_LITTLE_ENDIAN       compile for little endian machines (the default)
+HAM_BIG_ENDIAN          compile for big endian machines
 HAM_32BIT               compile for 32bit (alias: WIN32)
 HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
 

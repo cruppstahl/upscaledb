@@ -15,6 +15,16 @@
 
 #include "../src/endianswap.h"
 
+TEST_CASE("EndianTest/isLittleEndian",
+           "Tests if the target is little endian")
+{
+#ifndef HAM_BIG_ENDIAN
+  REQUIRE(HAM_LITTLE_ENDIAN);
+#else
+  REQUIRE(HAM_BIG_ENDIAN);
+#endif
+}
+
 TEST_CASE("EndianTest/byteswap16",
            "Tests the little endian/big endian byte swapping macros")
 {

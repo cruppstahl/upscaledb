@@ -191,6 +191,18 @@ x release-v2.sh
         x the Changelog
         x the release notes (a template)
 
+x disable reclaim space on Win32 if mmap is used
+
+x src/config.h: always assume little endian, if nothing else is specified.
+    x config.h sets WORDS_BIGENDIAN (for MacOS)
+    x win32: remove HAM_LITTLE_ENDIAN from solution files
+    x change in README
+
+o issue #25: fix tcmalloc build on MacOS
+    -> disable tcmalloc when building on MacOS
+    -> use AC_CANONICAL_HOST
+           case $host ....
+
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
@@ -202,7 +214,24 @@ o improve client/server performance
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
 
-o fix tcmalloc build on MacOS
+o add client/server testing to monster testsuite
+    o also to performance tests
+
+. java-test fails on a slower machine (race cond. in finalize()?)
+    -> this is just a test issue
+
+. run a performance test clang++ vs g++
+
+------------------- release 2.1.2 -----------------------------------------
+
+
+
+
+
+
+
+
+
 
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
@@ -263,21 +292,6 @@ o fix tcmalloc build on MacOS
                 o for variable size (existing) keys
                 o for fixed size keys (uint32, uint64...)
         o then rewrite BtreeEnumAction
-
-. java-test fails on a slower machine (race cond. in finalize()?)
-
-. run a performance test clang++ vs g++
-
-------------------- release 2.1.2 -----------------------------------------
-
-
-
-
-
-
-
-
-
 
 
 o collect file format incompatibilities

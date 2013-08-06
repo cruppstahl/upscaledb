@@ -33,17 +33,19 @@
 #if (!defined(HAM_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
 #     define HAM_DEBUG 1
-#       if !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-//#       define HAM_LEAN_AND_MEAN_FOR_PROFILING 1
-#     endif
 #   endif
 #endif
 
-// the endian-architecture of the host computer; set this to
-// HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN
+// The endian-architecture of the host computer; set this to
+// HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN. Little endian is the
+// default setting
 #ifndef HAM_LITTLE_ENDIAN
 #   ifndef HAM_BIG_ENDIAN
-#     error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
+#       ifdef WORDS_BIGENDIAN
+#           define HAM_BIG_ENDIAN           1
+#       else // default
+#           define HAM_LITTLE_ENDIAN        1
+#       endif
 #   endif
 #endif
 
