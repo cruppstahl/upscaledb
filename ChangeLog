@@ -1,5 +1,5 @@
-Aug 01, 2013 - chris ---------------------------------------------------
-                      release of hamsterdb-2.1.2
+Aug 06, 2013 - chris ---------------------------------------------------
+o issue #25: tcmalloc is now disabled on MacOS
 
 Jul 21, 2013 - chris ---------------------------------------------------
 o Added new configure option --without-tcmalloc

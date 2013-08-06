@@ -201,7 +201,16 @@ x src/config.h: always assume little endian, if nothing else is specified.
 o issue #25: fix tcmalloc build on MacOS
     -> disable tcmalloc when building on MacOS
     -> use AC_CANONICAL_HOST
-           case $host ....
+AC_CANONICAL_HOST
+case "$target" in
+  *-cygwin* | *-mingw*)
+    INCLUDES='-I$(srcdir)/win32'
+    ;;
+  *)
+    # Assume Unix.
+    INCLUDES='-I$(srcdir)/unix'
+    ;;
+esac
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve

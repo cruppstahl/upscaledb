@@ -8,6 +8,7 @@ dnl
 
 dnl Initialize autoconf/automake
 AC_INIT(hamsterdb, 2.1.2)
+AM_PROG_AR
 LT_INIT
 AC_CONFIG_SRCDIR(src/hamsterdb.cc)
 AC_CONFIG_MACRO_DIR(m4)
@@ -35,16 +36,6 @@ AC_TYPE_OFF_T
 AC_FUNC_MMAP
 m4_include([m4/boost.m4])
 BOOST_REQUIRE([1.36])
-
-# ARM emulators w/ qemu: disable pread/pwrite; the functions exist, but
-# seem to be buggy
-case $host in
-  arm-*-linux-gnu)
-    ;;
-  *)
-  AC_CHECK_FUNCS(pread pwrite)
-    ;;
-esac
 
 # A string describing all enabled/disabled settings
 settings=""
@@ -92,7 +83,15 @@ then
   AC_DEFINE(HAVE_GOOGLE_TCMALLOC_H, 0,
       [Define to 1 if you have the <google/tcmalloc.h> header file.])
 else
-  AC_CHECK_LIB(tcmalloc_minimal, tc_malloc)
+  # disable tcmalloc on MacOS
+  case "$target" in
+    *-darwin*)
+      this_is_darwin=yes
+      ;;
+    *)
+      AC_CHECK_LIB(tcmalloc_minimal, tc_malloc)
+      ;;
+  esac
 fi
 
 # -------------------------------------------------------------------------
@@ -365,8 +364,16 @@ printf "#\n"
 printf "# The AES encryption is disabled because you specified\n"
 printf "# --disable-encryption or because of missing dependencies!\n"
 fi
+
+# Recommend to use tcmalloc - but not on MacOS because it has some issues,
+# i.e. http://code.google.com/p/gperftools/issues/detail?id=413
+AC_CANONICAL_HOST
 if test "x$ac_cv_lib_tcmalloc_minimal_tc_malloc" != "xyes"; then
-printf "# Recommendation: install google's performance tools to maximize performance\n"
+  if test "x$this_is_darwin" != "xno"; then
+    printf ""
+  else
+    printf "# Recommendation: install google's performance tools to maximize performance\n"
+  fi
 fi
 
 printf '#================================================================\n'
