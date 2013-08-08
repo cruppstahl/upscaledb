@@ -198,19 +198,10 @@ x src/config.h: always assume little endian, if nothing else is specified.
     x win32: remove HAM_LITTLE_ENDIAN from solution files
     x change in README
 
-o issue #25: fix tcmalloc build on MacOS
-    -> disable tcmalloc when building on MacOS
-    -> use AC_CANONICAL_HOST
-AC_CANONICAL_HOST
-case "$target" in
-  *-cygwin* | *-mingw*)
-    INCLUDES='-I$(srcdir)/win32'
-    ;;
-  *)
-    # Assume Unix.
-    INCLUDES='-I$(srcdir)/unix'
-    ;;
-esac
+x issue #25: fix tcmalloc build on MacOS
+
+x add client/server testing to monster testsuite
+    x also to performance tests
 
 o improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
@@ -222,9 +213,6 @@ o improve client/server performance
     o use libuv on client side, get rid of libcurl
     o test build with --disable-remote, add this to the release process
     . use Pickle module, get rid of protocol buffers (or better leave for now?)
-
-o add client/server testing to monster testsuite
-    o also to performance tests
 
 . java-test fails on a slower machine (race cond. in finalize()?)
     -> this is just a test issue
@@ -241,6 +229,10 @@ o add client/server testing to monster testsuite
 
 
 
+o rewrite configure.in
+    -> rename to configure.ac
+    -> look at libuv for a good sample
+        -> also for bootstrap.sh
 
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
