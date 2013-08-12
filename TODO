@@ -286,6 +286,7 @@ o rewrite configure.in
     -> rename to configure.ac
     -> look at libuv for a good sample
         -> also for bootstrap.sh
+    -> also for monster tests
 
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
@@ -302,6 +303,22 @@ o rewrite configure.in
             performance
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
+
+o pre-allocate index; 1.10.x had this as an experimental feature
+    o see roadmap document for more information
+    o run a performance test/prototype if this is worth the effort
+    o this feature is *per database*
+    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
+        is currently not used. For allocations in a reserved area it could
+        be set to the lower bound of this area. For other allocations it
+        could be set to the upper bound (thus exceeding this area).
+    o calculate number of reqd pages based on estimated keys from the user
+    o needs freelist hints to retrieve the next possible
+        free page *adjacent to* the previous index page
+    o make sure that this is not reverted when "reduce file size" feature
+        (above) is enabled
+    o try to batch allocations; when new pages are required then don't just
+        allocate one but multiple pages
 
 o collect file format incompatibilities
     o for the new Btree code
@@ -425,22 +442,6 @@ o when flushing the Changeset: batch ALL changes for the WHOLE transaction,
     o be careful: if N operations are modifying the same changelog, and
         then #N+1 aborts then the aborting operation must NOT clear the
         changelog!
-
-o pre-allocate index; 1.10.x had this as an experimental feature
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-    o this feature is *per database*
-    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
-        is currently not used. For allocations in a reserved area it could
-        be set to the lower bound of this area. For other allocations it
-        could be set to the upper bound (thus exceeding this area).
-    o calculate number of reqd pages based on estimated keys from the user
-    o needs freelist hints to retrieve the next possible
-        free page *adjacent to* the previous index page
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages
 
 o A new transactional mode: read-only transactions can run "in the past" - only
     on committed transactions. therefore they avoid conflicts and will always

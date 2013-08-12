@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#ifdef HAM_ENABLE_ENCRYPTION
+
 #include <string.h>
 #include <assert.h>
 
@@ -170,3 +172,5 @@ TEST_CASE("Aes/transactionInsert", "")
 
   REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 }
+
+#endif // HAM_ENABLE_ENCRYPTION

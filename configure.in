@@ -295,22 +295,6 @@ fi
 AC_LANG(C)
 
 # -------------------------------------------------------------------------
-# Check if libcurl is installed
-# -------------------------------------------------------------------------
-AC_CACHE_CHECK(if libcurl is installed,ac_cv_libcurl,
-  [AC_RUN_IFELSE([AC_LANG_SOURCE([[
-#include <curl/curl.h>
-int main(void) {
-  return 0;
-}]])],ac_cv_libcurl=yes,ac_cv_libcurl=no,ac_cv_libcurl=no)])
-if test "x$enable_remote" != "xno"; then
-  if test "x$ac_cv_libcurl" = "xno"; then
-    settings="$settings (libcurl missing - remote disabled)"
-    enable_remote="no"
-  fi
-fi
-
-# -------------------------------------------------------------------------
 # Disable remote client/server
 # -------------------------------------------------------------------------
 AC_ARG_ENABLE(remote,
