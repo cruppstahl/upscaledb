@@ -66,8 +66,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				AdditionalDependencies="libuv_debug.lib psapi.lib Iphlpapi.lib"
+				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
@@ -146,8 +146,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				AdditionalDependencies="libuv_x64_debug.lib psapi.lib Iphlpapi.lib"
+				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
@@ -223,8 +223,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				AdditionalDependencies="libuv.lib psapi.lib Iphlpapi.lib"
+				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"
@@ -302,8 +302,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				AdditionalDependencies="libuv_x64.lib psapi.lib Iphlpapi.lib"
+				OutputFile="$(OutDir)\hamserver-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../../hamsterdb-alien/libuv/msvc2008"
 				GenerateDebugInformation="true"

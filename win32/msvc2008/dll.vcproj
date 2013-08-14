@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/protobuf/msvc2008/include"
+				AdditionalIncludeDirectories="../../include;&quot;../../../hamsterdb-alien/openssl/include&quot;;&quot;../../../hamsterdb-alien/boost&quot;;&quot;../../../hamsterdb-alien/protobuf/msvc2008/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_ENCRYPTION;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x86_debug.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x64_debug.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;..\..\..\hamsterdb-alien\boost\x64&quot;"
@@ -222,7 +222,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x86.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\..\..\hamsterdb-alien\boost"
@@ -301,7 +301,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008\libuv_x64.lib ..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-2.1.2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\hamsterdb-alien\boost\x64&quot;"
@@ -368,14 +368,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_index.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_index.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_check.cc"
 			>
 		</File>
@@ -397,6 +389,14 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_find.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_index.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_index.h"
 			>
 		</File>
 		<File

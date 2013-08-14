@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008/libuv_x86_debug.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 			/>
 			<Tool
@@ -200,7 +200,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="..\..\..\hamsterdb-alien\libuv\msvc2008/libuv_x86.lib ..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
+				AdditionalDependencies="..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-2.1.2.lib"
 				AdditionalLibraryDirectories=""
 				SuppressStartupBanner="true"
@@ -320,14 +320,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\..\src\btree_index.cc"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_index.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\src\btree_check.cc"
 			>
 		</File>
@@ -349,6 +341,14 @@
 		</File>
 		<File
 			RelativePath="..\..\src\btree_find.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_index.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\btree_index.h"
 			>
 		</File>
 		<File
@@ -409,6 +409,22 @@
 		</File>
 		<File
 			RelativePath="..\..\src\db.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_local.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_local.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_remote.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\db_remote.h"
 			>
 		</File>
 		<File
