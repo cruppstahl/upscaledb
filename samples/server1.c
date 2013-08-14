@@ -85,8 +85,8 @@ main()
   /* See client1.c for the corresponding client */
   while (1) {
     printf("> ");
-    scanf("%s", &input[0]);
-    if (!strcmp(input, "exit")) {
+    int s = scanf("%s", &input[0]);
+    if (s == EOF || !strcmp(input, "exit")) {
       printf("exiting...\n");
       break;
     }

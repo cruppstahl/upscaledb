@@ -3,11 +3,7 @@ if ENABLE_REMOTE
 SUBDIRS = protocol server
 endif # ENABLE_REMOTE
 
-AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
-
 lib_LTLIBRARIES = libhamsterdb.la
-
-EXTRA_DIST = os_win32.cc
 
 libhamsterdb_la_SOURCES = \
 	aes.h \
@@ -96,15 +92,22 @@ libhamsterdb_la_SOURCES = \
 	util.h \
 	version.h
 
+EXTRA_DIST = os_win32.cc
+
+AM_CPPFLAGS = -I../include -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 libhamsterdb_la_LDFLAGS = -version-info 4:0:0 $(BOOST_SYSTEM_LDFLAGS)
-libhamsterdb_la_LIBADD = $(BOOST_SYSTEM_LIBS)
+libhamsterdb_la_LIBADD = 
+
+if DARWIN
+libhamsterdb_la_LIBADD += $(BOOST_SYSTEM_LIBS)
+endif
 
 if ENABLE_ENCRYPTION
 AM_CPPFLAGS += -DHAM_ENABLE_ENCRYPTION
 endif
 
 if ENABLE_REMOTE
-libhamsterdb_la_LIBADD += $(top_builddir)/src/protocol/libprotocol.la
 AM_CPPFLAGS += -DHAM_ENABLE_REMOTE
+libhamsterdb_la_LIBADD += $(top_builddir)/src/protocol/libprotocol.la
 endif
 

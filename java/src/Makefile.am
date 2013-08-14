@@ -1,5 +1,11 @@
 
-AM_CPPFLAGS     = -I$(top_builddir)/include
+AM_CPPFLAGS     = -I$(top_builddir)/include -I$(JDK_INCLUDE)
+if LINUX
+AM_CPPFLAGS    += -I$(JDK_INCLUDE)/linux
+endif
+if DARWIN
+AM_CPPFLAGS    += -I$(JDK_INCLUDE)/mac -I$(JDK_INCLUDE)/darwin
+endif
 AM_CFLAGS       = -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 
 lib_LTLIBRARIES = libhamsterdb-java.la

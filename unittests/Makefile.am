@@ -2,6 +2,8 @@
 EXTRA_DIST      = recovery.pl valgrind.supp data/*
 
 noinst_PROGRAMS = test recovery
+noinst_BIN      = test recovery
+
 
 AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include
 
@@ -76,9 +78,13 @@ test_SOURCES    = aes.cpp \
                   txn.cpp \
                   txn_cursor.cpp
 
-test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a \
-				  $(BOOST_SYSTEM_LIBS) -lpthread -ldl
-test_LDFLAGS    = $(BOOST_SYSTEM_LDFLAGS)
+test_LDADD      = $(top_builddir)/src/.libs/libhamsterdb.a -lpthread -ldl
+test_LDFLAGS    =
+
+if DARWIN
+test_LDADD     += $(BOOST_SYSTEM_LIBS)
+test_LDFLAGS   += $(BOOST_SYSTEM_LDFLAGS)
+endif
 
 if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
@@ -97,8 +103,6 @@ recovery_SOURCES = recovery.cpp
 recovery_LDADD   = $(top_builddir)/src/libhamsterdb.la \
 				   $(BOOST_SYSTEM_LIBS) -ldl 
 recovery_LDFLAGS = $(BOOST_SYSTEM_LDFLAGS)
-
-noinst_BIN       = test recovery
 
 test_recovery:
 	perl recovery.pl

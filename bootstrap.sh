@@ -1,8 +1,11 @@
-#!/bin/sh
 
-libtoolize --force \
-&& aclocal --warnings=all \
-&& automake --force-missing --add-missing --foreign --warnings=all \
-&& autoconf --warnings=all \
-&& autoheader --warnings=all
+if [ "`uname`" == "Darwin" ]; then
+  LIBTOOLIZE=glibtoolize
+fi
+
+set -ex
+${LIBTOOLIZE:-libtoolize}
+${ACLOCAL:-aclocal -I m4}
+${AUTOCONF:-autoconf}
+${AUTOMAKE:-automake} --add-missing
 

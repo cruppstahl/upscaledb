@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
@@ -20,9 +20,6 @@
 
 /* Define to 1 if you have the `fsync' function. */
 #undef HAVE_FSYNC
-
-/* __FUNCTION__ is supported */
-#undef HAVE_FUNCTION_MACRO
 
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
@@ -54,12 +51,6 @@
 
 /* Define to 1 if you have the <openssl/evp.h> header file. */
 #undef HAVE_OPENSSL_EVP_H
-
-/* flag O_LARGEFILE is supported */
-#undef HAVE_O_LARGEFILE
-
-/* flag O_NOATIME is supported */
-#undef HAVE_O_NOATIME
 
 /* Define to 1 if you have the `pread' function. */
 #undef HAVE_PREAD
@@ -139,6 +130,12 @@
 #  undef WORDS_BIGENDIAN
 # endif
 #endif
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

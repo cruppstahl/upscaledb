@@ -37,6 +37,7 @@ x rewrite configure.in; look at libuv for a good sample
 x collect file format incompatibilities
     -> see topic/next
 
+<<<<<<< HEAD
 o specify timeout for remote client
     o add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
     o for unix
@@ -49,6 +50,73 @@ o specify timeout for remote client
     o needs a unittest
     o for java
     o for dotnet
+=======
+
+high-level plan for 2.1.3
+- refactoring of configure.ac
+- refactoring of the file format
+- btree understands fixed-size PODs
+- cache oblivious btree layout (if it makes sense!) -> COMM
+- specify timeout for remote client
+- monster test can create graphs
+
+high-level plan for 2.1.4
+- btree understands variable-sized PODs
+- completely rewrite handling of extended keys
+- btree can compress keys and records -> COMM
+- use SIMD for scans (if it makes sense!) -> COMM
+- replace 3rdparty/json with boost property_tree
+
+high-level plan for 2.1.5
+- completely rewrite handling of duplicate keys
+- asynchronous read-ahead (if it makes sense!) -> COMM
+- combine POD types into high-level schemas (split off something for COMM!)
+- lay the groundwork for concurrency 
+
+o rewrite configure.in; look at libuv for a good sample
+        x also for bootstrap.sh
+    x rename to configure.ac
+    o also for monster tests
+    o test on MacOS (tcmalloc must be disabled!)
+
+o collect file format incompatibilities
+    o persistent freelist statistics
+    o persistent freelist payload
+    o page header - reserve space for 32bit crc, 32bit page size
+    o get rid of the statistics-structures
+    o reduce the PBlobHeader (remove flags?, alloc_size)
+    o for cache-oblivious (pre-allocated) index
+    o for the new Btree code (btree node, database header)
+    o what else?
+    
+    o increment file format counter and make sure that older database files
+        cannot be read by 2.1.3 (and that 2.1.2 fails to read the newer
+        database files)
+
+    o make sure that the file format is extensible for
+        o more btree node formats, compression algorithms etc
+        o record compression
+        o ...  (what else?)
+
+o rewrite configure.in; look at libuv for a good sample
+        x also for bootstrap.sh
+    x rename to configure.ac
+    o also for monster tests
+    o test on MacOS (tcmalloc must be disabled!)
+
+o release-v2.pl enhancements
+    o needs to run valgrind tests
+    o needs to run recovery tests
+    o needs to run with enable-gcc-hardening tests
+    o needs to run with static code analysis (clang)
+    o new parameter "--start=3" in combination with "full": starts at
+        step #3, executes all following steps
+
+o fix java compiler warnings
+
+o remove libjson, use boost::property_tree instead!
+>>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
+>>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -96,6 +164,7 @@ o increase API version in header file (if there are any incompatibilities)
     a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
     and how many operations actually require the WAL
 
+<<<<<<< HEAD
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
     arguments; can we do something similar with the TransactionNode?
@@ -110,6 +179,9 @@ o increase API version in header file (if there are any incompatibilities)
         o only do this if memory allocations cost performance
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
+=======
+. also remove locking from C# and Java APIs
+>>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
 
 . BtreeCursor: use memory arena for uncoupling the key
     -> better wait till extended keys are gone
@@ -130,6 +202,12 @@ o flush transactions in background (when the btree is concurrent)
 
 . remove libjson, use boost::property_tree instead!
     o also on Windows!
+
+o Improve leaf pages caching
+    Store start/end key of each leaf page in a separate lookup table in order
+    to avoid btree traversals. This could be part of the hinter.
+  - one such cache per database
+  - should work for insert/find/erase
 
 o allow transactions w/o journal
 

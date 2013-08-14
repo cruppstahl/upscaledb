@@ -270,9 +270,16 @@ read_config(const char *configfile, config_table_t **params) {
   fseek(fp, 0, SEEK_END);
   len = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  buf=(char *)malloc(len+1); /* for zero-terminating byte */
-  fread(buf, 1, len, fp);
+  buf=(char *)malloc(len + 1); /* for zero-terminating byte */
+  int r = fread(buf, 1, len, fp);
   fclose(fp);
+
+  if (r < 0 || r != len) {
+    hlog(LOG_FATAL, "failed to read configuration file: %s\n",
+                    strerror(errno));
+    exit(-1);
+  }
+
   buf[len] = '\0';
 
   /* parse the file */
