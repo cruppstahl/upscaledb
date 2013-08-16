@@ -86,8 +86,8 @@ then
       [Define to 1 if you have the <google/tcmalloc.h> header file.])
 else
   # disable tcmalloc on MacOS
-  case "$target" in
-    *-darwin*)
+  case "$host_os" in
+    *darwin*)
       this_is_darwin=yes
       ;;
     *)
