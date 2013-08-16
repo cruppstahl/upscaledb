@@ -517,6 +517,7 @@ o need a function to get the txn of a conflict (same as in v2)
 . new flag for transactions: HAM_TXN_WILL_COMMIT
     if this flag is set, then write all records directly to the file, not
     to the log. the log will only contain the rid.
+    -> or: make this the default; call the new flag HAM_TXN_MAYBE_WILL_ABORT
     o in case of an abort: move the record to the freelist
     -> this affects all temporary ham_insert-transactions
     (not sure if this should get high priority)
