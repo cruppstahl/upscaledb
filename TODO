@@ -203,7 +203,7 @@ x issue #25: fix tcmalloc build on MacOS
 x add client/server testing to monster testsuite
     x also to performance tests
 
-o improve client/server performance
+x improve client/server performance
     currently client/server is 10 times slower than standalone; can we improve
     this, i.e. by using keepalive/open connections?
     x configure.in: remove --diable-server, always use --diable-remote
@@ -265,7 +265,10 @@ o improve client/server performance
             should be enough
         x same for CursorMoveRequest
     x test darwin/MacOS compilation
-    o win32: crashes - see Phillip's mail
+
+x fix java compiler warnings
+
+o remote code crashes on win32
 
 . java-test fails on a slower machine (race cond. in finalize()?)
     -> this is just a test issue
@@ -277,16 +280,13 @@ o improve client/server performance
 
 
 
+o rewrite configure.in; look at libuv for a good sample
+        x also for bootstrap.sh
+    x rename to configure.ac
+    o also for monster tests
+    o test on MacOS (tcmalloc must be disabled!)
 
-
-
-
-
-o rewrite configure.in
-    -> rename to configure.ac
-    -> look at libuv for a good sample
-        -> also for bootstrap.sh
-    -> also for monster tests
+o remove libjson, use boost::property_tree instead!
 
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template

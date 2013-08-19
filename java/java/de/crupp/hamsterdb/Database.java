@@ -429,7 +429,7 @@ public class Database {
     }
   }
 
-  private HashSet m_cursor_set;
+  private HashSet<Cursor> m_cursor_set;
 
   /**
    * Retrieves the database handle
@@ -443,7 +443,7 @@ public class Database {
    */
   public void addCursor(Cursor cursor) {
     if (m_cursor_set == null)
-      m_cursor_set = new HashSet();
+      m_cursor_set = new HashSet<Cursor>();
     m_cursor_set.add(cursor);
   }
 
