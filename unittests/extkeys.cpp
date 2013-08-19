@@ -35,7 +35,7 @@ struct ExtendedKeyFixture {
   }
 
   ~ExtendedKeyFixture() {
-    REQUIRE(0 == ham_env_close(m_env, 0));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 };
 

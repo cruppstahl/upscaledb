@@ -115,9 +115,8 @@ struct TxnCursorFixture {
     REQUIRE(k.size == key.size);
     REQUIRE(0 == memcmp(k.data, key.data, key.size));
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getKeyFromCoupledCursorEmptyKeyTest() {
@@ -141,9 +140,8 @@ struct TxnCursorFixture {
     REQUIRE(k.size == key.size);
     REQUIRE((void *)0 == k.data);
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getKeyFromNilCursorTest() {
@@ -166,9 +164,8 @@ struct TxnCursorFixture {
 
     REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_key(&k));
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorTest() {
@@ -194,9 +191,8 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorUserAllocTest() {
@@ -226,9 +222,8 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorEmptyRecordTest() {
@@ -252,9 +247,8 @@ struct TxnCursorFixture {
     REQUIRE(r.size == record.size);
     REQUIRE((void *)0 == r.data);
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   void getRecordFromNilCursorTest() {
@@ -275,9 +269,8 @@ struct TxnCursorFixture {
 
     REQUIRE(HAM_CURSOR_IS_NIL == c.copy_coupled_record(&r));
 
-    ((Transaction *)txn)->free_operations();
-    REQUIRE(0 == ham_txn_commit(txn, 0));
     c.set_to_nil();
+    REQUIRE(0 == ham_txn_commit(txn, 0));
   }
 
   ham_status_t insert(ham_txn_t *txn, const char *key, const char *record = 0,

@@ -25,6 +25,11 @@
 
 namespace hamsterdb {
 
+RemoteEnvironment::~RemoteEnvironment()
+{
+  (void)os_socket_close(&m_socket);
+}
+
 ham_status_t
 RemoteEnvironment::perform_request(Protocol *request, Protocol **reply)
 {
@@ -460,8 +465,10 @@ RemoteEnvironment::close(ham_u32_t flags)
   ham_assert(reply->type() == Protocol::DISCONNECT_REPLY);
 
   st = reply->disconnect_reply().status();
-  if (st == 0)
+  if (st == 0) {
+    os_socket_close(&m_socket);
     m_remote_handle = 0;
+  }
 
   delete reply;
   return (st);

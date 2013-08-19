@@ -17,10 +17,8 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
              3rdparty/catch/catch.hpp                   \
-             win32/msvc2008/README.TXT                  \
              win32/msvc2008/hamsterdb.sln               \
              win32/msvc2008/*.vcproj                    \
-             win32/msvc2010/README.TXT                  \
              win32/msvc2010/hamsterdb.sln               \
              win32/msvc2010/*.vcxproj                   \
              dotnet

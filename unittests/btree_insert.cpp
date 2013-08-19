@@ -52,7 +52,7 @@ struct BtreeInsertFixture {
 
   ~BtreeInsertFixture() {
     if (m_env)
-	  REQUIRE(0 == ham_env_close(m_env, 0));
+	  REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
   ham_status_t fetch_page(Page **page, ham_u64_t address) {

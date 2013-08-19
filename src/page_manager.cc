@@ -371,9 +371,13 @@ PageManager::close()
 
     if (m_env->get_flags() & HAM_ENABLE_RECOVERY)
       st = m_env->get_changeset().flush(m_env->get_incremented_lsn());
-    else
-      st = flush_all_pages();
   }
+
+  // flush again; there were pages fetched during reclaim, and they have
+  // to be released now
+  st = flush_all_pages();
+  if (st)
+    return (st);
 
   return (st);
 }

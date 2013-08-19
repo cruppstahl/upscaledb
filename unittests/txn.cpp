@@ -930,6 +930,7 @@ struct HighLevelTxnFixture {
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
 
+    teardown();
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
@@ -939,7 +940,7 @@ struct HighLevelTxnFixture {
     REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_db_insert(m_db, txn, &key, &rec, 0));
     REQUIRE(0 == ham_db_find(m_db, txn, &key, &rec, 0));
-    REQUIRE(0 == ham_env_close(m_env, 0));
+    REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
     REQUIRE(0 ==
         ham_env_open(&m_env, Globals::opath(".test"),

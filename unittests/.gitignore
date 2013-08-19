@@ -10,3 +10,4 @@ test
 *.db
 *.db.*
 recovery
+valgrind-out.txt

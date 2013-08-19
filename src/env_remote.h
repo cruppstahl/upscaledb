@@ -34,6 +34,8 @@ class RemoteEnvironment : public Environment
       set_flags(get_flags() | HAM_IS_REMOTE_INTERNAL);
     }
 
+    virtual ~RemoteEnvironment();
+
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
             ham_u32_t mode, ham_size_t pagesize, ham_size_t cachesize,

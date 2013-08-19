@@ -369,6 +369,7 @@ struct LogHighLevelFixture {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY, 0664, 0));
+    m_lenv = (LocalEnvironment *)m_env;
     REQUIRE(m_lenv->get_log() != 0);
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 333, 0, 0));
     REQUIRE(m_lenv->get_log() != 0);

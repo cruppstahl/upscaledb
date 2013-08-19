@@ -1523,7 +1523,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf)
   }
 
 bail:
-  if (close_client)
+  if (close_client || nread < 0)
     uv_close((uv_handle_t *)tcp, on_close_connection);
   Memory::release(buf.base);
 }
@@ -1543,7 +1543,7 @@ on_new_connection(uv_stream_t *server, int status)
   if (uv_accept(server, (uv_stream_t *)client) == 0)
     uv_read_start((uv_stream_t *)client, on_alloc_buffer, on_read_data);
   else
-    uv_close((uv_handle_t *)client, 0);
+    uv_close((uv_handle_t *)client, on_close_connection);
 }
 
 static void

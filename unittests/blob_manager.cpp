@@ -250,7 +250,7 @@ struct BlobManagerFixture {
     ham_u64_t blobid, blobid2;
     ham_record_t record;
     ::memset(&record, 0, sizeof(record));
-    ::memset(buffer,  0, ps*BLOCKS*2);
+    ::memset(buffer,  0, ps * BLOCKS * 2);
 
     /* first: create a big blob and erase it - we want to use the
      * space from the freelist */
@@ -298,14 +298,12 @@ struct BlobManagerFixture {
     ::memset(&record, 0, sizeof(record));
     ::memset(&buffer, 0x12, sizeof(buffer));
 
-    blobid = (ham_u64_t *)::malloc(sizeof(ham_u64_t)*loops);
-    REQUIRE(blobid != 0);
+    blobid = (ham_u64_t *)::malloc(sizeof(ham_u64_t) * loops);
     if (!m_inmemory && m_use_txn)
       REQUIRE(0 == ham_txn_begin(&txn, m_env, 0, 0, 0));
 
     for (int i = 0; i < loops; i++) {
       buffer = (ham_u8_t *)::malloc((i + 1) * factor);
-      REQUIRE(buffer != 0);
       ::memset(buffer, (char)i, (i + 1) * factor);
 
       ham_record_t rec = {0};
@@ -322,12 +320,11 @@ struct BlobManagerFixture {
 
     for (int i = 0; i < loops; i++) {
       buffer = (ham_u8_t *)::malloc((i + 1) * factor);
-      REQUIRE(buffer != 0);
       ::memset(buffer, (char)i, (i + 1) * factor);
 
-      REQUIRE(0 == m_blob_manager->read((LocalDatabase *)m_db, blobid[i], &record,
-                    0, arena));
-      REQUIRE(record.size == (ham_size_t)(i+1)*factor);
+      REQUIRE(0 == m_blob_manager->read((LocalDatabase *)m_db, blobid[i],
+                              &record, 0, arena));
+      REQUIRE(record.size == (ham_size_t)(i + 1) * factor);
       REQUIRE(0 == ::memcmp(buffer, record.data, record.size));
 
       ::free(buffer);

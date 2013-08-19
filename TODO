@@ -268,12 +268,29 @@ x improve client/server performance
 
 x fix java compiler warnings
 
+x fix valgrind errors and leaks (or extend suppressions)
+    x libuv handles/allocations
+    x btree_insert.cpp and others
+    x txn_cursor.cpp
+    x freelist reclaim
+    x catch.hpp
+    x fix TODO in PageManager::close
+    x add remaining issues to suppressions (attn: there are two suppression
+        files!)
+
+o release-v2.pl enhancements
+    x needs to run with enable-gcc-hardening tests
+    x needs to run valgrind tests (check output - no leaks, no unsuppressed
+        errors)
+    x needs to run recovery tests
+    x needs to run with static code analysis (clang)
+    o new parameter "--start=3" in combination with "run": starts at
+        step #3, executes all following steps
+        "--stop=5": stops at step #5
+
 o remote code crashes on win32
-
-. java-test fails on a slower machine (race cond. in finalize()?)
-    -> this is just a test issue
-
-. run a performance test clang++ vs g++
+    o test the new sample in topic/remote on win32
+    o send the new libraries to Phillip
 
 ------------------- release 2.1.2 -----------------------------------------
 
@@ -299,8 +316,7 @@ o remove libjson, use boost::property_tree instead!
     o try to cleanup the flow; move more code from db.cc to txn.cc
     . each Transaction should have its own PoolAllocator (based on ByteArray);
         when deleting the whole structure, only the PoolAllocator is freed
-        o only do this if it releasing this memory turns out to cost
-            performance
+        o only do this if memory allocations cost performance
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
 
@@ -308,26 +324,26 @@ o pre-allocate index; 1.10.x had this as an experimental feature
     o see roadmap document for more information
     o run a performance test/prototype if this is worth the effort
     o this feature is *per database*
-    o Freelist::alloc_area_impl has a parameter "lower_bounds_index" which
-        is currently not used. For allocations in a reserved area it could
-        be set to the lower bound of this area. For other allocations it
-        could be set to the upper bound (thus exceeding this area).
     o calculate number of reqd pages based on estimated keys from the user
-    o needs freelist hints to retrieve the next possible
-        free page *adjacent to* the previous index page
     o make sure that this is not reverted when "reduce file size" feature
         (above) is enabled
-    o try to batch allocations; when new pages are required then don't just
+    o the new pages are not managed by the freelist! therefore the freelist
+        will not need any modifications
+    . try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages
 
 o collect file format incompatibilities
-    o for the new Btree code
+    o for the new Btree code (btree node, database header)
     o persistent freelist statistics
     o persistent freelist payload
-    o page header
+    o page header - also store crc, page size
     o get rid of the statistics-structures
-    o reduce the PBlobHeader (remove flags, alloc_size)
+    o reduce the PBlobHeader (remove flags?, alloc_size)
+    o for cache-oblivious (pre-allocated) index
     o what else?
+    
+    o increment file format counter and make sure that older database files
+        can not be read by 2.1.3
 
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
@@ -391,12 +407,17 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
         (then either use an overflow area or refuse to store them i.e. if
         they are > 20% of the page - better refuse, then we can also get
         rid of the error code that can be returned by the compare function)
+        -- really? wouldn't this be inconvenient for the users?
     ------- release -------
     o replace duplicate keys; this will be difficult because it requires
         rewriting the Cursor consolidation flow
     ------- release -------
     o optionally store fixed length record in leaf (not in internal pages!)
     ------- release -------
+    o add column store compression for keys, lightweight compression for
+        records (snappy, etc)
+    ------- release -------
+    o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
 
 
 
@@ -406,12 +427,16 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
 
 
 
-
-
-. also remove locking from C# and Java APIs
 
 . BtreeCursor: use memory arena for uncoupling the key
     -> better wait till extended keys are gone
+
+. java-test fails on a slower machine (race cond. in finalize()?)
+    -> this is just a test issue; the finalizer does not close the database
+    objects soon enough, and the db-file is still locked when the next
+    test starts. Could be fixed by using temporary file names for the tests.
+
+. also remove locking from C# and Java APIs
 
 o is the recovery working if there's a crash during ham_db_close
     or ham_env_close?

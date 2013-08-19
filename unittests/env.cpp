@@ -79,14 +79,14 @@ struct EnvFixture {
       REQUIRE(0 == ham_env_open_db(env, &db, 333, 0, 0));
       REQUIRE(HAM_DATABASE_ALREADY_OPEN ==
           ham_env_open_db(env, &db, 333, 0, 0));
-      REQUIRE(0 == ham_env_close(env, 0));
+      REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
       REQUIRE(0 == ham_env_open(&env, Globals::opath(".test"), 0, 0));
 
       REQUIRE(0 == ham_env_open_db(env, &db, 333, 0, 0));
       REQUIRE(0 == ham_db_close(db, 0));
     }
-    REQUIRE(0 == ham_env_close(env, 0));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 
   /*

@@ -1,189 +1,69 @@
 {
-   supp1
+   <insert_a_suppression_name_here>
    Memcheck:Param
-   write(buf)
-   fun:write
-   fun:os_write
-   fun:ham_log_append_entry
-   fun:ham_log_append_prewrite
-   fun:_ZN7LogTest18appendPreWriteTestEv
-   fun:_ZN7CppUnit10TestCallerI7LogTestE7runTestEv
-   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
-   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
-   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
-   fun:_ZN7CppUnit14ProtectorChain7protectERKNS_7FunctorERKNS_16ProtectorContextE
-   fun:_ZN7CppUnit10TestResult7protectERKNS_7FunctorEPNS_4TestERKSs
-   fun:_ZN7CppUnit8TestCase3runEPNS_10TestResultE
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb4Page5flushEv
+   fun:_ZN9hamsterdb11PageManager10flush_pageEPNS_4PageE
+   fun:_ZN9hamsterdbL17db_close_callbackEPNS_4PageEPNS_8DatabaseEj
+   fun:_ZN9hamsterdb5Cache5visitEPFbPNS_4PageEPNS_8DatabaseEjES4_j
+   fun:_ZN9hamsterdb11PageManager14close_databaseEPNS_8DatabaseE
+   fun:_ZN9hamsterdb13LocalDatabase10close_implEj
+   fun:_ZN9hamsterdb8Database5closeEj
+   fun:ham_db_close
+   fun:_ZN9hamsterdb16LocalEnvironment5closeEj
 }
-
 {
-   supp2
+   <insert_a_suppression_name_here>
    Memcheck:Param
-   write(buf)
-   fun:write
-   fun:os_write
-   fun:ham_log_append_entry
-   fun:ham_log_append_write
-   fun:_ZN7LogTest15appendWriteTestEv
-   fun:_ZN7CppUnit10TestCallerI7LogTestE7runTestEv
-   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
-   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
-   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
-   fun:_ZN7CppUnit14ProtectorChain7protectERKNS_7FunctorERKNS_16ProtectorContextE
-   fun:_ZN7CppUnit10TestResult7protectERKNS_7FunctorEPNS_4TestERKSs
-   fun:_ZN7CppUnit8TestCase3runEPNS_10TestResultE
+   writev(vector[...])
+   fun:writev
+   fun:_ZN9hamsterdb9os_writevEiPvmS0_mS0_mS0_mS0_m
+   fun:_ZN9hamsterdb3Log12append_writeEmjmPhj
+   fun:_ZN9hamsterdb3Log11append_pageEPNS_4PageEmj
+   fun:_ZN9hamsterdb9Changeset10log_bucketEPPNS_4PageEjmRj
+   fun:_ZN9hamsterdb9Changeset5flushEm
+   fun:_ZN9hamsterdb16LocalEnvironment9flush_txnEPNS_11TransactionE
+   fun:_ZN9hamsterdb16LocalEnvironment20flush_committed_txnsEv
+   fun:_ZN9hamsterdb13LocalDatabase13cursor_insertEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:ham_cursor_insert
+   fun:_ZN17BaseCursorFixture26getDuplicateRecordSizeTestEv
+   fun:_ZL35TestCaseFunction_catch_internal_427v
 }
-
 {
-   supp3
-   Memcheck:Cond
-   fun:longest_match
-   fun:deflate_slow
-   fun:deflate
-   fun:compress2
-   fun:__zlib_before_write_cb
-   fun:__record_filters_before_write
-   fun:ham_insert
-   fun:_ZN10FilterTest14zlibFilterTestEv
-   fun:_ZN7CppUnit10TestCallerI10FilterTestE7runTestEv
-   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
-   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
-   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   writev(vector[...])
+   fun:writev
+   fun:_ZN9hamsterdb9os_writevEiPvmS0_mS0_mS0_mS0_m
+   fun:_ZN9hamsterdb7Journal13append_insertEPNS_8DatabaseEPNS_11TransactionEP9ham_key_tP12ham_record_tjm
+   fun:_ZN9hamsterdb13LocalDatabase10insert_txnEPNS_11TransactionEP9ham_key_tP12ham_record_tjPNS_17TransactionCursorE
+   fun:_ZN9hamsterdb13LocalDatabase13cursor_insertEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:ham_cursor_insert
+   fun:_ZN17BaseCursorFixture26getDuplicateRecordSizeTestEv
+   fun:_ZL35TestCaseFunction_catch_internal_427v
+   fun:_ZN5Catch7Runner28runTestsEv
+   fun:_ZN5Catch4MainERNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPcRNS_6ConfigE
+   fun:_ZN5Catch4MainEiPKPc
 }
-
 {
-   leak_gnutls1
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   fun:gnutls_global_init
-   fun:Curl_gtls_init
-   fun:curl_global_init
-   fun:curl_easy_init
-}
-
-{
-   leak_gnutls2
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
-   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
-   fun:gnutls_global_init
-   fun:Curl_gtls_init
-   fun:curl_global_init
-}
-
-{
-   leak_gnutls3
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
-   obj:/usr/lib/x86_64-linux-gnu/libgnutls.so.26.14.12
-   fun:gnutls_global_init
-   fun:Curl_gtls_init
-   fun:curl_global_init
-}
-
-{
-   leak_gnutls4
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   fun:gnutls_global_init
-   fun:Curl_gtls_init
-   fun:curl_global_init
-   fun:curl_easy_init
-}
-
-{
-   leak_gnutls5
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   obj:/lib/x86_64-linux-gnu/libgcrypt.so.11.6.0
-   fun:gnutls_global_init
-   fun:Curl_gtls_init
-   fun:curl_global_init
-   fun:curl_easy_init
-}
-
-{
-   leak_bfc1
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN3bfc7fixture11catch_valueEim
-   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
-   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
-   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
-   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
-   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
-   fun:_ZN3bfc10testrunner3runEPKcS2_b
-   fun:main
-}
-
-{
-   leak_bfc2
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN3bfc7fixture11catch_valueEim
-   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
-   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
-   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
-   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
-   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
-   fun:_ZN3bfc10testrunner3runEPKcS2_b
-   fun:main
-}
-
-{
-   leak_bfc3
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN3bfc7fixture11catch_valueEim
-   fun:_ZN16HighLevelTxnTest4findEP9ham_txn_tPKcS3_
-   fun:_ZN16HighLevelTxnTest15getKeyCountTestEv
-   fun:_ZN3bfc7fixture11FUT_invokerEPNS_10testrunnerEMS0_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner10cpp_eh_runEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner12exec_testfunEPS0_PNS_7fixtureEMS2_FvvEPKcNS_11bfc_state_tERNS_5errorE
-   fun:_ZN3bfc10testrunner18exec_a_single_testEPNS_7fixtureEPKNS_4testE
-   fun:_ZN3bfc10testrunner3runEPNS_7fixtureEPKNS_4testENS_23bfc_error_report_mode_tE
-   fun:_ZN3bfc10testrunner3runERKSsS2_S2_S2_bbb
-   fun:_ZN3bfc10testrunner3runEPKcS2_b
-   fun:main
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb15DiskBlobManager12write_chunksEPNS_13LocalDatabaseEPNS_4PageEmbbPPhPjj
+   fun:_ZN9hamsterdb15DiskBlobManager8allocateEPNS_13LocalDatabaseEP12ham_record_tjPm
+   fun:_ZN9hamsterdb15DiskBlobManager9overwriteEPNS_13LocalDatabaseEmP12ham_record_tjPm
+   fun:_ZN9hamsterdb16DuplicateManager6insertEPNS_13LocalDatabaseEPNS_11TransactionEmP12ham_record_tjjPNS_10PDupeEntryEjPmPj
+   fun:_ZN9hamsterdb9PBtreeKey10set_recordEPNS_13LocalDatabaseEPNS_11TransactionEP12ham_record_tjjPj
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_pageEPNS_4PageEP9ham_key_tm
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
 }
 

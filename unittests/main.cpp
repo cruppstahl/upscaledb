@@ -28,5 +28,7 @@ main(int argc, char *const argv[])
   Protocol::shutdown();
 #endif
 
+  Catch::cleanUp();
+
   return (result);
 }

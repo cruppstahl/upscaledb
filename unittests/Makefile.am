@@ -1,5 +1,5 @@
 
-EXTRA_DIST      = recovery.pl suppressions.valgrind data/*
+EXTRA_DIST      = recovery.pl valgrind.supp data/*
 
 noinst_PROGRAMS = test recovery
 
@@ -88,8 +88,9 @@ test_LDADD     += $(top_builddir)/src/server/.libs/libhamserver.a \
 endif
 
 valgrind:
-	valgrind --suppressions=suppressions.valgrind --leak-check=full \
-			--num-callers=20 --show-reachable=yes .libs/lt-test 
+	valgrind --suppressions=valgrind.supp --leak-check=full \
+			--num-callers=20 --show-reachable=yes \
+			--log-file=valgrind-out.txt ./test
 
 recovery_SOURCES = recovery.cpp
 
