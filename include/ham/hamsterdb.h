@@ -255,7 +255,7 @@ typedef struct {
  *
  * <pre>
  *   ham_parameter_t parameters[]={
- *    { HAM_PARAM_CACHESIZE, 2*1024*1024 }, // set cache size to 2 mb
+ *    { HAM_PARAM_CACHESIZE, 2.1.34*1024 }, // set cache size to 2 mb
  *    { HAM_PARAM_PAGESIZE, 4096 }, // set pagesize to 4 kb
  *    { 0, NULL }
  *   };
@@ -456,7 +456,7 @@ ham_get_license(const char **licensee, const char **product);
  * Databases in an Environment can be created with @ref ham_env_create_db
  * or opened with @ref ham_env_open_db.
  *
- * Starting with version 2.1.2, hamsterdb can transparently encrypt the
+ * Starting with version 2.1.3, hamsterdb can transparently encrypt the
  * generated file using 128bit AES in CBC mode. The write-ahead log used
  * for recovery is also encrypted (with exception of some metadata), but the 
  * transactional journal is not. Encryption can be enabled by specifying
