@@ -98,6 +98,8 @@ o collect file format incompatibilities
         o record compression
         o ...  (what else?)
 
+x fix java compiler warnings
+
 o rewrite configure.in; look at libuv for a good sample
         x also for bootstrap.sh
     x rename to configure.ac
@@ -111,8 +113,6 @@ o release-v2.pl enhancements
     o needs to run with static code analysis (clang)
     o new parameter "--start=3" in combination with "full": starts at
         step #3, executes all following steps
-
-o fix java compiler warnings
 
 o remove libjson, use boost::property_tree instead!
 >>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
