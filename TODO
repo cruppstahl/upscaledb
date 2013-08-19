@@ -107,16 +107,35 @@ o rewrite configure.in; look at libuv for a good sample
     o test on MacOS (tcmalloc must be disabled!)
 
 o release-v2.pl enhancements
-    o needs to run valgrind tests
+    x needs to run with enable-gcc-hardening tests
+    x needs to run valgrind tests
     o needs to run recovery tests
-    o needs to run with enable-gcc-hardening tests
     o needs to run with static code analysis (clang)
-    o new parameter "--start=3" in combination with "full": starts at
+    o new parameter "--start=3" in combination with "run": starts at
         step #3, executes all following steps
+        "--stop=5": stops at step #5
 
 o remove libjson, use boost::property_tree instead!
+<<<<<<< HEAD
 >>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
 >>>>>>> Fixed compiler warnings, reorganized the autoconf environment; no functional changes
+=======
+
+. review/rewrite/refactor Transaction class
+    keep in mind that sooner or later the BtreeNode will expect template
+    arguments; can we do something similar with the TransactionNode?
+    x try to get the methods/design analoguous to the Btree - no, that
+        does not make too much sense
+    x document the tree structure in the header file
+    x refactor the code
+    o split into multiple files
+    o try to cleanup the flow; move more code from db.cc to txn.cc
+    . each Transaction should have its own PoolAllocator (based on ByteArray);
+        when deleting the whole structure, only the PoolAllocator is freed
+        o only do this if memory allocations cost performance
+        o problem: a realloc() will not always work because it might move
+            the allocated memory, and all existing pointers would be invalid 
+>>>>>>> Fixing valgrind errors and leaks
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -133,8 +152,100 @@ o use cache-oblivious b-tree layout
     . try to batch allocations; when new pages are required then don't just
         allocate one but multiple pages (if the database is big enough)
 
-o new btree format for fixed-sized PODs
-    -> see topic/next
+o collect file format incompatibilities
+    o for the new Btree code (btree node, database header)
+    o persistent freelist statistics
+    o persistent freelist payload
+    o page header - also store crc, page size
+    o get rid of the statistics-structures
+    o reduce the PBlobHeader (remove flags?, alloc_size)
+    o for cache-oblivious (pre-allocated) index
+    o what else?
+    
+    o increment file format counter and make sure that older database files
+        can not be read by 2.1.3
+>>>>>>> Fixing valgrind errors and leaks
+
+o prepare btree rewrite; the goal is to move all node-specific operations
+    into the node itself, and ultimately to get rid of BtreeIndex::compare
+
+    o analyze node; move all node operations to the node itself
+        o PBtreeNode::get_key()
+        o find(key) -> position || kNotFound (== -1)
+            -> BtreeIndex::get_slot
+               (rename to get_position_in_page; returns position or kNotFound)
+        o insert(key, RecordIdProxy) -> Proxy creates RecordId if insert is
+                successful
+            -> needs_split() -> bool
+            -> split(Page *newpage, int pivot, bool internal)
+            -> insert(key, record_proxy, flags = HINT_PREPEND, HINT_APPEND,
+                        OVERWRITE, DUPLICATE) -> {slot, duplicate_id}
+            -> append_no_split(key, record_proxy) -> {slot, duplicate_id}
+            -> prepend_no_split(key, record_proxy) -> {slot, duplicate_id}
+        o erase
+            o remove_entry(Page, slot) -> erase_from_page(Page, slot)
+            o copy_key(SrcPage, SrcSlot, DestPage, DestSlot)
+            o replace_key(SrcPage, SrcSlot, DestPage, DestSlot)
+            o shift
+            o merge
+        o what else?
+            o Node::initialize() - called when a new page is allocated
+            o need an "iterator" concept where it is possible to get the
+              previous or the next key (for approx. matching and cursors)
+            o need to change the PBtreeKey class - it might not have a size!
+    o suggest new code flow
+        o Abstract baseclass BtreeNodeProxy, which is then derived and
+            implemented with template parameters. The generated pointer is
+            stored in the Page object (make sure it's deleted when the page
+            is moved to the freelist!). The BtreeNodeProxy will have all the
+            additional logic for the PBtreeNode (which will not be modified).
+        o Need a factory for BtreeNodeProxy objects
+        o The Database callback function should refer to the callback
+            template function in the BtreeNode; otherwise a lot of other
+            code will no longer work (i.e. when Transactions compare keys)
+        o start by rewriting BtreeCheckIntegrityAction; use a template function
+            to compare keys (which uses the pointer function internally)
+            o add UINT32 keys (HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32) and
+                implement a new Comparator
+            o implement the BtreeNodeProxy class
+                o needs get_position, get_key
+            o implement the BtreeKeyProxy class
+                o for variable size (existing) keys
+                o for fixed size keys (uint32, uint64...)
+        o then rewrite BtreeEnumAction
+
+o start with the Btree rewrite; btree nodes are accepting template parameters
+    and policies. The default parameter uses the callback function provided
+    by the user. There are many notes on paper flying around - collect
+    and consolidate them first.
+    o support existing callbacks - everything should work as advertised
+    o support binary search only
+    o support POD types: int8, uint8, int16, uint16, int32, uint32, int64,
+        uint64, float, double, fixed length blobs, fixed length strings (?)
+        (w/o duplicates and extended keys - they always enforce the
+        default type based on the callback)
+    ------- release -------
+    o support linear search through a node (with skip list?)
+    o support variable length types, use linear search (with a skiplist)
+        for strings (strcmp), blobs (memcmp)
+    o replace extended keys; store them in the leaf unless they're TOO big
+        (then either use an overflow area or refuse to store them i.e. if
+        they are > 20% of the page - better refuse, then we can also get
+        rid of the error code that can be returned by the compare function)
+        -- really? wouldn't this be inconvenient for the users?
+    ------- release -------
+    o replace duplicate keys; this will be difficult because it requires
+        rewriting the Cursor consolidation flow
+    ------- release -------
+    o optionally store fixed length record in leaf (not in internal pages!)
+    ------- release -------
+    o add column store compression for keys, lightweight compression for
+        records (snappy, etc) -> COMM!
+    ------- release -------
+    o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
+    ------- release -------
+    o add combined high-level schemas (combinations of various POD types)
+>>>>>>> Fixing valgrind errors and leaks
 
 o win32: a few unimportant unittests are failing (2.1.2)
 o win32: generate protobuf-files in separate directories for each build
