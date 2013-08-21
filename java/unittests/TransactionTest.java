@@ -121,6 +121,9 @@ public class TransactionTest extends TestCase {
       Cursor c = new Cursor(db, txn);
       db.insert(txn, key, record);
       c.moveFirst();
+      c.close();
+      db.close();
+      env.close();
     }
     catch (DatabaseException err) {
       fail("DatabaseException " + err.getMessage());

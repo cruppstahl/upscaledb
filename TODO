@@ -278,24 +278,51 @@ x fix valgrind errors and leaks (or extend suppressions)
     x add remaining issues to suppressions (attn: there are two suppression
         files!)
 
-o release-v2.pl enhancements
+x release-v2.pl enhancements
     x needs to run with enable-gcc-hardening tests
     x needs to run valgrind tests (check output - no leaks, no unsuppressed
         errors)
     x needs to run recovery tests
     x needs to run with static code analysis (clang)
-    o new parameter "--start=3" in combination with "run": starts at
+    x new parameter "--start=3" in combination with "run": starts at
         step #3, executes all following steps
         "--stop=5": stops at step #5
 
+x java-test fails on a slower machine (race cond. in finalize()?)
+    -> this is just a test issue; the finalizer does not close the database
+    objects soon enough, and the db-file is still locked when the next
+    test starts.
+
 o remote code crashes on win32
-    o test the new sample in topic/remote on win32
-    o send the new libraries to Phillip
+    x test the new sample in topic/remote on win32
+    x send the new libraries to Phillip
 
 ------------------- release 2.1.2 -----------------------------------------
 
 
 
+
+
+high-level plan for 2.1.3
+- refactoring of configure.ac
+- refactoring of the file format
+- btree understands fixed-size PODs
+- cache oblivious btree layout (if it makes sense!) -> COMM
+- specify timeout for remote client
+- monster test can create graphs
+
+high-level plan for 2.1.4
+- btree understands variable-sized PODs
+- completely rewrite handling of extended keys
+- btree can compress keys and records -> COMM
+- use SIMD for scans (if it makes sense!) -> COMM
+- replace 3rdparty/json with boost property_tree
+
+high-level plan for 2.1.5
+- completely rewrite handling of duplicate keys
+- asynchronous read-ahead (if it makes sense!) -> COMM
+- combine POD types into high-level schemas (split off something for COMM!)
+- lay the groundwork for concurrency 
 
 o rewrite configure.in; look at libuv for a good sample
         x also for bootstrap.sh
@@ -303,26 +330,31 @@ o rewrite configure.in; look at libuv for a good sample
     o also for monster tests
     o test on MacOS (tcmalloc must be disabled!)
 
-o remove libjson, use boost::property_tree instead!
+o collect file format incompatibilities
+    o persistent freelist statistics
+    o persistent freelist payload
+    o page header - reserve space for 32bit crc, 32bit page size
+    o get rid of the statistics-structures
+    o reduce the PBlobHeader (remove flags?, alloc_size)
+    o for cache-oblivious (pre-allocated) index
+    o for the new Btree code (btree node, database header)
+    o what else?
+    
+    o make sure that the file format is extensible for
+        o more btree node formats, compression algorithms etc
+        o record compression
+        o ...  (what else?)
 
-. review/rewrite/refactor Transaction class
-    keep in mind that sooner or later the BtreeNode will expect template
-    arguments; can we do something similar with the TransactionNode?
-    x try to get the methods/design analoguous to the Btree - no, that
-        does not make too much sense
-    x document the tree structure in the header file
-    x refactor the code
-    o split into multiple files
-    o try to cleanup the flow; move more code from db.cc to txn.cc
-    . each Transaction should have its own PoolAllocator (based on ByteArray);
-        when deleting the whole structure, only the PoolAllocator is freed
-        o only do this if memory allocations cost performance
-        o problem: a realloc() will not always work because it might move
-            the allocated memory, and all existing pointers would be invalid 
+    o increment file format counter and make sure that older database files
+        cannot be read by 2.1.3 (and that 2.1.2 fails to read the newer
+        database files)
 
-o pre-allocate index; 1.10.x had this as an experimental feature
+o use cache-oblivious b-tree layout
     o see roadmap document for more information
     o run a performance test/prototype if this is worth the effort
+        o allocate a fixed number of pages (20) for the index
+        o PageManager: when allocating a new page then use the distribution
+            function to fetch a page from the reserved storage
     o this feature is *per database*
     o calculate number of reqd pages based on estimated keys from the user
     o make sure that this is not reverted when "reduce file size" feature
@@ -330,20 +362,7 @@ o pre-allocate index; 1.10.x had this as an experimental feature
     o the new pages are not managed by the freelist! therefore the freelist
         will not need any modifications
     . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages
-
-o collect file format incompatibilities
-    o for the new Btree code (btree node, database header)
-    o persistent freelist statistics
-    o persistent freelist payload
-    o page header - also store crc, page size
-    o get rid of the statistics-structures
-    o reduce the PBlobHeader (remove flags?, alloc_size)
-    o for cache-oblivious (pre-allocated) index
-    o what else?
-    
-    o increment file format counter and make sure that older database files
-        can not be read by 2.1.3
+        allocate one but multiple pages (if the database is big enough)
 
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
@@ -379,6 +398,9 @@ o prepare btree rewrite; the goal is to move all node-specific operations
             is moved to the freelist!). The BtreeNodeProxy will have all the
             additional logic for the PBtreeNode (which will not be modified).
         o Need a factory for BtreeNodeProxy objects
+        o The Database callback function should refer to the callback
+            template function in the BtreeNode; otherwise a lot of other
+            code will no longer work (i.e. when Transactions compare keys)
         o start by rewriting BtreeCheckIntegrityAction; use a template function
             to compare keys (which uses the pointer function internally)
             o add UINT32 keys (HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32) and
@@ -395,12 +417,13 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
     by the user. There are many notes on paper flying around - collect
     and consolidate them first.
     o support existing callbacks - everything should work as advertised
-    o support binary search and linear search through a node
+    o support binary search only
     o support POD types: int8, uint8, int16, uint16, int32, uint32, int64,
         uint64, float, double, fixed length blobs, fixed length strings (?)
         (w/o duplicates and extended keys - they always enforce the
         default type based on the callback)
     ------- release -------
+    o support linear search through a node (with skip list?)
     o support variable length types, use linear search (with a skiplist)
         for strings (strcmp), blobs (memcmp)
     o replace extended keys; store them in the leaf unless they're TOO big
@@ -415,9 +438,26 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
     o optionally store fixed length record in leaf (not in internal pages!)
     ------- release -------
     o add column store compression for keys, lightweight compression for
-        records (snappy, etc)
+        records (snappy, etc) -> COMM!
     ------- release -------
     o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
+    ------- release -------
+    o add combined high-level schemas (combinations of various POD types)
+
+. review/rewrite/refactor Transaction class
+    keep in mind that sooner or later the BtreeNode will expect template
+    arguments; can we do something similar with the TransactionNode?
+    x try to get the methods/design analoguous to the Btree - no, that
+        does not make too much sense
+    x document the tree structure in the header file
+    x refactor the code
+    o split into multiple files
+    o try to cleanup the flow; move more code from db.cc to txn.cc
+    . each Transaction should have its own PoolAllocator (based on ByteArray);
+        when deleting the whole structure, only the PoolAllocator is freed
+        o only do this if memory allocations cost performance
+        o problem: a realloc() will not always work because it might move
+            the allocated memory, and all existing pointers would be invalid 
 
 
 
@@ -427,14 +467,28 @@ o start with the Btree rewrite; btree nodes are accepting template parameters
 
 
 
+. monster tests must create performance graphs, namely
+    o insert latency
+    o erase latency
+    o lookup latency
+    o also for bdb!
+    use https://developers.google.com/chart/interactive/docs/gallery/linechart
+    and generate a small html file with the graphs, then open it in the browser
+    (if possible).
+    The Y axis is the latency (the lower the better), the X axis is a time
+    indicator (not a timestamp, but a chronologically increasing counter).
+    Also, there should be tooltips with the key size and record size
+    of this particular insert or erase or lookup.
+
+. it would be interesting to know the distribution of changelog "sizes" during
+    a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
+    and how many operations actually require the WAL
 
 . BtreeCursor: use memory arena for uncoupling the key
     -> better wait till extended keys are gone
 
-. java-test fails on a slower machine (race cond. in finalize()?)
-    -> this is just a test issue; the finalizer does not close the database
-    objects soon enough, and the db-file is still locked when the next
-    test starts. Could be fixed by using temporary file names for the tests.
+o asynchronous prefetching of pages
+    -> see posix_fadvice, libprefetch
 
 . also remove locking from C# and Java APIs
 
@@ -446,6 +500,9 @@ o is the recovery working if there's a crash during ham_db_close
 
 
 ------------------- idea soup ---------------------------------------------
+
+. remove libjson, use boost::property_tree instead!
+    o also on Windows!
 
 o allow transactions w/o journal
 
@@ -485,11 +542,6 @@ o is there a way to group all changeset flushes of a Transaction into one
 
 o BtreeFindAction: always use a cursor, and when doing approx matching
     then simply move left or right with that cursor
-
-. track additional metrics
-    o cache misses
-    o cache hits
-    o ...
 
 o flush in background (asynchronously)
     o need new flag file HAM_DISABLE_ASYNCHRONOUS_FLUSH

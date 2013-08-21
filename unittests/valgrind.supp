@@ -66,4 +66,38 @@
    fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
    fun:ham_db_insert
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb4Page5flushEv
+   fun:_ZN9hamsterdbL17db_close_callbackEPNS_4PageEPNS_8DatabaseEj
+   fun:_ZN9hamsterdb11PageManager14close_databaseEPNS_8DatabaseE
+   fun:_ZN9hamsterdb13LocalDatabase10close_implEj
+   fun:_ZN9hamsterdb8Database5closeEj
+   fun:ham_db_close
+   fun:_ZN9hamsterdb16LocalEnvironment5closeEj
+   fun:ham_env_close
+   fun:_ZN9hamsterdb18BtreeCursorFixture8teardownEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   pwrite64(buf)
+   fun:__pwrite_nocancel
+   fun:_ZN9hamsterdb9os_pwriteEimPKvm
+   fun:_ZN9hamsterdb10DiskDevice5writeEmPvm
+   fun:_ZN9hamsterdb15DiskBlobManager12write_chunksEPNS_13LocalDatabaseEPNS_4PageEmbbPPhPjj
+   fun:_ZN9hamsterdb15DiskBlobManager8allocateEPNS_13LocalDatabaseEP12ham_record_tjPm
+   fun:_ZN9hamsterdb15DiskBlobManager9overwriteEPNS_13LocalDatabaseEmP12ham_record_tjPm
+   fun:_ZN9hamsterdb16DuplicateManager6insertEPNS_13LocalDatabaseEPNS_11TransactionEmP12ham_record_tjjPNS_10PDupeEntryEjPmPj
+   fun:_ZN9hamsterdb9PBtreeKey10set_recordEPNS_13LocalDatabaseEPNS_11TransactionEP12ham_record_tjjPj
+   fun:_ZN9hamsterdb17BtreeInsertAction14insert_in_leafEPNS_4PageEP9ham_key_tmbb
+   fun:_ZN9hamsterdb10BtreeIndex6insertEPNS_11TransactionEPNS_6CursorEP9ham_key_tP12ham_record_tj
+   fun:_ZN9hamsterdb13LocalDatabase6insertEPNS_11TransactionEP9ham_key_tP12ham_record_tj
+   fun:ham_db_insert
+}
 
