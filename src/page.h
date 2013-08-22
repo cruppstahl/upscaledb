@@ -45,8 +45,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PPageHeader {
   ham_u32_t _flags;
 
   // some reserved bytes; not used
-  ham_u32_t _reserved1;
-  ham_u32_t _reserved2;
+  ham_u32_t _reserved1; // reserved for crc32
+  ham_u32_t _reserved2; // reserved for individual page size
 
   // the persistent data blob
   ham_u8_t _payload[1];

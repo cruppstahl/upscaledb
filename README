@@ -11,38 +11,27 @@ Contents:
 hamsterdb Embedded Storage is a database engine written in C/C++. It is fast,
 production-proven and easy to use.
 
-This release re-implemented AES encryption based on OpenSSL and libcrypto. A
-few bugs in the build process were fixed (thanks for all the patches!). A new
-build option --without-tcmalloc was added.
+The new features in this release required several changes in the file format.
+I've taken the chance to clean up some parts of the file format. The new format
+is not backwards compatible, and 2.1.3 cannot open older databases. To migrate
+your databases, export the data with ham_export linked against 2.1.2
+(ham_export links statically and will NOT be confused if your system has a
+newer version of hamsterdb installed). Then import the data with 2.1.3. 
 
-A new internal function ham_env_get_metrics returns metrics and usage
-statistics that are useful for profiling. When closing the database file,
-unused space at the end of the file is truncated and the file will shrink.
+    Example:
 
-The client- and server-side implementation of the remote network access has been
-rewritten. The server now uses libuv (a component of Node.js), which resulted
-in a performance improvement. libcurl is no longer required as a client-side
-dependency. Instead of http, a plain tcp connection is now used. To open a
-remote environment, use the prefix "ham://" instead of the now obsolete
-"http://", i.e. "ham://localhost:12345/env.db".
-
-Unused space at the end of the file is now truncated, and the file size shrinks
-when the Environment is closed. (This feature is disabled on Win32 if memory
-mapped I/O is used.)
+    ham_export-2.1.2 input.db | ham_import --stdin output.db
 
 2. Changes
 
 New Features
-* An internal function ham_env_get_metrics was added
-* Added support for transparent AES encryption
-* Truncating file when closing the Environment
+* 
 
 Bugfixes
-* Several bugs in the build process were fixed
+*
 
 Other Changes
-* Client- and server-side implementation of the remote network access has
-    been rewritten (use "ham://" instead of "http://" for the url!).
+*
 
 To see a list of all changes, look in the file ChangeLog.
 

@@ -68,12 +68,12 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 
     // Returns the address of the btree's root page.
     ham_u64_t get_root_address() const {
-      return (ham_db2h_offset(m_self));
+      return (ham_db2h_offset(m_root_address));
     }
 
     // Sets the address of the btree's root page.
     void set_root_address(ham_u64_t n) {
-      m_self = ham_h2db_offset(n);
+      m_root_address = ham_h2db_offset(n);
     }
 
     // Returns the btree's flags
@@ -87,8 +87,14 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     }
 
   private:
-    // The name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1
+    // The name of the database
     ham_u16_t m_dbname;
+
+    // address of the root-page
+    ham_u64_t m_root_address;
+
+    // flags for this database
+    ham_u32_t m_flags;
 
     // maximum keys in an internal page
     ham_u16_t m_maxkeys;
@@ -96,20 +102,18 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
     // key size used in the pages
     ham_u16_t m_keysize;
 
-    // reserved
-    ham_u16_t m_reserved1;
+    // reserved for record size
+    ham_u32_t m_recsize;
 
-    // address of the root-page
-    ham_u64_t m_self;
+    // start of reserved space for this index
+    ham_u64_t m_reserved_start;
 
-    // flags for this database
-    ham_u32_t m_flags;
+    // number of reserved pages for this index
+    ham_u16_t m_reserved_pages;
 
-    // reserved
-    ham_u64_t m_reserved2;
+    // reserved for padding
+    ham_u16_t m_padding;
 
-    // reserved
-    ham_u32_t m_reserved3;
 } HAM_PACK_2;
 
 #include "packstop.h"

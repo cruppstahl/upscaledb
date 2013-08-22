@@ -184,40 +184,30 @@ struct DbFixture {
     delete page;
   }
 
-  // using a function to compare the constants is easier for debugging
-  bool compare_sizes(size_t a, size_t b) {
-    return a == b;
-  }
-
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
     // HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
-    REQUIRE(compare_sizes(sizeof(PBlobHeader), 28));
-    REQUIRE(compare_sizes(sizeof(PDupeEntry), 16));
-    REQUIRE(compare_sizes(sizeof(PDupeTable),
-        8 + sizeof(PDupeEntry)));
-    REQUIRE(compare_sizes(sizeof(PBtreeNode), 28+sizeof(PBtreeKey)));
-    REQUIRE(compare_sizes(sizeof(PBtreeKey), 12));
-    REQUIRE(compare_sizes(sizeof(PEnvironmentHeader), 20));
-    REQUIRE(compare_sizes(sizeof(PBtreeHeader), 32));
-    REQUIRE(compare_sizes(sizeof(PFreelistPayload),
-        16 + 13 + sizeof(PFreelistPageStatistics)));
-    REQUIRE(compare_sizes(sizeof(PFreelistPageStatistics),
-        4 * 8 + sizeof(PFreelistSlotsizeStats)
-            * HAM_FREELIST_SLOT_SPREAD));
-    REQUIRE(compare_sizes(sizeof(PFreelistSlotsizeStats), 8 * 4));
-    REQUIRE(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16 - 5 + 1));
-    REQUIRE(compare_sizes(PFreelistPayload::get_bitmap_offset(),
-        16 + 12 + sizeof(PFreelistPageStatistics)));
-    REQUIRE(compare_sizes(PBtreeKey::kSizeofOverhead, 11));
-    REQUIRE(compare_sizes(sizeof(Log::PEnvironmentHeader), 16));
-    REQUIRE(compare_sizes(sizeof(Log::PEntry), 32));
-    REQUIRE(compare_sizes(sizeof(PPageData), 13));
+    REQUIRE(sizeof(PBlobHeader) == 28);
+    REQUIRE(sizeof(PDupeEntry) == 16);
+    REQUIRE(sizeof(PDupeTable) == 8 + sizeof(PDupeEntry));
+    REQUIRE(sizeof(PBtreeNode) == 32 + sizeof(PBtreeKey));
+    REQUIRE(sizeof(PBtreeKey) == 12);
+    REQUIRE(sizeof(PEnvironmentHeader) == 20);
+    REQUIRE(sizeof(PBtreeHeader) == 34);
+    REQUIRE(sizeof(PFreelistPayload) == 3 * 8 + 4 + 1);
+    REQUIRE(sizeof(PFreelistPageStatistics) ==
+        4 + 8 + 4 * HAM_FREELIST_SLOT_SPREAD);
+    REQUIRE(HAM_FREELIST_SLOT_SPREAD == 16 - 5 + 1);
+    REQUIRE(PFreelistPayload::get_bitmap_offset() == 28);
+    REQUIRE(PBtreeKey::kSizeofOverhead == 11);
+    REQUIRE(sizeof(Log::PEnvironmentHeader) == 16);
+    REQUIRE(sizeof(Log::PEntry) == 32);
+    REQUIRE(sizeof(PPageData) == 13);
     PPageData p;
-    REQUIRE(compare_sizes(sizeof(p._s), 13));
-    REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
+    REQUIRE(sizeof(p._s) == 13);
+    REQUIRE(Page::sizeof_persistent_header == 12);
 
-    REQUIRE(compare_sizes(PBtreeNode::get_entry_offset(), 28));
+    REQUIRE(PBtreeNode::get_entry_offset() == 32);
     Page page;
     LocalDatabase db((LocalEnvironment *)m_env, 1, 0);
     BtreeIndex be(&db, 0);
@@ -226,7 +216,7 @@ struct DbFixture {
     page.set_db(&db);
     db.m_btree_index = &be;
     be.m_keysize = 666;
-    REQUIRE(compare_sizes(Page::sizeof_persistent_header, 12));
+    REQUIRE(Page::sizeof_persistent_header == 12);
     // make sure the 'header page' is at least as large as your usual
     // header page, then hack it...
     struct {
@@ -238,10 +228,9 @@ struct DbFixture {
     Page *hp = &hdrpage;
     ham_u8_t *pl1 = hp->get_payload();
     REQUIRE(pl1);
-    REQUIRE(compare_sizes(pl1 - (ham_u8_t *)hdrpage.get_data(), 12));
+    REQUIRE((pl1 - (ham_u8_t *)hdrpage.get_data()) == 12);
     PEnvironmentHeader *hdrptr = (PEnvironmentHeader *)(hdrpage.get_payload());
-    REQUIRE(compare_sizes(((ham_u8_t *)hdrptr)
-        - (ham_u8_t *)hdrpage.get_data(), 12));
+    REQUIRE(((ham_u8_t *)hdrptr - (ham_u8_t *)hdrpage.get_data()) == 12);
     hdrpage.set_data(0);
   }
 

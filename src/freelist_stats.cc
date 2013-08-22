@@ -95,7 +95,6 @@ namespace hamsterdb {
  * various cache aging systems quickly.
  *
  *
- *
  * When loading a freelist page, we can use sampling to get an idea of
  * where the LAST zone starts and ends (2 bsearches: one assuming the
  * freelist is sorted in descending order --> last 1 bit, one assuming the
@@ -110,12 +109,6 @@ namespace hamsterdb {
  * perform such sampling using semi-random intervals: prevent being
  * sensitive to a particular pathologic case this way.
  */
-
-/** scale @a val down by a factor of 256.
- * Make sure non-zero numbers remain non-zero: roundup(x)
- */
-#define rescale_256(val)              \
-  val = ((val + 256 - 1) >> 8)
 
 /**
  * inline function (must be fast!) which calculates the smallest
@@ -147,12 +140,12 @@ ham_log2(ham_u64_t v)
 }
 
 static __inline ham_u16_t
-ham_bitcount2bucket_index(ham_size_t size)
+size2bucket(ham_size_t size)
 {
   ham_u16_t bucket = ham_log2(size);
   if (bucket >= HAM_FREELIST_SLOT_SPREAD)
     bucket = HAM_FREELIST_SLOT_SPREAD - 1;
-  return bucket;
+  return (bucket);
 }
 
 /**
@@ -168,35 +161,6 @@ ham_bucket_index2bitcount(ham_u16_t bucket)
   return (1U << (bucket * 1)) - 1;
 }
 
-static void
-rescale_freelist_page_stats(Freelist *cache, FreelistEntry *entry)
-{
-  ham_u16_t b;
-  PFreelistPageStatistics *entrystats = &entry->perf_data;
-
-  for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-    //rescale_256(entrystats->per_size[b].first_start);
-    //rescale_256(entrystats->per_size[b].free_fill);
-    rescale_256(entrystats->per_size[b].epic_fail_midrange);
-    rescale_256(entrystats->per_size[b].epic_win_midrange);
-    rescale_256(entrystats->per_size[b].scan_count);
-    rescale_256(entrystats->per_size[b].ok_scan_count);
-    rescale_256(entrystats->per_size[b].scan_cost);
-    rescale_256(entrystats->per_size[b].ok_scan_cost);
-  }
-
-  //rescale_256(entrystats->last_start);
-  //rescale_256(entrystats->persisted_bits);
-  rescale_256(entrystats->insert_count);
-  rescale_256(entrystats->delete_count);
-  rescale_256(entrystats->extend_count);
-  rescale_256(entrystats->fail_count);
-  rescale_256(entrystats->search_count);
-  rescale_256(entrystats->rescale_monitor);
-
-  //entry->perf_data._dirty = true;
-}
-
 void
 FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
     PFreelistPayload *f, FreelistStatistics::Hints *hints)
@@ -209,28 +173,11 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
     PFreelistPageStatistics *entrystats = &entry->perf_data;
     ham_size_t cost = hints->cost;
 
-    ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
+    ham_u16_t bucket = size2bucket(hints->size_bits);
     ham_u32_t position = entrystats->persisted_bits;
 
     // should NOT use freel_get_max_bitsXX(f) here!
     ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
-
-    //entry->perf_data._dirty = true;
-
-    if (entrystats->rescale_monitor >=
-        HAM_STATISTICS_HIGH_WATER_MARK - cost) {
-      /* rescale cache numbers! */
-      rescale_freelist_page_stats(fl, entry);
-    }
-    entrystats->rescale_monitor += cost;
-
-    /* we _did_ look in the midrange, but clearly we were not lucky there */
-    if (hints->startpos < entrystats->last_start)
-      entrystats->per_size[bucket].epic_fail_midrange++;
-    entrystats->fail_count++;
-    entrystats->search_count++;
-    entrystats->per_size[bucket].scan_cost += cost;
-    entrystats->per_size[bucket].scan_count++;
 
     /*
      * only upgrade the fail-based start position to the very edge of
@@ -267,16 +214,15 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
        * guaranteed.
        */
       for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        if (entrystats->per_size[b].first_start < position)
-          entrystats->per_size[b].first_start = position;
+        if (entrystats->first_start[b] < position)
+          entrystats->first_start[b] = position;
         /* also update buckets for larger chunks at the same time */
       }
 
       if (entrystats->last_start < position)
         entrystats->last_start = position;
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start
-          >= entrystats->per_size[b].first_start);
+        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
       }
     }
   }
@@ -297,32 +243,8 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
 
     PFreelistPageStatistics *entrystats = &entry->perf_data;
 
-    ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
+    ham_u16_t bucket = size2bucket(hints->size_bits);
     ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
-
-    //entry->perf_data._dirty = true;
-
-    if (entrystats->rescale_monitor >=
-        HAM_STATISTICS_HIGH_WATER_MARK - cost) {
-      /* rescale cache numbers! */
-      rescale_freelist_page_stats(fl, entry);
-    }
-    entrystats->rescale_monitor += cost;
-
-    if (hints->startpos < entrystats->last_start) {
-      if (position < entrystats->last_start) {
-        /* we _did_ look in the midrange, but clearly we were not lucky there */
-        entrystats->per_size[bucket].epic_fail_midrange++;
-      }
-      else {
-        entrystats->per_size[bucket].epic_win_midrange++;
-      }
-    }
-    entrystats->search_count++;
-    entrystats->per_size[bucket].ok_scan_cost += cost;
-    entrystats->per_size[bucket].scan_cost += cost;
-    entrystats->per_size[bucket].ok_scan_count++;
-    entrystats->per_size[bucket].scan_count++;
 
     /*
      * since we get called here when we just found a suitably large
@@ -333,16 +255,15 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
     position += hints->size_bits;
 
     for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-      if (entrystats->per_size[b].first_start < position)
-        entrystats->per_size[b].first_start = position;
+      if (entrystats->first_start[b] < position)
+        entrystats->first_start[b] = position;
       /* also update buckets for larger chunks at the same time */
     }
 
     if (entrystats->last_start < position)
       entrystats->last_start = position;
     for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-      ham_assert(entrystats->last_start
-          >= entrystats->per_size[b].first_start);
+      ham_assert(entrystats->last_start >= entrystats->first_start[b]);
     }
 
     if (entrystats->persisted_bits < position) {
@@ -382,10 +303,8 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
     GlobalStatistics *globalstats = fl->get_global_statistics();
     PFreelistPageStatistics *entrystats = &entry->perf_data;
 
-    ham_u16_t bucket = ham_bitcount2bucket_index(size_bits);
+    ham_u16_t bucket = size2bucket(size_bits);
     ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
-
-    //entry->perf_data._dirty = true;
 
     if (free_these) {
       /*
@@ -398,11 +317,10 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
        */
       ham_u16_t b;
 
-      ham_assert(entrystats->last_start
-          >= entrystats->per_size[bucket].first_start);
+      ham_assert(entrystats->last_start >= entrystats->first_start[bucket]);
       for (b = 0; b <= bucket; b++) {
-        if (entrystats->per_size[b].first_start > position)
-          entrystats->per_size[b].first_start = position;
+        if (entrystats->first_start[b] > position)
+          entrystats->first_start[b] = position;
         /* also update buckets for smaller chunks at the same time */
       }
 
@@ -414,15 +332,14 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
         /* when we can adjust the last chunk, we should also adjust
          *the start for bigger chunks... */
         for (b = bucket + 1; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-          if (entrystats->per_size[b].first_start > position)
-            entrystats->per_size[b].first_start = position;
+          if (entrystats->first_start[b] > position)
+            entrystats->first_start[b] = position;
           /* also update buckets for smaller chunks at the same
            * time */
         }
       }
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start
-            >= entrystats->per_size[b].first_start);
+        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
       }
 
       position += size_bits;
@@ -459,16 +376,15 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
       position += size_bits;
 
       for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        if (entrystats->per_size[b].first_start < position)
-          entrystats->per_size[b].first_start = position;
+        if (entrystats->first_start[b] < position)
+          entrystats->first_start[b] = position;
         /* also update buckets for larger chunks at the same time */
       }
 
       if (entrystats->last_start < position)
         entrystats->last_start = position;
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start
-            >= entrystats->per_size[b].first_start);
+        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
       }
 
       if (entrystats->persisted_bits < position) {
@@ -528,7 +444,7 @@ FreelistStatistics::globalhints_no_hit(Freelist *fl,
 {
   GlobalStatistics *globalstats = fl->get_global_statistics();
 
-  ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
+  ham_u16_t bucket = size2bucket(hints->size_bits);
   ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
 
   ham_assert(entry_index >= 0);
@@ -575,7 +491,7 @@ FreelistStatistics::get_global_hints(Freelist *fl,
 
   ham_u32_t offset;
   ham_size_t pos;
-  ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);
+  ham_u16_t bucket = size2bucket(dst->size_bits);
   ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
   ham_assert(dst);
   ham_assert(dst->skip_init_offset == 0);
@@ -819,7 +735,7 @@ FreelistStatistics::get_entry_hints(Freelist *fl,
   PFreelistPageStatistics *entrystats = &entry->perf_data;
 
   ham_u32_t offset;
-  ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);
+  ham_u16_t bucket = size2bucket(dst->size_bits);
   ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
   ham_assert(dst);
 
@@ -833,106 +749,14 @@ FreelistStatistics::get_entry_hints(Freelist *fl,
    * bigger boys out there.
    */
 
-#if 0 /* disabled printing of statistics */
-  {
-  static int c = 0;
-  GlobalStatistics *globalstats = fl->get_global_statistics();
-  c++;
-  if (c % 100000 == 999) {
-    /*
-     * what is our ratio fail vs. search?
-     *
-     * Since we know search >= fail, we'll calculate the
-     * reciprocal in integer arithmetic, as that one will be >= 1.0
-     */
-    if (globalstats->fail_count) {
-      ham_u64_t fail_reciprocal_ratio = globalstats->search_count;
-      fail_reciprocal_ratio *= 1000;
-      fail_reciprocal_ratio /= globalstats->fail_count;
-
-      ham_trace(("FAIL/SEARCH ratio: %f", 1000.0/fail_reciprocal_ratio));
-    }
-    /*
-     * and how about our scan cost per scan? and per good scan?
-     */
-    if (globalstats->scan_count[bucket]) {
-      ham_u64_t cost_per_scan = globalstats->scan_cost[bucket];
-      cost_per_scan *= 1000;
-      cost_per_scan /= globalstats->scan_count[bucket];
-
-      ham_trace(("COST/SCAN ratio: %f", cost_per_scan/1000.0));
-    }
-    if (globalstats->ok_scan_count[bucket]) {
-      ham_u64_t ok_cost_per_scan = globalstats->ok_scan_cost[bucket];
-      ok_cost_per_scan *= 1000;
-      ok_cost_per_scan /= globalstats->ok_scan_count[bucket];
-
-      ham_trace(("'OK' COST/SCAN ratio: %f", ok_cost_per_scan/1000.0));
-    }
-    if (globalstats->erase_query_count
-      + globalstats->insert_query_count) {
-      ham_u64_t trials_per_query = 0;
-      int i;
-
-      for (i = 0; i < HAM_FREELIST_SLOT_SPREAD; i++)
-      {
-        trials_per_query += globalstats->scan_count[i];
-      }
-      trials_per_query *= 1000;
-      trials_per_query /= globalstats->erase_query_count
-                + globalstats->insert_query_count;
-
-      ham_trace(("TRIALS/QUERY (INSERT + DELETE) ratio: %f",
-            trials_per_query/1000.0));
-    }
-
-    /*
-     * what is our FREELIST PAGE's ratio fail vs. search?
-     *
-     * Since we know search >= fail, we'll calculate the
-     * reciprocal in integer arithmetic, as that one will be >= 1.0
-     */
-    if (entrystats->fail_count) {
-      ham_u64_t fail_reciprocal_ratio = entrystats->search_count;
-      fail_reciprocal_ratio *= 1000;
-      fail_reciprocal_ratio /= entrystats->fail_count;
-
-      ham_trace(("PAGE FAIL/SEARCH ratio: %f",
-            1000.0/fail_reciprocal_ratio));
-    }
-    /*
-     * and how about our scan cost per scan? and per good scan?
-     */
-    if (entrystats->per_size[bucket].scan_count) {
-      ham_u64_t cost_per_scan = entrystats->per_size[bucket].scan_cost;
-      cost_per_scan *= 1000;
-      cost_per_scan /= entrystats->per_size[bucket].scan_count;
-
-      ham_trace(("PAGE COST/SCAN ratio: %f", cost_per_scan/1000.0));
-    }
-    if (entrystats->per_size[bucket].ok_scan_count) {
-      ham_u64_t ok_cost_per_scan =
-        entrystats->per_size[bucket].ok_scan_cost;
-      ok_cost_per_scan *= 1000;
-      ok_cost_per_scan /= entrystats->per_size[bucket].ok_scan_count;
-
-      ham_trace(("PAGE 'OK' COST/SCAN ratio: %f",
-             ok_cost_per_scan/1000.0));
-    }
-  }
-  }
-#endif
-
-  ham_assert(entrystats->last_start
-      >= entrystats->per_size[bucket].first_start);
-  ham_assert(entrystats->persisted_bits
-      >= entrystats->last_start);
+  ham_assert(entrystats->last_start >= entrystats->first_start[bucket]);
+  ham_assert(entrystats->persisted_bits >= entrystats->last_start);
 
   /*
    * improve our start position, when we know there's nothing to be
    * found before a given minimum offset
    */
-  offset = entrystats->per_size[bucket].first_start;
+  offset = entrystats->first_start[bucket];
   if (dst->startpos < offset)
     dst->startpos = offset;
 

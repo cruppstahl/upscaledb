@@ -1878,9 +1878,10 @@ struct HamsterdbFixture {
   void openVersion1x() {
     ham_env_t *env;
 
-    REQUIRE(0 ==
+    REQUIRE(HAM_INV_FILE_VERSION ==
         ham_env_open(&env, Globals::opath("data/sample-db1-1.x.hdb"), 0, 0));
-    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+    REQUIRE(HAM_INV_FILE_VERSION ==
+        ham_env_open(&env, Globals::opath("data/sample-db1-2.0.hdb"), 0, 0));
   }
 
   void overwriteLogDirectoryTest() {

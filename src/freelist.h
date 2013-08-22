@@ -261,11 +261,6 @@ HAM_PACK_0 class HAM_PACK_1 PFreelistPayload
       m_free_bits = ham_h2db32(bits);
     }
 
-    // Returns the persisted performance statistics
-    PFreelistPageStatistics *get_statistics() {
-      return (&m_statistics);
-    }
-
     // Returns the bitmap data
     ham_u8_t *get_bitmap() {
       return (m_bitmap);
@@ -278,25 +273,14 @@ HAM_PACK_0 class HAM_PACK_1 PFreelistPayload
     // address of the next freelist page
     ham_u64_t m_overflow;
 
-    // 'zero': must be 0; serves as a doublecheck we're not
-    // processing an old-style 16-bit freelist page, where this
-    // spot would have the ham_u16_t _max_bits, which would
-    // always != 0 ...
-    // TODO remove this with the next file format upgrade
-    ham_u16_t m_zero;
-
-    // Reserved value, inserted for padding
-    ham_u16_t m_reserved;
-
     // Maximum number of bits for this page
     ham_u32_t m_max_bits;
 
     // Number of free bits in the page
     ham_u32_t m_free_bits;
 
-    // The persisted statistics for this page
-    // TODO double-check if this can be removed?
-    PFreelistPageStatistics m_statistics;
+    // Reserved padding; otherwise m_bitmap's size is not a multiple of 8
+    ham_u32_t m_reserved;
 
     // The freelist bitmap, 1 bit corresponds to Freelist::kBlobAlignment bytes
     ham_u8_t m_bitmap[1];

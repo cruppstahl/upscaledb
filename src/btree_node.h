@@ -41,13 +41,13 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
     // Returns the number of entries in a BtreeNode
-    ham_u16_t get_count() const {
-      return (ham_db2h16(m_count));
+    ham_u32_t get_count() const {
+      return (ham_db2h32(m_count));
     }
 
     // Sets the number of entries in a BtreeNode
-    void set_count(ham_u16_t c) {
-      m_count = ham_h2db16(c);
+    void set_count(ham_u32_t c) {
+      m_count = ham_h2db32(c);
     }
 
     // Returns the address of the left sibling of this node
@@ -96,13 +96,11 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
     }
 
   private:
-    // flags of this node - flags are always the first member
-    // of every page - regardless of the btree.
-    // Currently only used for the page type.
-    ham_u16_t m_flags;
+    // flags of this node - currently unused
+    ham_u32_t m_flags;
 
     // number of used entries in the node
-    ham_u16_t m_count;
+    ham_u32_t m_count;
   
     // address of left sibling
     ham_u64_t m_left;

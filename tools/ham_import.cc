@@ -242,7 +242,7 @@ main(int argc, char **argv) {
         merge = true;
         break;
       case GETOPTS_PARAMETER:
-        if (!dumpfilename)
+        if (!dumpfilename && !use_stdin)
           dumpfilename = param;
         else {
           if (envfilename) {

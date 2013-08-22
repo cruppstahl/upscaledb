@@ -499,13 +499,9 @@ struct FreelistFixture {
 
   void checkStructurePackingTest() {
     // checks to make sure structure packing by the compiler is still okay
-    REQUIRE(sizeof(PFreelistPayload) ==
-        (size_t)(16 + 13 + sizeof(PFreelistPageStatistics)));
-    REQUIRE(PFreelistPayload::get_bitmap_offset() ==
-        16 + 12 + sizeof(PFreelistPageStatistics));
-    REQUIRE(sizeof(PFreelistPageStatistics) ==
-        8 * 4 + sizeof(PFreelistSlotsizeStats) * HAM_FREELIST_SLOT_SPREAD);
-    REQUIRE(sizeof(PFreelistSlotsizeStats) == 8 * 4);
+    // most relevant structures are already checked in
+    // db.cpp checkStructurePackingTest()
+    REQUIRE(PFreelistPayload::get_bitmap_offset() == 28);
     REQUIRE(HAM_FREELIST_SLOT_SPREAD == 16 - 5 + 1);
   }
 

@@ -62,41 +62,6 @@ struct GlobalStatistics
   ham_u32_t first_page_with_free_space[HAM_FREELIST_SLOT_SPREAD];
 };
 
-/**
- * We keep track of VERY first free slot index + free slot index
- * pointing at last (~ supposed largest) free range + 'utilization' of the
- * range between FIRST and LAST as a ratio of number of free slots in
- * there vs. total number of slots in that range (giving us a 'fill'
- * ratio) + a fragmentation indication, determined by counting the number
- * of freelist slot searches that FAILed vs. SUCCEEDed within the
- * first..last range, when the search begun at the 'first' position
- * (a FAIL here meaning the freelist scan did not deliver a free slot
- * WITHIN the first..last range, i.e. it has scanned this entire range
- * without finding anything suitably large).
- *
- * Note that the free_fill in here is AN ESTIMATE.
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistSlotsizeStats
-{
-  ham_u32_t first_start;
-  /* reserved: */
-  ham_u32_t free_fill;
-  ham_u32_t epic_fail_midrange;
-  ham_u32_t epic_win_midrange;
-
-  /** number of scans per size range */
-  ham_u32_t scan_count;
-  ham_u32_t ok_scan_count;
-
-  /** summed cost ('duration') of all scans per size range.  */
-  ham_u32_t scan_cost;
-  ham_u32_t ok_scan_cost;
-
-} HAM_PACK_2 PFreelistSlotsizeStats;
-
-#include "packstop.h"
-
-
 #include "packstart.h"
 
 /**
@@ -120,8 +85,10 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
    * That way, very accurate, independent statistics can be stores for both
    * small, medium and large sized space requests, so that the freelist hinter
    * can deliver a high quality search hint for various requests.
+   *
+   * Currently we only keep track of the VERY first free slot index.
    */
-  PFreelistSlotsizeStats per_size[HAM_FREELIST_SLOT_SPREAD];
+  ham_u32_t first_start[HAM_FREELIST_SLOT_SPREAD];
 
   /**
    * (bit) offset which tells us which free slot is the EVER LAST
@@ -144,58 +111,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
    * The number of chunks already in use in the database therefore ~
    * persisted_bits - _allocated_bits.
    */
-  ham_u32_t persisted_bits;
-
-  /**
-   * count the number of insert operations where this freelist page
-   * played a role
-   */
-  ham_u32_t insert_count;
-  /**
-   * count the number of delete operations where this freelist page
-   * played a role
-   */
-  ham_u32_t delete_count;
-  /**
-   * count the number of times the freelist size was adjusted as new storage
-   * space was added to the database.
-   *
-   * This can occur in two situations: either when a new page is allocated and
-   * a part of it is marked as 'free' as it is not used up in its entirety, or
-   * when a page is released (freed) which was previously allocated
-   * without involvement of the freelist manager (this can happen when new
-   * HUGE BOBs are inserted, then erased again).
-   */
-  ham_u32_t extend_count;
-
-  /**
-   * count the number of times a freelist free space search (alloc
-   * operation) failed to find any suitably large free space in this
-   * freelist page.
-   */
-  ham_u32_t fail_count;
-
-  /**
-   * count the number of find operations where this freelist page
-   * played a role
-   */
-  ham_u32_t search_count;
-
-  /**
-   * Tracks the ascent of the various statistical counters in here in order
-   * to prevent integer overflow.
-   *
-   * This is accomplished by tracking the summed hinting costs over time in
-   * this variable and when that number surpasses a predetermined 'high
-   * water mark', all statistics counters are 'rescaled', which scales
-   * down all counters and related data so that new data can be added again
-   * multiple times before the risk of integer overflow may occur again.
-   *
-   * The goal here is to balance usable statistical numerical data while
-   * assuring integer overflows @e never happen for @e any of the statistics
-   * items.
-   */
-  ham_u32_t rescale_monitor;
+  ham_u64_t persisted_bits;
 
 } HAM_PACK_2 PFreelistPageStatistics;
 
@@ -205,12 +121,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 PFreelistPageStatistics
 /**
  * freelist algorithm specific run-time info per freelist entry (page)
  */
-struct RuntimePageStatistics
-{
-  PFreelistPageStatistics _persisted_stats;
-
-  bool _dirty;
-};
+typedef PFreelistPageStatistics RuntimePageStatistics;
 
 struct FreelistEntry;
 
