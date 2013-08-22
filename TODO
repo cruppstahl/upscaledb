@@ -31,34 +31,20 @@ o monster test can create graphs
 
 -----------------------------------------------------------------------------
 
-x rewrite configure.in; look at libuv for a good sample
-    -> see topic/next
-
-x collect file format incompatibilities
-    -> see topic/next
-
-<<<<<<< HEAD
+high-level plan for 2.1.3 (in decreasing priority)
+x refactoring of configure.ac
+x refactoring of the file format
+o make freelist statistics endian clean
+o btree understands fixed-size PODs
+    o support existing callbacks - everything should work as advertised
+    o support binary search only
+    o support POD types: int32, uint32, int64, uint64, float, double,
+        fixed length blobs, fixed length strings (?)
+        (w/o duplicates and extended keys - they always enforce the
+        default type based on the callback)
+o cache oblivious btree layout (if it makes sense!) -> COMM
 o specify timeout for remote client
-    o add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
-    o for unix
-        struct timeval tv;
-        tv.tv_sec = sec;  // 30 Secs Timeout
-        tv.tv_usec = 0;
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
-    o for Windows
-        http://msdn.microsoft.com/en-us/library/windows/desktop/ms740476%28v=vs.85%29.aspx
-    o needs a unittest
-    o for java
-    o for dotnet
-=======
-
-high-level plan for 2.1.3
-- refactoring of configure.ac
-- refactoring of the file format
-- btree understands fixed-size PODs
-- cache oblivious btree layout (if it makes sense!) -> COMM
-- specify timeout for remote client
-- monster test can create graphs
+o monster test can create graphs
 
 high-level plan for 2.1.4
 - btree understands variable-sized PODs
@@ -72,6 +58,26 @@ high-level plan for 2.1.5
 - asynchronous read-ahead (if it makes sense!) -> COMM
 - combine POD types into high-level schemas (split off something for COMM!)
 - lay the groundwork for concurrency 
+
+
+x rewrite configure.in; look at libuv for a good sample
+    -> see topic/next
+
+x collect file format incompatibilities
+    -> see topic/next
+
+o specify timeout for remote client
+    o add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
+    o for unix
+        struct timeval tv;
+        tv.tv_sec = sec;  // 30 Secs Timeout
+        tv.tv_usec = 0;
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+    o for Windows
+        http://msdn.microsoft.com/en-us/library/windows/desktop/ms740476%28v=vs.85%29.aspx
+    o needs a unittest
+    o for java
+    o for dotnet
 
 o rewrite configure.in; look at libuv for a good sample
         x also for bootstrap.sh
@@ -100,11 +106,11 @@ o collect file format incompatibilities
 
 x fix java compiler warnings
 
-o rewrite configure.in; look at libuv for a good sample
+x rewrite configure.in; look at libuv for a good sample
         x also for bootstrap.sh
     x rename to configure.ac
-    o also for monster tests
-    o test on MacOS (tcmalloc must be disabled!)
+    x test on MacOS (tcmalloc must be disabled!)
+    x also for monster tests
 
 o release-v2.pl enhancements
     x needs to run with enable-gcc-hardening tests

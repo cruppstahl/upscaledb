@@ -76,7 +76,7 @@ AC_ARG_WITH(tcmalloc,
   AS_HELP_STRING(--without-tcmalloc, disable tcmalloc for memory allocations))
 if test x$with_tcmalloc != xno; then
   case "$host_os" in
-    *-darwin*)
+    *darwin*)
       this_is_darwin=yes
       ;;
     *)
