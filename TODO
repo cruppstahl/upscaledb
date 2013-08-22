@@ -60,6 +60,35 @@ o specify timeout for remote client
     o needs a unittest
     o for java
     o for dotnet
+<<<<<<< HEAD
+=======
+=======
+
+high-level plan for 2.1.3
+- refactoring of configure.ac
+- refactoring of the file format
+- btree understands fixed-size PODs
+- cache oblivious btree layout (if it makes sense!) -> COMM
+- specify timeout for remote client
+- monster test can create graphs
+=======
+>>>>>>> Removed file format cruft, incremented file version
+
+high-level plan for 2.1.3 (in decreasing priority)
+x refactoring of configure.ac
+x refactoring of the file format
+o make freelist statistics endian clean
+o btree understands fixed-size PODs
+    o support existing callbacks - everything should work as advertised
+    o support binary search only
+    o support POD types: int32, uint32, int64, uint64, float, double,
+        fixed length blobs, fixed length strings (?)
+        (w/o duplicates and extended keys - they always enforce the
+        default type based on the callback)
+o cache oblivious btree layout (if it makes sense!) -> COMM
+o specify timeout for remote client
+o monster test can create graphs
+>>>>>>> Darwin: do not use tcmalloc
 
 -----------------------------------------------------------------------------
 

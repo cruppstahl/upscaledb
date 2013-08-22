@@ -6,6 +6,7 @@ Aug 22, 2013 - chris ---------------------------------------------------
 o Cleaned up the configure.ac script
 o Cleaned up the file format; the new format is no longer compatible.
 	See the README file for more information and how to upgrade.
+o Cleaned up the configure.ac script
 
 Aug 23, 2013 - chris ---------------------------------------------------
                       release of hamsterdb-2.1.2
