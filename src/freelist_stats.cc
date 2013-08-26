@@ -174,7 +174,7 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
     ham_size_t cost = hints->cost;
 
     ham_u16_t bucket = size2bucket(hints->size_bits);
-    ham_u32_t position = entrystats->persisted_bits;
+    ham_u32_t position = entrystats->get_persisted_bits();
 
     // should NOT use freel_get_max_bitsXX(f) here!
     ham_assert(bucket < HAM_FREELIST_SLOT_SPREAD);
@@ -214,15 +214,16 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
        * guaranteed.
        */
       for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        if (entrystats->first_start[b] < position)
-          entrystats->first_start[b] = position;
+        if (entrystats->get_first_start(b) < position)
+          entrystats->set_first_start(b, position);
         /* also update buckets for larger chunks at the same time */
       }
 
-      if (entrystats->last_start < position)
-        entrystats->last_start = position;
+      if (entrystats->get_last_start() < position)
+        entrystats->set_last_start(position);
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
+        ham_assert(entrystats->get_last_start()
+                        >= entrystats->get_first_start(b));
       }
     }
   }
@@ -255,26 +256,27 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
     position += hints->size_bits;
 
     for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-      if (entrystats->first_start[b] < position)
-        entrystats->first_start[b] = position;
+      if (entrystats->get_first_start(b) < position)
+        entrystats->set_first_start(b, position);
       /* also update buckets for larger chunks at the same time */
     }
 
-    if (entrystats->last_start < position)
-      entrystats->last_start = position;
+    if (entrystats->get_last_start() < position)
+      entrystats->set_last_start(position);
     for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-      ham_assert(entrystats->last_start >= entrystats->first_start[b]);
+      ham_assert(entrystats->get_last_start()
+                      >= entrystats->get_first_start(b));
     }
 
-    if (entrystats->persisted_bits < position) {
+    if (entrystats->get_persisted_bits() < position) {
       /* overflow? reset this marker! */
-      ham_assert(entrystats->persisted_bits == 0);
+      ham_assert(entrystats->get_persisted_bits() == 0);
       if (hints->size_bits > entry->free_bits)
-        entrystats->persisted_bits = position;
+        entrystats->set_persisted_bits(position);
       else
         /* extra HACKY safety margin */
-        entrystats->persisted_bits = position
-              - hints->size_bits + entry->free_bits;
+        entrystats->set_persisted_bits(position
+              - hints->size_bits + entry->free_bits);
     }
   }
 }
@@ -317,41 +319,43 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
        */
       ham_u16_t b;
 
-      ham_assert(entrystats->last_start >= entrystats->first_start[bucket]);
+      ham_assert(entrystats->get_last_start()
+                      >= entrystats->get_first_start(bucket));
       for (b = 0; b <= bucket; b++) {
-        if (entrystats->first_start[b] > position)
-          entrystats->first_start[b] = position;
+        if (entrystats->get_first_start(b) > position)
+          entrystats->set_first_start(b, position);
         /* also update buckets for smaller chunks at the same time */
       }
 
       /* if we just freed the chunk just BEFORE the 'last_free', why
        * not merge them, eh? */
-      if (entrystats->last_start == position + size_bits) {
-        entrystats->last_start = position;
+      if (entrystats->get_last_start() == position + size_bits) {
+        entrystats->set_last_start(position);
 
         /* when we can adjust the last chunk, we should also adjust
          *the start for bigger chunks... */
         for (b = bucket + 1; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-          if (entrystats->first_start[b] > position)
-            entrystats->first_start[b] = position;
+          if (entrystats->get_first_start(b) > position)
+            entrystats->set_first_start(b, position);
           /* also update buckets for smaller chunks at the same
            * time */
         }
       }
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
+        ham_assert(entrystats->get_last_start()
+                        >= entrystats->get_first_start(b));
       }
 
       position += size_bits;
 
       /* if this is a 'free' for a newly created page, we'd need to
        * adjust the outer edge */
-      if (entrystats->persisted_bits < position) {
-        ham_assert(entrystats->last_start < position);
-        entrystats->persisted_bits = position;
+      if (entrystats->get_persisted_bits() < position) {
+        ham_assert(entrystats->get_last_start() < position);
+        entrystats->set_persisted_bits(position);
       }
 
-      ham_assert(entrystats->persisted_bits >= position);
+      ham_assert(entrystats->get_persisted_bits() >= position);
 
       {
         ham_u32_t entry_index = (ham_u32_t)(entry - fl->get_entries());
@@ -376,18 +380,19 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
       position += size_bits;
 
       for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        if (entrystats->first_start[b] < position)
-          entrystats->first_start[b] = position;
+        if (entrystats->get_first_start(b) < position)
+          entrystats->set_first_start(b, position);
         /* also update buckets for larger chunks at the same time */
       }
 
-      if (entrystats->last_start < position)
-        entrystats->last_start = position;
+      if (entrystats->get_last_start() < position)
+        entrystats->set_last_start(position);
       for (b = 0; b < HAM_FREELIST_SLOT_SPREAD; b++) {
-        ham_assert(entrystats->last_start >= entrystats->first_start[b]);
+        ham_assert(entrystats->get_last_start()
+                        >= entrystats->get_first_start(b));
       }
 
-      if (entrystats->persisted_bits < position) {
+      if (entrystats->get_persisted_bits() < position) {
         /*
          * the next is really a HACKY HACKY stop-gap measure:
          * we see that the last_ever_seen offset has not been
@@ -397,11 +402,9 @@ FreelistStatistics::edit(Freelist *fl, FreelistEntry *entry,
          * location, and shift the last_ever_seen position up
          * accordingly
          */
-        //globalstats->extend_count++;
-
-        ham_assert(entrystats->persisted_bits == 0);
-        entrystats->persisted_bits = position +
-            size_bits + entry->free_bits;
+        ham_assert(entrystats->get_persisted_bits() == 0);
+        entrystats->set_persisted_bits(position +
+                size_bits + entry->free_bits);
       }
 
       /*
@@ -749,18 +752,20 @@ FreelistStatistics::get_entry_hints(Freelist *fl,
    * bigger boys out there.
    */
 
-  ham_assert(entrystats->last_start >= entrystats->first_start[bucket]);
-  ham_assert(entrystats->persisted_bits >= entrystats->last_start);
+  ham_assert(entrystats->get_last_start()
+                  >= entrystats->get_first_start(bucket));
+  ham_assert(entrystats->get_persisted_bits()
+                  >= entrystats->get_last_start());
 
   /*
    * improve our start position, when we know there's nothing to be
    * found before a given minimum offset
    */
-  offset = entrystats->first_start[bucket];
+  offset = entrystats->get_first_start(bucket);
   if (dst->startpos < offset)
     dst->startpos = offset;
 
-  offset = entrystats->persisted_bits;
+  offset = entrystats->get_persisted_bits();
   if (offset == 0) {
     /*
      * we need to init this one; take the free_bits size as a

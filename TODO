@@ -77,7 +77,7 @@ high-level plan for 2.1.3
 high-level plan for 2.1.3 (in decreasing priority)
 x refactoring of configure.ac
 x refactoring of the file format
-o make freelist statistics endian clean
+g make freelist statistics endian clean
 o btree understands fixed-size PODs
     o support existing callbacks - everything should work as advertised
     o support binary search only
@@ -123,6 +123,11 @@ x rewrite configure.in; look at libuv for a good sample
     x test on MacOS (tcmalloc must be disabled!)
     x also for monster tests
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> Persistent freelist statistics is now endian clean
 o release-v2.pl enhancements
     x needs to run with enable-gcc-hardening tests
     x needs to run valgrind tests
@@ -180,6 +185,9 @@ o collect file format incompatibilities
 =======
 o persistent freelist statistics are not endian-clean!
 >>>>>>> Removed file format cruft, incremented file version
+=======
+x persistent freelist statistics are not endian-clean!
+>>>>>>> Persistent freelist statistics is now endian clean
 
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately to get rid of BtreeIndex::compare
