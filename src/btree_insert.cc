@@ -258,8 +258,7 @@ class BtreeInsertAction
     // This is the function which does most of the work - traversing to a
     // leaf, inserting the key using insert_in_page()
     // and performing necessary SMOs. It works recursive.
-    ham_status_t insert_recursive(Page *page, ham_key_t *key,
-                    ham_u64_t rid) {
+    ham_status_t insert_recursive(Page *page, ham_key_t *key, ham_u64_t rid) {
       Page *child;
       PBtreeNode *node = PBtreeNode::from_page(page);
 
@@ -418,8 +417,8 @@ class BtreeInsertAction
        */
       if (obtp->is_leaf()) {
         memcpy((char *)nbte,
-               ((char *)obte) + (PBtreeKey::kSizeofOverhead+keysize) * pivot,
-               (PBtreeKey::kSizeofOverhead+keysize) * (count - pivot));
+               ((char *)obte) + (PBtreeKey::kSizeofOverhead + keysize) * pivot,
+               (PBtreeKey::kSizeofOverhead + keysize) * (count - pivot));
       }
       else {
         memcpy((char *)nbte,

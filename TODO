@@ -190,32 +190,60 @@ x persistent freelist statistics are not endian-clean!
 >>>>>>> Persistent freelist statistics is now endian clean
 
 o prepare btree rewrite; the goal is to move all node-specific operations
-    into the node itself, and ultimately to get rid of BtreeIndex::compare
+    into the node itself, and ultimately...
+    o get rid of BtreeIndex::compare
+    o no longer require a status code return value in the compare function
+    o ... and same for BtreeIndex::get_slot
+    o move record encoding (null, tiny, empty etc) into the node
+    o simplify extended keys (no extkey-cache, reduce special handling)
+    o simplify duplicate keys (no dupecache in cursor, simplify cursor code)
 
-    o analyze node; move all node operations to the node itself
-        o PBtreeNode::get_key()
-        o find(key) -> position || kNotFound (== -1)
-            -> BtreeIndex::get_slot
-               (rename to get_position_in_page; returns position or kNotFound)
-        o insert(key, RecordIdProxy) -> Proxy creates RecordId if insert is
-                successful
-            -> needs_split() -> bool
-            -> split(Page *newpage, int pivot, bool internal)
-            -> insert(key, record_proxy, flags = HINT_PREPEND, HINT_APPEND,
-                        OVERWRITE, DUPLICATE) -> {slot, duplicate_id}
-            -> append_no_split(key, record_proxy) -> {slot, duplicate_id}
-            -> prepend_no_split(key, record_proxy) -> {slot, duplicate_id}
-        o erase
-            o remove_entry(Page, slot) -> erase_from_page(Page, slot)
-            o copy_key(SrcPage, SrcSlot, DestPage, DestSlot)
-            o replace_key(SrcPage, SrcSlot, DestPage, DestSlot)
-            o shift
-            o merge
-        o what else?
-            o Node::initialize() - called when a new page is allocated
-            o need an "iterator" concept where it is possible to get the
-              previous or the next key (for approx. matching and cursors)
-            o need to change the PBtreeKey class - it might not have a size!
+    There are several general node layouts, depending on the configuration
+    of the btree.
+
+    without duplicates, with flags, variable keys and variable records etc:
+        |hdr|f0k0r0|f1k1r1|...fnknrn|...|lazy|
+
+    or with duplicates
+        |hdr|f0k0c0r0|f1k1c1r1|...fnkncnrn|...|lazy|
+
+    or
+        |hdr|f0k0|f1k1|...fnkn|...r0|r1|...rn|...|lazy|
+
+    "lazy" is for lazy updates. To optimize for writes: increase "lazy" space.
+    To optimize for reads: decrease it or remove it completely.
+
+    Nodes will get abstracted in the following base classes:
+     1. Fixed length keys, fixed records (> 8 || <= 8 && not null),
+        no duplicates
+        -> uses binary search, does NOT store flags
+     2. Fixed length keys, flags, fixed records (> 8) || variable records,
+        no duplicates
+        -> uses binary search, does NOT store flags, stores flags
+     3. Variable length keys (NOT extended!),
+        fixed records (> 8 || <= 8 && not null), no duplicates
+        -> uses binary search, does NOT store flags
+     4. Variable length keys (NOT extended!), flags,
+        fixed records (> 8) || variable records, no duplicates
+        -> uses binary search, does NOT store flags, stores flags
+     3. Variable length keys without duplicates OR any key WITH duplicates
+        -> uses linear search, CAN keep skip list
+
+    When inserting a new duplicate then directly insert the record in the
+    record list. If the record list becomes too big and the new record
+    does not fit in: split the page. If it still grows and there's only
+    one key with that many records, allocate an overflow page/blob and
+    move all records to this page. (Same behavior for extended keys.)
+
+    For each lookup operation/traversal: if lazy space contains data
+    then insert it before searching the node!
+
+    For inserts: split when going "down", this makes things easier, esp.
+    with concurrency to come, and saves a compare!
+
+    For the Future: internal nodes can have a different layout, and it's
+    sufficient if they only store prefixes!
+
     o implement new code flow
         o Abstract baseclass BtreeNodeProxy, which is then derived and
             implemented with template parameters. The BtreeNodeProxy will
@@ -224,33 +252,56 @@ o prepare btree rewrite; the goal is to move all node-specific operations
         o Need a factory for BtreeNodeProxy objects; The generated pointer is
             stored in the Page object (make sure it's deleted when the page
             is moved to the freelist!)
+        o When the database created: store the following flags in the header
+            o Extended keys yes/no
+            o Duplicate keys yes/no
+            o Extended keys yes/no
+            o Fixed length of keys yes/no
+            o Fixed length of keys (integer)
+            o Fixed length of records yes/no (currently always no)
+            o Fixed length of records (integer) (currently always 0)
+            o however: change things in a way that existing code still runs
+                as long as extkeys/duplicates are not rewritten!
         o The factory creates a BtreeNodeProxy which is identical to the
             current implementation (and which uses a template object with
-            the callback function from the LocalDatabase, and a
-            template parameter for the key proxy)
-        o The default btree Comparator should refer to the Database callback
-            function
-        o Start by rewriting BtreeCheckIntegrityAction
-        o Then rewrite BtreeEnumAction
-            o rename to BtreeScanAction
+            the callback function from the LocalDatabase, and a template
+            parameter for the key proxy), i.e.
+            - variable keys (NOT extended) with maximum key size
+            - no duplicate keys
+            - variable length records
+            -> corresponds to
+                |hdr|f0k0|f1k1|...fnkn|...r0|r1|...rn|...|lazy|
+            o Has a KeyProxy template parameter (handles extkeys)
+            o Has a RecordProxy template parameter (handles tiny, normal keys)
+            o Has a Comparator template parameter, default is std::less<>,
+                but will refer to the callback function for now
+
+        o Start by rewriting BtreeEnumAction
+        o Then rewrite BtreeCheckIntegrityAction
         o BtreeInsertAction
+            => split when going down!!
         o BtreeFindAction
+            => rewrite approx matching (force use of cursor?)
         o BtreeEraseAction
+        o BtreeCursor
         o ... what else?
         o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 (= "u32") and create
             a new BtreeNodeProxy in the factory; add a new comparator and
             reimplement everything for a 32bit integer
+            o requires new monster tests (generate them dynamically, not via
+                scripts?)
         o Create all other POD types
 
-         o After the implementation, the following rules apply:
-            o PBtreeNode::m_entries needs to be removed
+        o After the implementation, the following rules apply:
+            o PBtreeNode::m_entries needs is removed
             o The database compare callback will not be used if the POD type
                 was selected
-            o PBtreeKey is gone (more or less)
+            o PBtreeKey is gone
+            o PBtreeNode::from_page is gone (replaced by a factory)
+            o BtreeIndex::prepare_key_for_compare is gone
             o The Btree code is a low-level module, ONLY accessing
                 o Utils
                 o Error
-                o PageManager
                 everything else must be handled through implementation classes
                 or functors provided by the Database (i.e. access to
                 duplicate manager, blob manager etc).
@@ -301,19 +352,25 @@ o use cache-oblivious b-tree layout
 
 
 
-------------------- release 2.1.3 -----------------------------------------
+------------------- release 2.1.3 unstable ------------------------------------
 
-high-level plan for 2.1.4
+high-level plan for 2.1.4 (unstable)
 - btree understands variable-sized PODs
 - completely rewrite handling of extended keys
+    If the extended key does not fit into one page: allocate an overflow area,
+    move the FULL key into that area. get rid of the prefix compare. compare
+    functions no longer need to return errors. get rid of the extkey-cache.
+- btree stores fixed-length records in the leaf
+- btree allows lazy updates -> COMM??
 - btree can compress keys and records -> COMM
 - use SIMD for scans (if it makes sense!) -> COMM
 - replace 3rdparty/json with boost property_tree
 
-high-level plan for 2.1.5
+high-level plan for 2.1.5 (stable)
 - completely rewrite handling of duplicate keys
 - asynchronous read-ahead (if it makes sense!) -> COMM
 - combine POD types into high-level schemas (split off something for COMM!)
+- file format will be fixed from now on
 - lay the groundwork for concurrency 
 
 o continue with the Btree rewrite
