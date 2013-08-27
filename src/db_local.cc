@@ -1118,7 +1118,7 @@ LocalDatabase::find(Transaction *txn, ham_key_t *key,
   /* if this database has duplicates, then we use ham_cursor_find
    * because we have to build a duplicate list, and this is currently
    * only available in ham_cursor_find */
-  if (get_rt_flags() & HAM_ENABLE_DUPLICATES) {
+  if (get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) {
     Cursor *c;
     st = ham_cursor_create((ham_cursor_t **)&c, (ham_db_t *)this,
             (ham_txn_t *)txn, HAM_DONT_LOCK);

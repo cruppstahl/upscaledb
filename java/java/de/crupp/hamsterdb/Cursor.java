@@ -361,7 +361,7 @@ public class Cursor {
      * <p>
      * If you wish to insert a duplicate key specify the flag
      * <code>Const.HAM_DUPLICATE</code>. (Note that the Database has to
-     * be created with <code>Const.HAM_ENABLE_DUPLICATES</code>, in order
+     * be created with <code>Const.HAM_ENABLE_DUPLICATE_KEYS</code>, in order
      * to use duplicate keys.)
      * <p>
      * After inserting, the Cursor will point to the new item. If inserting
@@ -417,7 +417,7 @@ public class Cursor {
      * In case of an error, the Cursor is not modified.
      * <p>
      * If the Database was opened with the flag
-     * <code>Const.HAM_ENABLE_DUPLICATES</code>, this function erases only
+     * <code>Const.HAM_ENABLE_DUPLICATE_KEYS</code>, this function erases only
      * the duplicate item to which the Cursor refers.
      * <p>
      * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__cursor.html#gaf7f093b157f1d98df93fb7358e677cac">C documentation</a>

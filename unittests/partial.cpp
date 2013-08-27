@@ -1008,7 +1008,7 @@ struct MiscPartialFixture {
         ham_env_create(&env, Globals::opath(".test.db"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(HAM_INV_PARAMETER ==
         ham_db_insert(db, 0, &key, &rec, HAM_PARTIAL));
     REQUIRE(0 ==
@@ -1027,7 +1027,7 @@ struct MiscPartialFixture {
         ham_env_create(&env, Globals::opath(".test.db"),
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(env, &db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     ham_cursor_t *c;
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));

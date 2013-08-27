@@ -44,7 +44,7 @@ public class CursorTest extends TestCase {
     try {
       m_env = new Environment();
       m_env.create("jtest.db");
-      m_db = m_env.createDatabase((short)1, Const.HAM_ENABLE_DUPLICATES);
+      m_db = m_env.createDatabase((short)1, Const.HAM_ENABLE_DUPLICATE_KEYS);
     }
     catch (DatabaseException err) {
       fail("DatabaseException " + err.getMessage());

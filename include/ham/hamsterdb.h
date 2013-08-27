@@ -706,7 +706,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
- *     <li>@ref HAM_ENABLE_DUPLICATES </li> Enable duplicate keys for this
+ *     <li>@ref HAM_ENABLE_DUPLICATE_KEYS </li> Enable duplicate keys for this
  *      Database. By default, duplicate keys are disabled.
  *     <li>@ref HAM_ENABLE_EXTENDED_KEYS</li> Enable extended keys for this
  *      Database. By default, extended keys are disabled.
@@ -1081,7 +1081,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
-#define HAM_ENABLE_DUPLICATES                       0x00004000
+#define HAM_ENABLE_DUPLICATE_KEYS                   0x00004000
 
 /** Flag for @ref ham_env_create, @ref ham_env_open.
  * This flag is non persistent. */
@@ -1343,7 +1343,7 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE.
- * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES
+ * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATE_KEYS
  * in order to use duplicate keys.)
  * The duplicate key is inserted after all other duplicate keys (see
  * @ref HAM_DUPLICATE_INSERT_LAST).
@@ -1380,7 +1380,7 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @return @ref HAM_INV_PARAMETER if the flags @ref HAM_OVERWRITE <b>and</b>
  *        @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *        was specified, but the Database was not created with
- *        flag @ref HAM_ENABLE_DUPLICATES.
+ *        flag @ref HAM_ENABLE_DUPLICATE_KEYS.
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
  *        record->partial_offset+record->partial_size exceeds the
  *        record->size
@@ -2158,8 +2158,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * with @ref HAM_DUPLICATE.
  *
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE.
- * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES,
- * in order to use duplicate keys.)
+ * (In order to use duplicate keys, the Database has to be created with
+ * @ref HAM_ENABLE_DUPLICATE_KEYS.)
  * By default, the duplicate key is inserted after all other duplicate keys
  * (see @ref HAM_DUPLICATE_INSERT_LAST). This behaviour can be overwritten by
  * specifying @ref HAM_DUPLICATE_INSERT_FIRST, @ref HAM_DUPLICATE_INSERT_BEFORE
@@ -2247,7 +2247,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_INV_PARAMETER if the flags @ref HAM_OVERWRITE <b>and</b>
  *        @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *        was specified, but the Database was not created with
- *        flag @ref HAM_ENABLE_DUPLICATES.
+ *        flag @ref HAM_ENABLE_DUPLICATE_KEYS.
  * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key to a read-only
  *        Database.
  * @return @ref HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
@@ -2275,7 +2275,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * successful, the Cursor is invalidated and does no longer point to
  * any item. In case of an error, the Cursor is not modified.
  *
- * If the Database was opened with the flag @ref HAM_ENABLE_DUPLICATES,
+ * If the Database was opened with the flag @ref HAM_ENABLE_DUPLICATE_KEYS,
  * this function erases only the duplicate item to which the Cursor refers.
  *
  * @param cursor A valid Cursor handle

@@ -84,7 +84,7 @@ run_demo() {
    */
   db[DBIDX_CUSTOMER] = env.create_db(DBNAME_CUSTOMER);
   db[DBIDX_ORDER]  = env.create_db(DBNAME_ORDER);
-  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATES);
+  db[DBIDX_C2O]    = env.create_db(DBNAME_C2O, HAM_ENABLE_DUPLICATE_KEYS);
 
   /* Create a cursor for each database */
   for (i = 0; i < MAX_DBS; i++)

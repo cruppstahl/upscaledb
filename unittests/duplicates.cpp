@@ -43,7 +43,7 @@ struct DuplicateFixture {
     REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           m_flags, 0664, 0));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1,
-          HAM_ENABLE_DUPLICATES, 0));
+          HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     m_data.resize(0);
   }
@@ -733,7 +733,7 @@ struct DuplicateFixture {
       REQUIRE(0 ==
           ham_env_open_db(m_env, &m_db, 1, 0, 0));
     }
-    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
+    REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS));
 
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
@@ -1587,7 +1587,7 @@ struct DuplicateFixture {
       REQUIRE(0 == ham_env_open(&m_env, Globals::opath(".test"),
               m_flags, 0));
       REQUIRE(0 == ham_env_open_db(m_env, &m_db, 1, 0, 0));
-      REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATES));
+      REQUIRE((((LocalDatabase *)m_db)->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS));
 
       REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));
 
@@ -1613,7 +1613,7 @@ struct DuplicateFixture {
     REQUIRE(0 == ham_env_create(&m_env, Globals::opath(".test"),
           m_flags, 0664, &params[0]));
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 1, 
-          HAM_ENABLE_DUPLICATES, 0));
+          HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ham_cursor_create(&c, m_db, 0, 0));

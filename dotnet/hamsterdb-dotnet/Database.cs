@@ -357,7 +357,7 @@ namespace Hamster
     /// If you wish to insert a duplicate key specify the flag
     /// <see cref="HamConst.HAM_DUPLICATE" />. (Note that
     /// the Database has to be created with the flag
-    /// <see cref="HamConst.HAM_ENABLE_DUPLICATES" /> in order
+    /// <see cref="HamConst.HAM_ENABLE_DUPLICATE_KEYS" /> in order
     /// to use duplicate keys.)
     /// The duplicate key is inserted after all other duplicate keys (see
     /// <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST" />).
@@ -382,7 +382,7 @@ namespace Hamster
     ///     if the flags HamConst.HAM_DUPLICATE <b>AND</b>
     ///     HamConst.HAM_OVERWRITE were specified, or if
     ///     HamConst.HAM_DUPLICATE was specified but the Database
-    ///     was not created with HamConst.HAM_ENABLE_DUPLICATES</item>
+    ///     was not created with HamConst.HAM_ENABLE_DUPLICATE_KEYS</item>
     ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
     ///   <item><see cref="HamConst.HAM_INV_KEYSIZE"/>

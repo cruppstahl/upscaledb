@@ -287,7 +287,7 @@ public class Environment {
    *      Creates an "auto-increment" Database. Keys in Record
    *      Number Databases are automatically assigned an incrementing
    *      64bit value.
-   *     <li><code>Const.HAM_ENABLE_DUPLICATES</code></li>
+   *     <li><code>Const.HAM_ENABLE_DUPLICATE_KEYS</code></li>
    *      Enable duplicate keys for this Database. By default,
    *      duplicate keys are disabled.
    *     <li><code>Const.HAM_ENABLE_EXTENDED_KEYS</code></li>

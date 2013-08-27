@@ -277,7 +277,7 @@ public class Database {
    * <p>
    * If you wish to insert a duplicate key specify the flag
    * <code>Const.HAM_DUPLICATE</code>. (Note that the Database has to
-   * be created with <code>Const.HAM_ENABLE_DUPLICATES</code> in order
+   * be created with <code>Const.HAM_ENABLE_DUPLICATE_KEYS</code> in order
    * to use duplicate keys.) <br>
    * The duplicate key is inserted after all other duplicate keys (see
    * <code>Const.HAM_DUPLICATE_INSERT_LAST</code>).

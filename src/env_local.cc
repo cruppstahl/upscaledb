@@ -648,7 +648,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
   }
 
   ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
-                    | HAM_ENABLE_DUPLICATES
+                    | HAM_ENABLE_DUPLICATE_KEYS
                     | HAM_ENABLE_EXTENDED_KEYS
                     | HAM_RECORD_NUMBER;
   if (flags & ~mask) {
@@ -744,7 +744,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
   }
 
   /* make sure that this database is not yet open */
-  if (get_database_map().find(dbname) !=  get_database_map().end())
+  if (get_database_map().find(dbname) != get_database_map().end())
     return (HAM_DATABASE_ALREADY_OPEN);
 
   /* create a new Database object */

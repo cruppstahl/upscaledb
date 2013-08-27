@@ -74,7 +74,7 @@ high-level plan for 2.1.3
 =======
 >>>>>>> Removed file format cruft, incremented file version
 
-high-level plan for 2.1.3 (in decreasing priority)
+high-level plan for 2.2.0-pre1 (in decreasing priority)
 x refactoring of configure.ac
 x refactoring of the file format
 g make freelist statistics endian clean
@@ -191,12 +191,12 @@ x persistent freelist statistics are not endian-clean!
 
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately...
-    o get rid of BtreeIndex::compare
-    o no longer require a status code return value in the compare function
-    o ... and same for BtreeIndex::get_slot
-    o move record encoding (null, tiny, empty etc) into the node
-    o simplify extended keys (no extkey-cache, reduce special handling)
-    o simplify duplicate keys (no dupecache in cursor, simplify cursor code)
+    - get rid of BtreeIndex::compare
+    - no longer require a status code return value in the compare function
+    - ... and same for BtreeIndex::get_slot
+    - move record encoding (null, tiny, empty etc) into the node
+    - simplify extended keys (no extkey-cache, reduce special handling)
+    - simplify duplicate keys (no dupecache in cursor, simplify cursor code)
 
     There are several general node layouts, depending on the configuration
     of the btree.
@@ -244,68 +244,78 @@ o prepare btree rewrite; the goal is to move all node-specific operations
     For the Future: internal nodes can have a different layout, and it's
     sufficient if they only store prefixes!
 
-    o implement new code flow
-        o Abstract baseclass BtreeNodeProxy, which is then derived and
-            implemented with template parameters. The BtreeNodeProxy will
-            have all the additional logic for the PBtreeNode (which will
-            not be modified).
-        o Need a factory for BtreeNodeProxy objects; The generated pointer is
-            stored in the Page object (make sure it's deleted when the page
-            is moved to the freelist!)
-        o When the database created: store the following flags in the header
-            o Extended keys yes/no
-            o Duplicate keys yes/no
-            o Extended keys yes/no
-            o Fixed length of keys yes/no
-            o Fixed length of keys (integer)
-            o Fixed length of records yes/no (currently always no)
-            o Fixed length of records (integer) (currently always 0)
-            o however: change things in a way that existing code still runs
-                as long as extkeys/duplicates are not rewritten!
-        o The factory creates a BtreeNodeProxy which is identical to the
-            current implementation (and which uses a template object with
-            the callback function from the LocalDatabase, and a template
-            parameter for the key proxy), i.e.
-            - variable keys (NOT extended) with maximum key size
-            - no duplicate keys
-            - variable length records
-            -> corresponds to
-                |hdr|f0k0|f1k1|...fnkn|...r0|r1|...rn|...|lazy|
-            o Has a KeyProxy template parameter (handles extkeys)
-            o Has a RecordProxy template parameter (handles tiny, normal keys)
-            o Has a Comparator template parameter, default is std::less<>,
-                but will refer to the callback function for now
+    o When the database is created: store the following flags in the header
+        x Extended keys yes/no - make HAM_ENABLE_EXTENDED_KEYS persistent
+        x Duplicate keys yes/no - make HAM_ENABLE_DUPLICATES persistent
+            x make the flag persistent
+            x rename to HAM_ENABLE_DUPLICATE_KEYS
+                x also for java
+                x and .NET
+        o Fixed keys yes/no - needs HAM_ENABLE_CONST_KEY_SIZE;
+            o requires HAM_PARAM_KEYSIZE
+                o rename to HAM_PARAM_CONST_KEY_SIZE
+                o also for java
+                o and .NET
+            o deprecate HAM_DISABLE_VAR_KEYLEN
+                o also for java
+                o and .NET
+        o Fixed length of keys (integer)
+        o Fixed length of records (integer) (currently always 0)
+        o extend ham_db_get_parameters
+        o needs a unittest which verifies that all these settings are stored
+        o extend ham_info
 
-        o Start by rewriting BtreeEnumAction
-        o Then rewrite BtreeCheckIntegrityAction
-        o BtreeInsertAction
-            => split when going down!!
-        o BtreeFindAction
-            => rewrite approx matching (force use of cursor?)
-        o BtreeEraseAction
-        o BtreeCursor
-        o ... what else?
-        o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 (= "u32") and create
-            a new BtreeNodeProxy in the factory; add a new comparator and
-            reimplement everything for a 32bit integer
-            o requires new monster tests (generate them dynamically, not via
-                scripts?)
-        o Create all other POD types
+    o Baseclass BtreeNodeProxy, which is then derived and
+        implemented with template parameters. The BtreeNodeProxy will
+        have all the additional logic for the PBtreeNode (which will
+        not be modified).
+    o Need a factory for BtreeNodeProxy objects; The generated pointer is
+        stored in the Page object (make sure it's deleted when the page
+        is moved to the freelist!)
+    o The factory creates a BtreeNodeProxy which is configured with
+        template parameters/policies, i.e.
+        - variable keys (NOT extended) with maximum key size
+        - no duplicate keys
+        - variable length records
+        -> corresponds to
+            |hdr|f0k0|f1k1|...fnkn|...r0|r1|...rn|...|lazy|
+        o Has a KeyProxy template parameter (handles extkeys)
+        o Has a RecordProxy template parameter (handles tiny, normal keys)
+        o Has a Comparator template parameter, default is std::less<>,
+            but will refer to the callback function for now
 
-        o After the implementation, the following rules apply:
-            o PBtreeNode::m_entries needs is removed
-            o The database compare callback will not be used if the POD type
-                was selected
-            o PBtreeKey is gone
-            o PBtreeNode::from_page is gone (replaced by a factory)
-            o BtreeIndex::prepare_key_for_compare is gone
-            o The Btree code is a low-level module, ONLY accessing
-                o Utils
-                o Error
-                everything else must be handled through implementation classes
-                or functors provided by the Database (i.e. access to
-                duplicate manager, blob manager etc).
-            o What else?
+    o Rewrite BtreeEnumAction
+    o Rewrite BtreeCheckIntegrityAction
+    o Rewrite BtreeInsertAction
+        => split when going down!!
+    o Rewrite BtreeFindAction
+        => rewrite approx matching (force use of cursor?)
+    o Rewrite BtreeEraseAction
+    o Rewrite BtreeCursor
+    o ... what else?
+    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 (= "u32") and create
+        a new BtreeNodeProxy in the factory; add a new comparator and
+        reimplement everything for a 32bit integer
+        o requires new monster tests (generate them dynamically, not via
+            scripts?)
+    o Create all other POD types
+
+    o After the implementation, the following rules apply:
+        o PBtreeNode::m_entries needs is removed
+        o The database compare callback will not be used if the POD type
+            was selected
+        o PBtreeKey is gone
+        o PBtreeNode::from_page is gone (replaced by a factory)
+        o BtreeIndex::prepare_key_for_compare is gone
+        o The Btree code is a low-level module, ONLY accessing
+            o Utils
+            o Error
+            everything else must be handled through implementation classes
+            or functors provided by the Database (i.e. access to
+            duplicate manager, blob manager etc).
+        o What else?
+
+o increase libtool version
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -352,9 +362,9 @@ o use cache-oblivious b-tree layout
 
 
 
-------------------- release 2.1.3 unstable ------------------------------------
+------------------- release 2.2.0-pre1 unstable --------------------------------
 
-high-level plan for 2.1.4 (unstable)
+high-level plan for 2.2.0-pre2 (unstable)
 - btree understands variable-sized PODs
 - completely rewrite handling of extended keys
     If the extended key does not fit into one page: allocate an overflow area,
@@ -366,7 +376,7 @@ high-level plan for 2.1.4 (unstable)
 - use SIMD for scans (if it makes sense!) -> COMM
 - replace 3rdparty/json with boost property_tree
 
-high-level plan for 2.1.5 (stable)
+high-level plan for 2.2.0 (stable)
 - completely rewrite handling of duplicate keys
 - asynchronous read-ahead (if it makes sense!) -> COMM
 - combine POD types into high-level schemas (split off something for COMM!)

@@ -36,7 +36,7 @@ struct TxnCursorFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
   }
 

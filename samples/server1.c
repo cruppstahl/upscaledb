@@ -44,7 +44,7 @@ main()
   }
 
   /* also create a Database in that Environment ... */
-  st = ham_env_create_db(env, &db, 12, HAM_ENABLE_DUPLICATES, 0);
+  st = ham_env_create_db(env, &db, 12, HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
     printf("ham_env_create_db: %d\n", st);
     exit(-1);
@@ -54,7 +54,7 @@ main()
   ham_db_close(db, 0);
 
   /* Create a second database */
-  st = ham_env_create_db(env, &db, 13, HAM_ENABLE_DUPLICATES, 0);
+  st = ham_env_create_db(env, &db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
     printf("ham_env_create_db: %d\n", st);
     exit(-1);
@@ -63,7 +63,7 @@ main()
   ham_db_close(db, 0);
 
   st = ham_env_create_db(env, &db, 33,
-        HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATES, 0);
+        HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st) {
     printf("ham_env_create_db: %d\n", st);
     exit(-1);

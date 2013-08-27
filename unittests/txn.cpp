@@ -37,7 +37,7 @@ struct TxnFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDatabase *)m_db;
   }
 
@@ -1116,7 +1116,7 @@ struct HighLevelTxnFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     /* without txn */
     REQUIRE(0 == insert(0, "key1", "rec1", 0));
@@ -1155,7 +1155,7 @@ struct HighLevelTxnFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
           HAM_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     /* without txn */
     REQUIRE(0 == insert(0, "key1", "rec1", 0));
@@ -1284,7 +1284,7 @@ struct InMemoryTxnFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_IN_MEMORY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
   }
 
   ~InMemoryTxnFixture() {

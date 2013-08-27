@@ -160,13 +160,13 @@ class BinaryImporter : public Importer {
         m_db = 0;
       }
 
-      if (db.flags() & HAM_ENABLE_DUPLICATES)
+      if (db.flags() & HAM_ENABLE_DUPLICATE_KEYS)
         m_insert_flags |= HAM_DUPLICATE;
       else
         m_insert_flags &= ~HAM_DUPLICATE;
 
       ham_u32_t open_flags = db.flags();
-      open_flags &= ~HAM_ENABLE_DUPLICATES;
+      open_flags &= ~HAM_ENABLE_DUPLICATE_KEYS;
       open_flags &= ~HAM_ENABLE_EXTENDED_KEYS;
 
       ham_status_t st = ham_env_open_db(m_env, &m_db, db.name(), open_flags, 0);

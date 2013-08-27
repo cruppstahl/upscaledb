@@ -134,7 +134,7 @@ namespace SampleEnv3
             db[DBIDX_CUSTOMER] = env.CreateDatabase(DBNAME_CUSTOMER);
             db[DBIDX_ORDER]    = env.CreateDatabase(DBNAME_ORDER);
             db[DBIDX_C2O]      = env.CreateDatabase(DBNAME_C2O,
-                    HamConst.HAM_ENABLE_DUPLICATES);
+                    HamConst.HAM_ENABLE_DUPLICATE_KEYS);
 
             /*
              * create a Cursor for each Database

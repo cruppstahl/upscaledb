@@ -101,8 +101,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_CACHE_STRICT 1024L
 #undef de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER
 #define de_crupp_hamsterdb_Const_HAM_RECORD_NUMBER 8192L
-#undef de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATES
-#define de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATES 16384L
+#undef de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATE_KEYS
+#define de_crupp_hamsterdb_Const_HAM_ENABLE_DUPLICATE_KEYS 16384L
 #undef de_crupp_hamsterdb_Const_HAM_ENABLE_RECOVERY
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_RECOVERY 32768L
 #undef de_crupp_hamsterdb_Const_HAM_AUTO_RECOVERY

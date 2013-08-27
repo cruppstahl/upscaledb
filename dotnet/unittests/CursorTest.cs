@@ -47,7 +47,7 @@ namespace Unittests
             env = new Hamster.Environment();
             db = new Database();
             env.Create("ntest.db");
-            db = env.CreateDatabase(1, HamConst.HAM_ENABLE_DUPLICATES);
+            db = env.CreateDatabase(1, HamConst.HAM_ENABLE_DUPLICATE_KEYS);
         }
 
         [TestCleanup()]

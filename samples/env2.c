@@ -110,7 +110,7 @@ main(int argc, char **argv) {
   if (st != HAM_SUCCESS)
     error("ham_env_create_db(order)", st);
   st = ham_env_create_db(env, &db[DBIDX_C2O], DBNAME_C2O,
-        HAM_ENABLE_DUPLICATES, 0);
+        HAM_ENABLE_DUPLICATE_KEYS, 0);
   if (st != HAM_SUCCESS)
     error("ham_env_create_db(c2o)", st);
 

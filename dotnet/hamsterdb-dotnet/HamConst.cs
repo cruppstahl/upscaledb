@@ -119,7 +119,7 @@ namespace Hamster
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_RECORD_NUMBER          =  0x02000;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_ENABLE_DUPLICATES      =  0x04000;
+    public const int HAM_ENABLE_DUPLICATE_KEYS  =  0x04000;
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_ENABLE_RECOVERY        =  0x08000;
     /// <summary>Flag for Database.Open</summary>

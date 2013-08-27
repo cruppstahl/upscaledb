@@ -156,7 +156,7 @@ public class Const {
     public final static int HAM_RECORD_NUMBER                   =   0x2000;
 
     /** Flag for Database.create() */
-    public final static int HAM_ENABLE_DUPLICATES               =   0x4000;
+    public final static int HAM_ENABLE_DUPLICATE_KEYS           =   0x4000;
 
     /** Flag for Database.create(), Database.open() */
     public final static int HAM_ENABLE_RECOVERY                 =   0x8000;

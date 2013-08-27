@@ -111,9 +111,9 @@ struct HamsterdbFixture {
     REQUIRE(HAM_INV_PARAMETER ==
         ham_env_open(&env, "test.db", HAM_IN_MEMORY, 0));
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open(&env, "test.db", HAM_ENABLE_DUPLICATES, 0));
+        ham_env_open(&env, "test.db", HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(HAM_INV_PARAMETER ==
-        ham_env_open(&env, "test.db", HAM_ENABLE_DUPLICATES, params));
+        ham_env_open(&env, "test.db", HAM_ENABLE_DUPLICATE_KEYS, params));
 
 #ifdef WIN32
     REQUIRE(HAM_IO_ERROR ==
@@ -1076,7 +1076,7 @@ struct HamsterdbFixture {
         ham_db_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &db, 2, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &db, 2, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(HAM_INV_PARAMETER ==
         ham_db_insert(db, 0, &key, &rec, HAM_DUPLICATE | HAM_OVERWRITE));
     REQUIRE(0 ==
@@ -1593,7 +1593,7 @@ struct HamsterdbFixture {
     REQUIRE(0 ==
             ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, ps));
     REQUIRE(0 ==
-            ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+            ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     REQUIRE(0 == ham_cursor_create(&cursor, m_db, 0, 0));
     for (unsigned i = 4000; i > 0; i--) {
@@ -1862,10 +1862,8 @@ struct HamsterdbFixture {
     rec.size = 6;
     rec.data = (void *)"hello";
 
-    REQUIRE(0 ==
-        ham_env_create(&env, ".test.db", HAM_CACHE_UNLIMITED, 0, 0));
-    REQUIRE(0 ==
-        ham_env_create_db(env, &db, 1, 0, 0));
+    REQUIRE(0 == ham_env_create(&env, ".test.db", HAM_CACHE_UNLIMITED, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
 
@@ -1914,6 +1912,31 @@ struct HamsterdbFixture {
     REQUIRE(0 == strcmp("data", (const char *)ps[0].value));
 
     REQUIRE(0 == ham_env_close(env, 0));
+  }
+
+  void persistentFlagsTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_parameter_t ps[] = {
+        { 0, 0 }
+    };
+    ham_u32_t flags = HAM_ENABLE_EXTENDED_KEYS
+                    | HAM_ENABLE_DUPLICATE_KEYS;
+
+    // create the database with flags and parameters
+    REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ham_env_create_db(env, &db, 1, flags, &ps[0]));
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
+
+    // reopen the database
+    REQUIRE(0 == ham_env_open(&env, Globals::opath("test.db"), 0, 0));
+    REQUIRE(0 == ham_env_open_db(env, &db, 1, 0, 0));
+
+    // check if the flags and parameters were stored persistently
+    LocalDatabase *ldb = (LocalDatabase *)db;
+    REQUIRE((ldb->get_rt_flags() & flags) == flags);
+
+    REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
 };
 
@@ -2281,6 +2304,12 @@ TEST_CASE("Hamsterdb/overwriteLogDirectoryTest", "")
 {
   HamsterdbFixture f;
   f.overwriteLogDirectoryTest();
+}
+
+TEST_CASE("Hamsterdb/persistentFlagsTest", "")
+{
+  HamsterdbFixture f;
+  f.persistentFlagsTest();
 }
 
 } // namespace hamsterdb

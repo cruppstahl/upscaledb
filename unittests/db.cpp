@@ -44,7 +44,7 @@ struct DbFixture {
             (m_inmemory ? HAM_IN_MEMORY : 0), 0644, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13,
-            HAM_ENABLE_DUPLICATES, 0));
+            HAM_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDatabase *)m_db;
   }
 

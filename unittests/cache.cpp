@@ -33,7 +33,7 @@ struct CacheFixture {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"), 0, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
   }
 
   ~CacheFixture() {

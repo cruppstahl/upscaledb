@@ -329,7 +329,7 @@ format_flags(char *flagstr) {
     else COMPARE_FLAG(HAM_ENABLE_TRANSACTIONS);
     else COMPARE_FLAG(HAM_READ_ONLY);
     else COMPARE_FLAG(HAM_DISABLE_VAR_KEYLEN);
-    else COMPARE_FLAG(HAM_ENABLE_DUPLICATES);
+    else COMPARE_FLAG(HAM_ENABLE_DUPLICATE_KEYS);
     else COMPARE_FLAG(HAM_RECORD_NUMBER);
     else {
       hlog(LOG_WARN, "Ignoring unknown flag %s\n", p);

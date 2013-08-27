@@ -2,6 +2,10 @@ Sep 01, 2013 - chris ---------------------------------------------------
 o issue 27: No longer enabling AES encryption if openssl headers
 	are missing
 
+Aug 27, 2013 - chris ---------------------------------------------------
+o Renamed HAM_ENABLE_DUPLICATES to HAM_ENABLE_DUPLICATE_KEYS to improve
+	consistency
+
 Aug 25, 2013 - chris ---------------------------------------------------
 o Persistent freelist statistics data is now endian clean
 

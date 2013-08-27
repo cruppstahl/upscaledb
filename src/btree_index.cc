@@ -797,7 +797,7 @@ class CalcKeysVisitor : public BtreeVisitor {
       ham_status_t st;
 
       if (m_flags & HAM_SKIP_DUPLICATES
-          || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATES) == 0) {
+          || (m_db->get_rt_flags() & HAM_ENABLE_DUPLICATE_KEYS) == 0) {
         m_count += node->get_count();
         return (BtreeVisitor::kSkipPage);
       }

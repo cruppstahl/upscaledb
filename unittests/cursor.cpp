@@ -46,7 +46,7 @@ struct BaseCursorFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
   }
 
@@ -376,7 +376,7 @@ struct NoTxnCursorFixture {
     REQUIRE(0 ==
         ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
   }
 
@@ -448,7 +448,7 @@ struct InMemoryCursorFixture : public BaseCursorFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
                 HAM_IN_MEMORY, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
   }
 };
 
@@ -476,7 +476,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
             HAM_ENABLE_RECOVERY | HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ham_env_create_db(m_env, &m_db, 13,
-            HAM_ENABLE_DUPLICATES | HAM_ENABLE_EXTENDED_KEYS, 0));
+            HAM_ENABLE_DUPLICATE_KEYS | HAM_ENABLE_EXTENDED_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == createCursor(&m_cursor));
   }
@@ -4136,7 +4136,7 @@ struct DupeCacheFixture {
     REQUIRE(0 ==
             ham_env_create(&m_env, Globals::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
-            ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+            ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, 0, 0));
   }
 
@@ -4374,7 +4374,7 @@ struct DupeCursorFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
             HAM_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ham_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == ham_cursor_create(&m_cursor, m_db, m_txn, 0));
   }

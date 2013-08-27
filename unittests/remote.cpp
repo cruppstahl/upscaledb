@@ -47,14 +47,14 @@ struct RemoteFixture {
     REQUIRE(0 == ham_env_create(&m_env, "test.db",
             HAM_ENABLE_TRANSACTIONS, 0644, 0));
 
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 14, HAM_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 14, HAM_ENABLE_DUPLICATE_KEYS, 0));
     ham_db_close(m_db, 0);
 
-    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ham_env_create_db(m_env, &m_db, 13, HAM_ENABLE_DUPLICATE_KEYS, 0));
     ham_db_close(m_db, 0);
 
     REQUIRE(0 == ham_env_create_db(m_env, &m_db, 33,
-            HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATES, 0));
+            HAM_RECORD_NUMBER | HAM_ENABLE_DUPLICATE_KEYS, 0));
     ham_db_close(m_db, 0);
 
     REQUIRE(0 == ham_srv_init(&cfg, &m_srv));

@@ -331,7 +331,7 @@ struct LogHighLevelFixture {
             HAM_ENABLE_TRANSACTIONS
             | HAM_ENABLE_RECOVERY, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
 
     m_lenv = (LocalEnvironment *)ham_db_get_env(m_db);
   }

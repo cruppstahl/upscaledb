@@ -96,7 +96,7 @@ insert(int argc, char **argv) {
       { 0, 0 }
     };
     st = ham_env_create_db(env, &db, 1,
-              HAM_ENABLE_DUPLICATES | HAM_ENABLE_EXTENDED_KEYS,
+              HAM_ENABLE_DUPLICATE_KEYS | HAM_ENABLE_EXTENDED_KEYS,
               &dbparams[0]);
     if (st) {
       printf("ham_env_create_db failed: %d\n", (int)st);

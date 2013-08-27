@@ -48,7 +48,7 @@ struct BtreeCursorFixture {
         ham_env_create(&m_env, Globals::opath(".test"),
               m_inmemory ? HAM_IN_MEMORY : 0, 0664, params));
     REQUIRE(0 ==
-        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATES, 0));
+        ham_env_create_db(m_env, &m_db, 1, HAM_ENABLE_DUPLICATE_KEYS, 0));
   }
 
   ~BtreeCursorFixture() {
