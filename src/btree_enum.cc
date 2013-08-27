@@ -16,29 +16,21 @@
 
 #include "config.h"
 
-#include <string.h>
-#include <stdio.h>
-
 #include "btree_index.h"
-#include "db.h"
-#include "env.h"
-#include "device.h"
-#include "error.h"
-#include "mem.h"
-#include "page.h"
-#include "btree_node.h"
-#include "btree_enum.h"
 #include "page_manager.h"
+#include "btree_node_factory.h"
+
 
 namespace hamsterdb {
 
 class BtreeEnumAction
 {
   public:
-    BtreeEnumAction(BtreeIndex *btree, BtreeVisitor *visitor)
-      : m_btree(btree), m_visitor(visitor) {
+    BtreeEnumAction(BtreeIndex *btree, BtreeVisitor &visitor,
+                    bool visit_internal_nodes)
+      : m_btree(btree), m_visitor(visitor),
+        m_visit_internal_nodes(visit_internal_nodes) {
       ham_assert(m_btree->get_root_address() != 0);
-      ham_assert(m_visitor != 0);
     }
 
     ham_status_t run() {
@@ -54,16 +46,14 @@ class BtreeEnumAction
 
       // go down to the leaf
       while (page) {
-        PBtreeNode *node = PBtreeNode::from_page(page);
-        ham_u64_t ptr_left = node->get_ptr_left();
+        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
+        ham_u64_t ptr_down = node->get_ptr_down();
 
         // visit internal nodes as well?
-        if (ptr_left != 0 && m_visitor->visit_internal_nodes()) {
+        if (ptr_down != 0 && m_visit_internal_nodes) {
           while (page) {
-            node = PBtreeNode::from_page(page);
-            st = visit_node(node);
-            if (st)
-              return (st);
+            node = BtreeNodeFactory::get(page);
+            node->enumerate(m_visitor);
 
             // load the right sibling
             ham_u64_t right = node->get_right();
@@ -78,8 +68,8 @@ class BtreeEnumAction
         }
 
         // follow the pointer to the smallest child
-        if (ptr_left) {
-          st = env->get_page_manager()->fetch_page(&page, db, ptr_left);
+        if (ptr_down) {
+          st = env->get_page_manager()->fetch_page(&page, db, ptr_down);
           if (st)
             return (st);
         }
@@ -91,12 +81,10 @@ class BtreeEnumAction
 
       // now enumerate all leaf nodes
       while (page) {
-        PBtreeNode *node = PBtreeNode::from_page(page);
+        BtreeNodeProxy *node = BtreeNodeFactory::get(page);
         ham_u64_t right = node->get_right();
 
-        st = visit_node(node);
-        if (st)
-          return (st);
+        node->enumerate(m_visitor);
 
         /* follow the pointer to the right sibling */
         if (right) {
@@ -112,33 +100,15 @@ class BtreeEnumAction
     }
 
   private:
-    ham_status_t visit_node(PBtreeNode *node) {
-      LocalDatabase *db = m_btree->get_db();
-      ham_status_t st;
-
-      // 'visit' each key
-      for (ham_size_t i = 0; i < node->get_count(); i++) {
-        PBtreeKey *bte = node->get_key(db, i);
-        st = m_visitor->item(node, bte);
-        if (st == BtreeVisitor::kSkipPage) {
-          st = 0;
-          break;
-        }
-        if (st)
-          return (st);
-      }
-
-      return (0);
-    }
-
     BtreeIndex *m_btree;
-    BtreeVisitor *m_visitor;
+    BtreeVisitor &m_visitor;
+    bool m_visit_internal_nodes;
 };
 
 ham_status_t
-BtreeIndex::enumerate(BtreeVisitor *visitor)
+BtreeIndex::enumerate(BtreeVisitor &visitor, bool visit_internal_nodes)
 {
-  BtreeEnumAction bea(this, visitor);
+  BtreeEnumAction bea(this, visitor, visit_internal_nodes);
   return (bea.run());
 }
 

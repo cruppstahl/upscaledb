@@ -47,6 +47,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // Sets the number of entries in a BtreeNode
     void set_count(ham_u32_t c) {
+      ham_assert((int)c >= 0);
       m_count = ham_h2db32(c);
     }
 
@@ -70,19 +71,19 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
       m_right = ham_h2db_offset(o);
     }
 
-    // Returns the ptr_left of this node
-    ham_u64_t get_ptr_left() const {
-      return (ham_db2h_offset(m_ptr_left));
+    // Returns the ptr_down of this node
+    ham_u64_t get_ptr_down() const {
+      return (ham_db2h_offset(m_ptr_down));
     }
 
     // Returns true if this btree node is a leaf node
     bool is_leaf() const {
-      return (m_ptr_left == 0);
+      return (m_ptr_down == 0);
     }
 
-    // Sets the ptr_left of this node
-    void set_ptr_left(ham_u64_t o) {
-      m_ptr_left = ham_h2db_offset(o);
+    // Sets the ptr_down of this node
+    void set_ptr_down(ham_u64_t o) {
+      m_ptr_down = ham_h2db_offset(o);
     }
 
     // Returns the BtreeKey at index |i| in this node
@@ -110,7 +111,7 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeNode
 
     // address of child node whose items are smaller than all items
     // in this node
-    ham_u64_t m_ptr_left;
+    ham_u64_t m_ptr_down;
 
     // the entries of this node
     PBtreeKey m_entries[1];

@@ -105,9 +105,9 @@ namespace Hamster
     /// <summary>Flag for Database.Open, Database.Create</summary>
     public const int HAM_ENABLE_FSYNC           =  0x001;
     /// <summary>Flag for Database.Open</summary>
-    public const int HAM_READ_ONLY            =  0x004;
+    public const int HAM_READ_ONLY              =  0x004;
     /// <summary>Flag for Database.Create</summary>
-    public const int HAM_DISABLE_VAR_KEYLEN       =  0x040;
+    public const int HAM_DISABLE_VARIABLE_KEYS  =  0x040;
     /// <summary>Flag for Database.Create</summary>
     public const int HAM_IN_MEMORY              =  0x00080;
     /// <summary>Flag for Database.Open, Database.Create</summary>

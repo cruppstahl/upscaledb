@@ -171,16 +171,6 @@ namespace Hamster
         NativeMethods.CompareFunc foo);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate int PrefixCompareFunc(IntPtr handle,
-        byte[] lhs, int lhsLength, int lhsRealLength,
-        byte[] rhs, int rhsLength, int rhsRealLength);
-
-    [DllImport("hamsterdb-2.1.3.dll", EntryPoint = "ham_db_set_prefix_compare_func",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern int SetPrefixCompareFunc(IntPtr handle,
-        NativeMethods.PrefixCompareFunc foo);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate int DuplicateCompareFunc(IntPtr handle,
         byte[] lhs, int lhsLength,
         byte[] rhs, int rhsLength);

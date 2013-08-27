@@ -17,7 +17,6 @@ libhamsterdb_la_SOURCES = \
 	btree_cursor.cc \
 	btree_cursor.h \
 	btree_enum.cc \
-	btree_enum.h \
 	btree_erase.cc \
 	btree_find.cc \
 	btree_index.cc \
@@ -26,6 +25,8 @@ libhamsterdb_la_SOURCES = \
 	btree_key.cc \
 	btree_key.h \
 	btree_node.h \
+	btree_node_factory.h \
+	btree_node_proxy.h \
 	btree_stats.cc \
 	btree_stats.h \
 	cache.cc \

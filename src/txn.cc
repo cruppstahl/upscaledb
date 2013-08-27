@@ -49,11 +49,7 @@ compare(void *vlhs, void *vrhs)
   if (lhs == rhs)
     return (0);
 
-  ham_compare_func_t foo = db->get_compare_func();
-
-  return (foo((ham_db_t *)db,
-        (ham_u8_t *)lhs->get_key()->data, lhs->get_key()->size,
-        (ham_u8_t *)rhs->get_key()->data, rhs->get_key()->size));
+  return (db->get_btree_index()->compare_keys(lhs->get_key(), rhs->get_key()));
 }
 
 static void *

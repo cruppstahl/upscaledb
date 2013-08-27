@@ -171,7 +171,6 @@ FreelistStatistics::fail(Freelist *fl, FreelistEntry *entry,
    */
   if (hints->lower_bound_address == 0) {
     PFreelistPageStatistics *entrystats = &entry->perf_data;
-    ham_size_t cost = hints->cost;
 
     ham_u16_t bucket = size2bucket(hints->size_bits);
     ham_u32_t position = entrystats->get_persisted_bits();
@@ -239,9 +238,6 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
    * which should NOT corrupt our statistics in any way.
    */
   if (hints->lower_bound_address == 0) {
-    ham_u16_t b;
-    ham_size_t cost = hints->cost;
-
     PFreelistPageStatistics *entrystats = &entry->perf_data;
 
     ham_u16_t bucket = size2bucket(hints->size_bits);
@@ -255,6 +251,7 @@ FreelistStatistics::update(Freelist *fl, FreelistEntry *entry,
      */
     position += hints->size_bits;
 
+    ham_u16_t b;
     for (b = bucket; b < HAM_FREELIST_SLOT_SPREAD; b++) {
       if (entrystats->get_first_start(b) < position)
         entrystats->set_first_start(b, position);

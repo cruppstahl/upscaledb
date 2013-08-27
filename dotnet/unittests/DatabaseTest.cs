@@ -57,7 +57,7 @@ namespace Unittests
                     }
                 };
                 using (Database db = env.CreateDatabase(13,
-                        HamConst.HAM_DISABLE_VAR_KEYLEN, param)) { }
+                        HamConst.HAM_DISABLE_VARIABLE_KEYS, param)) { }
             }
         }
 
@@ -67,7 +67,9 @@ namespace Unittests
             using (Hamster.Environment env = new Hamster.Environment())
             {
                 env.Create("ntest.db");
-                using (Database db = env.CreateDatabase(13, HamConst.HAM_DISABLE_VAR_KEYLEN, new Parameter[0])) { }
+                using (Database db = env.CreateDatabase(13,
+                           HamConst.HAM_DISABLE_VARIABLE_KEYS,
+                           new Parameter[0])) { }
             }
         }
 
@@ -213,37 +215,6 @@ namespace Unittests
                 Assert.Fail("unexpected exception " + e);
             }
             Assert.AreEqual(3, compareCounter);
-        }
-
-        private int MyPrefixCompareFunc(byte[] lhs, int lhsRealLength,
-                byte[] rhs, int rhsRealLength) {
-            // always return a different value or hamsterdb thinks
-            // we're inserting duplicates
-            return ++compareCounter;
-        }
-
-        [TestMethod()]
-        public void SetPrefixComparator() {
-            Hamster.Environment env = new Hamster.Environment();
-            Database db = new Database();
-            byte[] k = new byte[25];
-            byte[] r = new byte[25];
-            compareCounter = 0;
-            try {
-                env.Create("ntest.db");
-                db = env.CreateDatabase(1);
-                db.SetPrefixCompareFunc(new
-                    PrefixCompareFunc(MyPrefixCompareFunc));
-                db.Insert(k, r);
-                k[0] = 1;
-                db.Insert(k, r);
-                db.Close();
-                env.Close();
-            }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
-            }
-            Assert.AreEqual(1, compareCounter);
         }
 
         private int MyDupeCompareFunc(byte[] lhs, byte[] rhs)

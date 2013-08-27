@@ -42,121 +42,6 @@ LocalDatabase::remove_extkey(ham_u64_t blobid)
   return (get_local_env()->get_blob_manager()->free(this, blobid, 0));
 }
 
-int HAM_CALLCONV
-LocalDatabase::default_prefix_compare(ham_db_t *db,
-           const ham_u8_t *lhs, ham_size_t lhs_length,
-           ham_size_t lhs_real_length,
-           const ham_u8_t *rhs, ham_size_t rhs_length,
-           ham_size_t rhs_real_length)
-{
-  (void)db;
-
-  /*
-   * the default compare uses memcmp. shorter strings are "greater".
-   *
-   * when one of the keys is NOT extended we don't need to request the other
-   * (extended) key because shorter keys are "greater" anyway.
-   */
-  if (lhs_length < rhs_length) {
-    int m = memcmp(lhs, rhs, lhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-
-    if (lhs_length == lhs_real_length) {
-      ham_assert(lhs_real_length < rhs_real_length);
-      return (-1);
-    }
-  }
-  else if (rhs_length < lhs_length) {
-    int m = memcmp(lhs, rhs, rhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-
-    if (rhs_length == rhs_real_length) {
-      ham_assert(lhs_real_length > rhs_real_length);
-      return (+1);
-    }
-  }
-  else {
-    int m = memcmp(lhs, rhs, lhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-
-    if (lhs_length == lhs_real_length) {
-      if (lhs_real_length < rhs_real_length)
-        return (-1);
-    }
-    else if (rhs_length == rhs_real_length) {
-      if (lhs_real_length > rhs_real_length)
-        return (+1);
-    }
-  }
-
-  return (HAM_PREFIX_REQUEST_FULLKEY);
-}
-
-int HAM_CALLCONV
-LocalDatabase::default_compare(ham_db_t *db,
-           const ham_u8_t *lhs, ham_size_t lhs_length,
-           const ham_u8_t *rhs, ham_size_t rhs_length)
-{
-  (void)db;
-
-  // the default compare uses memcmp. treat shorter strings as "higher"
-  if (lhs_length < rhs_length) {
-    int m = memcmp(lhs, rhs, lhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-    return (-1);
-  }
-  else if (rhs_length < lhs_length) {
-    int m = memcmp(lhs, rhs, rhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-    return (+1);
-  }
-  else {
-    int m = memcmp(lhs, rhs, lhs_length);
-    if (m < 0)
-      return (-1);
-    if (m > 0)
-      return (+1);
-    return (0);
-  }
-}
-
-int HAM_CALLCONV
-LocalDatabase::default_recno_compare(ham_db_t *db,
-           const ham_u8_t *lhs, ham_size_t lhs_length,
-           const ham_u8_t *rhs, ham_size_t rhs_length)
-{
-  ham_u64_t ulhs, urhs;
-
-  (void)db;
-
-  memcpy(&ulhs, lhs, 8);
-  memcpy(&urhs, rhs, 8);
-
-  ulhs = ham_db2h64(ulhs);
-  urhs = ham_db2h64(urhs);
-
-  if (ulhs < urhs)
-    return (-1);
-  if (ulhs == urhs)
-    return (0);
-  return (1);
-}
-
 ham_status_t
 LocalDatabase::get_extended_key(ham_u8_t *key_data, ham_size_t key_length,
             ham_u32_t key_flags, ham_key_t *ext_key)
@@ -591,7 +476,7 @@ retry:
     // if there's an approx match in the btree: compare both keys and
     // use the one that is closer. if the btree is closer: make sure
     // that it was not erased or overwritten in a transaction
-    int cmp = compare_keys(key, &txnkey);
+    int cmp = get_btree_index()->compare_keys(key, &txnkey);
     bool use_btree = false;
     if (flags & HAM_FIND_GT_MATCH) {
       if (cmp < 0)
@@ -716,8 +601,7 @@ LocalDatabase::open(ham_u16_t descriptor)
    * from the btree.
    */
   ham_u32_t flags = get_rt_flags();
-  flags &= ~(HAM_DISABLE_VAR_KEYLEN
-            | HAM_CACHE_STRICT
+  flags &= ~(HAM_CACHE_STRICT
             | HAM_CACHE_UNLIMITED
             | HAM_DISABLE_MMAP
             | HAM_ENABLE_FSYNC
@@ -729,7 +613,6 @@ LocalDatabase::open(ham_u16_t descriptor)
   /* create the BtreeIndex */
   BtreeIndex *bt = new BtreeIndex(this, descriptor, flags);
 
-  ham_assert(!(bt->get_flags() & HAM_DISABLE_VAR_KEYLEN));
   ham_assert(!(bt->get_flags() & HAM_CACHE_STRICT));
   ham_assert(!(bt->get_flags() & HAM_CACHE_UNLIMITED));
   ham_assert(!(bt->get_flags() & HAM_DISABLE_MMAP));
@@ -750,15 +633,6 @@ LocalDatabase::open(ham_u16_t descriptor)
 
   /* create the TransactionIndex - TODO only if txn's are enabled? */
   m_txn_index = new TransactionIndex(this);
-
-  /* set the compare functions */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    set_compare_func(LocalDatabase::default_recno_compare);
-  }
-  else {
-    set_compare_func(LocalDatabase::default_compare);
-    set_prefix_compare_func(LocalDatabase::default_prefix_compare);
-  }
 
   /* merge the non-persistent database flag with the persistent flags from
    * the btree index */
@@ -786,8 +660,7 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
 {
   /* set the flags; strip off run-time (per session) flags for the btree */
   ham_u32_t persistent_flags = get_rt_flags();
-  persistent_flags &= ~(HAM_DISABLE_VAR_KEYLEN
-            | HAM_CACHE_STRICT
+  persistent_flags &= ~(HAM_CACHE_STRICT
             | HAM_CACHE_UNLIMITED
             | HAM_DISABLE_MMAP
             | HAM_ENABLE_FSYNC
@@ -809,15 +682,6 @@ LocalDatabase::create(ham_u16_t descriptor, ham_u16_t keysize)
 
   /* and the TransactionIndex */
   m_txn_index = new TransactionIndex(this);
-
-  /* set the default key compare functions */
-  if (get_rt_flags() & HAM_RECORD_NUMBER) {
-    set_compare_func(LocalDatabase::default_recno_compare);
-  }
-  else {
-    set_compare_func(LocalDatabase::default_compare);
-    set_prefix_compare_func(LocalDatabase::default_prefix_compare);
-  }
 
   return (0);
 }
@@ -939,8 +803,8 @@ LocalDatabase::insert(Transaction *txn, ham_key_t *key,
           "(see HAM_ENABLE_EXTENDED_KEYS)"));
     return (HAM_INV_KEYSIZE);
   }
-  if ((get_rt_flags() & HAM_DISABLE_VAR_KEYLEN) &&
-      (key->size > get_keysize())) {
+  if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
+      (key->size != get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
@@ -1208,12 +1072,8 @@ LocalDatabase::cursor_insert(Cursor *cursor, ham_key_t *key,
           "(see HAM_ENABLE_EXTENDED_KEYS)"));
     return (HAM_INV_KEYSIZE);
   }
-  if ((get_rt_flags() & HAM_DISABLE_VAR_KEYLEN) &&
-      (key->size > get_keysize())) {
-    ham_trace(("database does not support variable length keys"));
-    return (HAM_INV_KEYSIZE);
-  }
-  if ((get_keysize() < sizeof(ham_u64_t)) && (key->size > get_keysize())) {
+  if ((get_rt_flags() & HAM_DISABLE_VARIABLE_KEYS) &&
+      (key->size != get_keysize())) {
     ham_trace(("database does not support variable length keys"));
     return (HAM_INV_KEYSIZE);
   }
@@ -1865,7 +1725,7 @@ LocalDatabase::close_impl(ham_u32_t flags)
   if (m_btree_index && m_env->get_flags() & HAM_IN_MEMORY) {
     Transaction *txn;
     m_env->txn_begin(&txn, 0, HAM_TXN_TEMPORARY);
-    (void)m_btree_index->free_all_blobs();
+    (void)m_btree_index->release();
     (void)txn->commit();
   }
 
@@ -2099,7 +1959,7 @@ LocalDatabase::flush_txn_operation(Transaction *txn, TransactionOperation *op)
 ham_status_t
 LocalDatabase::erase_me()
 {
-  return (m_btree_index->free_all_blobs());
+  return (m_btree_index->release());
 }
 
 } // namespace hamsterdb

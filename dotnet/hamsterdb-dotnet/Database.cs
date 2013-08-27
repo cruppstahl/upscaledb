@@ -71,26 +71,6 @@ namespace Hamster
   public delegate int CompareFunc(byte[] lhs, byte[] rhs);
 
   /// <summary>
-  /// Delegate for comparing the prefixes of two keys
-  /// </summary>
-  /// <remarks>
-  /// The compare method compares the prefixes of two keys - the
-  /// "left-hand side" (lhs) and the "right-hand side (rhs).
-  /// <br />
-  /// Also see <see cref="Database.SetPrefixCompareFunc" />.
-  /// </remarks>
-  /// <param name="lhs">The prefix of the first key</param>
-  /// <param name="lhsRealLength">The real length of the first key</param>
-  /// <param name="rhs">The prefix of the second key</param>
-  /// <param name="rhsRealLength">The real length of the second key</param>
-  /// <returns>-1 if the first key (lhs) is smaller, +1 if the first
-  /// key is larger, 0 if both keys are equal or
-  /// <see cref="HamConst.HAM_PREFIX_REQUEST_FULLKEY" /> if the prefixes
-  /// are not sufficient for the comparison</returns>
-  public delegate int PrefixCompareFunc(byte[] lhs,
-      int lhsRealLength, byte[] rhs, int rhsRealLength);
-
-  /// <summary>
   /// Delegate for comparing two records of duplicate keys
   /// </summary>
   /// <remarks>
@@ -128,7 +108,6 @@ namespace Hamster
       cursors = new List<Cursor>();
       handle = IntPtr.Zero;
       pinnedCompareFunc = new NativeMethods.CompareFunc(MyCompareFunc);
-      pinnedPrefixCompareFunc = new NativeMethods.PrefixCompareFunc(MyPrefixCompareFunc);
     }
 
     internal Database(IntPtr handle) {
@@ -202,11 +181,6 @@ namespace Hamster
     /// <br />
     /// If <paramref name="foo"/> is null, hamsterdb will use the default
     /// compare function (which is based on memcmp(3)).<br />
-    /// <br />
-    /// Note that if you use a custom compare function routine in combination
-    /// with extended keys, it might be useful to disable the prefix
-    /// comparison, which is based on memcmp(3). See
-    /// <see cref="SetPrefixCompareFunc" /> for details.
     /// </remarks>
     /// <param name="foo">The compare delegate, or null</param>
     public void SetCompareFunc(CompareFunc foo) {
@@ -220,39 +194,6 @@ namespace Hamster
     }
 
     private CompareFunc CompareFoo;
-
-    private int MyPrefixCompareFunc(IntPtr dbhandle,
-        byte[] lhs, int lhs_length, int lhs_real_length,
-        byte[] rhs, int rhs_length, int rhs_real_length) {
-      return PrefixCompareFoo(lhs, lhs_real_length, rhs, rhs_real_length);
-    }
-
-    /// <summary>
-    /// Sets the prefix comparison function
-    /// </summary>
-    /// <remarks>
-    /// This method wraps the native ham_db_set_prefix_compare_func function.<br />
-    /// <br />
-    /// The <see cref="PrefixCompareFunc" /> delegate is called when an index
-    /// uses keys with variable length, and at least one of the keys
-    /// is loaded only partially.<br />
-    /// <br />
-    /// If <paramref name="foo"/> is null, hamsterdb will use the default
-    /// prefix compare function (which is based on memcmp(3)).<br />
-    /// </remarks>
-    /// <param name="foo">The prefix compare delegate, or null</param>
-    public void SetPrefixCompareFunc(PrefixCompareFunc foo) {
-      int st;
-      lock (this) {
-        st = NativeMethods.SetPrefixCompareFunc(handle,
-          pinnedPrefixCompareFunc);
-      }
-      if (st != 0)
-        throw new DatabaseException(st);
-      PrefixCompareFoo = foo;
-    }
-
-    private PrefixCompareFunc PrefixCompareFoo;
 
     /// <summary>
     /// Returns the last error code
@@ -389,7 +330,7 @@ namespace Hamster
     ///     if key size is larger than the key size parameter
     ///     specified for Database.Create, and variable
     ///     length keys are disabled (see
-    ///     <see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />).</item>
+    ///     <see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />).</item>
     ///   </list>
     /// </exception>
     public void Insert(Transaction txn, byte[] key, byte[] record,
@@ -577,6 +518,5 @@ namespace Hamster
     private IntPtr handle;
     private List<Cursor> cursors;
     private NativeMethods.CompareFunc pinnedCompareFunc;
-    private NativeMethods.PrefixCompareFunc pinnedPrefixCompareFunc;
   }
 }

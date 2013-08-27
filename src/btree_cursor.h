@@ -36,14 +36,13 @@
 #ifndef HAM_BTREE_CURSORS_H__
 #define HAM_BTREE_CURSORS_H__
 
-#include "blob_manager.h"
-#include "duplicates.h"
 #include "error.h"
+#include "util.h"
+#include "duplicates.h"
 
 namespace hamsterdb {
 
 class Cursor;
-struct PBtreeKey;
 
 //
 // The Cursor structure for a b+tree cursor
@@ -63,8 +62,9 @@ class BtreeCursor
     // Constructor
     BtreeCursor(Cursor *parent = 0)
       : m_parent(parent), m_state(0), m_duplicate_index(0), m_dupe_cache(),
-        m_coupled_page(0), m_coupled_index(0), m_uncoupled_key(0),
-        m_next_in_page(0), m_previous_in_page(0) {
+        m_coupled_page(0), m_coupled_index(0), m_next_in_page(0),
+        m_previous_in_page(0) {
+      memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
     }
 
     // Destructor; asserts that the cursor is nil
@@ -109,7 +109,7 @@ class BtreeCursor
     // Asserts that the cursor is uncoupled.
     ham_key_t *get_uncoupled_key() {
       ham_assert(m_state == kStateUncoupled);
-      return (m_uncoupled_key);
+      return (&m_uncoupled_key);
     }
 
     // Couples the cursor to a key directly in a page. Also sets the
@@ -136,7 +136,7 @@ class BtreeCursor
     ham_status_t uncouple_from_page();
 
     // Returns true if a cursor points to this btree key
-    bool points_to(PBtreeKey *key);
+    bool points_to(Page *page, ham_u32_t slot);
 
     // Returns true if a cursor points to this external key
     bool points_to(ham_key_t *key);
@@ -220,7 +220,10 @@ class BtreeCursor
     ham_size_t m_coupled_index;
 
     // for uncoupled cursors: a copy of the key at which we're pointing
-    ham_key_t *m_uncoupled_key;
+    ham_key_t m_uncoupled_key;
+
+    // a ByteArray which backs |m_uncoupled_key.data|
+    ByteArray m_uncoupled_arena;
 
     // Linked list of cursors which point to the same page
     BtreeCursor *m_next_in_page, *m_previous_in_page;

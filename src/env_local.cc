@@ -647,7 +647,7 @@ LocalEnvironment::create_db(Database **pdb, ham_u16_t dbname,
     return (HAM_INV_KEYSIZE);
   }
 
-  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
+  ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
                     | HAM_ENABLE_DUPLICATE_KEYS
                     | HAM_ENABLE_EXTENDED_KEYS
                     | HAM_RECORD_NUMBER;
@@ -730,7 +730,7 @@ LocalEnvironment::open_db(Database **pdb, ham_u16_t dbname,
 
   *pdb = 0;
 
-  ham_u32_t mask = HAM_DISABLE_VAR_KEYLEN
+  ham_u32_t mask = HAM_DISABLE_VARIABLE_KEYS
                     | HAM_ENABLE_EXTENDED_KEYS
                     | HAM_READ_ONLY;
   if (flags & ~mask) {

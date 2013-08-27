@@ -38,19 +38,6 @@ my_compare_func(ham_db_t *db,
   return (0);
 }
 
-static int HAM_CALLCONV
-my_prefix_compare_func(ham_db_t *db,
-       const ham_u8_t *lhs, ham_size_t lhs_length, ham_size_t lhs_real_length,
-       const ham_u8_t *rhs, ham_size_t rhs_length, ham_size_t rhs_real_length) {
-  (void)lhs;
-  (void)rhs;
-  (void)lhs_length;
-  (void)rhs_length;
-  (void)lhs_real_length;
-  (void)rhs_real_length;
-  return (0);
-}
-
 struct HamsterdbFixture {
   ham_db_t *m_db;
   ham_env_t *m_env;
@@ -317,10 +304,6 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_db_get_error(m_db));
   }
 
-  void setPrefixCompareTest() {
-    REQUIRE(HAM_INV_PARAMETER == ham_db_set_prefix_compare_func(0, 0));
-  }
-
   void setCompareTest() {
     REQUIRE(HAM_INV_PARAMETER == ham_db_set_compare_func(0, 0));
   }
@@ -367,32 +350,6 @@ struct HamsterdbFixture {
     REQUIRE(0 == ham_cursor_close(cursor));
   }
 
-
-  static int HAM_CALLCONV my_prefix_compare_func_u32(ham_db_t *db,
-                  const ham_u8_t *lhs, ham_size_t lhs_length,
-                  ham_size_t lhs_real_length,
-                  const ham_u8_t *rhs, ham_size_t rhs_length,
-                  ham_size_t rhs_real_length)
-  {
-    ham_s32_t *l = (ham_s32_t *)lhs;
-    ham_s32_t *r = (ham_s32_t *)rhs;
-    ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
-  
-    ham_assert(lhs);
-    ham_assert(rhs);
-  
-    len /= 4;
-    while (len > 0) {
-      if (*l < *r)
-        return -1;
-      else if (*l > *r)
-        return +1;
-      len--;
-      l++;
-      r++;
-    }
-    return (HAM_PREFIX_REQUEST_FULLKEY);
-  }
 
   static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                   const ham_u8_t *lhs, ham_size_t lhs_length,
@@ -461,8 +418,6 @@ struct HamsterdbFixture {
             HAM_DISABLE_MMAP, 0644, ps));
 
     REQUIRE(0 == ham_env_create_db(env, &db, 1, 0, ps2));
-    REQUIRE(0 ==
-        ham_db_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
     REQUIRE(0 ==
         ham_db_set_compare_func(db, &my_compare_func_u32));
 
@@ -733,8 +688,6 @@ struct HamsterdbFixture {
     REQUIRE(0 ==
         ham_env_create_db(env, &db, 1, HAM_ENABLE_EXTENDED_KEYS, 0));
     keycount = 8;
-    REQUIRE(0 ==
-        ham_db_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
     REQUIRE(0 ==
         ham_db_set_compare_func(db, &my_compare_func_u32));
 
@@ -1223,17 +1176,6 @@ struct HamsterdbFixture {
 
     REQUIRE(0 == ham_db_set_compare_func(m_db, f));
     REQUIRE(f == ((LocalDatabase *)m_db)->get_compare_func());
-  }
-
-  void prefixCompareTest() {
-    ham_prefix_compare_func_t f = my_prefix_compare_func;
-    ham_prefix_compare_func_t n = (ham_prefix_compare_func_t)0;
-
-    REQUIRE(0 == ham_db_set_prefix_compare_func(m_db, f));
-    REQUIRE(f == ((LocalDatabase *)m_db)->m_prefix_func);
-
-    REQUIRE(0 == ham_db_set_prefix_compare_func(m_db, 0));
-    REQUIRE(n == ((LocalDatabase *)m_db)->m_prefix_func);
   }
 
   void cursorCreateTest() {
@@ -1917,11 +1859,14 @@ struct HamsterdbFixture {
   void persistentFlagsTest() {
     ham_db_t *db;
     ham_env_t *env;
+    ham_cursor_t *cursor;
     ham_parameter_t ps[] = {
+        { HAM_PARAM_KEYSIZE, 8 },
         { 0, 0 }
     };
     ham_u32_t flags = HAM_ENABLE_EXTENDED_KEYS
-                    | HAM_ENABLE_DUPLICATE_KEYS;
+                    | HAM_ENABLE_DUPLICATE_KEYS
+                    | HAM_DISABLE_VARIABLE_KEYS;
 
     // create the database with flags and parameters
     REQUIRE(0 == ham_env_create(&env, Globals::opath("test.db"), 0, 0, 0));
@@ -1935,6 +1880,19 @@ struct HamsterdbFixture {
     // check if the flags and parameters were stored persistently
     LocalDatabase *ldb = (LocalDatabase *)db;
     REQUIRE((ldb->get_rt_flags() & flags) == flags);
+
+    REQUIRE(0 == ham_cursor_create(&cursor, db, 0, 0));
+
+    // Variable size keys are not allowed
+    ham_record_t rec = {0};
+    ham_key_t key = {0};
+    key.data = (void *)"12345678";
+    key.size = 4;
+    REQUIRE(HAM_INV_KEYSIZE == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(HAM_INV_KEYSIZE == ham_cursor_insert(cursor, &key, &rec, 0));
+    key.size = 8;
+    REQUIRE(0 == ham_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ham_cursor_insert(cursor, &key, &rec, HAM_OVERWRITE));
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
@@ -2024,12 +1982,6 @@ TEST_CASE("Hamsterdb/getErrorTest", "")
   f.getErrorTest();
 }
 
-TEST_CASE("Hamsterdb/setPrefixCompareTest", "")
-{
-  HamsterdbFixture f;
-  f.setPrefixCompareTest();
-}
-
 TEST_CASE("Hamsterdb/setCompareTest", "")
 {
   HamsterdbFixture f;
@@ -2112,12 +2064,6 @@ TEST_CASE("Hamsterdb/compareTest", "")
 {
   HamsterdbFixture f;
   f.compareTest();
-}
-
-TEST_CASE("Hamsterdb/prefixCompareTest", "")
-{
-  HamsterdbFixture f;
-  f.prefixCompareTest();
 }
 
 TEST_CASE("Hamsterdb/cursorCreateTest", "")

@@ -168,42 +168,4 @@ public class DatabaseTest extends TestCase {
     }
     env.close();
   }
-
-  private class MyPrefixComparator implements PrefixCompareCallback
-  {
-    public int m_counter;
-
-    public int compare(byte[] lhs, int lhs_real_size,
-        byte[] rhs, int rhs_real_size) {
-      return ++m_counter; /* need to return different values,
-        or ham_insert thinks we're inserting
-        duplicates */
-    }
-  }
-
-  public void testSetPrefixComparator() {
-    byte[] k = new byte[25];
-    byte[] r = new byte[5];
-    Database db;
-    Environment env = new Environment();
-    MyPrefixComparator cmp = new MyPrefixComparator();
-    try {
-      env.create("jtest.db");
-      db = env.createDatabase((short)1, Const.HAM_ENABLE_EXTENDED_KEYS);
-      db.setPrefixComparator(cmp);
-      db.insert(k, r);
-      k[0] = 1;
-      db.insert(k, r);
-      k[0] = 2;
-      db.insert(k, r);
-      k[0] = 3;
-      db.insert(k, r);
-      db.close();
-    }
-    catch (DatabaseException err) {
-      fail("Exception " + err);
-    }
-    assertEquals(4, cmp.m_counter);
-    env.close();
-  }
 }

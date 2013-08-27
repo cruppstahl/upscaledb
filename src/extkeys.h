@@ -44,8 +44,8 @@ class ExtKeyCache {
     };
 
     enum {
-      // when purging, keys > 25 will be removed
-      kMaxAge       = 25,
+      // when purging, keys older than kMaxAge will be removed
+      kMaxAge       = 100,
 
       // the size of the ExtKey structure (without room for the key data)
       kSizeofExtkey = sizeof(ExtKey) - 1

@@ -279,7 +279,7 @@ public class Environment {
    * @param flags optional flags for creating the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_DISABLE_VAR_KEYLEN</const></li>
+   *     <li><code>Const.HAM_DISABLE_VARIABLE_KEYS</const></li>
    *      Do not allow the use of variable length keys.
    *      Inserting a key, which is larger than the B+Tree index
    *      key size, returns <code>Const.HAM_INV_KEYSIZE</code>.
@@ -349,7 +349,7 @@ public class Environment {
    * @param flags optional flags for opening the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_DISABLE_VAR_KEYLEN</code></li>
+   *     <li><code>Const.HAM_DISABLE_VARIABLE_KEYS</code></li>
    *      Do not allow the use of variable length keys. Inserting
    *      a key, which is larger than the B+Tree index key size,
    *      returns <code>Const.HAM_INV_KEYSIZE</code>.

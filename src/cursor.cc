@@ -20,7 +20,7 @@
 #include "error.h"
 #include "mem.h"
 #include "btree_cursor.h"
-#include "btree_key.h"
+#include "btree_index.h"
 
 using namespace hamsterdb;
 
@@ -331,6 +331,7 @@ Cursor::compare()
   int cmp;
   BtreeCursor *btrc = get_btree_cursor();
   TransactionCursor *txnc = get_txn_cursor();
+  BtreeIndex *btree = get_db()->get_btree_index();
 
   TransactionNode *node = txnc->get_coupled_op()->get_node();
   ham_key_t *txnk = node->get_key();
@@ -354,20 +355,17 @@ Cursor::compare()
     ham_status_t st = clone->get_btree_cursor()->uncouple_from_page();
     if (st) {
       get_db()->cursor_close(clone);
-      return (0); /* TODO throw */
+      return (0); /* TODO */
     }
-    /* TODO error codes are swallowed */
-    cmp = get_db()->compare_keys(
-                clone->get_btree_cursor()->get_uncoupled_key(),
-                txnk);
+    cmp = btree->compare_keys(clone->get_btree_cursor()->get_uncoupled_key(),
+                            txnk);
     get_db()->cursor_close(clone);
 
     m_last_cmp = cmp;
     return (cmp);
   }
   else if (btrc->get_state() == BtreeCursor::kStateUncoupled) {
-    /* TODO error codes are swallowed */
-    cmp = get_db()->compare_keys(btrc->get_uncoupled_key(), txnk);
+    cmp = btree->compare_keys(btrc->get_uncoupled_key(), txnk);
     m_last_cmp = cmp;
     return (cmp);
   }

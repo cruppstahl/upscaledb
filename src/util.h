@@ -47,14 +47,19 @@ class ByteArray
     }
 
     ~ByteArray() {
-      if (m_own)
-        clear();
+      clear();
     }
 
     void append(void *ptr, ham_size_t size) {
       ham_size_t oldsize = m_size;
       char *p = (char *)resize(m_size + size);
       ::memcpy(p + oldsize, ptr, size);
+    }
+
+    void copy(const void *ptr, ham_size_t size) {
+      resize(size);
+      ::memcpy(m_ptr, ptr, size);
+      m_size = size;
     }
 
     void *resize(ham_size_t size) {
@@ -84,14 +89,19 @@ class ByteArray
       return (m_ptr);
     }
 
+    const void *get_ptr() const {
+      return (m_ptr);
+    }
+
     void assign(void *ptr, ham_size_t size) {
       clear();
       m_ptr = ptr;
       m_size = size;
     }
 
-    void clear() {
-      Memory::release(m_ptr);
+    void clear(bool release_memory = true) {
+      if (m_own && release_memory)
+        Memory::release(m_ptr);
       m_ptr = 0;
       m_size = 0;
     }

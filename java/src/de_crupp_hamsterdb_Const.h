@@ -33,8 +33,6 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_WRITE_PROTECTED -15L
 #undef de_crupp_hamsterdb_Const_HAM_BLOB_NOT_FOUND
 #define de_crupp_hamsterdb_Const_HAM_BLOB_NOT_FOUND -16L
-#undef de_crupp_hamsterdb_Const_HAM_PREFIX_REQUEST_FULLKEY
-#define de_crupp_hamsterdb_Const_HAM_PREFIX_REQUEST_FULLKEY -17L
 #undef de_crupp_hamsterdb_Const_HAM_IO_ERROR
 #define de_crupp_hamsterdb_Const_HAM_IO_ERROR -18L
 #undef de_crupp_hamsterdb_Const_HAM_CACHE_FULL
@@ -91,8 +89,8 @@ extern "C" {
 #define de_crupp_hamsterdb_Const_HAM_ENABLE_FSYNC 1L
 #undef de_crupp_hamsterdb_Const_HAM_READ_ONLY
 #define de_crupp_hamsterdb_Const_HAM_READ_ONLY 4L
-#undef de_crupp_hamsterdb_Const_HAM_DISABLE_VAR_KEYLEN
-#define de_crupp_hamsterdb_Const_HAM_DISABLE_VAR_KEYLEN 64L
+#undef de_crupp_hamsterdb_Const_HAM_DISABLE_VARIABLE_KEYS
+#define de_crupp_hamsterdb_Const_HAM_DISABLE_VARIABLE_KEYS 64L
 #undef de_crupp_hamsterdb_Const_HAM_IN_MEMORY_DB
 #define de_crupp_hamsterdb_Const_HAM_IN_MEMORY_DB 128L
 #undef de_crupp_hamsterdb_Const_HAM_DISABLE_MMAP

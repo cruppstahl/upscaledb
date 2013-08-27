@@ -15,6 +15,7 @@
 #include "cache.h"
 #include "device.h"
 #include "btree_index.h"
+#include "btree_node_proxy.h"
 
 #include "page_manager.h"
 
@@ -305,15 +306,12 @@ db_close_callback(Page *page, Database *db, ham_u32_t flags)
     (void)env->get_page_manager()->flush_page(page);
 
     /*
-     * if this page has a header, and it's either a B-Tree root page or
-     * a B-Tree index page: remove all extended keys from the cache,
-     * and/or free their blobs
+     * TODO is this really necessary?? i don't think so
      */
     if (page->get_data() &&
         (!(page->get_flags() & Page::kNpersNoHeader)) &&
           (page->get_type() == Page::kTypeBroot ||
             page->get_type() == Page::kTypeBindex)) {
-      (void)BtreeIndex::free_page_extkeys(page, flags);
       (void)BtreeCursor::uncouple_all_cursors(page);
     }
 
@@ -342,6 +340,19 @@ PageManager::close_database(Database *db)
 {
   if (m_cache)
     (void)m_cache->visit(db_close_callback, db, 0);
+}
+
+ham_status_t
+PageManager::add_to_freelist(Page *page)
+{
+  Freelist *f = get_freelist();
+
+  if (page->get_node_proxy()) {
+    delete page->get_node_proxy();
+    page->set_node_proxy(0);
+  }
+
+  return (f ? f->free_page(page) : 0);
 }
 
 ham_status_t

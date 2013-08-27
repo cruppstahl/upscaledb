@@ -13,24 +13,17 @@
 
 #include <string.h>
 
-#include "blob_manager.h"
-#include "btree_index.h"
-#include "cache.h"
 #include "db.h"
-#include "device.h"
-#include "env.h"
 #include "error.h"
-#include "extkeys.h"
-#include "btree_key.h"
-#include "log.h"
-#include "mem.h"
 #include "page.h"
-#include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
 #include "cursor.h"
-#include "btree_node.h"
+#include "btree_stats.h"
+#include "btree_index.h"
+#include "btree_node_factory.h"
 #include "page_manager.h"
+#include "blob_manager.h"
 
 namespace hamsterdb {
 
@@ -39,18 +32,15 @@ namespace hamsterdb {
  */
 class BtreeEraseAction
 {
-  enum {
-    /* flags for replace_key */
-    kInternalKey = 2
-  };
-
   public:
     BtreeEraseAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_u32_t dupe_id = 0, ham_u32_t flags = 0)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
         m_dupe_id(dupe_id), m_flags(flags), m_mergepage(0) {
-      if (cursor)
+      if (cursor) {
         m_cursor = cursor->get_btree_cursor();
+        m_dupe_id = m_cursor->get_duplicate_index() + 1;
+      }
     }
 
     ham_status_t run() {
@@ -67,7 +57,7 @@ class BtreeEraseAction
           ham_u32_t coupled_index;
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
 
-          PBtreeNode *node = PBtreeNode::from_page(coupled_page);
+          BtreeNodeProxy *node = BtreeNodeFactory::get(coupled_page);
           ham_assert(node->is_leaf());
           if (coupled_index > 0
               && node->get_count() > m_btree->get_minkeys()) {
@@ -126,57 +116,44 @@ class BtreeEraseAction
 
   private:
     /* remove an item from a page */
-    ham_status_t remove_entry(Page *page, ham_s32_t slot) {
-      ham_status_t st;
-      BtreeCursor *btc = 0;
-
+    ham_status_t remove_entry(Page *page, int slot) {
       LocalDatabase *db = m_btree->get_db();
-      PBtreeNode *node = PBtreeNode::from_page(page);
-      ham_size_t keysize = m_btree->get_keysize();
-      PBtreeKey *bte = node->get_key(db, slot);
-
-      /* uncouple all cursors */
-      if ((st = BtreeCursor::uncouple_all_cursors(page)))
-        return (st);
+      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
       ham_assert(slot >= 0);
-      ham_assert(slot < node->get_count());
+      ham_assert(slot < (int)node->get_count());
 
-      /*
-       * leaf page: get rid of the record
-       *
-       * if duplicates are enabled and a cursor exists: remove the duplicate.
-       * otherwise remove the full key with all duplicates
-       */
+      /* uncouple all cursors */
+      ham_status_t st;
+      if ((st = BtreeCursor::uncouple_all_cursors(page, slot + 1)))
+        return (st);
+
+      // delete the record, but only on leaf nodes! internal nodes don't have
+      // records; they point to pages instead, and we do not want to delete
+      // those.
+      bool has_duplicates_left;
       if (node->is_leaf()) {
-        Cursor *cursors = db->get_cursor_list();
-        ham_u32_t dupe_id = 0;
+        // only delete a duplicate?
+        if (m_dupe_id > 0)
+          st = node->remove_record(slot, m_dupe_id - 1, false,
+                  &has_duplicates_left);
+        else {
+          st = node->remove_record(slot, 0, true,
+                  &has_duplicates_left);
+          ham_assert(has_duplicates_left == false);
+        }
+      }
+      if (st)
+        return (st);
 
+      // still got duplicates left? then adjust all cursors
+      if (node->is_leaf()) {
+        BtreeCursor *btc = 0;
+        Cursor *cursors = db->get_cursor_list();
         if (cursors)
           btc = cursors->get_btree_cursor();
 
-        if (m_cursor)
-          dupe_id = m_cursor->get_duplicate_index() + 1;
-        else if (m_dupe_id) /* +1-based index */
-          dupe_id = m_dupe_id;
-
-        if (bte->get_flags() & PBtreeKey::kDuplicates && dupe_id) {
-          st = bte->erase_record(db, m_txn, dupe_id - 1, false);
-          if (st)
-            return (st);
-
-          /*
-           * if the last duplicate was erased (ptr and flags==0):
-           * remove the entry completely
-           */
-          if (bte->get_ptr() == 0 && bte->get_flags() == 0)
-            goto free_all;
-
-          /*
-           * make sure that no cursor is pointing to this dupe, and shift
-           * all other cursors if they point to a different duplicate of
-           * the same key
-           */
+        if (has_duplicates_left) {
           while (btc && m_cursor) {
             BtreeCursor *next = 0;
             if (cursors->get_next()) {
@@ -184,29 +161,23 @@ class BtreeEraseAction
               next = cursors->get_btree_cursor();
             }
 
-            if (btc != m_cursor) {
+            if (btc != m_cursor && btc->points_to(page, slot)) {
               if (btc->get_duplicate_index()
-                              == m_cursor->get_duplicate_index()) {
-                if (btc->points_to(bte))
+                              == m_cursor->get_duplicate_index())
                   btc->set_to_nil();
-              }
               else if (btc->get_duplicate_index()
-                              > m_cursor->get_duplicate_index()) {
+                              > m_cursor->get_duplicate_index())
                 btc->set_duplicate_index(btc->get_duplicate_index() - 1);
-              }
             }
             btc = next;
           }
-
-          /* we've removed the duplicate; return to caller */
+          // all cursors were adjusted, the duplicate was deleted. return
+          // to caller!
           return (0);
         }
+        // the full key was deleted; all cursors pointing to this key
+        // are set to nil
         else {
-          st = bte->erase_record(db, m_txn, 0, true);
-          if (st)
-            return (st);
-
-free_all:
           if (cursors) {
             btc = cursors->get_btree_cursor();
 
@@ -219,7 +190,7 @@ free_all:
                 next = cursors->get_btree_cursor();
               }
               if (btc != m_cursor) {
-                if (cur->points_to(bte))
+                if (cur->points_to(page, slot))
                   cur->set_to_nil();
               }
               btc = next;
@@ -228,31 +199,9 @@ free_all:
         }
       }
 
-      /*
-       * get rid of the extended key (if there is one); also remove the key
-       * from the cache
-       */
-      if (bte->get_flags() & PBtreeKey::kExtended) {
-        ham_u64_t blobid = bte->get_extended_rid(db);
-        ham_assert(blobid);
+      // now remove the key
+      node->remove(slot);
 
-        st = db->remove_extkey(blobid);
-        if (st)
-          return (st);
-      }
-
-      /*
-       * if we delete the last item, it's enough to decrement the item
-       * counter and return...
-       */
-      if (slot != node->get_count() - 1) {
-        PBtreeKey *lhs = node->get_key(db, slot);
-        PBtreeKey *rhs = node->get_key(db, slot + 1);
-        memmove(lhs, rhs, ((PBtreeKey::kSizeofOverhead + keysize))
-                * (node->get_count() - slot - 1));
-      }
-
-      node->set_count(node->get_count() - 1);
       page->set_dirty(true);
       return (0);
     }
@@ -266,14 +215,14 @@ free_all:
     ham_status_t erase_recursive(Page **page_ref, Page *page,
                     ham_u64_t left, ham_u64_t right,
                     ham_u64_t lanchor, ham_u64_t ranchor, Page *parent) {
-      ham_s32_t slot;
+      int slot;
       ham_status_t st;
       Page *newme;
       Page *child;
       Page *tempp = 0;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      PBtreeNode *node = PBtreeNode::from_page(page);
+      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
       *page_ref = 0;
 
@@ -299,9 +248,7 @@ free_all:
           return (st);
       }
       else {
-        st = m_btree->get_slot(page, m_key, &slot);
-        if (st)
-          return (st);
+        slot = node->get_slot(m_key);
         child = 0;
       }
 
@@ -320,38 +267,34 @@ free_all:
             st = env->get_page_manager()->fetch_page(&tempp, db, left);
             if (st)
               return (st);
-            PBtreeNode *n = PBtreeNode::from_page(tempp);
-            PBtreeKey *bte = n->get_key(db, n->get_count() - 1);
-            next_left = bte->get_ptr();
+            BtreeNodeProxy *n = BtreeNodeFactory::get(tempp);
+            next_left = n->get_record_id(n->get_count() - 1);
           }
           next_lanchor = lanchor;
         }
         else {
           if (slot == 0)
-            next_left = node->get_ptr_left();
+            next_left = node->get_ptr_down();
           else {
-            PBtreeKey *bte = node->get_key(db, slot - 1);
-            next_left = bte->get_ptr();
+            next_left = node->get_record_id(slot - 1);
           }
           next_lanchor = page->get_address();
         }
 
-        if (slot == node->get_count() - 1) {
+        if (slot == (int)node->get_count() - 1) {
           if (!right)
             next_right = 0;
           else {
             st = env->get_page_manager()->fetch_page(&tempp, db, right);
             if (st)
               return (st);
-            PBtreeNode *n = PBtreeNode::from_page(tempp);
-            PBtreeKey *bte = n->get_key(db, 0);
-            next_right = bte->get_ptr();
+            BtreeNodeProxy *n = BtreeNodeFactory::get(tempp);
+            next_right = n->get_record_id(0);
           }
           next_ranchor = ranchor;
         }
         else {
-          PBtreeKey *bte = node->get_key(db, slot + 1);
-          next_right = bte->get_ptr();
+          next_right = node->get_record_id(slot + 1);
           next_ranchor = page->get_address();
         }
 
@@ -368,10 +311,7 @@ free_all:
          */
         newme = 0;
         if (slot != -1) {
-          int cmp = m_btree->compare_keys(page, m_key, slot);
-          if (cmp < -1)
-            return ((ham_status_t)cmp);
-
+          int cmp = node->compare(m_key, slot);
           if (cmp == 0)
             newme = page;
           else
@@ -405,11 +345,11 @@ free_all:
                     ham_u64_t right, ham_u64_t lanchor,
                     ham_u64_t ranchor, Page *parent) {
       ham_status_t st;
-      PBtreeNode *node = PBtreeNode::from_page(page);
+      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
       Page *leftpage = 0;
       Page *rightpage = 0;
-      PBtreeNode *leftnode = 0;
-      PBtreeNode *rightnode = 0;
+      BtreeNodeProxy *leftnode = 0;
+      BtreeNodeProxy *rightnode = 0;
       LocalDatabase *db = page->get_db();
       LocalEnvironment *env = db->get_local_env();
       bool fewleft = false;
@@ -429,7 +369,7 @@ free_all:
         if (st)
           return (st);
         if (leftpage) {
-          leftnode = PBtreeNode::from_page(leftpage);
+          leftnode = BtreeNodeFactory::get(leftpage);
           fewleft  = (leftnode->get_count() <= minkeys);
         }
       }
@@ -439,7 +379,7 @@ free_all:
         if (st)
           return (st);
         if (rightpage) {
-          rightnode = PBtreeNode::from_page(rightpage);
+          rightnode = BtreeNodeFactory::get(rightpage);
           fewright  = (rightnode->get_count() <= minkeys);
         }
       }
@@ -450,7 +390,7 @@ free_all:
           return (0);
         else
           return (env->get_page_manager()->fetch_page(newpage_ref,
-                      db, node->get_ptr_left()));
+                      db, node->get_ptr_down()));
       }
 
       /*
@@ -507,299 +447,191 @@ free_all:
      * number of items
      */
     ham_status_t shift_pages(Page *page, Page *sibpage, ham_u64_t anchor) {
-      ham_s32_t slot = 0;
-      ham_size_t s;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      Page *ancpage;
-      PBtreeKey *bte_lhs, *bte_rhs;
+      int slot = 0;
 
-      PBtreeNode *node    = PBtreeNode::from_page(page);
-      PBtreeNode *sibnode = PBtreeNode::from_page(sibpage);
-      ham_size_t keysize = m_btree->get_keysize();
-      bool intern  = !node->is_leaf();
+      Page *ancpage;
       ham_status_t st = env->get_page_manager()->fetch_page(&ancpage,
                                 db, anchor);
       if (st)
         return (st);
-      PBtreeNode *ancnode = PBtreeNode::from_page(ancpage);
 
-      ham_assert(node->get_count() != sibnode->get_count());
+      BtreeNodeProxy *node    = BtreeNodeFactory::get(page);
+      BtreeNodeProxy *sibnode = BtreeNodeFactory::get(sibpage);
+      BtreeNodeProxy *ancnode = BtreeNodeFactory::get(ancpage);
 
       /* uncouple all cursors */
       if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
       if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
         return (st);
-      if (ancpage)
-        if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
-          return (st);
+      if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
+        return (st);
+
+      bool internal = !node->is_leaf();
+
+      ham_assert(node->get_count() != sibnode->get_count());
 
       /* shift from sibling to this node */
       if (sibnode->get_count() >= node->get_count()) {
-        /* internal node: insert the anchornode separator value to this node */
-        if (intern) {
-          PBtreeKey *bte = sibnode->get_key(db, 0);
-          ham_key_t key = {0};
-          key._flags = bte->get_flags();
-          key.data   = bte->get_key();
-          key.size   = bte->get_size();
-          st = m_btree->get_slot(ancpage, &key, &slot);
-          if (st)
-            return (st);
+        /* internal node: append the anchornode separator value to this node */
+        if (internal) {
+          slot = ancnode->get_slot(sibnode, 0);
 
           /* append the anchor node to the page */
-          bte_rhs = ancnode->get_key(db, slot);
-          bte_lhs = node->get_key(db, node->get_count());
-
-          st = copy_key(db, bte_lhs, bte_rhs);
+          st = replace_key(ancpage, slot, page, node->get_count(), true);
           if (st)
             return (st);
 
-          /* the pointer of this new node is ptr_left of the sibling */
-          bte_lhs->set_ptr(sibnode->get_ptr_left());
+          /* the key was appended, therefore the counter of the node must
+           * be incremented */
+          node->set_count(node->get_count() + 1);
+
+          /* the pointer of this new node is ptr_down of the sibling */
+          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
 
           /* new pointer left of the sibling is sibling[0].ptr */
-          sibnode->set_ptr_left(bte->get_ptr());
+          sibnode->set_ptr_down(sibnode->get_record_id(0));
 
           /* update the anchor node with sibling[0] */
-          (void)replace_key(ancpage, slot, bte, kInternalKey);
+          st = replace_key(sibpage, 0, ancpage, slot, true);
+          if (st)
+            return (st);
 
-          /* shift the remainder of sibling to the left */
-          bte_lhs = sibnode->get_key(db, 0);
-          bte_rhs = sibnode->get_key(db, 1);
-          memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize)
-                    * (sibnode->get_count() - 1));
-
-          /* adjust counters */
-          node->set_count(node->get_count() + 1);
-          sibnode->set_count(sibnode->get_count() - 1);
+          /* and remove this key from the sibling */
+          sibnode->remove(0);
         }
 
         ham_size_t c = (sibnode->get_count() - node->get_count()) / 2;
         if (c == 0)
           goto cleanup;
-        if (intern)
+        if (internal)
           c--;
         if (c == 0)
           goto cleanup;
 
         /* internal node: append the anchor key to the page */
-        if (intern) {
-          bte_lhs = node->get_key(db, node->get_count());
-          bte_rhs = ancnode->get_key(db, slot);
-
-          st = copy_key(db, bte_lhs, bte_rhs);
+        if (internal) {
+          st = replace_key(ancpage, slot, page, node->get_count(), true);
           if (st)
             return (st);
 
-          bte_lhs->set_ptr(sibnode->get_ptr_left());
+          node->set_record_id(node->get_count(), sibnode->get_ptr_down());
           node->set_count(node->get_count() + 1);
         }
 
-        /*
-         * shift items from the sibling to this page, then
-         * delete the shifted items
-         */
-        bte_lhs = node->get_key(db, node->get_count());
-        bte_rhs = sibnode->get_key(db, 0);
-
-        memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize) * c);
-
-        bte_lhs = sibnode->get_key(db, 0);
-        bte_rhs = sibnode->get_key(db, c);
-        memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize)
-                * (sibnode->get_count() - c));
+        /* shift |c| items from the right sibling to this page, then
+         * delete the shifted items */
+        node->shift_from_right(sibnode, c);
 
         /*
-         * internal nodes: don't forget to set ptr_left of the sibling, and
+         * internal nodes: don't forget to set ptr_down of the sibling, and
          * replace the anchor key
          */
-        if (intern) {
-          PBtreeKey *bte = sibnode->get_key(db, 0);
-          sibnode->set_ptr_left(bte->get_ptr());
+        if (internal) {
+          sibnode->set_ptr_down(sibnode->get_record_id(0));
+
           if (anchor) {
-            ham_key_t key = {0};
-            key._flags = bte->get_flags();
-            key.data   = bte->get_key();
-            key.size   = bte->get_size();
-            st = m_btree->get_slot(ancpage, &key, &slot);
-            if (st)
-              return (st);
+            slot = ancnode->get_slot(sibnode, 0);
+
             /* replace the key */
-            st = replace_key(ancpage, slot, bte, kInternalKey);
+            st = replace_key(ancpage, slot, sibpage, 0, true);
             if (st)
               return (st);
           }
+
           /* shift once more */
-          bte_lhs = sibnode->get_key(db, 0);
-          bte_rhs = sibnode->get_key(db, 1);
-          memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize)
-                    * (sibnode->get_count() - 1));
+          sibnode->remove(0);
         }
         else {
           /* in a leaf - update the anchor */
-          ham_key_t key = {0};
-          PBtreeKey *bte = sibnode->get_key(db, 0);
-          key._flags = bte->get_flags();
-          key.data   = bte->get_key();
-          key.size   = bte->get_size();
-          st = m_btree->get_slot(ancpage, &key, &slot);
-          if (st)
-            return (st);
+          slot = ancnode->get_slot(sibnode, 0);
 
           /* replace the key */
-          st = replace_key(ancpage, slot, bte, kInternalKey);
+          st = replace_key(sibpage, 0, ancpage, slot, true);
           if (st)
             return (st);
         }
-
-        /* update the page counter */
-        ham_assert(node->get_count() + c <= 0xFFFF);
-        ham_assert(sibnode->get_count() - c - (intern ? 1 : 0) <= 0xFFFF);
-        node->set_count(node->get_count() + c);
-        sibnode->set_count(sibnode->get_count() - c - (intern ? 1 : 0));
       }
+      /* this code path shifts keys from this node to the sibling */
       else {
-        /* shift from this node to the sibling */
-
-        /*
-        * internal node: insert the anchornode separator value to
-        * this node
-        */
-        if (intern) {
-          ham_key_t key = {0};
-
-          PBtreeKey *bte = sibnode->get_key(db, 0);
-          key._flags = bte->get_flags();
-          key.data   = bte->get_key();
-          key.size   = bte->get_size();
-          st = m_btree->get_slot(ancpage, &key, &slot);
-          if (st)
-            return (st);
+        /* internal node: insert the anchornode separator value to this node */
+        if (internal) {
+          slot = ancnode->get_slot(sibnode, 0);
 
           /* shift entire sibling by 1 to the right */
-          bte_lhs = sibnode->get_key(db, 1);
-          bte_rhs = sibnode->get_key(db, 0);
-          memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize)
-                  * sibnode->get_count());
+          ham_key_t dummy = {0};
+          sibnode->insert(0, &dummy, 0);
 
           /* copy the old anchor element to sibling[0] */
-          bte_lhs = sibnode->get_key(db, 0);
-          bte_rhs = ancnode->get_key(db, slot);
-
-          st = copy_key(db, bte_lhs, bte_rhs);
+          st = replace_key(ancpage, slot, sibpage, 0, true);
           if (st)
             return (st);
 
-          /* sibling[0].ptr = sibling.ptr_left */
-          bte_lhs->set_ptr(sibnode->get_ptr_left());
+          /* sibling[0].ptr = sibling.ptr_down */
+          sibnode->set_record_id(0, sibnode->get_ptr_down());
 
-          /* sibling.ptr_left = node[node.count-1].ptr */
-          bte_lhs = node->get_key(db, node->get_count() - 1);
-          sibnode->set_ptr_left(bte_lhs->get_ptr());
+          /* sibling.ptr_down = node[node.count-1].ptr */
+          sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
           /* new anchor element is node[node.count-1].key */
-          st = replace_key(ancpage, slot, bte_lhs, kInternalKey);
+          st = replace_key(page, node->get_count() - 1, ancpage, slot, true);
           if (st)
             return (st);
 
-          /* page: one item less; sibling: one item more */
+          /* current page has now one item less */
           node->set_count(node->get_count() - 1);
-          sibnode->set_count(sibnode->get_count() + 1);
         }
 
         ham_size_t c = (node->get_count() - sibnode->get_count()) / 2;
         if (c == 0)
           goto cleanup;
-        if (intern)
+        if (internal)
           c--;
         if (c == 0)
           goto cleanup;
 
         /* internal pages: insert the anchor element */
-        if (intern) {
+        if (internal) {
           /* shift entire sibling by 1 to the right */
-          bte_lhs = sibnode->get_key(db, 1);
-          bte_rhs = sibnode->get_key(db, 0);
-          memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize)
-                    * (sibnode->get_count()));
+          ham_key_t dummy = {0};
+          sibnode->insert(0, &dummy, 0);
 
-          bte_lhs = sibnode->get_key(db, 0);
-          bte_rhs = ancnode->get_key(db, slot);
-
-          /* clear the key - we don't want replace_key to free
-           * an extended block which is still used by sibnode[1] */
-          memset(bte_lhs, 0, sizeof(*bte_lhs));
-
-          st = replace_key(sibpage, 0, bte_rhs,
-                    (node->is_leaf() ? 0 : kInternalKey));
+          st = replace_key(ancpage, slot, sibpage, 0, true);
           if (st)
             return (st);
 
-          bte_lhs->set_ptr(sibnode->get_ptr_left());
-          sibnode->set_count(sibnode->get_count() + 1);
+          sibnode->set_record_id(0, sibnode->get_ptr_down());
         }
 
-        s = node->get_count() - c - 1;
+        ham_size_t s = node->get_count() - c - 1;
 
-        /*
-         * shift items from this page to the sibling, then delete the
-         * items from this page
-         */
-        bte_lhs = sibnode->get_key(db, c);
-        bte_rhs = sibnode->get_key(db, 0);
-        memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead+keysize)
-                * sibnode->get_count());
-
-        bte_lhs = sibnode->get_key(db, 0);
-        bte_rhs = node->get_key(db, s + 1);
-        memmove(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead + keysize) * c);
-
-        ham_assert(node->get_count() - c <= 0xFFFF);
-        ham_assert(sibnode->get_count() + c <= 0xFFFF);
-        node->set_count(node->get_count() - c);
-        sibnode->set_count(sibnode->get_count() + c);
+        /* shift items from this page to the right sibling, then delete the
+         * items from this page */
+        node->shift_to_right(sibnode, s + 1, c);
 
         /*
          * internal nodes: the pointer of the highest item
-         * in the node will become the ptr_left of the sibling
+         * in the node will become the ptr_down of the sibling
          */
-        if (intern) {
-          bte_lhs = node->get_key(db, node->get_count() - 1);
-          sibnode->set_ptr_left(bte_lhs->get_ptr());
+        if (internal) {
+          sibnode->set_ptr_down(node->get_record_id(node->get_count() - 1));
 
-          /* free the extended blob of this key */
-          if (bte_lhs->get_flags() & PBtreeKey::kExtended) {
-            ham_u64_t blobid = bte_lhs->get_extended_rid(db);
-            ham_assert(blobid);
-
-            st = db->remove_extkey(blobid);
-            if (st)
-              return (st);
-          }
-          node->set_count(node->get_count() - 1);
+          /* free the greatest key */
+          node->remove(node->get_count() - 1);
         }
 
         /* replace the old anchor key with the new anchor key */
         if (anchor) {
-          PBtreeKey *bte;
-          ham_key_t key = {0};
-
-          if (intern)
-            bte = node->get_key(db, s);
-          else
-            bte = sibnode->get_key(db, 0);
-
-          key._flags = bte->get_flags();
-          key.data   = bte->get_key();
-          key.size   = bte->get_size();
-
-          st = m_btree->get_slot(ancpage, &key, &slot);
-          if (st)
-            return (st);
-
-          st = replace_key(ancpage, slot + 1, bte, kInternalKey);
+          if (internal) {
+            slot = ancnode->get_slot(node, s);
+            st = replace_key(page, s, ancpage, slot + 1, true);
+          }
+          else {
+            slot = ancnode->get_slot(sibnode, 0);
+            st = replace_key(sibpage, 0, ancpage, slot + 1, true);
+          }
           if (st)
             return (st);
         }
@@ -819,73 +651,52 @@ cleanup:
     /* merge two pages */
     ham_status_t merge_pages(Page **newpage_ref, Page *page, Page *sibpage,
                         ham_u64_t anchor) {
-      ham_status_t st;
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      Page *ancpage = 0;
-      PBtreeNode *ancnode = 0;
-      PBtreeKey *bte_lhs, *bte_rhs;
-      ham_size_t keysize = m_btree->get_keysize();
-      PBtreeNode *node    = PBtreeNode::from_page(page);
-      PBtreeNode *sibnode = PBtreeNode::from_page(sibpage);
+      BtreeNodeProxy *sibnode = BtreeNodeFactory::get(sibpage);
+      BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
       *newpage_ref = 0;
 
+      /* uncouple all cursors */
+      ham_status_t st;
+      if ((st = BtreeCursor::uncouple_all_cursors(page)))
+        return (st);
+      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
+        return (st);
+
+      Page *ancpage = 0;
+      BtreeNodeProxy *ancnode = 0;
       if (anchor) {
         st = env->get_page_manager()->fetch_page(&ancpage,
                         page->get_db(), anchor);
         if (st)
           return (st);
-        ancnode = PBtreeNode::from_page(ancpage);
-      }
-
-      /* uncouple all cursors */
-      if ((st = BtreeCursor::uncouple_all_cursors(page)))
-        return (st);
-      if ((st = BtreeCursor::uncouple_all_cursors(sibpage)))
-        return (st);
-      if (ancpage)
+        ancnode = BtreeNodeFactory::get(ancpage);
         if ((st = BtreeCursor::uncouple_all_cursors(ancpage)))
           return (st);
+      }
 
       /*
        * internal node: append the anchornode separator value to
        * this node
        */
       if (!node->is_leaf()) {
-        PBtreeKey *bte = sibnode->get_key(db, 0);
-        ham_key_t key = {0};
-        key._flags = bte->get_flags();
-        key.data   = bte->get_key();
-        key.size   = bte->get_size();
+        int slot = ancnode->get_slot(sibnode, 0);
 
-        ham_s32_t slot;
-        st = m_btree->get_slot(ancpage, &key, &slot);
+        st = replace_key(ancpage, slot, page, node->get_count(), true);
         if (st)
           return (st);
 
-        bte_lhs = node->get_key(db, node->get_count());
-        bte_rhs = ancnode->get_key(db, slot);
-
-        st = copy_key(db, bte_lhs, bte_rhs);
-        if (st)
-          return (st);
-        bte_lhs->set_ptr(sibnode->get_ptr_left());
+        node->set_record_id(node->get_count(), sibnode->get_ptr_down());
         node->set_count(node->get_count() + 1);
       }
 
-      ham_size_t c = sibnode->get_count();
-      bte_lhs = node->get_key(db, node->get_count());
-      bte_rhs = sibnode->get_key(db, 0);
-
-      /* shift items from the sibling to this page */
-      memcpy(bte_lhs, bte_rhs, (PBtreeKey::kSizeofOverhead+keysize) * c);
-
+      /* merge all items from the sibling into this page */
+      node->merge_from(sibnode);
+ 
       page->set_dirty(true);
       sibpage->set_dirty(true);
-      ham_assert(node->get_count() + c <= 0xFFFF);
-      node->set_count(node->get_count() + c);
-      sibnode->set_count(0);
 
       /* update the linked list of pages */
       if (node->get_left() == sibpage->get_address()) {
@@ -895,7 +706,7 @@ cleanup:
                             page->get_db(), sibnode->get_left());
           if (st)
             return (st);
-          PBtreeNode *n = PBtreeNode::from_page(p);
+          BtreeNodeProxy *n = BtreeNodeFactory::get(p);
           n->set_right(sibnode->get_right());
           node->set_left(sibnode->get_left());
           p->set_dirty(true);
@@ -910,7 +721,7 @@ cleanup:
                       page->get_db(), sibnode->get_right());
           if (st)
             return (st);
-          PBtreeNode *n = PBtreeNode::from_page(p);
+          BtreeNodeProxy *n = BtreeNodeFactory::get(p);
           node->set_right(sibnode->get_right());
           n->set_left(sibnode->get_left());
           p->set_dirty(true);
@@ -943,110 +754,21 @@ cleanup:
       return (0);
     }
 
-    /*
-     * copy a key; extended keys will be cloned, otherwise two keys would
-     * have the same blob id
-     * TODO parameter |db| really required? should be m_btree->get_db()
-     */
-    ham_status_t copy_key(LocalDatabase *db, PBtreeKey *lhs, PBtreeKey *rhs) {
-      LocalEnvironment *env = db->get_local_env();
-
-      memcpy(lhs, rhs, PBtreeKey::kSizeofOverhead + m_btree->get_keysize());
-
-      if (rhs->get_flags() & PBtreeKey::kExtended) {
-        ham_record_t record = {0};
-        ByteArray *arena = (m_txn == 0
-                                || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
-                            ? &db->get_record_arena()
-                            : &m_txn->get_record_arena();
-
-        ham_u64_t rhsblobid = rhs->get_extended_rid(db);
-        ham_status_t st = env->get_blob_manager()->read(db, rhsblobid,
-                                                &record, 0, arena);
-        if (st)
-          return (st);
-
-        ham_u64_t lhsblobid;
-        st = env->get_blob_manager()->allocate(db, &record, 0, &lhsblobid);
-        if (st)
-          return (st);
-        lhs->set_extended_rid(db, lhsblobid);
-      }
-
-      return (0);
-    }
-
-    /*
-     * replace a key in a page
-     */
-    ham_status_t replace_key(Page *page, ham_s32_t slot, PBtreeKey *rhs,
-                    ham_u32_t flags) {
-      ham_status_t st;
+    ham_status_t replace_key(Page *src_page, int src_slot,
+                    Page *dest_page, int dest_slot, bool dest_is_internal) {
       LocalDatabase *db = m_btree->get_db();
       LocalEnvironment *env = db->get_local_env();
-      PBtreeNode *node = PBtreeNode::from_page(page);
+      BtreeNodeProxy *node = BtreeNodeFactory::get(src_page);
+      BtreeNodeProxy *dest= BtreeNodeFactory::get(dest_page);
 
       /* uncouple all cursors */
-      if ((st = BtreeCursor::uncouple_all_cursors(page)))
+      ham_status_t st;
+      if ((st = BtreeCursor::uncouple_all_cursors(dest_page)))
         return (st);
 
-      PBtreeKey *lhs = node->get_key(db, slot);
-
-      /* if we overwrite an extended key: delete the existing extended blob */
-      if (lhs->get_flags() & PBtreeKey::kExtended) {
-        ham_u64_t blobid = lhs->get_extended_rid(db);
-        ham_assert(blobid);
-
-        st = db->remove_extkey(blobid);
-        if (st)
-          return (st);
-      }
-
-      lhs->set_flags(rhs->get_flags());
-      memcpy(lhs->get_key(), rhs->get_key(), m_btree->get_keysize());
-
-      /*
-       * internal keys are not allowed to have blob-flags, because only the
-       * leaf-node can manage the blob. Therefore we have to disable those
-       * flags if we modify an internal key.
-       */
-      if (flags & kInternalKey)
-        lhs->set_flags(lhs->get_flags() &
-                ~(PBtreeKey::kBlobSizeTiny
-                    | PBtreeKey::kBlobSizeSmall
-                    | PBtreeKey::kBlobSizeEmpty
-                    | PBtreeKey::kDuplicates));
-
-      /*
-       * if this key is extended, we copy the extended blob; otherwise, we'd
-       * have to add reference counting to the blob, because two keys are now
-       * using the same blobid. this would be too complicated.
-       */
-      if (rhs->get_flags() & PBtreeKey::kExtended) {
-        ham_record_t record = {0};
-        ByteArray *arena = (m_txn == 0
-                                || (m_txn->get_flags() & HAM_TXN_TEMPORARY))
-                            ? &db->get_record_arena()
-                            : &m_txn->get_record_arena();
-
-        ham_u64_t rhsblobid = rhs->get_extended_rid(db);
-        ham_status_t st = env->get_blob_manager()->read(db, rhsblobid,
-                                        &record, 0, arena);
-        if (st)
-          return (st);
-
-        ham_u64_t lhsblobid;
-        st = env->get_blob_manager()->allocate(db, &record, 0, &lhsblobid);
-        if (st)
-          return (st);
-        lhs->set_extended_rid(db, lhsblobid);
-      }
-
-      lhs->set_size(rhs->get_size());
-
-      page->set_dirty(true);
-
-      return (HAM_SUCCESS);
+      dest_page->set_dirty(true);
+      return (node->replace_key(src_slot, dest, dest_slot, dest_is_internal,
+                              env->get_blob_manager()));
     }
 
     // the current btree

@@ -53,7 +53,7 @@ settings=""
 AC_ARG_ENABLE(debug,
   AS_HELP_STRING(--enable-debug, build for debugging (slow!)),
     [if test x$enableval = xyes; then
-      CFLAGS="-g -O0 -DHAM_DEBUG"
+      CFLAGS="-g -O0 -DHAM_DEBUG -Wall"
       settings="$settings (debug)"
      fi])
 

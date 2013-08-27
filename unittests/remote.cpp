@@ -1158,7 +1158,6 @@ struct RemoteFixture {
   }
 
   void timeoutTest() {
-    ham_db_t *db;
     ham_env_t *env;
     ham_parameter_t params[] = {
       { HAM_PARAM_NETWORK_TIMEOUT_SEC, 2 },

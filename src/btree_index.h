@@ -18,7 +18,6 @@
 #include "btree_key.h"
 #include "db.h"
 #include "util.h"
-#include "btree_enum.h"
 #include "btree_stats.h"
 
 namespace hamsterdb {
@@ -119,6 +118,14 @@ HAM_PACK_0 class HAM_PACK_1 PBtreeHeader
 #include "packstop.h"
 
 class LocalDatabase;
+class BtreeNodeProxy;
+struct PDupeEntry;
+
+struct BtreeVisitor {
+  virtual bool operator()(BtreeNodeProxy *node, const void *key_data,
+                  ham_u8_t key_flags, ham_u32_t key_size, 
+                  ham_u64_t record_id) = 0;
+};
 
 //
 // The Btree.
@@ -187,7 +194,8 @@ class BtreeIndex
             ham_u32_t duplicate, ham_u32_t flags);
 
     // Iterates over the whole index and enumerate every item
-    ham_status_t enumerate(BtreeVisitor *visitor);
+    ham_status_t enumerate(BtreeVisitor &visitor,
+                    bool visit_internal_nodes = false);
 
     // Checks the integrity of the btree (ham_db_check_integrity)
     ham_status_t check_integrity();
@@ -195,22 +203,16 @@ class BtreeIndex
     // Counts the keys in the btree (ham_db_get_key_count)
     ham_status_t get_key_count(ham_u32_t flags, ham_u64_t *pkeycount);
 
-    // Erases all blobs from the index; used for cleaning up in-memory
-    // blobs to avoid memory leaks
-    ham_status_t free_all_blobs();
+    // Erases all records, overflow areas, extended keys etc from the index;
+    // used to avoid memory leaks when closing in-memory Databases and to
+    // clean up when deleting on-disk Databases.
+    ham_status_t release();
 
-    // Erases all extended keys from a page
-    static ham_status_t free_page_extkeys(Page *page, ham_u32_t flags);
-
-    // Returns the ByteArray for keydata1
-    ByteArray *get_keyarena1() {
-      return (&m_keydata1);
-    }
-
-    // Returns the ByteArray for keydata2
-    ByteArray *get_keyarena2() {
-      return (&m_keydata2);
-    }
+    // Compares two keys
+    // Returns -1, 0, +1 or higher positive values are the result of a
+    // successful key comparison (0 if both keys match, -1 when
+    // LHS < RHS key, +1 when LHS > RHS key).
+    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const;
 
   private:
     friend class BtreeCheckAction;
@@ -260,51 +262,6 @@ class BtreeIndex
     // another negative status code value when an unexpected error occurred.
     ham_s32_t find_leaf(Page *page, ham_key_t *key, ham_u32_t flags);
 
-    // Performs a binary search for the smallest element which is >= the
-    // key. also returns the comparison value in cmp; if *cmp == 0 then
-    // the keys are equal
-    ham_status_t get_slot(Page *page, ham_key_t *key, ham_s32_t *slot,
-                    int *cmp = 0);
-
-    // Copares a public key (ham_key_t, LHS) to an internal key indexed in a
-    // page
-    //
-    // Returns -1, 0, +1: lhs < rhs, lhs = rhs, lhs > rhs
-    // A return values less than -1 is a ham_status_t error
-    int compare_keys(Page *page, ham_key_t *lhs, ham_u16_t rhs);
-
-    // Creates a preliminary copy of an PBtreeKey |src| to a ham_key_t |dest|
-    // in such a way that LocalDatabase::compare_keys can use the data and
-    // optionally call LocalDatabase::get_extended_key on this key to obtain
-    // all key data, when this is an extended key.
-    //
-    // |which| specifies whether keydata1 (which = 0) or keydata2 is used
-    // to store the pointer in the btree. The pointers are kept to avoid
-    // permanent re-allocations (improves performance)
-    ham_status_t prepare_key_for_compare(int which, PBtreeKey *src,
-                    ham_key_t *dest);
-
-    // Copies an internal key;
-    // Allocates memory unless HAM_KEY_USER_ALLOC is set
-    ham_status_t copy_key(const PBtreeKey *source, ham_key_t *dest);
-
-    // Reads a key and stores a copy in |dest|
-    //
-    // The memory backing dest->data can either be provided by the user
-    // (HAM_KEY_USER_ALLOC) or is allocated using the ByteArray in the
-    // Transaction or in the Database.
-    // TODO use arena; get rid of txn parameter
-    ham_status_t read_key(Transaction *txn, PBtreeKey *source,
-                    ham_key_t *dest);
-
-    // Reads a record and stores it in |dest|. The record is identified
-    // by |ridptr|. TINY and SMALL records are also respected.
-    // If HAM_DIRECT_ACCESS is set then the rid-pointer is casted to the
-    // original record data.
-    // TODO use arena; get rid of txn parameter
-    ham_status_t read_record(Transaction *txn, ham_u64_t *ridptr,
-                    ham_record_t *record, ham_u32_t flags);
-
     // pointer to the database object
     LocalDatabase *m_db;
 
@@ -322,11 +279,6 @@ class BtreeIndex
 
     // maximum keys in an internal page
     ham_u16_t m_maxkeys;
-
-    // two pointers for managing key data; these pointers are used to
-    // avoid frequent mallocs in key_compare_pub_to_int() etc
-    ByteArray m_keydata1;
-    ByteArray m_keydata2;
 
     // the btree statistics
     BtreeStatistics m_statistics;

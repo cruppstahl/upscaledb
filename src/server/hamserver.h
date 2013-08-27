@@ -50,7 +50,7 @@ typedef std::map<std::string, Environment *> EnvironmentMap;
 class ServerContext {
   public:
     ServerContext()
-      : thread_id(0), loop(0), m_handle_counter(1), m_inducer(0) {
+      : thread_id(0), loop(0), m_inducer(0), m_handle_counter(1) {
     }
 
     // allocates a new handle

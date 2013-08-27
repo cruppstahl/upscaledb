@@ -320,85 +320,6 @@ jni_duplicate_compare_func(ham_db_t *db,
 }
 #endif
 
-static int
-jni_prefix_compare_func(ham_db_t *db,
-    const ham_u8_t *lhs, ham_size_t lhs_length, ham_size_t lhs_real_length,
-    const ham_u8_t *rhs, ham_size_t rhs_length, ham_size_t rhs_real_length)
-{
-  jobject jcmpobj;
-  jclass jcls, jcmpcls;
-  jfieldID jfid;
-  jmethodID jmid;
-  jbyteArray jlhs, jrhs;
-
-  /* get the Java Environment and the Database instance */
-  jnipriv *p = (jnipriv *)ham_get_context_data(db, HAM_TRUE);
-
-  /* get the callback method */
-  jcls = (*p->jenv)->GetObjectClass(p->jenv, p->jobj);
-  if (!jcls) {
-    jni_log(("GetObjectClass failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jfid = (*p->jenv)->GetFieldID(p->jenv, jcls, "m_prefix_cmp",
-      "Lde/crupp/hamsterdb/PrefixCompareCallback;");
-  if (!jfid) {
-    jni_log(("GetFieldID failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jcmpobj = (*p->jenv)->GetObjectField(p->jenv, p->jobj, jfid);
-  if (!jcmpobj) {
-    jni_log(("GetObjectFieldID failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jcmpcls = (*p->jenv)->GetObjectClass(p->jenv, jcmpobj);
-  if (!jcmpcls) {
-    jni_log(("GetObjectClass failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jmid = (*p->jenv)->GetMethodID(p->jenv, jcmpcls, "compare",
-      "([BI[BI)I");
-  if (!jmid) {
-    jni_log(("GetMethodID failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  /* prepare the parameters */
-  jlhs = (*p->jenv)->NewByteArray(p->jenv, lhs_length);
-  if (!jlhs) {
-    jni_log(("NewByteArray failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  if (lhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jlhs, 0, lhs_length,
-        (jbyte *)lhs);
-
-  jrhs = (*p->jenv)->NewByteArray(p->jenv, rhs_length);
-  if (!jrhs) {
-    jni_log(("NewByteArray failed\n"));
-    jni_throw_error(p->jenv, HAM_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  if (rhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jrhs, 0, rhs_length,
-        (jbyte *)rhs);
-
-  return (*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs,
-        (jint)lhs_real_length, jrhs, (jint)rhs_real_length);
-}
-
 static ham_status_t
 jparams_to_native(JNIEnv *jenv, jobjectArray jparams, ham_parameter_t **pparams)
 {
@@ -572,19 +493,6 @@ Java_de_crupp_hamsterdb_Database_ham_1db_1set_1compare_1func(JNIEnv *jenv,
   }
 
   ham_db_set_compare_func((ham_db_t *)jhandle, jni_compare_func);
-}
-
-JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ham_1db_1set_1prefix_1compare_1func(
-        JNIEnv *jenv, jobject jobj, jlong jhandle, jobject jcmp)
-{
-  /* jcmp==null: disable prefix compare function */
-  if (!jcmp) {
-    ham_db_set_prefix_compare_func((ham_db_t *)jhandle, 0);
-    return;
-  }
-
-  ham_db_set_prefix_compare_func((ham_db_t *)jhandle, jni_prefix_compare_func);
 }
 
 JNIEXPORT jbyteArray JNICALL

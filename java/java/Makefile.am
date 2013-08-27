@@ -12,7 +12,6 @@ EXTRA_DIST = \
      de/crupp/hamsterdb/ErrorHandler.java \
      de/crupp/hamsterdb/License.java \
      de/crupp/hamsterdb/Parameter.java \
-     de/crupp/hamsterdb/PrefixCompareCallback.java \
      de/crupp/hamsterdb/Transaction.java \
      de/crupp/hamsterdb/Version.java \
      win32.bat
@@ -28,7 +27,6 @@ all: de/crupp/hamsterdb/Const.class \
      de/crupp/hamsterdb/Parameter.class \
      de/crupp/hamsterdb/ErrorHandler.class \
      de/crupp/hamsterdb/CompareCallback.class \
-     de/crupp/hamsterdb/PrefixCompareCallback.class \
      de/crupp/hamsterdb/DuplicateCompareCallback.class \
      jar
 
@@ -66,9 +64,6 @@ de/crupp/hamsterdb/ErrorHandler.class: de/crupp/hamsterdb/ErrorHandler.java
 de/crupp/hamsterdb/CompareCallback.class: de/crupp/hamsterdb/CompareCallback.java
 	$(JDK)/bin/javac $(JOPTS) de/crupp/hamsterdb/CompareCallback.java
 
-de/crupp/hamsterdb/PrefixCompareCallback.class: de/crupp/hamsterdb/PrefixCompareCallback.java
-	$(JDK)/bin/javac $(JOPTS) de/crupp/hamsterdb/PrefixCompareCallback.java
-
 de/crupp/hamsterdb/DuplicateCompareCallback.class: de/crupp/hamsterdb/DuplicateCompareCallback.java
 	$(JDK)/bin/javac $(JOPTS) de/crupp/hamsterdb/DuplicateCompareCallback.java
 
@@ -90,6 +85,5 @@ javah:
 	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.ErrorHandler
 	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.License
 	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Parameter
-	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.PrefixCompareCallback
 	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Transaction
 	$(JDK)/bin/javah -d ../src de.crupp.hamsterdb.Version

@@ -223,7 +223,7 @@ DuplicateManager::insert(LocalDatabase *db, Transaction *txn,
 }
 
 ham_status_t
-DuplicateManager::erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
+DuplicateManager::erase(LocalDatabase *db, ham_u64_t table_id,
             ham_size_t position, bool erase_all_duplicates,
             ham_u64_t *new_table_id)
 {
@@ -233,9 +233,7 @@ DuplicateManager::erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
   if (new_table_id)
     *new_table_id = table_id;
 
-  ByteArray *arena = (txn == 0 || (txn->get_flags() & HAM_TXN_TEMPORARY))
-                      ? &db->get_record_arena()
-                      : &txn->get_record_arena();
+  ByteArray *arena = &db->get_record_arena();
 
   ham_status_t st = m_env->get_blob_manager()->read(db, table_id, &rec,
           0, arena);

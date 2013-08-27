@@ -31,53 +31,10 @@ o monster test can create graphs
 
 -----------------------------------------------------------------------------
 
-x rewrite configure.in; look at libuv for a good sample
-        x also for bootstrap.sh
-    x rename to configure.ac
-    x test on MacOS (tcmalloc must be disabled!)
-    x also for monster tests
-
-x fix java compiler warnings
-
-x collect file format incompatibilities
-    -> see topic/next
-
-o specify timeout for remote client
-    x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
-    x for unix
-        struct timeval tv;
-        tv.tv_sec = sec;  // 30 Secs Timeout
-        tv.tv_usec = 0;
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
-    x for java
-    x for dotnet
-    x needs a unittest
-    x test on MacOS
-    o for Windows
-        http://msdn.microsoft.com/en-us/library/windows/desktop/ms740476%28v=vs.85%29.aspx
-<<<<<<< HEAD
-=======
-    o needs a unittest
-    o for java
-    o for dotnet
-<<<<<<< HEAD
-=======
-=======
-
-high-level plan for 2.1.3
-- refactoring of configure.ac
-- refactoring of the file format
-- btree understands fixed-size PODs
-- cache oblivious btree layout (if it makes sense!) -> COMM
-- specify timeout for remote client
-- monster test can create graphs
-=======
->>>>>>> Removed file format cruft, incremented file version
-
 high-level plan for 2.2.0-pre1 (in decreasing priority)
 x refactoring of configure.ac
 x refactoring of the file format
-g make freelist statistics endian clean
+x make freelist statistics endian clean
 o btree understands fixed-size PODs
     o support existing callbacks - everything should work as advertised
     o support binary search only
@@ -88,7 +45,6 @@ o btree understands fixed-size PODs
 o cache oblivious btree layout (if it makes sense!) -> COMM
 o specify timeout for remote client
 o monster test can create graphs
->>>>>>> Darwin: do not use tcmalloc
 
 -----------------------------------------------------------------------------
 
@@ -123,71 +79,7 @@ x rewrite configure.in; look at libuv for a good sample
     x test on MacOS (tcmalloc must be disabled!)
     x also for monster tests
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> Persistent freelist statistics is now endian clean
-o release-v2.pl enhancements
-    x needs to run with enable-gcc-hardening tests
-    x needs to run valgrind tests
-    o needs to run recovery tests
-    o needs to run with static code analysis (clang)
-    o new parameter "--start=3" in combination with "run": starts at
-        step #3, executes all following steps
-        "--stop=5": stops at step #5
-
-o remove libjson, use boost::property_tree instead!
-
-. review/rewrite/refactor Transaction class
-    keep in mind that sooner or later the BtreeNode will expect template
-    arguments; can we do something similar with the TransactionNode?
-    x try to get the methods/design analoguous to the Btree - no, that
-        does not make too much sense
-    x document the tree structure in the header file
-    x refactor the code
-    o split into multiple files
-    o try to cleanup the flow; move more code from db.cc to txn.cc
-    . each Transaction should have its own PoolAllocator (based on ByteArray);
-        when deleting the whole structure, only the PoolAllocator is freed
-        o only do this if memory allocations cost performance
-        o problem: a realloc() will not always work because it might move
-            the allocated memory, and all existing pointers would be invalid 
-
-o use cache-oblivious b-tree layout
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-        o allocate a fixed number of pages (20) for the index
-        o PageManager: when allocating a new page then use the distribution
-            function to fetch a page from the reserved storage
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o the new pages are not managed by the freelist! therefore the freelist
-        will not need any modifications
-    . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages (if the database is big enough)
-
-o collect file format incompatibilities
-    o for the new Btree code (btree node, database header)
-    o persistent freelist statistics
-    o persistent freelist payload
-    o page header - also store crc, page size
-    o get rid of the statistics-structures
-    o reduce the PBlobHeader (remove flags?, alloc_size)
-    o for cache-oblivious (pre-allocated) index
-    o what else?
-    
-    o increment file format counter and make sure that older database files
-        can not be read by 2.1.3
->>>>>>> Fixing valgrind errors and leaks
-=======
-o persistent freelist statistics are not endian-clean!
->>>>>>> Removed file format cruft, incremented file version
-=======
-x persistent freelist statistics are not endian-clean!
->>>>>>> Persistent freelist statistics is now endian clean
+x fix java compiler warnings
 
 o prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately...
@@ -244,123 +136,162 @@ o prepare btree rewrite; the goal is to move all node-specific operations
     For the Future: internal nodes can have a different layout, and it's
     sufficient if they only store prefixes!
 
-    o When the database is created: store the following flags in the header
+    x When the database is created: store the following flags in the header
         x Extended keys yes/no - make HAM_ENABLE_EXTENDED_KEYS persistent
         x Duplicate keys yes/no - make HAM_ENABLE_DUPLICATES persistent
             x make the flag persistent
             x rename to HAM_ENABLE_DUPLICATE_KEYS
                 x also for java
                 x and .NET
-        o Fixed keys yes/no - needs HAM_ENABLE_CONST_KEY_SIZE;
-            o requires HAM_PARAM_KEYSIZE
-                o rename to HAM_PARAM_CONST_KEY_SIZE
-                o also for java
-                o and .NET
-            o deprecate HAM_DISABLE_VAR_KEYLEN
-                o also for java
-                o and .NET
-        o Fixed length of keys (integer)
-        o Fixed length of records (integer) (currently always 0)
-        o extend ham_db_get_parameters
-        o needs a unittest which verifies that all these settings are stored
-        o extend ham_info
+        x Fixed keys yes/no - needs HAM_DISABLE_VARIABLE_KEYS;
+            x rename HAM_DISABLE_VAR_KEYLEN
+                x also for java
+                x and .NET
+            x verify flag and size in ham_db_insert
+            x verify flag and size in ham_cursor_insert
+        x Fixed length of records (integer) - currently always 0
+        x needs a unittest which verifies that all these settings are stored
+        x add documentation
 
-    o Baseclass BtreeNodeProxy, which is then derived and
+    x Baseclass BtreeNodeProxy, which is then derived and
         implemented with template parameters. The BtreeNodeProxy will
         have all the additional logic for the PBtreeNode (which will
         not be modified).
-    o Need a factory for BtreeNodeProxy objects; The generated pointer is
-        stored in the Page object (make sure it's deleted when the page
-        is moved to the freelist!)
-    o The factory creates a BtreeNodeProxy which is configured with
+    x Need a factory for BtreeNodeProxy objects; The generated pointer is
+        stored in the Page object 
+        x delete it when the page is moved to the freelist
+    x The factory creates a BtreeNodeProxy which is configured with
         template parameters/policies, i.e.
         - variable keys (NOT extended) with maximum key size
         - no duplicate keys
         - variable length records
         -> corresponds to
             |hdr|f0k0|f1k1|...fnkn|...r0|r1|...rn|...|lazy|
-        o Has a KeyProxy template parameter (handles extkeys)
-        o Has a RecordProxy template parameter (handles tiny, normal keys)
-        o Has a Comparator template parameter, default is std::less<>,
+        - Has a KeyProxy template parameter (handles extkeys)
+        - Has a RecordProxy template parameter (handles tiny, normal keys)
+        - Has a Comparator template parameter, default is std::less<>,
             but will refer to the callback function for now
+        x create Proxies for all options described in the header file
 
-    o Rewrite BtreeEnumAction
-    o Rewrite BtreeCheckIntegrityAction
-    o Rewrite BtreeInsertAction
-        => split when going down!!
-    o Rewrite BtreeFindAction
-        => rewrite approx matching (force use of cursor?)
-    o Rewrite BtreeEraseAction
-    o Rewrite BtreeCursor
-    o ... what else?
-    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 (= "u32") and create
+    x Rewrite BtreeEnumAction
+        x create NodeLayout as template parameter with a Key as an iterator
+            and proxy to access the key/record pair. The iterator has a very
+            short lifespan and can point directly into the node. The node will
+            not be modified during the iterator's lifetime.
+        x modify "enumerate"
+        x modify "release"
+    x Rewrite BtreeCheckIntegrityAction
+        x default compare uses database compare function
+        x move compare function into BtreeNodeProxy (Comparator templ. param)
+        x requires BtreeNodeProxy::compare(ByteArray *lhs, ByteArray *rhs);
+                (Keys can be in different nodes)
+        x requires BtreeNodeProxy::get_full_key(int index, ByteArray *dest)
+                -> also resolves extended keys!
+    x Rewrite BtreeInsertAction
+        x BtreeNodeProxy::initialize
+        x split(Page *other, int pivot)
+        x find_in_internal
+        x insert
+        x requires_split(key) -> not yet used, but will be required later
+    x BtreeNodeFactory::get does not require the 'db' parameter
+    x Rewrite BtreeFindAction
+    x Rewrite BtreeEraseAction
+    x Rewrite BtreeCursor
+    x Rewrite BtreeIndex
+    x Rewrite/clean up btree_node.h - nothing to do
+    x Rewrite/clean up btree_key.h, .cc
+    x ... what else? Search for PBtreeKey, PBtreeNode - nothing, we're done
+    x fix valgrind errors/leaks
+
+    x clean up compare function(s)
+        x default compare function must load extended keys! - it does!
+        x LocalDatabase::compare_keys() no longer required (or directly
+            calls into Btree comparator)
+        x Transaction compare function should also use the btree template
+        x use hardcoded comparator for fixed-size keys (memcmp)
+            -> get rid of default_compare()
+        x use hardcoded comparator for variable-size keys (memcmp)
+        x use callback-comparator only if callback-function is installed
+        x use hardcoded comparator for extended keys (memcmp with
+            extkey-cache, prefix!?)
+        x prefix-comparator no longer required, but increase extkey-cache-size
+            (and age)?
+        x record-number comparator no longer required, create POD comparator
+
+    x rename PBtreeNode::*ptr_left* to *ptr_down*
+    x rename PBtreeKey::*et_ptr to *et_record_id*
+
+    o === run performance tests ===
+
+    o if performance is fine: rebase/merge with v2
+
+    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
         a new BtreeNodeProxy in the factory; add a new comparator and
         reimplement everything for a 32bit integer
+        o does not require 2 bytes for key size
+        o needs its own custom compare object
         o requires new monster tests (generate them dynamically, not via
             scripts?)
+        o does it makes sense to have PAX storage in the node? run a short
+            benchmark
     o Create all other POD types
+    o use HAM_TYPE_UINT64 for record numbers
 
-    o After the implementation, the following rules apply:
-        o PBtreeNode::m_entries needs is removed
-        o The database compare callback will not be used if the POD type
+    x After the implementation, the following rules apply:
+        x The database compare callback will not be used if the POD type
             was selected
-        o PBtreeKey is gone
-        o PBtreeNode::from_page is gone (replaced by a factory)
-        o BtreeIndex::prepare_key_for_compare is gone
-        o The Btree code is a low-level module, ONLY accessing
-            o Utils
-            o Error
-            everything else must be handled through implementation classes
-            or functors provided by the Database (i.e. access to
-            duplicate manager, blob manager etc).
-        o What else?
+        x PBtreeNode::m_entries is only used by BtreeNodeProxy
+        x PBtreeKey is only used in BtreeNodeProxy
+        x PBtreeNode::from_page is only used in BtreeNodeProxy
+        x BtreeIndex::prepare_key_for_compare is gone
+        x Split handling from records from handling of keys; this will make
+            the next features easier to implement (i.e. for PAX storage)
+        x The Btree code is a low-level module, ONLY accessing
+            x Utils
+            x Error
+            x BlobManager
+            x PageManager
+            x DuplicateManager
 
-o increase libtool version
+x btree_node_proxy: has naming inconsistencies of 'slot' vs 'index'
+o btree_erase: merge_page: if a page is merged, it has to be deleted. but
+    it seems that it's not moved to the freelist. double-check!
+o btree metrics: count SMOs (page splits, merges, shifts)
 
-o use cache-oblivious b-tree layout
-    o see roadmap document for more information
-    o run a performance test/prototype if this is worth the effort
-        o allocate a fixed number of pages (20) for the index
-        o PageManager: when allocating a new page then use the distribution
-            function to fetch a page from the reserved storage
-    o this feature is *per database*
-    o calculate number of reqd pages based on estimated keys from the user
-    o make sure that this is not reverted when "reduce file size" feature
-        (above) is enabled
-    o the new pages are not managed by the freelist! therefore the freelist
-        will not need any modifications
-    . try to batch allocations; when new pages are required then don't just
-        allocate one but multiple pages (if the database is big enough)
+o relax requirements from shift_keys
+    o reduce "minkeys"
+    o only shift if the number of shifted keys ("c") exceeds a certain
+        threshold
+    o ... or get rid of the shifting completely, and always resort to merging
 
-. specify timeout for remote client
-    add new option HAM_PARAM_NETWORK_TIMEOUT_MSEC
-    o needs a unittest
-    o for unix
+o fix naming consistencies - HAM_PARAM_CONST_KEY_SIZE but HAM_PARAM_PAGESIZE,
+    etc
+
+x btree_insert: make sure that record numbers really pick pivots at the
+    end of the page! - yes, this is fine
+
+x btree_key: has Transaction pointer for certain operations -> not required!
+
+o specify timeout for remote client
+    x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
+    x for unix
         struct timeval tv;
-        tv.tv_sec = 30;  // 30 Secs Timeout
+        tv.tv_sec = sec;  // 30 Secs Timeout
         tv.tv_usec = 0;
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+    x for java
+    x for dotnet
+    x needs a unittest
+    x test on MacOS
     o for Windows
         http://msdn.microsoft.com/en-us/library/windows/desktop/ms740476%28v=vs.85%29.aspx
 
-. monster tests must create performance graphs, namely
-    o insert latency
-    o erase latency
-    o lookup latency
-    o also for bdb!
-    use https://developers.google.com/chart/interactive/docs/gallery/linechart
-    and generate a small html file with the graphs, then open it in the browser
-    (if possible).
-    The Y axis is the latency (the lower the better), the X axis is a time
-    indicator (not a timestamp, but a chronologically increasing counter).
-    Also, there should be tooltips with the key size and record size
-    of this particular insert or erase or lookup.
+. win32: need a release-v2.pl which fully automates the various release steps
 
-. it would be interesting to know the distribution of changelog "sizes" during
-    a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
-    and how many operations actually require the WAL
-
-
+o the prefix compare function API was removed -> needs to be documented!
+    o tutorial
+    o Changelog
+    o README
 
 ------------------- release 2.2.0-pre1 unstable --------------------------------
 
@@ -370,7 +301,14 @@ high-level plan for 2.2.0-pre2 (unstable)
     If the extended key does not fit into one page: allocate an overflow area,
     move the FULL key into that area. get rid of the prefix compare. compare
     functions no longer need to return errors. get rid of the extkey-cache.
+    ==> make sure this does not cause performance regressions
+    ==> count number of overflow areas for statistics!
 - btree stores fixed-length records in the leaf
+    also support record length of 0 ("key exists" vs "key does not exist")
+    - not for internal nodes!
+    - needs to move BtreeIndex::read_record into BtreeNodeProxy
+    - if duplicates are disabled AND record size is fix:
+        do not store 1 byte flag for each key
 - btree allows lazy updates -> COMM??
 - btree can compress keys and records -> COMM
 - use SIMD for scans (if it makes sense!) -> COMM
@@ -404,14 +342,19 @@ o continue with the Btree rewrite
     o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
     ------- release -------
     o add combined high-level schemas (combinations of various POD types)
+<<<<<<< HEAD
 >>>>>>> Fixing valgrind errors and leaks
 >>>>>>> Removed file format cruft, incremented file version
+=======
+>>>>>>> BtreeEraseAction (wip)
 
+<<<<<<< HEAD
 o win32: a few unimportant unittests are failing (2.1.2)
 
 o search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
     and fix it
 
+<<<<<<< HEAD
 o monster tests must create performance graphs, namely
     o insert latency
     o erase latency
@@ -457,6 +400,8 @@ o increase API version in header file (if there are any incompatibilities)
     o run samples
     o build release package
 
+=======
+>>>>>>> BtreeEraseAction (wip)
 . it would be interesting to know the distribution of changelog "sizes" during
     a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
     and how many operations actually require the WAL
@@ -603,3 +548,5 @@ o need a function to get the txn of a conflict (same as in v2)
 
 o ham_get_count: could be atomically updated with every journal entry
 
+=======
+>>>>>>> Updated TODO

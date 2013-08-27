@@ -333,7 +333,7 @@ namespace Hamster
     /// <param name="flags">Optional flags for creating the Database,
     /// combined with bitwise OR. Possible values are:
     ///   <list>
-    ///   <item><see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />
+    ///   <item><see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />
     ///     Do not allow the use of variable length keys. Inserting
     ///     a key, which is larger than the B+Tree index key size,
     ///     returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item><br />
@@ -419,7 +419,7 @@ namespace Hamster
     /// <param name="flags">Optional flags for this operation, combined
     /// with bitwise OR. Possible flags are:
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />
+    ///   <item><see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />
     ///     Do not allow the use of variable length keys. Inserting
     ///     a key, which is larger than the B+Tree index key size,
     ///     returns <see cref="HamConst.HAM_INV_KEYSIZE" />.</item>

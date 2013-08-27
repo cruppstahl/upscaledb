@@ -22,7 +22,9 @@
 
 namespace hamsterdb {
 
+class Page;
 class LocalDatabase;
+class LocalEnvironment;
 class Transaction;
 
 #include "packstart.h"
@@ -157,7 +159,7 @@ class DuplicateManager
      *
      * sets new_table_id to 0 if the table is empty
      */
-    ham_status_t erase(LocalDatabase *db, Transaction *txn, ham_u64_t table_id,
+    ham_status_t erase(LocalDatabase *db, ham_u64_t table_id,
                 ham_size_t position, bool erase_all_duplicates,
                 ham_u64_t *new_table_id);
 

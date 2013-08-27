@@ -33,7 +33,7 @@ class LocalDatabase : public Database {
     // Constructor
     LocalDatabase(Environment *env, ham_u16_t name, ham_u32_t flags)
       : Database(env, name, flags), m_recno(0), m_btree_index(0),
-        m_txn_index(0) , m_prefix_func(0), m_cmp_func(0), m_extkey_cache(0) {
+        m_txn_index(0), m_cmp_func(0), m_extkey_cache(0) {
     }
 
     // Returns the btree index
@@ -122,11 +122,6 @@ class LocalDatabase : public Database {
     ham_status_t erase_txn(Transaction *txn, ham_key_t *key, ham_u32_t flags,
                 TransactionCursor *cursor);
 
-    // Sets the prefix comparison function (ham_db_set_prefix_compare_func)
-    void set_prefix_compare_func(ham_prefix_compare_func_t f) {
-      m_prefix_func = f;
-    }
-
     // Returns the default comparison function
     ham_compare_func_t get_compare_func() {
       return (m_cmp_func);
@@ -158,70 +153,6 @@ class LocalDatabase : public Database {
 
     // Returns the key size of the btree
     ham_u16_t get_keysize();
-
-    // Compares two keys
-    // Returns -1, 0, +1 or higher positive values are the result of a
-    // successful key comparison (0 if both keys match, -1 when
-    // LHS < RHS key, +1 when LHS > RHS key).
-#if __GNUC__
-    __attribute__((hot))
-#endif
-    int compare_keys(ham_key_t *lhs, ham_key_t *rhs) {
-      int cmp = HAM_PREFIX_REQUEST_FULLKEY;
-      set_error(0);
-
-      // need prefix compare? if no key is extended we can just call the
-      // normal compare function
-      if (!(lhs->_flags & PBtreeKey::kExtended)
-              && !(rhs->_flags & PBtreeKey::kExtended)) {
-        return (m_cmp_func((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
-                          (ham_u8_t *)rhs->data, rhs->size));
-      }
-
-      // yes! - run prefix comparison
-      if (m_prefix_func) {
-        ham_size_t lhsprefixlen, rhsprefixlen;
-        if (lhs->_flags & PBtreeKey::kExtended)
-          lhsprefixlen = get_keysize() - sizeof(ham_u64_t);
-        else
-          lhsprefixlen = lhs->size;
-        if (rhs->_flags & PBtreeKey::kExtended)
-          rhsprefixlen = get_keysize() - sizeof(ham_u64_t);
-        else
-          rhsprefixlen = rhs->size;
-
-        cmp = m_prefix_func((::ham_db_t *)this,
-                    (ham_u8_t *)lhs->data, lhsprefixlen, lhs->size,
-                    (ham_u8_t *)rhs->data, rhsprefixlen, rhs->size);
-        if (cmp <- 1 && cmp != HAM_PREFIX_REQUEST_FULLKEY)
-          return (cmp); /* unexpected error! */
-      }
-
-      if (cmp == HAM_PREFIX_REQUEST_FULLKEY) {
-        // 1. load the first key, if required
-        if (lhs->_flags & PBtreeKey::kExtended) {
-          ham_status_t st = get_extended_key((ham_u8_t *)lhs->data,
-                    lhs->size, lhs->_flags, lhs);
-          if (st)
-            return st;
-          lhs->_flags &= ~PBtreeKey::kExtended;
-        }
-
-        // 2. load the second key, if required
-        if (rhs->_flags & PBtreeKey::kExtended) {
-          ham_status_t st = get_extended_key((ham_u8_t *)rhs->data,
-                    rhs->size, rhs->_flags, rhs);
-          if (st)
-            return st;
-          rhs->_flags &= ~PBtreeKey::kExtended;
-        }
-
-        // 3. run the comparison function on the full keys
-        cmp = m_cmp_func((::ham_db_t *)this, (ham_u8_t *)lhs->data, lhs->size,
-                        (ham_u8_t *)rhs->data, rhs->size);
-      }
-      return (cmp);
-    }
 
     // Copies a key
     //
@@ -298,50 +229,6 @@ class LocalDatabase : public Database {
       return (++m_recno);
     }
 
-    // default comparison function for two keys, implemented with memcmp
-    //
-    // @return -1, 0, +1 or higher positive values are the result of a
-    //    successful key comparison (0 if both keys match, -1 when LHS < RHS
-    //    key, +1 when LHS > RHS key).
-    // @return values less than -1 are @ref ham_status_t error codes and
-    //    indicate a failed comparison execution
-#if __GNUC__
-    __attribute__((hot))
-#endif
-    static int HAM_CALLCONV default_compare(ham_db_t *db,
-                const ham_u8_t *lhs, ham_size_t lhs_length,
-                const ham_u8_t *rhs, ham_size_t rhs_length);
-
-    // compare two recno-keys
-    //
-    // @return -1, 0, +1 or higher positive values are the result of a
-    //    successful key comparison (0 if both keys match, -1 when LHS < RHS
-    //    key, +1 when LHS > RHS key).
-#if __GNUC__
-    __attribute__((hot))
-#endif
-    static int HAM_CALLCONV default_recno_compare(ham_db_t *db,
-                const ham_u8_t *lhs, ham_size_t lhs_length,
-                const ham_u8_t *rhs, ham_size_t rhs_length);
-
-    // the default prefix compare function - uses memcmp
-    //
-    // @return -1, 0, +1 or higher positive values are the result of a
-    //    successful key comparison (0 if both keys match, -1 when LHS < RHS
-    //    key, +1 when LHS > RHS key).
-    //
-    // @return values less than -1 are @ref ham_status_t error codes and
-    //    indicate a failed comparison execution
-#if __GNUC__
-    __attribute__((hot))
-#endif
-    static int HAM_CALLCONV default_prefix_compare(ham_db_t *db,
-                const ham_u8_t *lhs, ham_size_t lhs_length,
-                ham_size_t lhs_real_length,
-                const ham_u8_t *rhs, ham_size_t rhs_length,
-                ham_size_t rhs_real_length);
-
-
     // Checks if an insert operation conflicts with another txn; this is the
     // case if the same key is modified by another active txn.
     ham_status_t check_insert_conflicts(Transaction *txn,
@@ -378,9 +265,6 @@ class LocalDatabase : public Database {
 
     // the transaction index
     TransactionIndex *m_txn_index;
-
-    // the prefix-comparison function
-    ham_prefix_compare_func_t m_prefix_func;
 
     // the comparison function
     ham_compare_func_t m_cmp_func;

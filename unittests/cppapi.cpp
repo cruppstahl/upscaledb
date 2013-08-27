@@ -29,22 +29,6 @@ my_compare_func(ham_db_t *db,
   return (0);
 }
 
-static int
-my_prefix_compare_func(ham_db_t *db,
-     const ham_u8_t *lhs, ham_size_t lhs_length,
-     ham_size_t lhs_real_length,
-     const ham_u8_t *rhs, ham_size_t rhs_length,
-     ham_size_t rhs_real_length) {
-  (void)db;
-  (void)lhs;
-  (void)rhs;
-  (void)lhs_length;
-  (void)rhs_length;
-  (void)lhs_real_length;
-  (void)rhs_real_length;
-  return (0);
-}
-
 TEST_CASE("CppApi/keyTest", "")
 {
   void *p = (void *)"123";
@@ -132,7 +116,6 @@ TEST_CASE("CppApi/compareTest", "")
   env.create(Globals::opath(".test"));
   hamsterdb::db db = env.create_db(1);
   db.set_compare_func(my_compare_func);
-  db.set_prefix_compare_func(my_prefix_compare_func);
   env.close(HAM_AUTO_CLEANUP);
 }
 

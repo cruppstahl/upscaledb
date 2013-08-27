@@ -426,7 +426,7 @@ namespace Hamster
     ///     if key size is larger than the key size parameter
     ///     specified for Database.Create, and variable
     ///     length keys are disabled (see
-    ///     <see cref="HamConst.HAM_DISABLE_VAR_KEYLEN" />).</item>
+    ///     <see cref="HamConst.HAM_DISABLE_VARIABLE_KEYS" />).</item>
     ///   </list>
     /// </exception>
     public void Insert(byte[] key, byte[] record, int flags) {

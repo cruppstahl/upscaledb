@@ -393,14 +393,14 @@ struct EnvFixture {
     REQUIRE(0 ==
         ham_env_create(&env, Globals::opath(".test"), m_flags, 0644, 0));
     REQUIRE(0 ==
-        ham_env_create_db(env, &db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
+        ham_env_create_db(env, &db, 333, HAM_DISABLE_VARIABLE_KEYS, 0));
     REQUIRE(HAM_INV_KEYSIZE ==
         ham_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ham_db_close(db, 0));
 
     if (!(m_flags & HAM_IN_MEMORY)) {
       REQUIRE(0 ==
-          ham_env_open_db(env, &db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
+          ham_env_open_db(env, &db, 333, HAM_DISABLE_VARIABLE_KEYS, 0));
       REQUIRE(HAM_INV_KEYSIZE ==
           ham_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(0 == ham_db_close(db, 0));

@@ -317,13 +317,6 @@ class db {
       return (ham_db_get_error(m_db));
     }
 
-    /** Sets the prefix comparison function. */
-    void set_prefix_compare_func(ham_prefix_compare_func_t foo) {
-      ham_status_t st = ham_db_set_prefix_compare_func(m_db, foo);
-      if (st)
-        throw error(st);
-    }
-
     /** Sets the comparison function. */
     void set_compare_func(ham_compare_func_t foo) {
       ham_status_t st = ham_db_set_compare_func(m_db, foo);

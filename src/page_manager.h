@@ -112,10 +112,7 @@ class PageManager {
     ham_u64_t get_cache_capacity() const;
 
     // Adds a page to the freelist
-    ham_status_t add_to_freelist(Page *page) {
-      Freelist *f = get_freelist();
-      return (f ? f->free_page(page) : 0);
-    }
+    ham_status_t add_to_freelist(Page *page);
 
     // Adds an area to the freelist; used for blobs, but make sure to add
     // sizeof(PBlobHeader) to the blob's payload size!

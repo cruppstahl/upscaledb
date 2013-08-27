@@ -74,12 +74,19 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
       kApproximate         = (kLower | kGreater)
     };
 
-    // Returns the pointer of an btree-entry
+    // Returns the record id
     //
     // !!!
     // if TINY or SMALL is set, the key is actually a char*-pointer;
     // in this case, we must not use endian-conversion!
-    ham_u64_t get_ptr() {
+    ham_u64_t get_record_id() {
+      return (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
+              ? m_ptr
+              : ham_db2h_offset(m_ptr));
+    }
+
+    // Returns the record id
+    ham_u64_t get_record_id() const {
       return (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
               ? m_ptr
               : ham_db2h_offset(m_ptr));
@@ -95,12 +102,12 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
       return (&m_ptr);
     }
 
-    // Sets the pointer of an btree-entry
+    // Sets the record id
     //
-    // !!! same problems as with get_ptr():
+    // !!! same problems as with get_record_id():
     // if TINY or SMALL is set, the key is actually a char*-pointer;
     // in this case, we must not use endian-conversion
-    void set_ptr(ham_u64_t ptr) {
+    void set_record_id(ham_u64_t ptr) {
       m_ptr = (((m_flags8 & kBlobSizeTiny) || (m_flags8 & kBlobSizeSmall))
               ? ptr
               : ham_h2db_offset(ptr));
@@ -146,29 +153,10 @@ HAM_PACK_0 struct HAM_PACK_1 PBtreeKey
     }
   
     // Returns the record address of an extended key overflow area
-    ham_u64_t get_extended_rid(LocalDatabase *db);
+    ham_u64_t get_extended_rid(LocalDatabase *db) const;
 
     // Sets the record address of an extended key overflow area
     void set_extended_rid(LocalDatabase *db, ham_u64_t rid);
-
-    // Inserts and sets a record
-    //
-    // flags can be
-    // - HAM_OVERWRITE
-    // - HAM_DUPLICATE_INSERT_BEFORE
-    // - HAM_DUPLICATE_INSERT_AFTER
-    // - HAM_DUPLICATE_INSERT_FIRST
-    // - HAM_DUPLICATE_INSERT_LAST
-    // - HAM_DUPLICATE
-    //
-    // a previously existing blob will be deleted if necessary
-    ham_status_t set_record(LocalDatabase *db, Transaction *txn,
-                    ham_record_t *record, ham_size_t position, ham_u32_t flags,
-                    ham_size_t *new_position);
-
-    // Deletes a record from this key
-    ham_status_t erase_record(LocalDatabase *db, Transaction *txn,
-                    ham_size_t dupe_id, bool erase_all_duplicates);
 
     // The size of this structure without the single byte for the m_key
     static ham_size_t kSizeofOverhead;

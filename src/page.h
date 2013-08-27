@@ -22,14 +22,10 @@ namespace hamsterdb {
 
 class Device;
 class BtreeCursor;
+class BtreeNodeProxy;
 class LocalDatabase;
 class LocalEnvironment;
 
-#if defined(_MSC_VER)
-#  pragma push_macro("free")
-#  undef free
-#endif
-	
 #include "packstart.h"
 
 /*
@@ -319,6 +315,16 @@ class Page {
       return (m_prev[which]);
     }
 
+    // Returns the cached BtreeNodeProxy
+    BtreeNodeProxy *get_node_proxy() {
+      return (m_node_proxy);
+    }
+
+    // Sets the cached BtreeNodeProxy
+    void set_node_proxy(BtreeNodeProxy *proxy) {
+      m_node_proxy = proxy;
+    }
+
   private:
     // Sets the previous page of a linked list
     void set_previous(int which, Page *other) {
@@ -351,6 +357,9 @@ class Page {
     // linked lists of pages - see comments above
     Page *m_prev[Page::kListMax];
     Page *m_next[Page::kListMax];
+
+    // the cached BtreeNodeProxy object
+    BtreeNodeProxy *m_node_proxy;
 
     // from here on everything will be written to disk
     PPageData *m_data;

@@ -13,7 +13,7 @@
  * @file hamsterdb.h
  * @brief Include file for hamsterdb Embedded Storage
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.0
+ * @version 2.1.3
  *
  * @mainpage
  *
@@ -254,9 +254,9 @@ typedef struct {
  * element of { 0, NULL}, e.g.
  *
  * <pre>
- *   ham_parameter_t parameters[]={
- *    { HAM_PARAM_CACHESIZE, 2.1.34*1024 }, // set cache size to 2 mb
- *    { HAM_PARAM_PAGESIZE, 4096 }, // set pagesize to 4 kb
+ *   ham_parameter_t parameters[] = {
+ *    { HAM_PARAM_CACHESIZE, 2 * 1024 * 1024 }, // set cache size to 2 mb
+ *    { HAM_PARAM_PAGESIZE, 4096 }, // set page size to 4 kb
  *    { 0, NULL }
  *   };
  * </pre>
@@ -302,8 +302,6 @@ typedef struct {
 #define HAM_WRITE_PROTECTED             (-15)
 /** Database record not found */
 #define HAM_BLOB_NOT_FOUND              (-16)
-/** Prefix comparison function needs more data */
-#define HAM_PREFIX_REQUEST_FULLKEY      (-17)
 /** Generic file I/O error */
 #define HAM_IO_ERROR                    (-18)
 /** Database cache is full */
@@ -693,6 +691,40 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * automatically if @ref ham_env_close is called with the flag
  * @ref HAM_AUTO_CLEANUP.
  *
+ * A Database can be configured and optimized for the data that is inserted.
+ * The data is described through flags and parameters. hamsterdb
+ * differentiates between several data characteristics:
+ *
+ * <ul>
+ *   <li>Fixed keys with constant size (not extended)</li>
+ *     <ul>
+ *        <li>@a HAM_DISABLE_VARIABLE_KEYS
+ *        <li>@a HAM_PARAM_KEYSIZE to specify the constant size
+ *     </ul>
+ *   <li>Variable keys with non-constant size (not extended)</li>
+ *     This is the default!
+ *     <ul>
+ *        <li>@a HAM_PARAM_KEYSIZE to specify the size limit
+ *     </ul>
+ *   <li>Fixed keys with constant size (extended)
+ *     <ul>
+ *        <li>@a HAM_DISABLE_VARIABLE_KEYS
+ *        <li>@a HAM_ENABLE_EXTENDED_KEYS
+ *     </ul>
+ *   <li>Variable keys with non-constant size (extended)</li>
+ *     <ul>
+ *        <li>@a HAM_ENABLE_EXTENDED_KEYS
+ *     </ul>
+ * </ul>
+ *
+ * "Extended" keys are so big that they exceed the key size of the Btree
+ * (specified with @a HAM_PARAM_KEYSIZE). In this case, portions of the key
+ * might be stored in an overflow area, which has performance implications
+ * when accessing such keys.
+ *
+ * In addition to the flags above, you can specify @a HAM_ENABLE_DUPLICATE_KEYS
+ * to insert duplicate keys, i.e. to model n:m relationships.
+ *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *      Database. To close the handle, use @ref ham_db_close.
@@ -703,7 +735,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @param flags Optional flags for creating the Database, combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
+ *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *     <li>@ref HAM_ENABLE_DUPLICATE_KEYS </li> Enable duplicate keys for this
@@ -762,7 +794,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  * @param flags Optional flags for opening the Database, combined with
  *    bitwise OR. Possible flags are:
  *   <ul>
- *     <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
+ *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
  *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *     <li>@ref HAM_READ_ONLY </li> Opens the Database for reading only.
@@ -1059,7 +1091,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /** Flag for @ref ham_env_create_db.
  * This flag is non persistent. */
-#define HAM_DISABLE_VAR_KEYLEN                      0x00000040
+#define HAM_DISABLE_VARIABLE_KEYS                      0x00000040
 
 /** Flag for @ref ham_env_create.
  * This flag is non persistent. */
@@ -1082,6 +1114,8 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 /** Flag for @ref ham_env_create_db.
  * This flag is persisted in the Database. */
 #define HAM_ENABLE_DUPLICATE_KEYS                   0x00004000
+/* deprecated */
+#define HAM_ENABLE_DUPLICATES                       HAM_ENABLE_DUPLICATE_KEYS
 
 /** Flag for @ref ham_env_create, @ref ham_env_open.
  * This flag is non persistent. */
@@ -1122,41 +1156,6 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_get_error(ham_db_t *db);
 
 /**
- * Typedef for a prefix comparison function
- *
- * @remark This function compares two index keys. It returns -1 if @a lhs
- * ("left-hand side", the parameter on the left side) is smaller than
- * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs
- * is larger than @a rhs.
- *
- * @remark If one of the keys is only partially loaded, but the comparison
- * function needs the full key, the return value should be
- * HAM_PREFIX_REQUEST_FULLKEY.
- */
-typedef int HAM_CALLCONV (*ham_prefix_compare_func_t)
-                 (ham_db_t *db,
-                  const ham_u8_t *lhs, ham_size_t lhs_length,
-                  ham_size_t lhs_real_length,
-                  const ham_u8_t *rhs, ham_size_t rhs_length,
-                  ham_size_t rhs_real_length);
-
-/**
- * Sets the prefix comparison function
- *
- * The prefix comparison function is called when an index uses
- * keys with variable length and at least one of the two keys is loaded
- * only partially.
- *
- * @param db A valid Database handle
- * @param foo A pointer to the prefix compare function
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a db parameter is NULL
- */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_db_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
-
-/**
  * Typedef for a key comparison function
  *
  * @remark This function compares two index keys. It returns -1, if @a lhs
@@ -1175,17 +1174,11 @@ typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
  * first key is smaller, +1 if the second key is smaller or 0 if both
  * keys are equal.
  *
- * Note that if you use a custom comparison routine in combination with
- * extended keys, it might be useful to disable the prefix comparison, which
- * is based on memcmp(3). See @ref ham_db_set_prefix_compare_func for details.
- *
  * @param db A valid Database handle
  * @param foo A pointer to the compare function
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if one of the parameters is NULL
- *
- * @sa ham_db_set_prefix_compare_func
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_db_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
@@ -1390,14 +1383,14 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        Transaction which was not yet committed or aborted
  * @return @ref HAM_INV_KEYSIZE if the key size is larger than the @a keysize
  *        parameter specified for @ref ham_env_create and variable
- *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
+ *        key sizes are disabled (see @ref HAM_DISABLE_VARIABLE_KEYS)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8
  *        OR if the key's size is greater than the Btree key size (see
  *        @ref HAM_PARAM_KEYSIZE) and extended keys are not enabled (see
  *        @ref HAM_ENABLE_EXTENDED_KEYS).
  *
- * @sa HAM_DISABLE_VAR_KEYLEN
+ * @sa HAM_DISABLE_VARIABLE_KEYS
  * @sa HAM_ENABLE_EXTENDED_KEYS
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
@@ -2252,7 +2245,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *        Database.
  * @return @ref HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
  *        parameter specified for @ref ham_env_create and variable
- *        key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
+ *        key sizes are disabled (see @ref HAM_DISABLE_VARIABLE_KEYS)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8
  *        OR if the key's size is greater than the Btree key size (see
@@ -2262,7 +2255,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
  *
- * @sa HAM_DISABLE_VAR_KEYLEN
+ * @sa HAM_DISABLE_VARIABLE_KEYS
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,

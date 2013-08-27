@@ -20,9 +20,10 @@
 #include "../src/db_local.h"
 #include "../src/page.h"
 #include "../src/util.h"
-#include "../src/btree_index.h"
 #include "../src/env.h"
+#include "../src/btree_index.h"
 #include "../src/btree_key.h"
+#include "../src/btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -80,70 +81,79 @@ struct MiscFixture {
   }
 
   void copyKeyInt2PubEmptyTest() {
-    PBtreeKey src;
-    ham_key_t dest;
-    memset(&src, 0, sizeof(src));
-    memset(&dest, 0, sizeof(dest));
+    Page *page;
+    page = new Page((LocalEnvironment *)m_env);
+    page->set_db((LocalDatabase *)m_db);
+    REQUIRE(0 == page->allocate());
+    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
-    src.set_ptr(0x12345);
-    src.set_size(0);
-    src.set_flags(0);
+    ham_key_t key = {0};
+    ByteArray arena;
 
-    REQUIRE(0 == m_btree->copy_key(&src, &dest));
-    REQUIRE(0 == dest.size);
-    REQUIRE((void *)0 == dest.data);
+    node->test_set_key(0, "", 0, 0, 0x12345);
+
+    REQUIRE(0 == node->copy_full_key(0, &arena, &key));
+    REQUIRE(key.size == 0);
+    REQUIRE(key.data == 0);
+
+    delete page;
   }
 
   void copyKeyInt2PubTinyTest() {
-    PBtreeKey src;
-    ham_key_t dest;
-    memset(&src, 0, sizeof(src));
-    memset(&dest, 0, sizeof(dest));
+    Page *page;
+    page = new Page((LocalEnvironment *)m_env);
+    page->set_db((LocalDatabase *)m_db);
+    REQUIRE(0 == page->allocate());
+    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
-    src.set_ptr(0x12345);
-    src.set_size(1);
-    src.set_flags(0);
-    src.m_key[0] = 'a';
+    ham_key_t key = {0};
+    ByteArray arena;
 
-    REQUIRE(0 == m_btree->copy_key(&src, &dest));
-    REQUIRE(1 == dest.size);
-    REQUIRE('a' == ((char *)dest.data)[0]);
-    Memory::release(dest.data);
+    node->test_set_key(0, "a", 1, 0, 0x12345);
+
+    REQUIRE(0 == node->copy_full_key(0, &arena, &key));
+    REQUIRE(1 == key.size);
+    REQUIRE('a' == ((char *)key.data)[0]);
+
+    delete page;
   }
 
   void copyKeyInt2PubSmallTest() {
-    char buffer[128];
-    PBtreeKey *src = (PBtreeKey *)buffer;
-    ham_key_t dest;
-    memset(&dest, 0, sizeof(dest));
+    Page *page;
+    page = new Page((LocalEnvironment *)m_env);
+    page->set_db((LocalDatabase *)m_db);
+    REQUIRE(0 == page->allocate());
+    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
-    src->set_ptr(0x12345);
-    src->set_size(8);
-    src->set_flags(0);
-    ::memcpy((char *)src->m_key, "1234567\0", 8);
+    ham_key_t key = {0};
+    ByteArray arena;
 
-    REQUIRE(0 == m_btree->copy_key(src, &dest));
-    REQUIRE(dest.size == src->get_size());
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->m_key));
-    Memory::release(dest.data);
+    node->test_set_key(0, "1234567\0", 8, 0, 0x12345);
+
+    REQUIRE(0 == node->copy_full_key(0, &arena, &key));
+    REQUIRE(key.size == 8);
+    REQUIRE(0 == ::strcmp((char *)key.data, "1234567\0"));
+
+    delete page;
   }
 
   void copyKeyInt2PubFullTest() {
-    char buffer[128];
-    PBtreeKey *src = (PBtreeKey *)buffer;
-    ham_key_t dest;
-    memset(&dest, 0, sizeof(dest));
+    Page *page;
+    page = new Page((LocalEnvironment *)m_env);
+    page->set_db((LocalDatabase *)m_db);
+    REQUIRE(0 == page->allocate());
+    BtreeNodeProxy *node = BtreeNodeFactory::get(page);
 
-    src->set_ptr(0x12345);
-    src->set_size(16);
-    src->set_flags(0);
-    ::strcpy((char *)&buffer[11] /*src->m_key*/, "123456781234567\0");
+    ham_key_t key = {0};
+    ByteArray arena;
 
-    REQUIRE(0 == m_btree->copy_key(src, &dest));
-    REQUIRE(dest.size == src->get_size());
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src->m_key));
+    node->test_set_key(0, "123456781234567\0", 16, 0, 0x12345);
 
-    Memory::release(dest.data);
+    REQUIRE(0 == node->copy_full_key(0, &arena, &key));
+    REQUIRE(key.size == 16);
+    REQUIRE(0 == ::strcmp((char *)key.data, "123456781234567\0"));
+
+    delete page;
   }
 };
 

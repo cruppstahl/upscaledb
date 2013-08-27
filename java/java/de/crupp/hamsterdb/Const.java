@@ -141,7 +141,7 @@ public class Const {
     public final static int HAM_READ_ONLY                       =    0x004;
 
     /** Flag for Database.create() */
-    public final static int HAM_DISABLE_VAR_KEYLEN              =    0x040;
+    public final static int HAM_DISABLE_VARIABLE_KEYS           =    0x040;
 
     /** Flag for Database.create() */
     public final static int HAM_IN_MEMORY_DB                    =    0x080;

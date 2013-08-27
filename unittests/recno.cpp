@@ -498,6 +498,21 @@ struct RecordNumberFixture {
       REQUIRE(recno == (ham_u64_t)i + 1);
     }
   }
+
+  void splitTest() {
+    ham_key_t key = {};
+    ham_record_t rec = {};
+    ham_u64_t recno;
+
+    key.flags = HAM_KEY_USER_ALLOC;
+    key.data = &recno;
+    key.size = sizeof(recno);
+
+    for (int i = 0; i < 4096; i++) {
+      REQUIRE(0 == ham_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(recno == (ham_u64_t)i + 1);
+    }
+  }
 };
 
 TEST_CASE("RecordNumber/createCloseTest", "")
@@ -602,6 +617,12 @@ TEST_CASE("RecordNumber/uncoupleTest", "")
   f.uncoupleTest();
 }
 
+TEST_CASE("RecordNumber/splitTest", "")
+{
+  RecordNumberFixture f;
+  f.splitTest();
+}
+
 
 TEST_CASE("RecordNumber-inmem/createCloseTest", "")
 {
@@ -667,6 +688,12 @@ TEST_CASE("RecordNumber-inmem/uncoupleTest", "")
 {
   RecordNumberFixture f(HAM_IN_MEMORY);
   f.uncoupleTest();
+}
+
+TEST_CASE("RecordNumber-inmem/splitTest", "")
+{
+  RecordNumberFixture f(HAM_IN_MEMORY);
+  f.splitTest();
 }
 
 } // namespace RecordNumberFixture

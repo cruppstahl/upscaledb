@@ -174,8 +174,6 @@ ham_strerror(ham_status_t result)
       return ("Database opened in read-only mode");
     case HAM_BLOB_NOT_FOUND:
       return ("Data blob not found");
-    case HAM_PREFIX_REQUEST_FULLKEY:
-      return ("Comparator function needs more data");
     case HAM_IO_ERROR:
       return ("System I/O error");
     case HAM_CACHE_FULL:
@@ -938,27 +936,6 @@ ham_db_get_error(ham_db_t *hdb)
     lock = ScopedLock(db->get_env()->get_mutex());
 
   return (db->get_error());
-}
-
-ham_status_t HAM_CALLCONV
-ham_db_set_prefix_compare_func(ham_db_t *hdb, ham_prefix_compare_func_t foo)
-{
-  Database *db = (Database *)hdb;
-  if (!db) {
-    ham_trace(("parameter 'db' must not be NULL"));
-    return (HAM_INV_PARAMETER);
-  }
-
-  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
-  if (!ldb) {
-    ham_trace(("operation not possible for remote databases"));
-    return (HAM_INV_PARAMETER); 
-  }
-
-  ScopedLock lock(db->get_env()->get_mutex());
-
-  ldb->set_prefix_compare_func(foo);
-  return (ldb->set_error(HAM_SUCCESS));
 }
 
 ham_status_t HAM_CALLCONV

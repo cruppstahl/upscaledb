@@ -28,9 +28,6 @@ public class Database {
   private native void ham_db_set_compare_func(long handle,
       CompareCallback cmp);
 
-  private native void ham_db_set_prefix_compare_func(long handle,
-      PrefixCompareCallback cmp);
-
   private native byte[] ham_db_find(long handle, long txnhandle,
       byte[] key, int flags);
 
@@ -152,11 +149,6 @@ public class Database {
    * If <code>cmp</code> is null, hamsterdb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * Note that if you use a custom comparison routine in combination with
-   * extended keys, it might be useful to disable the prefix comparison,
-   * which is based on memcmp(3). See <code>setPrefixComparator</code> for
-   * details.
-   * <p>
    * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga0fa5d7a6c42.1.3d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
@@ -166,30 +158,6 @@ public class Database {
   public synchronized void setComparator(CompareCallback cmp) {
     m_cmp = cmp;
     ham_db_set_compare_func(m_handle, m_cmp);
-  }
-
-  /**
-   * Sets the prefix comparison function
-   * <p>
-   * This method wraps the native ham_db_set_prefix_compare_func function.
-   * <p>
-   * The prefix comparison function is called when an index uses
-   * keys with variable length, and at least one of the two keys is loaded
-   * only partially.
-   * <p>
-   * If <code>cmp</code> is null, hamsterdb will use the default prefix
-   * compare function (which is based on memcmp(3)).
-   * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#ga6d2b05b0c8581a75ae2d45b52b2f04d2">C documentation</a>
-   * <p>
-   * @param cmp an object implementing the PrefixCompareCallback interface,
-   *      or null
-   * <p>
-   * @see Database#setComparator
-   */
-  public synchronized void setPrefixComparator(PrefixCompareCallback cmp) {
-    m_prefix_cmp = cmp;
-    ham_db_set_prefix_compare_func(m_handle, cmp);
   }
 
   /**
@@ -482,7 +450,6 @@ public class Database {
    * which is implemented in the native library
    */
   private CompareCallback m_cmp;
-  private PrefixCompareCallback m_prefix_cmp;
   private DuplicateCompareCallback m_dupe_cmp;
   private static ErrorHandler m_eh;
 

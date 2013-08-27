@@ -49,14 +49,6 @@ JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1set_1compare_1f
 
 /*
  * Class:     de_crupp_hamsterdb_Database
- * Method:    ham_db_set_prefix_compare_func
- * Signature: (JLde/crupp/hamsterdb/PrefixCompareCallback;)V
- */
-JNIEXPORT void JNICALL Java_de_crupp_hamsterdb_Database_ham_1db_1set_1prefix_1compare_1func
-  (JNIEnv *, jobject, jlong, jobject);
-
-/*
- * Class:     de_crupp_hamsterdb_Database
  * Method:    ham_db_find
  * Signature: (JJ[BI)[B
  */

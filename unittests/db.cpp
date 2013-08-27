@@ -28,6 +28,7 @@
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/btree_node.h"
+#include "../src/btree_node_factory.h"
 
 namespace hamsterdb {
 
@@ -79,14 +80,8 @@ struct DbFixture {
 
     REQUIRE(((LocalEnvironment *)m_env)->get_page_manager()->test_get_cache());
 
-    REQUIRE(0 != m_dbp->m_prefix_func);
-    ham_prefix_compare_func_t oldfoo = m_dbp->m_prefix_func;
-    m_dbp->set_prefix_compare_func((ham_prefix_compare_func_t)18);
-    REQUIRE((ham_prefix_compare_func_t)18 == m_dbp->m_prefix_func);
-    m_dbp->set_prefix_compare_func(oldfoo);
-
     ham_compare_func_t oldfoo2 = m_dbp->get_compare_func();
-    REQUIRE(0 != m_dbp->get_compare_func());
+    REQUIRE(0 == m_dbp->get_compare_func());
     m_dbp->set_compare_func((ham_compare_func_t)19);
     REQUIRE((ham_compare_func_t)19 == m_dbp->get_compare_func());
     m_dbp->set_compare_func(oldfoo2);
@@ -96,65 +91,38 @@ struct DbFixture {
     ((LocalEnvironment *)m_env)->mark_header_page_dirty();
     REQUIRE(((LocalEnvironment *)m_env)->get_header()->get_header_page()->is_dirty());
 
-    REQUIRE(0!=m_dbp->get_rt_flags());
+    REQUIRE(0 != m_dbp->get_rt_flags());
 
     REQUIRE(m_dbp->get_env() != 0);
   }
 
   void defaultCompareTest() {
-    REQUIRE( 0 == LocalDatabase::default_compare(0,
-            (ham_u8_t *)"abc", 3, (ham_u8_t *)"abc", 3));
-    REQUIRE(-1 == LocalDatabase::default_compare(0,
-            (ham_u8_t *)"ab",  2, (ham_u8_t *)"abc", 3));
-    REQUIRE(-1 == LocalDatabase::default_compare(0,
-            (ham_u8_t *)"abc", 3, (ham_u8_t *)"bcd", 3));
-    REQUIRE(+1 == LocalDatabase::default_compare(0,
-            (ham_u8_t *)"abc", 3, (ham_u8_t *)0,   0));
-    REQUIRE(-1 == LocalDatabase::default_compare(0,
-            (ham_u8_t *)0,   0, (ham_u8_t *)"abc", 3));
-  }
-
-  void defaultPrefixCompareTest() {
-    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"abc", 3, 3,
-            (ham_u8_t *)"abc", 3, 3));
-    // comparison code has become 'smarter' so can resolve this one 
-    // without the need for further help
-    REQUIRE(-1 ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"ab",  2, 2,
-            (ham_u8_t *)"abc", 3, 3));
-    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"ab",  2, 3,
-            (ham_u8_t *)"abc", 3, 3));
-    REQUIRE(-1 ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"abc", 3, 3,
-            (ham_u8_t *)"bcd", 3, 3));
-    // comparison code has become 'smarter' so can resolve this 
-    // one without the need for further help
-    REQUIRE(+1 ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"abc", 3, 3,
-            (ham_u8_t *)0,   0, 0));
-    REQUIRE(-1 ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)0,   0, 0,
-            (ham_u8_t *)"abc", 3, 3));
-    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"abc", 3, 3,
-            (ham_u8_t *)0,   0, 3));
-    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)0,   0, 3,
-            (ham_u8_t *)"abc", 3, 3));
-    REQUIRE(HAM_PREFIX_REQUEST_FULLKEY ==
-        LocalDatabase::default_prefix_compare(0,
-            (ham_u8_t *)"abc", 3, 80239,
-            (ham_u8_t *)"abc", 3, 2));
+    ham_key_t key1 = {0}, key2 = {0};
+    key1.data = (void *)"abc";
+    key1.size = 3;
+    key2.data = (void *)"abc";
+    key2.size = 3;
+    REQUIRE( 0 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    key1.data = (void *)"ab";
+    key1.size = 2;
+    key2.data = (void *)"abc";
+    key2.size = 3;
+    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    key1.data = (void *)"abc";
+    key1.size = 3;
+    key2.data = (void *)"bcd";
+    key2.size = 3;
+    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    key1.data = (void *)"abc";
+    key1.size = 3;
+    key2.data = (void *)0;
+    key2.size = 0;
+    REQUIRE(+1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
+    key1.data = (void *)0;
+    key1.size = 0;
+    key2.data = (void *)"abc";
+    key2.size = 3;
+    REQUIRE(-1 == BtreeNodeFactory::compare(m_dbp, &key1, &key2));
   }
 
   void flushPageTest() {
@@ -260,12 +228,6 @@ TEST_CASE("Db/defaultCompareTest", "")
   f.defaultCompareTest();
 }
 
-TEST_CASE("Db/defaultPrefixCompareTest", "")
-{
-  DbFixture f;
-  f.defaultPrefixCompareTest();
-}
-
 TEST_CASE("Db/flushPageTest", "")
 {
   DbFixture f;
@@ -295,12 +257,6 @@ TEST_CASE("Db-inmem/defaultCompareTest", "")
 {
   DbFixture f(true);
   f.defaultCompareTest();
-}
-
-TEST_CASE("Db-inmem/defaultPrefixCompareTest", "")
-{
-  DbFixture f(true);
-  f.defaultPrefixCompareTest();
 }
 
 } // namespace hamsterdb
