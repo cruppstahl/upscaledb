@@ -107,7 +107,8 @@ RemoteEnvironment::open(const char *url, ham_u32_t flags,
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  ham_status_t st = os_socket_connect(hostname.c_str(), port, &m_socket);
+  ham_status_t st = os_socket_connect(hostname.c_str(), port,
+          m_timeout, &m_socket);
   if (st) {
     (void)os_socket_close(&m_socket);
     return (HAM_NETWORK_ERROR);

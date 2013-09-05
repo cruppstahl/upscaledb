@@ -21,11 +21,18 @@
 #include <ham/hamsterdb_srv.h>
 
 #include "../src/env.h"
+#include "../src/errorinducer.h"
 #include "../src/db_remote.h"
+#include "../src/server/hamserver.h"
 
 using namespace hamsterdb;
 
 #define SERVER_URL "ham://localhost:8989/test.db"
+
+namespace {
+extern void
+test_hamserver_set_inducer(ham_srv_t *hsrv, ErrorInducer *ei);
+}
 
 struct RemoteFixture {
   ham_env_t *m_env;
@@ -1149,6 +1156,24 @@ struct RemoteFixture {
 
     REQUIRE(0 == ham_env_close(env, HAM_AUTO_CLEANUP));
   }
+
+  void timeoutTest() {
+    ham_db_t *db;
+    ham_env_t *env;
+    ham_parameter_t params[] = {
+      { HAM_PARAM_NETWORK_TIMEOUT_SEC, 2 },
+      { 0,0 }
+    };
+
+    ErrorInducer *ei = new ErrorInducer();
+    ei->add(ErrorInducer::kServerConnect, 1);
+    ServerContext *sc = (ServerContext *)m_srv;
+    sc->m_inducer = ei;
+
+    REQUIRE(HAM_IO_ERROR == ham_env_create(&env,
+                SERVER_URL, 0, 0664, &params[0]));
+    delete ei;
+  }
 };
 
 TEST_CASE("Remote/invalidUrlTest", "")
@@ -1385,5 +1410,10 @@ TEST_CASE("Remote/nearFindTest", "")
   f.nearFindTest();
 }
 
+TEST_CASE("Remote/timeoutTest", "")
+{
+  RemoteFixture f;
+  f.timeoutTest();
+}
 
 #endif // HAM_ENABLE_REMOTE

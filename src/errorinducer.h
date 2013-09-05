@@ -12,7 +12,6 @@
 #ifndef HAM_ERRORINDUCER_H__
 #define HAM_ERRORINDUCER_H__
 
-
 #include <string.h>
 
 #include <ham/hamsterdb.h>
@@ -34,6 +33,10 @@ class ErrorInducer {
     enum Action {
       // simulates a failure in Changeset::flush
       kChangesetFlush,
+
+      // simulates a hang in hamserver-connect
+      kServerConnect,
+
       kMaxActions
     };
 

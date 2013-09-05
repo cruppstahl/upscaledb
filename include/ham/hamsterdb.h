@@ -77,7 +77,7 @@
  * <tr><td>@ref ham_txn_abort</td><td>Aborts the current Transaction</td></tr>
  * </table>
  *
- * hamsterdb supports remote Databases via http. The server can be embedded
+ * hamsterdb supports remote Databases. The server can be embedded
  * into your application or run standalone (see tools/hamzilla for a Unix
  * daemon or Win32 service which hosts Databases). If you want to embed the
  * server then the following functions have to be used:
@@ -456,7 +456,10 @@ ham_get_license(const char **licensee, const char **product);
  * Databases in an Environment can be created with @ref ham_env_create_db
  * or opened with @ref ham_env_open_db.
  *
- * Starting with version 2.1.3, hamsterdb can transparently encrypt the
+ * Specify a URL instead of a filename (i.e.
+ * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ *
+ * Starting with version 2.1.2, hamsterdb can transparently encrypt the
  * generated file using 128bit AES in CBC mode. The write-ahead log used
  * for recovery is also encrypted (with exception of some metadata), but the 
  * transactional journal is not. Encryption can be enabled by specifying
@@ -466,7 +469,8 @@ ham_get_license(const char **licensee, const char **product);
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
- *      Environment.
+ *      Environment. Can be a URL ("ham://<hostname>:<port>/<environment>")
+ *      for remote access.
  * @param flags Optional flags for opening the Environment, combined with
  *      bitwise OR. Possible flags are:
  *    <ul>
@@ -522,6 +526,8 @@ ham_get_license(const char **licensee, const char **product);
  *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
  *      key; enables AES encryption for the Environment file. Not allowed
  *      for In-Memory Environments. Ignored for remote Environments.
+ *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
+ *      waiting for data from a remote server. By default, no timeout is set.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -566,7 +572,7 @@ ham_env_create(ham_env_t **env, const char *filename,
  * or opened with @ref ham_env_open_db.
  *
  * Specify a URL instead of a filename (i.e.
- * "http://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file, or URL of a hamsterdb
@@ -618,6 +624,8 @@ ham_env_create(ham_env_t **env, const char *filename,
  *    <li>@ref HAM_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES encryption
  *      key; enables AES encryption for the Environment file. Ignored for
  *      remote Environmens.
+ *    <li>@ref HAM_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
+ *      waiting for data from a remote server. By default, no timeout is set.
  *    </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -1566,16 +1574,16 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * sets the AES encryption key */
 #define HAM_PARAM_ENCRYPTION_KEY        0x00000106
 
-/**
- * Retrieve the Database/Environment flags as were specified at the time of
- * @ref ham_env_create/@ref ham_env_open invocation.
- */
+/** Parameter name for @ref ham_env_open, @ref ham_env_create;
+ * sets the network timeout (in seconds) */
+#define HAM_PARAM_NETWORK_TIMEOUT_SEC   0x00000107
+
+/** Retrieves the Database/Environment flags as were specified at the time of
+ * @ref ham_env_create/@ref ham_env_open invocation. */
 #define HAM_PARAM_FLAGS                 0x00000200
 
-/**
- * Retrieve the filesystem file access mode as was specified at the time
- * of @ref ham_env_create/@ref ham_env_open invocation.
- */
+/** Retrieves the filesystem file access mode as was specified at the time
+ * of @ref ham_env_create/@ref ham_env_open invocation. */
 #define HAM_PARAM_FILEMODE              0x00000201
 
 /**

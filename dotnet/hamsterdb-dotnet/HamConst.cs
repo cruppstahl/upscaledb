@@ -140,6 +140,8 @@ namespace Hamster
     public const int HAM_PARAM_KEYSIZE          =  0x00102;
     /// <summary>Parameter name for Environment.Create</summary>
     public const int HAM_PARAM_MAX_DATABASES    =  0x00103;
+    /// <summary>Parameter name for Environment.Open, Environment.Create</summary>
+    public const int HAM_PARAM_NETWORK_TIMEOUT_SEC = 0x00000107;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>

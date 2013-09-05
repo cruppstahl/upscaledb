@@ -30,11 +30,16 @@ class RemoteEnvironment : public Environment
   public:
     RemoteEnvironment()
       : Environment(), m_remote_handle(0), m_socket(HAM_INVALID_FD),
-        m_buffer(1024 * 4) {
+        m_buffer(1024 * 4), m_timeout(0) {
       set_flags(get_flags() | HAM_IS_REMOTE_INTERNAL);
     }
 
     virtual ~RemoteEnvironment();
+
+    // Sets the timeout (in seconds)
+    void set_timeout(ham_u32_t seconds) {
+      m_timeout = seconds;
+    }
 
     // Creates a new Environment (ham_env_create)
     virtual ham_status_t create(const char *filename, ham_u32_t flags,
@@ -96,6 +101,9 @@ class RemoteEnvironment : public Environment
 
     // a buffer to avoid frequent memory allocations
     ByteArray m_buffer;
+
+    // the timeout (in seconds)
+    ham_u32_t m_timeout;
 };
 
 } // namespace hamsterdb

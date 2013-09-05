@@ -185,6 +185,9 @@ public class Const {
     /** Parameter name for Environment.create() */
     public final static int HAM_PARAM_MAX_DATABASES             =    0x103;
 
+    /** Parameter name for Environment.create(), Environment.open() */
+    public final static int HAM_PARAM_NETWORK_TIMEOUT_SEC       =    0x107;
+
     /** Parameter name for Environment.getParameters(),... */
     public final static int HAM_PARAM_FLAGS                     =    0x200;
 

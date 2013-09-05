@@ -481,7 +481,8 @@ os_close(ham_fd_t fd)
 }
 
 ham_status_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_socket_t *socket)
+os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
+            ham_socket_t *socket)
 {
   *socket = HAM_INVALID_FD;
 
@@ -512,6 +513,18 @@ os_socket_connect(const char *hostname, ham_u16_t port, ham_socket_t *socket)
                 strerror(errno)));
     ::closesocket(s);
     return (HAM_IO_ERROR);
+  }
+
+  if (timeout_sec) {
+    struct timeval tv;
+    tv.tv_sec = timeout_sec;
+    tv.tv_usec = 0;
+    if (::setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv)) < 0) {
+      ham_log(("unable to set socket timeout to %u sec: %u/%s", timeout_sec,
+                  WSAGetLastError(), DisplayError(buf, sizeof(buf),
+                      WSAGetLastError())));
+      // fall through, this is not critical
+    }
   }
 
   *socket = s;

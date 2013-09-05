@@ -309,6 +309,7 @@ ham_env_create(ham_env_t **henv, const char *filename,
   ham_size_t pagesize = HAM_DEFAULT_PAGESIZE;
   ham_u64_t cachesize = 0;
   ham_u16_t maxdbs = 0;
+  ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
@@ -395,6 +396,9 @@ ham_env_create(ham_env_t **henv, const char *filename,
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
         break;
+      case HAM_PARAM_NETWORK_TIMEOUT_SEC:
+        timeout = (ham_u32_t)param->value;
+        break;
       case HAM_PARAM_ENCRYPTION_KEY:
 #ifdef HAM_ENABLE_ENCRYPTION
         /* in-memory? encryption is not possible */
@@ -474,7 +478,10 @@ ham_env_create(ham_env_t **henv, const char *filename,
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
-    env = new RemoteEnvironment();
+    RemoteEnvironment *renv = new RemoteEnvironment();
+    if (timeout)
+      renv->set_timeout(timeout);
+    env = renv;
 #endif
   }
 
@@ -604,6 +611,7 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
         const ham_parameter_t *param)
 {
   ham_u64_t cachesize = 0;
+  ham_u32_t timeout = 0;
   std::string logdir;
   ham_u8_t *encryption_key = 0;
 
@@ -658,6 +666,9 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
       case HAM_PARAM_LOG_DIRECTORY:
         logdir = (const char *)param->value;
         break;
+      case HAM_PARAM_NETWORK_TIMEOUT_SEC:
+        timeout = (ham_u32_t)param->value;
+        break;
       case HAM_PARAM_ENCRYPTION_KEY:
 #ifdef HAM_ENABLE_ENCRYPTION
         encryption_key = (ham_u8_t *)param->value;
@@ -699,7 +710,10 @@ ham_env_open(ham_env_t **henv, const char *filename, ham_u32_t flags,
 #ifndef HAM_ENABLE_REMOTE
     return (HAM_NOT_IMPLEMENTED);
 #else // HAM_ENABLE_REMOTE
-    env = new RemoteEnvironment();
+    RemoteEnvironment *renv = new RemoteEnvironment();
+    if (timeout)
+      renv->set_timeout(timeout);
+    env = renv;
 #endif
   }
 

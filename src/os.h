@@ -107,7 +107,8 @@ os_close(ham_fd_t fd);
 
 // creates a socket, connects to a remote server
 extern ham_status_t
-os_socket_connect(const char *hostname, ham_u16_t port, ham_socket_t *socket);
+os_socket_connect(const char *hostname, ham_u16_t port, ham_u32_t timeout_sec,
+            ham_socket_t *socket);
 
 // (blocking) writes |data_size| bytes in |data| to the socket
 extern ham_status_t
