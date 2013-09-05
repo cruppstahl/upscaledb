@@ -14,13 +14,41 @@ I'm using multiple threads b/c my CPU has multiple cores, and expect hamsterdb
 to scale with the number of cores.
 ==============================================================================
 
-------------------- release 2.1.2 -----------------------------------------
+high-level plan for 2.2.0-pre1 (in decreasing priority)
+x refactoring of configure.ac -> topic/next
+x refactoring of the file format -> topic/next
+x make freelist statistics endian clean -> topic/next
+o btree understands fixed-size PODs -> topic/next
+    o support existing callbacks - everything should work as advertised
+    o support binary search only
+    o support POD types: int32, uint32, int64, uint64, float, double,
+        fixed length blobs, fixed length strings (?)
+        (w/o duplicates and extended keys - they always enforce the
+        default type based on the callback)
+o cache oblivious btree layout (if it makes sense!) -> COMM
+o specify timeout for remote client
+o monster test can create graphs
+
+-----------------------------------------------------------------------------
 
 x rewrite configure.in; look at libuv for a good sample
     -> see topic/next
 
 x collect file format incompatibilities
     -> see topic/next
+
+o specify timeout for remote client
+    o add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
+    o for unix
+        struct timeval tv;
+        tv.tv_sec = sec;  // 30 Secs Timeout
+        tv.tv_usec = 0;
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+    o for Windows
+        http://msdn.microsoft.com/en-us/library/windows/desktop/ms740476%28v=vs.85%29.aspx
+    o needs a unittest
+    o for java
+    o for dotnet
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
@@ -40,6 +68,34 @@ o use cache-oblivious b-tree layout
 o new btree format for fixed-sized PODs
     -> see topic/next
 
+o win32: a few unimportant unittests are failing (2.1.2)
+o win32: generate protobuf-files in separate directories for each build
+
+o monster tests must create performance graphs, namely
+    o insert latency
+    o erase latency
+    o lookup latency
+    o also for bdb!
+    o also be able to include information from a previous release
+    o use an embedded server in perftest.pl
+        (i.e. http://search.cpan.org/~jesse/HTTP-Server-Simple-0.44/lib/HTTP/Server/Simple.pm)
+    use https://developers.google.com/chart/interactive/docs/gallery/linechart
+    and generate a small html file with the graphs, then open it in the browser
+    (if possible).
+    The Y axis is the latency (the lower the better), the X axis is a time
+    indicator (not a timestamp, but a chronologically increasing counter).
+    Also, there should be tooltips with the key size and record size
+    of this particular insert or erase or lookup.
+
+o increase libtool version
+o increase API version in header file (if there are any incompatibilities)
+
+. win32: need a release-v2.pl which fully automates the various release steps
+
+. it would be interesting to know the distribution of changelog "sizes" during
+    a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
+    and how many operations actually require the WAL
+
 . review/rewrite/refactor Transaction class
     keep in mind that sooner or later the BtreeNode will expect template
     arguments; can we do something similar with the TransactionNode?
@@ -54,23 +110,6 @@ o new btree format for fixed-sized PODs
         o only do this if memory allocations cost performance
         o problem: a realloc() will not always work because it might move
             the allocated memory, and all existing pointers would be invalid 
-
-. monster tests must create performance graphs, namely
-    o insert latency
-    o erase latency
-    o lookup latency
-    o also for bdb!
-    use https://developers.google.com/chart/interactive/docs/gallery/linechart
-    and generate a small html file with the graphs, then open it in the browser
-    (if possible).
-    The Y axis is the latency (the lower the better), the X axis is a time
-    indicator (not a timestamp, but a chronologically increasing counter).
-    Also, there should be tooltips with the key size and record size
-    of this particular insert or erase or lookup.
-
-. it would be interesting to know the distribution of changelog "sizes" during
-    a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
-    and how many operations actually require the WAL
 
 . BtreeCursor: use memory arena for uncoupling the key
     -> better wait till extended keys are gone
