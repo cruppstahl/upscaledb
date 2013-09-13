@@ -1,3 +1,13 @@
+Sep 13, 2013 - chris ---------------------------------------------------
+o The btree now has relaxed rules regarding merging/shifting after delete;
+	if a node is less than 20% full it will trigger an SMO (previously:
+	50%), and shifts only happen if both pages have a sufficiently
+	different size
+o For consistency reasons, some macros were renamed:
+	HAM_PARAM_CACHESIZE -> HAM_PARAM_CACHE_SIZE
+	HAM_PARAM_PAGESIZE -> HAM_PARAM_PAGE_SIZE
+	HAM_PARAM_KEYSIZE -> HAM_PARAM_KEY_SIZE
+
 Sep 01, 2013 - chris ---------------------------------------------------
 o issue 27: No longer enabling AES encryption if openssl headers
 	are missing

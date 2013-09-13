@@ -27,6 +27,10 @@
 
 namespace hamsterdb {
 
+ham_u64_t BtreeIndex::ms_btree_smo_split = 0;
+ham_u64_t BtreeIndex::ms_btree_smo_merge = 0;
+ham_u64_t BtreeIndex::ms_btree_smo_shift = 0;
+
 BtreeIndex::BtreeIndex(LocalDatabase *db, ham_u32_t descriptor, ham_u32_t flags)
   : m_db(db), m_keysize(0), m_descriptor_index(descriptor),
     m_flags(flags), m_root_address(0), m_maxkeys(0), m_statistics()

@@ -461,6 +461,15 @@ class BtreeEraseAction
       BtreeNodeProxy *sibnode = BtreeNodeFactory::get(sibpage);
       BtreeNodeProxy *ancnode = BtreeNodeFactory::get(ancpage);
 
+      /* do not shift if both pages have (nearly) equal size; too much
+       * effort for too little gain! */
+      if (std::max(node->get_count(), sibnode->get_count())
+                - std::min(node->get_count(), sibnode->get_count())
+            < 10) {
+        m_mergepage = 0;
+        return (0);
+      }
+
       /* uncouple all cursors */
       if ((st = BtreeCursor::uncouple_all_cursors(page)))
         return (st);
@@ -645,6 +654,8 @@ cleanup:
 
       m_mergepage = 0;
 
+      BtreeIndex::ms_btree_smo_shift++;
+
       return (st);
     }
 
@@ -737,8 +748,12 @@ cleanup:
         m_mergepage = 0;
 
       m_btree->get_statistics()->reset_page(sibpage);
+      env->get_page_manager()->add_to_freelist(sibpage);
 
       *newpage_ref = sibpage;
+
+      BtreeIndex::ms_btree_smo_merge++;
+
       return (HAM_SUCCESS);
     }
 

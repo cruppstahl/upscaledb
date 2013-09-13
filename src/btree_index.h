@@ -176,7 +176,7 @@ class BtreeIndex
     // Returns the minimum number of keys per node - less keys require a
     // SMO (merge or shift)
     ham_u16_t get_minkeys() const {
-      return (m_maxkeys / 2);
+      return (m_maxkeys / 5);
     }
 
     // Lookup a key in the index (ham_db_find)
@@ -213,6 +213,13 @@ class BtreeIndex
     // successful key comparison (0 if both keys match, -1 when
     // LHS < RHS key, +1 when LHS > RHS key).
     int compare_keys(ham_key_t *lhs, ham_key_t *rhs) const;
+
+    // Returns the usage metrics
+    static void get_metrics(ham_env_metrics_t *metrics) {
+      metrics->btree_smo_split = ms_btree_smo_split;
+      metrics->btree_smo_merge = ms_btree_smo_merge;
+      metrics->btree_smo_shift = ms_btree_smo_shift;
+    }
 
   private:
     friend class BtreeCheckAction;
@@ -282,6 +289,15 @@ class BtreeIndex
 
     // the btree statistics
     BtreeStatistics m_statistics;
+
+    // usage metrics - number of page splits
+    static ham_u64_t ms_btree_smo_split;
+
+    // usage metrics - number of page merges
+    static ham_u64_t ms_btree_smo_merge;
+
+    // usage metrics - number of page shifts
+    static ham_u64_t ms_btree_smo_shift;
 };
 
 } // namespace hamsterdb

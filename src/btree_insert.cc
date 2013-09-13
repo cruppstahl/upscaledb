@@ -427,6 +427,8 @@ class BtreeInsertAction
       m_split_key = pivot_key;
       pivot_key.disown();
 
+      BtreeIndex::ms_btree_smo_split++;
+
       if (g_BTREE_INSERT_SPLIT_HOOK)
         g_BTREE_INSERT_SPLIT_HOOK();
       return (kSplitRequired);

@@ -961,6 +961,8 @@ LocalEnvironment::get_metrics(ham_env_metrics_t *metrics) const
   m_blob_manager->get_metrics(metrics);
   // accumulate for the extended key-caches
   ExtKeyCache::get_metrics(metrics);
+  // and of the btrees
+  BtreeIndex::get_metrics(metrics);
 }
 
 ham_status_t

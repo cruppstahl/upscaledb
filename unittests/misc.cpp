@@ -48,38 +48,6 @@ struct MiscFixture {
     REQUIRE(0 == ham_env_close(m_env, HAM_AUTO_CLEANUP));
   }
 
-  void copyKeyTest() {
-    ham_key_t src;
-    ham_key_t dest = {};
-
-    src.data = (void *)"hallo welt";
-    src.size = (ham_u16_t)::strlen((char *)src.data) + 1;
-    src.flags = 0;
-    src._flags = 0;
-
-    REQUIRE(0 == ((LocalDatabase *)m_db)->copy_key(&src, &dest));
-    REQUIRE(dest.size == src.size);
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src.data));
-
-    Memory::release(dest.data);
-  }
-
-  void copyExtendedKeyTest() {
-    ham_key_t src;
-    ham_key_t dest = {};
-
-    src.data = (void *)"hallo welt, this is an extended key";
-    src.size = (ham_u16_t)::strlen((char *)src.data) + 1;
-    src.flags = 0;
-    src._flags = 0;
-
-    REQUIRE(0 == ((LocalDatabase *)m_db)->copy_key(&src, &dest));
-    REQUIRE(dest.size == src.size);
-    REQUIRE(0 == ::strcmp((char *)dest.data, (char *)src.data));
-
-    Memory::release(dest.data);
-  }
-
   void copyKeyInt2PubEmptyTest() {
     Page *page;
     page = new Page((LocalEnvironment *)m_env);
@@ -156,20 +124,6 @@ struct MiscFixture {
     delete page;
   }
 };
-
-TEST_CASE("MiscFixture/copyKeyTest",
-           "Tests miscellaneous functions")
-{
-  MiscFixture mt;
-  mt.copyKeyTest();
-}
-
-TEST_CASE("MiscFixture/copyExtendedKeyTest",
-           "Tests miscellaneous functions")
-{
-  MiscFixture mt;
-  mt.copyExtendedKeyTest();
-}
 
 TEST_CASE("MiscFixture/copyKeyInt2PubEmptyTest",
            "Tests miscellaneous functions")

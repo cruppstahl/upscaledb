@@ -154,60 +154,15 @@ class LocalDatabase : public Database {
     // Returns the key size of the btree
     ham_u16_t get_keysize();
 
-    // Copies a key
-    //
-    // |dest| must have been initialized before calling this function; the
-    // dest->data space will be reused when the specified size is large enough;
-    // otherwise the old dest->data will be ham_mem_free()d and a new space
-    // allocated.
-    ham_status_t copy_key(const ham_key_t *source, ham_key_t *dest) {
-      // extended key: copy the whole key
-      if (source->_flags & PBtreeKey::kExtended) {
-        ham_status_t st = get_extended_key((ham_u8_t *)source->data,
-                    source->size, source->_flags, dest);
-        if (st)
-          return st;
-        ham_assert(dest->data != 0);
-        // dest->size is set by db->get_extended_key()
-        ham_assert(dest->size == source->size);
-        // the extended flag is set later, when this key is inserted
-        dest->_flags = source->_flags & (~PBtreeKey::kExtended);
-      }
-      else if (source->size) {
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-          if (!dest->data || dest->size < source->size) {
-            Memory::release(dest->data);
-            dest->data = Memory::allocate<ham_u8_t>(source->size);
-            if (!dest->data)
-              return (HAM_OUT_OF_MEMORY);
-          }
-        }
-        memcpy(dest->data, source->data, source->size);
-        dest->size = source->size;
-        dest->_flags = source->_flags;
-      }
-      else {
-        // key.size is 0
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-          Memory::release(dest->data);
-          dest->data = 0;
-        }
-        dest->size = 0;
-        dest->_flags = source->_flags;
-      }
-      return (HAM_SUCCESS);
-    }
-
-    // Copies the ham_record_t structure from |op| into |record|
-    // TODO make this private
-    static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
-                    TransactionOperation *op, ham_record_t *record);
-
     // Flushes a TransactionOperation to the btree
     ham_status_t flush_txn_operation(Transaction *txn,
                     TransactionOperation *op);
 
   protected:
+    // Copies the ham_record_t structure from |op| into |record|
+    static ham_status_t copy_record(LocalDatabase *db, Transaction *txn,
+                    TransactionOperation *op, ham_record_t *record);
+
     // Creates a cursor; this is the actual implementation
     virtual Cursor *cursor_create_impl(Transaction *txn, ham_u32_t flags);
 

@@ -255,8 +255,8 @@ typedef struct {
  *
  * <pre>
  *   ham_parameter_t parameters[] = {
- *    { HAM_PARAM_CACHESIZE, 2 * 1024 * 1024 }, // set cache size to 2 mb
- *    { HAM_PARAM_PAGESIZE, 4096 }, // set page size to 4 kb
+ *    { HAM_PARAM_CACHE_SIZE, 2 * 1024 * 1024 }, // set cache size to 2 mb
+ *    { HAM_PARAM_PAGE_SIZE, 4096 }, // set page size to 4 kb
  *    { 0, NULL }
  *   };
  * </pre>
@@ -279,9 +279,13 @@ typedef struct {
 /** Operation completed successfully */
 #define HAM_SUCCESS                     (  0)
 /** Invalid key size */
-#define HAM_INV_KEYSIZE                 ( -3)
+#define HAM_INV_KEY_SIZE                ( -3)
+/* deprecated */
+#define HAM_INV_KEYSIZE                 HAM_INV_KEY_SIZE
 /** Invalid page size (must be 1024 or a multiple of 2048) */
-#define HAM_INV_PAGESIZE                ( -4)
+#define HAM_INV_PAGE_SIZE               ( -4)
+/* deprecated */
+#define HAM_INV_PAGESIZE                HAM_INV_PAGE_SIZE
 /** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY               ( -6)
 /** Invalid function parameter */
@@ -509,10 +513,10 @@ ham_get_license(const char **licensee, const char **product);
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
  *    <ul>
- *    <li>@ref HAM_PARAM_CACHESIZE</li> The size of the Database cache,
+ *    <li>@ref HAM_PARAM_CACHE_SIZE</li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
- *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
- *    <li>@ref HAM_PARAM_PAGESIZE</li> The size of a file page, in
+ *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
+ *    <li>@ref HAM_PARAM_PAGE_SIZE</li> The size of a file page, in
  *      bytes. It is recommended not to change the default size. The
  *      default size depends on hardware and operating system.
  *      Page sizes must be 1024 or a multiple of 2048.
@@ -539,9 +543,9 @@ ham_get_license(const char **licensee, const char **product);
  * @return @ref HAM_INV_FILE_VERSION if the Environment version is not
  *        compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_INV_PAGESIZE if @a pagesize is not 1024 or
+ * @return @ref HAM_INV_PAGE_SIZE if @a pagesize is not 1024 or
  *        a multiple of 2048
- * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
+ * @return @ref HAM_INV_KEY_SIZE if @a keysize is too large (at least 4
  *        keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
@@ -613,9 +617,9 @@ ham_env_create(ham_env_t **env, const char *filename,
  * @param param An array of ham_parameter_t structures. The following
  *      parameters are available:
  *    <ul>
- *    <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
+ *    <li>@ref HAM_PARAM_CACHE_SIZE </li> The size of the Database cache,
  *      in bytes. The default size is defined in src/config.h
- *      as @a HAM_DEFAULT_CACHESIZE - usually 2MB
+ *      as @a HAM_DEFAULT_CACHE_SIZE - usually 2MB
  *    <li>@ref HAM_PARAM_LOG_DIRECTORY</li> The path of the log file
  *      and the journal files; default is the same path as the database
  *      file. Ignored for remote Environments.
@@ -651,8 +655,8 @@ ham_env_open(ham_env_t **env, const char *filename,
  *
  * The following parameters are supported:
  *    <ul>
- *    <li>HAM_PARAM_CACHESIZE</li> returns the cache size
- *    <li>HAM_PARAM_PAGESIZE</li> returns the page size
+ *    <li>HAM_PARAM_CACHE_SIZE</li> returns the cache size
+ *    <li>HAM_PARAM_PAGE_SIZE</li> returns the page size
  *    <li>HAM_PARAM_MAX_DATABASES</li> returns the max. number of
  *        Databases of this Database's Environment
  *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
@@ -699,12 +703,12 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *   <li>Fixed keys with constant size (not extended)</li>
  *     <ul>
  *        <li>@a HAM_DISABLE_VARIABLE_KEYS
- *        <li>@a HAM_PARAM_KEYSIZE to specify the constant size
+ *        <li>@a HAM_PARAM_KEY_SIZE to specify the constant size
  *     </ul>
  *   <li>Variable keys with non-constant size (not extended)</li>
  *     This is the default!
  *     <ul>
- *        <li>@a HAM_PARAM_KEYSIZE to specify the size limit
+ *        <li>@a HAM_PARAM_KEY_SIZE to specify the size limit
  *     </ul>
  *   <li>Fixed keys with constant size (extended)
  *     <ul>
@@ -718,7 +722,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * </ul>
  *
  * "Extended" keys are so big that they exceed the key size of the Btree
- * (specified with @a HAM_PARAM_KEYSIZE). In this case, portions of the key
+ * (specified with @a HAM_PARAM_KEY_SIZE). In this case, portions of the key
  * might be stored in an overflow area, which has performance implications
  * when accessing such keys.
  *
@@ -737,7 +741,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *    <ul>
  *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
+ *      B+Tree index key size, returns @ref HAM_INV_KEY_SIZE.
  *     <li>@ref HAM_ENABLE_DUPLICATE_KEYS </li> Enable duplicate keys for this
  *      Database. By default, duplicate keys are disabled.
  *     <li>@ref HAM_ENABLE_EXTENDED_KEYS</li> Enable extended keys for this
@@ -755,7 +759,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @param params An array of ham_parameter_t structures. The following
  *    parameters are available:
  *    <ul>
- *    <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
+ *    <li>@ref HAM_PARAM_KEY_SIZE </li> The size of the keys in the B+Tree
  *      index. The default size is 21 bytes.
  *    </ul>
  *
@@ -796,7 +800,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t **db,
  *   <ul>
  *     <li>@ref HAM_DISABLE_VARIABLE_KEYS </li> Do not allow the use of variable
  *      length keys. Inserting a key, which is larger than the
- *      B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
+ *      B+Tree index key size, returns @ref HAM_INV_KEY_SIZE.
  *     <li>@ref HAM_READ_ONLY </li> Opens the Database for reading only.
  *      Operations that need write access (i.e. @ref ham_db_insert) will
  *      return @ref HAM_WRITE_PROTECTED.
@@ -1091,7 +1095,9 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /** Flag for @ref ham_env_create_db.
  * This flag is non persistent. */
-#define HAM_DISABLE_VARIABLE_KEYS                      0x00000040
+#define HAM_DISABLE_VARIABLE_KEYS                   0x00000040
+/* deprecated */
+#define HAM_DISABLE_VAR_KEYLEN                      HAM_DISABLE_VARIABLE_KEYS
 
 /** Flag for @ref ham_env_create.
  * This flag is non persistent. */
@@ -1381,13 +1387,13 @@ ham_db_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        Database
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
- * @return @ref HAM_INV_KEYSIZE if the key size is larger than the @a keysize
+ * @return @ref HAM_INV_KEY_SIZE if the key size is larger than the @a keysize
  *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VARIABLE_KEYS)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8
  *        OR if the key's size is greater than the Btree key size (see
- *        @ref HAM_PARAM_KEYSIZE) and extended keys are not enabled (see
+ *        @ref HAM_PARAM_KEY_SIZE) and extended keys are not enabled (see
  *        @ref HAM_ENABLE_EXTENDED_KEYS).
  *
  * @sa HAM_DISABLE_VARIABLE_KEYS
@@ -1530,7 +1536,7 @@ ham_db_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *    <li>HAM_PARAM_FLAGS</li> returns the flags which were used to
  *        open or create this Database
  *    <li>HAM_PARAM_DATABASE_NAME</li> returns the Database name
- *    <li>HAM_PARAM_KEYSIZE</li> returns the Btree key size
+ *    <li>HAM_PARAM_KEY_SIZE</li> returns the Btree key size
  *    <li>HAM_PARAM_MAX_KEYS_PER_PAGE</li> returns the maximum number
  *        of keys per page
  *    </ul>
@@ -1547,13 +1553,19 @@ ham_db_get_parameters(ham_db_t *db, ham_parameter_t *param);
 
 /** Parameter name for @ref ham_env_open, @ref ham_env_create;
  * sets the cache size */
-#define HAM_PARAM_CACHESIZE             0x00000100
+#define HAM_PARAM_CACHE_SIZE            0x00000100
+/* deprecated */
+#define HAM_PARAM_CACHESIZE             HAM_PARAM_CACHE_SIZE
 
 /** Parameter name for @ref ham_env_create; sets the page size */
-#define HAM_PARAM_PAGESIZE              0x00000101
+#define HAM_PARAM_PAGE_SIZE             0x00000101
+/* deprecated */
+#define HAM_PARAM_PAGESIZE              HAM_PARAM_PAGE_SIZE
 
 /** Parameter name for @ref ham_env_create_db; sets the key size */
-#define HAM_PARAM_KEYSIZE               0x00000102
+#define HAM_PARAM_KEY_SIZE              0x00000102
+/* deprecated */
+#define HAM_PARAM_KEYSIZE               HAM_PARAM_KEY_SIZE
 
 /** Parameter name for @ref ham_env_create; sets the number of maximum
  * Databases */
@@ -2243,13 +2255,13 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
  *        flag @ref HAM_ENABLE_DUPLICATE_KEYS.
  * @return @ref HAM_WRITE_PROTECTED if you tried to insert a key to a read-only
  *        Database.
- * @return @ref HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
+ * @return @ref HAM_INV_KEY_SIZE if the key's size is larger than the @a keysize
  *        parameter specified for @ref ham_env_create and variable
  *        key sizes are disabled (see @ref HAM_DISABLE_VARIABLE_KEYS)
  *        OR if the @a keysize parameter specified for @ref ham_env_create
  *        is smaller than 8
  *        OR if the key's size is greater than the Btree key size (see
- *        @ref HAM_PARAM_KEYSIZE) and extended keys are not enabled (see
+ *        @ref HAM_PARAM_KEY_SIZE) and extended keys are not enabled (see
  *        @ref HAM_ENABLE_EXTENDED_KEYS).
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another

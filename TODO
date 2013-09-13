@@ -81,7 +81,7 @@ x rewrite configure.in; look at libuv for a good sample
 
 x fix java compiler warnings
 
-o prepare btree rewrite; the goal is to move all node-specific operations
+x prepare btree rewrite; the goal is to move all node-specific operations
     into the node itself, and ultimately...
     - get rid of BtreeIndex::compare
     - no longer require a status code return value in the compare function
@@ -221,21 +221,7 @@ o prepare btree rewrite; the goal is to move all node-specific operations
     x rename PBtreeNode::*ptr_left* to *ptr_down*
     x rename PBtreeKey::*et_ptr to *et_record_id*
 
-    o === run performance tests ===
-
-    o if performance is fine: rebase/merge with v2
-
-    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
-        a new BtreeNodeProxy in the factory; add a new comparator and
-        reimplement everything for a 32bit integer
-        o does not require 2 bytes for key size
-        o needs its own custom compare object
-        o requires new monster tests (generate them dynamically, not via
-            scripts?)
-        o does it makes sense to have PAX storage in the node? run a short
-            benchmark
-    o Create all other POD types
-    o use HAM_TYPE_UINT64 for record numbers
+    x run performance tests
 
     x After the implementation, the following rules apply:
         x The database compare callback will not be used if the POD type
@@ -254,23 +240,114 @@ o prepare btree rewrite; the goal is to move all node-specific operations
             x DuplicateManager
 
 x btree_node_proxy: has naming inconsistencies of 'slot' vs 'index'
-o btree_erase: merge_page: if a page is merged, it has to be deleted. but
-    it seems that it's not moved to the freelist. double-check!
-o btree metrics: count SMOs (page splits, merges, shifts)
-
-o relax requirements from shift_keys
-    o reduce "minkeys"
-    o only shift if the number of shifted keys ("c") exceeds a certain
-        threshold
-    o ... or get rid of the shifting completely, and always resort to merging
-
-o fix naming consistencies - HAM_PARAM_CONST_KEY_SIZE but HAM_PARAM_PAGESIZE,
-    etc
-
+x monster-test: always enables extended keys if keys are not numeric
 x btree_insert: make sure that record numbers really pick pivots at the
     end of the page! - yes, this is fine
-
 x btree_key: has Transaction pointer for certain operations -> not required!
+x btree_erase: merge_page: if a page is merged, it has to be deleted. but
+    it seems that it's not moved to the freelist. double-check!
+    -> use BtreeEraseFixture::shiftFromLeftTest for testing
+    -> currently implemented, will see how it goes
+x btree metrics: count SMOs (page splits, merges, shifts)
+    (and print them in monster test)
+
+x fix naming consistencies - HAM_PARAM_CONST_KEY_SIZE but HAM_PARAM_PAGESIZE,
+    etc
+    x deprecate the old versions
+
+x relax requirements from shift_keys
+    x reduce "minkeys" from 50% to 20%
+    x only shift if the number of shifted keys ("c") exceeds a certain
+        threshold
+    x run performance tests
+
+o use parameterized btree for fix sized POD types
+    o if performance is fine: rebase/merge with v2
+    o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
+        a new BtreeNodeProxy in the factory; add a new comparator and
+        reimplement everything for a 32bit integer
+        o use PAX style storage in the node (flags, keys, records)
+            - separate flags
+            - separate keys (fixed length only - for now)
+            - separate records (as of now)
+            o calculate layout when creating the node (the layout is fixed,
+                since all sizes are fixed)
+            o move existing layout to btree_node_legacy.h
+                (include btree_key.h)
+                o move PBtreeKey-enum (kExtendedKey etc) somewhere else
+            o implement new template class for the layout (btree_node_pax.h)
+        o needs its own custom compare object
+        o does not require 2 bytes for key size
+        o requires new unittests
+        o requires new monster tests
+    o Create all other POD types
+    o use HAM_TYPE_UINT64 for record numbers
+
+o new monster test requirements
+    -> the current test is difficult to modify when introducing new features
+    like the btree layout; in addition, it would be nice to have different
+    distributions (random insert/erase, zipfian etc).
+    -> tests are generated on the fly with identical outcome, based on the
+    seed and the parameters
+    -> the old files should still be working; they're good and uncovered many
+    issues
+    -> new interface: ./test <options> <source>
+                    <options> - leave as is, but simplify
+                        --env-create-flags=x|y|z
+                        --env-open-flags=x|y|z
+                        --db-create-flags=x|y|z
+                        --db-open-flags=x|y|z
+                        etc
+                    <source> - either a filename or a generated test
+                        --distribution=random|zipfian|ascending|descending
+                        --seed=<seed> - optional
+                        --tee=<file> - will print the generated test
+                        --key=variable|fixed|u16|u32|string|etc
+                        --key-size=<n>
+                        --record=variable|fixed|null|etc
+                        --record-size=<n>
+                        --duplicates-pct=0
+                        --erase-pct=0
+                        --find-pct=0
+                        --stop-limit=time|size|ops
+    x ./configure: specify directory of hamsterdb installation
+    x get rid of prepare.sh
+    o move the logs to hamsterdb-meta
+    x refactor the current code; it should follow the same standards as the
+        regular hamsterdb code
+    o implement the new features (see above)
+        o clean up existing flags, improve consistency
+            x --progress: allow -p, move to top in "help" screen
+            x --reopen: allow -r, move to top in "help" screen
+            x --cache=unlimited|<size>, remove --cacheunlimited
+            x --duplicate=first|last
+            x --enable-remote -> --use-remote
+            x --fullcheck=forward|find|reverse
+            x --key=numeric|binary
+            x every module operates on a copy of the Configuration object;
+                then we can get rid of the mutex
+            o merge --inmemory,--duplicate,--overwrite,--enable-encryption,
+                    --hints,--disable-mmap,--writethrough,--use-recovery
+                    into comma-separated flags: --flags=F1,F2,F3
+        o create the infrastructure for a test-generator based on
+            various distributions OR existing test files
+        o --distribution (random, zipfian, ascending, descending)
+          - http://www.cse.usf.edu/~christen/tools/toolpage.html
+          - http://coderepos.org/share/browser/lang/cplusplus/boost-supplement/trunk/boost_supplement/random/zipf_distribution.hpp?rev=5908
+        o --seed
+        o --tee (writes the test script to a file)
+        o --key (u32, u64, string, binary; rename "numeric" to "u32")
+        o --key-size (only valid for string, binary)
+        o --record ('fixed', 'variable')
+        o --record-size (is either the fixed or the variable size)
+    o print the whole configuration at startup (unless --quiet was set)
+    o monster.sh: should become a perl script
+    o clean up the 'env' directories, rename to 'sandbox'; do not differentiate
+        between posix and win32; get rid of common (it's replaced by the perl
+        script)
+    o document the whole thing
+    o generate performance graphs (latencies, ops/sec)
+    o it would be great to have additional metrics: IO_WAIT, USER, SYS
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -342,19 +419,12 @@ o continue with the Btree rewrite
     o add "functions" and predicate scans, i.e. COUNT() w/ predicates???
     ------- release -------
     o add combined high-level schemas (combinations of various POD types)
-<<<<<<< HEAD
->>>>>>> Fixing valgrind errors and leaks
->>>>>>> Removed file format cruft, incremented file version
-=======
->>>>>>> BtreeEraseAction (wip)
 
-<<<<<<< HEAD
 o win32: a few unimportant unittests are failing (2.1.2)
 
 o search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
     and fix it
 
-<<<<<<< HEAD
 o monster tests must create performance graphs, namely
     o insert latency
     o erase latency
@@ -388,6 +458,14 @@ o use cache-oblivious b-tree layout
 
 o increase libtool version
 o increase API version in header file (if there are any incompatibilities)
+o clean up API
+    o ham_key_t: data pointer should be const
+    o ham_key_t: remove all "hidden" members (_flags)
+    o ham_record_t: data pointer should be const
+    o ham_record_t: remove all "hidden" members (_flags)
+    o ham_db_insert: parameters should be const
+    o ham_db_find: parameters should be const
+    o ... etc
 
 . win32: need a release-v2.pl which fully automates the various release steps
     o delete all generated protobuf files
@@ -400,8 +478,6 @@ o increase API version in header file (if there are any incompatibilities)
     o run samples
     o build release package
 
-=======
->>>>>>> BtreeEraseAction (wip)
 . it would be interesting to know the distribution of changelog "sizes" during
     a test (i.e. how many operations result in changelogs of size 1, 2, 3 etc)
     and how many operations actually require the WAL
