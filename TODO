@@ -261,11 +261,137 @@ x relax requirements from shift_keys
         threshold
     x run performance tests
 
+x hamsterdb.com performance improvements
+    x remove facebook/twitter/etc widgets from all pages except
+        the frontpage
+    x do not load presentation.css (or at least remove the fontfaces)
+
+o new monster test requirements
+    -> the current test is difficult to modify when introducing new features
+    like the btree layout; in addition, it would be nice to have different
+    distributions (random insert/erase, zipfian etc).
+    -> tests are generated on the fly with identical outcome, based on the
+    seed and the parameters
+    -> the old files should still be working; they're good and uncovered many
+    issues
+    -> new interface: ./test <options> <source>
+    x ./configure: specify directory of hamsterdb installation
+    x get rid of prepare.sh
+    x move the logs to hamsterdb-meta
+    x refactor the current code; it should follow the same standards as the
+        regular hamsterdb code
+    x implement the new features (see above)
+        x create the infrastructure for a test-generator based on
+            various distributions OR existing test files
+        x --distribution (random, zipfian, ascending, descending)
+          - http://www.cse.usf.edu/~christen/tools/toolpage.html
+          - http://coderepos.org/share/browser/lang/cplusplus/boost-supplement/trunk/boost_supplement/random/zipf_distribution.hpp?rev=5908
+        x clean up existing flags, improve consistency
+            x --reopen: allow -r, move to top in "help" screen
+            x --cache=unlimited|<size>, remove --cacheunlimited
+            x --duplicate=first|last
+            x --enable-remote -> --use-remote
+            x --key=uint8|uint16|...|binary
+            x --fullcheck=forward|find|reverse
+            x --use-encryption
+            x --inmemory
+            x --overwrite
+            x --hints
+            x --no-mmap
+            x --use-writethrough -> --use-fsync
+            x --use-recovery
+            x --no-hamsterdb: disable hamsterdb (default: enabled)
+            x --no-berkeleydb: disable berkeleydb (default: enabled)
+            x --no-progress: disable progress bar (default: enabled)
+            x --erase-pct=0
+            x --find-pct=0
+            x --stop-time=time
+            x --stop-size=size
+            x --stop-ops=ops
+        x --key (u32, u64, string, binary; rename "numeric" to "u32")
+        x --keysize (only valid for string, binary)
+        x --record ('fixed', 'variable')
+        x --record-size (is either the fixed or the variable size)
+        x --tee (writes the test script to a file)
+        x --seed
+
+    x always print the whole configuration at startup (even if --quiet was set);
+        include the seed, otherwise tests cannot be repeated!
+
+    x need to print FAIL if the test fails - how to find out?
+        x bad configuration settings
+        x create/open/close/begin_txn/abort_txn/commit_txn are failing
+        x insert returns unexpected error (!= DUPLICATE_KEY)
+        x find returns unexpected error (!= KEY_NOT_FOUND)
+        x erase returns unexpected error (!= KEY_NOT_FOUND)
+
+    x support extended keys - how?
+        -> new parameter --btree-keysize; if not set then make it equal to
+            --keysize. if < --keysize: set ENABLE_EXTENDED_KEYS
+
+    x --duplicate is currently ignored (--overwrite works, though)
+
+    x track metrics
+        x elapsed time
+        x avg throughput (insert ops/bytes per sec, find ops/bytes per sec,
+                    total ops per sec)
+        x latency (avg, min, max) for insert, find, erase, txn_begin,
+            txn_commit, txn_abort
+        x extended metrics (hamsterdb) are printed on request (have to be
+            fetched prior to reopen!)
+            (--metrics=none|default|all)
+        x add file size (after closing!)
+
+    o create sandbox
+        x singlethreaded if bdb is disabled and threading is off
+            - disable fullcheck!
+==============
+        o singlethreaded if hamsterdb is disabled and threading is off
+            - disable fullcheck!
+bdb is not yet working
+./test --no-hamsterdb --stop-ops=26000 --find-pct=50  
+==============
+        o multithreaded if bdb is disabled and threading is on,
+            without synchronization points,
+            enable fullcheck
+        o default: 1 hamsterdb, 1 bdb thread with synchronization points
+            enable fullcheck
+        o multiple hamsterdb threads, 1 bdb thread with synchronization points
+            enable fullcheck
+
+    o create tests
+        o create golden files for the test outputs
+        o test with all possible configurations
+
+    o have more data sources based on dict/words (concatenate, if there are
+        not enough or if they are too short)
+      o StringRandomSource(max)
+      o StringAscendingSource(max)
+      o StringDescendingSource(max)
+      o StringZipfianSource(max)
+
+    o bdb: do not use hardcoded paths; if it's not installed then
+        don't compile without it
+
+    o monster.sh: should become a perl script
+    o clean up the 'env' directories, rename to 'sandbox'; do not differentiate
+        between posix and win32; get rid of common (it's replaced by the perl
+        script)
+    o document the whole thing
+    o generate performance graphs (latencies, ops/sec)
+    o it would be great to have additional metrics: IO_WAIT, USER, SYS
+    o move the whole binary to the hamsterdb main repository? then it's
+        automatically tagged and updated, and easier for everyone to
+        find it. testfiles and the tests for the monster binary can be
+        handled offline, as well as the whole sandbox with the additional
+        stuff
+
 o use parameterized btree for fix sized POD types
-    o if performance is fine: rebase/merge with v2
+    x if performance is fine: rebase/merge with v2
     o Introduce HAM_PARAM_KEY_TYPE == HAM_TYPE_UINT32 and create
         a new BtreeNodeProxy in the factory; add a new comparator and
         reimplement everything for a 32bit integer
+        o need header flag and documentation in the header file
         o use PAX style storage in the node (flags, keys, records)
             - separate flags
             - separate keys (fixed length only - for now)
@@ -282,72 +408,14 @@ o use parameterized btree for fix sized POD types
         o requires new monster tests
     o Create all other POD types
     o use HAM_TYPE_UINT64 for record numbers
+    o use HAM_TYPE_BINARY with variable length is the default
+        (uses legacy layout for now)
 
-o new monster test requirements
-    -> the current test is difficult to modify when introducing new features
-    like the btree layout; in addition, it would be nice to have different
-    distributions (random insert/erase, zipfian etc).
-    -> tests are generated on the fly with identical outcome, based on the
-    seed and the parameters
-    -> the old files should still be working; they're good and uncovered many
-    issues
-    -> new interface: ./test <options> <source>
-                    <options> - leave as is, but simplify
-                        --env-create-flags=x|y|z
-                        --env-open-flags=x|y|z
-                        --db-create-flags=x|y|z
-                        --db-open-flags=x|y|z
-                        etc
-                    <source> - either a filename or a generated test
-                        --distribution=random|zipfian|ascending|descending
-                        --seed=<seed> - optional
-                        --tee=<file> - will print the generated test
-                        --key=variable|fixed|u16|u32|string|etc
-                        --key-size=<n>
-                        --record=variable|fixed|null|etc
-                        --record-size=<n>
-                        --duplicates-pct=0
-                        --erase-pct=0
-                        --find-pct=0
-                        --stop-limit=time|size|ops
-    x ./configure: specify directory of hamsterdb installation
-    x get rid of prepare.sh
-    o move the logs to hamsterdb-meta
-    x refactor the current code; it should follow the same standards as the
-        regular hamsterdb code
-    o implement the new features (see above)
-        o clean up existing flags, improve consistency
-            x --progress: allow -p, move to top in "help" screen
-            x --reopen: allow -r, move to top in "help" screen
-            x --cache=unlimited|<size>, remove --cacheunlimited
-            x --duplicate=first|last
-            x --enable-remote -> --use-remote
-            x --fullcheck=forward|find|reverse
-            x --key=numeric|binary
-            x every module operates on a copy of the Configuration object;
-                then we can get rid of the mutex
-            o merge --inmemory,--duplicate,--overwrite,--enable-encryption,
-                    --hints,--disable-mmap,--writethrough,--use-recovery
-                    into comma-separated flags: --flags=F1,F2,F3
-        o create the infrastructure for a test-generator based on
-            various distributions OR existing test files
-        o --distribution (random, zipfian, ascending, descending)
-          - http://www.cse.usf.edu/~christen/tools/toolpage.html
-          - http://coderepos.org/share/browser/lang/cplusplus/boost-supplement/trunk/boost_supplement/random/zipf_distribution.hpp?rev=5908
-        o --seed
-        o --tee (writes the test script to a file)
-        o --key (u32, u64, string, binary; rename "numeric" to "u32")
-        o --key-size (only valid for string, binary)
-        o --record ('fixed', 'variable')
-        o --record-size (is either the fixed or the variable size)
-    o print the whole configuration at startup (unless --quiet was set)
-    o monster.sh: should become a perl script
-    o clean up the 'env' directories, rename to 'sandbox'; do not differentiate
-        between posix and win32; get rid of common (it's replaced by the perl
-        script)
-    o document the whole thing
-    o generate performance graphs (latencies, ops/sec)
-    o it would be great to have additional metrics: IO_WAIT, USER, SYS
+o COMM: have a CUSTOM data type which allows to
+    o specify the maximum length or the fixed length
+    o can set the compare function i.e. to u32, u64 etc (would use
+        the first N bytes)
+    o ... or to a custom compare function, as usual
 
 o specify timeout for remote client
     x add new option HAM_PARAM_NETWORK_TIMEOUT_SEC
@@ -365,10 +433,9 @@ o specify timeout for remote client
 
 . win32: need a release-v2.pl which fully automates the various release steps
 
-o the prefix compare function API was removed -> needs to be documented!
-    o tutorial
-    o Changelog
-    o README
+o update the documentation/changelog/README/tutorial
+    o the prefix compare function API was removed
+    o the new flags/options
 
 ------------------- release 2.2.0-pre1 unstable --------------------------------
 
