@@ -53,7 +53,7 @@ class BtreeInsertAction
     BtreeInsertAction(BtreeIndex *btree, Transaction *txn, Cursor *cursor,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
       : m_btree(btree), m_txn(txn), m_cursor(0), m_key(key),
-        m_record(record), m_split_rid(0), m_flags(flags) {
+        m_record(record), m_split_rid(0), m_flags(flags), m_final_status(0) {
       if (cursor) {
         m_cursor = cursor->get_btree_cursor();
         ham_assert(m_btree->get_db() == m_cursor->get_parent()->get_db());
@@ -86,6 +86,9 @@ class BtreeInsertAction
         st = append_or_prepend_key();
       else
         st = insert();
+
+      if (st == 0 && m_final_status != 0)
+        st = m_final_status;
 
       if (st)
         stats->insert_failed();
@@ -395,9 +398,13 @@ class BtreeInsertAction
         st = insert_in_leaf(page, key, rid);
 
       // continue if the key is a duplicate; we nevertheless have to
-      // finish the SMO 
-      if (st && st != HAM_DUPLICATE_KEY)
-        return (st);
+      // finish the SMO (but make sure we do not lose the return value)
+      if (st) {
+        if (st == HAM_DUPLICATE_KEY)
+          m_final_status = st;
+        else
+          return (st);
+      }
 
       /* don't overwrite cursor if insert_in_leaf is called again */
       m_cursor = 0;
@@ -573,6 +580,9 @@ class BtreeInsertAction
 
     // flags of ham_db_insert()
     ham_u32_t m_flags;
+
+    // helper to avoid losing the result
+    ham_status_t m_final_status;
 
     // statistical hints for this operation
     BtreeStatistics::InsertHints m_hints;

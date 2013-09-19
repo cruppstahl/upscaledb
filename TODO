@@ -342,26 +342,79 @@ o new monster test requirements
             (--metrics=none|default|all)
         x add file size (after closing!)
 
-    o create sandbox
+    x berkeleydb: set cache size
+    x berkeleydb: set page size (if possible)
+
+    x create sandbox
         x singlethreaded if bdb is disabled and threading is off
             - disable fullcheck!
-==============
-        o singlethreaded if hamsterdb is disabled and threading is off
+        x singlethreaded if hamsterdb is disabled and threading is off
             - disable fullcheck!
-bdb is not yet working
-./test --no-hamsterdb --stop-ops=26000 --find-pct=50  
-==============
-        o multithreaded if bdb is disabled and threading is on,
-            without synchronization points,
-            enable fullcheck
-        o default: 1 hamsterdb, 1 bdb thread with synchronization points
-            enable fullcheck
-        o multiple hamsterdb threads, 1 bdb thread with synchronization points
-            enable fullcheck
+        x default: *only* hamsterdb is running (single-threaded)
+            -> needs --with-berkeleydb instead of --no-berkeleydb
+        x singlethreaded with hamsterdb and bdb, including fullcheck
+            x create 2 generators, run both and print metrics
+            x don't run fullcheck if --fullcheck=none
+            x "reopen" should also trigger fullcheck
+            x implement fullcheck
+            x after "find" compare the records
+            x fullcheck every "n" operations
+        x multiple hamsterdb threads (without bdb)
+            x no synchronization and no fullcheck
+            x with "remote" all threads access the same server with
+                their own connection!
+            x have to "add up" the metrics of all the threads
 
-    o create tests
-        o create golden files for the test outputs
-        o test with all possible configurations
+    x fails: --distribution=ascending --stop-ops=10000
+    x test with --use-cursor are currently failing (bdb)
+    x at startup, print copyright, configuration and hamsterdb version
+        (unless 'quiet')
+    x how to open an existing file, i.e. to perform reads (find-pct=100)?
+    x bdb: do not use hardcoded include/library paths; if it's not installed
+        then compile without it
+    x tests with zipfian distribution are very slow - currently don't see
+        a way to solve this
+
+    x ParserGenerator: reads and executes existing test files
+        x test with multiple threads
+        x implement "reopen"
+        x test vs bdb
+        x test vs bdb and --open
+        x "fullcheck" must be handled by caller
+
+    x monster.sh: should become a perl script (monster.pl)
+        x add switch --dryrun to just test the configuration parameters
+        x make sure all tests are running with monster.pl
+        x have option to run tests with valgrind
+        x make sure tests are run against bdb (currently not the case)
+        x have option to call run_directory($dir, $options) directly
+            from command line
+        x valgrind tests need to check for memleaks and other issues
+
+    x update perftest.pl
+        x print ALL metrics
+        x compare the metrics
+
+    x clean up the 'env' directories, rename to 'sandbox'; do not differentiate
+        between posix and win32; get rid of common (it's replaced by the perl
+        script)
+
+    o generate performance graphs (latencies for insert/erase/find/txn_commit)
+        and maybe map additional events in the graph, like cache flushes
+        o show insert latencies
+        o show find latencies
+        o show erase latencies
+        o show txn_commit latencies
+        o show page fetch/flush operations
+    o move the whole binary to the hamsterdb main repository? then it's
+        automatically tagged and updated, and easier for everyone to
+        find it. testfiles and the tests for the monster binary can be
+        stored in a separate repository (hamsterdb-tests), as well as
+        the whole sandbox with the additional stuff.
+        o bdb is disabled by default, need switch to enable it
+    o document the whole thing
+        - wiki: 1 page for benchmarking
+        - wiki: 1 page for running the tests
 
     o have more data sources based on dict/words (concatenate, if there are
         not enough or if they are too short)
@@ -369,22 +422,6 @@ bdb is not yet working
       o StringAscendingSource(max)
       o StringDescendingSource(max)
       o StringZipfianSource(max)
-
-    o bdb: do not use hardcoded paths; if it's not installed then
-        don't compile without it
-
-    o monster.sh: should become a perl script
-    o clean up the 'env' directories, rename to 'sandbox'; do not differentiate
-        between posix and win32; get rid of common (it's replaced by the perl
-        script)
-    o document the whole thing
-    o generate performance graphs (latencies, ops/sec)
-    o it would be great to have additional metrics: IO_WAIT, USER, SYS
-    o move the whole binary to the hamsterdb main repository? then it's
-        automatically tagged and updated, and easier for everyone to
-        find it. testfiles and the tests for the monster binary can be
-        handled offline, as well as the whole sandbox with the additional
-        stuff
 
 o use parameterized btree for fix sized POD types
     x if performance is fine: rebase/merge with v2
@@ -410,6 +447,11 @@ o use parameterized btree for fix sized POD types
     o use HAM_TYPE_UINT64 for record numbers
     o use HAM_TYPE_BINARY with variable length is the default
         (uses legacy layout for now)
+    o support these types in the new monster test
+
+o move virtual inheritance one level "up" into the BtreeIndex?
+
+o coverity-fixes!
 
 o COMM: have a CUSTOM data type which allows to
     o specify the maximum length or the fixed length
@@ -491,22 +533,6 @@ o win32: a few unimportant unittests are failing (2.1.2)
 
 o search hamsterdb.cc for this: "re-enable this after 2.1.1, when the"...
     and fix it
-
-o monster tests must create performance graphs, namely
-    o insert latency
-    o erase latency
-    o lookup latency
-    o also for bdb!
-    o also be able to include information from a previous release
-    o use an embedded server in perftest.pl
-        (i.e. http://search.cpan.org/~jesse/HTTP-Server-Simple-0.44/lib/HTTP/Server/Simple.pm)
-    use https://developers.google.com/chart/interactive/docs/gallery/linechart
-    and generate a small html file with the graphs, then open it in the browser
-    (if possible).
-    The Y axis is the latency (the lower the better), the X axis is a time
-    indicator (not a timestamp, but a chronologically increasing counter).
-    Also, there should be tooltips with the key size and record size
-    of this particular insert or erase or lookup.
 
 o use cache-oblivious b-tree layout
     o see roadmap document for more information
