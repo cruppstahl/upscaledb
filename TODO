@@ -399,29 +399,45 @@ o new monster test requirements
         between posix and win32; get rid of common (it's replaced by the perl
         script)
 
+o HI Wohnbau
     o generate performance graphs (latencies for insert/erase/find/txn_commit)
         and maybe map additional events in the graph, like cache flushes
-        o show insert latencies
-        o show find latencies
-        o show erase latencies
-        o show txn_commit latencies
-        o show page fetch/flush operations
+        x store insert latencies
+        x store find latencies
+        x store erase latencies
+        x store txn_commit latencies
+        x only for hamsterdb, not for berkeleydb
+========================
+        o also should show "inserts/erase/find/commit per second" graphs
+implementiert, muss noch getestet werden
+
+reset
+set terminal png
+set xlabel "time"
+set ylabel "latency"
+set style data linespoint
+plot "gnuplot.dat" using 1:2 title "insert", \
+"gnuplot.dat1" using 1:2 title "erase", \
+"gnuplot.dat2" using 1:2 title "find"
+
+========================
+        o call gnuplot to generate the graph
+        o show page fetch/flush operations in the graph
+        o how to solve this when doing multithreading? (at least solve it for
+            (XXX per second" graphs)
     o move the whole binary to the hamsterdb main repository? then it's
         automatically tagged and updated, and easier for everyone to
         find it. testfiles and the tests for the monster binary can be
         stored in a separate repository (hamsterdb-tests), as well as
         the whole sandbox with the additional stuff.
-        o bdb is disabled by default, need switch to enable it
-    o document the whole thing
-        - wiki: 1 page for benchmarking
-        - wiki: 1 page for running the tests
+        o make bdb disabled by default, enable it with configure-switch
+        o need a better name
+        o msvc/win32 project files
+        o document the whole thing
+            o wiki: 1 page for benchmarking
+            o wiki: 1 page for running the tests
 
-    o have more data sources based on dict/words (concatenate, if there are
-        not enough or if they are too short)
-      o StringRandomSource(max)
-      o StringAscendingSource(max)
-      o StringDescendingSource(max)
-      o StringZipfianSource(max)
+o coverity-fixes!
 
 o use parameterized btree for fix sized POD types
     x if performance is fine: rebase/merge with v2
@@ -450,8 +466,6 @@ o use parameterized btree for fix sized POD types
     o support these types in the new monster test
 
 o move virtual inheritance one level "up" into the BtreeIndex?
-
-o coverity-fixes!
 
 o COMM: have a CUSTOM data type which allows to
     o specify the maximum length or the fixed length
@@ -506,6 +520,14 @@ high-level plan for 2.2.0 (stable)
 - combine POD types into high-level schemas (split off something for COMM!)
 - file format will be fixed from now on
 - lay the groundwork for concurrency 
+
+o monster test
+    o have more data sources based on dict/words (concatenate, if there are
+        not enough or if they are too short)
+      o StringRandomSource(max)
+      o StringAscendingSource(max)
+      o StringDescendingSource(max)
+      o StringZipfianSource(max)
 
 o continue with the Btree rewrite
     o support linear search through a node (with skip list?)
